@@ -53,3 +53,11 @@ in the permanent source corpus.
 UTF-7/escape/IDNA source encodings remain under a separate production-contract
 audit. This table set cannot close the entire Python source-codec or
 Rust-replacement feature ledger.
+
+
+Source intake composes byte-codec maps with CPython 3.14.7 tokenizer newline
+translation before and after recoding. CRLF contraction, decoded newline
+translation and synthetic terminal LF retain original raw positions; synthetic
+LF maps to the existing end-of-file boundary. This permits HZ CR/CRLF
+continuations and KR shifts to follow the actual byte-source parser. Original
+request bytes and frozen historical reader/AST results remain unchanged.

@@ -21,7 +21,7 @@ def sha(data):
 
 
 def location(text, line, byte_column):
-    original = text.splitlines(keepends=True)[line - 1]
+    original = text.split("\n")[line - 1]
     return len(original.encode("utf-8")[:byte_column].decode("utf-8")) + 1
 
 
@@ -51,6 +51,52 @@ def shapes(tree, text):
     return result
 
 
+def normalize(data):
+    """CPython byte-source newline translation with original boundary indices."""
+    normalized = bytearray()
+    boundaries = [0]
+    index = 0
+    while index < len(data):
+        byte = data[index]
+        index += 1
+        if byte == 13:
+            byte = 10
+            if data[index : index + 1] == b"\n":
+                index += 1
+        normalized.append(byte)
+        boundaries.append(index)
+    if normalized and normalized[-1] != 10:
+        normalized.append(10)
+        boundaries.append(len(data))
+    return bytes(normalized), boundaries
+
+
+def decoded_source(raw, codec):
+    bom = 3 if raw.startswith(b"\xef\xbb\xbf") else 0
+    prepared, prepared_boundaries = normalize(raw[bom:])
+    text = prepared.decode(codec)
+    decoder = codecs.getincrementaldecoder(codec)(errors="strict")
+    decoded_boundaries = {0: bom}
+    offset = 0
+    for index, byte in enumerate(prepared):
+        output = decoder.decode(bytes([byte]), final=False)
+        for which, scalar in enumerate(output):
+            offset += len(scalar.encode())
+            decoded_boundaries[offset] = (
+                prepared_boundaries[index + 1] + bom if which == len(output) - 1 else None
+            )
+    assert decoder.decode(b"", final=True) == ""
+    decoded_boundaries[len(text.encode())] = len(raw)
+    normalized, final_boundaries = normalize(text.encode())
+    text = normalized.decode()
+    boundaries = [[0, decoded_boundaries[final_boundaries[0]]]]
+    offset = 0
+    for scalar in text:
+        offset += len(scalar.encode())
+        boundaries.append([offset, decoded_boundaries[final_boundaries[offset]]])
+    return text, boundaries
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("frozen", type=Path)
@@ -76,6 +122,13 @@ def main():
         assert sha(raw) == case["raw_sha256"], case["id"]
         if "codec_text_sha256" in case:
             assert sha(raw.decode(case["codec"]).encode()) == case["codec_text_sha256"]
+        if "codec_text_error" in case:
+            try:
+                raw.decode(case["codec"])
+            except UnicodeError as error:
+                assert type(error).__name__ == case["codec_text_error"], case["id"]
+            else:
+                raise AssertionError(case["id"])
         try:
             tree = ast.parse(raw, filename="main.py")
             actual = {"accepted": True}
@@ -116,23 +169,8 @@ def main():
             assert actual == case["original_metrics"], case["id"]
         expected = case["expected"]
         if expected["source_accepted"]:
-            text = raw.decode(case["codec"])
-            bom = 3 if raw.startswith(b"\xef\xbb\xbf") else 0
-            if bom:
-                text = text.removeprefix("\ufeff")
+            text, boundaries = decoded_source(raw, case["codec"])
             assert text == expected["text"], case["id"]
-            decoder = codecs.getincrementaldecoder(case["codec"])(errors="strict")
-            boundaries = [[0, bom]]
-            offset = 0
-            for index, byte in enumerate(raw[bom:], start=bom):
-                output = decoder.decode(bytes([byte]), final=False)
-                for which, scalar in enumerate(output):
-                    offset += len(scalar.encode())
-                    boundaries.append([offset, index + 1 if which == len(output) - 1 else None])
-            assert decoder.decode(b"", final=True) == ""
-            # Trailing state changes consume bytes without emitting text.
-            # The terminal span includes that original suffix.
-            boundaries[-1][1] = len(raw)
             assert boundaries == expected["raw_boundaries"], case["id"]
             if tree:
                 actual = shapes(tree, text)

@@ -272,21 +272,6 @@ pub(crate) fn hz(
     raw_base: usize,
     cancellation: Option<&AtomicBool>,
 ) -> Result<Decoded, SourceError> {
-    hz_decode(bytes, raw_base, cancellation, false)
-}
-pub(crate) fn hz_source(
-    bytes: &[u8],
-    raw_base: usize,
-    cancellation: Option<&AtomicBool>,
-) -> Result<Decoded, SourceError> {
-    hz_decode(bytes, raw_base, cancellation, true)
-}
-fn hz_decode(
-    bytes: &[u8],
-    raw_base: usize,
-    cancellation: Option<&AtomicBool>,
-    python_source: bool,
-) -> Result<Decoded, SourceError> {
     if bytes.is_ascii() && !bytes.contains(&b'~') {
         return crate::codecs::decode(Codec::Utf8, bytes, raw_base, cancellation);
     }
@@ -328,12 +313,6 @@ fn hz_decode(
             2
         };
         offset += width;
-    }
-    // CPython's byte-source tokenizer supplies a final newline before source
-    // recoding. A terminal GB shift is valid standalone HZ text, but that
-    // implicit newline is invalid in GB mode and cannot be parsed as Python.
-    if python_source && shifted {
-        return Err(builder.invalid("hz"));
     }
     Ok(builder.finish(bytes.len()))
 }

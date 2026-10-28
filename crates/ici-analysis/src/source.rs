@@ -2,6 +2,7 @@
 use ici_domain::{InspectionTarget, SourceInput, SourceSpan};
 use regex::bytes::Regex;
 use ruff_text_size::TextRange;
+use std::borrow::Cow;
 use std::sync::LazyLock;
 
 pub const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
@@ -31,6 +32,7 @@ pub struct SourceDocument {
     pub text: String,
     pub encoding: String,
     pub bom_bytes: usize,
+    original_text: Option<String>,
     starts: Vec<usize>,
     raw_offsets: Option<crate::codecs::OffsetMap>,
 }
@@ -38,6 +40,55 @@ static COOKIE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?-u)^[ \t\x0c]*#.*?coding[:=][ \t]*([-A-Za-z0-9_.]+)")
         .expect("constant encoding regex")
 });
+
+struct NormalizedBytes {
+    bytes: Vec<u8>,
+    offsets: Vec<(usize, usize)>,
+}
+fn normalize_newlines(
+    bytes: &[u8],
+    cancellation: Option<&std::sync::atomic::AtomicBool>,
+) -> Result<NormalizedBytes, SourceError> {
+    let mut normalized = Vec::with_capacity(bytes.len().saturating_add(1));
+    let mut offsets = Vec::new();
+    let (mut index, mut checked) = (0, 0);
+    while index < bytes.len() {
+        if index >= checked {
+            checked = index + 4096;
+            if crate::cancellation_requested(cancellation) {
+                return Err(SourceError::new(
+                    "cancelled",
+                    "Source normalization was cancelled",
+                ));
+            }
+        }
+        if bytes[index] == b'\r' {
+            normalized.push(b'\n');
+            index += 1;
+            if bytes.get(index) == Some(&b'\n') {
+                index += 1;
+                if offsets.is_empty() {
+                    offsets.push((0, 0));
+                }
+                offsets.push((normalized.len(), index));
+            }
+        } else {
+            normalized.push(bytes[index]);
+            index += 1;
+        }
+    }
+    if !normalized.is_empty() && normalized.last() != Some(&b'\n') {
+        normalized.push(b'\n');
+        if offsets.is_empty() {
+            offsets.push((0, 0));
+        }
+        offsets.push((normalized.len(), bytes.len()));
+    }
+    Ok(NormalizedBytes {
+        bytes: normalized,
+        offsets,
+    })
+}
 
 impl SourceDocument {
     pub fn decode(input: &SourceInput) -> Result<Self, SourceError> {
@@ -131,18 +182,66 @@ impl SourceDocument {
                 format!("Source encoding {encoding:?} is not supported; file was not analyzed"),
             )
         })?;
-        let decoded = if python_source && matches!(codec, crate::codecs::Codec::Hz) {
-            crate::stateful::hz_source(bytes, bom_bytes, cancellation)?
+        // CPython's byte-source tokenizer translates raw CR/CRLF and supplies
+        // a terminal LF before recoding; decoded CR/CRLF is normalized again.
+        // The composed map preserves the original request's raw boundaries.
+        let (prepared, raw_offsets) = if python_source
+            && (bytes.contains(&b'\r') || !bytes.is_empty() && bytes.last() != Some(&b'\n'))
+        {
+            let NormalizedBytes {
+                bytes: prepared,
+                offsets,
+            } = normalize_newlines(bytes, cancellation)?;
+            (Cow::Owned(prepared), offsets)
         } else {
-            crate::codecs::decode(codec, bytes, bom_bytes, cancellation)?
+            (Cow::Borrowed(bytes), Vec::new())
         };
-        let (text, raw_offsets) = (decoded.text, decoded.map);
+        let decoded = crate::codecs::decode(codec, &prepared, 0, cancellation)?;
+        let (text, input_text, decoded_offsets) = if python_source
+            && (decoded.text.contains('\r')
+                || !decoded.text.is_empty() && !decoded.text.ends_with('\n'))
+        {
+            let NormalizedBytes {
+                bytes: text,
+                offsets,
+            } = normalize_newlines(decoded.text.as_bytes(), cancellation)?;
+            let input_text = offsets
+                .iter()
+                .any(|(normalized, original)| normalized < original)
+                .then_some(decoded.text);
+            (
+                String::from_utf8(text).expect("normalization preserves UTF-8"),
+                input_text,
+                offsets,
+            )
+        } else {
+            (decoded.text, None, Vec::new())
+        };
+        let raw_offsets = if raw_offsets.is_empty() && decoded_offsets.is_empty() {
+            decoded.map
+        } else {
+            Some(crate::codecs::OffsetMap::Transformed {
+                inner: decoded.map.map(Box::new),
+                input_text,
+                decoded_offsets,
+                raw_offsets,
+            })
+        };
         if text.contains('\0') {
             return Err(SourceError::new(
                 "invalid-text",
                 "Source contains a NUL character",
             ));
         }
+        // Preserve report excerpts when the original UTF-8 view differs only
+        // in newline spelling or the synthetic terminal LF. Encoded control
+        // sequences that change source meaning keep the canonical decoded view.
+        let original_text =
+            if python_source && bytes != text.as_bytes() && prepared.as_ref() == text.as_bytes() {
+                std::str::from_utf8(bytes).ok().map(str::to_owned)
+            } else {
+                None
+            };
         let mut starts = vec![0];
         let bytes = text.as_bytes();
         for (index, byte) in bytes.iter().enumerate() {
@@ -155,6 +254,7 @@ impl SourceDocument {
             text,
             encoding,
             bom_bytes,
+            original_text,
             starts,
             raw_offsets,
         })
@@ -186,6 +286,10 @@ impl SourceDocument {
                     .saturating_mul(std::mem::size_of::<usize>()),
             )
             .saturating_add(self.raw_offsets.as_ref().map_or(0, |map| map.heap_bytes()))
+            .saturating_add(self.original_text.as_ref().map_or(0, String::capacity))
+    }
+    pub(crate) fn report_text(&self) -> &str {
+        self.original_text.as_deref().unwrap_or(&self.text)
     }
     pub fn span(&self, range: TextRange) -> SourceSpan {
         debug_assert!(self.raw_offset(range.start().to_usize()).is_some());
@@ -222,7 +326,9 @@ impl SourceDocument {
         }
         match &self.raw_offsets {
             None => Some(decoded + self.bom_bytes),
-            Some(map) => map.raw_offset(&self.text, decoded),
+            Some(map) => map
+                .raw_offset(&self.text, decoded)
+                .map(|raw| raw + self.bom_bytes),
         }
     }
     pub fn snippet(&self, range: TextRange, max_lines: usize) -> String {

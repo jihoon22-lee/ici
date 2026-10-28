@@ -1494,7 +1494,12 @@ fn frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input() {
     };
     input.bytes[0] = b'#';
     let source = SourceDocument::decode(&input).unwrap();
-    assert_eq!(source.text.len(), 16 * 1024 * 1024);
+    assert_eq!(source.text.len(), 16 * 1024 * 1024 + 1);
+    assert_eq!(source.report_text().len(), 16 * 1024 * 1024);
+    assert_eq!(
+        source.raw_offset(source.text.len()),
+        Some(input.bytes.len())
+    );
     assert_eq!(source.lines().count(), 1);
     input.bytes.push(b' ');
     assert_eq!(
@@ -2177,4 +2182,37 @@ fn parser_cache_accounts_for_large_decoded_raw_boundary_allocations() {
     assert_eq!(session.analyze(&input).status, "PASS");
     assert_eq!(session.parser_invocations(), invocations);
     assert!(session.cache_weight > 0 && session.cache_weight <= CACHE_BUDGET);
+}
+
+#[test]
+fn python_newline_recoding_composes_raw_boundaries_without_changing_other_files() {
+    let raw = b"# coding: utf-8\r\nx=1";
+    let source = SourceDocument::decode(&SourceInput {
+        path: "main.py".into(),
+        bytes: raw.to_vec(),
+    })
+    .unwrap();
+    assert_eq!(source.text, "# coding: utf-8\nx=1\n");
+    assert_eq!(
+        source.raw_offset(source.text.find('x').unwrap()),
+        Some(raw.iter().position(|byte| *byte == b'x').unwrap())
+    );
+    assert_eq!(source.raw_offset(source.text.len() - 1), Some(raw.len()));
+    assert_eq!(source.raw_offset(source.text.len()), Some(raw.len()));
+    let other = SourceDocument::decode(&SourceInput {
+        path: "notes.txt".into(),
+        bytes: raw.to_vec(),
+    })
+    .unwrap();
+    assert_eq!(other.text.as_bytes(), raw);
+    assert_eq!(other.raw_offset(other.text.len()), Some(raw.len()));
+    assert_eq!(
+        SourceDocument::decode(&SourceInput {
+            path: "README.md".into(),
+            bytes: b"# coding: no_such_codec\r\nnotes".to_vec()
+        })
+        .unwrap()
+        .text,
+        "# coding: no_such_codec\r\nnotes"
+    );
 }

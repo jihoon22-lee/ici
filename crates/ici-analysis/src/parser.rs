@@ -7,7 +7,7 @@ use ruff_python_ast::{AnyNodeRef, Mod, PythonVersion};
 use ruff_python_parser::{Mode, ParseOptions, Parsed, lexer, parse_unchecked};
 use ruff_text_size::Ranged;
 
-pub const PARSER_IDENTITY: &str = "ruff-11c76bf48fdac06b2f240cba502eda96da4dce77:source-v3:codecs-cpython3147-iso2022:scope-v1:unicode16";
+pub const PARSER_IDENTITY: &str = "ruff-11c76bf48fdac06b2f240cba502eda96da4dce77:source-v4:codecs-cpython3147-newlines:scope-v1:unicode16";
 pub const MAX_AST_NODES: usize = 250_000;
 pub struct ParsedFile {
     pub source: SourceDocument,

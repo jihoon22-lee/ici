@@ -386,7 +386,7 @@ pub(crate) fn normalize(
     Ok(DuplicateFileData {
         file_path: file.source.path.clone(),
         language: "python".into(),
-        raw_text: file.source.text.clone(),
+        raw_text: file.source.report_text().to_owned(),
         indexed,
         regions,
     })

@@ -298,7 +298,7 @@ CP932 wave dash, CP932 private-use bytes and CP864's non-identity ASCII percent.
 
 The native corpus compares 7,322,676 byte-input observations against CPython
 3.14.7: every single/double-byte combination per table, every GB18030 four-byte
-pointer and all EUC-KR Hangul composition forms. Eighty-six frozen source fixtures
+pointer and all EUC-KR Hangul composition forms. Ninety-two frozen source fixtures
 also preserve original UTF-8-only intake/metrics observations and independent
 CPython byte-source AST semantics. They verify strict failures, BOM/cookie
 normalization, encoded identifiers, Unicode columns and original byte
@@ -359,3 +359,12 @@ and records that difference explicitly in the fixture.
 python3.14 -I -B tests/rust-parity/python/scope_oracle.py FROZEN_CHECKOUT \
   --dependencies .venv/lib/python3.10/site-packages
 ```
+
+
+Python byte-source intake now follows the fixed CPython tokenizer's two newline
+translations: raw CR/CRLF and terminal LF before codec recoding, then decoded
+CR/CRLF and terminal LF afterward. Composed maps connect canonical Unicode
+coordinates to original bytes, including zero-width synthetic terminal LF.
+The corpus preserves original reader/AST outcomes while verifying HZ CR/CRLF
+continuations, KR shift reset, mixed UTF-8 newlines and NEL inside literals.
+Non-Python line inputs keep their original UTF-8 text and ignore Python cookies.

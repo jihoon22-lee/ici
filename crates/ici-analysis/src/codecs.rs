@@ -54,6 +54,12 @@ const ASCII_IDENTITIES: [bool; TABLES.len()] = ascii_identities();
 pub(crate) enum OffsetMap {
     SingleByte(Vec<(usize, usize)>),
     Boundaries(Vec<(u32, u32)>),
+    Transformed {
+        inner: Option<Box<OffsetMap>>,
+        input_text: Option<String>,
+        decoded_offsets: Vec<(usize, usize)>,
+        raw_offsets: Vec<(usize, usize)>,
+    },
     Variable {
         /// UTF-8 position, raw position and scalar-width index at atom boundaries.
         checkpoints: Vec<(usize, usize, usize)>,
@@ -78,10 +84,47 @@ impl OffsetMap {
                 .capacity()
                 .saturating_mul(std::mem::size_of::<(usize, usize, usize)>())
                 .saturating_add(widths.capacity()),
+            Self::Transformed {
+                inner,
+                input_text,
+                decoded_offsets,
+                raw_offsets,
+            } => inner
+                .as_ref()
+                .map_or(0, |map| map.heap_bytes())
+                .saturating_add(input_text.as_ref().map_or(0, String::capacity))
+                .saturating_add(
+                    decoded_offsets
+                        .capacity()
+                        .saturating_add(raw_offsets.capacity())
+                        .saturating_mul(std::mem::size_of::<(usize, usize)>()),
+                ),
         }
     }
     pub fn raw_offset(&self, text: &str, decoded: usize) -> Option<usize> {
         match self {
+            Self::Transformed {
+                inner,
+                input_text,
+                decoded_offsets,
+                raw_offsets,
+            } => {
+                fn translated(points: &[(usize, usize)], offset: usize) -> usize {
+                    let Some(index) = points
+                        .partition_point(|point| point.0 <= offset)
+                        .checked_sub(1)
+                    else {
+                        return offset;
+                    };
+                    points[index].1 + offset - points[index].0
+                }
+                let original = translated(decoded_offsets, decoded);
+                let raw = match inner {
+                    None => original,
+                    Some(map) => map.raw_offset(input_text.as_deref().unwrap_or(text), original)?,
+                };
+                Some(translated(raw_offsets, raw))
+            }
             Self::Boundaries(boundaries) => boundaries
                 .binary_search_by_key(&(decoded as u32), |(offset, _)| *offset)
                 .ok()
