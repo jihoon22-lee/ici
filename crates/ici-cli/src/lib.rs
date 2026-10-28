@@ -9,6 +9,7 @@ pub mod export_context;
 pub mod inputs;
 pub mod legacy;
 pub mod legacy_execute;
+pub mod legacy_lines;
 pub mod planning;
 pub mod preparation;
 pub mod publish;

@@ -202,10 +202,36 @@ pub fn plan_with_checks(
                         .settings
                         .pointer("/engines/integration/required")
                         .and_then(serde_json::Value::as_bool)
+                        == Some(true)
+                    || component
+                        .settings
+                        .pointer("/engines/integration/enabled")
+                        .and_then(serde_json::Value::as_bool)
                         == Some(true));
+            let declared_integration = integration_owner
+                && (request.checks.iter().any(|id| id == "integration")
+                    || component
+                        .checks
+                        .get("integration")
+                        .or_else(|| project.checks.get("integration"))
+                        .is_some_and(|setting| {
+                            setting.enabled
+                                && (setting
+                                    .settings
+                                    .get("enabled")
+                                    .and_then(serde_json::Value::as_bool)
+                                    == Some(true)
+                                    || setting
+                                        .settings
+                                        .get("required")
+                                        .and_then(serde_json::Value::as_bool)
+                                        == Some(true))
+                        }));
             let applies = component.languages.contains(&definition.language)
                 || (definition.id == "integration"
-                    && (!component.integrations.is_empty() || legacy_integration));
+                    && (!component.integrations.is_empty()
+                        || legacy_integration
+                        || declared_integration));
             if !applies || !request.wants(definition) {
                 continue;
             }

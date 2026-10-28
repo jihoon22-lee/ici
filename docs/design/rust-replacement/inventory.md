@@ -132,7 +132,7 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `ici export-compilation-context` | 4 | not_started |
 | `ici import-report` | 5 | complete |
 | `ici init` | 4 | not_started |
-| `ici line` | 1 | not_started |
+| `ici line` | 1 | verified |
 | `ici lint` | 1 | not_started |
 | `ici next diff` | 2 | not_started |
 | `ici next doctor` | 7 | not_started |

@@ -36,6 +36,7 @@ pub struct PreparedPlan {
     pub artifact_builds: BTreeMap<String, crate::artifact_build::ArtifactBuildPlan>,
     pub context_preparations: Vec<crate::export_context::ContextPreparationPlan>,
     pub source_identity: crate::vcs::VcsPlan,
+    pub legacy_lines: BTreeMap<String, crate::legacy_lines::LineScope>,
 }
 pub fn prepare(
     invocation: &Invocation,
@@ -211,6 +212,7 @@ fn prepare_resolved_omitting(
         checks: selected_checks,
     };
     let mut cpp = crate::cpp::CppPlans::default();
+    cpp.legacy_projection = crate::legacy::is_legacy(invocation);
     let mut artifact_builds = BTreeMap::new();
     let mut validations = BTreeMap::new();
     let mut providers = BTreeMap::new();
@@ -544,6 +546,8 @@ fn prepare_resolved_omitting(
     }
     let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
     let source_identity = crate::vcs::plan(&project, environment);
+    let legacy_lines =
+        crate::legacy_lines::collect(&project, &plan, invocation, generated_outputs)?;
     Ok(PreparedPlan {
         project,
         cpp,
@@ -559,16 +563,23 @@ fn prepare_resolved_omitting(
         artifact_builds,
         context_preparations,
         source_identity,
+        legacy_lines,
     })
 }
 pub fn is_command_output(invocation: &Invocation, root: &Path, path: &str) -> bool {
     let path = under(root, path);
+    if crate::legacy::engine(&invocation.command()).is_some_and(|family| {
+        crate::report::same_file(&path, &root.join(format!("{family}_report.json")))
+    }) {
+        return true;
+    }
     let explicit = [
         "result",
         "events",
         "html",
         "sarif",
         "write_baseline",
+        "baseline",
         "page",
     ]
     .into_iter()
@@ -667,6 +678,7 @@ impl PreparedPlan {
                     if !task.work_dirs.is_empty(){entry["work_dirs"]=json!(task.work_dirs);}
                     if p.advisory(){entry["advisory"]=json!(true);}
                 }
+                if let Some(scope)=self.legacy_lines.get(&p.task_id) { entry["line_scope"]=json!(scope); }
                 let conditions:BTreeMap<_,_>=self.validations.get(&p.task_id).into_iter().flatten().flat_map(|plan|plan.conditional_steps.iter()).collect();
                 if !conditions.is_empty() {entry["conditional_steps"]=json!(conditions);}
                 entry
@@ -774,6 +786,13 @@ impl PreparedPlan {
                 text.push_str(&format!("  {}: {detail}\n", check.task_id));
                 for plan in self.validations.get(&check.task_id).into_iter().flatten() {
                     for (step, condition) in &plan.conditional_steps {
+                        if let Some(module) = &condition.missing_module {
+                            text.push_str(&format!(
+                                "    {step}: only when {} confirms module {module} is absent\n",
+                                condition.probe_task_id
+                            ));
+                            continue;
+                        }
                         text.push_str(&format!(
                             "    {step}: only when {} confirms coverage is {}\n",
                             condition.probe_task_id,

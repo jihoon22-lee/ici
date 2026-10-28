@@ -36,6 +36,12 @@ pub fn capture_preserving(
         .filter(|component| prepared.plan.components.contains(&component.id))
         .flat_map(|component| component.files.iter().cloned())
         .collect();
+    sources.extend(
+        prepared
+            .legacy_lines
+            .values()
+            .flat_map(|scope| scope.inputs.iter().cloned()),
+    );
     for plans in prepared.validations.values() {
         for task in plans.iter().flat_map(|plan| &plan.tasks) {
             for reference in &task.input_refs {
@@ -175,6 +181,12 @@ pub fn code_evidence_paths(prepared: &PreparedPlan) -> BTreeSet<String> {
         .flat_map(|check| prepared.cpp.evidence_code_inputs_for(&check.task_id))
         .chain(
             prepared
+                .legacy_lines
+                .values()
+                .flat_map(|scope| scope.inputs.iter().cloned()),
+        )
+        .chain(
+            prepared
                 .artifact_builds
                 .values()
                 .flat_map(|build| build.binary_inputs.iter().cloned()),
@@ -231,12 +243,15 @@ pub fn analysis_request(
     legacy: bool,
 ) -> AnalysisRequest {
     let component = component(prepared, planned);
-    let paths: Vec<_> = component
+    let mut paths: Vec<_> = component
         .files
         .iter()
         .filter(|path| file_language(path) == Some(planned.check.language.as_str()))
         .cloned()
         .collect();
+    if let Some(scope) = prepared.legacy_lines.get(&planned.task_id) {
+        paths = scope.inputs.clone();
+    }
     let mut inputs: Vec<_> = paths
         .iter()
         .filter_map(|path| snapshot.files.get(path).map(|file| file.input.clone()))
@@ -299,6 +314,10 @@ pub fn analysis_options(prepared: &PreparedPlan, planned: &PlannedCheck, legacy:
     options["source_roots"] = json!(source_roots(component, &prepared.project.root));
     options["source_paths"] = json!(paths);
     options["gated_paths"] = json!(paths);
+    if legacy && let Some(scope) = prepared.legacy_lines.get(&planned.task_id) {
+        options["source_paths"] = json!(scope.source_paths);
+        options["gated_paths"] = json!(scope.gated_paths);
+    }
     options["legacy_projection"] = json!(legacy);
     options
 }
@@ -345,6 +364,9 @@ pub fn check_records(
         let options = analysis_options(prepared, planned, prepared.legacy_projection);
         let mut context =
             json!({"options":options,"build":component.build,"externals":component.external});
+        if let Some(configuration) = prepared.cpp.observed_configuration_for(&planned.task_id) {
+            context["cpp_observed_configuration"] = configuration;
+        }
         let mut files: BTreeSet<_> = component
             .files
             .iter()
@@ -352,6 +374,9 @@ pub fn check_records(
             .cloned()
             .collect();
         files.extend(prepared.cpp.evidence_code_inputs_for(&planned.task_id));
+        if let Some(scope) = prepared.legacy_lines.get(&planned.task_id) {
+            files.extend(scope.inputs.iter().cloned());
+        }
         if let Some(plans) = prepared.validations.get(&planned.task_id) {
             context["validation"]=json!(plans.iter().map(|plan|json!({"kind":plan.kind,"options":plan.context.options,"sources":plan.context.source_files,"targets":plan.context.targets})).collect::<Vec<_>>());
             let invocations: Vec<_> = planned

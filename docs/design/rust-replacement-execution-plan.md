@@ -1,5 +1,26 @@
 # ici Rust 전면 교체 실행 계획
 
+### Legacy line scope and gate policy follow-up (2026-10-29)
+
+- Historical line input collection now includes shell/configuration/document files, with separate
+  source and gated path lists and single ownership in hybrid components. It captures those bytes
+  for drift/reuse and excludes current command artifacts and comparison baselines. Actual C++ and
+  hybrid commands verify strict thresholds, source/extra labels, repeated exports, source-only top
+  rankings and direct legacy extra fields. Four CLI regressions passed in 37.18 s, including all
+  three legacy modes and new warning baseline gating (`root-line-integration-final.log`).
+- Completed legacy WARN remains a successful ordinary gate while retaining measured findings.
+  Their advisory role is independent of evidence, and explicit fail-on-new still gates a newly
+  actionable warning. Modern fail-on-violation policy and incomplete checks remain unchanged.
+- Empty optional integration produces located applicability evidence (actual command 13.25 s);
+  required empty scope remains incomplete. Eleven planning tests and the reporting facet/pipeline/
+  rendering suites passed, followed by strict CLI/reporting/application Clippy in the same log.
+  The final NA/Measured/Estimated sibling projection regression and strict reporting Clippy passed
+  separately (`root-na-projection-final.log`).
+- Full line-descriptor closure remains open: documentation-only trees without a Python/C++
+  component and ownership of root extras in automatic monorepos still require explicit acceptance.
+  Typed multi-check test metrics and other family aggregation are audited separately; preserving
+  nested raw evidence alone is not treated as proof of the historical flat consumer contract.
+
 ### Configuration diagnostic audit (2026-10-29)
 
 - Frozen `config/reader.py` and `config/errors.py` aggregate independent problems. Native schema

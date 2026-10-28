@@ -4188,16 +4188,32 @@
       "id": "command:ici line",
       "kind": "command",
       "migration": {
-        "comparison": null,
-        "difference_reason": null,
-        "evidence": [],
+        "comparison": "Reviewed complete frozen engines/line.py and analysis/line_count.py. Named fixtures prove legacy source/gate/extras collection, mixed language ownership, strict threshold cutoffs, mode-dependent exit contracts, warning fail-on-new and JSON extra locations. Documentation-only projects with no Python/C++ component and root extras in automatic monorepos remain open acceptance cases, so this row is not complete.",
+        "difference_reason": "All inspected extras retain located targets as required by project invariants, while source-only totals and gating stay separate. Explicit native state, current exports and baselines are not recounted as source. Unsafe links/oversize/intake failures remain explicit; no silent zero evidence.",
+        "evidence": [
+          "Four actual CLI line regressions passed in 37.18 s; strict CLI/reporting/application Clippy passed; /tmp/ici-rust-replacement-20261028/root-line-integration-final.log",
+          "Three reporting pipeline tests including mixed NA/measured sibling evidence and strict reporting Clippy passed; /tmp/ici-rust-replacement-20261028/root-na-projection-final.log"
+        ],
         "fixtures": {
-          "failure": [],
-          "negative": [],
-          "positive": []
+          "failure": [
+            "crates/ici-cli/tests/legacy_line_scope.rs::explicit_fail_on_new_keeps_warning_actionable_without_failing_ordinary_gate"
+          ],
+          "negative": [
+            "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract"
+          ],
+          "positive": [
+            "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds",
+            "crates/ici-cli/tests/legacy_line_scope.rs::legacy_scope_keeps_source_gate_and_extra_inputs_distinct_without_double_counting"
+          ]
         },
-        "rust_paths": [],
-        "status": "not_started"
+        "rust_paths": [
+          "crates/ici-cli/src/legacy_lines.rs",
+          "crates/ici-cli/src/inputs.rs",
+          "crates/ici-cli/src/legacy.rs",
+          "crates/ici-cli/src/legacy_execute.rs",
+          "crates/ici-reporting/src/projection.rs"
+        ],
+        "status": "verified"
       },
       "sources": [
         {
@@ -46112,8 +46128,10 @@
     {
       "audit": {
         "disposition": "unreviewed",
-        "reason": null,
-        "requirements": []
+        "reason": "Module fully read; implemented source/gate/extras/mode compatibility has named actual fixtures, but docs-only and automatic monorepo root-extra scope acceptance still needs resolution before source audit closure.",
+        "requirements": [
+          "command:ici line"
+        ]
       },
       "path": "src/ici/engines/line.py",
       "sha256": "aff0f8336ff84bc6f121172f83147d145a65cbbfcefb8214199d3aa0e3e9365f",

@@ -5,6 +5,66 @@ use ici_domain::{
 use ici_reporting::{ProjectionContext, legacy_projection};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
+
+#[test]
+fn not_applicable_facets_do_not_mask_measured_or_estimated_sibling_evidence() {
+    for (levels, expected) in [
+        (vec![EvidenceLevel::NotApplicable], "NOT_APPLICABLE"),
+        (
+            vec![EvidenceLevel::NotApplicable, EvidenceLevel::NotApplicable],
+            "NOT_APPLICABLE",
+        ),
+        (
+            vec![EvidenceLevel::NotApplicable, EvidenceLevel::Measured],
+            "MEASURED",
+        ),
+        (
+            vec![EvidenceLevel::Measured, EvidenceLevel::NotApplicable],
+            "MEASURED",
+        ),
+        (
+            vec![EvidenceLevel::NotApplicable, EvidenceLevel::Estimated],
+            "ESTIMATED",
+        ),
+    ] {
+        let mut run = RunResult::from_json(include_str!(
+            "../../../tests/fixtures/ici-next/run-success.json"
+        ))
+        .unwrap();
+        run.schema_version = 2;
+        let mut checks = vec![];
+        let mut outputs = BTreeMap::new();
+        for (index, level) in levels.into_iter().enumerate() {
+            let id = format!("task-{index}");
+            checks.push(CheckRecord {
+                task_id: id.clone(),
+                check_id: "python.test".into(),
+                component_id: "tool-a".into(),
+                language: "python".into(),
+                scope_digest: ici_domain::sha256("scope"),
+                state: TaskState::Succeeded,
+                evidence_complete: true,
+                analysis_unit_id: None,
+                variant: None,
+            });
+            let mut output = AnalysisOutput::new(&id, "native");
+            output.status = if level == EvidenceLevel::NotApplicable {
+                "SKIP"
+            } else {
+                "PASS"
+            }
+            .into();
+            output.observation.measurements.push(Measurement {
+                evidence: level,
+                ..Measurement::measured("applicability", 0.0)
+            });
+            outputs.insert(id, output);
+        }
+        run.checks = Some(checks);
+        let projected = legacy_projection(&run, &outputs, &ProjectionContext::default()).unwrap();
+        assert_eq!(projected.as_value()["results"][0]["evidence"], expected);
+    }
+}
 #[test]
 fn original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved() {
     let corpus: Value = serde_json::from_str(include_str!(

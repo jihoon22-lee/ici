@@ -139,7 +139,10 @@ pub fn command(
                 if run.result.findings.iter().any(|finding| {
                     delta.new.contains(&finding.fingerprint)
                         && finding.counts_against_gate()
-                        && (finding.tags.iter().any(|tag| tag == "baseline-only")
+                        && (finding
+                            .tags
+                            .iter()
+                            .any(|tag| tag == "baseline-only" || tag == "legacy-policy-advisory")
                             || !finding.tags.iter().any(|tag| tag == "advisory"))
                 }) && run.result.gate.selected != GateVerdict::Incomplete
                 {

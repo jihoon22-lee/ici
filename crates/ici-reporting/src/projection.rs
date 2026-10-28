@@ -126,6 +126,16 @@ pub fn legacy_projection(
                         .any(|m| m.evidence == EvidenceLevel::Estimated)
                 {
                     EvidenceLevel::Estimated
+                } else if output.observation.state == TaskState::Succeeded
+                    && output.observation.findings.is_empty()
+                    && !output.observation.measurements.is_empty()
+                    && output
+                        .observation
+                        .measurements
+                        .iter()
+                        .all(|measurement| measurement.evidence == EvidenceLevel::NotApplicable)
+                {
+                    EvidenceLevel::NotApplicable
                 } else if output.observation.state == TaskState::Succeeded {
                     EvidenceLevel::Measured
                 } else {
@@ -141,6 +151,7 @@ pub fn legacy_projection(
             .is_empty()
             || evidence == "NOT_RUN"
             || (engine["evidence"] != "NOT_RUN" && evidence == "ESTIMATED")
+            || (engine["evidence"] == "NOT_APPLICABLE" && evidence == "MEASURED")
         {
             engine["evidence"] = evidence.clone();
         }
@@ -251,6 +262,7 @@ pub fn legacy_projection(
                 engine["required"] = json!(false);
             }
         }
+        project_extra(engine)?;
         normalize_findings(engine)?;
     }
     let mut results: Vec<_> = builtin_catalog()
@@ -299,6 +311,82 @@ pub fn legacy_projection(
         "capability_inventory":context.capability_inventory,"baseline_comparison":context.legacy_baseline,
         "native_run":run.to_value()?,"analysis_metadata":context.analysis_metadata});
     LegacyDocument::from_value(crate::safe::redact(&value))
+}
+
+/// Preserve the historical direct extra keys when one native check owns them. A line descriptor
+/// also has a well-defined union across language checks: every row names a unique physical file.
+fn project_extra(engine: &mut Value) -> Result<()> {
+    let checks = engine["extra"]["native_checks"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    if checks.len() == 1 {
+        if let Some(extra) = checks[0]["extra"].as_object() {
+            for (key, value) in extra {
+                if key != "native_checks" && key != "target_scopes" {
+                    engine["extra"][key] = value.clone();
+                }
+            }
+        }
+        return Ok(());
+    }
+    if engine["engine_name"] != "line"
+        || checks.is_empty()
+        || checks
+            .iter()
+            .any(|check| check["evidence_complete"] != true)
+    {
+        return Ok(());
+    }
+    let mut files = BTreeMap::<String, Value>::new();
+    for check in &checks {
+        let Some(rows) = check["extra"]["files_data"].as_array() else {
+            return Ok(());
+        };
+        for row in rows {
+            let path = row["path"]
+                .as_str()
+                .ok_or_else(|| ReportError("line row requires a path".into()))?;
+            if let Some(previous) = files.insert(path.into(), row.clone())
+                && previous != *row
+            {
+                engine["extra"]["line_aggregation_limitation"] =
+                    json!("Overlapping checks disagree on a file; inspect their separate evidence");
+                return Ok(());
+            }
+        }
+    }
+    let mut rows: Vec<_> = files.into_values().collect();
+    rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
+    for field in ["code", "comment", "blank", "total"] {
+        let sum = |source_only: bool| {
+            rows.iter()
+                .filter(|row| !source_only || row["scope"] == "source")
+                .try_fold(0u64, |total, row| {
+                    row[field]
+                        .as_u64()
+                        .and_then(|value| total.checked_add(value))
+                        .ok_or_else(|| ReportError(format!("invalid line {field} count")))
+                })
+        };
+        engine["extra"][field] = json!(sum(true)?);
+        engine["extra"]["all"][field] = json!(sum(false)?);
+    }
+    engine["extra"]["all"]["files"] = json!(rows.len());
+    let source_count = rows.iter().filter(|row| row["scope"] == "source").count();
+    engine["extra"]["top_files"] = json!(
+        rows.iter()
+            .filter(|row| row["scope"] == "source")
+            .take(5)
+            .collect::<Vec<_>>()
+    );
+    engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
+    engine["extra"]["metrics_summary"] = json!(format!(
+        "{} code / {source_count} files",
+        engine["extra"]["code"]
+    ));
+    engine["extra"]["files_data"] = json!(rows);
+    Ok(())
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {

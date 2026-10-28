@@ -7,6 +7,18 @@
 
 ## [Unreleased]
 
+- legacy 줄 수 보고서에 셸·설정·문서 등 기존 파일 집계를 복원하고, 소스 집계·임계값 적용·
+  추가 파일 범위를 구분합니다. 혼합 언어 파일은 한 번만 집계하며 현재 결과와 baseline은 제외합니다.
+- legacy의 `WARN` 성공 종료와 `pass_fail`·`pass_warn` 정책을 보존합니다. 실제 측정 finding은
+  유지하고 gate 역할만 표시하며, `--fail-on-new`는 새 경고도 별도로 실패시킬 수 있습니다.
+- legacy JSON은 단일 검사 extra 필드를 원래 위치에 보존하고, 완료된 줄 수 검사들의 물리 파일
+  집계를 합칩니다. 적용 불가 증거가 같은 descriptor의 실제 측정·추정 증거를 가리지 않습니다.
+- 사례 없는 선택형 integration은 위치가 있는 적용 불가 결과를 남기며 필수 빈 범위는 미완료입니다.
+- legacy C++ 문맥이 없으면 명시된 pkg-config 순서와 프로젝트 include를 사용한 C++17 syntax
+  fallback을 실행 계획에 드러냅니다. 추정 진단은 유지하되 명시적으로 잘못된 DB를 대체하지 않습니다.
+  root의 compilation database·환경 경로와 component override를 올바르게 선택합니다.
+- cycle 보고 개수 제한을 적용하면서 전체 발견 개수와 생략 개수를 보존합니다.
+
 - 설정 파일의 독립적인 키·타입·관계 오류를 각 파일·행·키와 함께 한 번에 표시합니다.
   진단 출력은 64개로 제한하며 잘못된 설정으로 검사나 파일 변경을 시작하지 않습니다.
 - C++ compilation database의 필수·금지 flag 정책을 실제 translation unit에 적용합니다.

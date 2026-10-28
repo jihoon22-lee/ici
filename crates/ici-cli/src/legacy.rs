@@ -27,6 +27,52 @@ pub fn engine(command: &str) -> Option<&'static str> {
 pub fn is_legacy(invocation: &Invocation) -> bool {
     invocation.command() == "verify" || engine(&invocation.command()).is_some()
 }
+
+/// Historical WARN is a completed, non-failing policy outcome. Retain its measured diagnostics
+/// and mark their gate role separately; modern checks retain their fail-on-violation contract.
+pub fn apply_gate_policy(
+    prepared: &crate::planning::PreparedPlan,
+    outputs: &mut BTreeMap<String, ici_domain::AnalysisOutput>,
+) {
+    if !prepared.legacy_projection {
+        return;
+    }
+    for check in &prepared.plan.checks {
+        let Some(output) = outputs.get_mut(&check.task_id) else {
+            continue;
+        };
+        if !output.observation.evidence_is_complete() {
+            continue;
+        }
+        let component = crate::inputs::component(prepared, check);
+        let mode = ici_application::plan::engine_name(&check.check.id)
+            .and_then(|engine| {
+                component
+                    .settings
+                    .get("engines")
+                    .and_then(|v| v.get(engine))
+            })
+            .and_then(|settings| settings.get("mode"))
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("pass_warn_fail");
+        if matches!(output.status.as_str(), "FAIL" | "WARN") {
+            if mode == "pass_warn" {
+                output.status = "WARN".into();
+            } else if mode == "pass_fail" {
+                output.status = "FAIL".into();
+            }
+        }
+        if matches!(output.status.as_str(), "PASS" | "WARN") {
+            for finding in &mut output.observation.findings {
+                for tag in ["advisory", "legacy-policy-advisory"] {
+                    if !finding.tags.iter().any(|value| value == tag) {
+                        finding.tags.push(tag.into());
+                    }
+                }
+            }
+        }
+    }
+}
 pub fn select(
     invocation: &Invocation,
     project: &mut ici_config::ResolvedProject,

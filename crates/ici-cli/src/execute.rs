@@ -448,7 +448,14 @@ pub fn execute(
                         Some(&planned.component_id),
                         "native analysis",
                     );
-                    let mut output = if prepared.cpp.handles(id)
+                    let mut output = if let Some(output) = crate::validation::internal(
+                        &prepared.project,
+                        inputs::component(&prepared, planned),
+                        &planned.check.id,
+                        id,
+                    ) {
+                        output
+                    } else if prepared.cpp.handles(id)
                         || matches!(planned.check.id.as_str(), "cpp.compile" | "cpp.artifact")
                     {
                         let component = inputs::component(&prepared, planned).clone();
@@ -694,6 +701,7 @@ pub fn execute(
             }
         }
     }
+    crate::legacy::apply_gate_policy(&prepared, &mut outputs);
     let suppressions = SuppressionPolicy::new(&prepared.project.suppressions).map_err(error)?;
     let observations: Vec<Observation> = prepared
         .plan
@@ -1017,6 +1025,13 @@ fn protect_outputs(
             .flat_map(|component| component.files.iter())
             .map(|path| prepared.project.root.join(path));
         if selected
+            .chain(
+                prepared
+                    .legacy_lines
+                    .values()
+                    .flat_map(|scope| scope.inputs.iter())
+                    .map(|path| prepared.project.root.join(path)),
+            )
             .chain(prepared.project.configuration_files.iter().cloned())
             .any(|path| lexical(&path) == output)
         {
