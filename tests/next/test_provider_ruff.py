@@ -337,7 +337,8 @@ def test_a_caller_that_names_a_cache_directory_gets_it(tmp_path: Path) -> None:
     assert argv[argv.index("--cache-dir") + 1] == str(elsewhere)
 
 
-def test_real_ruff_respects_native_excludes_for_explicit_source_inventory(tmp_path):
+@pytest.mark.parametrize("mode", ["lint", "format"])
+def test_real_ruff_respects_native_excludes_for_explicit_source_inventory(tmp_path, mode):
     import os
     import shutil
 
@@ -347,7 +348,7 @@ def test_real_ruff_respects_native_excludes_for_explicit_source_inventory(tmp_pa
     if executable is None:
         pytest.skip("Ruff is unavailable")
     (tmp_path / "ruff.toml").write_text('exclude = ["ignored.py"]\n')
-    (tmp_path / "ignored.py").write_text("undefined_name\n")
+    (tmp_path / "ignored.py").write_text("undefined_name\n" if mode == "lint" else "x=  1\n")
     (tmp_path / "included.py").write_text("answer = 42\n")
     plan = RuffProvider().plan(
         _request(
@@ -355,6 +356,7 @@ def test_real_ruff_respects_native_excludes_for_explicit_source_inventory(tmp_pa
             executable=executable,
             targets=("included.py", "ignored.py"),
             config_files=("ruff.toml",),
+            mode=mode,
         )
     )
     result = run_task(

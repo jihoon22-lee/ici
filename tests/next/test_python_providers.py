@@ -56,6 +56,7 @@ def test_ruff_format_plan_is_a_read_only_check() -> None:
         "ruff",
         "format",
         "--check",
+        "--force-exclude",
         "--no-cache",
         "app/one.py",
     )

@@ -126,3 +126,12 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - 다음: PR #295 최신 CI 및 Merge Gate 확인 → 구현 PR 병합 → 별도 릴리스 branch에서
   0.13.0 후보 버전/known-answer corpus를 고정 → CI/후보 인수 → 태그/공개 release →
   공개 bytes 다운로드 검사 → 최종 main 및 작업 소유 자원 정리.
+
+## PR CI 1차 결과와 기대 명령 동기화
+
+- 최신 기능 CI `40607462805`: Qt5/Qt6 성공, unit 4301 passed / 1 failed / 8 skipped.
+  실패는 Ruff format의 정확한 argv 기대값에 새 `--force-exclude`가 빠진 1건이다.
+  무수정/검사 계약은 유지하고 기대 명령을 갱신했다. 실제 lint/format 양쪽 exclude
+  fixture를 추가, 해당 provider 회귀 45개 통과(0.21초). gate를 완화하지 않았다.
+- CI의 Clang 실제 도구 검사는 실행됐다. CI skip은 선택적 jsonschema/host syntax 조건이다.
+  최신 test-only 수정으로 CI를 재실행한다.
