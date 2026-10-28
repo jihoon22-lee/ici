@@ -2033,7 +2033,8 @@ fn legacy_python_only_descriptors_return_cpp_applicability_through_actual_cli_di
         assert!(plan.cpp.contexts.is_empty());
         assert!(plan.context_preparations.is_empty());
         let output = ici_cli::commands::dispatch(&invocation, root.path(), &environment).unwrap();
-        assert_eq!(output.exit_code, 0, "{}", output.stderr);
+        // Frozen v0.13.0 exits 2 (SKIP) for these commands without Python sources.
+        assert_eq!(output.exit_code, 2, "{}", output.stderr);
         let stored = ici_cli::report::load(&root.path().join(ici_cli::DEFAULT_RESULT)).unwrap();
         let bytes = stored.to_json().unwrap();
         assert!(bytes.contains("NOT_APPLICABLE"));
