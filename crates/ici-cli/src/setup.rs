@@ -31,16 +31,26 @@ pub fn command(
     let prefix = if let Some(prefix) = invocation.value("prefix") {
         under(cwd, prefix)
     } else {
+        let (key, suffix) = if environment
+            .get("XDG_DATA_HOME")
+            .is_some_and(|value| !value.is_empty())
+        {
+            ("XDG_DATA_HOME", "ici/native")
+        } else {
+            ("HOME", ".local/share/ici/native")
+        };
         let home = environment
-            .get("HOME")
+            .get(key)
             .filter(|home| !home.is_empty())
-            .ok_or_else(|| CliError("HOME is unavailable; pass an explicit --prefix".into()))?;
+            .ok_or_else(|| {
+                CliError("HOME and XDG_DATA_HOME are unavailable; pass an explicit --prefix".into())
+            })?;
         if !Path::new(home).is_absolute() {
-            return Err(CliError(
-                "HOME must be absolute; pass an explicit --prefix".into(),
-            ));
+            return Err(CliError(format!(
+                "{key} must be absolute; pass an explicit --prefix"
+            )));
         }
-        Path::new(home).join(".local/share/ici/native")
+        Path::new(home).join(suffix)
     };
     let digest = invocation
         .value("sha256")

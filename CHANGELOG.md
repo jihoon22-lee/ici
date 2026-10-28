@@ -7,6 +7,12 @@
 
 ## [Unreleased]
 
+- native `setup`의 기본 설치 경로를 bootstrap과 동일하게 `XDG_DATA_HOME/ici/native` 우선으로
+  맞춥니다. XDG만 있거나 HOME과 동시에 있어도 install·inspect·update·rollback이 같은 경로를 사용합니다.
+- native 정적 archive builder에 고정 SDK·source·컴파일 도구 identity 검증과 Rust/musl/LLVM
+  runtime notices를 포함합니다. 표준 설치·rollback·사설 CA·폐쇄망 실행의 실제 후보 검증은
+  진행 중이며 최종 exact-source 인수와 공개 릴리스는 별도입니다.
+
 - 명시한 C++ 준비 작업을 먼저 실행하고 소유 shadow의 생성 입력을 공통 검증 계획에
   연결합니다. 측정한 실행 파일·라이브러리와 Python 배포 파일은 공통 release writer를 사용합니다.
   준비 중 바뀐 사용자 입력·도구는 완료 증거에서 제외하며 원래 source snapshot을 보존합니다.

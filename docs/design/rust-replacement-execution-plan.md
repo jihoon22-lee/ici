@@ -1,5 +1,23 @@
 # ici Rust 전면 교체 실행 계획
 
+### Native distribution acceptance checkpoint (2026-10-29)
+
+- `485b93e` adds the static musl build wrapper, verified isolated SDK/source inputs, full
+  Rust/musl/LLVM notices, ELF dependency rejection, and permanent transport/archive harnesses.
+  Eight distribution tests, strict Clippy/fmt, shellcheck and harness Ruff passed.
+- Internal static archive SHA-256 `023bda385c0321aacb0c819d9830b31817ea121c7895900c37e9ee29bb825ed5`
+  passed 28 actual bootstrap/update/rollback/failure/private-CA/no-Python offline cases, then
+  stopped at the candidate's unimplemented doctor. This historical candidate is not final source
+  acceptance. Expanded transport's 14 cases also passed.
+- `c44e4f5` records six actual loopback HTTPS publication cases: trusted/untrusted private CA,
+  GHES prefix/GitHub-style endpoints, verified request credentials/base64 payload, 403, malformed
+  response and post-upload comment failure. Analysis result and HTML bytes remain unchanged.
+- Current debug core SHA-256 `8466942511522a1724aa11aee6ff610c2dca914685293b6ed1a9bc887a193769`
+  passed 12 setup calls across XDG-only and conflicting-HOME environments. Default install,
+  inspect, update and rollback select the same XDG root without touching HOME's default tree;
+  `distribution/current-setup-defaults.log` records the actual run. Final candidate/public bytes
+  and the complete migration inventory remain separate open gates.
+
 ### Explicit preparation integration evidence (2026-10-29)
 
 - The common run lifecycle prepares leased native build contexts, then measures compiler outputs
