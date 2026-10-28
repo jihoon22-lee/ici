@@ -1,6 +1,7 @@
 //! Native analyses over immutable source snapshots; no process or filesystem fallback.
 mod ast_util;
 mod cycle;
+mod dead;
 mod exception;
 mod finding;
 mod lines;
@@ -112,7 +113,7 @@ impl AnalysisSession {
         }
         if !matches!(
             kind,
-            "complexity" | "cognitive" | "security" | "resource" | "exception" | "cycle"
+            "complexity" | "cognitive" | "security" | "resource" | "exception" | "cycle" | "dead"
         ) {
             failure(
                 &mut output,
@@ -228,6 +229,7 @@ impl AnalysisSession {
             "resource" => resource::analyze(request, &files, &mut output, cancellation),
             "exception" => exception::analyze(request, &files, &mut output, cancellation),
             "cycle" => cycle::analyze(request, &files, &mut output, cancellation),
+            "dead" => dead::analyze(request, &files, &mut output, cancellation),
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);

@@ -56,6 +56,11 @@ struct Context {
     loops: usize,
     tries: usize,
 }
+enum NameLookup {
+    Bound(usize),
+    Unknown,
+    Unbound,
+}
 #[derive(Clone, Debug)]
 pub struct ScopeGraph {
     pub scopes: Vec<Scope>,
@@ -103,7 +108,13 @@ impl ScopeGraph {
             _ => None,
         }
     }
-    pub fn resolve_name(&self, mut scope: usize, name: &str) -> Option<String> {
+    pub fn binding_scope(&self, scope: usize, name: &str) -> Option<usize> {
+        match self.lookup(scope, name) {
+            NameLookup::Bound(scope) => Some(scope),
+            NameLookup::Unknown | NameLookup::Unbound => None,
+        }
+    }
+    fn lookup(&self, mut scope: usize, name: &str) -> NameLookup {
         let original = scope;
         let mut visited = BTreeSet::new();
         while visited.insert(scope) {
@@ -113,22 +124,22 @@ impl ScopeGraph {
                 continue;
             }
             if current.nonlocals.contains_key(name) {
-                scope = self.nonlocal_scope(scope, name)?;
+                let Some(owner) = self.nonlocal_scope(scope, name) else {
+                    return NameLookup::Unknown;
+                };
+                scope = owner;
                 continue;
             }
-            if let Some(binding) = current.bindings.get(name) {
-                return match binding {
-                    Binding::Import(value) => Some(value.clone()),
-                    _ => None,
-                };
+            if current.bindings.contains_key(name) {
+                return NameLookup::Bound(scope);
             }
             if current.wildcard {
-                return None;
+                return NameLookup::Unknown;
             }
             let Some(mut parent) = current.parent else {
-                break;
+                return NameLookup::Unbound;
             };
-            // Class namespace is not a closure for a function/comprehension nested in it.
+            // A class namespace is not a closure for its methods/comprehensions.
             if scope == original
                 && matches!(
                     current.kind,
@@ -138,10 +149,26 @@ impl ScopeGraph {
                 )
             {
                 while self.scopes[parent].kind == ScopeKind::Class {
-                    parent = self.scopes[parent].parent?;
+                    let Some(outer) = self.scopes[parent].parent else {
+                        return NameLookup::Unknown;
+                    };
+                    parent = outer;
                 }
             }
             scope = parent;
+        }
+        NameLookup::Unknown
+    }
+    pub fn resolve_name(&self, scope: usize, name: &str) -> Option<String> {
+        match self.lookup(scope, name) {
+            NameLookup::Bound(owner) => {
+                return match &self.scopes[owner].bindings[name] {
+                    Binding::Import(value) => Some(value.clone()),
+                    _ => None,
+                };
+            }
+            NameLookup::Unknown => return None,
+            NameLookup::Unbound => {}
         }
         if matches!(
             name,

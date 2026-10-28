@@ -119,3 +119,20 @@ and graph failures preserve location-bearing error targets. An iterative SCC
 fixture traverses 5,001 nodes without recursive graph walking. Twenty native tests
 (including the earlier units) passed after this unit. `cycle_oracle.py` verifies
 the recorded original graph and does not overwrite corrected expectations.
+
+## Private symbols and unreachable statements
+
+`dead.json` preserves 21 frozen-source cases and the complete original targets.
+The native test compares every target field after sorting presentation order;
+private-definition targets precede unreachable targets, whose native presentation
+is source order rather than Python's breadth-first AST order. The shared lexical
+scope graph prevents parameter/local/import shadowing from falsely marking a
+module private function used. Declared package attributes take precedence over
+same-named child modules, and Unicode columns count characters. Those changes
+have explicit corrected fixture fields. Decorators, `__all__`, async/private-only
+module definitions, source-root precedence, aliases, relative imports, repeated
+function definitions, match bodies and the first unreachable statement per body
+remain covered. Incomplete parsing produces ERROR with inspected healthy-file
+SKIP targets and no guessed unused-symbol findings. All private-symbol findings
+remain ESTIMATED. Twenty-one native tests and scoped Clippy/fmt passed; the
+`dead_oracle.py` script verifies the original evidence without regenerating it.

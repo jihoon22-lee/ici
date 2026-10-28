@@ -16,6 +16,89 @@ fn request(check: &str, text: &str) -> AnalysisRequest {
         target_version: "3.14".into(),
     }
 }
+
+#[test]
+fn dead_code_matches_frozen_targets_and_reviewed_corrections() {
+    let fixture: Value =
+        serde_json::from_str(include_str!("../../../tests/rust-parity/python/dead.json")).unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut input = request("dead", "");
+        input.inputs = case["sources"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, text)| SourceInput {
+                path: path.clone(),
+                bytes: text.as_str().unwrap().as_bytes().to_vec(),
+            })
+            .collect();
+        input.options = json!({"source_roots":case["source_roots"]});
+        let output = analyze(&input);
+        if !case["original_errors"].as_array().unwrap().is_empty() {
+            assert_eq!(
+                output.observation.state,
+                TaskState::Failed,
+                "{}",
+                case["id"]
+            );
+            assert_eq!(output.status, "ERROR");
+            assert!(output.targets.iter().any(|target| target.status == "ERROR"));
+            assert!(output.observation.findings.is_empty());
+            continue;
+        }
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{}: {:?}",
+            case["id"],
+            output.observation.limitations
+        );
+        let mut actual: Vec<Value> = output
+            .targets
+            .iter()
+            .map(|target| {
+                json!({
+                    "file_path":target.file_path,"start_line":target.start_line,
+                    "end_line":target.end_line,"start_column":target.start_column,
+                    "end_column":target.end_column,"target_name":target.target_name,
+                    "status":target.status,"message":target.message,"snippet":target.snippet,
+                })
+            })
+            .collect();
+        let mut expected = case
+            .get("expected_targets")
+            .unwrap_or(&case["original_targets"])
+            .as_array()
+            .unwrap()
+            .clone();
+        let key = |value: &Value| {
+            (
+                value["file_path"].as_str().unwrap().to_owned(),
+                value["start_line"].as_u64().unwrap(),
+                value["target_name"].as_str().unwrap().to_owned(),
+            )
+        };
+        actual.sort_by_key(key);
+        expected.sort_by_key(key);
+        assert_eq!(actual, expected, "{}", case["id"]);
+        let warnings = output
+            .targets
+            .iter()
+            .filter(|target| target.status == "WARN")
+            .count();
+        assert_eq!(
+            output.observation.findings.len(),
+            warnings,
+            "{}",
+            case["id"]
+        );
+        for finding in &output.observation.findings {
+            assert_eq!(finding.evidence, ici_domain::EvidenceLevel::Estimated);
+            assert_eq!(finding.severity, "medium");
+            assert_eq!(finding.category, "maintainability");
+        }
+    }
+}
 #[test]
 fn metrics_match_fixed_python_formulas() {
     let fixtures: Value = serde_json::from_str(include_str!(
