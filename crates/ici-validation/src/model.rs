@@ -62,6 +62,7 @@ pub struct RuntimeSpec {
 pub struct ValidationOptions {
     pub collect_coverage: bool,
     pub coverage_module_probe: bool,
+    pub unittest_fallback: bool,
     /// Same owned run directory and source scope must be used by both logical checks.
     pub shared_test_task_id: Option<String>,
     pub shared_test_kind: Option<ValidationKind>,
@@ -120,6 +121,7 @@ impl Default for ValidationOptions {
         Self {
             collect_coverage: false,
             coverage_module_probe: false,
+            unittest_fallback: false,
             shared_test_task_id: None,
             shared_test_kind: None,
             repeat_runs: 0,
@@ -217,6 +219,8 @@ pub struct StepPrerequisite {
 pub struct StepCondition {
     pub probe_task_id: String,
     pub coverage_available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub missing_module: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ValidationPlan {

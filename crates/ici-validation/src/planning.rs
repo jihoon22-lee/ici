@@ -443,6 +443,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         plan.tasks.push(reporting);
     }
     crate::python_coverage::configure(plan)?;
+    crate::python_unittest::configure(plan)?;
     Ok(())
 }
 pub(crate) fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>) -> TaskSpec {
@@ -520,7 +521,7 @@ pub fn ready_steps(
         let mut pending = false;
         for requirement in plan.prerequisites.get(&task.id).into_iter().flatten() {
             let prerequisite =
-                crate::python_coverage::prerequisite(plan, &requirement.task_id, outcomes)?;
+                crate::python_unittest::prerequisite(plan, &requirement.task_id, outcomes)?;
             let Some(outcome) = outcomes.get(&prerequisite) else {
                 pending = true;
                 break;

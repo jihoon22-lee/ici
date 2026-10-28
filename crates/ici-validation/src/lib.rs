@@ -13,6 +13,7 @@ pub mod python;
 pub mod python_coverage;
 mod python_quality;
 mod python_sanitize;
+pub mod python_unittest;
 pub mod runtime;
 pub mod sanitizer;
 mod sanitizer_suite;

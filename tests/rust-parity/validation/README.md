@@ -377,3 +377,23 @@ CLI repeat-timeout fixture: passing base run, second attempt timeout, third atte
 selected gate PASS with the timeout retained in optional evidence (11.33s).
 `validation-quality-details-clippy-ready.log` passed strict CLI/validation Clippy after the
 concurrent configuration error-size fix. Scoped Rust formatting and capture-script Ruff passed.
+
+When the selected project runtime reports an exact missing pytest module, the visible plan can
+run that runtime's standard `unittest discover` tasks. Coverage.py's distinct missing-pytest
+message is accepted only with its completed version evidence. Broken, timed-out, truncated or
+ordinary failing pytest runs never activate fallback. The same unittest suite can supply test
+case evidence while coverage remains explicitly unavailable; no coverage/TEM values are guessed.
+
+`unittest-native.json` records actual CPython 3.10.21 and 3.14.7 verbose output, including
+multiline docstrings, expected/unexpected outcomes, errors, skipped cases and two failing
+subtests inside one parent test. The Rust parser reconciles the seven parent tests and preserves
+both subtest records. Incomplete/empty/all-skipped evidence cannot pass a required test check.
+Six contracts also reject simultaneous frameworks and false missing-module diagnostics.
+
+`validation-unittest-all-final.log` passed all 49 ordinary validation contracts, five actual CLI
+runs using owned standard-library-only/coverage-only environments (56.04s), and the previous four
+actual pytest-only coverage policy cases. The initial strict phase hit a concurrent analysis
+lint; the final strict CLI/validation run passed in `validation-unittest-clippy-ready.log` (8.09s).
+Root's `root-line-integration-final.log` also passed the actual optional-empty integration case:
+located NOT_APPLICABLE evidence with no tool tasks, while required empty scope stays incomplete.
+This does not close the separate legacy metrics projection or whole R8/R9 inventory.

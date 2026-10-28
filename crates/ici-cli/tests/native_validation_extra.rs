@@ -1633,7 +1633,7 @@ fn missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_
             required || explicit || route == "next"
         );
         let suite = &planned.validations["project.python.test"][0];
-        assert_eq!(suite.conditional_steps.len(), 2);
+        assert_eq!(suite.conditional_steps.len(), 3);
         let run = execute::execute(
             &invocation,
             root.path(),
@@ -1801,4 +1801,190 @@ fn optional_quality_repeat_timeout_preserves_measured_base_and_runs_the_later_at
             .iter()
             .any(|step| step["timed_out"] == true)
     );
+}
+
+#[test]
+#[ignore = "explicit stdlib-only Python runtime with absent pytest and optional coverage CLI acceptance"]
+fn missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states() {
+    use std::process::Command;
+    for coverage_present in [false, true] {
+        let root = tempfile::tempdir().unwrap();
+        clean_source(root.path());
+        fs::create_dir(root.path().join("tests")).unwrap();
+        let selected = python();
+        let virtualenv = root.path().join(".venv");
+        assert!(
+            Command::new(&selected)
+                .args(["-m", "venv", "--without-pip"])
+                .arg(&virtualenv)
+                .status()
+                .unwrap()
+                .success()
+        );
+        let executable = virtualenv.join("bin/python");
+        if coverage_present {
+            let purelib = Command::new(&selected)
+                .args([
+                    "-c",
+                    "import sysconfig; print(sysconfig.get_path('purelib'))",
+                ])
+                .output()
+                .unwrap();
+            assert!(purelib.status.success());
+            let source =
+                std::path::PathBuf::from(String::from_utf8(purelib.stdout).unwrap().trim());
+            let purelib = Command::new(&executable)
+                .args([
+                    "-c",
+                    "import sysconfig; print(sysconfig.get_path('purelib'))",
+                ])
+                .output()
+                .unwrap();
+            assert!(purelib.status.success());
+            let destination =
+                std::path::PathBuf::from(String::from_utf8(purelib.stdout).unwrap().trim());
+            for entry in fs::read_dir(source).unwrap() {
+                let entry = entry.unwrap();
+                if entry.file_name().to_string_lossy().starts_with("coverage") {
+                    copy_project_tool_tree(&entry.path(), &destination.join(entry.file_name()));
+                }
+            }
+            assert!(
+                Command::new(&executable)
+                    .args(["-m", "coverage", "--version"])
+                    .output()
+                    .unwrap()
+                    .status
+                    .success()
+            );
+        }
+        let pytest = Command::new(&executable)
+            .args(["-m", "pytest", "--version"])
+            .output()
+            .unwrap();
+        assert_eq!(pytest.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&pytest.stderr).contains("No module named pytest"));
+        let configured = config(
+            &["python.test", "python.coverage"],
+            "",
+            &format!(
+                "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
+                quoted(&executable.to_string_lossy())
+            ),
+        )
+        .replace(
+            "[checks.\"python.coverage\"]\nenabled=true\nrequired=true\n",
+            "[checks.\"python.coverage\"]\nenabled=true\nrequired=false\n",
+        );
+        write(root.path(), &configured);
+        let cases = if coverage_present {
+            vec![(
+                "def test_ok(self):\n        self.assertTrue(True)",
+                GateVerdict::Pass,
+            )]
+        } else {
+            vec![
+                (
+                    "def test_ok(self):\n        self.assertTrue(True)",
+                    GateVerdict::Pass,
+                ),
+                (
+                    "def test_bad(self):\n        self.assertTrue(False)",
+                    GateVerdict::Fail,
+                ),
+                (
+                    "@unittest.skip('optional')\n    def test_skip(self):\n        pass",
+                    GateVerdict::Incomplete,
+                ),
+                ("def helper(self):\n        pass", GateVerdict::Incomplete),
+            ]
+        };
+        for (body, verdict) in cases {
+            fs::write(
+                root.path().join("tests/test_standard.py"),
+                format!("import unittest\nclass Standard(unittest.TestCase):\n    {body}\n"),
+            )
+            .unwrap();
+            let actual = run(
+                root.path(),
+                &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+            );
+            assert_eq!(
+                actual.result.gate.selected, verdict,
+                "coverage={coverage_present}: {:?}",
+                actual.outputs
+            );
+            let test = &actual.outputs["project.python.test"];
+            let policy = &actual.outputs["project.python.coverage"];
+            assert!(policy.observation.measurements.is_empty());
+            assert!(policy.score.is_none());
+            assert!(matches!(
+                policy.observation.state,
+                TaskState::Failed | TaskState::Blocked
+            ));
+            if verdict != GateVerdict::Incomplete {
+                assert_eq!(test.observation.state, TaskState::Succeeded);
+                assert!(
+                    test.observation
+                        .measurements
+                        .iter()
+                        .any(|metric| metric.name == "unittest.cases"
+                            && metric.denominator == Some(1))
+                );
+            }
+            if verdict == GateVerdict::Fail {
+                assert!(
+                    test.observation
+                        .findings
+                        .iter()
+                        .any(|finding| finding.rule_id == "unittest.failed")
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn optional_empty_integration_is_located_not_applicable_and_required_empty_scope_is_incomplete() {
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    for required in [false, true] {
+        let configured = config(&["integration"], "", "").replace(
+            "[checks.\"integration\"]\nenabled=true\nrequired=true\n",
+            &format!("[checks.\"integration\"]\nenabled=true\nrequired={required}\n"),
+        );
+        write(root.path(), &configured);
+        let planned = prepare(root.path(), &BTreeMap::new());
+        assert!(planned.plan.checks[0].tasks().is_empty());
+        let actual = run(root.path(), &BTreeMap::new());
+        assert_eq!(
+            actual.result.gate.selected,
+            if required {
+                GateVerdict::Incomplete
+            } else {
+                GateVerdict::Pass
+            },
+            "{:?}",
+            actual.outputs
+        );
+        if !required {
+            let output = &actual.outputs["project.integration"];
+            assert_eq!(output.status, "SKIP");
+            assert!(
+                output
+                    .targets
+                    .iter()
+                    .any(|target| target.target_name == "Integration:NotApplicable"
+                        && target.start_line == 1)
+            );
+            assert!(
+                output
+                    .observation
+                    .measurements
+                    .iter()
+                    .all(|metric| metric.evidence == ici_domain::EvidenceLevel::NotApplicable)
+            );
+            assert!(output.observation.findings.is_empty());
+        }
+    }
 }

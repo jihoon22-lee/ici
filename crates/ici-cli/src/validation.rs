@@ -182,6 +182,10 @@ pub fn bind(
             kind,
             ValidationKind::PythonTest | ValidationKind::PythonCoverage
         ),
+        unittest_fallback: matches!(
+            kind,
+            ValidationKind::PythonTest | ValidationKind::PythonCoverage
+        ),
         collect_coverage: kind == ValidationKind::PythonTest
             && selected(project, component, request, "python.coverage"),
         shared_test_task_id: (kind == ValidationKind::PythonCoverage
@@ -662,6 +666,66 @@ fn integration_owner(project: &ResolvedProject) -> Option<&str> {
         .or_else(|| project.components.first())
         .map(|component| component.id.as_str())
 }
+fn integration_cases(project: &ResolvedProject, component: &Component) -> Vec<Value> {
+    let mut cases = component.integrations.clone();
+    if integration_owner(project) == Some(&component.id) {
+        cases.extend(
+            component
+                .settings
+                .pointer("/engines/integration/cases")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .cloned(),
+        );
+    }
+    cases
+}
+fn empty_optional_integration(project: &ResolvedProject, component: &Component) -> bool {
+    integration_cases(project, component).is_empty()
+        && builtin_catalog()
+            .checks
+            .iter()
+            .find(|check| check.id == "integration")
+            .is_some_and(|check| !configured_check(project, component, check).1)
+}
+/// Explicit empty optional integration scope has located applicability evidence, without tools.
+pub fn internal(
+    project: &ResolvedProject,
+    component: &Component,
+    check_id: &str,
+    task_id: &str,
+) -> Option<ici_domain::AnalysisOutput> {
+    if check_id != "integration" || !empty_optional_integration(project, component) {
+        return None;
+    }
+    let mut output = ici_domain::AnalysisOutput::new(task_id, "integration");
+    output.status = "SKIP".into();
+    output.summary = "Integration analysis not applicable: no cases configured".into();
+    let path = if component.declared_in.is_empty() {
+        "ici.toml"
+    } else {
+        &component.declared_in
+    };
+    let mut target = ici_domain::InspectionTarget::at(path, 1);
+    target.target_name = "Integration:NotApplicable".into();
+    target.status = "SKIP".into();
+    target.message = "No integration cases were configured".into();
+    output.targets.push(target);
+    output
+        .observation
+        .measurements
+        .push(ici_domain::Measurement {
+            name: "applicability".into(),
+            value: 0.0,
+            evidence: ici_domain::EvidenceLevel::NotApplicable,
+            unit: "checks".into(),
+            numerator: None,
+            denominator: None,
+        });
+    output.extra["integration"] = serde_json::json!({"state":"NOT_APPLICABLE","cases":[]});
+    Some(output)
+}
 fn bind_integration(
     project: &ResolvedProject,
     component: &Component,
@@ -669,6 +733,13 @@ fn bind_integration(
     environment: &BTreeMap<String, String>,
     run_label: &str,
 ) -> BoundValidation {
+    if empty_optional_integration(project, component) {
+        return BoundValidation {
+            work: Work::Internal,
+            plans: vec![],
+            tool: None,
+        };
+    }
     match integration_plans(project, component, id, environment, run_label) {
         Ok((plans, tool)) => {
             let tasks = plans
@@ -695,17 +766,7 @@ fn integration_plans(
     run_label: &str,
 ) -> Result<(Vec<ValidationPlan>, Option<ResolvedTool>), String> {
     let settings = component.settings.pointer("/engines/integration");
-    let mut cases = component.integrations.clone();
-    if integration_owner(project) == Some(&component.id) {
-        cases.extend(
-            settings
-                .and_then(|settings| settings.get("cases"))
-                .and_then(Value::as_array)
-                .into_iter()
-                .flatten()
-                .cloned(),
-        );
-    }
+    let cases = integration_cases(project, component);
     let max_cases = settings
         .and_then(|settings| settings.get("max_cases"))
         .and_then(Value::as_u64)

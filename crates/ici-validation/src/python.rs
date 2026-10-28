@@ -159,7 +159,10 @@ pub fn observe_for(
     let required: Vec<_> = relevant
         .iter()
         .copied()
-        .filter(|outcome| !plan.optional_task_ids.contains(&outcome.task_id))
+        .filter(|outcome| {
+            !plan.optional_task_ids.contains(&outcome.task_id)
+                && !crate::python_unittest::inactive_pytest(plan, &outcome.task_id, outcomes)
+        })
         .collect();
     output.observation.duration_seconds = Some(
         relevant
@@ -222,6 +225,9 @@ fn observe_suite(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if crate::python_unittest::missing_pytest(plan, outcomes)? {
+        return crate::python_unittest::observe(plan, outcomes, output);
+    }
     let outcome = suite(plan, outcomes)?;
     let text = std::str::from_utf8(&outcome.stdout)
         .map_err(|_| ValidationError("pytest output is not UTF-8".into()))?;
@@ -319,6 +325,16 @@ fn observe_coverage(
     artifacts: &CapturedArtifacts,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    if crate::python_unittest::missing_pytest(plan, outcomes)? {
+        let mut tests = AnalysisOutput::new(&plan.context.task_id, "unittest");
+        crate::python_unittest::observe(plan, outcomes, &mut tests)?;
+        output.extra["unittest_fallback"] = json!({"summary":tests.summary,"test_outcomes":tests.extra["test_outcomes"],"test_framework":tests.extra["test_framework"]});
+        return crate::python_coverage::unavailable_for(
+            plan,
+            output,
+            "pytest module is unavailable; fallback unittest does not collect coverage",
+        );
+    }
     if matches!(
         crate::python_coverage::capability(plan, outcomes)?,
         Some(crate::python_coverage::Capability::Missing)

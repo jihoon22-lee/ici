@@ -141,6 +141,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             crate::StepCondition {
                 probe_task_id: probe.clone(),
                 coverage_available: true,
+                missing_module: None,
             },
         );
         plan.conditional_steps.insert(
@@ -148,6 +149,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             crate::StepCondition {
                 probe_task_id: probe.clone(),
                 coverage_available: false,
+                missing_module: None,
             },
         );
         plan.tasks.insert(0, query);
@@ -159,6 +161,7 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             crate::StepCondition {
                 probe_task_id: probe.clone(),
                 coverage_available: true,
+                missing_module: None,
             },
         );
     }
@@ -171,9 +174,24 @@ pub fn condition_ready(
     task: &str,
     outcomes: &BTreeMap<String, TaskOutcome>,
 ) -> Result<bool, ValidationError> {
+    if crate::python_unittest::skip_pytest_followup(plan, task, outcomes)? {
+        return Ok(false);
+    }
     let Some(condition) = plan.conditional_steps.get(task) else {
         return Ok(true);
     };
+    if let Some(module) = &condition.missing_module {
+        if module != "pytest" {
+            return Err(ValidationError("unknown conditional test module".into()));
+        }
+        let active = crate::python_unittest::missing_pytest(plan, outcomes)?;
+        if !active && outcomes.contains_key(task) {
+            return Err(ValidationError(
+                "an inactive unittest fallback was executed".into(),
+            ));
+        }
+        return Ok(active);
+    }
     let Some(capability) = capability(plan, outcomes)? else {
         return Ok(false);
     };
@@ -253,10 +271,18 @@ pub fn unavailable(
     plan: &ValidationPlan,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
-    output.extra["coverage_policy"] = json!(crate::coverage_baseline::unavailable(
+    unavailable_for(
         plan,
-        "coverage module is unavailable for the selected project interpreter"
-    )?);
+        output,
+        "coverage module is unavailable for the selected project interpreter",
+    )
+}
+pub(crate) fn unavailable_for(
+    plan: &ValidationPlan,
+    output: &mut AnalysisOutput,
+    reason: &str,
+) -> Result<(), ValidationError> {
+    output.extra["coverage_policy"] = json!(crate::coverage_baseline::unavailable(plan, reason)?);
     let path = plan
         .context
         .source_files
@@ -266,12 +292,14 @@ pub fn unavailable(
     let mut target = InspectionTarget::at(path, 1);
     target.target_name = "Coverage capability".into();
     target.status = "SKIP".into();
-    target.message="coverage is unavailable; actual plain pytest evidence is retained separately and coverage was not measured".into();
+    target.message = format!(
+        "{reason}; actual test execution evidence is retained separately and coverage was not measured"
+    );
     target
         .metrics
         .insert("coverage_available".into(), json!(false));
     output.targets.push(target);
-    Err(ValidationError(
-        "coverage module is unavailable; no coverage or TEM evidence was fabricated".into(),
-    ))
+    Err(ValidationError(format!(
+        "{reason}; no coverage or TEM evidence was fabricated"
+    )))
 }
