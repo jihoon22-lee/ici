@@ -174,6 +174,19 @@ impl SourceDocument {
             (self.text[self.starts[row]..boundary].chars().count() + 1) as u32,
         )
     }
+    pub(crate) fn cache_weight(&self) -> usize {
+        // Retain the prior text/AST-string headroom and also count actual
+        // source-index allocation capacities, including expanded raw maps.
+        self.text
+            .capacity()
+            .saturating_add(self.text.len().saturating_mul(3))
+            .saturating_add(
+                self.starts
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<usize>()),
+            )
+            .saturating_add(self.raw_offsets.as_ref().map_or(0, |map| map.heap_bytes()))
+    }
     pub fn span(&self, range: TextRange) -> SourceSpan {
         debug_assert!(self.raw_offset(range.start().to_usize()).is_some());
         let (start_line, start_column) = self.location(range.start().to_usize());

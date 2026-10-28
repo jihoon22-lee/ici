@@ -2148,3 +2148,33 @@ fn duplicate_source_inventory_matches_frozen_scope_policies() {
         }
     }
 }
+
+#[test]
+fn parser_cache_accounts_for_large_decoded_raw_boundary_allocations() {
+    let mut input = request("complexity", "# coding: iso2022_jp\n#");
+    input.inputs[0]
+        .bytes
+        .extend(std::iter::repeat_n(b'x', 5 * 1024 * 1024));
+    input.inputs[0].bytes.extend_from_slice(b"\x1b(B");
+    let mut session = AnalysisSession::new();
+    for invocation in 1..=2 {
+        let output = session.analyze(&input);
+        assert_eq!(output.observation.state, TaskState::Succeeded);
+        assert_eq!(output.status, "PASS");
+        assert_eq!(
+            session.parser_invocations(),
+            invocation,
+            "A decoded boundary map larger than the cache budget must not become a cache entry"
+        );
+        assert!(session.parsed.is_empty());
+        assert_eq!(session.cache_weight, 0);
+    }
+    // Ordinary immutable sources still share an entry across metric checks.
+    let mut input = request("complexity", "def small(value):\n    return value\n");
+    session.analyze(&input);
+    let invocations = session.parser_invocations();
+    input.check_id = "python.cognitive".into();
+    assert_eq!(session.analyze(&input).status, "PASS");
+    assert_eq!(session.parser_invocations(), invocations);
+    assert!(session.cache_weight > 0 && session.cache_weight <= CACHE_BUDGET);
+}

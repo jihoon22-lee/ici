@@ -296,9 +296,10 @@ impl AnalysisSession {
                 .map(|parsed| {
                     let weight = parsed
                         .source
-                        .text
-                        .len()
-                        .saturating_mul(4)
+                        .cache_weight()
+                        .saturating_add(parsed.parsed.tokens().len().saturating_mul(
+                            2 * std::mem::size_of::<ruff_python_ast::token::Token>(),
+                        ))
                         .saturating_add(parsed.node_count.saturating_mul(160));
                     let parsed = Arc::new(parsed);
                     if weight <= CACHE_BUDGET {

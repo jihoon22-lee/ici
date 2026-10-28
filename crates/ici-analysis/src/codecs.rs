@@ -63,6 +63,23 @@ pub(crate) enum OffsetMap {
     },
 }
 impl OffsetMap {
+    pub(crate) fn heap_bytes(&self) -> usize {
+        match self {
+            Self::SingleByte(map) => map
+                .capacity()
+                .saturating_mul(std::mem::size_of::<(usize, usize)>()),
+            Self::Boundaries(boundaries) => boundaries
+                .capacity()
+                .saturating_mul(std::mem::size_of::<(u32, u32)>()),
+            Self::Variable {
+                checkpoints,
+                widths,
+            } => checkpoints
+                .capacity()
+                .saturating_mul(std::mem::size_of::<(usize, usize, usize)>())
+                .saturating_add(widths.capacity()),
+        }
+    }
     pub fn raw_offset(&self, text: &str, decoded: usize) -> Option<usize> {
         match self {
             Self::Boundaries(boundaries) => boundaries
