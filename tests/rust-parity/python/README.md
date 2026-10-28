@@ -38,6 +38,33 @@ flock /tmp/paseo-products-20261028-heavy.lock env CARGO_BUILD_JOBS=2 \
   cargo test --locked -p ici-analysis
 ```
 
-Security/resource/exception/dead/cycle/duplicate/packaging compatibility rule units
-are not yet complete at this checkpoint. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
+Security and resource rules now have a native implementation and 42 frozen-source
+fixtures, with explicit corrected expectations separate from the original oracle.
+Exception/dead/cycle/duplicate/packaging compatibility rule units remain unfinished. This partial evidence does not satisfy the Rust cutover gate; R8 must close every
 functionality row first.
+
+
+## Security and resource unit
+
+- Native security uses AST literal/call shapes and shared lexical alias resolution;
+  secret values never enter target snippets/messages. `nosec` is read only from
+  comment tokens. Entropy, private-key markers, exact-name allowlists, crypto
+  intent (`usedforsecurity=False`), pickle, randomness and shell-call rules remain.
+- Resource analysis retains bounded branch/loop/try/finally ownership states,
+  aliases, context managers, explicit close/aclose, return/attribute/subscript
+  transfer, ExitStack, mutable defaults and explanatory legacy metadata in
+  `extra.resource_issues`. Acquisitions, defaults and CPython-projection AST counts
+  match the frozen oracle where behavior is preserved.
+- Corrected rows explicitly name false-positive closure/comprehension alias
+  handling, defaults evaluated before parameters bind, break skipping loop else,
+  and previously skipped except-star resource bodies. No golden is silently
+  regenerated to hide these differences.
+- Vendor/generated exclusions retain inspected SKIP targets, reason counts and
+  limitations; explicit include overrides work. Unanalyzed files remain incomplete.
+- Both domain and legacy end columns are 1-based Unicode **inclusive**, preserving
+  ASCII legacy endpoints and correcting UTF-8 byte-column display. Parser ranges
+  stay half-open bytes. Multiline/zero-width/Unicode endpoint fixtures cover the
+  conversion.
+
+`hygiene_oracle.py <frozen-oracle>` verifies the original evidence only. Native tests
+compare the explicit corrected expectation when present, so old defects stay visible.

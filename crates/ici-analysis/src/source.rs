@@ -188,7 +188,14 @@ impl SourceDocument {
     pub fn span(&self, range: TextRange) -> SourceSpan {
         debug_assert!(self.raw_offset(range.start().to_usize()).is_some());
         let (start_line, start_column) = self.location(range.start().to_usize());
-        let (end_line, end_column) = self.location(range.end().to_usize());
+        let mut inclusive_end = range.end().to_usize().min(self.text.len());
+        if inclusive_end > range.start().to_usize() {
+            inclusive_end -= 1;
+            while !self.text.is_char_boundary(inclusive_end) {
+                inclusive_end -= 1;
+            }
+        }
+        let (end_line, end_column) = self.location(inclusive_end);
         SourceSpan {
             path: self.path.clone(),
             start_line,
@@ -239,4 +246,39 @@ impl SourceDocument {
         }
         result
     }
+}
+
+pub fn exclusion_reasons(path: &str) -> Vec<&'static str> {
+    let parts: Vec<String> = path.split('/').map(str::to_lowercase).collect();
+    let directories = &parts[..parts.len().saturating_sub(1)];
+    let name = parts.last().map_or("", String::as_str);
+    let mut reasons = Vec::new();
+    if directories.iter().any(|part| {
+        matches!(
+            part.as_str(),
+            "_deps"
+                | "deps"
+                | "extern"
+                | "external"
+                | "node_modules"
+                | "subprojects"
+                | "third-party"
+                | "third_party"
+                | "vendor"
+        )
+    }) {
+        reasons.push("vendor");
+    }
+    if directories
+        .iter()
+        .any(|part| matches!(part.as_str(), "generated" | "autogen") || part.ends_with("_autogen"))
+        || name.starts_with("moc_")
+        || name.starts_with("qrc_")
+        || name.starts_with("ui_")
+        || name.starts_with("mocs_compilation")
+        || name.ends_with(".moc")
+    {
+        reasons.push("generated");
+    }
+    reasons
 }

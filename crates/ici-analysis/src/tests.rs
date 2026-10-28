@@ -108,7 +108,7 @@ fn unicode_and_legacy_threshold_boundaries_are_preserved() {
     assert_eq!(output.observation.findings.len(), 1);
     assert_eq!(
         output.observation.findings[0].primary_location.end_column,
-        Some(17)
+        Some(16)
     );
 }
 #[test]
@@ -201,4 +201,140 @@ fn line_counts_and_explicit_legacy_scopes_keep_all_inspected_targets() {
     assert!(output.observation.findings.is_empty());
     assert_eq!(output.extra["comment"], json!(1));
     assert_eq!(output.extra["blank"], json!(1));
+}
+
+#[test]
+fn inclusive_endpoints_cover_unicode_multiline_and_zero_width() {
+    use ruff_text_size::{TextRange, TextSize};
+    let source = SourceDocument::decode(&SourceInput {
+        path: "main.py".into(),
+        bytes: "가나\néx".as_bytes().to_vec(),
+    })
+    .unwrap();
+    let span = source.span(TextRange::new(TextSize::new(0), TextSize::new(10)));
+    assert_eq!(
+        (
+            span.start_line,
+            span.start_column,
+            span.end_line,
+            span.end_column
+        ),
+        (1, Some(1), Some(2), Some(2))
+    );
+    let letter = source.span(TextRange::new(TextSize::new(7), TextSize::new(9)));
+    assert_eq!(
+        (
+            letter.start_line,
+            letter.start_column,
+            letter.end_line,
+            letter.end_column
+        ),
+        (2, Some(1), Some(2), Some(1))
+    );
+    let point = source.span(TextRange::new(TextSize::new(7), TextSize::new(7)));
+    assert_eq!(point, letter);
+}
+
+#[test]
+fn hygiene_matches_fixed_oracle_and_explicit_corrected_expectations() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/hygiene.json"
+    ))
+    .unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let output = analyze(&request(
+            case["kind"].as_str().unwrap(),
+            case["source"].as_str().unwrap(),
+        ));
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{}:{} {:?}",
+            case["kind"],
+            case["id"],
+            output.observation.limitations
+        );
+        let targets:Vec<Value>=output.targets.iter().filter(|target|matches!(target.status.as_str(),"WARN"|"FAIL")).map(|target|json!({"name":target.target_name,"line":target.start_line,"end_line":target.end_line,"message":target.message,"snippet":target.snippet,"metrics":target.metrics,"status":target.status})).collect();
+        let expected = case
+            .get("expected_targets")
+            .unwrap_or(&case["oracle_targets"]);
+        assert_eq!(
+            json!(targets),
+            *expected,
+            "{}:{} targets",
+            case["kind"],
+            case["id"]
+        );
+        let counters = case
+            .get("expected_counters")
+            .unwrap_or(&case["oracle_counters"]);
+        for (key, value) in counters.as_object().unwrap() {
+            assert_eq!(
+                output.extra[key], *value,
+                "{}:{}:{key}",
+                case["kind"], case["id"]
+            );
+        }
+        assert!(
+            output.targets.iter().any(|target| target.status == "PASS"),
+            "all checked files retain a target"
+        );
+    }
+}
+#[test]
+fn secrets_are_redacted_and_allowlists_and_nosec_are_structural() {
+    let source = "password=\"sk-fixture-sensitive-value-98765\"; eval(payload)\nsettings={\"auth_token\":\"ghp_fixture_sensitive_123456\"}\n";
+    let mut input = request("security", source);
+    let output = analyze(&input);
+    assert_eq!(output.observation.findings.len(), 3);
+    let serialized = serde_json::to_string(&output).unwrap();
+    assert!(!serialized.contains("sk-fixture-sensitive-value-98765"));
+    assert!(!serialized.contains("ghp_fixture_sensitive_123456"));
+    input.options = json!({"secret_name_allowlist":["password","AUTH_TOKEN"]});
+    assert_eq!(analyze(&input).observation.findings.len(), 1);
+    let input = request("security", "암호 = \"x\"; password=\"abcdefghijk\"\n");
+    let output = analyze(&input);
+    let target = output
+        .targets
+        .iter()
+        .find(|target| target.target_name == "Security:HardcodedSecret")
+        .unwrap();
+    assert_eq!(target.start_column, Some(11));
+    assert_eq!(target.end_column, Some(32));
+}
+
+#[test]
+fn excluded_vendor_and_generated_inputs_remain_visible_and_not_measured() {
+    let mut input = request("security", "x=1\n");
+    input.inputs.extend([
+        SourceInput {
+            path: "vendor/a.py".into(),
+            bytes: b"eval(data)\n".to_vec(),
+        },
+        SourceInput {
+            path: "generated/b.py".into(),
+            bytes: b"eval(data)\n".to_vec(),
+        },
+        SourceInput {
+            path: "vendor/generated/c.py".into(),
+            bytes: b"eval(data)\n".to_vec(),
+        },
+    ]);
+    let output = analyze(&input);
+    assert!(output.observation.findings.is_empty());
+    assert_eq!(output.extra["files_checked"], json!(1));
+    assert_eq!(
+        output.extra["excluded_source_counts"],
+        json!({"generated":2,"vendor":2})
+    );
+    assert_eq!(
+        output
+            .targets
+            .iter()
+            .filter(|target| target.status == "SKIP")
+            .count(),
+        3
+    );
+    input.options = json!({"include_vendor":true,"include_generated":true});
+    assert_eq!(analyze(&input).observation.findings.len(), 3);
 }

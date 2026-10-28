@@ -1,9 +1,12 @@
 //! Native analyses over immutable source snapshots; no process or filesystem fallback.
+mod ast_util;
 mod finding;
 mod lines;
 mod metrics;
 mod parser;
+mod resource;
 mod scope;
+mod security;
 mod source;
 
 use ici_domain::{AnalysisOutput, AnalysisRequest, InspectionTarget, TaskState};
@@ -83,7 +86,7 @@ impl AnalysisSession {
             lines::analyze(request, &mut output);
             return output;
         }
-        if !matches!(kind, "complexity" | "cognitive") {
+        if !matches!(kind, "complexity" | "cognitive" | "security" | "resource") {
             failure(
                 &mut output,
                 ".",
@@ -96,10 +99,44 @@ impl AnalysisSession {
         }
         let mut files = Vec::new();
         let mut source_encodings = BTreeMap::new();
+        let mut excluded_source_counts: BTreeMap<String, usize> = BTreeMap::new();
         let options = serde_json::to_vec(&request.options).unwrap_or_default();
         for input in &request.inputs {
             if !input.path.ends_with(".py") && !input.path.ends_with(".pyi") {
                 continue;
+            }
+            if matches!(
+                kind,
+                "security" | "resource" | "exception" | "dead" | "cycle" | "dup" | "compat"
+            ) {
+                let excluded: Vec<_> = source::exclusion_reasons(&input.path)
+                    .into_iter()
+                    .filter(|reason| {
+                        !request
+                            .options
+                            .get(format!("include_{reason}"))
+                            .and_then(serde_json::Value::as_bool)
+                            .unwrap_or(false)
+                    })
+                    .collect();
+                if !excluded.is_empty() {
+                    for reason in &excluded {
+                        *excluded_source_counts
+                            .entry((*reason).to_owned())
+                            .or_default() += 1;
+                    }
+                    let mut target = InspectionTarget::at(&input.path, 1);
+                    target.target_name = "ExcludedAnalysisSource".into();
+                    target.status = "SKIP".into();
+                    target.message = format!("excluded: {}", excluded.join(", "));
+                    output.observation.limitations.push(format!(
+                        "excluded {}: {}",
+                        input.path,
+                        excluded.join(", ")
+                    ));
+                    output.targets.push(target);
+                    continue;
+                }
             }
             let mut hash = Sha256::new();
             for item in [
@@ -153,7 +190,12 @@ impl AnalysisSession {
                 &SourceError::new("empty-scope", "No applicable Python sources were selected"),
             );
         }
-        metrics::analyze(request, &files, &mut output);
+        match kind {
+            "security" => security::analyze(request, &files, &mut output),
+            "resource" => resource::analyze(request, &files, &mut output),
+            _ => metrics::analyze(request, &files, &mut output),
+        }
+        output.extra["excluded_source_counts"] = json!(excluded_source_counts);
         output.extra["source_encodings"] = json!(source_encodings);
         output.extra["parser_identity"] = json!(PARSER_IDENTITY);
         output
@@ -190,6 +232,15 @@ fn finish_status(output: &mut AnalysisOutput, request: &AnalysisRequest) {
         || output.targets.iter().any(|target| target.status == "ERROR")
     {
         output.status = "ERROR".into();
+        output.summary = format!(
+            "{} analysis incomplete: {}",
+            request.check_id,
+            output
+                .observation
+                .limitations
+                .first()
+                .map_or("not all selected inputs were analyzed", String::as_str)
+        );
         return;
     }
     let failed = output.targets.iter().any(|target| target.status == "FAIL");
