@@ -1,4 +1,4 @@
-//! Rust-owned Python release packaging over immutable inputs. Planning never writes or probes.
+//! Rust-owned release packaging over immutable inputs. Planning never writes or probes.
 use ici_application::snapshot::{InputLimits, InputSnapshot};
 use ici_config::{Component, ResolvedProject};
 use ici_domain::{AnalysisOutput, InspectionTarget, TaskKind, TaskSpec, TaskState, sha256};
@@ -15,6 +15,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use toml_edit::DocumentMut;
+mod declarations;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct BuildMetadata {
@@ -55,10 +56,13 @@ pub struct ArtifactBuildPlan {
     pub output_paths: Vec<String>,
     pub version_probe: Option<TaskSpec>,
     pub limitations: Vec<String>,
+    pub binary_inputs: BTreeSet<String>,
     version_probe_evidence: Option<serde_json::Value>,
     inputs: BTreeMap<String, String>,
     files: Vec<OutputFile>,
     manifest_path: String,
+    declarations: declarations::Declarations,
+    declared: BTreeMap<String, String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -101,6 +105,34 @@ pub fn describe_with_environment(
     task_id: &str,
     environment: &BTreeMap<String, String>,
 ) -> Result<ArtifactBuildPlan, String> {
+    describe_internal(project, component, task_id, environment, &[])
+}
+
+pub fn describe_compiled(
+    project: &ResolvedProject,
+    component: &Component,
+    task_id: &str,
+    environment: &BTreeMap<String, String>,
+    compiled: &[ArtifactSource],
+) -> Result<ArtifactBuildPlan, String> {
+    describe_internal(project, component, task_id, environment, compiled)
+}
+
+fn artifact_limits() -> InputLimits {
+    InputLimits {
+        file_bytes: 256 * 1024 * 1024,
+        total_bytes: 512 * 1024 * 1024,
+    }
+}
+
+fn describe_internal(
+    project: &ResolvedProject,
+    component: &Component,
+    task_id: &str,
+    environment: &BTreeMap<String, String>,
+    compiled: &[ArtifactSource],
+) -> Result<ArtifactBuildPlan, String> {
+    let declarations = declarations::Declarations::collect(project, component)?;
     let base = if component.root == "." {
         project.root.clone()
     } else {
@@ -272,7 +304,7 @@ pub fn describe_with_environment(
     let local_output = Path::new(&metadata.version).join("x86_64");
     let output_root = relative(&project.root, &base.join(local_output))?;
     let source_roots = crate::inputs::source_roots(component, &project.root);
-    let sources = component
+    let mut sources = component
         .files
         .iter()
         .filter(|path| {
@@ -362,13 +394,65 @@ pub fn describe_with_environment(
             message: format!("Callable launcher for {target}"),
         });
     }
-    if files.is_empty() {
-        return Err("No Python library or launcher artifact was selected".into());
+    if compiled.len() > 512 {
+        return Err("compiled artifact inventory exceeds 512 records".into());
+    }
+    for record in compiled {
+        ici_domain::validation::relative_path(&record.path, false)
+            .map_err(|error| error.to_string())?;
+        let directory = match record.kind.as_str() {
+            "executable" => "bin",
+            "shared-library" | "static-library" => "lib",
+            _ => {
+                return Err(format!(
+                    "unsupported compiled artifact kind: {}",
+                    record.kind
+                ));
+            }
+        };
+        let name = record
+            .destination_name
+            .as_deref()
+            .unwrap_or_else(|| record.path.rsplit('/').next().unwrap_or_default());
+        validate_launcher_name(name)?;
+        if record.mode > 0o777 || record.size > 256 * 1024 * 1024 {
+            return Err("compiled artifact mode or size exceeds contract".into());
+        }
+        let path = format!("{output_root}/{directory}/{name}");
+        if !destinations.insert(path.clone()) {
+            return Err(format!("compiled artifact collision at {path}"));
+        }
+        let metadata = std::fs::symlink_metadata(project.root.join(&record.path))
+            .map_err(|error| error.to_string())?;
+        if !metadata.is_file()
+            || metadata.len() != record.size
+            || metadata.permissions().mode() & 0o777 != record.mode
+        {
+            return Err(format!(
+                "compiled artifact no longer matches its measured producer record: {}",
+                record.path
+            ));
+        }
+        sources.push(record.path.clone());
+        files.push(OutputFile {
+            path,
+            content: Content::Source(record.path.clone()),
+            kind: record.kind.clone(),
+            mode: record.mode,
+            message: format!("Packaged {} {}", record.kind, record.path),
+        });
+    }
+    if files.is_empty() && declarations.is_empty() {
+        return Err("No library, launcher, compiled or declared artifact was selected".into());
     }
     for (name, content) in [("env.sh", ENV_SH), ("env.csh", ENV_CSH)] {
         files.push(OutputFile {
             path: format!("{output_root}/{name}"),
-            content: Content::Generated(content.as_bytes().to_vec()),
+            content: Content::Generated(if compiled.is_empty() { content.as_bytes().to_vec() } else if name == "env.sh" {
+                content.replace("export PYTHONPATH=", "export LD_LIBRARY_PATH=\"${SCRIPT_DIR}/lib:${LD_LIBRARY_PATH:-}\"\nexport PYTHONPATH=").into_bytes()
+            } else {
+                content.replace("setenv PYTHONPATH", "if (! $?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"\"\nsetenv LD_LIBRARY_PATH \"${FULL_DIR}/lib:${LD_LIBRARY_PATH}\"\nsetenv PYTHONPATH").into_bytes()
+            }),
             kind: "environment-script".into(),
             mode: 0o755,
             message: format!("Generated {name}"),
@@ -384,8 +468,35 @@ pub fn describe_with_environment(
         .iter()
         .map(|(path, file)| (path.clone(), file.digest.clone()))
         .collect::<BTreeMap<_, _>>();
-    let source_snapshot = InputSnapshot::take(&project.root, &sources, &[], InputLimits::default())
+    let declared = declarations.select(&files, version_probe.is_some())?;
+    let generated_paths = files
+        .iter()
+        .map(|file| file.path.as_str())
+        .collect::<BTreeSet<_>>();
+    let binary_inputs = compiled
+        .iter()
+        .map(|record| record.path.clone())
+        .chain(
+            declarations
+                .input_paths()
+                .into_iter()
+                .filter(|path| !generated_paths.contains(path.as_str())),
+        )
+        .collect::<BTreeSet<_>>();
+    sources.extend(binary_inputs.iter().cloned());
+    sources.sort();
+    sources.dedup();
+    let source_snapshot = InputSnapshot::take(&project.root, &sources, &[], artifact_limits())
         .map_err(|error| error.to_string())?;
+    for record in compiled {
+        if source_snapshot
+            .files
+            .get(&record.path)
+            .is_none_or(|file| file.digest != record.sha256)
+        {
+            return Err(format!("compiled artifact digest changed: {}", record.path));
+        }
+    }
     inputs.extend(
         source_snapshot
             .files
@@ -406,7 +517,11 @@ pub fn describe_with_environment(
     let executable = std::env::current_exe().map_err(|error| error.to_string())?;
     let mut task = TaskSpec::command(
         task_id,
-        "ici-python-artifact",
+        if compiled.is_empty() {
+            "ici-python-artifact"
+        } else {
+            "ici-native-artifact"
+        },
         vec![
             executable.to_string_lossy().into_owned(),
             "__artifact-build".into(),
@@ -419,7 +534,11 @@ pub fn describe_with_environment(
     if let Some(probe) = &version_probe {
         task.depends_on.push(probe.id.clone());
     }
-    task.analysis_unit_ids = vec![format!("{}.python", component.id)];
+    task.analysis_unit_ids = vec![format!(
+        "{}.{}",
+        component.id,
+        if compiled.is_empty() { "python" } else { "cpp" }
+    )];
     task.input_refs = inputs
         .keys()
         .map(|path| project.root.join(path).to_string_lossy().into_owned())
@@ -458,10 +577,13 @@ pub fn describe_with_environment(
         output_paths,
         version_probe,
         limitations,
+        binary_inputs,
         version_probe_evidence: None,
         inputs,
         files,
         manifest_path,
+        declarations,
+        declared,
     })
 }
 
@@ -470,7 +592,7 @@ pub fn execute(
     snapshot: &InputSnapshot,
     cancellation: &Cancellation,
 ) -> AnalysisOutput {
-    let mut output = AnalysisOutput::new(&plan.task.id, "ici-python-artifact");
+    let mut output = AnalysisOutput::new(&plan.task.id, &plan.task.provider);
     output.observation.limitations.clone_from(&plan.limitations);
     if let Some(probe) = &plan.version_probe_evidence {
         output.extra["version_probe"] = probe.clone();
@@ -649,6 +771,7 @@ fn execute_inner(
         target.target_name = match file.kind.as_str() {
             "python-library" => "PythonLibrary",
             "python-launcher" => "PythonLauncher",
+            "executable" | "shared-library" | "static-library" => "CompiledArtifact",
             _ => "EnvironmentScript",
         }
         .into();
@@ -670,7 +793,13 @@ fn execute_inner(
     )
     .map_err(|error| format!("artifact ownership manifest: {error}"))?;
     let verified = verify_output(plan)?;
-    output.extra["artifact_manifests"] = json!([{"producer":"ici.python-artifact","variant":"release","scope":"project","metadata":plan.metadata,"artifacts":manifest.files.iter().map(|(path,record)|json!({"path":path,"kind":record.kind,"sha256":record.sha256,"artifact_id":format!("release:project:{path}"),"owned":record.owned})).collect::<Vec<_>>()}]);
+    let records = plan.files.iter().map(|file| {
+        let record = &manifest.files[&file.path];
+        let size = match &file.content { Content::Source(source) => snapshot.files[source].input.bytes.len(), Content::Generated(bytes) => bytes.len() };
+        json!({"path":file.path,"kind":record.kind,"sha256":record.sha256,"artifact_id":format!("release:project:{}",file.path),"owned":record.owned,"size":size,"mode":record.mode})
+    }).collect::<Vec<_>>();
+    output.extra["artifact_manifests"] = json!([{"producer":if plan.task.provider == "ici-native-artifact" { "ici.native-artifact" } else { "ici.python-artifact" },"variant":"release","scope":"project","metadata":plan.metadata,"artifacts":records}]);
+    declarations::publish(plan, snapshot, output)?;
     output.extra["verified_output_paths"] = json!(verified);
     output.extra["retired_artifacts"] = json!(manifest.retired_files.keys().collect::<Vec<_>>());
     Ok(())
@@ -686,7 +815,7 @@ pub fn verify_output(plan: &ArtifactBuildPlan) -> Result<BTreeMap<String, String
         .map(|file| file.path.clone())
         .chain(std::iter::once(plan.manifest_path.clone()))
         .collect::<Vec<_>>();
-    let snapshot = InputSnapshot::take(&plan.root, &paths, &[], InputLimits::default())
+    let snapshot = InputSnapshot::take(&plan.root, &paths, &[], artifact_limits())
         .map_err(|error| error.to_string())?;
     let mut output = BTreeMap::new();
     if manifest.files.len() != plan.files.len() {
@@ -759,7 +888,7 @@ fn read_existing(
     if paths.is_empty() {
         return Ok(BTreeMap::new());
     }
-    let snapshot = InputSnapshot::take(&plan.root, &paths, &[], InputLimits::default())
+    let snapshot = InputSnapshot::take(&plan.root, &paths, &[], artifact_limits())
         .map_err(|error| format!("existing artifact cannot be inspected safely: {error}"))?;
     Ok(snapshot
         .files
@@ -953,7 +1082,7 @@ pub fn owned_outputs(root: &Path) -> Result<BTreeSet<String>, String> {
             .chain(manifest.retired_files.keys())
             .cloned()
             .collect::<Vec<_>>();
-        let snapshot = InputSnapshot::take(root, &paths, &[], InputLimits::default())
+        let snapshot = InputSnapshot::take(root, &paths, &[], artifact_limits())
             .map_err(|error| error.to_string())?;
         total_bytes = total_bytes
             .checked_add(snapshot.total_bytes)
@@ -1015,6 +1144,18 @@ fn validate_records(manifest: &Manifest) -> Result<(), String> {
                 record.mode == 0o755
                     && local
                         .strip_prefix("bin/")
+                        .is_some_and(|name| validate_launcher_name(name).is_ok())
+            }
+            "executable" => {
+                record.mode <= 0o777
+                    && local
+                        .strip_prefix("bin/")
+                        .is_some_and(|name| validate_launcher_name(name).is_ok())
+            }
+            "shared-library" | "static-library" => {
+                record.mode <= 0o777
+                    && local
+                        .strip_prefix("lib/")
                         .is_some_and(|name| validate_launcher_name(name).is_ok())
             }
             "environment-script" => record.mode == 0o755 && matches!(local, "env.sh" | "env.csh"),
@@ -1087,10 +1228,10 @@ pub fn apply_version_probe(
     for path in excluded {
         result.inputs.remove(&path);
     }
-    if !result
-        .files
-        .iter()
-        .any(|file| matches!(file.content, Content::Source(_)) || file.kind == "python-launcher")
+    if result.declarations.is_empty()
+        && !result.files.iter().any(|file| {
+            matches!(file.content, Content::Source(_)) || file.kind == "python-launcher"
+        })
     {
         return Err(
             "no Python library or launcher remains outside the resolved output tree".into(),
@@ -1103,6 +1244,7 @@ pub fn apply_version_probe(
             .ok_or_else(|| "planned artifact output is outside its version root".to_string())?;
         file.path = format!("{output_root}/{local}");
     }
+    result.declared = result.declarations.select(&result.files, false)?;
     result.output_root = output_root;
     result.metadata.version = version;
     result.metadata.version_source = source;

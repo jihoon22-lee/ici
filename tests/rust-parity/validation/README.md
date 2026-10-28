@@ -257,3 +257,27 @@ Unchanged retired release files keep separate ownership evidence and remain on
 disk; only active artifacts are published in the current release manifest.
 Legacy declared wheel/report publication and shared compiled-artifact export are
 still separate follow-up acceptance work.
+
+Native release publication now shares the Rust-owned copy/ownership transaction with Python
+sources. `describe_compiled` accepts producer-measured canonical regular files, verifies their
+SHA-256, byte size and permission mode, and places executables in `bin` and shared/static
+libraries in `lib`. SONAME aliases become regular copies of the same captured bytes. No project
+Python is required for a C++ only component. Existing unrecognized or modified destination data
+is preserved. Compiled environment scripts add the release library directory to
+`LD_LIBRARY_PATH`; the frozen Python-only environment/launcher bytes are unchanged.
+
+`build.artifacts.python_wheel` and `build.artifacts.report` publish a separate `config.artifacts`
+manifest with typed path, byte size, mode, SHA-256 and `release:project:<path>` identity. Existing
+files remain unowned and are captured through canonical contained paths; aliases outside the
+workspace and unmatched globs fail explicitly. Generated package paths may also match declared
+globs. Git version resolution re-evaluates only frozen candidates plus planned generated paths,
+without filesystem access. The inventories are bounded (32 globs per kind, 512 records, 32768
+entries/depth 64); payloads are bounded at 256 MiB per file and 512 MiB aggregate. The plan exposes
+its exact binary input set for the CLI to apply that bound separately from ordinary source limits.
+
+Scoped evidence: `artifact-declarations-tests.log` passed the two ordinary declaration cases
+(publish wheel/report/generated env, contained alias, unchanged ownership, revised user bytes,
+missing/escaping artifact refusal). `artifact-compiled-native.log` passed actual GCC 15.2.0
+executable/shared-library packaging and regular SONAME alias consumption, including execution,
+producer-digest mismatch and output collision refusal. Git 2.53.0 was the earlier explicit version
+probe tool. This does not substitute for root C++ build-context orchestration or full R8 closure.

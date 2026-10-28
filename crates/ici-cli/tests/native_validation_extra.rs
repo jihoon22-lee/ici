@@ -905,3 +905,292 @@ fn native_git_version_is_visible_and_resolved_before_any_release_write() {
         );
     }
 }
+
+#[test]
+fn declared_wheels_and_reports_publish_captured_identity_without_ownership() {
+    let root = artifact_fixture();
+    fs::create_dir(root.path().join("dist")).unwrap();
+    fs::write(root.path().join("dist/package.whl"), b"wheel-user-bytes").unwrap();
+    fs::write(root.path().join("dist/report.json"), b"{\"measured\":true}").unwrap();
+    std::os::unix::fs::symlink("report.json", root.path().join("dist/report-alias.json")).unwrap();
+    let path = root.path().join("ici.toml");
+    let mut text = fs::read_to_string(&path).unwrap();
+    text.push_str("\n[build.artifacts]\npython_wheel=['dist/*.whl']\nreport=['dist/report-alias.json','v1.2.3/x86_64/env.sh']\n");
+    fs::write(path, text).unwrap();
+    let preview = prepare(root.path(), &environment());
+    let plan = &preview.artifact_builds["project.python.artifact"];
+    assert!(plan.binary_inputs.contains("dist/package.whl"));
+    assert!(plan.binary_inputs.contains("dist/report.json"));
+    assert!(!plan.binary_inputs.contains("v1.2.3/x86_64/env.sh"));
+    assert!(!root.path().join("v1.2.3").exists());
+    let result = run(root.path(), &environment());
+    assert_eq!(
+        result.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        result.outputs
+    );
+    let manifest = result.outputs["project.python.artifact"].extra["artifact_manifests"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|manifest| manifest["producer"] == "config.artifacts")
+        .unwrap();
+    let records = manifest["artifacts"].as_array().unwrap();
+    assert_eq!(records.len(), 3);
+    let wheel = records
+        .iter()
+        .find(|record| record["kind"] == "python-wheel")
+        .unwrap();
+    assert_eq!(wheel["path"], "dist/package.whl");
+    assert_eq!(wheel["size"], 16);
+    assert_eq!(wheel["sha256"], ici_domain::sha256(b"wheel-user-bytes"));
+    assert_eq!(wheel["artifact_id"], "release:project:dist/package.whl");
+    assert_eq!(wheel["owned"], false);
+    assert!(
+        records
+            .iter()
+            .any(|record| record["path"] == "dist/report.json")
+    );
+    let owned = ici_cli::artifact_build::owned_outputs(root.path()).unwrap();
+    assert!(!owned.contains("dist/package.whl"));
+    assert!(!owned.contains("dist/report.json"));
+    fs::write(
+        root.path().join("dist/package.whl"),
+        b"edited-existing-wheel",
+    )
+    .unwrap();
+    let result = run(root.path(), &environment());
+    assert_eq!(
+        result.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        result.outputs
+    );
+    assert_eq!(
+        fs::read(root.path().join("dist/package.whl")).unwrap(),
+        b"edited-existing-wheel"
+    );
+}
+
+#[test]
+fn unmatched_and_escaping_declared_artifacts_prevent_preparation() {
+    for escaping in [false, true] {
+        let root = artifact_fixture();
+        let outside = tempfile::tempdir().unwrap();
+        fs::write(outside.path().join("outside.whl"), b"private-wheel").unwrap();
+        fs::create_dir(root.path().join("dist")).unwrap();
+        if escaping {
+            std::os::unix::fs::symlink(
+                outside.path().join("outside.whl"),
+                root.path().join("dist/missing.whl"),
+            )
+            .unwrap();
+        }
+        let path = root.path().join("ici.toml");
+        let mut text = fs::read_to_string(&path).unwrap();
+        text.push_str("\n[build.artifacts]\npython_wheel=['dist/missing.whl']\n");
+        fs::write(path, text).unwrap();
+        let result = run(root.path(), &environment());
+        assert_eq!(
+            result.result.gate.selected,
+            GateVerdict::Incomplete,
+            "{:?}",
+            result.outputs
+        );
+        assert!(!root.path().join("v1.2.3").exists());
+        assert_eq!(
+            fs::read(outside.path().join("outside.whl")).unwrap(),
+            b"private-wheel"
+        );
+    }
+}
+
+#[test]
+#[ignore = "explicit compiler shared release packager acceptance"]
+fn compiled_release_packager_handles_cpp_only_binary_library_and_soname_alias() {
+    use ici_application::snapshot::{InputLimits, InputSnapshot};
+    use ici_cli::artifact_build::{self, ArtifactSource};
+    use std::{os::unix::fs::PermissionsExt, process::Command};
+    let root = artifact_fixture();
+    // Metadata has no Python scripts, and the supplied component has no Python source inputs.
+    fs::write(
+        root.path().join("pyproject.toml"),
+        "[project]\nname='cpp-only'\nversion='3'\n",
+    )
+    .unwrap();
+    let preview = prepare(root.path(), &environment());
+    let mut component = preview.project.components[0].clone();
+    component.files.clear();
+    component.languages = vec!["cpp".into()];
+    fs::write(
+        root.path().join("lib.cpp"),
+        "extern \"C\" int answer(){return 42;}\n",
+    )
+    .unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    let compiler = std::env::var("ICI_TEST_GXX").expect("set ICI_TEST_GXX to explicit compiler");
+    for args in [
+        vec![
+            "-fPIC",
+            "-shared",
+            "-Wl,-soname,libanswer.so.3",
+            "lib.cpp",
+            "-o",
+            "libanswer.so.3.0",
+        ],
+        vec!["main.cpp", "-o", "app"],
+    ] {
+        let result = Command::new(&compiler)
+            .args(args)
+            .current_dir(root.path())
+            .output()
+            .unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+    }
+    let mut sources = vec![];
+    for (path, kind, alias) in [
+        ("app", "executable", None),
+        ("libanswer.so.3.0", "shared-library", None),
+        ("libanswer.so.3.0", "shared-library", Some("libanswer.so.3")),
+    ] {
+        let metadata = fs::metadata(root.path().join(path)).unwrap();
+        sources.push(ArtifactSource {
+            path: path.into(),
+            kind: kind.into(),
+            sha256: ici_domain::sha256(fs::read(root.path().join(path)).unwrap()),
+            size: metadata.len(),
+            mode: metadata.permissions().mode() & 0o777,
+            destination_name: alias.map(str::to_owned),
+        });
+    }
+    let plan = artifact_build::describe_compiled(
+        &preview.project,
+        &component,
+        "project.cpp.artifact",
+        &environment(),
+        &sources,
+    )
+    .unwrap();
+    let inputs = plan
+        .task
+        .input_refs
+        .iter()
+        .map(|path| {
+            Path::new(path)
+                .strip_prefix(root.path())
+                .unwrap()
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect::<Vec<_>>();
+    let captured = InputSnapshot::take(
+        root.path(),
+        &inputs,
+        &[],
+        InputLimits {
+            file_bytes: 256 * 1024 * 1024,
+            total_bytes: 512 * 1024 * 1024,
+        },
+    )
+    .unwrap();
+    let result = artifact_build::execute(&plan, &captured, &Cancellation::default());
+    assert_eq!(result.observation.state, TaskState::Succeeded, "{result:?}");
+    assert_eq!(
+        fs::read(root.path().join("v3/x86_64/lib/libanswer.so.3")).unwrap(),
+        fs::read(root.path().join("libanswer.so.3.0")).unwrap()
+    );
+    assert!(
+        !fs::symlink_metadata(root.path().join("v3/x86_64/lib/libanswer.so.3"))
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+    assert!(
+        fs::read_to_string(root.path().join("v3/x86_64/env.sh"))
+            .unwrap()
+            .contains("LD_LIBRARY_PATH")
+    );
+    let status = Command::new(root.path().join("v3/x86_64/bin/app"))
+        .status()
+        .unwrap();
+    assert!(status.success());
+    assert!(
+        artifact_build::owned_outputs(root.path())
+            .unwrap()
+            .contains("v3/x86_64/bin/app")
+    );
+    let mut changed = sources.clone();
+    changed[0].sha256 = ici_domain::sha256(b"wrong producer digest");
+    assert!(
+        artifact_build::describe_compiled(
+            &preview.project,
+            &component,
+            "project.cpp.artifact",
+            &environment(),
+            &changed
+        )
+        .is_err()
+    );
+    let mut collision = sources.clone();
+    collision[2].destination_name = Some("libanswer.so.3.0".into());
+    assert!(
+        artifact_build::describe_compiled(
+            &preview.project,
+            &component,
+            "project.cpp.artifact",
+            &environment(),
+            &collision
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn git_declared_outputs_resolve_from_frozen_plans_without_filesystem_reads() {
+    let root = artifact_fixture();
+    let metadata = root.path().join("pyproject.toml");
+    fs::write(
+        &metadata,
+        fs::read_to_string(&metadata)
+            .unwrap()
+            .replace("version='1.2.3'\n", ""),
+    )
+    .unwrap();
+    let path = root.path().join("ici.toml");
+    fs::write(&path, fs::read_to_string(&path).unwrap() + "\n[tools.git]\npath='/usr/bin/true'\n[build.artifacts]\nreport=['v2.4.0/x86_64/env.sh']\n").unwrap();
+    let project =
+        ici_config::resolve_with_environment(root.path(), None, None, &environment()).unwrap();
+    let plan = ici_cli::artifact_build::describe_with_environment(
+        &project,
+        &project.components[0],
+        "project.python.artifact",
+        &environment(),
+    )
+    .unwrap();
+    assert_eq!(plan.metadata.version_source, "planned:git-describe");
+    fs::remove_dir_all(root.path().join("src")).unwrap();
+    fs::remove_file(metadata).unwrap();
+    fs::remove_file(path).unwrap();
+    let mut outcome = ici_execution::TaskOutcome::empty(&plan.version_probe.as_ref().unwrap().id);
+    outcome.state = TaskState::Succeeded;
+    outcome.exit_code = Some(0);
+    outcome.stdout = b"v2.4.0\n".to_vec();
+    let resolved = ici_cli::artifact_build::apply_version_probe(&plan, &outcome).unwrap();
+    assert!(
+        resolved
+            .output_paths
+            .contains(&"v2.4.0/x86_64/env.sh".into())
+    );
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 0);
+    outcome.stdout = b"v9\n".to_vec();
+    assert!(
+        ici_cli::artifact_build::apply_version_probe(&plan, &outcome)
+            .unwrap_err()
+            .contains("matched nothing")
+    );
+}
