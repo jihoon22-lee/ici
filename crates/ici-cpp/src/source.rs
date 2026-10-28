@@ -188,6 +188,48 @@ pub(crate) fn is_excluded(path: &str) -> Option<&'static str> {
     None
 }
 
+pub(crate) fn policy_exclusions(
+    request: &ici_domain::AnalysisRequest,
+    path: &str,
+) -> Vec<&'static str> {
+    ici_analysis::source_exclusion_reasons(path)
+        .into_iter()
+        .filter(|reason| {
+            !request
+                .options
+                .get(format!("include_{reason}"))
+                .and_then(serde_json::Value::as_bool)
+                .unwrap_or(false)
+        })
+        .collect()
+}
+
+pub(crate) fn record_policy_exclusions(
+    request: &ici_domain::AnalysisRequest,
+    output: &mut ici_domain::AnalysisOutput,
+) -> std::collections::BTreeMap<String, usize> {
+    let mut counts = std::collections::BTreeMap::new();
+    for input in &request.inputs {
+        let reasons = policy_exclusions(request, &input.path);
+        if reasons.is_empty() {
+            continue;
+        }
+        for reason in &reasons {
+            *counts.entry((*reason).to_owned()).or_default() += 1;
+        }
+        let mut target = InspectionTarget::at(&input.path, 1);
+        target.target_name = "ExcludedAnalysisSource".into();
+        target.status = "SKIP".into();
+        target.message = format!("excluded: {}", reasons.join(", "));
+        output
+            .observation
+            .limitations
+            .push(format!("{}: {}", input.path, target.message));
+        output.targets.push(target);
+    }
+    counts
+}
+
 /// Borrowed logical source lines for C++'s LF, CRLF and CR physical input spellings.
 pub(crate) fn physical_lines(mut text: &str) -> impl Iterator<Item = &str> {
     std::iter::from_fn(move || {

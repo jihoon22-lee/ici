@@ -149,6 +149,73 @@ fn actual_gcc_unused_consensus_requires_every_variant_and_never_reports_a_functi
     assert!(!root.path().join("must-not-create-0.o").exists());
     assert!(!root.path().join("must-not-create-1.o").exists());
 }
+
+#[test]
+fn actual_gcc_unused_policy_requires_both_generated_and_vendor_opt_ins() {
+    let root = tempfile::tempdir().unwrap();
+    let path = "Vendor/Generated/item.cpp";
+    fs::create_dir_all(root.path().join("Vendor/Generated")).unwrap();
+    let bytes = b"static int unused(){return 1;}\nint main(){return 0;}\n";
+    fs::write(root.path().join(path), bytes).unwrap();
+    fs::write(root.path().join("compile_commands.json"),serde_json::to_vec(&json!([{"directory":root.path(),"file":path,"arguments":["g++","-c",path,"-o","never.o"]}])).unwrap()).unwrap();
+    let context = load_compilation_context(
+        root.path(),
+        &ContextRequest {
+            selected_sources: vec![path.into()],
+            ..Default::default()
+        },
+    );
+    assert!(context.complete(), "{:?}", context.diagnostics);
+    let unit = &context.units[0];
+    let mut task = compiler_probe_task(
+        root.path(),
+        unit,
+        Path::new("/usr/bin/g++"),
+        ReplayPurpose::UnusedFunctions,
+        "unused-policy",
+    )
+    .unwrap();
+    task.argv.extend([
+        "-Wunused-function".into(),
+        "-fdiagnostics-show-option".into(),
+    ]);
+    let outcome = Runner::default().run(&task, &Cancellation::default());
+    assert!(outcome.prerequisite_succeeded());
+    let stderr = String::from_utf8(outcome.stderr).unwrap();
+    assert!(
+        stderr.contains(":1:12: warning:") && stderr.contains("[-Wunused-function]"),
+        "{stderr}"
+    );
+    let mut finding = Finding::new(
+        "compiler.unused-function",
+        "unused function",
+        SourceSpan::line(path, 1),
+        "compiler",
+    );
+    finding.native_rule_id = "-Wunused-function".into();
+    let observations = [CompilerConfigurationObservation {
+        source: path.into(),
+        configuration: unit.configuration.clone(),
+        complete: true,
+        findings: vec![finding],
+    }];
+    let mut input = request(SourceInput {
+        path: path.into(),
+        bytes: bytes.to_vec(),
+    });
+    for (generated, vendor, expected) in [
+        (false, false, 0),
+        (true, false, 0),
+        (false, true, 0),
+        (true, true, 1),
+    ] {
+        input.options = json!({"include_generated":generated,"include_vendor":vendor});
+        let output = unused_function_consensus(&input, &context, &observations);
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+        assert_eq!(output.observation.findings.len(), expected, "{output:?}");
+    }
+    assert!(!root.path().join("never.o").exists());
+}
 #[test]
 fn actual_gcc_include_trace_preserves_generated_external_and_direct_edges_and_rejects_depth_jumps()
 {

@@ -72,6 +72,45 @@ fn duplicate_matches_share_core_regions_locations_and_preserve_exclusions() {
 }
 
 #[test]
+fn generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons() {
+    let code = "int f(int x) {\n int a=x;\n a+=1;\n a*=2;\n a-=3;\n a/=4;\n return a;\n}\n";
+    let mut input = request(vec![
+        ("owned.cpp", code),
+        ("Vendor/Generated/moc_item.cpp", code),
+        ("Deps/helper.cpp", code),
+        ("app_autogen/item.cpp", code),
+        ("build/ordinary.cpp", code),
+    ]);
+    for (generated, vendor, expected, excluded) in [
+        (false, false, 2, json!({"generated":2,"vendor":2})),
+        (true, false, 3, json!({"vendor":2})),
+        (false, true, 3, json!({"generated":2})),
+        (true, true, 5, json!({})),
+    ] {
+        input.options = json!({"include_generated":generated,"include_vendor":vendor});
+        let output = CppAnalysisSession::new().analyze(&input);
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+        assert_eq!(output.extra["excluded_source_counts"], excluded);
+        assert_eq!(output.observation.findings.len(), expected, "{output:?}");
+        assert_eq!(
+            output
+                .targets
+                .iter()
+                .filter(|target| target.status == "SKIP")
+                .count(),
+            5 - expected
+        );
+        assert!(
+            output
+                .observation
+                .findings
+                .iter()
+                .any(|finding| finding.primary_location.path == "build/ordinary.cpp")
+        );
+    }
+}
+
+#[test]
 fn normalization_does_not_search_later_numeric_literals_at_each_identifier() {
     let source = "value += other;\n".repeat(10_000);
     let started = std::time::Instant::now();

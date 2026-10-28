@@ -106,6 +106,7 @@ impl CppAnalysisSession {
         let mut files = vec![];
         let mut line_files = vec![];
         let mut source_recovery = false;
+        let mut excluded_counts = BTreeMap::<String, usize>::new();
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
             if cancelled(&mut output, cancellation) {
@@ -148,16 +149,26 @@ impl CppAnalysisSession {
                 }
                 continue;
             }
-            if !matches!(kind, "line" | "complexity" | "cognitive" | "cycle")
-                && let Some(reason) = source::is_excluded(&input.path)
-            {
+            let excluded = if kind == "dup" {
+                source::policy_exclusions(request, &input.path)
+            } else if !matches!(kind, "line" | "complexity" | "cognitive" | "cycle") {
+                source::is_excluded(&input.path).into_iter().collect()
+            } else {
+                vec![]
+            };
+            if !excluded.is_empty() {
+                for reason in &excluded {
+                    *excluded_counts.entry((*reason).to_owned()).or_default() += 1;
+                }
+                let reason = excluded.join(", ");
                 output
                     .observation
                     .limitations
                     .push(format!("excluded {}: {reason}", input.path));
                 let mut target = InspectionTarget::at(&input.path, 1);
                 target.status = "SKIP".into();
-                target.message = reason.into();
+                target.target_name = "ExcludedAnalysisSource".into();
+                target.message = reason;
                 output.targets.push(target);
                 continue;
             }
@@ -305,6 +316,9 @@ impl CppAnalysisSession {
         }
         if let Err(error) = result {
             fail(&mut output, ".", &error.code, &error.message);
+        }
+        if kind == "dup" {
+            output.extra["excluded_source_counts"] = json!(excluded_counts);
         }
         if output.observation.state == TaskState::Succeeded {
             output.observation.state = TaskState::Succeeded;

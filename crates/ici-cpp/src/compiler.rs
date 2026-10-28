@@ -531,9 +531,10 @@ pub fn unused_function_consensus(
         .inputs
         .iter()
         .filter(|input| crate::is_translation_unit(&input.path))
-        .filter(|input| source::is_excluded(&input.path).is_none())
+        .filter(|input| source::policy_exclusions(request, &input.path).is_empty())
         .map(|input| input.path.clone())
         .collect();
+    let excluded_sources = source::record_policy_exclusions(request, &mut output);
     let mut configurations: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for unit in &context.units {
         if selected.contains(&unit.source) {
@@ -554,6 +555,16 @@ pub fn unused_function_consensus(
         }
     }
     if selected.is_empty() {
+        if !excluded_sources.is_empty() {
+            output.status = "SKIP".into();
+            output.summary =
+                "All selected translation units were excluded by source ownership policy".into();
+            output.extra = json!({"mode":"compiler-unused-internal","sources_checked":0,"excluded_source_counts":excluded_sources,"evidence":"NOT_APPLICABLE"});
+            let mut metric = ici_domain::Measurement::measured("sources_checked", 0.0);
+            metric.evidence = ici_domain::EvidenceLevel::NotApplicable;
+            output.observation.measurements.push(metric);
+            return output;
+        }
         fail(
             &mut output,
             ".",
@@ -670,7 +681,7 @@ pub fn unused_function_consensus(
         observations.len() as u64,
         false,
     );
-    output.extra = json!({"mode":"compiler-unused-internal","sources_checked":configurations.len(),"non_tu_diagnostics_excluded":excluded});
+    output.extra = json!({"mode":"compiler-unused-internal","sources_checked":configurations.len(),"non_tu_diagnostics_excluded":excluded,"excluded_source_counts":excluded_sources});
     output.observation.limitations.push("Compiler unused-function diagnostics establish internal-linkage source facts; they do not establish whole-program reachability".into());
     output
 }

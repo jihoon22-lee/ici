@@ -605,7 +605,7 @@ fn located_source(
     }
     let line = capture[2].parse::<u32>().ok()?;
     let input = request.inputs.iter().find(|input| input.path == path)?;
-    if source::is_excluded(&path).is_some()
+    if !source::policy_exclusions(request, &path).is_empty()
         || line as usize > std::str::from_utf8(&input.bytes).ok()?.lines().count()
     {
         return None;
@@ -622,6 +622,7 @@ pub fn analyze_linker_dead(
 ) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(&request.task_id, "gnu-linker.section-gc");
     output.observation.state = TaskState::Succeeded;
+    let excluded_sources = source::record_policy_exclusions(request, &mut output);
     if commands.is_empty() || !context.complete() {
         fail(
             &mut output,
@@ -769,7 +770,7 @@ pub fn analyze_linker_dead(
     }
     for input in &request.inputs {
         if crate::is_translation_unit(&input.path)
-            && source::is_excluded(&input.path).is_none()
+            && source::policy_exclusions(request, &input.path).is_empty()
             && !found.contains(&input.path)
         {
             let mut target = InspectionTarget::at(&input.path, 1);
@@ -798,7 +799,7 @@ pub fn analyze_linker_dead(
         commands.len() as u64,
         false,
     );
-    output.extra = json!({"mode":"gnu-elf-section-gc","ambiguous_sections_excluded":excluded,"sections_kept_by_another_target":kept});
+    output.extra = json!({"mode":"gnu-elf-section-gc","ambiguous_sections_excluded":excluded,"sections_kept_by_another_target":kept,"excluded_source_counts":excluded_sources});
     output.observation.limitations.push("Target-local GNU ELF section GC is not whole-program reachability. Dynamic lookup, exported/default-visible symbols, archives, shared objects, LTO, linker scripts, COMDAT groups and ambiguous source mappings are excluded".into());
     output
 }
