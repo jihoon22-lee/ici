@@ -19,14 +19,14 @@
 |2 static selection|구현·회귀 검증|CheckDefinition.static 선언, 실행 검사 제외 및 PARTIAL 범위|
 |3 configless discovery|구현·회귀 검증|5개 언어 메모리 구성, 기존 설정 우회 금지|
 |4 analyze 진입점|구현·회귀 검증|run_checks/plan 공유, verify 호환 테스트|
-|5 일반 package 설치|구현·로컬 설치 통과|wheel/sdist 및 격리 설치 E2E; 공개 asset 확인 대기|
+|5 일반 package 설치|공개 설치 검증 완료|공개 wheel/sdist fresh venv 및 4언어 E2E 통과|
 |6 report UX|구현·회귀 검증|범위·baseline·suppression·관련 진단, v1 읽기 유지|
 |7 Rust provider|구현·실제 fixture 통과|Clippy/build.rs, PREPARE/fast 차단, 입력 attribution|
 |8 TS/JS provider|구현·실제 fixture 통과|ESLint/tsc native config·진단 attribution|
 |9 보조자료 importer|구현·회귀 검증|SARIF/JUnit/LCOV subset, 출처·시점·범위 보존|
 |10 stable/next 수렴|구현·회귀 검증|공통 application·주 명령, legacy verify/pyz/migrate 호환 유지|
-|검증·문서·릴리스|태그 게시·release workflow 실행 중|main/archive/16 corpus 성공; 공개 asset 검증 대기|
-|병합·정리|구현·release PR 병합 완료|공개 검증 후 release worktree/소유 임시 자원 정리|
+|검증·문서·릴리스|공개·bytes 검증 완료|v0.13.0, 12 assets checksum, 3종 × 4언어 실행 통과|
+|병합·정리|문서 마감 중|release worktree/branch 정리 완료; 문서 PR 및 최종 임시 정리 남음|
 
 ## 지원 원칙
 
@@ -221,3 +221,62 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   아직 공개 release 완료 또는 공개 bytes 검증으로 기록하지 않는다.
 - 다음: workflow 완료 및 non-draft/non-prerelease 확인 → 모든 공개 asset 익명 다운로드/
   checksum/설치/CLI 검증 → 완료 근거 문서 PR → 소유 자원 정리 및 최종 main 동기화.
+
+## v0.13.0 공개 bytes 및 설치 검증 완료
+
+- 정식 공개: https://github.com/jihoon22-lee/ici/releases/tag/v0.13.0
+  (non-draft, non-prerelease). Release workflow `40622052622` 성공.
+- 공개 annotated tag를 API로 peel하여 source
+  `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`과 일치함을 확인했다.
+  이후 문서-only main은 이 공개 source와 구분한다. tag와 공개 asset을 덮어쓰지 않았다.
+- 인증 헤더 없이 stdlib HTTPS로 12개 asset 전부 다운로드했다. 모두 API의 크기·SHA-256과
+  일치했고 `ici.pyz.sha256`, `ici-package.sha256`의 모든 항목을 검증했다.
+  공개 pyz는 전체 16개 corpus가 인수한 candidate와 byte-identical이며 wheel/sdist도
+  공개 전 로컬 빌드 digest와 일치한다.
+
+|공개 asset|SHA-256|
+|---|---|
+|`ici-0.13.0-py3-none-any.whl`|`ede15036e1346503a9808ac22608e77e6cbb851ff702d3d735dcc98352a49fd1`|
+|`ici-0.13.0.tar.gz`|`6491851d08fc32e428d0109651b3989c1fb7997df129ba1e29a62e8385f2582f`|
+|`ici-package.sha256`|`1a57e70f32bfbe7ac67f0f3600d31951601139fe16c2c87009e9628b7d884f6d`|
+|`ici-self-report.html`|`65273bb7d7ea2004bbe7d86595c327c7e6101950054ed2eae5fc29e2ea9aaa48`|
+|`ici-self-report.json`|`2edb6450890c6f0bb6e255981204bff2aa2a0fcdcf09b4c092784e8e4a5b8cf2`|
+|`ici.pyz`|`c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde`|
+|`ici.pyz.sha256`|`0de03b0feddb9719a0141671c37191918a8a53d98bc8cebe63da6fcf94885a05`|
+|`icirv`|`e8ee55373dd6b99b73b6c37d81a3ef2154fb30ac7ac775372798d6fc65ca861d`|
+|`icirv-gui`|`df536f95427e8ae51f38504e3cc3729bd20c2c68857e2aa1742fac9982a57ca1`|
+|`icirv-gui.README.txt`|`bf76b78f0dc0af4826a131368f11b3bc1b9f69aab5fbe5fdaa53731dbe1c155f`|
+|`viewer-report.html`|`aa6b24b6e2cadfeffc4f2d715cc4ea51a024f8fb9ee6d58d205d7133a0d3d09b`|
+|`viewer-report.json`|`c760205c778646a68a1bd4c114ad2227a1b845a751ac888965212d85718b113f`|
+
+- 실행 환경: WSL2/Linux, Python 3.10.21, Ruff 0.16.4, Rust 1.99.1/Clippy 0.1.99,
+  Node 24.18.0, TypeScript 7.0.2, ESLint 10.13.0. 미리 준비한 native 도구를 사용했다.
+- 공개 pyz는 매번 새 `SHIV_ROOT`, wheel과 sdist는 각각 새 Python 3.10 venv에
+  `uv pip install --python <venv>/bin/python <downloaded-asset>`으로 설치했다.
+  sdist는 다운로드한 source archive에서 실제 build/install했다.
+- 세 배포 형태 각각 Python/Rust/JavaScript/TypeScript fresh fixture에서 `--version`,
+  `analyze --plan --json`, `analyze --json --events events.jsonl --result result.json`,
+  `report --result result.json --out report.html`을 실행했다. 12/12 계약 검증 통과.
+  각 fixture는 의도한 finding 1개와 exit 1을 냈으며 전체 분석 PASS라는 의미가 아니다.
+- result v2/stdout/file 일치, event v1의 동일 run_id, 실행별 고유 run_id,
+  부분 범위 workspace NOT_EVALUATED, native check SUCCEEDED, Rust unused_variables,
+  JS no-undef, TS 2322, Ruff exclude, TS composite metadata 격리/noEmit을 확인했다.
+- idk 0.5.0 소비 계약 v2/v1과 INCOMPLETE 보존은 부모가 인수한 범위를 유지한다.
+  RHEL/GHES 현장·macOS/native Windows 동등 지원은 이번 공개 실행 근거에 포함하지 않는다.
+  viewer GUI는 Qt 개발환경용이며 공개 다운로드 checksum 확인을 현장 GUI 실행으로 표현하지 않는다.
+  자체 report의 기존 WARN 및 선택적 CI skip도 앞선 기록대로 남는다.
+
+## 소유 자원 정리와 문서 마감
+
+- PR #296 병합 및 release branch tree와 공개 source의 동일성을 확인한 뒤
+  release worktree, local/remote `chore/release-general-analysis`를 삭제하고 prune했다.
+- 이번 작업이 만든 root `build/`, 중간 0.12.1 wheel/sdist/package checksum,
+  새로 만든 `dist/ici`, `dist/ici.pyz` 및 두 편집 helper를 삭제했다.
+- 기존 `dist/`와 2026-10-24의 `dist/ici.pyz.sha256`은 사용자 기존 파일로 보존한다.
+  해당 디렉터리에 이번 candidate executable은 남기지 않는다.
+- 기존 `.venv`, Python/uv/npm 등 공유 cache, `verify_report.json`, 사용자 자료,
+  원격 `refactor/stable-shell-removal` 및 `gh-pages`는 보존한다.
+- 문서-only PR의 필수 CI/Pages 확인·병합 후 main을 동기화하고 문서 branch를 삭제한다.
+  공개 다운로드·fixture·격리 venv·로그를 포함한 작업 임시 디렉터리는 이 원장에 근거를
+  보존한 뒤 삭제한다. 복구용 agent-state는 그중 마지막에 제거한다.
+  공통 heavy lock은 부모가 마지막으로 정리하는 자원이므로 남겨둔다.
