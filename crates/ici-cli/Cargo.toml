@@ -15,6 +15,7 @@ ici-config = { path = "../ici-config" }
 ici-application = { path = "../ici-application" }
 ici-analysis = { path = "../ici-analysis" }
 ici-cpp = { path = "../ici-cpp" }
+ici-validation = { path = "../ici-validation" }
 ici-execution = { path = "../ici-execution" }
 ici-providers = { path = "../ici-providers" }
 chrono = { version = "=0.4.45", default-features = false, features = ["clock", "std"] }

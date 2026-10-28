@@ -568,6 +568,7 @@ dependencies = [
  "base64",
  "csv",
  "ici-domain",
+ "num-bigint",
  "pep440_rs",
  "pep508_rs",
  "regex",
@@ -612,6 +613,7 @@ dependencies = [
  "ici-domain",
  "ici-execution",
  "ici-providers",
+ "ici-validation",
  "serde",
  "serde_json",
  "signal-hook",
@@ -688,6 +690,22 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "toml_edit",
+]
+
+[[package]]
+name = "ici-validation"
+version = "0.14.0-dev.0"
+dependencies = [
+ "ici-domain",
+ "ici-execution",
+ "ici-providers",
+ "nix",
+ "pep440_rs",
+ "regex",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -926,6 +944,25 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c89e69e7e0f03bea5ef08013795c25018e101932225a656383bd384495ecc367"
+dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-integer"
+version = "0.1.47"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ce2d95d4b3734dc35aa2f45e1aa22cd416814592a4f9d9205e11affd5b8e10b"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]

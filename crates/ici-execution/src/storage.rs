@@ -335,7 +335,9 @@ pub fn read_bounded_regular(path: &Path, maximum: usize) -> io::Result<Vec<u8>> 
     Ok(bytes)
 }
 
-pub(crate) fn prepare_directory(path: &Path) -> io::Result<()> {
+/// Create/walk an owned state directory without following ancestor symlinks. The caller must still
+/// acquire its run/build ownership capability before trusting artifacts in that directory.
+pub fn prepare_directory(path: &Path) -> io::Result<()> {
     // Walk/create the actual directory with no-follow directory descriptors;
     // the synthetic final component is never opened or created.
     let _ = open_parent(&path.join(".ici-directory-probe"), true)?;
