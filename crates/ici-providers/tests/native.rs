@@ -554,3 +554,66 @@ fn native_unicode_and_bom_columns_use_codepoints_across_utf16_and_byte_tools() {
         }
     }
 }
+
+#[test]
+#[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
+fn actual_gcc_and_clang_fixits_keep_unicode_exclusive_insertions_including_bom() {
+    for (variable, json_mode) in [
+        ("ICI_TEST_GXX", false),
+        ("ICI_TEST_GXX", true),
+        ("ICI_TEST_CLANG", false),
+    ] {
+        for bom in [false, true] {
+            let root = tempfile::tempdir().unwrap();
+            let mut request = compiler_request(root.path(), variable);
+            let body = "int main(){ const char* s=\"λ😀\"; return s[0] }\n";
+            let text = format!("{}{body}", if bom { "\u{feff}" } else { "" });
+            fs::write(root.path().join("main.cpp"), &text).unwrap();
+            if json_mode {
+                request
+                    .options
+                    .compiler_argv
+                    .push("-fdiagnostics-format=json".into());
+            }
+            let plan = plan(&request).unwrap();
+            assert_eq!(
+                plan.task
+                    .argv
+                    .iter()
+                    .any(|arg| arg == "-fdiagnostics-parseable-fixits"),
+                !json_mode
+            );
+            let output = execute(&plan);
+            let expected = body[..body.find(" }").unwrap()].chars().count() as u64 + 1;
+            let edits = output.extra["finding_details"]
+                .as_object()
+                .unwrap()
+                .values()
+                .flat_map(|detail| detail["fixes"].as_array().unwrap())
+                .flat_map(|fix| fix["replacements"].as_array().unwrap())
+                .filter(|edit| edit["replacement"] == ";")
+                .collect::<Vec<_>>();
+            assert!(
+                !edits.is_empty(),
+                "{variable} JSON={json_mode} BOM={bom}: {output:?}"
+            );
+            for edit in edits {
+                assert_eq!(
+                    edit["column_kind"], "unicodeCodePoints",
+                    "{variable} JSON={json_mode} BOM={bom}: {edit}"
+                );
+                assert_eq!(edit["end_exclusive"], true);
+                assert_eq!(
+                    edit["start_column"], expected,
+                    "{variable} JSON={json_mode} BOM={bom}: {edit}"
+                );
+                assert_eq!(edit["end_column"], edit["start_column"]);
+            }
+            assert_eq!(
+                fs::read_to_string(root.path().join("main.cpp")).unwrap(),
+                text
+            );
+            assert!(!root.path().join("main.o").exists());
+        }
+    }
+}

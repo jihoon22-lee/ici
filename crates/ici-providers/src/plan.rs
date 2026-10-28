@@ -123,6 +123,10 @@ pub struct DiagnosticContext {
     pub inspected_files: Option<Vec<String>>,
     #[serde(default)]
     pub compiler_columns: Option<String>,
+    #[serde(default)]
+    pub tool_name: String,
+    #[serde(default)]
+    pub tool_version: String,
     #[serde(skip)]
     pub source_coordinates: std::sync::Arc<crate::SourceCoordinates>,
 }
@@ -390,6 +394,14 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             variant: request.variant.clone(),
             inspected_files: None,
             compiler_columns,
+            tool_name: request
+                .tool
+                .path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned(),
+            tool_version: request.tool.version.clone().unwrap_or_default(),
             source_coordinates: Default::default(),
         },
         advisory: request.options.advisory,
@@ -456,11 +468,7 @@ pub fn transform_compiler_argv(
             "compile source token is absent from invocation".into(),
         ));
     }
-    let mut transformed = vec![
-        executable.clone(),
-        "-fsyntax-only".into(),
-        "-fdiagnostics-color=never".into(),
-    ];
+    let mut transformed = vec![executable.clone(), "-fsyntax-only".into()];
     let mut dropped = vec![];
     let mut iter = argv[1..].iter();
     while let Some(arg) = iter.next() {
@@ -517,6 +525,14 @@ pub fn transform_compiler_argv(
         if arg != source {
             transformed.push(arg.clone());
         }
+    }
+    transformed.push("-fdiagnostics-color=never".into());
+    transformed.push("-fdiagnostics-show-option".into());
+    if !transformed
+        .iter()
+        .any(|argument| argument == "-fdiagnostics-format=json")
+    {
+        transformed.push("-fdiagnostics-parseable-fixits".into());
     }
     transformed.push(source.into());
     Ok(TransformedInvocation {

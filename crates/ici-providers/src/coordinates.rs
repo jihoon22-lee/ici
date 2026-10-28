@@ -146,7 +146,7 @@ impl SourceCoordinates {
         self.boundary(path, line, column - 1, ColumnKind::Utf8, false)
             .map(|offset| offset.map(|offset| offset + 1))
     }
-    fn boundary(
+    pub(crate) fn boundary(
         &self,
         path: &str,
         line: u32,

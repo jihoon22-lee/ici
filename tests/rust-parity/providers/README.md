@@ -66,3 +66,41 @@ LLVM/clang-tidy 21.1.8, Clazy 1.17, and Qt headers 5.15.18.
 
 Build/context ownership, test/coverage/runtime providers, complete CLI wiring,
 installation, and full inventory closure have their own later evidence.
+
+## Rich compiler evidence
+
+The later producer-detail gate preserves historical compiler/clang-tidy/Clazy
+explanations, remediation, categories, confidence, tool identity, labels, related
+locations, and structured fixes in `AnalysisOutput.extra.finding_details`, keyed
+by the unmodified raw native fingerprint. Modern finding rules and fingerprints
+remain separate. The checked `cpp-rich-oracle.json` was captured by executing
+`LintEngine._cpp_findings` from the frozen source; it records exact source SHA-256
+values for the lint producer and both C++ normalization/category modules. The
+embedded `cpp-category-policy.json` is the same historical `tool-rule-v1` policy.
+
+Parseable text and GCC JSON `next` use exclusive replacement endpoints. Both
+endpoints are mapped through the shared immutable source index, including the
+measured GCC/Clang BOM difference. Only confirmed coordinates receive
+`column_kind="unicodeCodePoints"`; unknown source coordinates remain explicitly
+unconfirmed. A JSON `end` or `range.end` retains an unknown end convention. These
+records preserve literal suggestions while allowing reporting to withhold
+machine-applicable edits when a coordinate or endpoint convention is unproven.
+All edits belonging to a primary and its related notes stay in one fix, including
+edits to multiple files. No source is changed or reread during observation.
+
+Actual GCC 15.2 text/JSON and Clang 21.1.8 text were tested with plain and UTF-8
+BOM sources containing an astral character (six producer cases). Each emitted
+semicolon insertion maps to the correct Unicode exclusive boundary, and the
+source bytes remain unchanged. GCC emits mixed output when JSON and parseable
+fix-it flags are combined, so a JSON replay requests only JSON. Malformed,
+reversed, oversized, or encoded-character-splitting edits fail atomically;
+external branches cannot attach a note/fix to a preceding project diagnostic.
+Unknown conventions and missing snapshots are retained explicitly, and report
+redaction applies to all new metadata.
+
+The final scoped gate passes 18 diagnostic replay tests, six planning/configuration
+tests, six resolver tests, strict all-target Clippy, and Rust formatting. The
+14 separately executed native cases pass (17.73 seconds), including the six
+new compiler producer cases. These results cover this producer library and its
+original-source comparison; product-wide CLI/report/publication parity remains
+part of the migration acceptance work.

@@ -1,0 +1,269 @@
+{
+  "source_revision": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "source_sha256": {
+    "src/ici/engines/lint.py": "7fe2a7238c956405898461f1dd8f6e2893319d420c70190732fcac87c516c5c8",
+    "src/ici/analysis/_cpp_diagnostics.py": "84f65afb882931b213cb5a1608efb0af3de157ed3bf6c6536f4048c9bb9de888",
+    "src/ici/analysis/_cpp_diagnostic_categories.py": "1d99718f95d281a5fe50e6fb2994cbf44ca181d742cc937aa8cb14a5647ea068"
+  },
+  "cases": [
+    {
+      "id": "compiler-text",
+      "kind": "compiler",
+      "source": "abcdefghijk\n",
+      "stderr": "main.py:1:3: warning: edit [-Wexample]\nfix-it:\"main.py\":{1:3-1:6}:\"x\\n\"\n",
+      "tool_name": "oracle-compiler",
+      "tool_version": "oracle-version",
+      "findings": [
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "",
+          "primary_location": {
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": 3,
+            "end_column": null,
+            "label": "Compiler:-Wexample"
+          },
+          "message": "warning: edit",
+          "related_locations": [],
+          "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+          "remediation": "main.py:1:3-1:6 replace with 'x\\n'",
+          "tool_rule_id": "-Wexample",
+          "tool_name": "oracle-compiler",
+          "tool_version": "oracle-version",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": [
+            {
+              "description": "-Wexample suggested fix",
+              "replacements": [
+                {
+                  "path": "main.py",
+                  "start_line": 1,
+                  "start_column": 3,
+                  "end_line": 1,
+                  "end_column": 6,
+                  "replacement": "x\n"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tidy-note-fix",
+      "kind": "clang-tidy",
+      "source": "abcdefghijk\n",
+      "stderr": "main.py:1:3: warning: edit [bugprone-use-after-move]\nfix-it:\"main.py\":{1:3-1:6}:\"x\"\nmain.py:1:7: note: declaration [bugprone-use-after-move]\nfix-it:\"main.py\":{1:7-1:7}:\";\"\n",
+      "tool_name": "clang-tidy",
+      "tool_version": "oracle-version",
+      "findings": [
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "resource",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "",
+          "primary_location": {
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": 3,
+            "end_column": null,
+            "label": "ClangTidy:bugprone-use-after-move"
+          },
+          "message": "warning: edit",
+          "related_locations": [
+            {
+              "path": "main.py",
+              "start_line": 1,
+              "end_line": null,
+              "start_column": 7,
+              "end_column": null,
+              "label": "note: declaration"
+            }
+          ],
+          "explanation": "clang-tidy diagnostic.",
+          "remediation": "main.py:1:3-1:6 replace with 'x'; main.py:1:7-1:7 replace with ';'",
+          "tool_rule_id": "bugprone-use-after-move",
+          "tool_name": "clang-tidy",
+          "tool_version": "oracle-version",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": [
+            {
+              "description": "bugprone-use-after-move suggested fix",
+              "replacements": [
+                {
+                  "path": "main.py",
+                  "start_line": 1,
+                  "start_column": 3,
+                  "end_line": 1,
+                  "end_column": 6,
+                  "replacement": "x"
+                },
+                {
+                  "path": "main.py",
+                  "start_line": 1,
+                  "start_column": 7,
+                  "end_line": 1,
+                  "end_column": 7,
+                  "replacement": ";"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "analyzer-security",
+      "kind": "clang-tidy",
+      "source": "abcdefghijk\n",
+      "stderr": "main.py:1:3: warning: unsafe [clang-analyzer-security.insecureAPI.strcpy]\n",
+      "tool_name": "clang-tidy",
+      "tool_version": "oracle-version",
+      "findings": [
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "security",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "",
+          "primary_location": {
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": 3,
+            "end_column": null,
+            "label": "ClangAnalyzer:clang-analyzer-security.insecureAPI.strcpy"
+          },
+          "message": "warning: unsafe",
+          "related_locations": [],
+          "explanation": "Clang Static Analyzer diagnostic.",
+          "remediation": "",
+          "tool_rule_id": "clang-analyzer-security.insecureAPI.strcpy",
+          "tool_name": "clang-tidy",
+          "tool_version": "oracle-version",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ]
+    },
+    {
+      "id": "clazy-resource",
+      "kind": "clazy",
+      "source": "abcdefghijk\n",
+      "stderr": "main.py:1:3: warning: ownership [-Wclazy-qdeleteall]\n",
+      "tool_name": "clazy",
+      "tool_version": "oracle-version",
+      "findings": [
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "resource",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "",
+          "primary_location": {
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": 3,
+            "end_column": null,
+            "label": "Clazy:clazy-qdeleteall"
+          },
+          "message": "warning: ownership",
+          "related_locations": [],
+          "explanation": "Qt-aware clazy diagnostic.",
+          "remediation": "",
+          "tool_rule_id": "clazy-qdeleteall",
+          "tool_name": "clazy",
+          "tool_version": "oracle-version",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": []
+        }
+      ]
+    },
+    {
+      "id": "gcc-json",
+      "kind": "compiler",
+      "source": "abcdefghijk\n",
+      "stderr": "[{\"kind\": \"warning\", \"message\": \"edit\", \"option\": \"-Wexample\", \"locations\": [{\"caret\": {\"file\": \"main.py\", \"line\": 1, \"column\": 3}}], \"fixits\": [{\"start\": {\"file\": \"main.py\", \"line\": 1, \"column\": 3}, \"next\": {\"file\": \"main.py\", \"line\": 1, \"column\": 6}, \"string\": \"x\"}], \"children\": []}]",
+      "tool_name": "oracle-compiler",
+      "tool_version": "oracle-version",
+      "findings": [
+        {
+          "rule_id": "ici.legacy.lint.target",
+          "category": "correctness",
+          "severity": "medium",
+          "confidence": "exact",
+          "fingerprint": "",
+          "primary_location": {
+            "path": "main.py",
+            "start_line": 1,
+            "end_line": 1,
+            "start_column": 3,
+            "end_column": 3,
+            "label": "Compiler:-Wexample"
+          },
+          "message": "warning: edit",
+          "related_locations": [],
+          "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+          "remediation": "main.py:1:3-1:6 replace with 'x'",
+          "tool_rule_id": "-Wexample",
+          "tool_name": "oracle-compiler",
+          "tool_version": "oracle-version",
+          "suppression": {
+            "suppressed": false,
+            "kind": "none",
+            "reason": ""
+          },
+          "metrics": {},
+          "snippet": "",
+          "fixes": [
+            {
+              "description": "-Wexample suggested fix",
+              "replacements": [
+                {
+                  "path": "main.py",
+                  "start_line": 1,
+                  "start_column": 3,
+                  "end_line": 1,
+                  "end_column": 6,
+                  "replacement": "x"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

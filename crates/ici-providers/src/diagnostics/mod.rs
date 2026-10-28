@@ -1,5 +1,7 @@
 mod cpp;
+mod cpp_details;
 mod ecosystem;
+mod fixits;
 mod python;
 use crate::{
     ProviderError,
@@ -19,6 +21,7 @@ pub(super) struct Parsed {
     pub inspected: BTreeSet<String>,
     pub limitations: Vec<String>,
     pub column_kind: Option<crate::coordinates::ColumnKind>,
+    pub details: serde_json::Map<String, Value>,
 }
 pub fn observe(plan: &ProviderPlan, outcome: &TaskOutcome) -> Observation {
     observe_full(plan, outcome).observation
@@ -131,6 +134,14 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
             if let Some(files) = &plan.context.inspected_files {
                 parsed.inspected.extend(files.iter().cloned());
             }
+            if !parsed.details.is_empty() {
+                for finding in &parsed.findings {
+                    if let Some(detail) = parsed.details.get_mut(&finding.fingerprint) {
+                        detail["related_locations"] = serde_json::json!(finding.related_locations.iter().map(|span|serde_json::json!({"path":span.path,"start_line":span.start_line,"start_column":span.start_column,"end_line":span.end_line,"end_column":span.end_column,"label":span.label})).collect::<Vec<_>>());
+                    }
+                }
+                result.extra["finding_details"] = Value::Object(parsed.details);
+            }
             observation.findings = parsed.findings;
             observation.limitations.extend(parsed.limitations);
             for finding in &mut observation.findings {
@@ -144,6 +155,11 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
             if let Err(error) = observation.validate() {
                 observation.state = TaskState::Failed;
                 observation.findings.clear();
+                result
+                    .extra
+                    .as_object_mut()
+                    .expect("extra object")
+                    .remove("finding_details");
                 observation
                     .limitations
                     .insert(0, format!("invalid parsed diagnostic: {error}"));
