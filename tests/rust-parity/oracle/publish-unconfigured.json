@@ -1,0 +1,14 @@
+{
+  "schema_id": "ici.next.publish",
+  "schema_version": 1,
+  "state": "NOT_CONFIGURED",
+  "detail": "no publish destination \u2014 set [publish] or run under Actions",
+  "remote_path": "",
+  "viewer_url": null,
+  "comment_url": null,
+  "artifact": {
+    "sha256": "",
+    "bytes": 0
+  },
+  "result_sha256": ""
+}

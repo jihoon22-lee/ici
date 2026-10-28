@@ -186,8 +186,9 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 | Rust 전면 교체 방향 | 사용자 결정 반영 |
 | 현행 registry 19/36과 알려진 결함 | 확인 |
 | 독립 계획 검토 | Claude·Codex 교차 검토 및 조정 완료 |
-| R0 | 실행 중 — 규약/계약 원장 및 parser/tool/TLS 실측 |
-| R1–R9 구현·parity 검증 | 미착수 — R0 계약 고정 후 순차 실행 |
+| R0 | 설계·spike 검증 완료, 첫 PR gate 대기 — [결정표](rust-replacement/decisions.md) |
+| R1/R2/R4 | 공유 domain 계약을 바탕으로 config/execution/native Python 구현 착수 |
+| R3/R5–R9 | 미완료 — 선행 구현/전체 인수 이후 실행 |
 | 후보·PR·릴리스 | 미착수 |
 
 근거: [현재 Python 유지 ADR](ici-next/adr/0001-keep-python-core.md), [CPython 배포 ADR](ici-next/adr/0002-standalone-runtime-bundle.md), [이전 engine inventory](ici-next/inventory/current-engines.md), [현재 registry](../../src/ici/languages/registry.py), [기본 설정](../../src/ici/config/automatic.py), [CLI](../../src/ici/cli/next_path.py), [identity](../../src/ici/application/check_scope.py), [qmake recorder](../../src/ici/core/qmake_context.py), [runtime compatibility](../../src/ici/engines/python_compat.py).
@@ -206,3 +207,19 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 - 작업 소유 임시 디렉터리: `/tmp/ici-rust-replacement-20261028`.
   제품 cutover·공개 검증까지 완료한 뒤 지우며, 최종 근거는 이 문서와 PR에 보존한다.
 - 현재 R0 진행은 제품 완료가 아니다. R1–R9 및 전체 parity 원장은 여전히 열린 상태다.
+
+
+### R0 실행 근거와 구현 경계
+
+- 19/36뿐 아니라 37 CLI nodes·115 parameters·319 config keys·271 rule/metric 생성 지점,
+  25 별도 계약·6 schema·291 source-file audit를 고정 Git 객체로 수집했다.
+  `scripts/rust_migration_inventory.py --check --self-test` 통과. `--require-closed`는
+  미완료 1135개 행을 거부한다. 이 거부를 gate 완화로 없애지 않는다.
+- parser 37 native fixture 및 CPython 3.10–3.14 oracle 비교, static PIE/Python 없는 PATH
+  실행·trace 검증 완료. native Ruff/ty 8개, system/private CA/proxy TLS 12개 fixture 통과.
+- 고정 source의 plan/doctor/publish와 cold/warm analyze/report를 실제 실행하고 JSON·시간·RSS를
+  보존했다. known-bug 교정 기대값과 R8 수용 목표는 [결정표](rust-replacement/decisions.md)에 있다.
+- 순수 Rust domain의 공개 v1/v2 JSON roundtrip, Unicode fingerprint v3, event gap/unknown kind,
+  잘못된 증거 거부 fixture 5개 통과. 이는 R1 일부 기반이며 전체 domain/제품 parity 완료가 아니다.
+- config/discovery, 공통 process/DAG/storage, native Python 분석은 공유 타입·파일 경계를 정해
+  병렬 구현한다. R3+ 통합과 R8/R9 release closure는 남아 있다.

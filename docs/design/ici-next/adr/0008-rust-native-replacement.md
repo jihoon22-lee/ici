@@ -1,6 +1,6 @@
 # ADR-0008 — Rust 단일 제품과 검증된 단일 cutover
 
-- 상태: **accepted direction; R0 evidence in progress** (2026-10-28 사용자 실행 승인).
+- 상태: **accepted; R0 design/spike evidence recorded** (2026-10-28 사용자 실행 승인).
 - 대체: ADR-0001 Python core, ADR-0002 CPython bundle 및 AGENTS §3/4/6/8/9의 새 제품 적용.
 - 실행/인수: [R0–R9 계획](../../rust-replacement-execution-plan.md).
 

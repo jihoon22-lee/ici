@@ -10,6 +10,8 @@
 - Rust 단일 제품 전환을 승인된 R0–R9 계획으로 시작합니다. Python 유지/CPython bundle
   결정은 새 제품에 대해 ADR-0008로 대체하며 기존 공개 Python 제품의 gate는 단일
   cutover 인수 전까지 유지합니다. 현재 내부 개발은 새 stable 배포 완료를 의미하지 않습니다.
+- 고정 공개 source에서 전체 기능·명령·설정 원장을 기계적으로 수집하고 native parser/도구/TLS
+  실측 및 CLI oracle을 기록합니다. 미완료 항목은 closure gate가 거부하며 테스트 개수로 parity를 대신하지 않습니다.
 
 ## [0.13.0] - 2026-10-28
 
