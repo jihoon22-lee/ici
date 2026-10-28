@@ -136,6 +136,226 @@ fn explicit_annotation_projection_preserves_optin_and_nested_definitions() {
             .contains("explicit legacy_projection")
     );
 }
+
+#[test]
+fn static_compatibility_matches_fixed_floor_inventory() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/compat-static.json"
+    ))
+    .unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut input = request("compat", case["source"].as_str().unwrap());
+        input.options = json!({"target_version":case["target"]});
+        let output = analyze(&input);
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{}: {:?}",
+            case["id"],
+            output.observation.limitations
+        );
+        let actual:Vec<_>=output.targets.iter().filter(|target|target.status=="WARN").map(|target|json!({"start_line":target.start_line,"end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,"target_name":target.target_name,"status":target.status,"message":target.message})).collect();
+        let mut actual = actual;
+        actual.sort_by_key(|row| (row["start_line"].as_u64(), row["start_column"].as_u64()));
+        let expected = case
+            .get("expected_targets")
+            .unwrap_or(&case["original_targets"]);
+        assert_eq!(json!(actual), *expected, "{}", case["id"]);
+        assert_eq!(
+            output.extra["python_ast_nodes"], case["ast_nodes"],
+            "{}",
+            case["id"]
+        );
+    }
+}
+
+#[test]
+fn shared_type2_matcher_preserves_frozen_groups_and_raw_denominators() {
+    let fixture: Value =
+        serde_json::from_str(include_str!("../../../tests/rust-parity/python/type2.json")).unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let files: Vec<_> = case["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|file| duplicates::DuplicateFileData {
+                file_path: file["file_path"].as_str().unwrap().into(),
+                language: file["language"].as_str().unwrap().into(),
+                raw_text: file["raw_text"].as_str().unwrap().into(),
+                indexed: file["indexed"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|row| {
+                        (
+                            row[0].as_u64().unwrap() as u32,
+                            row[1].as_str().unwrap().into(),
+                        )
+                    })
+                    .collect(),
+                regions: file["regions"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|row| {
+                        (
+                            row[0].as_u64().unwrap() as u32,
+                            row[1].as_u64().unwrap() as u32,
+                        )
+                    })
+                    .collect(),
+            })
+            .collect();
+        let mut input = request("dup", "");
+        input.options = json!({"window_size":case["window_size"]});
+        let output = duplicates::analyze_type2(&input, &files);
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{}: {:?}",
+            case["id"],
+            output.observation.limitations
+        );
+        assert_eq!(
+            output.extra["clone_groups"], case["expected_groups"],
+            "{}",
+            case["id"]
+        );
+        assert_eq!(
+            output.extra["duplicated_lines"], case["duplicated_lines"],
+            "{}",
+            case["id"]
+        );
+        assert_eq!(
+            output.extra["total_code_lines"], case["total_code_lines"],
+            "{}",
+            case["id"]
+        );
+        assert!(files.iter().all(|file| {
+            output
+                .targets
+                .iter()
+                .any(|target| target.file_path == file.file_path)
+        }));
+    }
+}
+
+#[test]
+fn shared_type2_bounds_cancellation_and_policy_preserve_evidence_axes() {
+    let file = duplicates::DuplicateFileData {
+        file_path: "main.py".into(),
+        language: "python".into(),
+        raw_text: "a()\nb()\nc()\nd()\ne()\nf()\n".into(),
+        indexed: (1..=6)
+            .map(|line| (line, "return\u{1f}ID".into()))
+            .collect(),
+        regions: vec![(0, 0); 6],
+    };
+    let files = [
+        file.clone(),
+        duplicates::DuplicateFileData {
+            file_path: "other.py".into(),
+            ..file
+        },
+    ];
+    for key in [
+        "max_window_occurrences",
+        "max_cross_file_pairs",
+        "max_cross_file_seed_pairs",
+        "max_extension_comparisons",
+        "max_raw_matches",
+        "max_indexed_records",
+        "max_normalized_chars",
+    ] {
+        let mut input = request("dup", "");
+        input.options = json!({key:0,"window_size":3});
+        let result = duplicates::analyze_type2(&input, &files);
+        assert_eq!(result.observation.state, TaskState::Failed, "{key}");
+        assert!(result.observation.findings.is_empty());
+    }
+    let mut input = request("dup", "");
+    input.options = json!({"window_size":3,"warn_pct":100,"fail_pct":100});
+    let result = duplicates::analyze_type2(&input, &files);
+    assert_eq!(result.status, "PASS");
+    assert!(result.targets.iter().all(|target| target.status == "PASS"));
+    assert!(!result.observation.findings.is_empty());
+    let result = duplicates::analyze_type2_cancellable(
+        &input,
+        &files,
+        &std::sync::atomic::AtomicBool::new(true),
+    );
+    assert_eq!(result.observation.state, TaskState::Cancelled);
+    assert!(result.observation.findings.is_empty());
+}
+
+#[test]
+fn native_metadata_floor_and_cache_targets_are_explicit() {
+    let mut input = request("compat", "import tomllib\n");
+    input.inputs.push(SourceInput {
+        path: "pyproject.toml".into(),
+        bytes:
+            b"[project]\nname = 'demo'\nversion = '1.0'\nrequires-python = '>=3.10.5,!=3.10.0'\n"
+                .to_vec(),
+    });
+    let result = analyze(&input);
+    assert_eq!(result.extra["target_version"], "3.10");
+    assert_eq!(result.observation.findings.len(), 1);
+    input.inputs[1].bytes = b"[project]\nrequires-python = 'invalid'".to_vec();
+    assert_eq!(analyze(&input).observation.state, TaskState::Failed);
+    let mut input = request("compat", "type Alias = int\n");
+    input.options = json!({"target_version":"3.10"});
+    input.target_version = "3.10".into();
+    let mut session = AnalysisSession::new();
+    assert_eq!(
+        session.analyze(&input).observation.state,
+        TaskState::Succeeded
+    );
+    input.check_id = "python.complexity".into();
+    assert_eq!(session.analyze(&input).observation.state, TaskState::Failed);
+}
+
+#[test]
+fn native_function_facts_preserve_coverage_body_ranges_and_pytest_scopes() {
+    let input = request(
+        "coverage",
+        "@decorator\nclass Suite:\n    @decorate\n    async def test_이름(self):\n        @decorate\n        def nested():\n            return 1\n\n        return nested()\n",
+    );
+    let mut session = AnalysisSession::new();
+    let facts = session.source_facts(&input).unwrap();
+    assert_eq!(facts.classes.len(), 1);
+    assert_eq!(facts.classes[0].start_line, 2);
+    assert_eq!(facts.functions.len(), 2);
+    let method = &facts.functions[0];
+    assert_eq!(method.name, "test_이름");
+    assert_eq!(method.qualified_name, "Suite.test_이름");
+    assert_eq!(method.class_names, ["Suite"]);
+    assert_eq!(
+        (
+            method.start_line,
+            method.end_line,
+            method.body_start_line,
+            method.body_end_line
+        ),
+        (4, 9, 6, 9)
+    );
+    let nested = &facts.functions[1];
+    assert_eq!(nested.qualified_name, "Suite.test_이름.nested");
+    assert_eq!(
+        (
+            nested.start_line,
+            nested.end_line,
+            nested.body_start_line,
+            nested.body_end_line
+        ),
+        (6, 7, 7, 7)
+    );
+    assert_eq!(session.function_facts(&input).unwrap(), facts.functions);
+    assert_eq!(session.parser_invocations(), 1);
+    assert!(function_facts(&request("coverage", "def broken(:\n")).is_err());
+    let mut invalid = input;
+    invalid.inputs[0].bytes = vec![0xff];
+    assert!(function_facts(&invalid).is_err());
+}
 #[test]
 fn metrics_match_fixed_python_formulas() {
     let fixtures: Value = serde_json::from_str(include_str!(

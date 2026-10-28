@@ -1,11 +1,16 @@
 //! Native analyses over immutable source snapshots; no process or filesystem fallback.
 mod annotations;
 mod ast_util;
+mod compat;
 mod cycle;
 mod dead;
+pub mod duplicates;
 mod exception;
+mod facts;
+pub use facts::{ClassFact, FunctionFact, SourceFacts};
 mod finding;
 mod lines;
+mod metadata;
 mod metrics;
 mod modules;
 mod parser;
@@ -38,6 +43,22 @@ impl AnalysisSession {
     pub fn parser_invocations(&self) -> usize {
         self.parser_invocations
     }
+    pub fn source_facts(
+        &mut self,
+        request: &AnalysisRequest,
+    ) -> Result<SourceFacts, Box<AnalysisOutput>> {
+        let output = self.analyze_kind(request, None, "source-facts");
+        if output.observation.state != TaskState::Succeeded {
+            return Err(Box::new(output));
+        }
+        Ok(serde_json::from_value(output.extra).expect("native source facts schema"))
+    }
+    pub fn function_facts(
+        &mut self,
+        request: &AnalysisRequest,
+    ) -> Result<Vec<FunctionFact>, Box<AnalysisOutput>> {
+        self.source_facts(request).map(|facts| facts.functions)
+    }
     pub fn analyze(&mut self, request: &AnalysisRequest) -> AnalysisOutput {
         self.analyze_inner(request, None)
     }
@@ -54,6 +75,14 @@ impl AnalysisSession {
         cancellation: Option<&AtomicBool>,
     ) -> AnalysisOutput {
         let kind = request.check_id.rsplit('.').next().unwrap_or("");
+        self.analyze_kind(request, cancellation, kind)
+    }
+    fn analyze_kind(
+        &mut self,
+        request: &AnalysisRequest,
+        cancellation: Option<&AtomicBool>,
+        kind: &str,
+    ) -> AnalysisOutput {
         let provider = match kind {
             "line" => "ici.line",
             "complexity" | "cognitive" => "ici.metrics",
@@ -123,6 +152,8 @@ impl AnalysisSession {
                 | "cycle"
                 | "dead"
                 | "type"
+                | "compat"
+                | "source-facts"
         ) {
             failure(
                 &mut output,
@@ -157,6 +188,11 @@ impl AnalysisSession {
         let mut source_encodings = BTreeMap::new();
         let mut excluded_source_counts: BTreeMap<String, usize> = BTreeMap::new();
         let options = serde_json::to_vec(&request.options).unwrap_or_default();
+        let parser_target = if kind == "compat" {
+            "3.14"
+        } else {
+            &request.target_version
+        };
         for input in &request.inputs {
             if cancelled(&mut output, cancellation) {
                 return output;
@@ -201,7 +237,7 @@ impl AnalysisSession {
             for item in [
                 PARSER_IDENTITY.as_bytes(),
                 input.path.as_bytes(),
-                request.target_version.as_bytes(),
+                parser_target.as_bytes(),
                 options.as_slice(),
                 input.bytes.as_slice(),
             ] {
@@ -214,7 +250,7 @@ impl AnalysisSession {
             } else {
                 self.parser_invocations += 1;
                 SourceDocument::decode(input)
-                    .and_then(|source| ParsedFile::parse(source, &request.target_version))
+                    .and_then(|source| ParsedFile::parse(source, parser_target))
                     .map(|parsed| {
                         let weight = parsed
                             .source
@@ -259,6 +295,8 @@ impl AnalysisSession {
             "cycle" => cycle::analyze(request, &files, &mut output, cancellation),
             "dead" => dead::analyze(request, &files, &mut output, cancellation),
             "type" => annotations::analyze(request, &files, &mut output, cancellation),
+            "compat" => compat::analyze(request, &files, &mut output, cancellation),
+            "source-facts" => facts::analyze(&files, &mut output, cancellation),
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);
@@ -269,6 +307,12 @@ impl AnalysisSession {
 }
 pub fn analyze(request: &AnalysisRequest) -> AnalysisOutput {
     AnalysisSession::new().analyze(request)
+}
+pub fn source_facts(request: &AnalysisRequest) -> Result<SourceFacts, Box<AnalysisOutput>> {
+    AnalysisSession::new().source_facts(request)
+}
+pub fn function_facts(request: &AnalysisRequest) -> Result<Vec<FunctionFact>, Box<AnalysisOutput>> {
+    AnalysisSession::new().function_facts(request)
 }
 fn failure(output: &mut AnalysisOutput, path: &str, error: &SourceError) {
     output.observation.state = TaskState::Failed;

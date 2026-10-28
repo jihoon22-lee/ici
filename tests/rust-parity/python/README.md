@@ -147,3 +147,31 @@ for an external type checker. All inspected files now have coverage targets,
 and invalid syntax is incomplete rather than silently ignored by the old
 fallback. Warnings preserve their original lines/names/messages. This rule
 checks annotation presence only and its findings remain ESTIMATED.
+
+## Static compatibility, shared Type-2 matcher and source facts
+
+`compat-static.json` preserves 21 CPython 3.14.7 syntax/API floor cases and AST
+node counts. The native parser checks the current tested grammar before checking
+an explicit floor, so newer valid syntax yields a floor warning. Parser-specific
+floor locations, character columns and relative imports referring to local code
+have explicit corrected expectations. Immutable `pyproject.toml` metadata and
+PEP 440 specifiers infer the same bounded first supported minor; invalid metadata
+is incomplete. No floor is asserted when none is declared. Syntax-floor caches
+use the actual parser target, preventing reuse by a stricter unrelated check.
+Packaging and wheel inspection remain a later unit.
+
+`type2.json` freezes 16 old token/region inputs plus exact groups, fingerprints,
+locations, snippets and duplicated-line numerators/denominators. The public native
+`duplicates` module retains rolling-window hashing, semantic signal filtering,
+region barriers, bounded seed extension, overlap suppression and deterministic
+connected components. C++ and Python consume this one matcher. Budget exhaustion
+and cancellation are incomplete; clone locations remain visible below configured
+rate thresholds. The Python lexical intake and additional AST semantic shapes
+are not yet connected by this primitive unit.
+
+The public `source_facts`/`function_facts` APIs share bounded native parsing and
+return errors for malformed or uninspectable sources. Coverage body ranges start
+at the first statement's definition line and end at the function end, inclusive;
+nested, decorated, async and Unicode functions retain lexical class/qualified
+names for pytest resolution. Twenty-seven native tests, scoped Clippy/fmt and
+both fixed-source oracle scripts passed after this unit.

@@ -43,6 +43,30 @@ pub fn functions(file: &ParsedFile) -> Vec<&ast::StmtFunctionDef> {
     collector.visit_mod(file.parsed.syntax());
     collector.0
 }
+
+pub fn statement_range(file: &ParsedFile, statement: &Stmt) -> TextRange {
+    match statement {
+        Stmt::FunctionDef(function) => function_range(file, function),
+        Stmt::ClassDef(class) => {
+            let after = class
+                .decorator_list
+                .last()
+                .map_or(class.range().start(), |decorator| decorator.range().end());
+            let start = file
+                .parsed
+                .tokens()
+                .iter()
+                .find(|token| {
+                    token.range().start() >= after
+                        && token.range().start() <= class.name.range().start()
+                        && token.kind() == ast::token::TokenKind::Class
+                })
+                .map_or(class.range().start(), |token| token.range().start());
+            TextRange::new(start, class.range().end())
+        }
+        _ => statement.range(),
+    }
+}
 pub fn loaded_names(expression: &Expr) -> BTreeSet<String> {
     struct Names(BTreeSet<String>);
     impl<'a> Visitor<'a> for Names {
