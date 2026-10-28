@@ -29,19 +29,40 @@ impl CppAnalysisSession {
         self.invocations
     }
     pub fn analyze(&mut self, request: &AnalysisRequest) -> AnalysisOutput {
-        self.inner(request, None)
+        self.inner(request, None, None)
     }
     pub fn analyze_cancellable(
         &mut self,
         request: &AnalysisRequest,
         cancellation: &AtomicBool,
     ) -> AnalysisOutput {
-        self.inner(request, Some(cancellation))
+        self.inner(request, Some(cancellation), None)
+    }
+    pub fn analyze_with_compiler_context(
+        &mut self,
+        request: &AnalysisRequest,
+        context: &crate::CompilationContext,
+        evidence: &[crate::CompilerBoundaryEvidence],
+    ) -> AnalysisOutput {
+        self.inner(request, None, Some((context, evidence)))
+    }
+    pub fn analyze_with_compiler_context_cancellable(
+        &mut self,
+        request: &AnalysisRequest,
+        context: &crate::CompilationContext,
+        evidence: &[crate::CompilerBoundaryEvidence],
+        cancellation: &AtomicBool,
+    ) -> AnalysisOutput {
+        self.inner(request, Some(cancellation), Some((context, evidence)))
     }
     fn inner(
         &mut self,
         request: &AnalysisRequest,
         cancellation: Option<&AtomicBool>,
+        compiler: Option<(
+            &crate::CompilationContext,
+            &[crate::CompilerBoundaryEvidence],
+        )>,
     ) -> AnalysisOutput {
         let kind = request.check_id.rsplit('.').next().unwrap_or("");
         let provider = match kind {
@@ -62,18 +83,29 @@ impl CppAnalysisSession {
             );
             return output;
         }
-        if request.inputs.len() > 2048
-            || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>() > 64 * 1024 * 1024
+        if (kind != "line" && request.inputs.len() > 2048)
+            || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>()
+                > if kind == "line" {
+                    512 * 1024 * 1024
+                } else {
+                    64 * 1024 * 1024
+                }
         {
             fail(
                 &mut output,
                 ".",
                 "inventory-limit",
-                "C++ rule inventory exceeds 2048 files or 64 MiB",
+                if kind == "line" {
+                    "C++ line snapshot exceeds 512 MiB"
+                } else {
+                    "C++ rule inventory exceeds 2048 files or 64 MiB"
+                },
             );
             return output;
         }
         let mut files = vec![];
+        let mut line_files = vec![];
+        let mut source_recovery = false;
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
             if cancelled(&mut output, cancellation) {
@@ -91,6 +123,29 @@ impl CppAnalysisSession {
                     "invalid-source-path",
                     "Source paths must be unique project-relative paths",
                 );
+                continue;
+            }
+            if kind == "line" {
+                if input.bytes.len() > 16 * 1024 * 1024 {
+                    fail(
+                        &mut output,
+                        &input.path,
+                        "source-too-large",
+                        "C++ source exceeds 16 MiB",
+                    );
+                    continue;
+                }
+                match std::str::from_utf8(&input.bytes) {
+                    Ok(text) if !text.contains('\0') => {
+                        line_files.push((input.path.as_str(), text))
+                    }
+                    _ => fail(
+                        &mut output,
+                        &input.path,
+                        "source-encoding",
+                        "C++ line source must be UTF-8 without null bytes",
+                    ),
+                }
                 continue;
             }
             if !matches!(kind, "line" | "complexity" | "cognitive" | "cycle")
@@ -138,13 +193,17 @@ impl CppAnalysisSession {
                 }
             };
             if !matches!(kind, "line" | "dup") && file.tree.root_node().has_error() {
-                fail(
-                    &mut output,
-                    &file.path,
-                    "source-syntax",
-                    "C++ source has concrete syntax recovery errors; compiler preprocessing was not performed",
-                );
-                continue;
+                source_recovery = true;
+                if compiler.is_some() && matches!(kind, "complexity" | "cognitive") {
+                    output.observation.limitations.push(format!("{}: concrete source syntax has recovery regions; only compiler-confirmed source boundaries can establish complete geometry",file.path));
+                } else {
+                    fail(
+                        &mut output,
+                        &file.path,
+                        "source-syntax",
+                        "C++ source has concrete syntax recovery errors; any recovered source targets are partial evidence",
+                    );
+                }
             }
             if let Err(error) = source::nodes(file.tree.root_node()) {
                 fail(&mut output, &file.path, &error.code, &error.message);
@@ -157,7 +216,7 @@ impl CppAnalysisSession {
         }
         let result = match kind {
             "line" => {
-                crate::source_rules::lines(request, &mut output, &files);
+                crate::source_rules::lines(request, &mut output, &line_files, cancellation);
                 Ok(())
             }
             "complexity" | "cognitive" => {
@@ -168,7 +227,7 @@ impl CppAnalysisSession {
             "dup" => {
                 let data = files
                     .iter()
-                    .map(|file| crate::duplicates::file_data(file))
+                    .map(|file| crate::duplicates::file_data(file, cancellation))
                     .collect::<Result<Vec<_>, _>>();
                 match data {
                     Ok(data) => {
@@ -209,6 +268,41 @@ impl CppAnalysisSession {
                 format!("Native {} analysis is not implemented", request.check_id),
             )),
         };
+        if cancelled(&mut output, cancellation) {
+            return output;
+        }
+        if matches!(kind, "complexity" | "cognitive") {
+            let policy = request.options["cpp_boundaries"].as_str().unwrap_or("auto");
+            let result = if let Some((context, evidence)) = compiler {
+                crate::compiler::apply_compiler_boundaries(request, &mut output, context, evidence)
+            } else if policy == "required" {
+                Err(CppError::new(
+                    "compiler-boundaries-required",
+                    "Compiler boundaries were required but no compiler observations were supplied",
+                ))
+            } else if !["auto", "off"].contains(&policy) {
+                Err(CppError::new(
+                    "invalid-boundary-policy",
+                    "cpp_boundaries must be auto, off or required",
+                ))
+            } else {
+                Ok(())
+            };
+            if source_recovery && compiler.is_some() && output.extra["boundary_mode"] != "exact" {
+                fail(
+                    &mut output,
+                    ".",
+                    "source-recovery-unconfirmed",
+                    "Recovered C++ source geometry was not fully confirmed by compiler observations",
+                );
+            }
+            if source_recovery {
+                output.extra["source_syntax_recovery"] = json!(true);
+            }
+            if let Err(error) = result {
+                fail(&mut output, ".", &error.code, &error.message);
+            }
+        }
         if let Err(error) = result {
             fail(&mut output, ".", &error.code, &error.message);
         }

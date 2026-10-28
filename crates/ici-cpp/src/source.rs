@@ -33,6 +33,14 @@ impl ParsedSource {
                 "C++ source contains a null byte",
             ));
         }
+        // C++ translation phase 1 recognizes CR-only source line endings too. Replace each
+        // standalone CR with LF for the grammar while keeping every byte offset unchanged.
+        let mut syntax_bytes = text.as_bytes().to_vec();
+        for index in 0..syntax_bytes.len() {
+            if syntax_bytes[index] == b'\r' && syntax_bytes.get(index + 1) != Some(&b'\n') {
+                syntax_bytes[index] = b'\n';
+            }
+        }
         let mut parser = Parser::new();
         parser
             .set_language(&tree_sitter_cpp::LANGUAGE.into())
@@ -49,7 +57,7 @@ impl ParsedSource {
         };
         let tree = parser
             .parse_with_options(
-                &mut |offset, _| &text.as_bytes()[offset..],
+                &mut |offset, _| &syntax_bytes[offset..],
                 None,
                 Some(ParseOptions::new().progress_callback(&mut progress)),
             )
@@ -60,12 +68,13 @@ impl ParsedSource {
                 )
             })?;
         let mut line_starts = vec![0];
-        line_starts.extend(
-            text.bytes()
-                .enumerate()
-                .filter_map(|(i, b)| (b == b'\n').then_some(i + 1)),
-        );
-        let weight = text.len() + nodes(tree.root_node())?.len().saturating_mul(96);
+        line_starts.extend(text.bytes().enumerate().filter_map(|(index, byte)| {
+            (byte == b'\n' || (byte == b'\r' && text.as_bytes().get(index + 1) != Some(&b'\n')))
+                .then_some(index + 1)
+        }));
+        let weight = text.len()
+            + line_starts.len() * std::mem::size_of::<usize>()
+            + nodes(tree.root_node())?.len().saturating_mul(96);
         Ok(Self {
             weight,
             path: input.path.clone(),
@@ -166,4 +175,26 @@ pub(crate) fn is_excluded(path: &str) -> Option<&'static str> {
         return Some("generated source filename");
     }
     None
+}
+
+/// Borrowed logical source lines for C++'s LF, CRLF and CR physical input spellings.
+pub(crate) fn physical_lines(mut text: &str) -> impl Iterator<Item = &str> {
+    std::iter::from_fn(move || {
+        if text.is_empty() {
+            return None;
+        }
+        let Some(index) = text.find(['\r', '\n']) else {
+            let line = text;
+            text = "";
+            return Some(line);
+        };
+        let line = &text[..index];
+        let width = if text[index..].starts_with("\r\n") {
+            2
+        } else {
+            1
+        };
+        text = &text[index + width..];
+        Some(line)
+    })
 }

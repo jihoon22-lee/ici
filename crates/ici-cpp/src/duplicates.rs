@@ -7,10 +7,13 @@ use ici_analysis::duplicates::DuplicateFileData;
 use regex::Regex;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    sync::LazyLock,
+    sync::{
+        LazyLock,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 static NUMBER: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"(?P<core>0[xX][0-9A-Fa-f](?:'?[0-9A-Fa-f])*(?:\.(?:[0-9A-Fa-f](?:'?[0-9A-Fa-f])*)?)?(?:[pP][+-]?[0-9](?:'?[0-9])*)?|0[bB][01](?:'?[01])*|(?:[0-9](?:'?[0-9])*\.(?:[0-9](?:'?[0-9])*)?|\.[0-9](?:'?[0-9])*)(?:[eE][+-]?[0-9](?:'?[0-9])*)?|[0-9](?:'?[0-9])*[eE][+-]?[0-9](?:'?[0-9])*|[0-9](?:'?[0-9])*)(?P<suffix>[A-Za-z_][A-Za-z0-9_]*)?").unwrap()
+    Regex::new(r"^(?P<core>0[xX][0-9A-Fa-f](?:'?[0-9A-Fa-f])*(?:\.(?:[0-9A-Fa-f](?:'?[0-9A-Fa-f])*)?)?(?:[pP][+-]?[0-9](?:'?[0-9])*)?|0[bB][01](?:'?[01])*|(?:[0-9](?:'?[0-9])*\.(?:[0-9](?:'?[0-9])*)?|\.[0-9](?:'?[0-9])*)(?:[eE][+-]?[0-9](?:'?[0-9])*)?|[0-9](?:'?[0-9])*[eE][+-]?[0-9](?:'?[0-9])*|[0-9](?:'?[0-9])*)(?P<suffix>[A-Za-z_][A-Za-z0-9_]*)?").unwrap()
 });
 const KEYWORDS: &str = "alignas alignof and and_eq asm atomic_cancel atomic_commit atomic_noexcept auto bitand bitor bool break case catch char char8_t char16_t char32_t class compl concept const consteval constexpr constinit const_cast continue co_await co_return co_yield decltype default delete do double dynamic_cast else enum explicit export extern false final float for friend goto if import inline int long module mutable namespace new noexcept not not_eq nullptr operator or or_eq override private protected public reflexpr register reinterpret_cast requires return short signed sizeof static static_assert static_cast struct switch synchronized template this thread_local throw true try typedef typeid typename union unsigned using virtual void volatile wchar_t while xor xor_eq";
 const ATTRIBUTES: &str = "assume carries_dependency deprecated fallthrough likely maybe_unused no_unique_address nodiscard noreturn unlikely";
@@ -110,8 +113,9 @@ fn literal(text: &str, start: usize) -> Option<(usize, String)> {
         }
         let delimiter_start = start + prefix.len();
         let opening = text[delimiter_start..]
-            .find('(')
-            .map(|i| delimiter_start + i)?;
+            .char_indices()
+            .take(17)
+            .find_map(|(index, character)| (character == '(').then_some(delimiter_start + index))?;
         let delimiter = &text[delimiter_start..opening];
         if delimiter.chars().count() > 16
             || delimiter
@@ -166,7 +170,7 @@ struct Lexed {
     indexed: Vec<(u32, String)>,
     barriers: BTreeSet<u32>,
 }
-fn lex(raw: &str, maximum: usize) -> Result<Lexed, CppError> {
+fn lex(raw: &str, maximum: usize, cancellation: Option<&AtomicBool>) -> Result<Lexed, CppError> {
     if raw.contains('\0') || raw.len() > 16 * 1024 * 1024 || maximum == 0 {
         return Err(CppError::new(
             "duplicate-input",
@@ -203,6 +207,12 @@ fn lex(raw: &str, maximum: usize) -> Result<Lexed, CppError> {
     let mut prefix = true;
     let mut previous = String::new();
     while index < text.len() {
+        if count % 4096 == 0 && cancellation.is_some_and(|flag| flag.load(Ordering::Relaxed)) {
+            return Err(CppError::new(
+                "analysis-cancelled",
+                "C++ duplicate normalization cancelled",
+            ));
+        }
         let character = text[index..].chars().next().unwrap();
         if character == '\n' {
             prefix = true;
@@ -323,13 +333,16 @@ fn lex(raw: &str, maximum: usize) -> Result<Lexed, CppError> {
     })
 }
 pub fn tokenize_cpp_lines(text: &str) -> Result<Vec<(u32, String)>, CppError> {
-    Ok(lex(text, 500_000)?.indexed)
+    Ok(lex(text, 500_000, None)?.indexed)
 }
 pub fn cpp_directive_lines(text: &str) -> Result<Vec<u32>, CppError> {
-    Ok(lex(text, 500_000)?.barriers.into_iter().collect())
+    Ok(lex(text, 500_000, None)?.barriers.into_iter().collect())
 }
-pub(crate) fn file_data(file: &ParsedSource) -> Result<DuplicateFileData, CppError> {
-    let lexed = lex(&file.text, 500_000)?;
+pub(crate) fn file_data(
+    file: &ParsedSource,
+    cancellation: Option<&AtomicBool>,
+) -> Result<DuplicateFileData, CppError> {
+    let lexed = lex(&file.text, 500_000, cancellation)?;
     let mut intervals = vec![];
     for node in source::nodes(file.tree.root_node())?
         .into_iter()

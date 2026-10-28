@@ -70,3 +70,51 @@ fn duplicate_matches_share_core_regions_locations_and_preserve_exclusions() {
         TaskState::Failed
     );
 }
+
+#[test]
+fn normalization_does_not_search_later_numeric_literals_at_each_identifier() {
+    let source = "value += other;\n".repeat(10_000);
+    let started = std::time::Instant::now();
+    let lines = tokenize_cpp_lines(&source).unwrap();
+    assert_eq!(lines.len(), 10_000);
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(2),
+        "bounded source took {:?}",
+        started.elapsed()
+    );
+}
+
+#[test]
+fn active_duplicate_normalization_cancellation_checks_the_cached_source_path() {
+    use std::{
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+        time::{Duration, Instant},
+    };
+    let text = format!(
+        "int work(int value){{\n{}return value;\n}}\n",
+        "value += other;\n".repeat(15_000)
+    );
+    let input = request(vec![("large.cpp", &text)]);
+    let mut session = CppAnalysisSession::new();
+    let mut warm = input.clone();
+    warm.check_id = "cpp.complexity".into();
+    session.analyze(&warm);
+    assert_eq!(session.parser_invocations(), 1);
+    let flag = Arc::new(AtomicBool::new(false));
+    let worker_flag = Arc::clone(&flag);
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        sender.send(()).unwrap();
+        session.analyze_cancellable(&input, &worker_flag)
+    });
+    receiver.recv().unwrap();
+    std::thread::sleep(Duration::from_millis(25));
+    let start = Instant::now();
+    flag.store(true, Ordering::Relaxed);
+    let output = worker.join().unwrap();
+    assert!(start.elapsed() < Duration::from_secs(2));
+    assert_eq!(output.observation.state, TaskState::Cancelled);
+}

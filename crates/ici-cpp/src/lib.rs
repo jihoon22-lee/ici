@@ -45,3 +45,7 @@ pub use linker::{
     eligible_discarded_symbol, linker_identity_task, parse_discarded_sections, parse_link_command,
     parse_object_facts, plan_linker_build, relink_task, unit_has_function_sections,
 };
+
+pub use compiler::{
+    CompilerIncludeObservation, analyze_compiler_include_cycles, apply_compiler_boundaries,
+};

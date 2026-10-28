@@ -185,3 +185,98 @@ fn include_cycles_resolve_direct_paths_and_report_ambiguous_and_self_edges() {
             .all(|finding| finding.evidence == EvidenceLevel::Estimated)
     );
 }
+
+#[test]
+fn frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence()
+ {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/source-oracle.json"
+    ))
+    .unwrap();
+    let mut session = CppAnalysisSession::new();
+    for case in oracle["cases"].as_array().unwrap() {
+        let output = session.analyze(&request(
+            "exception",
+            vec![("case.cpp", case["source"].as_str().unwrap())],
+        ));
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{} {:?}",
+            case["name"],
+            output.observation.limitations
+        );
+        let targets:Vec<_>=output.targets.iter().map(|target|json!({"name":target.target_name,"line":target.start_line,"status":target.status})).collect();
+        assert_eq!(json!(targets), case["exceptions"], "{}", case["name"]);
+        assert!(
+            output
+                .observation
+                .findings
+                .iter()
+                .all(|finding| finding.evidence == EvidenceLevel::Measured
+                    && finding.confidence == "medium"
+                    && !finding.native_rule_id.is_empty())
+        );
+    }
+}
+
+#[test]
+fn cpp_source_metrics_and_line_locations_preserve_crlf_and_cr_only_endings() {
+    let lf = "// 😀\nint first(int x){\n if(x)return 1;\n return 0;\n}\n";
+    let mut session = CppAnalysisSession::new();
+    for ending in ["\n", "\r\n", "\r"] {
+        let source = lf.replace('\n', ending);
+        let output = session.analyze(&request("complexity", vec![("case.cpp", &source)]));
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{ending:?}: {:?}",
+            output.observation.limitations
+        );
+        let row = &output.targets[0];
+        assert_eq!(row.start_line, 2);
+        assert_eq!(row.end_line, Some(5));
+        assert_eq!(row.metrics["complexity"], 2);
+        let lines = session.analyze(&request("line", vec![("case.cpp", &source)]));
+        assert_eq!(lines.observation.measurements[0].value, 5.0);
+        assert_eq!(lines.targets[0].metrics["comment_lines"], 1);
+    }
+}
+
+#[test]
+fn line_count_does_not_parse_or_inherit_the_cpp_rule_file_count_limit() {
+    let mut input = request("line", vec![]);
+    input.inputs = (0..2049)
+        .map(|index| SourceInput {
+            path: format!("f{index}.cpp"),
+            bytes: b"int value;\n".to_vec(),
+        })
+        .collect();
+    let mut session = CppAnalysisSession::new();
+    let output = session.analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.targets.len(), 2049);
+    assert_eq!(session.parser_invocations(), 0);
+}
+#[test]
+fn active_line_count_cancellation_returns_within_the_shared_two_second_budget() {
+    use std::{
+        sync::{Arc, atomic::Ordering},
+        time::{Duration, Instant},
+    };
+    let input = request("line", vec![("large.cpp", &"//x\n".repeat(2_000_000))]);
+    let flag = Arc::new(AtomicBool::new(false));
+    let worker_flag = Arc::clone(&flag);
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        sender.send(()).unwrap();
+        CppAnalysisSession::new().analyze_cancellable(&input, &worker_flag)
+    });
+    receiver.recv().unwrap();
+    std::thread::sleep(Duration::from_millis(20));
+    let start = Instant::now();
+    flag.store(true, Ordering::Relaxed);
+    let output = worker.join().unwrap();
+    assert!(start.elapsed() < Duration::from_secs(2));
+    assert_eq!(output.observation.state, TaskState::Cancelled);
+}

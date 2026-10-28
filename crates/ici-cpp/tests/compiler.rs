@@ -270,3 +270,129 @@ fn optional_installed_clang_probe_has_no_artifact_side_effects() {
     assert_eq!(facts.boundaries[0].name, "real");
     assert!(!root.path().join("must-not-create-0.o").exists());
 }
+
+#[test]
+fn required_compiler_boundary_policy_preserves_estimated_metrics_and_rejects_missing_variants() {
+    let root = tempfile::tempdir().unwrap();
+    let bytes = include_bytes!("../../../tests/rust-parity/cpp/clang-boundaries.cpp").to_vec();
+    fs::write(root.path().join("main.cpp"), &bytes).unwrap();
+    let mut context = context(root.path());
+    context.units.truncate(1);
+    context.units[0].configuration = "debug".into();
+    let source = SourceInput {
+        path: "main.cpp".into(),
+        bytes,
+    };
+    let fact = parse_clang_function_boundaries(
+        include_str!("../../../tests/rust-parity/cpp/clang-boundaries.json"),
+        &source,
+        Path::new("/fixture/main.cpp"),
+        "debug",
+    )
+    .unwrap();
+    let mut request = request(source);
+    request.check_id = "cpp.complexity".into();
+    request.options = json!({"cpp_boundaries":"required","warn_limit":0});
+    let mut session = ici_cpp::CppAnalysisSession::new();
+    assert_eq!(
+        session.analyze(&request).observation.state,
+        TaskState::Failed
+    );
+    let output =
+        session.analyze_with_compiler_context(&request, &context, std::slice::from_ref(&fact));
+    assert_eq!(
+        output.observation.state,
+        TaskState::Succeeded,
+        "{:?}",
+        output.observation.limitations
+    );
+    assert_eq!(output.extra["boundary_mode"], "exact");
+    assert!(
+        output
+            .targets
+            .iter()
+            .filter(|target| target.metrics.contains_key("boundary_source"))
+            .all(|target| target.metrics["boundary_source"] == "compiler-ast")
+    );
+    assert!(
+        output
+            .observation
+            .findings
+            .iter()
+            .all(|finding| finding.evidence == ici_domain::EvidenceLevel::Estimated)
+    );
+    let mut other = context.units[0].clone();
+    other.configuration = "release".into();
+    context.units.push(other);
+    assert_eq!(
+        session
+            .analyze_with_compiler_context(&request, &context, &[fact])
+            .observation
+            .state,
+        TaskState::Failed
+    );
+}
+#[test]
+fn compiler_include_graphs_never_merge_incompatible_variant_edges_into_a_cycle() {
+    use ici_cpp::{CompilerIncludeObservation, IncludeEdge, IncludeTrace};
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
+    let context = context(root.path());
+    let mut request = request(SourceInput {
+        path: "main.cpp".into(),
+        bytes: b"int main(){return 0;}\n".to_vec(),
+    });
+    request.inputs.extend([
+        SourceInput {
+            path: "a.h".into(),
+            bytes: b"// fixture".to_vec(),
+        },
+        SourceInput {
+            path: "b.h".into(),
+            bytes: b"// fixture".to_vec(),
+        },
+    ]);
+    let edge = |from: &str, to: &str| IncludeEdge {
+        from: from.into(),
+        to: to.into(),
+        from_scope: "project".into(),
+        to_scope: "project".into(),
+    };
+    let mut observations = vec![
+        CompilerIncludeObservation {
+            source: "main.cpp".into(),
+            configuration: context.units[0].configuration.clone(),
+            complete: true,
+            trace: IncludeTrace {
+                edges: vec![edge("a.h", "b.h")],
+                unexpected: vec![],
+            },
+        },
+        CompilerIncludeObservation {
+            source: "main.cpp".into(),
+            configuration: context.units[1].configuration.clone(),
+            complete: true,
+            trace: IncludeTrace {
+                edges: vec![edge("b.h", "a.h")],
+                unexpected: vec![],
+            },
+        },
+    ];
+    let output = ici_cpp::analyze_compiler_include_cycles(&request, &context, &observations);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert!(output.observation.findings.is_empty());
+    observations[0].trace.edges.push(edge("b.h", "a.h"));
+    let output = ici_cpp::analyze_compiler_include_cycles(&request, &context, &observations);
+    assert_eq!(output.observation.findings.len(), 1);
+    assert_eq!(
+        output.observation.findings[0].evidence,
+        ici_domain::EvidenceLevel::Measured
+    );
+    observations.pop();
+    assert_eq!(
+        ici_cpp::analyze_compiler_include_cycles(&request, &context, &observations)
+            .observation
+            .state,
+        TaskState::Failed
+    );
+}

@@ -48,3 +48,14 @@ Qt 5 and Qt 6 coverage builds preserve a project macro and produce `.gcno` notes
 Additional analysis flags are bounded; qmake output/install/global-setting hooks
 are refused in the extra argument interface. The native project still owns its
 compiler/toolchain configuration.
+
+Compiler boundary policy (`off`/`auto`/`required`) is checked against every
+captured configuration and the immutable source digest. A function present in
+only some configurations is not promoted. Compiler include cycles are computed
+within each observed configuration, so opposite edges from different variants
+cannot invent a cycle. Source recovery remains visible and requires compiler
+confirmation to establish complete boundary geometry.
+
+Line counting does not invoke the grammar and keeps its separate snapshot bound.
+LF, CRLF and CR-only locations are covered. Active line and cached duplicate
+normalization cancellation are tested against the two-second cancellation budget.

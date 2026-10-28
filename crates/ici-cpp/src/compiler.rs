@@ -136,6 +136,7 @@ pub struct CompilerFunctionBoundary {
 }
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CompilerBoundaryEvidence {
+    pub source: String,
     pub boundaries: Vec<CompilerFunctionBoundary>,
     pub macro_definitions_excluded: usize,
     pub lambda_definitions_excluded: usize,
@@ -195,6 +196,7 @@ pub fn parse_clang_function_boundaries(
         })
         .collect();
     let mut output = CompilerBoundaryEvidence {
+        source: input.path.clone(),
         source_digest: digest.clone(),
         configuration: configuration.into(),
         ..Default::default()
@@ -600,4 +602,329 @@ pub fn parse_include_trace(
         stack.push(Some(physical));
     }
     Ok(trace)
+}
+
+/// Annotate source metrics with independently verified compiler boundaries. The lexical metric
+/// remains estimated even when boundary geometry is compiler-confirmed.
+pub fn apply_compiler_boundaries(
+    request: &AnalysisRequest,
+    output: &mut AnalysisOutput,
+    context: &CompilationContext,
+    evidence: &[CompilerBoundaryEvidence],
+) -> Result<(), CppError> {
+    let policy = request.options["cpp_boundaries"].as_str().unwrap_or("auto");
+    if !["auto", "off", "required"].contains(&policy) {
+        return Err(CppError::new(
+            "invalid-boundary-policy",
+            "cpp_boundaries must be auto, off or required",
+        ));
+    }
+    if policy == "off" {
+        return Ok(());
+    }
+    let inputs: BTreeMap<_, _> = request
+        .inputs
+        .iter()
+        .map(|input| (input.path.as_str(), input))
+        .collect();
+    let expected: BTreeSet<_> = context
+        .units
+        .iter()
+        .filter(|unit| inputs.contains_key(unit.source.as_str()))
+        .map(|unit| (unit.source.clone(), unit.configuration.clone()))
+        .collect();
+    let mut observed = BTreeSet::new();
+    let mut confirmed: BTreeMap<(String, u32, u32, String), BTreeSet<String>> = BTreeMap::new();
+    for fact in evidence {
+        let input = inputs.get(fact.source.as_str()).ok_or_else(|| {
+            CppError::new(
+                "boundary-source-unselected",
+                "Compiler boundaries reference an unselected source",
+            )
+        })?;
+        if ici_domain::sha256(&input.bytes) != fact.source_digest {
+            return Err(CppError::new(
+                "boundary-source-drift",
+                "Compiler boundaries do not match immutable source identity",
+            ));
+        }
+        let key = (fact.source.clone(), fact.configuration.clone());
+        if !expected.contains(&key) || !observed.insert(key) {
+            return Err(CppError::new(
+                "boundary-configuration-mismatch",
+                "Compiler boundary configurations are duplicated or not captured",
+            ));
+        }
+        for boundary in &fact.boundaries {
+            if boundary.path != fact.source
+                || boundary.configuration != fact.configuration
+                || boundary.source_digest != fact.source_digest
+            {
+                return Err(CppError::new(
+                    "boundary-evidence-mismatch",
+                    "Compiler boundary does not agree with its source/configuration envelope",
+                ));
+            }
+            confirmed
+                .entry((
+                    boundary.path.clone(),
+                    boundary.start_line,
+                    boundary.end_line,
+                    boundary.name.clone(),
+                ))
+                .or_default()
+                .insert(boundary.configuration.clone());
+        }
+    }
+    let mut exact = 0;
+    let mut estimated = 0;
+    for target in &mut output.targets {
+        if !target.metrics.contains_key("boundary_source") {
+            continue;
+        }
+        let key = (
+            target.file_path.clone(),
+            target.start_line,
+            target.end_line.unwrap_or(target.start_line),
+            target.target_name.clone(),
+        );
+        if let Some(configurations) = confirmed.get(&key) {
+            let required: BTreeSet<_> = expected
+                .iter()
+                .filter(|(source, _)| source == &target.file_path)
+                .map(|(_, configuration)| configuration.clone())
+                .collect();
+            let consistent = !required.is_empty() && configurations == &required;
+            target.metrics.insert(
+                "boundary_source".into(),
+                json!(if consistent {
+                    "compiler-ast"
+                } else {
+                    "compiler-ast-partial"
+                }),
+            );
+            target.metrics.insert(
+                "boundary_confidence".into(),
+                json!(if consistent { "exact" } else { "medium" }),
+            );
+            target
+                .metrics
+                .insert("configurations".into(), json!(configurations));
+            if consistent {
+                exact += 1;
+            } else {
+                estimated += 1;
+                target
+                    .metrics
+                    .insert("configuration_dependent".into(), json!(true));
+                output.observation.limitations.push(format!(
+                    "{}:{}: configuration-dependent function boundary was not promoted",
+                    target.file_path, target.start_line
+                ));
+            }
+        } else {
+            estimated += 1;
+        }
+    }
+    let complete = context.complete() && observed == expected && !expected.is_empty();
+    let mode = if !complete {
+        "partial"
+    } else if exact > 0 && estimated > 0 {
+        "mixed"
+    } else if exact > 0 {
+        "exact"
+    } else {
+        "heuristic"
+    };
+    output.extra["boundary_mode"] = json!(mode);
+    output.extra["cpp_boundary_mode"] = json!(mode);
+    output.extra["exact_boundaries"] = json!(exact);
+    output.extra["estimated_boundaries"] = json!(estimated);
+    output.extra["configurations_checked"] = json!(observed.len());
+    if policy == "required" && (!complete || estimated > 0) {
+        return Err(CppError::new(
+            "compiler-boundaries-required",
+            "Every selected source function requires complete compiler-backed configuration coverage",
+        ));
+    }
+    if !complete {
+        output
+            .observation
+            .limitations
+            .push("Compiler boundary evidence is partial across selected configurations".into());
+    }
+    Ok(())
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CompilerIncludeObservation {
+    pub source: String,
+    pub configuration: String,
+    pub complete: bool,
+    pub trace: IncludeTrace,
+}
+/// Analyze each observed configuration graph separately. Combining incompatible variants can
+/// invent cycles that no compiler invocation observed.
+pub fn analyze_compiler_include_cycles(
+    request: &AnalysisRequest,
+    context: &CompilationContext,
+    observations: &[CompilerIncludeObservation],
+) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(&request.task_id, "compiler.includes");
+    output.observation.state = TaskState::Succeeded;
+    if !context.complete() {
+        fail(
+            &mut output,
+            ".",
+            "include-context-incomplete",
+            "Compiler include cycles require complete compile evidence",
+        );
+        return output;
+    }
+    let known: BTreeSet<_> = request
+        .inputs
+        .iter()
+        .map(|input| input.path.clone())
+        .collect();
+    let expected: BTreeSet<_> = context
+        .units
+        .iter()
+        .filter(|unit| known.contains(&unit.source))
+        .map(|unit| (unit.source.clone(), unit.configuration.clone()))
+        .collect();
+    let mut actual = BTreeSet::new();
+    let mut graphs: BTreeMap<String, BTreeMap<String, BTreeSet<String>>> = BTreeMap::new();
+    let mut scope_counts: BTreeMap<&str, u64> = BTreeMap::new();
+    let mut cycles: BTreeMap<Vec<String>, BTreeSet<String>> = BTreeMap::new();
+    let mut resolved = 0;
+    for observation in observations {
+        if !actual.insert((
+            observation.source.clone(),
+            observation.configuration.clone(),
+        )) || !expected.contains(&(
+            observation.source.clone(),
+            observation.configuration.clone(),
+        )) {
+            fail(
+                &mut output,
+                &observation.source,
+                "include-configuration-mismatch",
+                "Compiler include observation is duplicated or not captured",
+            );
+            continue;
+        }
+        if !observation.complete || !observation.trace.complete() {
+            fail(
+                &mut output,
+                &observation.source,
+                "include-trace-incomplete",
+                "Compiler include trace has unexpected output or did not finish",
+            );
+            continue;
+        }
+        let unit = context
+            .units
+            .iter()
+            .find(|unit| {
+                unit.source == observation.source && unit.configuration == observation.configuration
+            })
+            .unwrap();
+        let graph = graphs.entry(observation.configuration.clone()).or_default();
+        for path in &known {
+            graph.entry(path.clone()).or_default();
+        }
+        let mut seen = BTreeSet::new();
+        for edge in &observation.trace.edges {
+            if edge.from == edge.to || !seen.insert((&edge.from, &edge.to)) {
+                continue;
+            }
+            resolved += 1;
+            let scope =
+                if edge.to_scope == "project" {
+                    if source::is_excluded(&edge.to).is_some() {
+                        "third_party"
+                    } else if known.contains(&edge.to) {
+                        "project"
+                    } else {
+                        "generated"
+                    }
+                } else if unit.include_paths.iter().any(|path| {
+                    path.kind != "system" && Path::new(&edge.to).starts_with(&path.path)
+                }) {
+                    "third_party"
+                } else {
+                    "system"
+                };
+            *scope_counts.entry(scope).or_default() += 1;
+            if known.contains(&edge.from) && known.contains(&edge.to) {
+                graph
+                    .entry(edge.from.clone())
+                    .or_default()
+                    .insert(edge.to.clone());
+            }
+        }
+        let mut target = InspectionTarget::at(&observation.source, 1);
+        target.target_name = "CppIncludeTrace".into();
+        target.message =
+            "Compiler include tracing completed for this translation-unit configuration".into();
+        target.metrics = BTreeMap::from([
+            ("configuration".into(), json!(observation.configuration)),
+            ("resolved_edges".into(), json!(seen.len())),
+            ("resolution".into(), json!("compiler_trace")),
+        ]);
+        output.targets.push(target);
+    }
+    if actual != expected || expected.is_empty() {
+        fail(
+            &mut output,
+            ".",
+            "include-configuration-missing",
+            "Every selected translation-unit configuration requires an observed include trace",
+        );
+    }
+    for (configuration, graph) in &graphs {
+        for cycle in crate::cycles::components(graph) {
+            cycles
+                .entry(cycle)
+                .or_default()
+                .insert(configuration.clone());
+        }
+    }
+    for (members, configurations) in &cycles {
+        let mut target = InspectionTarget::at(&members[0], 1);
+        target.target_name = "IncludeCycle".into();
+        target.status = "WARN".into();
+        target.message = format!(
+            "compiler-observed include cycle: {} -> {}",
+            members.join(" -> "),
+            members[0]
+        );
+        target
+            .metrics
+            .insert("configurations".into(), json!(configurations));
+        finding(
+            &mut output,
+            request,
+            &target,
+            "cycle.include",
+            "medium",
+            false,
+        );
+        output
+            .observation
+            .findings
+            .last_mut()
+            .unwrap()
+            .related_locations = members
+            .iter()
+            .skip(1)
+            .map(|path| ici_domain::SourceSpan::line(path, 1))
+            .collect();
+        output.targets.push(target);
+    }
+    if output.observation.state == TaskState::Succeeded {
+        output.status = if cycles.is_empty() { "PASS" } else { "WARN" }.into();
+    }
+    measurement(&mut output, "cycles_found", cycles.len() as u64, false);
+    output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len()});
+    output
 }

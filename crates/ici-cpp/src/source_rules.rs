@@ -11,13 +11,17 @@ use tree_sitter::Node;
 pub(crate) fn lines(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
-    files: &[Arc<ParsedSource>],
+    files: &[(&str, &str)],
+    cancellation: Option<&std::sync::atomic::AtomicBool>,
 ) {
     let (mut code, mut comments, mut blanks) = (0u64, 0u64, 0u64);
-    for file in files {
+    for (path, text) in files {
         let mut comment = false;
         let (mut fc, mut fm, mut fb) = (0u64, 0u64, 0u64);
-        for line in file.text.lines() {
+        for (index, line) in source::physical_lines(text).enumerate() {
+            if index % 4096 == 0 && crate::analysis::cancelled(output, cancellation) {
+                return;
+            }
             let stripped = line.trim();
             if stripped.is_empty() {
                 fb += 1;
@@ -42,9 +46,9 @@ pub(crate) fn lines(
         code += fc;
         comments += fm;
         blanks += fb;
-        let mut target = InspectionTarget::at(&file.path, 1);
-        target.target_name = file.path.clone();
-        target.end_line = Some(file.text.lines().count().max(1) as u32);
+        let mut target = InspectionTarget::at(*path, 1);
+        target.target_name = (*path).to_owned();
+        target.end_line = Some((fc + fm + fb).max(1) as u32);
         target.metrics.insert("code_lines".into(), json!(fc));
         target.metrics.insert("comment_lines".into(), json!(fm));
         target.metrics.insert("blank_lines".into(), json!(fb));
@@ -354,6 +358,16 @@ pub(crate) fn metrics(
                 ("logical_sequences", json!(metric.logical_sequences)),
                 ("preprocessor_conditional", json!(metric.conditional)),
                 ("boundary_source", json!("concrete-source-syntax")),
+                ("boundary_confidence", json!("medium")),
+                (
+                    "metric_confidence",
+                    json!(if metric.conditional || metric.unbraced > 0 {
+                        "low"
+                    } else {
+                        "medium"
+                    }),
+                ),
+                ("function_origin", json!("source-spelled")),
                 ("metric_source", json!("bounded-cpp-source")),
             ] {
                 target.metrics.insert(key.into(), value);
@@ -379,8 +393,8 @@ pub(crate) fn metrics(
     }
     measurement(output, "functions_measured", functions, true);
     measurement(output, &format!("max_{kind}"), peak, true);
-    output.observation.limitations.push("Concrete C++ source boundaries and bounded metrics are estimated; preprocessing, macro-generated functions and compiler semantic validity are not established".into());
-    output.extra = json!({"boundary_mode":"estimated","estimated_boundaries":functions,"exact_boundaries":0,"lambdas_excluded":total_lambdas});
+    output.observation.limitations.push("Source metrics remain estimated and do not model preprocessor execution; compiler boundary verification, when available, is recorded separately".into());
+    output.extra = json!({"boundary_mode":"heuristic","estimated_boundaries":functions,"exact_boundaries":0,"lambdas_excluded":total_lambdas});
     Ok(())
 }
 pub(crate) fn exceptions(
@@ -415,8 +429,12 @@ pub(crate) fn exceptions(
                             &target,
                             "exception.destructorthrow",
                             "high",
-                            true,
+                            false,
                         );
+                        let issue = output.observation.findings.last_mut().unwrap();
+                        issue.native_rule_id = target.target_name.clone();
+                        issue.confidence = "medium".into();
+                        issue.category = "correctness".into();
                         output.targets.push(target);
                         issues += 1;
                     }
@@ -443,7 +461,7 @@ pub(crate) fn exceptions(
                         }
                     }
                     if !noncomment {
-                        let mut target = file.target(node, "EmptyCatchAll");
+                        let mut target = file.target(node, "CatchAllSwallowed");
                         target.status = "FAIL".into();
                         target.message =
                             "Silent catch(...) block without logging or re-throw".into();
@@ -451,22 +469,29 @@ pub(crate) fn exceptions(
                             output,
                             request,
                             &target,
-                            "exception.emptycatchall",
+                            "exception.catchallswallowed",
                             "high",
-                            true,
+                            false,
                         );
+                        let issue = output.observation.findings.last_mut().unwrap();
+                        issue.native_rule_id = target.target_name.clone();
+                        issue.confidence = "medium".into();
+                        issue.category = "correctness".into();
                         output.targets.push(target);
                         issues += 1;
                     }
                 }
             }
         }
-        if issues == 0 {
-            let mut target = InspectionTarget::at(&file.path, 1);
-            target.target_name = "ExceptionSafety".into();
-            target.message = "No throwing destructors or silent catch-all blocks found".into();
-            output.targets.push(target);
+        let mut target = InspectionTarget::at(&file.path, 1);
+        target.target_name = "CppExceptionSafety".into();
+        target.message = if issues == 0 {
+            "C++ exception constructs were inspected"
+        } else {
+            "C++ exception constructs were inspected; see findings above"
         }
+        .into();
+        output.targets.push(target);
     }
     output.observation.limitations.push("C++ exception checks inspect source syntax without preprocessing or path-sensitive exception semantics".into());
     Ok(())
