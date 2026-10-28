@@ -11,6 +11,7 @@
     "23d9922b94b2ba34ab8884cd2d39c8eda358ccb32d0925af5c0a3d52a7ddc893": "expectations/candidate-9d470ed.json",
     "e90140186f84ff17c4cda039d34c241b99f9ba74b07ea3b089a542c4bb620d9b": "expectations/candidate-9d470ed.json",
     "4495361b388cc1a9f4ff4591ce8c40df507e6eb9c79ca724568c5630f958ffed": "expectations/released-v0.12.0.json",
-    "f78b04aabb28fd6197e7aae1bd6b974b58f2e7e4b2e30a246d195e848eb450e4": "expectations/released-v0.12.1.json"
+    "f78b04aabb28fd6197e7aae1bd6b974b58f2e7e4b2e30a246d195e848eb450e4": "expectations/released-v0.12.1.json",
+    "c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde": "expectations/candidate-v0.13.0.json"
   }
 }

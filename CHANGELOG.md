@@ -5,7 +5,19 @@
 
 ---
 
-## [Unreleased]
+## [0.13.0] - 2026-10-28
+
+일반 프로젝트의 정적 분석을 하나의 제품 checkpoint로 공개합니다. `analyze`·설정 없는 발견·
+Rust/TS/JS provider·보조자료와 오프라인 report·Python package 설치를 함께 제공합니다.
+기존 Python/C++ verify/pyz와 ici.next.run v2/event v1/종료 코드 계약은 유지합니다.
+RHEL/GHES 현장 인수는 별도 환경 지원 근거이며 Linux/WSL 일반 설치의 선행 조건이 아닙니다.
+macOS/native Windows와 PE/Mach-O 동등 지원은 이번 버전에 포함하지 않습니다.
+
+설치와 이행·도구 버전·한계는 [범용 분석 가이드](docs/general-analysis.md)에 있습니다.
+기존 Rust 선언은 새 Clippy 검사를 선택하며, 도구/lock/dependency 부재는 incomplete입니다.
+이전 baseline은 native configuration scope 보완에 따라 일부 finding이 carried로 남을 수
+있으므로 새 버전에서 기준 결과를 생성합니다. 공개 artifact와 검증 revision 연결은
+[릴리스 진행 원장](docs/design/generalization-progress.md)에 기록합니다.
 
 - 명시적 Python 파일 목록에서도 Ruff의 native exclude를 적용합니다. 중첩 Ruff 설정을
   입력에 포함하고 설정 내용 변경을 check scope digest에 반영해 baseline 해결로 오판하지 않습니다.

@@ -135,3 +135,50 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   fixture를 추가, 해당 provider 회귀 45개 통과(0.21초). gate를 완화하지 않았다.
 - CI의 Clang 실제 도구 검사는 실행됐다. CI skip은 선택적 jsonschema/host syntax 조건이다.
   최신 test-only 수정으로 CI를 재실행한다.
+
+## 0.13.0 릴리스 후보 준비
+
+- 기능은 하나의 일반 정적 분석 checkpoint이며 additive CLI/provider/package 변경이다.
+  공개 0.12.1의 patch 수정 범위를 넘고 wire schema는 유지하므로 0.13.0 minor 후보로 준비한다.
+  후보 준비는 공개 stable 판정이 아니다. 태그/게시 전 main CI와 exact candidate corpus를 확인한다.
+- 작업 소유 release worktree: `/tmp/ici-generalization-20261028/release`,
+  branch `chore/release-general-analysis`, base `8d4a313` (구현 PR #295의 head).
+  구현 PR 병합 후 새 main 위로 release-only 변경을 rebase한다.
+- 버전 source/ici.toml/CHANGELOG/README 동기화. 다음은 pyz/wheel 후보 build 및
+  정확한 digest에 대한 known-answer corpus 등록, release PR/CI/후보 인수다.
+
+## 0.13.0 후보 산출물과 corpus 등록
+
+- pyz build 및 wheel fresh-venv install/analyze/plan/report smoke 통과(Python 3.10).
+- 후보 pyz SHA-256: `c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde`.
+- 16개 ici-owned candidate scenario의 기존 0.12.1 기대 판정을 유지하고 producer_version만
+  0.13.0으로 옮긴 새 기대 파일을 이 정확한 hash에 등록했다. 기존 selector와 과거 기대값은 보존.
+- 다음: Python slice 로컬 실행, release PR 최신 main 재배치, CI 및 protected-main candidate
+  workflow에서 16개 전체 실제 도구 corpus 인수. 등록 자체를 인수 통과로 기록하지 않는다.
+
+- 0.13.0 후보 Python corpus slice는 5/5 계약 PASS. 이는 의도된 결함을 정확히 찾는
+  known-answer 통과이며 모든 샘플 코드가 깨끗하다는 의미가 아니다.
+- corpus unit은 새 hash를 정확한 selector 집합에 추가한 뒤 68개 통과(기존 hash 모두 보존).
+  전체 16개 실제 tool corpus 인수는 protected-main workflow에서 수행할 예정이다.
+
+- 동일 0.13.0 candidate pyz를 fresh Python/Rust/JavaScript/TypeScript fixture에서 직접
+  실행했다. 4/4에서 의도한 위반과 exit 1을 얻었고, unique run_id·result/event 일치,
+  HTML 생성, TS composite metadata 격리/noEmit을 확인했다. 코드를 깨끗하다고 판정한
+  PASS가 아니라 결함 검출 및 artifact 실행 계약의 PASS다.
+
+## 구현 PR 병합 및 release-only 재배치
+
+- PR #295가 필수 Merge Gate/PR 보고서/Pages 확인 후 squash 병합됐다.
+  구현 main: `20207dcba411a243fb465772725f7efc6f5d3efe`.
+  CI: https://github.com/jihoon22-lee/ici/actions/runs/40608155601
+  Pages: https://github.com/jihoon22-lee/ici/actions/runs/40611754199
+- CI unit 4303 passed, 8 skipped(271.53초), 추가 C++ fixture 16 passed. pyz 재현 build,
+  wheel 격리 설치, smoke, Python/C++/next dogfood, 게시 확인이 통과했다.
+  자체 report에는 기존 line/type/complexity WARN과 viewer lint WARN이 남는다.
+  type의 9개 finding은 이번 변경에서 수정하지 않은 기존 파일들에 있으며 신규/수정 모듈
+  별도 mypy는 통과했다. gate 통과를 진단 0건으로 표현하지 않는다.
+- `feat/general-static-analysis` local/remote branch는 PR 병합 시 삭제됐다. 기존 원격
+  `refactor/stable-shell-removal`, `gh-pages`는 보존했다.
+- release-only 3개 commit을 위 main에 rebase했다. src/pyproject/README/lock/scripts의
+  내용은 후보를 빌드한 이전 release head와 동일하여 후보 hash는 유지된다.
+- 다음: release PR CI/병합, exact-main CI와 candidate archive/corpus 인수, tag/public release.
