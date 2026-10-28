@@ -18,7 +18,14 @@ def main():
     assert Path(security.__file__).is_relative_to(root)
     for case in fixtures["cases"]:
         if case["kind"] == "security":
-            result = security.analyze_python_security("main.py", case["source"])
+            result = security.analyze_python_security(
+                "main.py",
+                case["source"],
+                secret_name_allowlist=frozenset(
+                    value.casefold()
+                    for value in case.get("options", {}).get("secret_name_allowlist", [])
+                ),
+            )
             targets = result.findings
             counters = {
                 "calls_checked": result.checked_calls,

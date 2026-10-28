@@ -454,7 +454,7 @@
     {
       "id": "unicode_secret",
       "kind": "security",
-      "source": "암호 = \"x\"; password=\"abcdefghijk\"\n",
+      "source": "\uc554\ud638 = \"x\"; password=\"abcdefghijk\"\n",
       "oracle_targets": [
         {
           "name": "Security:HardcodedSecret",
@@ -909,6 +909,32 @@
         "acquisitions_checked": 1,
         "mutable_defaults_checked": 0,
         "ast_nodes": 18
+      }
+    },
+    {
+      "id": "unicode-casefold-allowlist",
+      "kind": "security",
+      "source": "ss = 'ghp_0123456789abcdefghijkABCDEF'\n",
+      "options": {
+        "secret_name_allowlist": [
+          "\u00df"
+        ]
+      },
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 1
+      }
+    },
+    {
+      "id": "unicode-casefold-nosec",
+      "kind": "security",
+      "source": "password = 'ghp_0123456789abcdefghijkABCDEF' # no\u017fec\n",
+      "options": {},
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 1
       }
     }
   ]

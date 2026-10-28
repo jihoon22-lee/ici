@@ -270,8 +270,43 @@ pub fn analyze(
         ..Measurement::measured("files_checked", checked as f64)
     });
     output.extra = json!({"files_checked":checked,"python_ast_nodes":nodes,"target_version":target.map(|target|target.to_string()),"api_inventory":INTRODUCED.iter().map(|(name,_)|*name).collect::<Vec<_>>()});
+    let imports = crate::metadata::import_names(request, metadata.as_ref());
+    output.extra["discovered_imports"] = json!(imports);
+    output.extra["python_files_checked"] = json!(checked);
+    output.extra["requires_python"] = json!(
+        metadata
+            .as_ref()
+            .map_or("", |metadata| metadata.requires_python.as_str())
+    );
     if let Some(metadata) = metadata {
-        output.extra["project_metadata"] = json!({"path":metadata.path,"bytes":metadata.text.len(),"requires_python":metadata.requires_python,"import_names":crate::metadata::strings(metadata.document.get("project").and_then(|project|project.get("import-names")))});
+        if crate::package::requested(request) {
+            crate::package::analyze(request, &metadata, files, output, cancellation);
+        }
+        output.extra["project_metadata"] = json!({"path":metadata.path,"bytes":metadata.text.len(),"requires_python":metadata.requires_python,"import_names":imports});
+    } else if crate::package::requested(request)
+        && (request
+            .options
+            .get("package_inspection")
+            .and_then(serde_json::Value::as_bool)
+            == Some(true)
+            || request
+                .options
+                .get("wheel_globs")
+                .and_then(serde_json::Value::as_array)
+                .is_some_and(|globs| !globs.is_empty())
+            || request
+                .inputs
+                .iter()
+                .any(|input| input.path.ends_with(".whl")))
+    {
+        failure(
+            output,
+            "pyproject.toml",
+            &SourceError::new(
+                "package-metadata-missing",
+                "Explicit package or wheel inspection requires immutable pyproject.toml metadata",
+            ),
+        );
     }
     output.summary = format!("Inspected static Python compatibility in {checked} file(s)");
     finish_status(output, request);

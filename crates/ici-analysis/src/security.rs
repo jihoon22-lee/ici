@@ -106,7 +106,7 @@ impl SecurityVisitor<'_> {
             return;
         };
         self.literals += 1;
-        let normalized_name = name.to_lowercase();
+        let normalized_name = crate::unicode::fold(name);
         if self.suppressed(owner) || self.allowlist.contains(&normalized_name) {
             return;
         }
@@ -123,7 +123,7 @@ impl SecurityVisitor<'_> {
             self.targets.push(target);
             return;
         }
-        let normalized = value.to_lowercase();
+        let normalized = crate::unicode::fold(value);
         let length = value.chars().count();
         if length < 6
             || PLACEHOLDERS
@@ -278,7 +278,7 @@ pub fn analyze(
             values
                 .iter()
                 .filter_map(|value| value.as_str())
-                .map(str::to_lowercase)
+                .map(crate::unicode::fold)
                 .collect()
         });
     let (mut calls, mut literals, mut checked) = (0, 0, 0usize);
@@ -292,9 +292,11 @@ pub fn analyze(
             .iter()
             .filter(|token| token.kind() == TokenKind::Comment)
             .filter(|token| {
-                file.source.text[token.range().start().to_usize()..token.range().end().to_usize()]
-                    .to_lowercase()
-                    .contains("nosec")
+                crate::unicode::fold(
+                    &file.source.text
+                        [token.range().start().to_usize()..token.range().end().to_usize()],
+                )
+                .contains("nosec")
             })
             .map(|token| file.source.location(token.range().start().to_usize()).0)
             .collect();

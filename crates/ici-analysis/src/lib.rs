@@ -14,6 +14,7 @@ mod lines;
 mod metadata;
 mod metrics;
 mod modules;
+mod package;
 mod parser;
 mod python_ast;
 mod python_duplicates;
@@ -23,6 +24,8 @@ mod security;
 mod semantic;
 mod source;
 pub mod unicode;
+mod wheel;
+mod wheel_zip;
 mod xid_table;
 
 use ici_domain::{AnalysisOutput, AnalysisRequest, InspectionTarget, TaskState};
@@ -53,7 +56,21 @@ impl AnalysisSession {
         &mut self,
         request: &AnalysisRequest,
     ) -> Result<SourceFacts, Box<AnalysisOutput>> {
-        let output = self.analyze_kind(request, None, "source-facts");
+        self.read_facts(request, None)
+    }
+    pub fn source_facts_cancellable(
+        &mut self,
+        request: &AnalysisRequest,
+        cancellation: &AtomicBool,
+    ) -> Result<SourceFacts, Box<AnalysisOutput>> {
+        self.read_facts(request, Some(cancellation))
+    }
+    fn read_facts(
+        &mut self,
+        request: &AnalysisRequest,
+        cancellation: Option<&AtomicBool>,
+    ) -> Result<SourceFacts, Box<AnalysisOutput>> {
+        let output = self.analyze_kind(request, cancellation, "source-facts");
         if output.observation.state != TaskState::Succeeded {
             return Err(Box::new(output));
         }
@@ -319,6 +336,12 @@ pub fn analyze(request: &AnalysisRequest) -> AnalysisOutput {
 pub fn source_facts(request: &AnalysisRequest) -> Result<SourceFacts, Box<AnalysisOutput>> {
     AnalysisSession::new().source_facts(request)
 }
+pub fn source_facts_cancellable(
+    request: &AnalysisRequest,
+    cancellation: &AtomicBool,
+) -> Result<SourceFacts, Box<AnalysisOutput>> {
+    AnalysisSession::new().source_facts_cancellable(request, cancellation)
+}
 pub fn function_facts(request: &AnalysisRequest) -> Result<Vec<FunctionFact>, Box<AnalysisOutput>> {
     AnalysisSession::new().function_facts(request)
 }
@@ -330,6 +353,9 @@ pub fn requires_python(request: &AnalysisRequest) -> Result<Option<String>, Box<
             failure(&mut output, "pyproject.toml", &error);
             Box::new(output)
         })
+}
+pub fn python_version_allowed(specifier: &str, version: &str) -> Result<bool, String> {
+    metadata::allows_version(specifier, version).map_err(|error| error.message)
 }
 fn failure(output: &mut AnalysisOutput, path: &str, error: &SourceError) {
     output.observation.state = TaskState::Failed;

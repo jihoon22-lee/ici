@@ -158,7 +158,7 @@ have explicit corrected expectations. Immutable `pyproject.toml` metadata and
 PEP 440 specifiers infer the same bounded first supported minor; invalid metadata
 is incomplete. No floor is asserted when none is declared. Syntax-floor caches
 use the actual parser target, preventing reuse by a stricter unrelated check.
-Packaging and wheel inspection remain a later unit.
+Packaging and wheel inspection are covered by the separate archive contract below.
 
 `type2.json` freezes 16 old token/region inputs plus exact groups, fingerprints,
 locations, snippets and duplicated-line numerators/denominators. The public native
@@ -228,3 +228,62 @@ Unknown future identifier characters fail with inspected locations. The parser
 identity now includes `unicode16`; no Unicode data is downloaded at runtime.
 The normalization dependency is exactly 0.1.24, whose tables are Unicode 16.
 Thirty native tests and scoped Clippy/fmt passed after this unit.
+
+## Source package and wheel contracts
+
+`package.json` preserves 105 frozen-source cases with complete findings,
+fingerprints, target locations, statuses and measured archive metadata. The
+native implementation inspects source declarations, callable/imported entry
+points, dynamic versions, package files, wheel identities/tags, metadata headers,
+case-sensitive INI entry points, strict RECORD CSV, SHA-256/384/512 integrity and
+pure-wheel policy. It never imports project code, extracts archives or starts a
+Python worker. Actual STORE, DEFLATE, BZIP2, LZMA and Zstandard archives are
+included; their passing Linux tests do not establish other deployment platforms.
+INI defaults are compared directly without copying inherited large values into
+every section; a 512-section/512 KiB default regression covers that bound.
+
+ZIP/ZIP64 directories are bounded before the archive library allocates or builds
+its name map. Raw UTF-8/CP437 identities, valid Unicode-path extra overrides,
+portable NFC/case-fold collisions, local-header identity, overlapping compressed
+ranges, duplicate members, encryption, links/special members, CRC failures and
+declared expansion sizes are checked. Four explicit correction records retain
+the old observations while requiring safe rejection of contradictory directory
+counts, local names, overlapping ranges and a raw UTF-8 decode exception.
+Configured defaults/upper bounds remain 32 wheels, 8,192 members, 64 MiB declared
+uncompressed content and 1 MiB per metadata member. Every hash/read loop checks
+cancellation between 64 KiB chunks. The cancellation regression retains a
+completed source metadata target and refuses to mark a partially hashed wheel
+complete.
+
+Modern `python.compat` inspects syntax/API floors by default. Source package and
+wheel inspection is selected by `package_inspection=true`, the legacy projection,
+nonempty wheel globs or immutable wheel inputs. An explicit package/wheel request
+without metadata is incomplete. Legacy projection with absent metadata retains
+its original static-only behavior. `package_evidence` and the legacy `wheel`
+alias contain identical measured summaries when all selected inspection work
+finishes; incomplete work cannot synthesize a successful summary.
+
+`metadata.json` adds 25 PEP 440 selector/floor cases (including arbitrary equality,
+empty sets, pre/dev/local versions and invalid selectors) and 14 metadata/import
+discovery cases. Component metadata takes precedence over workspace fallback.
+The public `python_version_allowed` helper shares this parser with project
+runtime consumers. Both free and session-based `source_facts_cancellable` APIs
+propagate active cancellation during enrichment.
+
+Unicode evidence now also compares every scalar's lowercase mapping, Python
+`repr`, decimal value and Python regular-expression word membership, plus all
+256 CP437 bytes. Contextual final sigma uses the retained Unicode 16 Cased and
+Case_Ignorable properties; lowercase processing remains linear. Security
+allowlists and `nosec` comments use full case folding, with two frozen-source
+regressions. The oracle scripts verify the preserved old results without
+rewriting evidence:
+
+```sh
+python3.14 package_oracle.py /path/to/frozen-checkout
+python3.14 metadata_oracle.py /path/to/frozen-checkout
+python3.14 unicode_oracle.py
+```
+
+These commands require the recorded CPython 3.14.7 / Unicode 16 development
+oracle, packaging 26.3 and tomli 2.4.1. They are comparison tools only and are not
+product runtime dependencies.

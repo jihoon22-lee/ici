@@ -13,5 +13,48 @@
     "XID_Start": 684,
     "XID_Continue": 800
   },
-  "all_scalar_identifier_sha256": "ef2a5e56b38bdc5ed1bba2e6c171235c90405794f09fa019b82aadaf6faa52ea"
+  "all_scalar_identifier_sha256": "ef2a5e56b38bdc5ed1bba2e6c171235c90405794f09fa019b82aadaf6faa52ea",
+  "all_scalar_decimal_sha256": "1c3639b2149a9d46a1ec4aa7bb16e3ed65f60372bae619f5e563275af773093d",
+  "all_scalar_repr_sha256": "d6850f9c8e28e7ac01ca186643f9b4eea1c78a61935148a3af3cf912fd15509d",
+  "all_cp437_sha256": "754c5bb3fea001ec959c555075130320962d3b98446117fb8cf28ae37eb06fc7",
+  "all_scalar_lower_sha256": "06539275c1e016a8c0c7db869f31423a020b3cd5cdea9655af88b53a92aab600",
+  "lower_samples": [
+    [
+      "\u039f\u03a3",
+      "\u03bf\u03c2"
+    ],
+    [
+      "\u039f\u03a3\u0391",
+      "\u03bf\u03c3\u03b1"
+    ],
+    [
+      "A\u03a3",
+      "a\u03c2"
+    ],
+    [
+      "A\u03a3\u0301",
+      "a\u03c2\u0301"
+    ],
+    [
+      "A\u03a3\u0301A",
+      "a\u03c3\u0301a"
+    ],
+    [
+      "A\u03a3\u200d",
+      "a\u03c2\u200d"
+    ],
+    [
+      "\u0130I\u0131",
+      "i\u0307i\u0131"
+    ],
+    [
+      "\ud83a\udd00\u03a3",
+      "\ud83a\udd22\u03c2"
+    ],
+    [
+      "\u1c8b\u03a3",
+      "\u1c8b\u03c3"
+    ]
+  ],
+  "all_scalar_word_sha256": "3f4793f66b57d99f34f3b83c1a82c3f4d86f3b8781bbbb8dadfc9177703c89d4"
 }

@@ -523,6 +523,10 @@ fn unicode16_full_folding_and_identifier_inventory_match_every_cpython_scalar() 
     );
     let mut folding = sha2::Sha256::new();
     let mut identifiers = sha2::Sha256::new();
+    let mut lower = sha2::Sha256::new();
+    let mut decimal = sha2::Sha256::new();
+    let mut repr = sha2::Sha256::new();
+    let mut word = sha2::Sha256::new();
     let mut text = String::new();
     for code in 0..=0x10ffff {
         let Some(character) = char::from_u32(code) else {
@@ -532,6 +536,18 @@ fn unicode16_full_folding_and_identifier_inventory_match_every_cpython_scalar() 
             u8::from(unicode::identifier_start(character)),
             u8::from(unicode::identifier_continue(character)),
         ]);
+        decimal.update([unicode::decimal_digit(character).unwrap_or(255)]);
+        let character_text = character.to_string();
+        word.update([u8::from(unicode::word(&character_text))]);
+        let representation = unicode::python_repr(&character_text);
+        repr.update(format!("{code:06X};{representation}\n").as_bytes());
+        let lowercase = unicode::lower(&character_text);
+        let mapping = lowercase
+            .chars()
+            .map(|character| format!("{:06X}", character as u32))
+            .collect::<Vec<_>>()
+            .join(" ");
+        lower.update(format!("{code:06X};{mapping}\n").as_bytes());
         text.clear();
         write!(text, "{code:06X};").unwrap();
         let folded = unicode::fold(&character.to_string());
@@ -553,6 +569,34 @@ fn unicode16_full_folding_and_identifier_inventory_match_every_cpython_scalar() 
         fixture["all_scalar_identifier_sha256"].as_str().unwrap()
     );
     assert_eq!(
+        format!("{:x}", decimal.finalize()),
+        fixture["all_scalar_decimal_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        format!("{:x}", repr.finalize()),
+        fixture["all_scalar_repr_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        format!("{:x}", lower.finalize()),
+        fixture["all_scalar_lower_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
+        format!("{:x}", word.finalize()),
+        fixture["all_scalar_word_sha256"].as_str().unwrap()
+    );
+    for sample in fixture["lower_samples"].as_array().unwrap() {
+        assert_eq!(
+            unicode::lower(sample[0].as_str().unwrap()),
+            sample[1].as_str().unwrap()
+        );
+    }
+    let bytes: Vec<_> = (0..=255).collect();
+    let decoded = wheel_zip::decode_name(&bytes, 0).unwrap();
+    assert_eq!(
+        format!("{:x}", sha2::Sha256::digest(decoded.as_bytes())),
+        fixture["all_cp437_sha256"].as_str().unwrap()
+    );
+    assert_eq!(
         unicode::portable("Straße/Cafe\u{301}.PY/"),
         "strasse/café.py"
     );
@@ -565,6 +609,365 @@ fn unicode16_full_folding_and_identifier_inventory_match_every_cpython_scalar() 
             .state,
         TaskState::Failed
     );
+}
+
+#[test]
+fn security_unicode_casefold_allowlists_and_comment_suppression_match_python() {
+    let mut input = request("security", "ss = 'ghp_0123456789abcdefghijkABCDEF'\n");
+    input.options = json!({"secret_name_allowlist":["ß"]});
+    assert!(analyze(&input).observation.findings.is_empty());
+    let input = request(
+        "security",
+        "password = 'ghp_0123456789abcdefghijkABCDEF' # noſec\n",
+    );
+    assert!(analyze(&input).observation.findings.is_empty());
+}
+
+#[test]
+fn package_and_wheel_contracts_match_frozen_findings_targets_and_metadata() {
+    use base64::Engine;
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/package.json"
+    ))
+    .unwrap();
+    let mut differences = vec![];
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut input = request("compat", "");
+        input.options = case["options"].clone();
+        input.options["package_inspection"] = json!(true);
+        input.inputs = case["sources"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, text)| SourceInput {
+                path: path.clone(),
+                bytes: text.as_str().unwrap().as_bytes().to_vec(),
+            })
+            .collect();
+        if let Some(text) = case["pyproject"].as_str() {
+            input.inputs.push(SourceInput {
+                path: "pyproject.toml".into(),
+                bytes: text.as_bytes().to_vec(),
+            });
+        }
+        for (path, bytes) in case["artifacts"].as_object().unwrap() {
+            input.inputs.push(SourceInput {
+                path: path.clone(),
+                bytes: base64::engine::general_purpose::STANDARD
+                    .decode(bytes.as_str().unwrap())
+                    .unwrap(),
+            });
+        }
+        let output = analyze(&input);
+        if let Some(message) = case["correction"]["native_error"].as_str() {
+            assert_eq!(
+                output.observation.state,
+                TaskState::Succeeded,
+                "{}",
+                case["id"]
+            );
+            assert!(
+                output.observation.findings.iter().any(|finding| {
+                    finding.rule_id == "ici.package.wheel-invalid"
+                        && finding.message.contains(message)
+                        && finding.primary_location.path.ends_with(".whl")
+                }),
+                "{}: {:?}",
+                case["id"],
+                output.observation.findings
+            );
+            assert_eq!(output.extra["package_evidence"]["checked"], json!(0));
+            assert_eq!(output.extra["package_evidence"]["invalid"], json!(1));
+            continue;
+        }
+        if case.get("original_error").is_some() {
+            if output.observation.state != TaskState::Failed || output.status != "ERROR" {
+                differences.push(format!(
+                    "{}: expected incomplete metadata/policy, got{} {:?}",
+                    case["id"], output.status, output.observation.limitations
+                ));
+            }
+            continue;
+        }
+        let expected = case.get("expected").unwrap_or(&case["original"]);
+        if output.observation.state != TaskState::Succeeded {
+            differences.push(format!(
+                "{}: unexpectedly incomplete {:?}",
+                case["id"], output.observation.limitations
+            ));
+            continue;
+        }
+        let findings:Vec<_>=output.observation.findings.iter().filter(|finding|finding.rule_id.starts_with("ici.package.")).map(|finding|json!({"rule_id":finding.rule_id,"fingerprint":finding.fingerprint,"message":finding.message,"severity":finding.severity,"confidence":finding.confidence,"category":finding.category,"native_rule_id":finding.native_rule_id,"path":finding.primary_location.path,"line":finding.primary_location.start_line})).collect();
+        let targets:Vec<_>=output.targets.iter().filter(|target|target.target_name.starts_with("Package:")).map(|target|json!({"file_path":target.file_path,"start_line":target.start_line,"end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,"target_name":target.target_name,"status":target.status,"message":target.message,"snippet":target.snippet})).collect();
+        for (key, actual) in [
+            ("findings", json!(findings)),
+            ("targets", json!(targets)),
+            ("metadata", output.extra["package_evidence"].clone()),
+        ] {
+            if actual != expected[key] {
+                differences.push(format!(
+                    "{}:{key}\nACTUAL={actual}\nEXPECTED={}",
+                    case["id"], expected[key]
+                ));
+            }
+        }
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+}
+
+#[test]
+fn package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete() {
+    let mut input = request("compat", "value = 1\n");
+    input.inputs.push(SourceInput {
+        path: "pyproject.toml".into(),
+        bytes: b"[project]\nname = ''\nrequires-python = '>=3.10'\n".to_vec(),
+    });
+    let output = analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert!(output.extra.get("package_evidence").is_none());
+    assert!(output.observation.findings.is_empty());
+    for flag in ["legacy_projection", "package_inspection"] {
+        input.options = json!({flag:true});
+        assert_eq!(analyze(&input).observation.state, TaskState::Failed);
+    }
+    input.inputs.pop();
+    input.options = json!({"legacy_projection":true});
+    assert_eq!(analyze(&input).observation.state, TaskState::Succeeded);
+    for options in [
+        json!({"package_inspection":true}),
+        json!({"wheel_globs":["dist/*.whl"]}),
+    ] {
+        input.options = options;
+        let output = analyze(&input);
+        assert_eq!(output.observation.state, TaskState::Failed);
+        assert!(
+            output
+                .observation
+                .limitations
+                .iter()
+                .any(|message| message.contains("package-metadata-missing"))
+        );
+    }
+    input.options = json!({});
+    input.inputs.push(SourceInput {
+        path: "dist/example.whl".into(),
+        bytes: vec![],
+    });
+    assert_eq!(analyze(&input).observation.state, TaskState::Failed);
+}
+
+#[test]
+fn wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success() {
+    use base64::Engine;
+    use std::io::{Cursor, Read, Write};
+    use std::sync::{Barrier, atomic::Ordering};
+    use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/package.json"
+    ))
+    .unwrap();
+    let case = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["id"] == "pure-wheel")
+        .unwrap();
+    let encoded = case["artifacts"]
+        .as_object()
+        .unwrap()
+        .values()
+        .next()
+        .unwrap()
+        .as_str()
+        .unwrap();
+    let mut old = ZipArchive::new(Cursor::new(
+        base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .unwrap(),
+    ))
+    .unwrap();
+    let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    for index in 0..old.len() {
+        let mut member = old.by_index(index).unwrap();
+        let mut payload = vec![];
+        member.read_to_end(&mut payload).unwrap();
+        if member.name().ends_with("/RECORD") {
+            payload.extend_from_slice(b"demo/large.dat,sha256=placeholder,33554432\n");
+        }
+        writer.start_file(member.name(), options).unwrap();
+        writer.write_all(&payload).unwrap();
+    }
+    writer.start_file("demo/large.dat", options).unwrap();
+    for _ in 0..512 {
+        writer.write_all(&[0; 65_536]).unwrap();
+    }
+    let mut input = request("compat", "");
+    input.options = case["options"].clone();
+    input.inputs = case["sources"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(path, text)| SourceInput {
+            path: path.clone(),
+            bytes: text.as_str().unwrap().as_bytes().to_vec(),
+        })
+        .collect();
+    let files: Vec<_> = input
+        .inputs
+        .iter()
+        .map(|source| {
+            Arc::new(ParsedFile::parse(SourceDocument::decode(source).unwrap(), "3.14").unwrap())
+        })
+        .collect();
+    input.inputs.push(SourceInput {
+        path: "pyproject.toml".into(),
+        bytes: case["pyproject"].as_str().unwrap().as_bytes().to_vec(),
+    });
+    input.inputs.push(SourceInput {
+        path: "dist/demo-1.2.3-py3-none-any.whl".into(),
+        bytes: writer.finish().unwrap().into_inner(),
+    });
+    let metadata = metadata::load(&input).unwrap().unwrap();
+    let cancellation = Arc::new(AtomicBool::new(false));
+    let ready = Arc::new(Barrier::new(2));
+    let flag = Arc::clone(&cancellation);
+    let signal = Arc::clone(&ready);
+    let worker = std::thread::spawn(move || {
+        signal.wait();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        flag.store(true, Ordering::Relaxed);
+    });
+    let mut output = AnalysisOutput::new(&input.task_id, "ici.compat");
+    ready.wait();
+    package::analyze(&input, &metadata, &files, &mut output, Some(&cancellation));
+    worker.join().unwrap();
+    assert_eq!(output.observation.state, TaskState::Cancelled);
+    assert_eq!(output.status, "ERROR");
+    assert!(output.targets.iter().any(|target|target.target_name=="Package:SourceMetadata" && target.status=="PASS"));
+    assert!(
+        !output
+            .targets
+            .iter()
+            .any(|target| target.target_name == "Package:Wheel")
+    );
+    assert!(output.observation.findings.is_empty());
+    assert!(output.extra.get("package_evidence").is_none());
+}
+
+#[test]
+fn python_metadata_specifiers_preserve_pep440_arbitrary_and_bounded_floor_semantics() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/metadata.json"
+    ))
+    .unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let specifier = case["specifier"].as_str().unwrap();
+        let floor = metadata::infer_floor(specifier);
+        if case.get("error").is_some() {
+            assert!(floor.is_err(), "{specifier:?}");
+            continue;
+        }
+        assert_eq!(
+            floor
+                .unwrap()
+                .map(|version| json!([version.major, version.minor]))
+                .unwrap_or(Value::Null),
+            case["floor"],
+            "{specifier:?}"
+        );
+        for (version, expected) in case["versions"].as_object().unwrap() {
+            assert_eq!(
+                python_version_allowed(specifier, version).unwrap(),
+                expected.as_bool().unwrap(),
+                "{specifier:?}: {version}"
+            );
+        }
+    }
+}
+
+#[test]
+fn metadata_import_discovery_matches_fixed_project_and_workspace_precedence() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/metadata.json"
+    ))
+    .unwrap();
+    for case in fixture["metadata_cases"].as_array().unwrap() {
+        let mut input = request("compat", "");
+        input.inputs = case["sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|path| SourceInput {
+                path: path.as_str().unwrap().into(),
+                bytes: b"value = 1\n".to_vec(),
+            })
+            .collect();
+        input.options = json!({"component_root":case["component_root"]});
+        if let Some(document) = case["document"].as_str() {
+            let root = case["metadata_root"].as_str().unwrap();
+            let path = if root.is_empty() {
+                "pyproject.toml".into()
+            } else {
+                format!("{root}/pyproject.toml")
+            };
+            input.inputs.push(SourceInput {
+                path,
+                bytes: document.as_bytes().to_vec(),
+            });
+        }
+        let loaded = metadata::load(&input);
+        if case.get("error").is_some() {
+            assert!(loaded.is_err(), "{}", case["id"]);
+            continue;
+        }
+        let loaded = loaded.unwrap();
+        let actual = json!({"requires_python":loaded.as_ref().map_or("",|metadata|metadata.requires_python.as_str()),"pyproject_present":loaded.is_some(),"import_names":metadata::import_names(&input,loaded.as_ref())});
+        assert_eq!(actual, case["original"], "{}", case["id"]);
+    }
+    let mut input = request("compat", "value = 1\n");
+    input.options = json!({"component_root":"app"});
+    input.inputs.extend([
+        SourceInput {
+            path: "pyproject.toml".into(),
+            bytes: b"[project]\nrequires-python = '>=3.9'".to_vec(),
+        },
+        SourceInput {
+            path: "app/pyproject.toml".into(),
+            bytes: b"[project]\nrequires-python = '>=3.11'".to_vec(),
+        },
+    ]);
+    assert_eq!(requires_python(&input).unwrap().as_deref(), Some(">=3.11"));
+}
+
+#[test]
+fn source_facts_propagate_active_cancellation_during_large_enrichment() {
+    use std::sync::{
+        Arc, Barrier,
+        atomic::{AtomicBool, Ordering},
+    };
+    let mut text = String::new();
+    for index in 0..20_000 {
+        text.push_str(&format!(
+            "def function_{index}(value):\n    return value + 1\n"
+        ));
+    }
+    let input = request("coverage", &text);
+    let cancellation = Arc::new(AtomicBool::new(false));
+    let ready = Arc::new(Barrier::new(2));
+    let flag = Arc::clone(&cancellation);
+    let signal = Arc::clone(&ready);
+    let worker = std::thread::spawn(move || {
+        signal.wait();
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        flag.store(true, Ordering::Relaxed);
+    });
+    ready.wait();
+    let result = AnalysisSession::new().source_facts_cancellable(&input, &cancellation);
+    worker.join().unwrap();
+    let output = result.unwrap_err();
+    assert_eq!(output.observation.state, TaskState::Cancelled);
+    assert_eq!(output.status, "ERROR");
 }
 #[test]
 fn metrics_match_fixed_python_formulas() {
@@ -792,10 +1195,14 @@ fn hygiene_matches_fixed_oracle_and_explicit_corrected_expectations() {
     ))
     .unwrap();
     for case in fixture["cases"].as_array().unwrap() {
-        let output = analyze(&request(
+        let mut input = request(
             case["kind"].as_str().unwrap(),
             case["source"].as_str().unwrap(),
-        ));
+        );
+        if let Some(options) = case.get("options") {
+            input.options = options.clone();
+        }
+        let output = analyze(&input);
         assert_eq!(
             output.observation.state,
             TaskState::Succeeded,
