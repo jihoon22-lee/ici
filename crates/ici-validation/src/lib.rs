@@ -1,6 +1,7 @@
 //! Project-owned tests, coverage and runtime contracts. All processes use ici-execution.
 pub mod artifacts;
 pub mod coverage;
+pub mod coverage_baseline;
 pub mod cpp;
 pub mod gcov;
 pub mod integration;

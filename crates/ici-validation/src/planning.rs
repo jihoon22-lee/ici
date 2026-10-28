@@ -79,6 +79,7 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         request.options.min_branch_cov,
         request.options.min_func_cov,
         request.options.min_changed_line_cov,
+        request.options.max_coverage_regression,
     ]
     .into_iter()
     .flatten()

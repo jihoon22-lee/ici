@@ -212,6 +212,9 @@ pub fn bind(
     options.min_branch_cov = threshold("min_branch_cov", 80.0);
     options.min_func_cov = threshold("min_func_cov", 90.0);
     options.min_tem_score = threshold("min_tem_score", 4.0);
+    options.max_coverage_regression = test
+        .and_then(|value| value.get("max_coverage_regression"))
+        .and_then(Value::as_f64);
     options.changed_lines = strings(test.and_then(|value| value.get("changed_lines")));
     options.min_changed_line_cov = threshold("min_changed_line_cov", 100.0)
         .or_else(|| (!options.changed_lines.is_empty()).then_some(100.0));

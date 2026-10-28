@@ -308,3 +308,18 @@ passed the seven C++ contracts and actual Qt 5/6 suites with failure, expected f
 (4.92 seconds). The later complete validation gate includes the external-traversal regression.
 These are scoped library/CLI acceptance results; historical baseline coverage regression policy
 and full R8 inventory closure remain separate root-owned work.
+
+Coverage outputs retain a typed `ici.coverage-policy` v1 snapshot with raw aggregate/file
+denominators, explicit measured/empty/unavailable/not-selected axes, presentation percentages,
+the configured statement floor and optional regression tolerance. Deserialization rejects
+inconsistent counts/percentages and unknown contracts. Aggregate line counts reconcile to
+file parts; empty or unmeasured axes never become invented zero-percent regressions.
+
+The pure comparison helper produces source-located baseline-only/advisory findings, targets,
+raw ratios and separate policy/gating/completeness flags. A drop must exceed the configured
+tolerance. Fingerprints depend on component/provider/rule/path, preserving identity when the
+measured drop changes. The application must first prove compatible native baseline and completed
+matching check scope; ordinary source verification gates remain separate from fail-on-new.
+Four pure comparison/validation cases and strict CLI/validation Clippy passed in
+`coverage-baseline-gates-final.log`; the actual shared pytest/coverage case passed in 2.07s
+(`coverage-baseline-native.log`). Root baseline/exit/report wiring has its own acceptance cases.

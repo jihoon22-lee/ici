@@ -569,6 +569,7 @@ fn observe_coverage(
     output.max_score = Some(5.0);
     output.extra["tem"] = json!(score);
     output.extra["coverage"] = json!(report);
+    crate::coverage_baseline::attach(plan, &report, output)?;
     output
         .observation
         .limitations

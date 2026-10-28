@@ -675,6 +675,7 @@ pub(crate) fn observe(
         }
     }
     output.extra["coverage"] = json!(report);
+    crate::coverage_baseline::attach(plan, &report, output)?;
     let score = crate::tem::calculate(&crate::tem::TemInputs {
         passed: tests.0,
         total: tests.1,
