@@ -78,3 +78,32 @@ fn native_type_configuration_is_respected() {
     fs::write(&path, "[invalid").unwrap();
     assert!(type_provider(dir.path(), None).is_err());
 }
+#[test]
+fn symlink_invocation_name_is_preserved_for_multicall_dispatch() {
+    use ici_domain::TaskSpec;
+    use ici_execution::{Cancellation, Runner};
+    let dir = tempfile::tempdir().unwrap();
+    let alias = dir.path().join("chosen-shell-name");
+    std::os::unix::fs::symlink("/bin/sh", &alias).unwrap();
+    let mut req = request(dir.path());
+    req.explicit = Some(alias.clone());
+    let tool = req.resolve().unwrap();
+    assert_eq!(tool.path, alias);
+    let mut task = TaskSpec::command(
+        "alias",
+        "fixture",
+        vec![
+            tool.path.to_string_lossy().into_owned(),
+            "-c".into(),
+            "printf '%s' \"$0\"".into(),
+        ],
+        dir.path().to_string_lossy(),
+    );
+    task.tool_digest = Some(tool.digest);
+    let outcome = Runner::default().run(&task, &Cancellation::default());
+    assert!(outcome.completed(), "{outcome:?}");
+    assert_eq!(
+        String::from_utf8(outcome.stdout).unwrap(),
+        alias.to_string_lossy()
+    );
+}

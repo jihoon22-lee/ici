@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::io::Read;
 use std::{
     collections::BTreeMap,
     fs,
@@ -129,6 +127,7 @@ impl ToolRequest {
                     }
                     let mut resolved = self.accept(path, ToolSource::Pack, Some(&tool.sha256))?;
                     resolved.version = Some(tool.version.clone());
+                    resolved.configuration.push(manifest_path.clone());
                     return Ok(resolved);
                 }
             }
@@ -165,10 +164,16 @@ impl ToolRequest {
                 ),
             ));
         }
-        let path = path
+        // Preserve argv[0] dispatch for rustup/cargo and other multicall symlinks.
+        let path = if path.is_absolute() {
+            path
+        } else {
+            self.project_root.join(path)
+        };
+        let canonical = path
             .canonicalize()
             .map_err(|e| error(&self.id, e.to_string()))?;
-        let digest = executable_digest(&path)
+        let digest = executable_digest(&canonical)
             .map_err(|e| error(&self.id, format!("cannot hash selected executable: {e}")))?;
         if let Some(expected) = expected
             && digest != expected
@@ -197,69 +202,17 @@ pub enum TypeProvider {
 }
 /// A configured checker retains its own semantics. No transparent mypy-to-ty replacement.
 pub fn type_provider(root: &Path, explicit: Option<&str>) -> Result<TypeProvider, ResolutionError> {
-    if let Some(value) = explicit {
-        return match value {
-            "mypy" => Ok(TypeProvider::Mypy),
-            "ty" => Ok(TypeProvider::Ty),
-            _ => Err(error("python.type", "type_provider must be mypy or ty")),
-        };
-    }
-    let project_path = root.join("pyproject.toml");
-    let source = match fs::read_to_string(&project_path) {
-        Ok(text) => text,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(e) => {
-            return Err(error(
-                "python.type",
-                format!("{}: {e}", project_path.display()),
-            ));
-        }
-    };
-    let pyproject = source
-        .parse::<toml_edit::DocumentMut>()
-        .map_err(|e| error("python.type", format!("{}: {e}", project_path.display())))?;
-    let native_table = |name: &str| {
-        pyproject
-            .get("tool")
-            .and_then(|tool| tool.get(name))
-            .is_some()
-    };
-    let mypy = root.join("mypy.ini").is_file()
-        || root.join(".mypy.ini").is_file()
-        || native_table("mypy")
-        || fs::read_to_string(root.join("setup.cfg")).is_ok_and(|s| has_table(&s, "mypy"));
-    let ty = root.join("ty.toml").is_file() || native_table("ty");
-    match (mypy, ty) {
-        (true, true) => Err(error(
+    match ici_config::discover_type_provider(root, root, explicit)
+        .map_err(|problem| error("python.type", problem.to_string()))?
+        .as_deref()
+    {
+        Some("mypy") => Ok(TypeProvider::Mypy),
+        Some("ty") | None => Ok(TypeProvider::Ty),
+        Some(other) => Err(error(
             "python.type",
-            "both mypy and ty configurations exist; choose python.type_provider explicitly",
+            format!("unsupported type provider {other}"),
         )),
-        (true, false) => Ok(TypeProvider::Mypy),
-        _ => Ok(TypeProvider::Ty),
     }
-}
-fn has_table(source: &str, name: &str) -> bool {
-    source.lines().any(|line| {
-        line.split('#')
-            .next()
-            .unwrap_or("")
-            .trim()
-            .strip_prefix('[')
-            .and_then(|s| s.strip_suffix(']'))
-            .is_some_and(|table| table == name || table.starts_with(&format!("{name}.")))
-    })
 }
 
-pub fn executable_digest(path: &Path) -> std::io::Result<String> {
-    let mut file = fs::File::open(path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0u8; 65536];
-    loop {
-        let read = file.read(&mut buffer)?;
-        if read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..read]);
-    }
-    Ok(format!("sha256:{:x}", hasher.finalize()))
-}
+pub use ici_execution::process::executable_digest;
