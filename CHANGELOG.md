@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+- 설정 파일의 독립적인 키·타입·관계 오류를 각 파일·행·키와 함께 한 번에 표시합니다.
+  진단 출력은 64개로 제한하며 잘못된 설정으로 검사나 파일 변경을 시작하지 않습니다.
+- C++ compilation database의 필수·금지 flag 정책을 실제 translation unit에 적용합니다.
+  legacy의 선택형 database 부재와 modern 필수 compilation 증거 부재를 구별합니다.
+  Python 전용 개별 검사는 C++ 프로젝트에서 위치를 갖는 적용 불가 결과를 반환합니다.
+- C++ generated/vendor 포함 정책을 중복·compiler unused·linker 관점에 각각 적용하고,
+  gcov에 변경 줄 coverage와 TEM 임계값을 전달합니다.
+- 반복 pytest 실행의 실패·시간 초과는 실제 기본 suite 결과를 지우지 않습니다.
+  sanitizer의 위치 없는 진단은 원문과 미완료 사유로 보존하고 임의의 코드 위치를 부여하지 않습니다.
+
 - 설정 migration은 과거 XDG·project·dev·ICI_CONFIG의 충돌 값과 출처를 읽기 전용으로
   설명하며, 이전 후에도 선택형 coverage 정책을 유지합니다. 주석·원본·기존 backup은 보존합니다.
 - `env --csh`는 설치 경로의 `!`를 이력 확장으로 실행하지 않고 그대로 보존합니다.

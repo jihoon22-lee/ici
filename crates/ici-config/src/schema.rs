@@ -188,7 +188,9 @@ pub(crate) fn family(parsed: &Parsed) -> Result<SchemaFamily, ConfigError> {
 }
 
 pub(crate) fn validate(parsed: &Parsed, family: SchemaFamily) -> Result<(), ConfigError> {
-    walk(parsed, &parsed.value, &[], "", family, 0)?;
+    let mut errors = vec![];
+    walk(parsed, &parsed.value, &[], "", family, 0, &mut errors);
+    ConfigError::collect(errors)?;
     if family == SchemaFamily::NextV1
         && parsed.value.get("workspace").is_none()
         && parsed.value.get("component").is_none()
@@ -234,23 +236,39 @@ fn walk(
     display: &str,
     family: SchemaFamily,
     depth: usize,
-) -> Result<(), ConfigError> {
+    errors: &mut Vec<ConfigError>,
+) {
+    // Bound diagnostics independently of the document bound; no output flood for typo lists.
+    if errors.len() >= 64 {
+        return;
+    }
     if depth > 64 {
-        return Err(parsed.error(display, "configuration nesting exceeds 64 levels"));
+        errors.push(parsed.error(display, "configuration nesting exceeds 64 levels"));
+        return;
     }
     if let Some(object) = value.as_object() {
         let last = path.last().map(String::as_str).unwrap_or("");
         if matches!(last, "env" | "python_targets") {
-            return validate_string_map(parsed, object, display, last, family);
+            if let Err(error) = validate_string_map(parsed, object, display, last, family) {
+                errors.push(error);
+            }
+            return;
         }
         for (key, child) in object {
+            if errors.len() >= 64 {
+                break;
+            }
             let mut child_path = path.to_vec();
             child_path.push(key.clone());
             let child_display = join(display, key);
             if !allowed(&child_path, family) {
-                return Err(parsed.error(&child_display, "unknown configuration key"));
+                errors.push(parsed.error(&child_display, "unknown configuration key"));
+                continue;
             }
-            validate_type(parsed, child, &child_path, &child_display)?;
+            if let Err(error) = validate_type(parsed, child, &child_path, &child_display) {
+                errors.push(error);
+                continue;
+            }
             walk(
                 parsed,
                 child,
@@ -258,17 +276,22 @@ fn walk(
                 &child_display,
                 family,
                 depth + 1,
-            )?;
+                errors,
+            );
         }
     } else if let Some(array) = value.as_array() {
         if array.len() > 100_000 {
-            return Err(parsed.error(display, "array exceeds 100000 values"));
+            errors.push(parsed.error(display, "array exceeds 100000 values"));
+            return;
         }
         let mut array_path = path.to_vec();
         if let Some(last) = array_path.last_mut() {
             *last += "[]";
         }
         for (index, child) in array.iter().enumerate() {
+            if errors.len() >= 64 {
+                break;
+            }
             if child.is_object() {
                 walk(
                     parsed,
@@ -277,11 +300,11 @@ fn walk(
                     &format!("{display}[{index}]"),
                     family,
                     depth + 1,
-                )?;
+                    errors,
+                );
             }
         }
     }
-    Ok(())
 }
 
 fn validate_type(
@@ -513,6 +536,29 @@ pub(crate) fn relationships(
     value: &Value,
     prefix: &str,
 ) -> Result<(), ConfigError> {
+    fn visit(parsed: &Parsed, value: &Value, prefix: &str, errors: &mut Vec<ConfigError>) {
+        if errors.len() >= 64 {
+            return;
+        }
+        if let Err(error) = relationships_here(parsed, value, prefix) {
+            errors.push(error);
+        }
+        if let Some(table) = value.as_object() {
+            for (key, child) in table {
+                visit(parsed, child, &join(prefix, key), errors);
+            }
+        } else if let Some(array) = value.as_array() {
+            for (index, child) in array.iter().enumerate() {
+                visit(parsed, child, &format!("{prefix}[{index}]"), errors);
+            }
+        }
+    }
+    let mut errors = vec![];
+    visit(parsed, value, prefix, &mut errors);
+    ConfigError::collect(errors)
+}
+
+fn relationships_here(parsed: &Parsed, value: &Value, prefix: &str) -> Result<(), ConfigError> {
     if let Some(table) = value.as_object() {
         for (warn, fail) in [
             ("warn_limit", "fail_limit"),
@@ -606,9 +652,6 @@ pub(crate) fn relationships(
                 ));
             }
         }
-        for (key, child) in table {
-            relationships(parsed, child, &join(prefix, key))?;
-        }
     } else if let Some(array) = value.as_array() {
         if ["cases", "integrations", "output_artifacts"]
             .iter()
@@ -637,9 +680,6 @@ pub(crate) fn relationships(
             if ids.len() != ids.iter().collect::<BTreeSet<_>>().len() {
                 return Err(parsed.error(prefix, format!("duplicate {key} in {prefix}")));
             }
-        }
-        for (i, child) in array.iter().enumerate() {
-            relationships(parsed, child, &format!("{prefix}[{i}]"))?;
         }
     }
     Ok(())

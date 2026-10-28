@@ -1,5 +1,20 @@
 # ici Rust 전면 교체 실행 계획
 
+### Configuration diagnostic audit (2026-10-29)
+
+- Frozen `config/reader.py` and `config/errors.py` aggregate independent problems. Native schema
+  validation now retains independent key/type/section failures with each file/line/key, bounded to
+  64 diagnostics. Related diagnostics remain structured, and the error representation was reduced
+  without disabling `result_large_err`. All 35 configuration resolution tests, two migration-layer
+  tests and strict configuration Clippy passed (`root-config-diagnostics-boxed-final.log`).
+  Configuration/plan CLI tests also passed before strict Clippy exposed the subsequently corrected
+  error-size issue (`root-config-diagnostics-cli-final.log`); the final integration gate is recorded
+  with the line-scope follow-up, rather than calling the earlier combined command a pass.
+- C++ legacy applicability and compilation-policy, source ownership switches, actual CTest/gcov
+  policy binding and optional pytest-repeat evidence have separate worker commits and actual
+  fixtures. Their full per-rule/configuration audit remains in progress; these units alone do not
+  close the shared descriptors or R8 acceptance.
+
 ### Migration and shell acceptance follow-up (2026-10-29)
 
 - The complete frozen migration converter, precedence diagnostic and CLI have been reviewed.

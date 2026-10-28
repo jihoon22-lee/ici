@@ -285,6 +285,47 @@ fn unknown_future_and_malformed_config_never_modify_original() {
 }
 
 #[test]
+fn independent_configuration_errors_keep_all_key_locations_and_are_bounded() {
+    let tree = Project::new();
+    let original = "schema_version=2\nprofile='turbo'\nunknown_key=1\n[engines.test]\nrequired='yes'\n[engines.line]\nwarn_limit=false\n";
+    let source = tree.write("ici.toml", original);
+    let error = tree.failure();
+    let display = error.to_string();
+    for (key, line) in [
+        ("profile", 2),
+        ("unknown_key", 3),
+        ("engines.test.required", 5),
+        ("engines.line.warn_limit", 7),
+    ] {
+        assert!(display.contains(&format!("ici.toml:{line}:")), "{display}");
+        assert!(display.contains(key), "{display}");
+    }
+    assert_eq!(error.related.len(), 3);
+    assert_eq!(fs::read_to_string(&source).unwrap(), original);
+    let many = format!(
+        "schema_version=2\n{}",
+        (0..100)
+            .map(|index| format!("unknown_{index}=1\n"))
+            .collect::<String>()
+    );
+    tree.write("ici.toml", &many);
+    let error = tree.failure();
+    assert_eq!(error.related.len(), 63);
+    assert!(error.message.contains("limited to 64"));
+    assert!(error.to_string().len() < 20000);
+}
+
+#[test]
+fn independent_relationship_errors_do_not_hide_other_sections() {
+    let tree = Project::new();
+    tree.write("ici.toml", "schema_version=2\n[engines.line]\nwarn_limit=20\nfail_limit=10\n[engines.complexity]\nwarn_cc=40\nfail_cc=30\n");
+    let error = tree.failure();
+    assert_eq!(error.related.len(), 1);
+    assert!(error.to_string().contains("engines.line.warn_limit"));
+    assert!(error.to_string().contains("engines.complexity.warn_cc"));
+}
+
+#[test]
 fn v1_child_reference_anchors_root_and_interpreter_to_declaring_file() {
     let tree = Project::new();
     tree.write("src/root.py", "x=1");

@@ -33,9 +33,33 @@ impl Origin {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, thiserror::Error)]
-#[error("{file}:{line}:{column}: {key}: {message}", file=.origin.file, line=.origin.line, column=.origin.column, key=.origin.key)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ConfigError {
+    pub message: String,
+    pub origin: Box<Origin>,
+    #[serde(default, skip_serializing_if = "related_is_empty")]
+    pub related: Box<[ConfigDiagnostic]>,
+}
+fn related_is_empty(related: &[ConfigDiagnostic]) -> bool {
+    related.is_empty()
+}
+impl std::error::Error for ConfigError {}
+impl std::fmt::Display for ConfigError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "{}:{}:{}: {}: {}{}",
+            self.origin.file,
+            self.origin.line,
+            self.origin.column,
+            self.origin.key,
+            self.message,
+            self.related_text()
+        )
+    }
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ConfigDiagnostic {
     pub message: String,
     pub origin: Origin,
 }
@@ -43,8 +67,46 @@ impl ConfigError {
     pub fn new(message: impl Into<String>, origin: Origin) -> Self {
         Self {
             message: message.into(),
-            origin,
+            origin: Box::new(origin),
+            related: Box::default(),
         }
+    }
+    pub(crate) fn collect(errors: Vec<Self>) -> Result<(), Self> {
+        let mut errors = errors.into_iter();
+        let Some(mut first) = errors.next() else {
+            return Ok(());
+        };
+        let mut related = std::mem::take(&mut first.related).into_vec();
+        for error in errors {
+            related.push(ConfigDiagnostic {
+                message: error.message,
+                origin: *error.origin,
+            });
+            related.extend(error.related);
+        }
+        if related.len() >= 63 {
+            related.truncate(63);
+            first
+                .message
+                .push_str(" (diagnostic output limited to 64 problems)");
+        }
+        first.related = related.into_boxed_slice();
+        Err(first)
+    }
+    fn related_text(&self) -> String {
+        self.related
+            .iter()
+            .map(|problem| {
+                format!(
+                    "\n{}:{}:{}: {}: {}",
+                    problem.origin.file,
+                    problem.origin.line,
+                    problem.origin.column,
+                    problem.origin.key,
+                    problem.message
+                )
+            })
+            .collect()
     }
 }
 
