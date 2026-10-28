@@ -30,6 +30,9 @@
   native 단일 제품 인수·공개는 아직 완료되지 않았습니다.
 - native domain의 위치를 기존 계약과 같은 1-based Unicode inclusive 범위로 명시하고,
   같은 줄에서 종료 열이 시작 열보다 앞선 증거를 거부합니다.
+- native observation cache를 기존 cache와 분리합니다. core/tool bytes·실제 환경·정책·
+  provider 옵션·입력 closure가 확인된 완료 증거만 재사용하고, clear는 정확한 native
+  entry 이름만 다루며 symlink·FIFO·사용자 파일을 따르거나 삭제하지 않습니다.
 
 ## [0.13.0] - 2026-10-28
 

@@ -337,6 +337,7 @@ version = "0.14.0-dev.0"
 dependencies = [
  "ici-config",
  "ici-domain",
+ "ici-execution",
  "nix",
  "serde",
  "serde_json",

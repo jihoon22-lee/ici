@@ -145,7 +145,10 @@ impl InputSnapshot {
         }
     }
 }
-fn directory(path: &Path) -> std::io::Result<OwnedFd> {
+pub(crate) fn directory(path: &Path) -> std::io::Result<OwnedFd> {
+    if !path.is_absolute() {
+        return Err(std::io::Error::other("input directory must be absolute"));
+    }
     let mut fd = open(
         Path::new("/"),
         OFlag::O_RDONLY | OFlag::O_DIRECTORY | OFlag::O_CLOEXEC,

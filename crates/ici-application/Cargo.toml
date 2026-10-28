@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 ici-domain = { path = "../ici-domain" }
 ici-config = { path = "../ici-config" }
+ici-execution = { path = "../ici-execution" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

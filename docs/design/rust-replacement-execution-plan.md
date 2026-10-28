@@ -281,5 +281,21 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   읽을 때 symlink ancestor·leaf 및 FIFO를 거부한다. 자체 분석은 captured bytes를 쓰고
   외부 도구는 프로젝트를 읽으므로 실행 전후 새 inventory 비교가 필요하다. 순간적인 변경
   후 원상 복구까지 검출하는 filesystem transaction 보장을 주장하지 않는다.
-- 각 library 시험은 전체 R1/R2/R4/R7 또는 원장 1135행의 완료 근거를 대신하지 않는다.
+- 각 library 시험은 전체 R1/R2/R4/R7 또는 원장 1138행의 완료 근거를 대신하지 않는다.
   R0 PR 수정 CI `40693618746`은 기존 unit/build/smoke 이후 dogfood gate를 진행 중이다.
+
+### Native cache 분리
+
+- `.ici/native/v1/observations`는 이전 Python cache와 분리한다. key에는 native core의
+  실제 binary digest·tool bytes·허용된 실제 환경·정책·provider 해석 옵션·모든 입력 digest를
+  포함한다. 의존 closure가 미확인·mutating·도구 identity 부재이면 cache key를 만들지 않는다.
+- cache read/write는 schema/key/core/완료 증거를 검증하고 16 MiB로 제한한다. corrupt entry는
+  재사용하지 않으며, application 통합에서는 원인을 알린 뒤 실제 실행으로 돌아가야 한다.
+  clear는 no-follow directory descriptor에서 64자 lowercase hex `.json` regular entry만
+  unlink하고 사용자 파일·하위 폴더·symlink/FIFO를 보존한다.
+- shared lock 아래 `cargo test -p ici-application --locked`의 기존 19개와 새 cache 4개,
+  scoped Clippy `-D warnings`, fmt가 통과했다. 실제 CLI warm-cache/취소/event lifecycle과
+  provider별 closure를 통합한 R2/R7 전체 인수는 후속 단계다.
+- R0의 path 설정 키 세 개 누락은 `c0ad365`로 교정했다 (322 keys / 1138 open rows).
+  inventory check/self-test는 Python 3.10과 현재 interpreter에서 통과했고 closure는 여전히
+  미완료를 거부한다. 새 PR head CI `40696941442`를 확인 중이며 앞선 실행과 구분한다.

@@ -1,5 +1,6 @@
 //! Request selection, planning, and result policy. Execution and presentation are separate.
 pub mod baseline;
+pub mod cache;
 pub mod graph;
 pub mod plan;
 pub mod request;
