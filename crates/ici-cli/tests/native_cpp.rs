@@ -2095,6 +2095,45 @@ fn generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings() 
 }
 
 #[test]
+fn all_excluded_cpp_duplicate_scope_is_not_applicable_through_cli() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("vendor/generated")).unwrap();
+    fs::write(
+        root.path().join("vendor/generated/moc_item.cpp"),
+        "int f(){return 0;}\n",
+    )
+    .unwrap();
+    let config = runtime_config(
+        &["cpp.dup"],
+        "[engines.dup]\ninclude_generated=false\ninclude_vendor=false\n",
+    )
+    .replace("sources=['main.cpp']", "sources=['**/*.cpp']")
+    .replace("build='native'\n", "");
+    fs::write(root.path().join("ici.toml"), config).unwrap();
+    let run = execute::execute(
+        &registry::parse(["ici", "next", "verify"]).unwrap(),
+        root.path(),
+        &BTreeMap::from([("PATH".into(), String::new())]),
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let output = &run.outputs["project.cpp.dup"];
+    assert_eq!(output.status, "SKIP", "{output:?}");
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert!(output.observation.findings.is_empty());
+    assert!(
+        output
+            .observation
+            .measurements
+            .iter()
+            .all(|metric| metric.evidence == ici_domain::EvidenceLevel::NotApplicable)
+    );
+    assert_eq!(output.targets[0].file_path, "vendor/generated/moc_item.cpp");
+    assert!(run.result.execution.required_complete);
+}
+
+#[test]
 fn cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero() {
     let root = tempfile::tempdir().unwrap();
     fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();

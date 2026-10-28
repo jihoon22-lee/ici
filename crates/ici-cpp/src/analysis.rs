@@ -225,6 +225,19 @@ impl CppAnalysisSession {
         if cancelled(&mut output, cancellation) {
             return output;
         }
+        if kind == "dup"
+            && files.is_empty()
+            && !excluded_counts.is_empty()
+            && output.observation.state == TaskState::Succeeded
+        {
+            output.status = "SKIP".into();
+            output.summary = "Duplicate analysis skipped: no owned source files".into();
+            let mut measured = Measurement::measured("owned_sources", 0.0);
+            measured.evidence = EvidenceLevel::NotApplicable;
+            output.observation.measurements.push(measured);
+            output.extra = json!({"excluded_source_counts":excluded_counts,"evidence":"NOT_APPLICABLE","parser_identity":source::PARSER_ID});
+            return output;
+        }
         let result = match kind {
             "line" => {
                 crate::source_rules::lines(request, &mut output, &line_files, cancellation);

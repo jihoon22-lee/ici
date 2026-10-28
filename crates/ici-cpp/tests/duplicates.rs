@@ -111,6 +111,33 @@ fn generated_and_vendor_opt_ins_are_independent_and_keep_both_exclusion_reasons(
 }
 
 #[test]
+fn excluded_only_cpp_duplicates_have_no_measured_zero_or_clean_source_verdict() {
+    let input = request(vec![(
+        "Vendor/Generated/moc_item.cpp",
+        "int f(){return 1;}\n",
+    )]);
+    let mut session = CppAnalysisSession::new();
+    let output = session.analyze(&input);
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.status, "SKIP");
+    assert!(output.observation.findings.is_empty());
+    assert_eq!(output.targets[0].file_path, "Vendor/Generated/moc_item.cpp");
+    assert_eq!(output.targets[0].status, "SKIP");
+    assert_eq!(
+        output.extra["excluded_source_counts"],
+        json!({"vendor":1,"generated":1})
+    );
+    assert!(
+        output
+            .observation
+            .measurements
+            .iter()
+            .all(|metric| metric.evidence == ici_domain::EvidenceLevel::NotApplicable)
+    );
+    assert_eq!(session.parser_invocations(), 0);
+}
+
+#[test]
 fn normalization_does_not_search_later_numeric_literals_at_each_identifier() {
     let source = "value += other;\n".repeat(10_000);
     let started = std::time::Instant::now();
