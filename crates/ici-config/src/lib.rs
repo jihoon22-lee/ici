@@ -12,7 +12,9 @@ mod settings;
 mod write;
 pub use discovery::DEFAULT_EXCLUDES;
 pub use model::*;
-pub use resolve::{merge, resolve, resolve_with_environment};
+pub use resolve::{
+    inspect_configuration_with_environment, merge, resolve, resolve_with_environment,
+};
 
 pub use schema_keys::{LEGACY_KEYS, LOCAL_KEYS, NEXT_KEYS};
 

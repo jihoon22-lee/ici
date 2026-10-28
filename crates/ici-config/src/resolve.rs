@@ -29,103 +29,28 @@ pub fn resolve_with_environment(
     local: Option<&Path>,
     environment: &BTreeMap<String, String>,
 ) -> Result<ResolvedProject, ConfigError> {
-    let env_config = environment
-        .get("ICI_CONFIG")
-        .filter(|s| !s.is_empty())
-        .map(PathBuf::from);
-    let selected = discovery::select(cwd, explicit.or(env_config.as_deref()))?;
-    let root = selected.root;
-    let config_source = selected.document.as_ref().map(|p| p.path.clone());
-    let parsed = match selected.document {
-        Some(parsed) => parsed,
-        None => Parsed::parse(
-            &root.join("<automatic>"),
-            "schema_version = 2\n".into(),
-            false,
-            "defaults",
-        )?,
-    };
-    let family = if config_source.is_none() {
-        SchemaFamily::Automatic
-    } else {
-        schema::family(&parsed)?
-    };
-    schema::validate(&parsed, family)?;
-    let scope_kind = if parsed.value.get("component").is_some() {
-        ScopeKind::Standalone
-    } else {
-        ScopeKind::Full
-    };
-    let mut effective = defaults(family);
-    merge(&mut effective, &parsed.value);
-    let mut origins = BTreeMap::new();
-    default_origins(&defaults(family), "", &mut origins);
-    origins.extend(parsed.origins.clone());
-    let mut limitations = vec![];
-    let mut configuration_files = config_source.iter().cloned().collect::<Vec<_>>();
-    if explicit.is_none() && env_config.is_none() {
-        preferences(
-            &root,
-            environment,
-            &mut effective,
-            &mut origins,
-            &mut configuration_files,
-            &mut limitations,
-        )?;
-    }
-    if let Some(local) = local {
-        let path = if local.is_absolute() {
-            local.to_path_buf()
-        } else {
-            cwd.join(local)
-        };
-        let overlay = Parsed::read(&path, false, "local")?;
-        apply_overlay(&overlay, &mut effective, &mut origins, false)?;
-        configuration_files.push(path);
-    }
-    schema::relationships(&parsed, &effective, "")?;
-    validate_legacy_paths(&root, &effective, &parsed, environment)?;
-    // Metadata aliases are explicit precedence, independent of table insertion order.
-    let (profile_value, profile_key) = if parsed.value.get("profile").is_some() {
-        (&parsed.value["profile"], "profile")
-    } else if parsed.value.pointer("/workspace/profile").is_some() {
-        (&parsed.value["workspace"]["profile"], "workspace.profile")
-    } else if parsed.value.pointer("/ici/profile").is_some() {
-        (&parsed.value["ici"]["profile"], "ici.profile")
-    } else {
-        (&effective["profile"], "profile")
-    };
-    let profile: Profile = serde_json::from_value(profile_value.clone())
-        .map_err(|_| parsed.error(profile_key, "profile must be fast, standard or deep"))?;
-    effective["profile"] = serde_json::to_value(profile).expect("profile serialization");
-    if parsed.origins.contains_key(profile_key) {
-        origins.insert("profile".into(), parsed.origin(profile_key));
-    }
-    let workspace_name = parsed
-        .value
-        .pointer("/workspace/name")
-        .or_else(|| parsed.value.pointer("/project/name"))
-        .or_else(|| parsed.value.get("name"))
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .unwrap_or_else(|| {
-            root.file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .into_owned()
-        });
-    let mut excludes = strings(&effective, "exclude");
-    excludes.extend(strings(&effective, "extend_exclude"));
-    dedup(&mut excludes);
-    for pattern in &excludes {
-        paths::check_glob(pattern, &parsed.origin("exclude"))?;
-    }
-    effective["exclude"] = json!(excludes);
-    let checks = checks(effective.get("checks"), &parsed, "checks")?;
-    let builds = builds(&effective, &root, &parsed, environment, &origins)?;
-    let tools = tools(&effective, &root, &parsed, environment, &origins)?;
-    let suppressions = suppressions(&effective, &parsed)?;
-    let publish = publish(&effective);
+    let LoadedSettings {
+        parsed,
+        inspection,
+        excludes,
+    } = load_settings(cwd, explicit, local, environment)?;
+    let ConfigurationInspection {
+        root,
+        config_source,
+        schema_family: family,
+        profile,
+        scope_kind,
+        workspace_name,
+        builds,
+        tools,
+        checks,
+        suppressions,
+        publish,
+        effective,
+        mut origins,
+        mut configuration_files,
+        mut limitations,
+    } = inspection;
     let mut components = if family == SchemaFamily::Legacy {
         legacy_components(
             &root,
@@ -344,6 +269,147 @@ pub fn merge(base: &mut Value, override_value: &Value) {
     } else {
         *base = override_value.clone();
     }
+}
+
+/// Validate configuration layers and paths without recursively discovering project sources.
+/// Consumers can inspect publication/export settings even after the original source is gone.
+pub fn inspect_configuration_with_environment(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+) -> Result<ConfigurationInspection, ConfigError> {
+    Ok(load_settings(cwd, explicit, local, environment)?.inspection)
+}
+struct LoadedSettings {
+    parsed: Parsed,
+    inspection: ConfigurationInspection,
+    excludes: Vec<String>,
+}
+fn load_settings(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+) -> Result<LoadedSettings, ConfigError> {
+    let env_config = environment
+        .get("ICI_CONFIG")
+        .filter(|s| !s.is_empty())
+        .map(PathBuf::from);
+    let selected = discovery::select(cwd, explicit.or(env_config.as_deref()))?;
+    let root = selected.root;
+    let config_source = selected.document.as_ref().map(|p| p.path.clone());
+    let parsed = match selected.document {
+        Some(parsed) => parsed,
+        None => Parsed::parse(
+            &root.join("<automatic>"),
+            "schema_version = 2\n".into(),
+            false,
+            "defaults",
+        )?,
+    };
+    let family = if config_source.is_none() {
+        SchemaFamily::Automatic
+    } else {
+        schema::family(&parsed)?
+    };
+    schema::validate(&parsed, family)?;
+    let scope_kind = if parsed.value.get("component").is_some() {
+        ScopeKind::Standalone
+    } else {
+        ScopeKind::Full
+    };
+    let mut effective = defaults(family);
+    merge(&mut effective, &parsed.value);
+    let mut origins = BTreeMap::new();
+    default_origins(&defaults(family), "", &mut origins);
+    origins.extend(parsed.origins.clone());
+    let mut limitations = vec![];
+    let mut configuration_files = config_source.iter().cloned().collect::<Vec<_>>();
+    if explicit.is_none() && env_config.is_none() {
+        preferences(
+            &root,
+            environment,
+            &mut effective,
+            &mut origins,
+            &mut configuration_files,
+            &mut limitations,
+        )?;
+    }
+    if let Some(local) = local {
+        let path = if local.is_absolute() {
+            local.to_path_buf()
+        } else {
+            cwd.join(local)
+        };
+        let overlay = Parsed::read(&path, false, "local")?;
+        apply_overlay(&overlay, &mut effective, &mut origins, false)?;
+        configuration_files.push(path);
+    }
+    schema::relationships(&parsed, &effective, "")?;
+    validate_legacy_paths(&root, &effective, &parsed, environment)?;
+    // Metadata aliases are explicit precedence, independent of table insertion order.
+    let (profile_value, profile_key) = if parsed.value.get("profile").is_some() {
+        (&parsed.value["profile"], "profile")
+    } else if parsed.value.pointer("/workspace/profile").is_some() {
+        (&parsed.value["workspace"]["profile"], "workspace.profile")
+    } else if parsed.value.pointer("/ici/profile").is_some() {
+        (&parsed.value["ici"]["profile"], "ici.profile")
+    } else {
+        (&effective["profile"], "profile")
+    };
+    let profile: Profile = serde_json::from_value(profile_value.clone())
+        .map_err(|_| parsed.error(profile_key, "profile must be fast, standard or deep"))?;
+    effective["profile"] = serde_json::to_value(profile).expect("profile serialization");
+    if parsed.origins.contains_key(profile_key) {
+        origins.insert("profile".into(), parsed.origin(profile_key));
+    }
+    let workspace_name = parsed
+        .value
+        .pointer("/workspace/name")
+        .or_else(|| parsed.value.pointer("/project/name"))
+        .or_else(|| parsed.value.get("name"))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            root.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned()
+        });
+    let mut excludes = strings(&effective, "exclude");
+    excludes.extend(strings(&effective, "extend_exclude"));
+    dedup(&mut excludes);
+    for pattern in &excludes {
+        paths::check_glob(pattern, &parsed.origin("exclude"))?;
+    }
+    effective["exclude"] = json!(excludes);
+    let checks = checks(effective.get("checks"), &parsed, "checks")?;
+    let builds = builds(&effective, &root, &parsed, environment, &origins)?;
+    let tools = tools(&effective, &root, &parsed, environment, &origins)?;
+    let suppressions = suppressions(&effective, &parsed)?;
+    let publish = publish(&effective);
+    Ok(LoadedSettings {
+        parsed,
+        excludes,
+        inspection: ConfigurationInspection {
+            root,
+            config_source,
+            schema_family: family,
+            profile,
+            scope_kind,
+            workspace_name,
+            builds,
+            tools,
+            checks,
+            suppressions,
+            publish,
+            effective,
+            origins,
+            configuration_files,
+            limitations,
+        },
+    })
 }
 
 fn defaults(family: SchemaFamily) -> Value {

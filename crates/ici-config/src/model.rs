@@ -174,3 +174,42 @@ pub struct ResolvedProject {
     pub configuration_files: Vec<PathBuf>,
     pub limitations: Vec<String>,
 }
+
+/// Validated policy and provenance without source discovery or execution-ready components.
+#[derive(Clone, Debug)]
+pub struct ConfigurationInspection {
+    pub root: PathBuf,
+    pub config_source: Option<PathBuf>,
+    pub schema_family: SchemaFamily,
+    pub profile: Profile,
+    pub scope_kind: ScopeKind,
+    pub workspace_name: String,
+    pub builds: Vec<Build>,
+    pub tools: BTreeMap<String, ToolSetting>,
+    pub checks: BTreeMap<String, CheckSetting>,
+    pub suppressions: Vec<Suppression>,
+    pub publish: Option<Publish>,
+    pub effective: Value,
+    pub origins: BTreeMap<String, Origin>,
+    pub configuration_files: Vec<PathBuf>,
+    pub limitations: Vec<String>,
+}
+impl ConfigurationInspection {
+    pub fn resolve_path(
+        &self,
+        key: &str,
+        value: &str,
+        environment: &BTreeMap<String, String>,
+    ) -> Result<String, ConfigError> {
+        let origin = self
+            .origins
+            .get(key)
+            .cloned()
+            .unwrap_or_else(|| Origin::defaults(key));
+        let base = std::path::Path::new(&origin.file)
+            .parent()
+            .filter(|path| path.is_absolute())
+            .unwrap_or(&self.root);
+        crate::paths::anchor(value, base, &self.root, environment, &origin, false)
+    }
+}

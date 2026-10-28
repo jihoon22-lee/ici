@@ -98,6 +98,64 @@ fn scalar_override_keeps_defaults_and_required_fallback() {
 }
 
 #[test]
+fn read_only_inspection_shares_policy_and_provenance_without_source_discovery() {
+    let tree = Project::new();
+    tree.write("src/main.cpp", "int value;\n");
+    tree.write("ici.toml","schema_version=2\nprofile='fast'\n[workspace]\nname='retained-metadata'\n[publish]\nrepo='owner/repo'\n[[components]]\nid='native'\nroot='src'\nlanguages=['cpp']\n");
+    let environment = BTreeMap::new();
+    let resolved = tree.resolve();
+    let inspected =
+        inspect_configuration_with_environment(tree.root(), None, None, &environment).unwrap();
+    assert_eq!(inspected.root, resolved.root);
+    assert_eq!(inspected.effective, resolved.effective);
+    assert_eq!(inspected.publish, resolved.publish);
+    assert_eq!(inspected.workspace_name, resolved.workspace_name);
+    for (key, origin) in &inspected.origins {
+        assert_eq!(resolved.origins.get(key), Some(origin));
+    }
+    fs::remove_dir_all(tree.root().join("src")).unwrap();
+    let after =
+        inspect_configuration_with_environment(tree.root(), None, None, &environment).unwrap();
+    assert_eq!(after.effective, inspected.effective);
+    assert_eq!(after.origins, inspected.origins);
+    assert_eq!(after.workspace_name, "retained-metadata");
+    assert!(resolve_with_environment(tree.root(), None, None, &environment).is_err());
+    assert!(!tree.root().join(".ici").exists());
+}
+
+#[test]
+fn read_only_inspection_keeps_shared_path_expansion_and_configuration_errors() {
+    let tree = Project::new();
+    tree.write(
+        "ici.toml",
+        "schema_version=2\n[project]\ncompile_database='${env:BUILD_DIR}/compile_commands.json'\n",
+    );
+    let environment = BTreeMap::from([("BUILD_DIR".into(), "generated/build".into())]);
+    let inspected =
+        inspect_configuration_with_environment(tree.root(), None, None, &environment).unwrap();
+    let value = inspected.effective["project"]["compile_database"]
+        .as_str()
+        .unwrap();
+    assert_eq!(
+        inspected
+            .resolve_path("project.compile_database", value, &environment)
+            .unwrap(),
+        "generated/build/compile_commands.json"
+    );
+    assert!(!tree.root().join("generated").exists());
+    tree.write(
+        "ici.toml",
+        "schema_version=2\n[checks.'cpp.test']\nrequired='yes'\n",
+    );
+    let inspection =
+        inspect_configuration_with_environment(tree.root(), None, None, &environment).unwrap_err();
+    let resolution = resolve_with_environment(tree.root(), None, None, &environment).unwrap_err();
+    assert_eq!(inspection.message, resolution.message);
+    assert_eq!(inspection.origin, resolution.origin);
+    assert_eq!(inspection.origin.line, 3);
+}
+
+#[test]
 fn exclude_replaces_but_extend_exclude_adds() {
     let tree = Project::new();
     tree.write("main.py", "x=1");
