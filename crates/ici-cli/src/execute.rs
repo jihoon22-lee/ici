@@ -153,6 +153,36 @@ pub fn execute(
             (inputs::empty_snapshot(), false)
         }
     };
+    events.emit(
+        "plan.ready",
+        None,
+        None,
+        &format!("{} selected checks", prepared.plan.checks.len()),
+    );
+    let preparation = crate::preparation::execute(
+        prepared,
+        snapshot,
+        intake_ok,
+        &crate::preparation::Runtime {
+            invocation,
+            environment,
+            run_id: &run_id,
+            static_only,
+            scheduler: &scheduler,
+            cancellation,
+            events: &events,
+        },
+    );
+    let crate::preparation::PreparedExecution {
+        prepared: resolved,
+        snapshot,
+        intake_ok,
+        outputs: pre_outputs,
+        contexts: context_guards,
+        limitations: preparation_limits,
+    } = preparation;
+    prepared = resolved;
+    limitations.extend(preparation_limits);
     let core_digest =
         ici_execution::process::executable_digest(Path::new("/proc/self/exe")).map_err(error);
     let core_known = core_digest.is_ok();
@@ -168,22 +198,16 @@ pub fn execute(
     );
     let mut cache_keys = BTreeMap::new();
     let mut reused = vec![];
-    let toolchain_digest=identity::digest(&json!({"namespace":"ici.rust.toolchain.v1","core":core_digest.ok(),"tools":prepared.tools.iter().map(|(id,tool)|(id,&tool.digest)).collect::<BTreeMap<_,_>>()})).map_err(error)?;
+    let toolchain_digest=identity::digest(&json!({"namespace":"ici.rust.toolchain.v1","core":core_digest.ok(),"tools":prepared.toolchain_roles()})).map_err(error)?;
     let coordinates =
         ici_providers::source_coordinates(snapshot.files.values().map(|file| &file.input));
     prepared.cpp.attach_sources(coordinates.clone());
     for provider in prepared.providers.values_mut() {
         ici_providers::attach_sources(provider, coordinates.clone());
     }
-    events.emit(
-        "plan.ready",
-        None,
-        None,
-        &format!("{} selected checks", prepared.plan.checks.len()),
-    );
     let mut python = ici_analysis::AnalysisSession::new();
     let mut cpp = ici_cpp::CppAnalysisSession::new();
-    let mut outputs = BTreeMap::new();
+    let mut outputs = pre_outputs;
     let mut step_outcomes = BTreeMap::new();
     let mut owned_runs = BTreeMap::new();
     let mut enrichment_incomplete = BTreeMap::new();
@@ -341,9 +365,8 @@ pub fn execute(
                 continue;
             }
             match &planned.work {
-                Work::NativePrepare { task } => {
-                    let start = Instant::now();
-                    let Some(build) = prepared.artifact_builds.get(id) else {
+                Work::NativePrepare { tasks } => {
+                    let Some(build) = prepared.artifact_builds.get(id).cloned() else {
                         outputs.insert(
                             id.clone(),
                             unavailable(
@@ -354,33 +377,17 @@ pub fn execute(
                         );
                         continue;
                     };
-                    let leases = ici_execution::scheduler::ResourceLocks::acquire(
-                        &prepared.project.root.join(".ici/rust-v1/locks/tasks"),
-                        &task.resource_keys,
+                    let (mut output, resolved) = execute_artifact_prepare(
+                        &build,
+                        tasks,
+                        &snapshot,
+                        &scheduler,
                         cancellation,
-                        std::time::Duration::from_secs_f64(task.timeout_seconds.unwrap_or(300.0)),
+                        &events,
                     );
-                    let mut output = match leases {
-                        Ok(_leases) => {
-                            events.emit(
-                                "task.started",
-                                Some(id),
-                                Some(&planned.component_id),
-                                "packaging declared project artifacts",
-                            );
-                            crate::artifact_build::execute(build, &snapshot, cancellation)
-                        }
-                        Err(reason) => unavailable(
-                            id,
-                            if cancellation.is_cancelled() {
-                                TaskState::Cancelled
-                            } else {
-                                TaskState::Blocked
-                            },
-                            &reason.to_string(),
-                        ),
-                    };
-                    output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
+                    if let Some(build) = resolved {
+                        prepared.artifact_builds.insert(id.clone(), build);
+                    }
                     redact(&mut output)?;
                     events.emit(
                         "task.completed",
@@ -648,13 +655,14 @@ pub fn execute(
             }
         }
     }
-    let inputs_stable = match planning::prepare_for_run_omitting(
+    let inputs_stable = match planning::prepare_with_contexts(
         invocation,
         cwd,
         environment,
         static_only,
         &run_id,
         &generated_outputs,
+        &context_guards,
     )
     .and_then(|after| {
         inputs::capture(&after).map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
@@ -823,6 +831,109 @@ pub fn execute(
     crate::report::save_details(&executed)?;
     Ok(executed)
 }
+pub(crate) fn execute_artifact_prepare(
+    initial: &crate::artifact_build::ArtifactBuildPlan,
+    tasks: &[ici_domain::TaskSpec],
+    snapshot: &ici_application::snapshot::InputSnapshot,
+    scheduler: &Scheduler,
+    cancellation: &Cancellation,
+    events: &EventLog,
+) -> (
+    AnalysisOutput,
+    Option<crate::artifact_build::ArtifactBuildPlan>,
+) {
+    let started = Instant::now();
+    let id = initial.task.id.as_str();
+    let mut build = initial.clone();
+    let probes = &tasks[..tasks.len().saturating_sub(1)];
+    if !probes.is_empty() {
+        let schedule = match scheduler.run_with_start(probes, cancellation, |task| {
+            events.emit(
+                "task.started",
+                Some(&task.id),
+                Some(&initial.component_id),
+                "project version probe",
+            )
+        }) {
+            Ok(schedule) => schedule,
+            Err(reason) => {
+                return (
+                    unavailable(id, TaskState::Blocked, &reason.to_string()),
+                    None,
+                );
+            }
+        };
+        for outcome in schedule.outcomes {
+            events.emit(
+                "task.completed",
+                Some(&outcome.task_id),
+                Some(&initial.component_id),
+                &format!("{:?}", outcome.state),
+            );
+            if build
+                .version_probe
+                .as_ref()
+                .is_some_and(|probe| probe.id == outcome.task_id)
+            {
+                build = match crate::artifact_build::apply_version_probe(&build, &outcome) {
+                    Ok(build) => build,
+                    Err(reason) => {
+                        return (
+                            unavailable(
+                                id,
+                                if cancellation.is_cancelled() {
+                                    TaskState::Cancelled
+                                } else {
+                                    TaskState::Failed
+                                },
+                                &reason,
+                            ),
+                            None,
+                        );
+                    }
+                };
+            } else {
+                return (
+                    unavailable(
+                        id,
+                        TaskState::Failed,
+                        "native preparation has an unrecognized probe observer",
+                    ),
+                    None,
+                );
+            }
+        }
+    }
+    let leases = ici_execution::scheduler::ResourceLocks::acquire(
+        &build.root.join(".ici/rust-v1/locks/tasks"),
+        &build.task.resource_keys,
+        cancellation,
+        std::time::Duration::from_secs_f64(build.task.timeout_seconds.unwrap_or(300.0)),
+    );
+    let mut output = match leases {
+        Ok(_leases) => {
+            events.emit(
+                "task.started",
+                Some(id),
+                Some(&build.component_id),
+                "packaging declared project artifacts",
+            );
+            crate::artifact_build::execute(&build, snapshot, cancellation)
+        }
+        Err(reason) => unavailable(
+            id,
+            if cancellation.is_cancelled() {
+                TaskState::Cancelled
+            } else {
+                TaskState::Blocked
+            },
+            &reason.to_string(),
+        ),
+    };
+    output.observation.duration_seconds = Some(started.elapsed().as_secs_f64());
+    (output, Some(build))
+}
+
 fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici");
     output.observation.state = state;
@@ -831,7 +942,7 @@ fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
     output.summary = reason.into();
     output
 }
-fn redact(output: &mut AnalysisOutput) -> Result<()> {
+pub(crate) fn redact(output: &mut AnalysisOutput) -> Result<()> {
     let value = serde_json::to_value(&*output).map_err(error)?;
     *output =
         serde_json::from_value(ici_execution::redaction::redact_value(&value)).map_err(error)?;

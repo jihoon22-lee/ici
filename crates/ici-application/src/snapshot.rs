@@ -52,15 +52,117 @@ impl InputDrift {
     }
 }
 impl InputSnapshot {
+    /// Keep original user inputs frozen while accepting only declared generated build inputs.
+    /// The returned drift excludes those explicit effects and still records every user change.
+    pub fn after_preparation(
+        &self,
+        after: &Self,
+        generated_roots: &[String],
+        limits: InputLimits,
+    ) -> Result<(Self, InputDrift)> {
+        self.after_preparation_with_path_limits(after, generated_roots, limits, &BTreeMap::new())
+    }
+    pub fn after_preparation_with_path_limits(
+        &self,
+        after: &Self,
+        generated_roots: &[String],
+        limits: InputLimits,
+        path_limits: &BTreeMap<String, usize>,
+    ) -> Result<(Self, InputDrift)> {
+        validate_limits(limits, path_limits)?;
+        for root in generated_roots {
+            validation::relative_path(root, false)
+                .map_err(|error| ApplicationError(error.to_string()))?;
+        }
+        let generated = |path: &str| {
+            generated_roots.iter().any(|root| {
+                path == root
+                    || path
+                        .strip_prefix(root)
+                        .is_some_and(|tail| tail.starts_with('/'))
+            })
+        };
+        let mut drift = self.difference(after);
+        drift.added.retain(|path| !generated(path));
+        drift.removed.retain(|path| !generated(path));
+        drift.changed.retain(|path| !generated(path));
+        let mut files: BTreeMap<_, _> = self
+            .files
+            .iter()
+            .filter(|(path, _)| !generated(path))
+            .map(|(path, file)| (path.clone(), file.clone()))
+            .collect();
+        files.extend(
+            after
+                .files
+                .iter()
+                .filter(|(path, _)| generated(path))
+                .map(|(path, file)| (path.clone(), file.clone())),
+        );
+        let sources = self
+            .sources
+            .iter()
+            .filter(|path| !generated(path))
+            .chain(after.sources.iter().filter(|path| generated(path)))
+            .cloned()
+            .collect();
+        let configurations = self
+            .configurations
+            .iter()
+            .filter(|path| !generated(path))
+            .chain(after.configurations.iter().filter(|path| generated(path)))
+            .cloned()
+            .collect();
+        let mut total_bytes = 0usize;
+        for (path, file) in &files {
+            if file.input.bytes.len() > path_limits.get(path).copied().unwrap_or(limits.file_bytes)
+            {
+                return Err(ApplicationError(
+                    "generated input exceeds per-file limit".into(),
+                ));
+            }
+            total_bytes = total_bytes
+                .checked_add(file.input.bytes.len())
+                .ok_or_else(|| ApplicationError("input byte count overflow".into()))?;
+            if total_bytes > limits.total_bytes {
+                return Err(ApplicationError(
+                    "generated inputs exceed total snapshot limit".into(),
+                ));
+            }
+        }
+        let identity: Vec<_> = files
+            .iter()
+            .map(|(path, file)| (path, &file.digest))
+            .collect();
+        let digest =
+            sha256(canonical_json(&identity).map_err(|error| ApplicationError(error.to_string()))?);
+        Ok((
+            Self {
+                files,
+                sources,
+                configurations,
+                digest,
+                total_bytes,
+            },
+            drift,
+        ))
+    }
     pub fn take(
         root: &Path,
         sources: &[String],
         configurations: &[String],
         limits: InputLimits,
     ) -> Result<Self> {
-        if limits.file_bytes == 0 || limits.total_bytes == 0 {
-            return Err(ApplicationError("input limits must be positive".into()));
-        }
+        Self::take_with_path_limits(root, sources, configurations, limits, &BTreeMap::new())
+    }
+    pub fn take_with_path_limits(
+        root: &Path,
+        sources: &[String],
+        configurations: &[String],
+        limits: InputLimits,
+        path_limits: &BTreeMap<String, usize>,
+    ) -> Result<Self> {
+        validate_limits(limits, path_limits)?;
         let root = root
             .canonicalize()
             .map_err(|e| ApplicationError(format!("snapshot root: {e}")))?;
@@ -73,10 +175,12 @@ impl InputSnapshot {
         for path in sources.union(&configurations) {
             validation::relative_path(path, false)
                 .map_err(|e| ApplicationError(format!("snapshot {path}: {e}")))?;
-            let limit = limits
-                .file_bytes
+            let limit = path_limits
+                .get(path)
+                .copied()
+                .unwrap_or(limits.file_bytes)
                 .min(limits.total_bytes.saturating_sub(total_bytes));
-            let bytes = if sources.contains(path) {
+            let bytes = if sources.contains(path) || path_limits.contains_key(path) {
                 read_relative(&root_fd, path, limit)
             } else {
                 // Explicit/native configuration readers permit a symlink to a regular file.
@@ -151,6 +255,19 @@ impl InputSnapshot {
                 .collect(),
         }
     }
+}
+fn validate_limits(limits: InputLimits, path_limits: &BTreeMap<String, usize>) -> Result<()> {
+    if limits.file_bytes == 0 || limits.total_bytes == 0 {
+        return Err(ApplicationError("input limits must be positive".into()));
+    }
+    for (path, limit) in path_limits {
+        validation::relative_path(path, false)
+            .map_err(|error| ApplicationError(error.to_string()))?;
+        if *limit == 0 || *limit > limits.total_bytes {
+            return Err(ApplicationError(format!("invalid input limit for {path}")));
+        }
+    }
+    Ok(())
 }
 pub(crate) fn directory(path: &Path) -> std::io::Result<OwnedFd> {
     if !path.is_absolute() {

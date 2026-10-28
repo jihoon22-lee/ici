@@ -4,6 +4,36 @@ use serde_json::Value;
 use std::{collections::BTreeSet, sync::OnceLock};
 
 pub const REDACTED: &str = "***REDACTED***";
+pub fn sensitive_key(key: &str) -> bool {
+    let normalized = key.to_ascii_lowercase().replace(['-', '_'], "");
+    [
+        "password",
+        "passwd",
+        "secret",
+        "clientsecret",
+        "apikey",
+        "accesskey",
+        "authtoken",
+        "token",
+        "authorization",
+        "cookie",
+    ]
+    .contains(&normalized.as_str())
+        || [
+            "apikey",
+            "clientsecret",
+            "secretaccesskey",
+            "accesskeyid",
+            "accesskey",
+        ]
+        .iter()
+        .any(|suffix| normalized.ends_with(suffix))
+        || key.rsplit(['_', '-']).next().is_some_and(|part| {
+            ["password", "passwd", "secret", "token"]
+                .iter()
+                .any(|name| part.eq_ignore_ascii_case(name))
+        })
+}
 const KEY: &str =
     r"password|passwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token";
 fn patterns() -> &'static Vec<Regex> {
@@ -92,7 +122,14 @@ pub fn redact_value(value: &Value) -> Value {
                     key = format!("{base}#{suffix}");
                     suffix += 1;
                 }
-                safe.insert(key, redact_value(item));
+                safe.insert(
+                    key,
+                    if sensitive_key(&base) {
+                        Value::String(REDACTED.into())
+                    } else {
+                        redact_value(item)
+                    },
+                );
             }
             Value::Object(safe)
         }

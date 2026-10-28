@@ -17,6 +17,7 @@ use std::{
 };
 
 pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
+    let path_limits = binary_limits(prepared);
     let mut sources: BTreeSet<_> = prepared
         .project
         .components
@@ -43,13 +44,6 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
             }
         }
     }
-    for build in prepared.artifact_builds.values() {
-        for reference in &build.task.input_refs {
-            if let Ok(relative) = Path::new(reference).strip_prefix(&prepared.project.root) {
-                sources.insert(relative.to_string_lossy().into_owned());
-            }
-        }
-    }
     let mut configurations: BTreeSet<String> = prepared
         .project
         .configuration_files
@@ -60,6 +54,28 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
                 .map(|p| p.to_string_lossy().into_owned())
         })
         .collect();
+    for build in prepared.artifact_builds.values() {
+        for reference in &build.task.input_refs {
+            if let Ok(relative) = Path::new(reference).strip_prefix(&prepared.project.root) {
+                let relative = relative.to_string_lossy().into_owned();
+                if path_limits.contains_key(&relative) {
+                    sources.remove(&relative);
+                    configurations.insert(relative);
+                } else {
+                    sources.insert(relative);
+                }
+            }
+        }
+    }
+    for preparation in &prepared.context_preparations {
+        configurations.extend(
+            preparation
+                .inputs
+                .iter()
+                .filter(|path| !sources.contains(*path))
+                .cloned(),
+        );
+    }
     for context in prepared.cpp.contexts.values() {
         configurations.extend(context.database_path.iter().cloned());
         configurations.extend(
@@ -114,13 +130,22 @@ pub fn capture(prepared: &PreparedPlan) -> Result<InputSnapshot> {
             }
         }
     }
-    InputSnapshot::take(
+    InputSnapshot::take_with_path_limits(
         &prepared.project.root,
         &sources.into_iter().collect::<Vec<_>>(),
         &configurations.into_iter().collect::<Vec<_>>(),
         InputLimits::default(),
+        &path_limits,
     )
     .map_err(|error| CliError(error.to_string()))
+}
+pub fn binary_limits(prepared: &PreparedPlan) -> BTreeMap<String, usize> {
+    prepared
+        .artifact_builds
+        .values()
+        .flat_map(|build| build.binary_inputs.iter())
+        .map(|path| (path.clone(), 256 * 1024 * 1024))
+        .collect()
 }
 pub fn empty_snapshot() -> InputSnapshot {
     InputSnapshot {
@@ -322,8 +347,11 @@ pub fn check_records(
                 }
             }
         }
-        if matches!(planned.work, ici_application::plan::Work::Steps { .. })
-            && !prepared.validations.contains_key(&planned.task_id)
+        if matches!(
+            planned.work,
+            ici_application::plan::Work::Steps { .. }
+                | ici_application::plan::Work::NativePrepare { .. }
+        ) && !prepared.validations.contains_key(&planned.task_id)
         {
             context["steps"] = json!(
                 planned
@@ -337,6 +365,10 @@ pub fn check_records(
                     .collect::<Vec<_>>()
             );
         }
+        if let Some(build) = prepared.artifact_builds.get(&planned.task_id) {
+            context["artifact_scope"] =
+                json!({"metadata":build.metadata,"output_paths":build.output_paths});
+        }
         let units = planned.analysis_units();
         let variants = planned.variants();
         let scope = ScopeIdentity {
@@ -348,7 +380,13 @@ pub fn check_records(
             native_configuration: configuration,
             context,
             invocation: task
-                .filter(|_| !matches!(planned.work, ici_application::plan::Work::Steps { .. }))
+                .filter(|_| {
+                    !matches!(
+                        planned.work,
+                        ici_application::plan::Work::Steps { .. }
+                            | ici_application::plan::Work::NativePrepare { .. }
+                    )
+                })
                 .map(|task| {
                     InvocationIdentity::new(task, &runner.environment(task), &prepared.project.root)
                 }),
@@ -357,6 +395,10 @@ pub fn check_records(
             && core_known
             && observation.evidence_is_complete()
             && prepared.cpp.scope_complete(&planned.task_id)
+            && !(matches!(planned.check.id.as_str(), "python.test" | "cpp.test")
+                && outputs
+                    .get(&planned.task_id)
+                    .is_some_and(|output| test_errors(&output.extra)))
             && prepared
                 .providers
                 .get(&planned.task_id)
@@ -390,6 +432,7 @@ pub fn changed(
 ) -> bool {
     before.project.root != after.project.root
         || !old.difference(new).stable()
+        || before.tool_pins() != after.tool_pins()
         || before.cpp.configuration_identity() != after.cpp.configuration_identity()
         || before.plan.profile != after.plan.profile
         || ici_application::identity::policy_digest(&before.project).ok()
@@ -421,7 +464,16 @@ pub fn changed(
 fn test_nodes(value: &Value, nodes: &mut BTreeSet<String>) {
     if let Some(object) = value.as_object() {
         if let Some(outcomes) = object.get("test_outcomes").and_then(Value::as_object) {
-            nodes.extend(outcomes.keys().cloned());
+            nodes.extend(
+                outcomes
+                    .iter()
+                    .filter(|(_, verdict)| {
+                        verdict.as_str().is_some_and(|verdict| {
+                            matches!(verdict, "PASSED" | "FAILED" | "ERROR" | "XPASS")
+                        })
+                    })
+                    .map(|(node, _)| node.clone()),
+            );
         }
         for child in object.values() {
             if child.is_object() {
@@ -429,4 +481,13 @@ fn test_nodes(value: &Value, nodes: &mut BTreeSet<String>) {
             }
         }
     }
+}
+fn test_errors(value: &Value) -> bool {
+    value.as_object().is_some_and(|object| {
+        object
+            .get("test_outcomes")
+            .and_then(Value::as_object)
+            .is_some_and(|outcomes| outcomes.values().any(|verdict| verdict == "ERROR"))
+            || object.values().any(test_errors)
+    })
 }

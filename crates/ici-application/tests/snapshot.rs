@@ -2,6 +2,54 @@ use ici_application::snapshot::{InputLimits, InputSnapshot};
 use std::{fs, os::unix::fs::symlink};
 
 #[test]
+fn binary_allowance_preserves_source_aggregate_and_no_follow_limits() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir(dir.path().join("generated")).unwrap();
+    fs::write(dir.path().join("user.py"), "1234").unwrap();
+    fs::write(dir.path().join("generated/app"), "12345678").unwrap();
+    let limits = InputLimits {
+        file_bytes: 4,
+        total_bytes: 12,
+    };
+    let allowances = std::collections::BTreeMap::from([("generated/app".into(), 8)]);
+    let before = InputSnapshot::take(dir.path(), &["user.py".into()], &[], limits).unwrap();
+    let capture = || {
+        InputSnapshot::take_with_path_limits(
+            dir.path(),
+            &["user.py".into()],
+            &["generated/app".into()],
+            limits,
+            &allowances,
+        )
+    };
+    let after = capture().unwrap();
+    let (merged, drift) = before
+        .after_preparation_with_path_limits(&after, &["generated".into()], limits, &allowances)
+        .unwrap();
+    assert!(drift.stable());
+    assert_eq!(merged.total_bytes, 12);
+    assert_eq!(merged.source(None, false).files, ["user.py"]);
+    fs::write(dir.path().join("user.py"), "12345").unwrap();
+    assert!(capture().is_err());
+    fs::write(dir.path().join("user.py"), "1234").unwrap();
+    fs::write(dir.path().join("generated/app"), "123456789").unwrap();
+    assert!(capture().is_err());
+    fs::remove_file(dir.path().join("generated/app")).unwrap();
+    symlink("../user.py", dir.path().join("generated/app")).unwrap();
+    assert!(capture().is_err());
+    for allowances in [
+        std::collections::BTreeMap::from([("../escape".into(), 8)]),
+        std::collections::BTreeMap::from([("generated/app".into(), 0)]),
+        std::collections::BTreeMap::from([("generated/app".into(), 13)]),
+    ] {
+        assert!(
+            InputSnapshot::take_with_path_limits(dir.path(), &[], &[], limits, &allowances)
+                .is_err()
+        );
+    }
+}
+
+#[test]
 fn captured_bytes_are_immutable_and_added_removed_changed_inputs_are_distinct() {
     let dir = tempfile::tempdir().unwrap();
     fs::write(dir.path().join("a.py"), "first\n").unwrap();
@@ -28,6 +76,65 @@ fn captured_bytes_are_immutable_and_added_removed_changed_inputs_are_distinct() 
     assert_eq!(before.files["a.py"].input.bytes, b"first\n");
     assert_ne!(before.digest, after.digest);
     assert_eq!(before.source(None, false).files, ["a.py", "b.py"]);
+}
+#[test]
+fn declared_generated_effects_never_hide_changed_or_new_user_inputs() {
+    let dir = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("generated")).unwrap();
+    fs::write(dir.path().join("user.py"), "original").unwrap();
+    fs::write(dir.path().join("generated/old.cpp"), "old generated").unwrap();
+    let before = InputSnapshot::take(
+        dir.path(),
+        &["user.py".into(), "generated/old.cpp".into()],
+        &[],
+        InputLimits::default(),
+    )
+    .unwrap();
+    fs::write(dir.path().join("user.py"), "changed").unwrap();
+    fs::remove_file(dir.path().join("generated/old.cpp")).unwrap();
+    fs::write(dir.path().join("generated/new.cpp"), "new generated").unwrap();
+    fs::write(dir.path().join("new-user.py"), "new user").unwrap();
+    let after = InputSnapshot::take(
+        dir.path(),
+        &[
+            "user.py".into(),
+            "generated/new.cpp".into(),
+            "new-user.py".into(),
+        ],
+        &[],
+        InputLimits::default(),
+    )
+    .unwrap();
+    let (merged, drift) = before
+        .after_preparation(&after, &["generated".into()], InputLimits::default())
+        .unwrap();
+    assert_eq!(drift.changed, ["user.py"]);
+    assert_eq!(drift.added, ["new-user.py"]);
+    assert!(drift.removed.is_empty());
+    assert_eq!(merged.files["user.py"].input.bytes, b"original");
+    assert_eq!(
+        merged.files["generated/new.cpp"].input.bytes,
+        b"new generated"
+    );
+    assert!(!merged.files.contains_key("new-user.py"));
+    assert!(!merged.files.contains_key("generated/old.cpp"));
+    assert!(
+        before
+            .after_preparation(&after, &[".".into()], InputLimits::default())
+            .is_err()
+    );
+    assert!(
+        before
+            .after_preparation(
+                &after,
+                &["generated".into()],
+                InputLimits {
+                    file_bytes: 128,
+                    total_bytes: 8
+                }
+            )
+            .is_err()
+    );
 }
 #[test]
 fn oversized_aggregate_symlink_parent_and_fifo_are_refused() {

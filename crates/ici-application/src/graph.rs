@@ -21,7 +21,10 @@ impl TaskGraph {
         let mut outputs = BTreeMap::new();
         let mut step_owners = BTreeMap::new();
         for planned in checks {
-            if matches!(planned.work, Work::Steps { .. }) {
+            if matches!(
+                planned.work,
+                Work::Steps { .. } | Work::NativePrepare { .. }
+            ) {
                 validate_steps(&planned.task_id, planned.tasks())?;
             }
             if !ids.insert(planned.task_id.clone()) {

@@ -1,5 +1,19 @@
 # ici Rust 전면 교체 실행 계획
 
+### Explicit preparation integration evidence (2026-10-29)
+
+- The common run lifecycle prepares leased native build contexts, then measures compiler outputs
+  and publishes them through the shared artifact writer. Frozen user inputs remain immutable;
+  only declared generated roots may change during preparation. Tool replacements invalidate
+  completion evidence. A binary-specific 256 MiB allowance retains ordinary 16 MiB source and
+  512 MiB aggregate limits, with no-follow binary intake.
+- `cli-preparation-e2e.log`: actual CMake/GCC build through `execute(build)` passed, including
+  `v1.2.3/x86_64/bin/suite`, unchanged user source and complete artifact check evidence (9.52 s).
+  `binary-snapshot-gates.log`: six snapshot regressions and CLI check passed.
+- `preparation-composition-gates.log`: ordinary application/CLI/execution suites and strict
+  transitive Clippy passed. Explicit external-tool cases remain separate ignored acceptance
+  targets; this does not close the full inventory or authorize a partial stable release.
+
 2026-10-28 사용자는 ici를 Rust로 전면 교체하고, 세 제품을 간편한 사용성 → 독립 제품 완성도 → 상호 연계 순으로 개선하기로 결정했다. 일반 프로젝트는 좋은 기본값으로 동작하고 설정 파일 하나에서 필요한 예외만 선언한다. 기존의 다양한 분석 기능과 증거 수준을 유지한다.
 
 2026-10-28 사용자가 이 계획 R0–R9의 실제 구현·검증·문서·PR 병합·버전/태그·공개·공개 bytes 검증·소유 자원 정리를 승인했다. 기준 소스는 main 77554433209ceaecd0782fc4d3cb6c2ed9b0b1c2, 공개판은 v0.13.0이다. clean 준비 branch c39f37e에서 계획 commit을 포함한 feat/rust-native-core를 생성해 실행을 시작했다. 부분 완료를 전체 전환 완료로 표시하지 않는다.

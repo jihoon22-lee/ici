@@ -10,7 +10,7 @@ pub enum Work {
     Internal,
     /// Rust-owned preparation with declared inputs, outputs and resource leases.
     NativePrepare {
-        task: Box<TaskSpec>,
+        tasks: Vec<TaskSpec>,
     },
     Process {
         task: Box<TaskSpec>,
@@ -31,9 +31,16 @@ pub enum Work {
 }
 impl Work {
     pub fn native_prepare(task: TaskSpec) -> Self {
-        Self::NativePrepare {
-            task: Box::new(task),
+        Self::NativePrepare { tasks: vec![task] }
+    }
+    pub fn native_prepare_after(mut before: Vec<TaskSpec>, mut task: TaskSpec) -> Self {
+        if let Some(previous) = before.last()
+            && !task.depends_on.contains(&previous.id)
+        {
+            task.depends_on.push(previous.id.clone());
         }
+        before.push(task);
+        Self::NativePrepare { tasks: before }
     }
     pub fn process(task: TaskSpec) -> Self {
         Self::Process {
@@ -64,10 +71,8 @@ impl PlannedCheck {
     }
     pub fn tasks(&self) -> &[TaskSpec] {
         match &self.work {
-            Work::Process { task, .. } | Work::NativePrepare { task } => {
-                std::slice::from_ref(task.as_ref())
-            }
-            Work::Steps { tasks, .. } => tasks,
+            Work::Process { task, .. } => std::slice::from_ref(task.as_ref()),
+            Work::Steps { tasks, .. } | Work::NativePrepare { tasks } => tasks,
             _ => &[],
         }
     }
@@ -245,10 +250,16 @@ pub fn plan_with_checks(
                 }
             };
             let work = match work {
-                Work::NativePrepare { task } => {
-                    task.validate()
-                        .map_err(|e| ApplicationError(e.to_string()))?;
-                    if task.id != task_id || !task.mutating() || task.cacheable {
+                Work::NativePrepare { tasks } => {
+                    validate_steps(&task_id, &tasks)?;
+                    let marker = tasks.last().expect("validated nonempty steps");
+                    if marker.id != task_id
+                        || !marker.mutating()
+                        || marker.cacheable
+                        || tasks[..tasks.len() - 1]
+                            .iter()
+                            .any(|task| task.kind != ici_domain::TaskKind::Probe)
+                    {
                         return Err(ApplicationError(format!(
                             "{task_id}: native prepare identity/effect disagrees"
                         )));
@@ -258,7 +269,7 @@ pub fn plan_with_checks(
                             reason: "profile 'fast' does not run prepare tasks".into(),
                         }
                     } else {
-                        Work::NativePrepare { task }
+                        Work::NativePrepare { tasks }
                     }
                 }
                 Work::Process { task, advisory } => {

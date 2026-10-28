@@ -17,21 +17,7 @@ pub(crate) fn redact(value: &Value) -> Value {
                 let mut safe = serde_json::Map::new();
                 let mut keys = BTreeSet::new();
                 for (key, item) in items {
-                    let normalized = key.to_ascii_lowercase().replace(['-', '_'], "");
-                    let item = if [
-                        "password",
-                        "passwd",
-                        "secret",
-                        "clientsecret",
-                        "apikey",
-                        "accesskey",
-                        "authtoken",
-                        "token",
-                        "authorization",
-                        "cookie",
-                    ]
-                    .contains(&normalized.as_str())
-                    {
+                    let item = if ici_execution::redaction::sensitive_key(key) {
                         Value::String(ici_execution::redaction::REDACTED.into())
                     } else {
                         walk(item, cache)

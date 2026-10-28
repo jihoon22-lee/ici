@@ -34,6 +34,7 @@ pub struct PreparedPlan {
     pub native_configuration: BTreeMap<String, ici_providers::native_config::ConfigEvidence>,
     pub legacy_projection: bool,
     pub artifact_builds: BTreeMap<String, crate::artifact_build::ArtifactBuildPlan>,
+    pub context_preparations: Vec<crate::export_context::ContextPreparationPlan>,
 }
 pub fn prepare(
     invocation: &Invocation,
@@ -67,18 +68,73 @@ pub fn prepare_for_run_omitting(
     run_label: &str,
     generated_outputs: &BTreeSet<String>,
 ) -> Result<PreparedPlan> {
+    prepare_with_contexts(
+        invocation,
+        cwd,
+        environment,
+        static_only,
+        run_label,
+        generated_outputs,
+        &[],
+    )
+}
+pub fn prepare_with_contexts(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+    run_label: &str,
+    generated_outputs: &BTreeSet<String>,
+    contexts: &[crate::export_context::PreparedContext],
+) -> Result<PreparedPlan> {
     let explicit = invocation.value("config_path").map(|path| under(cwd, path));
     let local = invocation
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|path| under(cwd, path));
-    let mut project = ici_config::resolve_with_environment(
+    let project = ici_config::resolve_with_environment(
         cwd,
         explicit.as_deref(),
         local.as_deref(),
         environment,
     )
     .map_err(|e| CliError(e.to_string()))?;
+    let project = crate::export_context::overlay(&project, contexts);
+    let mut prepared = prepare_resolved_omitting(
+        invocation,
+        project,
+        environment,
+        static_only,
+        run_label,
+        generated_outputs,
+    )?;
+    crate::preparation::bind_compiled_artifacts(&mut prepared, contexts, environment)?;
+    Ok(prepared)
+}
+pub fn prepare_resolved(
+    invocation: &Invocation,
+    project: ResolvedProject,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+    run_label: &str,
+) -> Result<PreparedPlan> {
+    prepare_resolved_omitting(
+        invocation,
+        project,
+        environment,
+        static_only,
+        run_label,
+        &BTreeSet::new(),
+    )
+}
+fn prepare_resolved_omitting(
+    invocation: &Invocation,
+    mut project: ResolvedProject,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+    run_label: &str,
+    generated_outputs: &BTreeSet<String>,
+) -> Result<PreparedPlan> {
     let owned_outputs = match crate::artifact_build::owned_outputs(&project.root) {
         Ok(paths) => paths,
         Err(reason) => {
@@ -161,9 +217,17 @@ pub fn prepare_for_run_omitting(
         |component, check, task_id| {
             if check.id == "python.artifact" {
                 return Ok(
-                    match crate::artifact_build::describe(&project, component, task_id) {
+                    match crate::artifact_build::describe_with_environment(
+                        &project,
+                        component,
+                        task_id,
+                        environment,
+                    ) {
                         Ok(build) => {
-                            let work = Work::native_prepare(build.task.clone());
+                            let work = Work::native_prepare_after(
+                                build.version_probe.iter().cloned().collect(),
+                                build.task.clone(),
+                            );
                             artifact_builds.insert(task_id.into(), build);
                             work
                         }
@@ -361,6 +425,96 @@ pub fn prepare_for_run_omitting(
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;
     cpp.finalize_plan(&mut plan);
+    let mut context_preparations = vec![];
+    if crate::legacy::is_legacy(invocation) && plan.profile != Profile::Fast {
+        for component in &project.components {
+            let selected: BTreeSet<_> = plan
+                .checks
+                .iter()
+                .filter(|check| check.component_id == component.id && check.check.language == "cpp")
+                .map(|check| check.check.id.as_str())
+                .collect();
+            let mut variants = BTreeSet::new();
+            let primary = crate::cpp::linked_build(&project, component)
+                .map(|build| build.variant.as_str())
+                .unwrap_or("release");
+            if selected.iter().any(|id| {
+                matches!(
+                    *id,
+                    "cpp.compile"
+                        | "cpp.diagnostics"
+                        | "cpp.tidy"
+                        | "cpp.artifact"
+                        | "cpp.binary-compat"
+                )
+            }) {
+                variants.insert(primary);
+            }
+            if selected.contains("cpp.coverage") {
+                variants.insert("coverage");
+            } else if selected.contains("cpp.test") {
+                variants.insert(primary);
+            }
+            if selected.contains("cpp.sanitize") {
+                variants.insert("sanitize");
+            }
+            if selected.contains("cpp.tsan") {
+                variants.insert("tsan");
+            }
+            for variant in variants {
+                let mut selected_project = project.clone();
+                let mut selected_component = component.clone();
+                if let Some(build) = selected_project
+                    .builds
+                    .iter_mut()
+                    .find(|build| Some(&build.id) == component.build.as_ref())
+                {
+                    build.variant = variant.into();
+                } else {
+                    // Undeclared legacy builds are resolved by the native descriptor reader.
+                    selected_component.settings["native_requested_variant"] = json!(variant);
+                }
+                let binary =
+                    std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
+                match crate::export_context::plan_preparation(
+                    &selected_project,
+                    &selected_component,
+                    environment,
+                    &binary,
+                ) {
+                    Ok(mut preparation) => {
+                        preparation.inputs.retain(|path| {
+                            !owned_outputs.contains(path)
+                                && !is_command_output(invocation, &project.root, path)
+                        });
+                        for (name, tool) in &preparation.tools {
+                            tools.insert(
+                                format!("prepare:{}:{variant}:{name}", component.id),
+                                tool.clone(),
+                            );
+                        }
+                        context_preparations.push(preparation);
+                    }
+                    Err(reason) => plan.limitations.push(format!(
+                        "{} {variant}: no automatic preparation available: {reason}",
+                        component.id
+                    )),
+                }
+            }
+        }
+    }
+    let mut preparation_owners = BTreeMap::new();
+    for preparation in &context_preparations {
+        let key = (&preparation.build.id, &preparation.build.variant);
+        if let Some(previous) = preparation_owners.insert(key, &preparation.build.owner_digest)
+            && previous != &preparation.build.owner_digest
+        {
+            return Err(CliError(format!(
+                "build {} variant {} has conflicting preparation configurations; declare separate builds",
+                preparation.build.id, preparation.build.variant
+            )));
+        }
+    }
     let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
     Ok(PreparedPlan {
         project,
@@ -375,7 +529,34 @@ pub fn prepare_for_run_omitting(
         native_configuration,
         legacy_projection: crate::legacy::is_legacy(invocation),
         artifact_builds,
+        context_preparations,
     })
+}
+pub fn is_command_output(invocation: &Invocation, root: &Path, path: &str) -> bool {
+    let path = under(root, path);
+    let explicit = [
+        "result",
+        "events",
+        "html",
+        "sarif",
+        "write_baseline",
+        "page",
+    ]
+    .into_iter()
+    .filter_map(|key| invocation.value(key))
+    .map(|path| under(root, path));
+    let standard = [
+        crate::DEFAULT_RESULT,
+        crate::DEFAULT_PAGE,
+        "verify_report.json",
+        "verify_report.html",
+        ".ici/rust-v1/publish.json",
+    ]
+    .into_iter()
+    .map(|path| root.join(path));
+    explicit
+        .chain(standard)
+        .any(|output| crate::report::same_file(&path, &output))
 }
 fn tool_pack(environment: &BTreeMap<String, String>) -> Option<PathBuf> {
     if let Some(directory) = environment
@@ -392,6 +573,57 @@ fn tool_pack(environment: &BTreeMap<String, String>) -> Option<PathBuf> {
     })
 }
 impl PreparedPlan {
+    pub fn tool_pins(&self) -> BTreeMap<String, String> {
+        let mut pins: BTreeMap<_, _> = self
+            .tools
+            .values()
+            .map(|tool| {
+                (
+                    tool.path.to_string_lossy().into_owned(),
+                    tool.digest.clone(),
+                )
+            })
+            .collect();
+        for task in self
+            .plan
+            .checks
+            .iter()
+            .flat_map(|check| check.tasks())
+            .chain(
+                self.context_preparations
+                    .iter()
+                    .flat_map(|plan| plan.build.tasks.iter()),
+            )
+        {
+            if let (Some(path), Some(digest)) = (task.argv.first(), &task.tool_digest) {
+                pins.insert(path.clone(), digest.clone());
+            }
+        }
+        pins
+    }
+    pub fn toolchain_roles(&self) -> BTreeSet<(String, String)> {
+        let mut roles: BTreeSet<_> = self
+            .tools
+            .values()
+            .map(|tool| (format!("tool:{}", tool.id), tool.digest.clone()))
+            .collect();
+        for task in self
+            .plan
+            .checks
+            .iter()
+            .flat_map(|check| check.tasks())
+            .chain(
+                self.context_preparations
+                    .iter()
+                    .flat_map(|plan| plan.build.tasks.iter()),
+            )
+        {
+            if let Some(digest) = &task.tool_digest {
+                roles.insert((format!("step:{}", task.provider), digest.clone()));
+            }
+        }
+        roles
+    }
     pub fn document(&self) -> Value {
         let plans:Vec<_>=self.plan.components.iter().filter_map(|component| {
             let checks:Vec<_>=self.plan.checks.iter().filter(|p| &p.component_id==component).map(|p| {
@@ -410,7 +642,7 @@ impl PreparedPlan {
             }).collect();
             (!checks.is_empty()).then(||json!({"component":component,"checks":checks}))
         }).collect();
-        let mutating: BTreeMap<_, _> = self
+        let mut mutating: BTreeMap<_, _> = self
             .plan
             .checks
             .iter()
@@ -420,11 +652,27 @@ impl PreparedPlan {
                     .tasks()
                     .iter()
                     .filter(|t| t.mutating())
-                    .flat_map(|t| t.work_dirs.iter())
+                    .flat_map(|t| t.work_dirs.iter().cloned())
                     .collect();
-                (!directories.is_empty()).then_some((&p.task_id, directories))
+                (!directories.is_empty()).then_some((p.task_id.clone(), directories))
             })
             .collect();
+        for preparation in &self.context_preparations {
+            let directories: BTreeSet<_> = preparation
+                .build
+                .tasks
+                .iter()
+                .filter(|task| task.mutating())
+                .flat_map(|task| task.work_dirs.iter().cloned())
+                .collect();
+            mutating.insert(
+                format!(
+                    "prepare:{}:{}",
+                    preparation.build.id, preparation.build.variant
+                ),
+                directories,
+            );
+        }
         let edges: BTreeMap<_, _> = self
             .graph
             .edges
@@ -435,7 +683,19 @@ impl PreparedPlan {
             let linked:BTreeSet<_>=self.project.components.iter().filter(|c|self.plan.components.contains(&c.id) && c.build.as_deref()==Some(build.id.as_str())).map(|c|&c.id).collect();
             json!({"id":build.id,"system":build.system,"variant":build.variant,"directory":build.directory,"definition":build.project,"artifacts":build.artifacts,"linked_by":linked})
         }).collect();
-        json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":{},"mutating":mutating},"builds":builds,"coverage_gaps":self.plan.coverage_gaps,"limitations":self.plan.limitations})
+        let mut document = json!({"schema_id":"ici.next.plan","schema_version":1,"root":self.project.root,"scope":{"components":self.plan.components,"languages":self.plan.languages,"profile":self.plan.profile,"require_full":self.request.require_full},"plans":plans,"graph":{"edges":edges,"shared":{},"mutating":mutating},"builds":builds,"coverage_gaps":self.plan.coverage_gaps,"limitations":self.plan.limitations});
+        if !self.context_preparations.is_empty() {
+            document["preparations"]=json!(self.context_preparations.iter().map(|plan|json!({"component":plan.component_id,"build":plan.build.id,"variant":plan.build.variant,"inputs":plan.inputs,"steps":plan.build.tasks,"generated_roots":plan.build.generated_roots,"effects":["configure and build inside the owned shadow", "reset only verified single-link coverage counters inside that shadow"]})).collect::<Vec<_>>());
+            if self
+                .plan
+                .checks
+                .iter()
+                .any(|check| check.check.id == "cpp.artifact")
+            {
+                document["artifact_preparation"] = json!({"status":"planned","effects":["measure primary compiled binaries and libraries after build", "copy verified bytes through the shared release packager under the configured version directory", "write owned release manifests and environment scripts"],"limits":{"file_bytes":268435456u64,"total_input_bytes":536870912u64},"output_names":"resolved from measured primary build outputs before publication"});
+            }
+        }
+        ici_execution::redaction::redact_value(&document)
     }
     pub fn text(&self) -> String {
         let mut text = format!(
@@ -480,13 +740,39 @@ impl PreparedPlan {
                 text.push_str(&format!("  {}: {detail}\n", check.task_id));
             }
         }
+        for preparation in &self.context_preparations {
+            text.push_str(&format!(
+                "Prepare {} {} in {}:\n",
+                preparation.component_id, preparation.build.variant, preparation.build.shadow
+            ));
+            for task in &preparation.build.tasks {
+                text.push_str(&format!(
+                    "  {}\n",
+                    task.argv
+                        .iter()
+                        .map(|value| display_argument(value))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                ));
+            }
+            text.push_str("  Effects: configure/build and reset only owned single-link coverage counters in that shadow.\n");
+        }
+        if !self.context_preparations.is_empty()
+            && self
+                .plan
+                .checks
+                .iter()
+                .any(|check| check.check.id == "cpp.artifact")
+        {
+            text.push_str("  Release effects: measure compiled binaries/libraries, copy verified bytes into the configured version directory, and write owned manifests/environment scripts; names resolve after build (256 MiB/file, 512 MiB total input).\n");
+        }
         for gap in &self.plan.coverage_gaps {
             text.push_str(&format!("  coverage gap: {gap}\n"));
         }
         for limitation in &self.plan.limitations {
             text.push_str(&format!("  note: {limitation}\n"));
         }
-        text
+        ici_execution::redaction::redact_text(&text)
     }
 }
 fn display_argument(value: &str) -> String {
