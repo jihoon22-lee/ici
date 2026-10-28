@@ -79,6 +79,65 @@ pub fn replay_command(
     compiler: &Path,
     purpose: ReplayPurpose,
 ) -> Result<ReplayCommand, CppError> {
+    compiler_command(root, unit, compiler, Some(purpose))
+}
+
+/// Construct an explicit object compile inside the leased Rust build namespace.
+/// Output controls from captured flags are replaced; warning and debug policy is preserved.
+pub fn owned_object_command(
+    root: &Path,
+    unit: &CompilationUnit,
+    compiler: &Path,
+    output: &Path,
+) -> Result<ReplayCommand, CppError> {
+    let root = root
+        .canonicalize()
+        .map_err(|error| CppError::new("invalid-root", error.to_string()))?;
+    let owned = root.join(".ici/rust-v1/build");
+    if !output.is_absolute()
+        || output
+            .components()
+            .any(|part| matches!(part, std::path::Component::ParentDir))
+        || output
+            .strip_prefix(&owned)
+            .map_or(true, |relative| relative.components().count() < 3)
+    {
+        return Err(CppError::new(
+            "unowned-compile-output",
+            "object output must remain inside an owned Rust build variant",
+        ));
+    }
+    let mut command = compiler_command(&root, unit, compiler, None)?;
+    command
+        .argv
+        .extend(["-c".into(), "-o".into(), output.display().to_string()]);
+    Ok(command)
+}
+fn debug_flag(token: &str) -> bool {
+    [
+        "-g",
+        "-g0",
+        "-g1",
+        "-g2",
+        "-g3",
+        "-ggdb",
+        "-ggdb0",
+        "-ggdb1",
+        "-ggdb2",
+        "-ggdb3",
+        "-gdwarf-2",
+        "-gdwarf-3",
+        "-gdwarf-4",
+        "-gdwarf-5",
+    ]
+    .contains(&token)
+}
+fn compiler_command(
+    root: &Path,
+    unit: &CompilationUnit,
+    compiler: &Path,
+    purpose: Option<ReplayPurpose>,
+) -> Result<ReplayCommand, CppError> {
     let root = root
         .canonicalize()
         .map_err(|e| CppError::new("invalid-root", e.to_string()))?;
@@ -152,7 +211,10 @@ pub fn replay_command(
             i += 2;
             continue;
         }
-        if dropped(token) || (purpose == ReplayPurpose::UnusedFunctions && token == "-w") {
+        let keep_debug = purpose.is_none() && debug_flag(token);
+        if (dropped(token) && !keep_debug)
+            || (purpose == Some(ReplayPurpose::UnusedFunctions) && token == "-w")
+        {
             i += 1;
             continue;
         }
@@ -177,13 +239,17 @@ pub fn replay_command(
             continue;
         }
         if token.starts_with('-') {
-            if !safe(token) {
+            if !safe(token) && !keep_debug {
                 return Err(CppError::new(
                     "unsupported-compiler-option",
                     format!("unknown compiler option {token}; no unsafe guess"),
                 ));
             }
-            let value = diagnostic_warning_argument(token)?;
+            let value = if purpose.is_none() {
+                Some(token.clone())
+            } else {
+                diagnostic_warning_argument(token)?
+            };
             if let Some(value) = value {
                 argv.push(value);
             }
@@ -208,13 +274,14 @@ pub fn replay_command(
         ));
     }
     match purpose {
-        ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries => argv.extend([
+        None => {}
+        Some(ReplayPurpose::Diagnostics | ReplayPurpose::Boundaries) => argv.extend([
             "-Wall".into(),
             "-Wextra".into(),
             "-fsyntax-only".into(),
             "-fdiagnostics-color=never".into(),
         ]),
-        ReplayPurpose::UnusedFunctions => {
+        Some(ReplayPurpose::UnusedFunctions) => {
             argv.extend([
                 "-Wunused-function".into(),
                 "-Wno-error=unused-function".into(),
@@ -225,14 +292,14 @@ pub fn replay_command(
                 "/dev/null".into(),
             ]);
         }
-        ReplayPurpose::IncludeTrace => argv.extend([
+        Some(ReplayPurpose::IncludeTrace) => argv.extend([
             "-w".into(),
             "-E".into(),
             "-H".into(),
             "-o".into(),
             "/dev/null".into(),
         ]),
-        ReplayPurpose::AstJson => argv.extend([
+        Some(ReplayPurpose::AstJson) => argv.extend([
             "-fsyntax-only".into(),
             "-Xclang".into(),
             "-ast-dump=json".into(),

@@ -17,7 +17,9 @@ pub use context::{
     is_translation_unit, load_compilation_context, normalized_configuration_arguments,
 };
 
-pub use replay::{diagnostic_warning_argument, replay_command, replay_environment};
+pub use replay::{
+    diagnostic_warning_argument, owned_object_command, replay_command, replay_environment,
+};
 
 pub use build::{BuildLease, finalize_qmake_capture, plan_build, prepare_owned_shadow};
 pub use qmake::{qmake_capture_command, qmake_configure_capture_main};
