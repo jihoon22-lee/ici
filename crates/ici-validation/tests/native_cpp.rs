@@ -413,7 +413,6 @@ fn gcov_reads_one_fresh_instrumented_ctest_run_and_refuses_stale_data() {
     test.options.build_dir = Some(root.path().into());
     let test_plan = plan(&test).unwrap();
     let owner = OwnedRun::create(&test.owned_run_dir).unwrap();
-    let mut outcomes = execute(&test_plan, &owner);
     let notes = fs::read_dir(root.path())
         .unwrap()
         .map(|entry| entry.unwrap().path())
@@ -443,6 +442,8 @@ fn gcov_reads_one_fresh_instrumented_ctest_run_and_refuses_stale_data() {
             bytes: fs::read(root.path().join("main.cpp")).unwrap(),
         }]),
     );
+    // The coverage plan records preexisting counters before this suite produces fresh data.
+    let mut outcomes = execute(&test_plan, &owner);
     for id in ready_steps(&planned, &outcomes).unwrap() {
         let task = planned.tasks.iter().find(|task| task.id == id).unwrap();
         owner.mark_started(&id);
@@ -475,6 +476,20 @@ fn gcov_reads_one_fresh_instrumented_ctest_run_and_refuses_stale_data() {
     assert_eq!(main["start_column"], 10);
     assert_eq!(main["native_columns"]["start"], 13);
     assert_eq!(output.score, Some(2.78));
+    let test_output = observe(&test_plan, &outcomes, &CapturedArtifacts::default());
+    assert_eq!(
+        output.extra["test_execution"]["canonical_suite_id"],
+        test_output.extra["test_execution"]["canonical_suite_id"]
+    );
+    assert_eq!(output.extra["test_execution"]["framework"], "ctest");
+    assert_eq!(output.extra["test_execution"]["phase"], "coverage");
+    assert_eq!(output.extra["passed_tests"], 1);
+    assert_eq!(output.extra["total_tests"], 1);
+    assert_eq!(output.extra["coverage_source"], "gcov");
+    assert_eq!(output.extra["coverage_totals"]["functions"], 3);
+    assert_eq!(output.extra["coverage_totals"]["covered_functions"], 2);
+    assert_eq!(output.extra["function_coverage"], 66.7);
+    assert_eq!(output.extra["tem_score"], 2.78);
     if let Ok(destination) = std::env::var("ICI_CAPTURE_GCOV_PATH") {
         let artifact = artifacts
             .files

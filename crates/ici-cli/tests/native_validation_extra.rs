@@ -1988,3 +1988,104 @@ fn optional_empty_integration_is_located_not_applicable_and_required_empty_scope
         }
     }
 }
+
+#[test]
+#[ignore = "explicit pytest expected-failure count and baseline carry acceptance"]
+fn expected_pytest_failure_counts_as_tool_pass_and_carries_a_prior_normal_failure() {
+    let root = tempfile::tempdir().unwrap();
+    clean_source(root.path());
+    fs::create_dir(root.path().join("tests")).unwrap();
+    let source = root.path().join("tests/test_expected.py");
+    fs::write(
+        &source,
+        "import pytest\ndef test_known():\n    assert False\n",
+    )
+    .unwrap();
+    write(
+        root.path(),
+        &config(
+            &["python.test"],
+            "",
+            &format!(
+                "[components.python]\nexecutable={}\ntest_paths=['tests']\n",
+                quoted(&python())
+            ),
+        ),
+    );
+    let env = BTreeMap::from([
+        ("PATH".into(), "/usr/bin:/bin".into()),
+        ("PYTEST_DISABLE_PLUGIN_AUTOLOAD".into(), "1".into()),
+    ]);
+    let first = run(root.path(), &env);
+    assert_eq!(first.result.gate.selected, GateVerdict::Fail);
+    let fingerprint = first
+        .result
+        .findings
+        .iter()
+        .find(|finding| finding.rule_id == "pytest.failed")
+        .unwrap()
+        .fingerprint
+        .clone();
+    ici_execution::storage::write_result(
+        &root.path().join("baseline.json"),
+        &first.result,
+        ici_execution::storage::WriteMode::CreateNew,
+    )
+    .unwrap();
+    fs::write(
+        &source,
+        "import pytest\n@pytest.mark.xfail(strict=True)\ndef test_known():\n    assert False\n",
+    )
+    .unwrap();
+    let actual = execute::execute(
+        &registry::parse(["ici", "next", "verify", "--baseline", "baseline.json"]).unwrap(),
+        root.path(),
+        &env,
+        false,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        actual.result.gate.selected,
+        GateVerdict::Pass,
+        "{:?}",
+        actual.outputs
+    );
+    let output = &actual.outputs["project.python.test"];
+    assert!(
+        output
+            .observation
+            .measurements
+            .iter()
+            .any(|metric| metric.name == "pytest.cases"
+                && metric.numerator == Some(1)
+                && metric.denominator == Some(1))
+    );
+    let details = output
+        .extra
+        .get("test_execution")
+        .map(|_| &output.extra)
+        .or_else(|| {
+            output
+                .extra
+                .as_object()
+                .unwrap()
+                .values()
+                .find(|value| value.get("test_execution").is_some())
+        })
+        .unwrap();
+    assert_eq!(details["passed_tests"], 1);
+    assert_eq!(details["total_tests"], 1);
+    assert_eq!(details["test_execution"]["complete"], true);
+    assert_eq!(
+        details["test_outcomes"]["tests/test_expected.py::test_known"],
+        "XFAIL"
+    );
+    assert!(details["line_coverage"].is_null());
+    let comparison = actual.result.baseline.as_ref().unwrap();
+    assert!(comparison.carried.contains(&fingerprint), "{comparison:?}");
+    assert!(
+        !comparison.resolved.contains(&fingerprint),
+        "{comparison:?}"
+    );
+}

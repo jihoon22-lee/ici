@@ -18,6 +18,7 @@ pub mod runtime;
 pub mod sanitizer;
 mod sanitizer_suite;
 pub mod tem;
+mod test_metrics;
 
 pub use artifacts::{CapturedArtifacts, OwnedRun, capture_artifacts, capture_binary_headers};
 pub use model::*;

@@ -139,6 +139,18 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
         (Some(2), Some(4)),
         "{output:?}"
     );
+    assert_eq!(
+        output.extra["test_execution"]["canonical_suite_id"],
+        test_output.extra["test_execution"]["canonical_suite_id"]
+    );
+    assert_eq!(test_output.extra["test_execution"]["phase"], "test");
+    assert_eq!(output.extra["test_execution"]["phase"], "coverage");
+    assert_eq!(output.extra["total_tests"], 1);
+    assert_eq!(output.extra["function_coverage"], 50.0);
+    assert_eq!(output.extra["coverage_source"], "coverage.py");
+    assert_eq!(output.extra["coverage_totals"]["functions"], 4);
+    assert_eq!(output.extra["coverage_totals"]["covered_functions"], 2);
+    assert_eq!(output.extra["function_rows"].as_array().unwrap().len(), 4);
     assert_eq!(outcomes.len(), 2);
     assert!(
         output

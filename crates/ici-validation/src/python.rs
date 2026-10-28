@@ -203,6 +203,7 @@ pub fn observe_for(
     output.extra["conditional_steps"] = json!(plan.conditional_steps);
     crate::python_coverage::annotate(plan, outcomes, &mut output);
     output.extra["optional_steps"]=json!(plan.optional_task_ids.iter().map(|id|json!({"task_id":id,"state":outcomes.get(id).map(|outcome|outcome.state),"exit_code":outcomes.get(id).and_then(|outcome|outcome.exit_code),"timed_out":outcomes.get(id).is_some_and(|outcome|outcome.timed_out),"truncated":outcomes.get(id).is_some_and(|outcome|outcome.truncated),"cancelled":outcomes.get(id).is_some_and(|outcome|outcome.cancelled)})).collect::<Vec<_>>());
+    crate::test_metrics::attach(plan, outcomes, &mut output);
     output
 }
 fn suite<'a>(
@@ -236,8 +237,8 @@ fn observe_suite(
         let mut target = InspectionTarget::at(&case.path, case.line);
         target.target_name = case.node.clone();
         target.status = match case.verdict.as_str() {
-            "PASSED" => "PASS",
-            "SKIPPED" | "XFAIL" => "SKIP",
+            "PASSED" | "XFAIL" => "PASS",
+            "SKIPPED" => "SKIP",
             _ => "FAIL",
         }
         .into();
@@ -268,7 +269,7 @@ fn observe_suite(
     let passed = evidence
         .cases
         .values()
-        .filter(|case| case.verdict == "PASSED")
+        .filter(|case| matches!(case.verdict.as_str(), "PASSED" | "XFAIL"))
         .count() as u64;
     if total > 0 {
         output
@@ -305,10 +306,10 @@ fn observe_suite(
         && evidence
             .cases
             .values()
-            .all(|case| matches!(case.verdict.as_str(), "SKIPPED" | "XFAIL"))
+            .all(|case| case.verdict == "SKIPPED")
     {
         return Err(ValidationError(
-            "all pytest cases skipped or xfailed; nothing was verified".into(),
+            "all pytest cases skipped; nothing was verified".into(),
         ));
     }
     if outcome.exit_code == Some(1) && output.observation.findings.is_empty() {
@@ -414,7 +415,7 @@ fn observe_coverage(
     let passed = tests
         .cases
         .values()
-        .filter(|case| case.verdict == "PASSED")
+        .filter(|case| matches!(case.verdict.as_str(), "PASSED" | "XFAIL"))
         .count() as u64;
     let score = tem::calculate(&tem::TemInputs {
         passed,
@@ -447,6 +448,7 @@ fn observe_coverage(
         report.counts.covered_branches,
         report.counts.total_branches
     );
+    crate::test_metrics::coverage(plan, &report, output);
     crate::policy::evaluate(plan, &report, score.score, output)
 }
 fn observe_runtime(

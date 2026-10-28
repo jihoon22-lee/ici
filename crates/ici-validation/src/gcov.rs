@@ -705,6 +705,7 @@ pub(crate) fn observe(
         "{}/{} C++ executable lines covered",
         report.counts.covered_lines, report.counts.total_lines
     );
+    crate::test_metrics::coverage(plan, &report, output);
     crate::policy::evaluate(plan, &report, score.score, output)
 }
 

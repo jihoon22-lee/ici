@@ -397,3 +397,24 @@ lint; the final strict CLI/validation run passed in `validation-unittest-clippy-
 Root's `root-line-integration-final.log` also passed the actual optional-empty integration case:
 located NOT_APPLICABLE evidence with no tool tasks, while required empty scope stays incomplete.
 This does not close the separate legacy metrics projection or whole R8/R9 inventory.
+
+Test and coverage producers expose `test_execution` with the canonical physical suite identity,
+actual task IDs, framework, phase and completeness. Flat passed/total/skipped/pass-rate values
+come from actual case outcomes. Shared test/coverage readers retain one canonical identity even
+when report generation is unavailable, so legacy projection can deduplicate the physical run.
+Partial case counts remain visibly incomplete. Missing coverage axes stay null; measured raw
+line/branch/function denominators, per-file rows, function rows and source provenance remain
+available without averaging percentages or estimating coverage.
+
+Python XFAIL retains the tool's successful expected-failure semantics and passed-case count.
+Its raw XFAIL node state remains separate from normal completion, so it cannot resolve an older
+ordinary failure in a baseline. The actual CLI regression passes the all-XFAIL suite while
+carrying its prior failure. The corrected handling matches the historical Python parser and
+QTest's existing expected-failure behavior.
+
+`validation-flatmetrics-final.log` passed 53 ordinary validation contracts, actual shared
+pytest/coverage flat-field checks (2.23s), actual XFAIL/baseline carry (20.22s), and strict
+CLI/validation Clippy (10.45s). `validation-flatmetrics-gcov-ready.log` passed actual shared
+CTest/gcov counts, source axes and TEM (1.00s), followed by strict Clippy. The native gcov fixture
+now plans before executing its producer, preserving the preexisting-counter refusal contract.
+Legacy multi-check JSON/HTML projection has separate root-owned acceptance evidence.
