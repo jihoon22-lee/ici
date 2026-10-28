@@ -146,3 +146,17 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   구현 PR 병합 후 새 main 위로 release-only 변경을 rebase한다.
 - 버전 source/ici.toml/CHANGELOG/README 동기화. 다음은 pyz/wheel 후보 build 및
   정확한 digest에 대한 known-answer corpus 등록, release PR/CI/후보 인수다.
+
+## 0.13.0 후보 산출물과 corpus 등록
+
+- pyz build 및 wheel fresh-venv install/analyze/plan/report smoke 통과(Python 3.10).
+- 후보 pyz SHA-256: `c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde`.
+- 16개 ici-owned candidate scenario의 기존 0.12.1 기대 판정을 유지하고 producer_version만
+  0.13.0으로 옮긴 새 기대 파일을 이 정확한 hash에 등록했다. 기존 selector와 과거 기대값은 보존.
+- 다음: Python slice 로컬 실행, release PR 최신 main 재배치, CI 및 protected-main candidate
+  workflow에서 16개 전체 실제 도구 corpus 인수. 등록 자체를 인수 통과로 기록하지 않는다.
+
+- 0.13.0 후보 Python corpus slice는 5/5 계약 PASS. 이는 의도된 결함을 정확히 찾는
+  known-answer 통과이며 모든 샘플 코드가 깨끗하다는 의미가 아니다.
+- corpus unit은 새 hash를 정확한 selector 집합에 추가한 뒤 68개 통과(기존 hash 모두 보존).
+  전체 16개 실제 tool corpus 인수는 protected-main workflow에서 수행할 예정이다.

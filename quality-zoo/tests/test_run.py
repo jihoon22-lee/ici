@@ -34,6 +34,8 @@ RELEASED_V0_12_1_DIGEST = (
     "f78b04aabb28fd6197e7aae1bd6b974b58f2e7e4b2e30a246d195e848eb450e4"
 )
 
+CANDIDATE_V0_13_0_DIGEST = "c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde"
+
 
 class RunContractTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -360,6 +362,7 @@ class RunContractTests(unittest.TestCase):
                     CANDIDATE_DIGEST,
                     RELEASED_V0_12_0_DIGEST,
                     RELEASED_V0_12_1_DIGEST,
+                    CANDIDATE_V0_13_0_DIGEST,
                 },
             )
 
@@ -379,6 +382,7 @@ class RunContractTests(unittest.TestCase):
                 CANDIDATE_DIGEST,
                 RELEASED_V0_12_0_DIGEST,
                 RELEASED_V0_12_1_DIGEST,
+                CANDIDATE_V0_13_0_DIGEST,
             },
         )
 
@@ -440,6 +444,7 @@ class RunContractTests(unittest.TestCase):
                         CANDIDATE_DIGEST,
                         RELEASED_V0_12_0_DIGEST,
                         RELEASED_V0_12_1_DIGEST,
+                        CANDIDATE_V0_13_0_DIGEST,
                     },
                 )
                 expectation = run._load_scenario(
