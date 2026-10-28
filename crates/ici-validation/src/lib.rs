@@ -12,7 +12,7 @@ pub mod runtime;
 pub mod sanitizer;
 pub mod tem;
 
-pub use artifacts::{CapturedArtifacts, OwnedRun, capture_artifacts};
+pub use artifacts::{CapturedArtifacts, OwnedRun, capture_artifacts, capture_binary_headers};
 pub use model::*;
 pub use planning::{plan, ready_steps};
 pub use python::{observe, observe_for};

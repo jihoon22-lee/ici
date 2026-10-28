@@ -212,7 +212,8 @@ fn real_elf_loader_policy_detects_absolute_rpath_and_keeps_abi_facts() {
         "run-elf",
     );
     request.options.elf_policy.expected_class = "ELF64".into();
-    let planned = plan(&request).unwrap();
+    let mut planned = plan(&request).unwrap();
+    capture_binary_headers(&mut planned).unwrap();
     let owner = OwnedRun::create(&request.owned_run_dir).unwrap();
     let output = observe(
         &planned,

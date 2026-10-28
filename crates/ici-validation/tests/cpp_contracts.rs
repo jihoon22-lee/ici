@@ -225,3 +225,29 @@ fn integration_checks_declared_streams_exit_and_fresh_output_without_touching_us
         TaskState::Failed
     );
 }
+#[test]
+fn native_binary_header_policy_distinguishes_non_elf_from_tool_failure_and_honors_limits() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::BinaryCompatibility);
+    std::fs::write(root.path().join("suite"), b"plain declared artifact").unwrap();
+    let mut planned = plan(&request).unwrap();
+    capture_binary_headers(&mut planned).unwrap();
+    assert!(ready_steps(&planned, &BTreeMap::new()).unwrap().is_empty());
+    let output = observe(&planned, &BTreeMap::new(), &CapturedArtifacts::default());
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.observation.findings[0].rule_id, "ici.binary.non-elf");
+    planned.context.options.allow_non_elf = true;
+    let output = observe(&planned, &BTreeMap::new(), &CapturedArtifacts::default());
+    assert!(output.observation.findings.is_empty());
+    assert_eq!(output.targets[0].status, "SKIP");
+    assert_eq!(output.extra["artifact_headers"]["suite"]["is_elf"], false);
+    let owner = OwnedRun::create(&planned.context.owned_run_dir).unwrap();
+    std::fs::write(root.path().join("suite"), b"changed after capture").unwrap();
+    assert!(capture_artifacts(&planned, &owner, &BTreeMap::new()).is_err());
+    request.options.max_artifacts = 1;
+    request.targets.push("second".into());
+    assert!(plan(&request).is_err());
+    request.options.max_artifacts = 2;
+    request.targets = vec!["suite".into(), "suite".into()];
+    assert!(plan(&request).is_err());
+}

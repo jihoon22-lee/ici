@@ -339,7 +339,69 @@ pub fn capture_artifacts(
         }
     }
     run.validate(plan)?;
+    verify_binary_headers(plan)?;
     Ok(captured)
+}
+/// Execution-phase only: future build artifacts need not exist when their plan is formed.
+pub fn capture_binary_headers(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
+    if plan.kind != crate::ValidationKind::BinaryCompatibility {
+        return Ok(());
+    }
+    plan.artifact_headers.clear();
+    for target in &plan.context.targets {
+        let mut file = open_nofollow(&plan.context.root.join(target))?;
+        let before = file.metadata().map_err(error)?;
+        if !before.is_file() {
+            return Err(ValidationError(
+                "selected binary artifact is not a regular file".into(),
+            ));
+        }
+        let mut magic = vec![];
+        file.by_ref()
+            .take(4)
+            .read_to_end(&mut magic)
+            .map_err(error)?;
+        let after = file.metadata().map_err(error)?;
+        if signature(&before) != signature(&after) {
+            return Err(ValidationError(
+                "binary artifact changed during header capture".into(),
+            ));
+        }
+        plan.artifact_headers.insert(
+            target.clone(),
+            crate::ArtifactHeader {
+                magic,
+                size: before.len(),
+                signature: signature(&before),
+            },
+        );
+    }
+    Ok(())
+}
+fn signature(metadata: &std::fs::Metadata) -> [i128; 7] {
+    use std::os::unix::fs::MetadataExt;
+    [
+        i128::from(metadata.dev()),
+        i128::from(metadata.ino()),
+        i128::from(metadata.len()),
+        i128::from(metadata.mtime()),
+        i128::from(metadata.mtime_nsec()),
+        i128::from(metadata.ctime()),
+        i128::from(metadata.ctime_nsec()),
+    ]
+}
+fn verify_binary_headers(plan: &ValidationPlan) -> Result<(), ValidationError> {
+    for (path, header) in &plan.artifact_headers {
+        let metadata = open_nofollow(&plan.context.root.join(path))?
+            .metadata()
+            .map_err(error)?;
+        if signature(&metadata) != header.signature {
+            return Err(ValidationError(
+                "binary artifact changed while readelf inspected it".into(),
+            ));
+        }
+    }
+    Ok(())
 }
 fn open_nofollow(path: &Path) -> Result<File, ValidationError> {
     if !path.is_absolute() {

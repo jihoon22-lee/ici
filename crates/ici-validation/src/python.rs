@@ -149,16 +149,21 @@ pub fn observe_for(
             .map(|item| item.task_id.clone()),
     );
     let relevant: Vec<_> = ids.iter().filter_map(|id| outcomes.get(id)).collect();
+    let required: Vec<_> = relevant
+        .iter()
+        .copied()
+        .filter(|outcome| !plan.optional_task_ids.contains(&outcome.task_id))
+        .collect();
     output.observation.duration_seconds = Some(
         relevant
             .iter()
             .map(|outcome| outcome.duration_seconds)
             .sum(),
     );
-    output.observation.timed_out = relevant.iter().any(|outcome| outcome.timed_out);
-    output.observation.truncated = relevant.iter().any(|outcome| outcome.truncated);
-    output.observation.exit_code = relevant.last().and_then(|outcome| outcome.exit_code);
-    output.observation.signal = relevant
+    output.observation.timed_out = required.iter().any(|outcome| outcome.timed_out);
+    output.observation.truncated = required.iter().any(|outcome| outcome.truncated);
+    output.observation.exit_code = required.last().and_then(|outcome| outcome.exit_code);
+    output.observation.signal = required
         .iter()
         .find_map(|outcome| outcome.signal.map(|signal| signal.to_string()));
     if let Err(error) = result {
@@ -185,6 +190,7 @@ pub fn observe_for(
     }
     let provenance=plan.tasks.iter().map(|task|json!({"task_id":task.id,"argv":task.argv,"cwd":task.cwd,"state":outcomes.get(&task.id).map(|o|o.state),"exit_code":outcomes.get(&task.id).and_then(|o|o.exit_code)})).collect::<Vec<_>>();
     output.extra["steps"] = json!(provenance);
+    output.extra["optional_steps"]=json!(plan.optional_task_ids.iter().map(|id|json!({"task_id":id,"state":outcomes.get(id).map(|outcome|outcome.state),"exit_code":outcomes.get(id).and_then(|outcome|outcome.exit_code),"timed_out":outcomes.get(id).is_some_and(|outcome|outcome.timed_out),"truncated":outcomes.get(id).is_some_and(|outcome|outcome.truncated),"cancelled":outcomes.get(id).is_some_and(|outcome|outcome.cancelled)})).collect::<Vec<_>>());
     output
 }
 fn suite<'a>(
@@ -419,7 +425,46 @@ fn quality(
             .measurements
             .push(Measurement::measured("test-quality.slow", observed as f64));
     }
+    mutation(plan, outcomes, output);
     Ok(())
+}
+fn mutation(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+    output: &mut AnalysisOutput,
+) {
+    if !plan.context.options.mutation_enabled {
+        output.extra["mutation"] = json!({"mutation_status":"disabled","mutation_probes":0,"mutation_available":0,"mutation_unavailable":0});
+        return;
+    }
+    let id = format!("{}.mutation", plan.context.task_id);
+    let probe = outcomes.get(&id);
+    let available =
+        probe.is_some_and(|outcome| planning::completed(outcome) && outcome.exit_code == Some(0));
+    let mut target = InspectionTarget::at(
+        plan.context
+            .targets
+            .first()
+            .filter(|path| *path != ".")
+            .map(String::as_str)
+            .unwrap_or("tests"),
+        1,
+    );
+    target.target_name = "[test-quality] Mutation capability".into();
+    target.status = if available { "PASS" } else { "SKIP" }.into();
+    target.message = if available {
+        "explicit mutation capability probe completed; mutations were not performed"
+    } else {
+        "mutation capability is unavailable; base test gate is unchanged"
+    }
+    .into();
+    target.metrics.insert("available".into(), json!(available));
+    target.metrics.insert(
+        "returncode".into(),
+        json!(probe.and_then(|outcome| outcome.exit_code)),
+    );
+    output.targets.push(target);
+    output.extra["mutation"] = json!({"mutation_status":if available{"available"}else{"unavailable"},"mutation_probes":1,"mutation_available":u8::from(available),"mutation_unavailable":u8::from(!available),"tool":plan.context.options.mutation_tool.as_ref().map(|tool|&tool.id),"argv":plan.tasks.iter().find(|task|task.id==id).map(|task|&task.argv)});
 }
 fn observe_coverage(
     plan: &ValidationPlan,
@@ -539,6 +584,26 @@ fn observe_runtime(
     outcomes: &BTreeMap<String, TaskOutcome>,
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
+    let mut errors = vec![];
+    if let Err(error) = observe_runtime_metadata(plan, outcomes, output) {
+        errors.push(error.to_string());
+    }
+    if plan.context.options.compile_sources
+        && let Err(error) = observe_compilation(plan, outcomes, output)
+    {
+        errors.push(error.to_string());
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(ValidationError(errors.join("; ")))
+    }
+}
+fn observe_runtime_metadata(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+    output: &mut AnalysisOutput,
+) -> Result<(), ValidationError> {
     let id = format!("{}.metadata", plan.context.task_id);
     let metadata = outcomes
         .get(&id)
@@ -576,13 +641,7 @@ fn observe_runtime(
         .tool_versions
         .push(("project-python".into(), version.clone()));
     if let Some(requirement) = &plan.context.options.requires_python {
-        let constraint = requirement
-            .parse::<pep440_rs::VersionSpecifiers>()
-            .map_err(|e| ValidationError(format!("requires-python: {e}")))?;
-        let actual = version
-            .parse::<pep440_rs::Version>()
-            .map_err(|e| ValidationError(e.to_string()))?;
-        if !constraint.contains(&actual) {
+        if !ici_analysis::python_version_allowed(requirement, &version).map_err(ValidationError)? {
             output.observation.findings.push(finding(
                 plan,
                 "python.compat.runtime-version",
@@ -608,56 +667,142 @@ fn observe_runtime(
     }
     .into();
     output.targets.push(target);
-    if plan.context.options.compile_sources {
-        let id = format!("{}.compile", plan.context.task_id);
-        let compile = outcomes
-            .get(&id)
-            .ok_or_else(|| ValidationError("runtime compile step absent".into()))?;
-        if !planning::completed(compile) {
-            return Err(ValidationError(
-                "runtime compilation did not complete".into(),
-            ));
-        }
-        if compile.exit_code == Some(0) {
-            for path in &plan.context.source_files {
-                let mut target = InspectionTarget::at(path, 1);
-                target.target_name = "Project runtime compilation".into();
-                output.targets.push(target);
-            }
-        } else {
-            let text = format!(
-                "{}\n{}",
-                String::from_utf8_lossy(&compile.stdout),
-                String::from_utf8_lossy(&compile.stderr)
-            );
-            let errors = Regex::new(r"Error compiling '([^']+)'").expect("constant regex");
-            let mut count = 0;
-            for capture in errors.captures_iter(&text) {
-                let path = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd)?;
-                if !plan.context.source_files.contains(&path) {
-                    return Err(ValidationError(
-                        "compileall diagnostic is outside declared source scope".into(),
-                    ));
-                }
-                output.observation.findings.push(finding(
-                    plan,
-                    "python.compat.runtime-syntax",
-                    "project runtime could not compile this source",
-                    &path,
-                    1,
-                ));
-                count += 1;
-            }
-            if count == 0 {
-                return Err(ValidationError(
-                    "runtime compile failed without attributable source diagnostics".into(),
-                ));
-            }
-        }
-    }
     output.summary = format!("project Python {version}");
     Ok(())
 }
+
+fn observe_compilation(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+    output: &mut AnalysisOutput,
+) -> Result<(), ValidationError> {
+    let id = format!("{}.compile", plan.context.task_id);
+    let compile = outcomes
+        .get(&id)
+        .ok_or_else(|| ValidationError("runtime compile step absent".into()))?;
+    if !planning::completed(compile) {
+        return Err(ValidationError(
+            "runtime compilation did not complete".into(),
+        ));
+    }
+    if compile.exit_code == Some(0) {
+        for path in &plan.context.source_files {
+            let mut target = InspectionTarget::at(path, 1);
+            target.target_name = "Project runtime compilation".into();
+            output.targets.push(target);
+        }
+        return Ok(());
+    }
+    let stdout = std::str::from_utf8(&compile.stdout)
+        .map_err(|_| ValidationError("compileall output is not UTF-8".into()))?;
+    let stderr = std::str::from_utf8(&compile.stderr)
+        .map_err(|_| ValidationError("compileall output is not UTF-8".into()))?;
+    let text = format!("{stdout}\n{stderr}");
+    let markers = Regex::new(r#"(?m)^\*\*\* Error compiling (?:'([^']+)'|"([^"]+)")"#)
+        .expect("constant regex");
+    let location = Regex::new(r#"File "([^"]+)", line ([1-9]\d*)"#).expect("constant regex");
+    let message = Regex::new(r"(?m)^\s*(\w+Error):\s*(.+)$").expect("constant regex");
+    let matches = markers.captures_iter(&text).collect::<Vec<_>>();
+    let mut count = 0;
+    for (index, marker) in matches.iter().enumerate() {
+        let raw = marker
+            .get(1)
+            .or_else(|| marker.get(2))
+            .expect("matched file")
+            .as_str();
+        let path = planning::relative(raw, &plan.context.root, &plan.context.cwd)?;
+        if !plan.context.source_files.contains(&path) {
+            return Err(ValidationError(
+                "compileall diagnostic is outside declared source scope".into(),
+            ));
+        }
+        let start = marker.get(0).expect("matched block").start();
+        let end = matches
+            .get(index + 1)
+            .and_then(|next| next.get(0))
+            .map_or(text.len(), |next| next.start());
+        let block = &text[start..end];
+        let mut row = 1;
+        for entry in location.captures_iter(block) {
+            if planning::relative(&entry[1], &plan.context.root, &plan.context.cwd)
+                .is_ok_and(|candidate| candidate == path)
+            {
+                row = entry[2]
+                    .parse::<u32>()
+                    .map_err(|_| ValidationError("compileall line overflow".into()))?;
+                break;
+            }
+        }
+        let detail = message
+            .captures(block)
+            .map(|entry| format!("{}: {}", &entry[1], &entry[2]))
+            .unwrap_or_else(|| "project runtime could not compile this source".into());
+        compile_finding(plan, output, &path, row, &detail);
+        count += 1;
+    }
+    let sorry =
+        Regex::new(r"(?m)^\*\*\* Sorry:\s*(\w+Error):\s*(.+?)\s*\((.+), line ([1-9]\d*)\)\s*$")
+            .expect("constant regex");
+    for entry in sorry.captures_iter(&text) {
+        let raw = &entry[3];
+        let direct = planning::relative(raw, &plan.context.root, &plan.context.cwd).ok();
+        let mut candidates = plan
+            .context
+            .source_files
+            .iter()
+            .filter(|path| {
+                direct.as_deref() == Some(path.as_str())
+                    || std::path::Path::new(path).file_name()
+                        == std::path::Path::new(raw).file_name()
+            })
+            .collect::<Vec<_>>();
+        candidates.sort();
+        candidates.dedup();
+        if candidates.len() != 1 {
+            return Err(ValidationError(
+                "compileall Sorry diagnostic source is missing or ambiguous".into(),
+            ));
+        }
+        let row = entry[4]
+            .parse::<u32>()
+            .map_err(|_| ValidationError("compileall source line overflow".into()))?;
+        compile_finding(
+            plan,
+            output,
+            candidates[0],
+            row,
+            &format!("{}: {}", &entry[1], &entry[2]),
+        );
+        count += 1;
+    }
+    if count == 0 {
+        return Err(ValidationError(
+            "runtime compile failed without attributable source diagnostics".into(),
+        ));
+    }
+    Ok(())
+}
+fn compile_finding(
+    plan: &ValidationPlan,
+    output: &mut AnalysisOutput,
+    path: &str,
+    row: u32,
+    detail: &str,
+) {
+    output.observation.findings.push(finding(
+        plan,
+        "python.compat.runtime-syntax",
+        detail,
+        path,
+        row,
+    ));
+    let mut target = InspectionTarget::at(path, row);
+    target.target_name = "Project runtime compilation".into();
+    target.status = "FAIL".into();
+    target.message = detail.into();
+    output.targets.push(target);
+}
+
 fn observe_imports(
     plan: &ValidationPlan,
     outcomes: &BTreeMap<String, TaskOutcome>,
@@ -739,6 +884,9 @@ pub(crate) fn finding(
     item.task_id = Some(plan.context.task_id.clone());
     item.component_id = Some(plan.context.component_id.clone());
     item.native_rule_id = rule.into();
+    if rule.starts_with("python.compat.") {
+        item.category = "compatibility".into();
+    }
     item.severity = "high".into();
     item.fingerprint = sha256(format!(
         "{}\0{rule}\0{path}\0{line}\0{message}",

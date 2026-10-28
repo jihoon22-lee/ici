@@ -64,6 +64,11 @@ pub(crate) fn plan(
                 }
             }
             result.tasks.extend(child.tasks.iter().cloned());
+            if !required {
+                result
+                    .optional_task_ids
+                    .extend(child.tasks.iter().map(|task| task.id.clone()));
+            }
             result.prerequisites.extend(child.prerequisites.clone());
             result.artifacts.extend(child.artifacts.iter().cloned());
             Some(Box::new(child))

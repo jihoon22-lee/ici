@@ -464,3 +464,38 @@ fn artifact_patterns_never_adopt_an_earlier_producers_reports_from_the_same_run(
     assert_eq!(captured.files["reports:new.json"].bytes, b"new");
     assert!(!captured.files.contains_key("reports:old.json"));
 }
+#[test]
+fn optional_mutation_probe_limits_preserve_raw_facts_without_changing_the_base_test_gate() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonTest);
+    request.options.mutation_enabled = true;
+    request.options.mutation_tool = Some(request.tool.clone());
+    let planned = plan(&request).unwrap();
+    let suite = &planned.tasks[0];
+    let probe = planned
+        .tasks
+        .iter()
+        .find(|task| task.id.ends_with(".mutation"))
+        .unwrap();
+    assert_eq!(
+        ready_steps(&planned, &BTreeMap::new()).unwrap(),
+        vec![suite.id.clone()]
+    );
+    assert!(planned.optional_task_ids.contains(&probe.id));
+    let mut limited = outcome(&probe.id, "partial version", 0);
+    limited.timed_out = true;
+    limited.truncated = true;
+    let outcomes = BTreeMap::from([
+        (
+            suite.id.clone(),
+            outcome(&suite.id, "tests/test_main.py::test_good PASSED\n", 0),
+        ),
+        (probe.id.clone(), limited),
+    ]);
+    let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+    assert!(output.observation.evidence_is_complete(), "{output:?}");
+    assert_eq!(output.extra["mutation"]["mutation_status"], "unavailable");
+    assert_eq!(output.extra["optional_steps"][0]["timed_out"], true);
+    assert_eq!(output.extra["optional_steps"][0]["truncated"], true);
+    assert!(output.observation.findings.is_empty());
+}

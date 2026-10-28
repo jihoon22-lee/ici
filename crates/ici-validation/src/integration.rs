@@ -17,6 +17,8 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     }
     let mut task = planning::task(request, "case", request.options.argv[1..].to_vec());
     task.kind = TaskKind::Test;
+    task.output_limit_bytes =
+        Some(request.options.output_limit_bytes.unwrap_or(64 * 1024) as usize);
     task.requires = request.options.requires.clone();
     for output in &request.options.outputs {
         let path = if output.path.is_absolute() {

@@ -80,8 +80,13 @@ pub struct ValidationOptions {
     pub function_facts_complete: bool,
     pub runtimes: Vec<RuntimeSpec>,
     pub required_interpreters: Vec<String>,
+    pub mutation_enabled: bool,
+    pub mutation_tool: Option<ResolvedTool>,
+    pub mutation_argv: Vec<String>,
     pub auxiliary_tools: BTreeMap<String, ResolvedTool>,
     pub elf_policy: ici_cpp::ElfPolicy,
+    pub allow_non_elf: bool,
+    pub max_artifacts: usize,
     pub build_roots: Vec<PathBuf>,
     pub modules: Vec<String>,
     pub requires_python: Option<String>,
@@ -96,6 +101,7 @@ pub struct ValidationOptions {
     pub requires: Vec<String>,
     pub environment: BTreeMap<String, String>,
     pub timeout_seconds: f64,
+    pub output_limit_bytes: Option<u64>,
     pub build_dir: Option<PathBuf>,
 }
 impl Default for ValidationOptions {
@@ -121,8 +127,13 @@ impl Default for ValidationOptions {
             function_facts_complete: false,
             runtimes: vec![],
             required_interpreters: vec![],
+            mutation_enabled: false,
+            mutation_tool: None,
+            mutation_argv: vec![],
             auxiliary_tools: BTreeMap::new(),
             elf_policy: ici_cpp::ElfPolicy::default(),
+            allow_non_elf: false,
+            max_artifacts: 64,
             build_roots: vec![],
             modules: vec![],
             requires_python: None,
@@ -137,6 +148,7 @@ impl Default for ValidationOptions {
             requires: vec![],
             environment: BTreeMap::new(),
             timeout_seconds: 1800.0,
+            output_limit_bytes: None,
             build_dir: None,
         }
     }
@@ -192,12 +204,22 @@ pub struct ValidationPlan {
     pub artifact_patterns: Vec<ArtifactPattern>,
     #[serde(default)]
     pub runtime_plans: Vec<RuntimePlan>,
+    #[serde(default)]
+    pub optional_task_ids: Vec<String>,
     /// Dependencies use provider exit contracts; the generic scheduler's exit=0 rule is insufficient.
     pub prerequisites: BTreeMap<String, Vec<StepPrerequisite>>,
     pub context: ValidationRequest,
     pub limitations: Vec<String>,
     #[serde(skip)]
     pub source_coordinates: std::sync::Arc<ici_providers::SourceCoordinates>,
+    #[serde(skip)]
+    pub artifact_headers: BTreeMap<String, ArtifactHeader>,
+}
+#[derive(Clone, Debug)]
+pub struct ArtifactHeader {
+    pub magic: Vec<u8>,
+    pub size: u64,
+    pub(crate) signature: [i128; 7],
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RuntimePlan {

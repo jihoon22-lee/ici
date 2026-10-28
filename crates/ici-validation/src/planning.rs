@@ -7,7 +7,24 @@ use ici_execution::TaskOutcome;
 use std::{collections::BTreeMap, path::Path};
 
 pub const METADATA_SCRIPT: &str = "import json,sys,sysconfig,platform;print(json.dumps({'version':list(sys.version_info[:3]),'implementation':sys.implementation.name,'platform':sys.platform,'machine':platform.machine(),'soabi':sysconfig.get_config_var('SOABI'),'ext_suffix':sysconfig.get_config_var('EXT_SUFFIX')}))";
-pub const IMPORT_SCRIPT: &str = "import sys,json,importlib;sys.dont_write_bytecode=True;sys.path.insert(0,sys.argv[1]);modules=json.loads(sys.argv[2]);results=[]\nfor name in modules:\n try:\n  importlib.import_module(name);results.append({'module':name,'ok':True})\n except Exception as error:\n  results.append({'module':name,'ok':False,'error':type(error).__name__+': '+str(error)})\nprint(json.dumps({'imports':results}));sys.exit(0 if all(item['ok'] for item in results) else 1)";
+pub const IMPORT_SCRIPT: &str = r#"import sys
+_ici_baseline = set(sys.modules)
+import json as _ici_json
+import importlib as _ici_importlib
+_ici_modules = _ici_json.loads(sys.argv[2])
+for _ici_name in set(sys.modules) - _ici_baseline:
+    sys.modules.pop(_ici_name, None)
+sys.dont_write_bytecode = True
+sys.path.insert(0, sys.argv[1])
+_ici_results = []
+for _ici_name in _ici_modules:
+    try:
+        _ici_importlib.import_module(_ici_name)
+        _ici_results.append({'module': _ici_name, 'ok': True})
+    except Exception as _ici_error:
+        _ici_results.append({'module': _ici_name, 'ok': False, 'error': type(_ici_error).__name__ + ': ' + str(_ici_error)})
+print('\n' + _ici_json.dumps({'imports': _ici_results}))
+sys.exit(0 if all(_ici_item['ok'] for _ici_item in _ici_results) else 1)"#;
 
 pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationError> {
     for path in [
@@ -45,6 +62,15 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
     if !request.options.timeout_seconds.is_finite() || request.options.timeout_seconds <= 0.0 {
         return Err(ValidationError(
             "validation timeout must be positive and finite".into(),
+        ));
+    }
+    if request
+        .options
+        .output_limit_bytes
+        .is_some_and(|limit| limit == 0 || limit > 16 * 1024 * 1024)
+    {
+        return Err(ValidationError(
+            "validation output limit must be 1..16 MiB".into(),
         ));
     }
     for threshold in [
@@ -102,10 +128,12 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
         artifacts: vec![],
         artifact_patterns: vec![],
         runtime_plans: vec![],
+        optional_task_ids: vec![],
         prerequisites: BTreeMap::new(),
         context: request.clone(),
         limitations: vec!["dynamic evidence is never reused from a previous run".into()],
         source_coordinates: std::sync::Arc::default(),
+        artifact_headers: BTreeMap::new(),
     };
     if !request.options.runtimes.is_empty() {
         return crate::runtime::plan(request, plan);
@@ -126,6 +154,7 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
             metadata.kind = TaskKind::Probe;
             metadata.timeout_seconds = Some(5.0);
             metadata.output_limit_bytes = Some(64 * 1024);
+            let metadata_id = metadata.id.clone();
             plan.tasks.push(metadata);
             if request.options.compile_sources {
                 if request.source_files.is_empty() {
@@ -155,6 +184,12 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                         .to_string_lossy()
                         .into_owned(),
                 );
+                compile
+                    .env_overlay
+                    .insert("PYTHON_COLORS".into(), "0".into());
+                compile
+                    .env_overlay
+                    .insert("PYTHONHASHSEED".into(), "0".into());
                 compile.work_dirs.push(
                     request
                         .owned_run_dir
@@ -163,6 +198,14 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                         .into_owned(),
                 );
                 compile.timeout_seconds = Some(120.0);
+                plan.prerequisites.insert(
+                    compile.id.clone(),
+                    vec![StepPrerequisite {
+                        task_id: metadata_id,
+                        accepted_exits: vec![0],
+                        require_test_evidence: false,
+                    }],
+                );
                 plan.tasks.push(compile);
             }
         }
@@ -288,6 +331,38 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             previous = repeat.id.clone();
             plan.tasks.push(repeat);
         }
+        if request.kind == ValidationKind::PythonTest && request.options.mutation_enabled {
+            if let Some(tool) = &request.options.mutation_tool {
+                let argv = if request.options.mutation_argv.is_empty() {
+                    vec![tool.path.to_string_lossy().into_owned(), "--version".into()]
+                } else {
+                    request.options.mutation_argv.clone()
+                };
+                if std::path::Path::new(&argv[0]) != tool.path {
+                    return Err(ValidationError(
+                        "mutation probe argv must match selected executable identity".into(),
+                    ));
+                }
+                let mut probe = task(request, "mutation", vec![]);
+                probe.argv = argv;
+                probe.tool_digest = Some(tool.digest.clone());
+                probe.kind = TaskKind::Probe;
+                probe.timeout_seconds = Some(request.options.quality_timeout_seconds);
+                probe.output_limit_bytes = Some(8192);
+                plan.optional_task_ids.push(probe.id.clone());
+                plan.prerequisites.insert(
+                    probe.id.clone(),
+                    vec![StepPrerequisite {
+                        task_id: previous,
+                        accepted_exits: vec![0, 1],
+                        require_test_evidence: false,
+                    }],
+                );
+                plan.tasks.push(probe);
+            } else {
+                plan.limitations.push("mutation capability was requested but no explicit external tool was available; base test gate is unchanged".into());
+            }
+        }
     } else if request.kind != ValidationKind::PythonCoverage {
         return Err(ValidationError(
             "shared suite references are only valid for coverage readers".into(),
@@ -353,7 +428,12 @@ pub(crate) fn task(request: &ValidationRequest, suffix: &str, args: Vec<String>)
     }
     task.tool_digest = Some(request.tool.digest.clone());
     task.timeout_seconds = Some(request.options.timeout_seconds);
-    task.output_limit_bytes = Some(8 * 1024 * 1024);
+    task.output_limit_bytes = Some(
+        request
+            .options
+            .output_limit_bytes
+            .unwrap_or(8 * 1024 * 1024) as usize,
+    );
     task.env_overlay = request.options.environment.clone();
     task.env_overlay
         .insert("PYTHONDONTWRITEBYTECODE".into(), "1".into());
@@ -380,7 +460,15 @@ pub fn ready_steps(
     outcomes: &BTreeMap<String, TaskOutcome>,
 ) -> Result<Vec<String>, ValidationError> {
     let mut ready = vec![];
-    for task in &plan.tasks {
+    for (index, task) in plan.tasks.iter().enumerate() {
+        if plan.kind == ValidationKind::BinaryCompatibility
+            && plan
+                .artifact_headers
+                .get(&plan.context.targets[index])
+                .is_some_and(|header| header.magic != b"\x7fELF")
+        {
+            continue;
+        }
         if outcomes.contains_key(&task.id) {
             continue;
         }
@@ -395,6 +483,10 @@ pub fn ready_steps(
                     .accepted_exits
                     .contains(&outcome.exit_code.unwrap_or(-1))
             {
+                if plan.optional_task_ids.contains(&task.id) {
+                    pending = true;
+                    break;
+                }
                 return Err(ValidationError(format!(
                     "{} prerequisite {} did not complete under its exit contract",
                     task.id, requirement.task_id

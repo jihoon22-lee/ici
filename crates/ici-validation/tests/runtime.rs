@@ -111,3 +111,58 @@ fn optional_runtime_violations_remain_measured_advisory_and_required_metadata_is
         "python.compat.runtime-version"
     );
 }
+#[test]
+fn compileall_source_lines_and_sorry_diagnostics_remain_when_runtime_metadata_is_unavailable() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path());
+    request.options.runtimes.clear();
+    request.options.compile_sources = true;
+    let planned = plan(&request).unwrap();
+    let metadata_id = planned.tasks[0].id.clone();
+    let compile_id = planned.tasks[1].id.clone();
+    let mut invalid = metadata(&metadata_id);
+    invalid.stdout = b"not metadata".to_vec();
+    let mut compilation = metadata(&compile_id);
+    compilation.exit_code = Some(1);
+    compilation.stdout=format!("*** Error compiling '{}'...\n  File \"{}\", line 3\n    def broken(:\nSyntaxError: invalid syntax\n",root.path().join("main.py").display(),root.path().join("main.py").display()).into_bytes();
+    let output = observe(
+        &planned,
+        &BTreeMap::from([
+            (metadata_id.clone(), invalid),
+            (compile_id.clone(), compilation),
+        ]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Failed);
+    assert_eq!(output.observation.findings.len(), 1);
+    assert_eq!(
+        output.observation.findings[0].primary_location.start_line,
+        3
+    );
+    assert!(
+        output.observation.findings[0]
+            .message
+            .starts_with("SyntaxError:")
+    );
+    let mut sorry = metadata(&compile_id);
+    sorry.exit_code = Some(1);
+    sorry.stdout = b"*** Sorry: IndentationError: unexpected indent (main.py, line 7)\n".to_vec();
+    let output = observe(
+        &planned,
+        &BTreeMap::from([
+            (metadata_id.clone(), metadata(&metadata_id)),
+            (compile_id, sorry),
+        ]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert_eq!(
+        output.observation.findings[0].primary_location.start_line,
+        7
+    );
+    assert!(
+        output.observation.findings[0]
+            .message
+            .starts_with("IndentationError:")
+    );
+}

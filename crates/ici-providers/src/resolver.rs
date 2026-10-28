@@ -81,7 +81,15 @@ impl ToolRequest {
             vec![self.project_root.join("node_modules/.bin").join(executable)]
         } else if matches!(
             executable,
-            "ruff" | "ty" | "mypy" | "pytest" | "coverage" | "python"
+            "ruff"
+                | "ty"
+                | "mypy"
+                | "pytest"
+                | "coverage"
+                | "python"
+                | "mutmut"
+                | "cosmic-ray"
+                | "mutpy"
         ) {
             vec![
                 self.project_root.join(".venv/bin").join(executable),

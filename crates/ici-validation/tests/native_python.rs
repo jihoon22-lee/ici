@@ -219,7 +219,7 @@ fn explicit_imports_do_not_run_module_main_or_write_bytecode_and_keep_failures()
     let root = tempfile::tempdir().unwrap();
     fs::write(
         root.path().join("main.py"),
-        "if __name__ == '__main__':\n    open('main-ran','w').write('bad')\nVALUE=1\n",
+        "print('initializing without newline', end='')\nif __name__ == '__main__':\n    open('main-ran','w').write('bad')\nVALUE=1\n",
     )
     .unwrap();
     fs::write(
@@ -227,15 +227,21 @@ fn explicit_imports_do_not_run_module_main_or_write_bytecode_and_keep_failures()
         "raise ValueError('explicit import failure')\n",
     )
     .unwrap();
+    fs::write(
+        root.path().join("json.py"),
+        "raise RuntimeError('project json module was reached')\n",
+    )
+    .unwrap();
     let mut request = request(root.path(), ValidationKind::PythonImports, "run-import");
     request.source_files.push("broken.py".into());
-    request.options.modules = vec!["main".into(), "broken".into()];
+    request.source_files.push("json.py".into());
+    request.options.modules = vec!["main".into(), "broken".into(), "json".into()];
     let planned = plan(&request).unwrap();
     let mut outcomes = BTreeMap::new();
     execute(&planned, &mut outcomes);
     let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
     assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
-    assert_eq!(output.observation.findings.len(), 1);
+    assert_eq!(output.observation.findings.len(), 2);
     assert_eq!(
         output.observation.findings[0].primary_location.path,
         "broken.py"
@@ -247,7 +253,11 @@ fn explicit_imports_do_not_run_module_main_or_write_bytecode_and_keep_failures()
 #[ignore = "explicit native Python runtime/compile gate"]
 fn runtime_metadata_compilation_and_declared_version_constraints_are_measured_separately() {
     let root = tempfile::tempdir().unwrap();
-    fs::write(root.path().join("main.py"), "def broken(:\n    pass\n").unwrap();
+    fs::write(
+        root.path().join("main.py"),
+        "# prefix\n# second\ndef broken(:\n    pass\n",
+    )
+    .unwrap();
     let mut request = request(root.path(), ValidationKind::PythonRuntime, "run-runtime");
     request.options.compile_sources = true;
     request.options.requires_python = Some(">=99".into());
@@ -258,6 +268,17 @@ fn runtime_metadata_compilation_and_declared_version_constraints_are_measured_se
     let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
     assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
     assert_eq!(output.observation.findings.len(), 2);
+    assert_eq!(
+        output
+            .observation
+            .findings
+            .iter()
+            .find(|finding| finding.rule_id == "python.compat.runtime-syntax")
+            .unwrap()
+            .primary_location
+            .start_line,
+        3
+    );
     assert!(output.extra["runtime"]["soabi"].is_string());
     assert!(!root.path().join("__pycache__").exists());
 }
@@ -397,4 +418,60 @@ fn declared_runtime_matrix_compiles_each_interpreter_and_keeps_optional_and_requ
             .state,
         TaskState::Failed
     );
+}
+#[test]
+#[ignore = "explicit project mutation capability command gate"]
+fn configured_mutation_capability_commands_preserve_available_failure_and_timeout_as_optional() {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("tests")).unwrap();
+    fs::write(
+        root.path().join("tests/test_main.py"),
+        "def test_good():\n    assert True\n",
+    )
+    .unwrap();
+    let command = root.path().join("mutation-capability");
+    fs::write(&command,"#!/bin/sh\nif [ \"$1\" = sleep ]; then sleep 1; exit 0; fi\necho explicit-capability-fixture\nexit \"$1\"\n").unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(&command, fs::Permissions::from_mode(0o700)).unwrap();
+    let selected = ToolRequest {
+        id: "mutation-capability".into(),
+        explicit: Some(command),
+        project_root: root.path().into(),
+        pack_root: None,
+        path_env: None,
+    }
+    .resolve()
+    .unwrap();
+    for (argument, available, timedout) in [
+        ("0", true, false),
+        ("7", false, false),
+        ("sleep", false, true),
+    ] {
+        let mut request = request(
+            root.path(),
+            ValidationKind::PythonTest,
+            &format!("run-mutation-{argument}"),
+        );
+        request.options.mutation_enabled = true;
+        request.options.mutation_tool = Some(selected.clone());
+        request.options.mutation_argv = vec![
+            selected.path.to_string_lossy().into_owned(),
+            argument.into(),
+        ];
+        request.options.quality_timeout_seconds = 0.05;
+        let planned = plan(&request).unwrap();
+        let mut outcomes = BTreeMap::new();
+        execute(&planned, &mut outcomes);
+        let output = observe(&planned, &outcomes, &CapturedArtifacts::default());
+        assert!(
+            output.observation.evidence_is_complete(),
+            "{argument}: {output:?}"
+        );
+        assert_eq!(
+            output.extra["mutation"]["mutation_available"],
+            u8::from(available)
+        );
+        assert_eq!(output.extra["optional_steps"][0]["timed_out"], timedout);
+        assert!(output.observation.findings.is_empty());
+    }
 }

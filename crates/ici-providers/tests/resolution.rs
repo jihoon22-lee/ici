@@ -30,15 +30,21 @@ fn explicit_broken_tool_never_falls_back() {
 }
 #[test]
 fn project_tool_wins_and_same_path_replacement_changes_identity() {
-    let dir = tempfile::tempdir().unwrap();
-    let bin = dir.path().join(".venv/bin/ruff");
-    executable(&bin, "first");
-    let req = request(dir.path());
-    let first = req.resolve().unwrap();
-    assert_eq!(first.source, ToolSource::Project);
-    assert!(first.version.is_none());
-    executable(&bin, "second");
-    assert_ne!(first.digest, req.resolve().unwrap().digest);
+    for id in ["ruff", "mutmut", "cosmic-ray", "mutpy"] {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join(".venv/bin").join(id);
+        executable(&bin, "first");
+        let fallback = dir.path().join("global").join(id);
+        executable(&fallback, "global tool");
+        let mut req = request(dir.path());
+        req.id = id.into();
+        req.path_env = Some(fallback.parent().unwrap().to_string_lossy().into_owned());
+        let first = req.resolve().unwrap();
+        assert_eq!(first.source, ToolSource::Project);
+        assert!(first.version.is_none());
+        executable(&bin, "second");
+        assert_ne!(first.digest, req.resolve().unwrap().digest);
+    }
 }
 #[test]
 fn pack_manifest_is_verified_and_corruption_is_loud() {

@@ -165,9 +165,24 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             plan.tasks.push(report);
         }
         ValidationKind::BinaryCompatibility => {
-            if request.targets.is_empty() || request.targets.len() > 256 {
+            if request.options.max_artifacts == 0
+                || request.options.max_artifacts > 4096
+                || request.targets.is_empty()
+                || request.targets.len() > request.options.max_artifacts
+            {
                 return Err(ValidationError(
-                    "binary compatibility requires 1..256 explicit artifacts".into(),
+                    "binary compatibility requires 1..max_artifacts explicit artifacts (bound 4096)".into(),
+                ));
+            }
+            if request
+                .targets
+                .iter()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                != request.targets.len()
+            {
+                return Err(ValidationError(
+                    "binary artifact identities are duplicated".into(),
                 ));
             }
             for (index, target) in request.targets.iter().enumerate() {
@@ -485,6 +500,33 @@ pub(crate) fn observe_elf(
 ) -> Result<(), ValidationError> {
     let mut facts = BTreeMap::new();
     for (index, path) in plan.context.targets.iter().enumerate() {
+        if let Some(header) = plan.artifact_headers.get(path)
+            && header.magic != b"\x7fELF"
+        {
+            let mut target = InspectionTarget::at(path, 1);
+            target.target_name = "ELF/ABI artifact".into();
+            target.status = if plan.context.options.allow_non_elf {
+                "SKIP"
+            } else {
+                "FAIL"
+            }
+            .into();
+            target.message = "selected artifact is not ELF".into();
+            output.targets.push(target);
+            if !plan.context.options.allow_non_elf {
+                let mut item = finding(
+                    plan,
+                    "ici.binary.non-elf",
+                    "Selected binary manifest artifact is not an ELF object",
+                    path,
+                    1,
+                );
+                item.native_rule_id = "elf.magic".into();
+                item.category = "compatibility".into();
+                output.observation.findings.push(item);
+            }
+            continue;
+        }
         let id = format!("{}.elf{index}", plan.context.task_id);
         let outcome = outcomes
             .get(&id)
@@ -521,7 +563,24 @@ pub(crate) fn observe_elf(
         facts.insert(path.clone(), parsed);
     }
     output.extra["artifacts"] = json!(facts);
-    output.summary = format!("{} ELF artifacts inspected", facts.len());
+    output.extra["artifact_headers"] = json!(
+        plan.artifact_headers
+            .iter()
+            .map(|(path, header)| (
+                path,
+                json!({"is_elf":header.magic==b"\x7fELF","size":header.size})
+            ))
+            .collect::<BTreeMap<_, _>>()
+    );
+    let non_elf = plan
+        .artifact_headers
+        .values()
+        .filter(|header| header.magic != b"\x7fELF")
+        .count();
+    output.summary = format!(
+        "{} ELF artifacts inspected, {non_elf} non-ELF artifacts",
+        facts.len()
+    );
     let policy = &plan.context.options.elf_policy;
     if policy.expected_class.is_empty()
         && policy.expected_machine.is_empty()

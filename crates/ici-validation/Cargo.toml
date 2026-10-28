@@ -10,12 +10,12 @@ ici-domain = { path = "../ici-domain" }
 ici-execution = { path = "../ici-execution" }
 ici-providers = { path = "../ici-providers" }
 ici-cpp = { path = "../ici-cpp" }
+ici-analysis = { path = "../ici-analysis" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 regex = "1.12"
 nix = { version = "0.30", features = ["fs"] }
-pep440_rs = "=0.7.3"
 flate2 = "=1.1.10"
 
 [dev-dependencies]

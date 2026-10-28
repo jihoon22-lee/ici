@@ -4,8 +4,7 @@ The Rust `ici-validation` crate runs declared project tools through the common
 executor. The fixed reference product remains v0.13.0 source
 `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`. Current checkpoints cover Python
 test/coverage/runtime/import and C++ suite/gcov/sanitizer/ELF/process contracts.
-Complete CLI integration, mutation capability probes and full
-inventory closure remain separate work.
+Complete CLI integration and full inventory closure remain separate work.
 
 ## Python checkpoint (2026-10-29)
 
@@ -132,6 +131,43 @@ An explicit two-producer fixture verifies that a fresh first-phase report cannot
 be adopted by the second phase. Older coverage JSON without per-function sections
 can still measure native multiline body hits; definition/header-only hits remain
 insufficient for one-line functions.
+
+## Normalization and optional-capability audit
+
+The latest scoped gate passed 12 general contracts, five C++ contracts, six gcov
+tests, three runtime tests and two sanitizer tests. The sanitizer replay covers
+55 cases captured from the fixed source (including every memory/thread defect
+taxonomy entry and byte/frame/diagnostic limits). Source hash and capture command
+are preserved in `sanitizer-oracle.json` and `capture_sanitizer_oracle.py`.
+
+All eight native Python cases passed in 17.18 seconds; the import protocol's later
+project-`json.py`/missing-newline correction passed separately in 0.92 seconds.
+Actual ASan/UBSan/TSan replay after normalization changes passed in 0.75 seconds,
+and native ELF policy after header capture passed in 0.19 seconds. Resolver tests
+also cover project-local mutmut/cosmic-ray/mutpy precedence. Strict scoped
+Clippy/fmt and the development capture script's Ruff checks passed.
+
+- Optional mutation capability probes run the selected external command with
+  bounded output/time. Missing, failed or timed-out capability leaves the base
+  suite verdict unchanged. Every optional step's actual state, timeout,
+  cancellation and truncation remain in `extra.optional_steps`. The native
+  fixture exercises explicit project commands returning success/failure/timeout;
+  it does not claim a particular mutator version or perform mutations.
+- Runtime version predicates reuse the shared native PEP 440 implementation.
+  `compileall` syntax and Sorry/indentation diagnostics retain their actual source
+  line and message. Failed metadata does not erase independently obtained
+  compilation findings.
+- Sanitizer details preserve frame labels, project/observed counts and redacted
+  external locations. Unknown external columns remain explicitly native metadata,
+  rather than being published as guessed Unicode columns.
+- Execution-phase binary header capture distinguishes non-ELF policy from
+  readelf failure, honors `allow_non_elf` and `max_artifacts` (default 64), and
+  rechecks artifact identity after inspection. Planning still works before the
+  future build artifacts exist. Integration output bounds remain configurable
+  with a 64 KiB default.
+- Import-only protocol bookkeeping does not leave its own newly imported JSON
+  helpers cached ahead of a declared project `json` module. Project initialization
+  output without a trailing newline cannot corrupt the final JSON response.
 
 ## Confirmed function-coverage correction
 
