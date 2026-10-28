@@ -1,0 +1,47 @@
+{
+  "schema_id": "ici.native-upstream-sources",
+  "schema_version": 1,
+  "tools": [
+    {
+      "tool": "ruff",
+      "version": "0.16.4",
+      "release_url": "https://github.com/astral-sh/ruff/releases/tag/0.16.4",
+      "source_archive_url": "https://github.com/astral-sh/ruff/releases/download/0.16.4/source.tar.gz",
+      "source_archive_sha256": "1791d25eed0479ea85da253eecf059d899c5d814189b677fbc22c7b971c354c2",
+      "source_archive_size": 13120186,
+      "ruff_source_revision": "11c76bf48fdac06b2f240cba502eda96da4dce77",
+      "cargo_lock_sha256": "289130bf49884a0470cd56c546b17470811728d21233309313a746b8e8867503",
+      "target": "x86_64-unknown-linux-musl",
+      "notice_inventory": "third-party/ruff-licenses.json",
+      "notices": "third-party/ruff-NOTICES.txt",
+      "source_toolchain": "[toolchain]\nchannel = \"1.97.1\""
+    },
+    {
+      "tool": "ty",
+      "version": "0.0.93",
+      "release_url": "https://github.com/astral-sh/ty/releases/tag/0.0.93",
+      "source_archive_url": "https://github.com/astral-sh/ty/releases/download/0.0.93/source.tar.gz",
+      "source_archive_sha256": "e2e5c69d454f0584c4947dc57ce7a3682ee32c706c8c7ee2c36d84c83cda03af",
+      "source_archive_size": 17708925,
+      "ruff_source_revision": "48630fbedd706272d489f81bbcb308b27feb4174",
+      "cargo_lock_sha256": "36c01543e72b90b2a53effc79103276988508984b70f9d5dcffbfbedff17b928",
+      "target": "x86_64-unknown-linux-musl",
+      "notice_inventory": "third-party/ty-licenses.json",
+      "notices": "third-party/ty-NOTICES.txt",
+      "source_toolchain": "[toolchain]\nchannel = \"1.99.0\""
+    }
+  ],
+  "retained_copyleft_sources": [
+    {
+      "name": "version-ranges",
+      "version": "0.1.1",
+      "license": "MPL-2.0",
+      "source_package_url": "https://static.crates.io/crates/version-ranges/version-ranges-0.1.1.crate",
+      "source_package_sha256": "f8d079415ceb2be83fc355adbadafe401307d5c309c7e6ade6638e6f9f42f42d",
+      "vcs_revision": "51d38dd22078b1dca05bb595f74ee5262e60c46f",
+      "retained_source": "sources/version-ranges-0.1.1.crate",
+      "modifications": "The immutable published source package is retained byte-for-byte. The upstream MPL-2.0 LICENSE from the exact source revision is supplied alongside it.",
+      "license_text": "sources/LICENSE-version-ranges-MPL-2.0.txt"
+    }
+  ]
+}
