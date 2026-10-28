@@ -25,8 +25,8 @@
 |8 TS/JS provider|구현·실제 fixture 통과|ESLint/tsc native config·진단 attribution|
 |9 보조자료 importer|구현·회귀 검증|SARIF/JUnit/LCOV subset, 출처·시점·범위 보존|
 |10 stable/next 수렴|구현·회귀 검증|공통 application·주 명령, legacy verify/pyz/migrate 호환 유지|
-|검증·문서·릴리스|미완료|고정 revision/asset 다운로드 검증|
-|병합·정리|미완료|소유 자원만 정리|
+|검증·문서·릴리스|exact-main 검증 중|0.13.0 source 6fe3e405; archive/전체 corpus/공개 검증 대기|
+|병합·정리|구현·release PR 병합 완료|공개 검증 후 release worktree/소유 임시 자원 정리|
 
 ## 지원 원칙
 
@@ -182,3 +182,23 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
 - release-only 3개 commit을 위 main에 rebase했다. src/pyproject/README/lock/scripts의
   내용은 후보를 빌드한 이전 release head와 동일하여 후보 hash는 유지된다.
 - 다음: release PR CI/병합, exact-main CI와 candidate archive/corpus 인수, tag/public release.
+
+## 릴리스 PR 병합 — 실제 상태 갱신
+
+- PR #296: https://github.com/jihoon22-lee/ici/pull/296 — 2026-10-28 병합 완료.
+- 0.13.0 release source main: `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`.
+  release branch `de3e6d7b523e0260d5026b04328532e332708f41`와 전체 tree diff가 없음을 확인했다.
+- Release PR CI: https://github.com/jihoon22-lee/ici/actions/runs/40613274918 — 성공.
+  unit 4303 passed / 8 skipped(245.35초), 재현 pyz checksum은 로컬 후보와 같은
+  `c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde`다.
+  패키지 설치, smoke, Python/C++/next dogfood, Qt5/6, PR Pages, Merge Gate가 통과했다.
+- Exact-main CI: https://github.com/jihoon22-lee/ici/actions/runs/40617303410 — 진행 중.
+  기존 구현 main CI `40612630907`은 성공했으나 이를 새 release source의 근거로 대신 쓰지 않는다.
+- v0.13.0 태그/공개 release는 아직 없다. 다음은 exact-main CI/게시 확인 → protected-main
+  candidate archive → 전체 16개 corpus 인수 → 태그/게시 → 공개 asset 다운로드/설치 검증이다.
+- 남은 작업 소유 자원: release worktree/branch와 `/tmp/ici-generalization-20261028`.
+  완료 근거 기록용 `docs/generalization-release-evidence` branch를 생성했다.
+  공통 heavy lock은 부모 소유이므로 삭제하지 않는다.
+- 연계 상태: Lens 현재 로컬 경로는 `/home/jihoon/projects/lens-diagnostics`이며 역사적
+  toy-projects provenance는 유지한다. 부모가 공개 idk 0.5.0으로 이 후보의 INCOMPLETE
+  결과 보존을 실제 소비 검증했다(분석 PASS라는 뜻이 아니다).
