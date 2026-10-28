@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 /// Project-relative display span with 1-based Unicode character columns and inclusive endpoints.
 /// Parser byte ranges and SARIF's exclusive end columns must be converted at their adapters.
+#[serde(deny_unknown_fields)]
 pub struct SourceSpan {
     pub path: String,
     pub start_line: u32,
@@ -55,6 +56,7 @@ impl Validate for SourceSpan {
     }
 }
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FindingSuppression {
     pub suppressed: bool,
     pub kind: String,
@@ -75,6 +77,7 @@ impl Validate for FindingSuppression {
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Finding {
     pub fingerprint: String,
     pub rule_id: String,
@@ -160,6 +163,7 @@ impl Validate for Finding {
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Measurement {
     pub name: String,
     pub value: f64,

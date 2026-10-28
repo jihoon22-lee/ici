@@ -7,12 +7,14 @@ use serde_json::Value;
 pub const RUN_SCHEMA_ID: &str = "ici.next.run";
 pub const RUN_SCHEMA_VERSION: u32 = 2;
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Producer {
     pub ici_version: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bundle_digest: Option<String>,
 }
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ScopeSelection {
     pub kind: ScopeKind,
     pub selected_components: Vec<String>,
@@ -22,6 +24,7 @@ pub struct ScopeSelection {
     pub full_required_satisfied: bool,
 }
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExecutionSummary {
     pub required_complete: bool,
     pub cancelled: bool,
@@ -30,6 +33,7 @@ pub struct ExecutionSummary {
     pub reused_task_ids: Vec<String>,
 }
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GateOutcome {
     pub selected: GateVerdict,
     pub workspace: GateVerdict,
@@ -37,11 +41,13 @@ pub struct GateOutcome {
     pub reasons: Vec<String>,
 }
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct PublicationOutcome {
     pub state: PublicationState,
     pub detail: String,
 }
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BaselineComparison {
     pub state: BaselineState,
     pub origin: String,
@@ -93,6 +99,7 @@ impl Validate for CheckRecord {
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RunResult {
     pub schema_id: String,
     pub schema_version: u32,

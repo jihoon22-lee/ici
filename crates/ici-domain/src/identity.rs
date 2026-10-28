@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 
 pub const FINGERPRINT_VERSION: &str = "ici.next.fingerprint.v3";
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SourceSnapshot {
     pub digest: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -31,6 +32,7 @@ impl Validate for SourceSnapshot {
     }
 }
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct RunIdentity {
     pub source: SourceSnapshot,
     pub policy_digest: String,

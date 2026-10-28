@@ -116,3 +116,36 @@ fn inclusive_display_spans_validate_single_and_multiple_lines() {
     span.end_column = Some(0);
     assert!(span.validate().is_err());
 }
+
+#[test]
+fn unknown_modern_evidence_is_rejected_at_every_wire_boundary_instead_of_dropped() {
+    let original: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/domain/run-v2.json"
+    ))
+    .unwrap();
+    for pointer in [
+        "",
+        "/producer",
+        "/identity",
+        "/identity/source",
+        "/scope",
+        "/execution",
+        "/gate",
+        "/publication",
+    ] {
+        let mut value = original.clone();
+        value
+            .pointer_mut(pointer)
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .insert("future_evidence".into(), serde_json::json!(true));
+        assert!(
+            ici_domain::RunResult::from_value(value)
+                .unwrap_err()
+                .to_string()
+                .contains("unknown field"),
+            "{pointer}"
+        );
+    }
+}
