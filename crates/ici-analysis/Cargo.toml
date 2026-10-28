@@ -1,0 +1,21 @@
+[package]
+name = "ici-analysis"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ici-domain = { path = "../ici-domain" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+sha1 = "0.10"
+regex = "1"
+ruff_python_parser = { git = "https://github.com/astral-sh/ruff.git", rev = "11c76bf48fdac06b2f240cba502eda96da4dce77" }
+ruff_python_ast = { git = "https://github.com/astral-sh/ruff.git", rev = "11c76bf48fdac06b2f240cba502eda96da4dce77" }
+ruff_python_trivia = { git = "https://github.com/astral-sh/ruff.git", rev = "11c76bf48fdac06b2f240cba502eda96da4dce77" }
+ruff_text_size = { git = "https://github.com/astral-sh/ruff.git", rev = "11c76bf48fdac06b2f240cba502eda96da4dce77" }
+
+[lints]
+workspace = true
