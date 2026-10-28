@@ -11,12 +11,16 @@ pub use projection::{ProjectionContext, legacy_engine, legacy_projection};
 mod facets;
 mod render;
 mod view;
-pub use render::{github_annotations, render_console, render_html, render_markdown};
-pub use view::RenderOptions;
+pub use render::{
+    bounded_summary, github_annotations, render_console, render_html, render_markdown,
+};
+pub use view::{ConsoleGroupBy, RenderOptions};
 mod sarif;
 pub use sarif::{render_sarif, sarif_document};
 mod migration;
 pub use migration::migrate_report_payload;
+mod issues;
+pub use issues::{IssueGroup, IssueProjection, project_issue_groups};
 
 mod auxiliary;
 mod junit_import;

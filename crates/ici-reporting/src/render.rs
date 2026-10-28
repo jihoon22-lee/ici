@@ -23,25 +23,64 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
             .filter(|finding| suppressed(finding))
             .count()
     );
-    let mut ordered: Vec<_> = view.findings.iter().collect();
-    ordered.sort_by_key(|finding| (suppressed(finding), informational(finding)));
-    for finding in ordered.iter().take(options.max_findings) {
+    let projection = crate::issues::project(&view)?;
+    let mut counts = std::collections::BTreeMap::<String, usize>::new();
+    let mut visible = 0;
+    let mut visible_groups = 0;
+    let mut current_bucket = String::new();
+    for group in &projection.groups {
+        let engine = plain(&group.view["engine_name"]);
+        let count = counts.entry(engine).or_default();
+        if !options.verbose && *count >= options.max_findings {
+            continue;
+        }
+        *count += 1;
+        visible += group.findings.len();
+        visible_groups += 1;
+        let bucket = group_bucket(&group.view, options.group_by);
+        if bucket != current_bucket {
+            let _ = writeln!(out, "{bucket}");
+            current_bucket = bucket;
+        }
         let _ = writeln!(
             out,
-            "{} [{}] {}: {} ({})",
-            location(finding),
-            plain(&finding["severity"]),
-            plain(&finding["rule_id"]),
-            plain(&finding["message"]),
-            marks(finding)
+            "  [{}] {}: {}",
+            plain(&group.view["severity"]),
+            plain(&group.view["rule_id"]),
+            plain(&group.view["message"])
+        );
+        for location in group.view["locations"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .take(options.max_locations)
+        {
+            let _ = writeln!(
+                out,
+                "    {}:{}-{}",
+                plain(&location["path"]),
+                plain(&location["start_line"]),
+                plain(&location["end_line"])
+            );
+        }
+        let _ = writeln!(
+            out,
+            "    {} original findings represented · {}",
+            group.findings.len(),
+            plain(&group.view["provenance"])
         );
     }
-    if view.findings.len() > options.max_findings {
-        let _ = writeln!(
-            out,
-            "{} additional findings in saved report",
-            view.findings.len() - options.max_findings
-        );
+    let _ = writeln!(
+        out,
+        "{} actionable finding(s) shown as {} group(s); {} hidden finding(s), {} hidden group(s)",
+        visible,
+        visible_groups,
+        projection.total_findings - visible,
+        projection.groups.len() - visible_groups
+    );
+    for limitation in projection.limitations {
+        let _ = writeln!(out, "Display limitation: {limitation}");
     }
     for engine in &view.engines {
         let _ = writeln!(
@@ -65,8 +104,75 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
             auxiliary.records.len()
         );
     }
-    Ok(safe::terminal(&ici_execution::redaction::redact_text(&out)))
+    Ok(wrap_console(
+        &safe::terminal(&ici_execution::redaction::redact_text(&out)),
+        options.console_width,
+    ))
 }
+fn group_bucket(group: &Value, by: crate::ConsoleGroupBy) -> String {
+    use crate::ConsoleGroupBy;
+    let (label, value) = match by {
+        ConsoleGroupBy::Engine => ("Engine", plain(&group["engine_name"])),
+        ConsoleGroupBy::Severity => ("Severity", plain(&group["severity"])),
+        ConsoleGroupBy::Category => ("Category", plain(&group["category"])),
+        ConsoleGroupBy::Rule => ("Rule", plain(&group["rule_id"])),
+        ConsoleGroupBy::File => {
+            let paths: std::collections::BTreeSet<_> = group["locations"]
+                .as_array()
+                .map(Vec::as_slice)
+                .unwrap_or_default()
+                .iter()
+                .map(|location| plain(&location["path"]))
+                .collect();
+            (
+                "File",
+                if paths.len() == 1 {
+                    paths.into_iter().next().expect("one path")
+                } else {
+                    "(multiple files)".into()
+                },
+            )
+        }
+    };
+    format!("{label}: {value}")
+}
+fn wrap_console(text: &str, width: usize) -> String {
+    use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+    let width = width.clamp(20, 500);
+    let mut out = String::new();
+    for line in text.lines() {
+        let mut current = String::new();
+        let mut cells = 0;
+        for word in line.split_whitespace() {
+            let word_cells = UnicodeWidthStr::width(word);
+            if !current.is_empty() && cells + 1 + word_cells > width {
+                out.push_str(&current);
+                out.push('\n');
+                current.clear();
+                cells = 0;
+            }
+            if !current.is_empty() {
+                current.push(' ');
+                cells += 1;
+            }
+            for character in word.chars() {
+                let next = UnicodeWidthChar::width(character).unwrap_or(0);
+                if cells + next > width && !current.is_empty() {
+                    out.push_str(&current);
+                    out.push('\n');
+                    current.clear();
+                    cells = 0;
+                }
+                current.push(character);
+                cells += next;
+            }
+        }
+        out.push_str(&current);
+        out.push('\n');
+    }
+    out
+}
+
 fn md(text: &str) -> String {
     html(text)
         .replace('\\', "\\\\")
@@ -91,6 +197,24 @@ pub fn render_markdown(stored: &StoredResult, options: &RenderOptions) -> Result
         "<pre>{}</pre>\n\n",
         html(&crate::canonical_json(&view.axes())?)
     ));
+    let projection = crate::issues::project(&view)?;
+    let _ = write!(
+        out,
+        "## Canonical issue groups\n\n{} original finding(s) shown as {} group(s). Saved JSON and baseline identities are unchanged.\n\n| Rule | Message | Original findings | Provenance |\n| --- | --- | --- | --- |\n",
+        projection.total_findings,
+        projection.groups.len()
+    );
+    for group in &projection.groups {
+        let _ = writeln!(
+            out,
+            "| {} | {} | {} | {} |",
+            md(&plain(&group.view["rule_id"])),
+            md(&plain(&group.view["message"])),
+            group.findings.len(),
+            md(&plain(&group.view["provenance"]))
+        );
+    }
+    out.push('\n');
     out.push_str("## Findings\n\n| Location | Rule | Severity | Message | Evidence and marks |\n| --- | --- | --- | --- | --- |\n");
     let mut ordered: Vec<_> = view.findings.iter().collect();
     ordered.sort_by_key(|finding| (suppressed(finding), informational(finding)));
@@ -200,11 +324,26 @@ pub fn render_markdown(stored: &StoredResult, options: &RenderOptions) -> Result
         );
     }
     if out.len() > options.max_markdown_bytes {
-        return Err(ReportError(format!(
-            "Markdown exceeds {} byte output budget; use saved JSON/HTML",
-            options.max_markdown_bytes
-        )));
+        return bounded_summary(&out, options.max_markdown_bytes);
     }
+    Ok(out)
+}
+pub fn bounded_summary(text: &str, maximum: usize) -> Result<String> {
+    if text.len() <= maximum {
+        return Ok(text.into());
+    }
+    let notice = "\n\n> Summary truncated at its bounded UTF-8 byte limit. Complete findings and targets remain in saved JSON/HTML.\n";
+    if maximum < notice.len() {
+        return Err(ReportError(
+            "Markdown byte budget is smaller than the truncation notice".into(),
+        ));
+    }
+    let mut end = maximum - notice.len();
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    let mut out = text[..end].to_string();
+    out.push_str(notice);
     Ok(out)
 }
 
@@ -222,10 +361,50 @@ pub fn github_annotations(stored: &StoredResult, options: &RenderOptions) -> Res
         }
     }
     let view = View::new(stored)?;
-    Ok(view
+    let mut candidates: Vec<_> = view
         .findings
         .iter()
         .filter(|finding| !suppressed(finding) && !informational(finding))
+        .collect();
+    let mut changed = std::collections::BTreeSet::<String>::new();
+    if view.baseline()["state"] == "comparable" {
+        for fp in view.baseline()["new"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+        {
+            if let Some(fp) = fp.as_str() {
+                changed.insert(fp.into());
+            }
+        }
+    }
+    for entry in view.baseline()["entries"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+    {
+        if (entry["state"] == "new" || entry["regressed"] == true)
+            && let Some(fp) = entry["fingerprint"].as_str()
+        {
+            changed.insert(fp.into());
+        }
+    }
+    candidates.sort_by_key(|finding| {
+        (
+            !changed.contains(finding["fingerprint"].as_str().unwrap_or("")),
+            match finding["severity"].as_str() {
+                Some("critical" | "fatal") => 0,
+                Some("high" | "error") => 1,
+                Some("medium" | "warning") => 2,
+                _ => 3,
+            },
+            location(finding),
+            plain(&finding["rule_id"]),
+            plain(&finding["fingerprint"]),
+        )
+    });
+    Ok(candidates
+        .into_iter()
         .take(options.max_annotations)
         .map(|finding| {
             let level = match finding["severity"].as_str() {
@@ -268,6 +447,16 @@ pub(crate) fn rich(value: &Value, out: &mut String) -> Result<()> {
                     .filter_map(Value::as_object)
                     .flat_map(|item| item.keys())
                     .collect();
+                if keys.len() > 64 {
+                    out.push_str("<ol>");
+                    for item in items {
+                        out.push_str("<li>");
+                        rich(item, out)?;
+                        out.push_str("</li>");
+                    }
+                    out.push_str("</ol>");
+                    return Ok(());
+                }
                 out.push_str("<div class=scroll><table><thead><tr>");
                 for key in &keys {
                     let _ = write!(out, "<th>{}</th>", html(key));
@@ -333,20 +522,58 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         .iter()
         .filter(|finding| suppressed(finding))
         .count();
+    let projection = crate::issues::project(&view)?;
     let _ = write!(
         out,
-        "<h2 id=issues>Issues ({})</h2><p>{suppressed_count} suppressed; every finding remains in saved JSON.</p><input id=finding-filter type=search placeholder=\"Filter findings and targets\" aria-label=\"Filter findings and targets\"><span id=filter-count aria-live=polite></span>",
-        view.findings
-            .iter()
-            .filter(|finding| !suppressed(finding) && !informational(finding))
-            .count()
+        "<h2 id=issues>Issues ({})</h2><p>{} original findings in {} display groups; {suppressed_count} suppressed. Display grouping leaves JSON and baseline inventory unchanged.</p><input id=finding-filter type=search placeholder=\"Filter findings and targets\" aria-label=\"Filter findings and targets\"><span id=filter-count aria-live=polite></span>",
+        projection.total_findings,
+        projection.total_findings,
+        projection.groups.len()
     );
-    for finding in view
-        .findings
+    out.push_str("<div id=issue-groups>");
+    let lazy = projection.total_findings > 2_000;
+    for group in projection
+        .groups
         .iter()
-        .filter(|finding| !suppressed(finding) && !informational(finding))
+        .take(if lazy { 50 } else { usize::MAX })
     {
-        finding_card(finding, &mut out)?;
+        group_card(group, &mut out)?;
+    }
+    out.push_str("</div>");
+    let group_data = if lazy {
+        out.push_str("<p><button type=button id=group-prev>Previous</button> <span id=group-page aria-live=polite></span> <button type=button id=group-next>Next</button></p>");
+        let mut groups = vec![];
+        for group in &projection.groups {
+            let first = &view.findings[group.source_indices[0]];
+            let mut data = serde_json::json!({"indices":group.source_indices});
+            for (key, wire) in [
+                ("rule_id", "rule"),
+                ("message", "message"),
+                ("snippet", "snippet"),
+            ] {
+                if group.view[key] != first[key] {
+                    data[wire] = group.view[key].clone();
+                }
+            }
+            if group.findings.len() > 1 {
+                data["locations"] = group.view["locations"].clone();
+            }
+            if group.view["provenance"]
+                .as_array()
+                .is_some_and(|values| !values.is_empty())
+            {
+                data["provenance"] = group.view["provenance"].clone();
+            }
+            groups.push(data);
+        }
+        Some(crate::script_json(
+            &serde_json::json!({"groups":groups,"page_size":50}),
+        )?)
+    } else {
+        None
+    };
+    if !projection.limitations.is_empty() {
+        rich(&serde_json::json!(projection.limitations), &mut out)?;
     }
     let informational_count = view
         .findings
@@ -404,10 +631,23 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         rich(&safe::redact(&document.to_value()?), &mut out)?;
     }
     // Complete escaped payload survives the presentation, including unknown producer fields.
+    let saved_json = crate::script_json(&view.document)?;
+    if saved_json.len() + group_data.as_ref().map_or(0, String::len) > crate::json::MAX_STORED_BYTES
+    {
+        return Err(ReportError(
+            "HTML exceeds 64 MiB embedded JSON bound".into(),
+        ));
+    }
+    if let Some(data) = group_data {
+        let _ = write!(
+            out,
+            "<script id=ici-groups type=application/json>{data}</script>"
+        );
+    }
     let _ = writeln!(
         out,
         "<details><summary>Complete saved result</summary><pre id=raw-result></pre></details><script id=ici-result type=application/json>{}</script><script>{}</script></main></body></html>",
-        crate::script_json(&view.document)?,
+        saved_json,
         include_str!("../assets/native.js")
     );
     if out.len() > 128 * 1024 * 1024 {
@@ -417,11 +657,57 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     }
     Ok(out)
 }
+fn group_card(group: &crate::IssueGroup, out: &mut String) -> Result<()> {
+    let mut finding = group
+        .findings
+        .iter()
+        .find(|finding| {
+            finding["message"] == group.view["message"]
+                && finding["primary_location"]["path"] == group.view["primary_location"]["path"]
+                && finding["primary_location"]["start_line"]
+                    == group.view["primary_location"]["start_line"]
+        })
+        .or_else(|| group.findings.first())
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!({}));
+    for key in [
+        "rule_id",
+        "message",
+        "primary_location",
+        "related_locations",
+        "snippet",
+        "severity",
+        "confidence",
+    ] {
+        finding[key] = group.view[key].clone();
+    }
+    finding_card(&finding, out)?;
+    if group.findings.len() > 1
+        || group.view["provenance"]
+            .as_array()
+            .is_some_and(|items| !items.is_empty())
+    {
+        let _ = write!(
+            out,
+            "<details><summary>{} original findings represented · provenance and locations</summary>",
+            group.findings.len()
+        );
+        rich(&group.view, out)?;
+        out.push_str("<details><summary>Every original saved finding</summary>");
+        rich(&serde_json::json!(group.findings), out)?;
+        out.push_str("</details></details>");
+    }
+    Ok(())
+}
+
 fn copy_location(path: &str, line: u64, column: Option<u64>) -> String {
     let text = format!(
         "{path}:{line}{}",
         column.map_or(String::new(), |column| format!(":{column}"))
     );
+    if path == "[external]" {
+        return format!("<code>{}</code>", html(&text));
+    }
     format!(
         "<code>{}</code> <button type=button data-copy-location=\"{}\" aria-label=\"Copy location {}\">Copy</button>",
         html(&text),

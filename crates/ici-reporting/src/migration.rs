@@ -92,6 +92,96 @@ fn project_path(raw: &str, root: Option<&str>) -> Result<String> {
         parts.join("/")
     })
 }
+pub(crate) fn fingerprint(rule: &str, location: &Value, symbol: &str) -> Result<String> {
+    let mut region = serde_json::Map::new();
+    for key in ["start_line", "end_line", "start_column", "end_column"] {
+        region.insert(key.into(), location[key].clone());
+    }
+    Ok(ici_domain::sha256(crate::canonical_json(
+        &json!({"version":"ici-fingerprint/v1","rule_id":rule,"path":location["path"],"symbol":symbol.trim(),"region":if symbol.trim().is_empty(){Value::Object(region)}else{Value::Null}}),
+    )?))
+}
+pub(crate) fn adapted_findings(engine: &Value) -> Result<Vec<Value>> {
+    let mut payload = json!({"engine_name":engine["engine_name"],"evidence":engine["evidence"],"targets":engine["targets"],"tool_evidence":engine["tool_evidence"]});
+    migrate_engine(&mut payload, None)?;
+    Ok(payload["findings"]
+        .as_array()
+        .expect("adapted findings")
+        .clone())
+}
+pub(crate) fn canonical_finding(value: &Value) -> Result<Value> {
+    let mut value = value.clone();
+    let rule = value["rule_id"]
+        .as_str()
+        .ok_or_else(|| ReportError("Historical native finding requires rule_id".into()))?;
+    if !rule.starts_with("ici.")
+        || !rule
+            .chars()
+            .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '.' | '-'))
+    {
+        return Err(ReportError(
+            "Historical native rule_id must use ici namespace".into(),
+        ));
+    }
+    let rule = rule.to_string();
+    fn location(source: &Value) -> Result<Value> {
+        let path = project_path(
+            source["path"]
+                .as_str()
+                .ok_or_else(|| ReportError("Historical source location requires a path".into()))?,
+            None,
+        )?;
+        let sl = crate::paths::positive(&source["start_line"], "location.start_line")?;
+        let mut location = json!({"path":path,"start_line":sl,"end_line":null,"start_column":null,"end_column":null,"label":source["label"].as_str().unwrap_or("")});
+        for key in ["end_line", "start_column", "end_column"] {
+            if let Some(value) = source.get(key).filter(|value| !value.is_null()) {
+                location[key] = json!(crate::paths::positive(value, key)?);
+            }
+        }
+        let el = location["end_line"].as_u64().unwrap_or(u64::from(sl));
+        if el < u64::from(sl)
+            || (el == u64::from(sl)
+                && location["start_column"]
+                    .as_u64()
+                    .zip(location["end_column"].as_u64())
+                    .is_some_and(|(start, end)| end < start))
+        {
+            return Err(ReportError("Historical source region is reversed".into()));
+        }
+        Ok(location)
+    }
+    value["primary_location"] = location(&value["primary_location"])?;
+    value["related_locations"] = json!(
+        value["related_locations"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .map(location)
+            .collect::<Result<Vec<_>>>()?
+    );
+    value["fingerprint"] = json!(fingerprint(
+        &rule,
+        &value["primary_location"],
+        value["primary_location"]["label"].as_str().unwrap_or("")
+    )?);
+    if let Some(related) = value["related_locations"].as_array_mut() {
+        related.sort_by_key(|location| {
+            (
+                plain_string(&location["path"]),
+                location["start_line"].as_u64().unwrap_or(1),
+                location["start_column"].as_u64().unwrap_or(0),
+                location["end_line"].as_u64().unwrap_or(0),
+                location["end_column"].as_u64().unwrap_or(0),
+                plain_string(&location["label"]),
+            )
+        });
+    }
+    Ok(value)
+}
+fn plain_string(value: &Value) -> String {
+    value.as_str().unwrap_or("").to_string()
+}
 fn metric_unit(name: &str) -> &'static str {
     let name = name.to_ascii_lowercase();
     if name.ends_with("_pct") || name.ends_with("_percent") {
@@ -238,7 +328,18 @@ pub fn migrate_report_payload(
 ) -> Result<LegacyDocument> {
     crate::json::validate_shape(payload)?;
     if payload["schema_version"] == "ici.result/v3" {
-        return LegacyDocument::from_value(safe::redact(payload));
+        let mut value = payload.clone();
+        if let Some(engines) = value.get_mut("results").and_then(Value::as_array_mut) {
+            for engine in engines {
+                engine["schema_version"] = json!("ici.result/v3");
+                if !engine["findings"].is_array() {
+                    migrate_engine(engine, project_root)?;
+                }
+            }
+        } else if !value["findings"].is_array() {
+            migrate_engine(&mut value, project_root)?;
+        }
+        return LegacyDocument::from_value(safe::redact(&value));
     }
     if payload["schema_version"] != "ici.result/v2" || !payload.is_object() {
         return Err(ReportError(

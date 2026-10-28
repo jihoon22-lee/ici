@@ -41,6 +41,60 @@ fn level(finding: &Value) -> &'static str {
         _ => "warning",
     }
 }
+fn fixes(finding: &Value) -> Result<(Vec<Value>, Vec<String>)> {
+    let mut exported = vec![];
+    let mut limitations = vec![];
+    for fix in finding["fixes"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+    {
+        let Some(replacements) = fix["replacements"]
+            .as_array()
+            .filter(|values| !values.is_empty())
+        else {
+            continue;
+        };
+        if !replacements.iter().all(|replacement| {
+            replacement
+                .get("column_kind")
+                .or_else(|| fix.get("column_kind"))
+                .and_then(Value::as_str)
+                == Some("unicodeCodePoints")
+                && replacement
+                    .get("end_exclusive")
+                    .or_else(|| fix.get("end_exclusive"))
+                    .and_then(Value::as_bool)
+                    == Some(true)
+        }) {
+            limitations.push("Suggested edit retained as native properties: Unicode column units and exclusive end bounds were not explicitly confirmed".into());
+            continue;
+        }
+        let mut changes = BTreeMap::<String, Vec<Value>>::new();
+        for replacement in replacements {
+            let path = replacement["path"]
+                .as_str()
+                .ok_or_else(|| ReportError("Marked fix requires path".into()))?;
+            let sl = paths::positive(&replacement["start_line"], "fix.start_line")?;
+            let sc = paths::positive(&replacement["start_column"], "fix.start_column")?;
+            let el = paths::positive(&replacement["end_line"], "fix.end_line")?;
+            let ec = paths::positive(&replacement["end_column"], "fix.end_column")?;
+            if (el, ec) < (sl, sc) {
+                return Err(ReportError(
+                    "Marked fix has reversed exclusive source region".into(),
+                ));
+            }
+            let inserted = replacement["replacement"].as_str().ok_or_else(|| {
+                ReportError("Marked fix requires literal replacement text".into())
+            })?;
+            changes.entry(uri(path)?).or_default().push(json!({"deletedRegion":{"startLine":sl,"startColumn":sc,"endLine":el,"endColumn":ec},"insertedContent":{"text":inserted}}));
+        }
+        exported.push(json!({"description":{"text":fix["description"].as_str().unwrap_or("")},"artifactChanges":changes.into_iter().map(|(uri,replacements)|json!({"artifactLocation":{"uri":uri},"replacements":replacements})).collect::<Vec<_>>()}));
+    }
+    limitations.sort();
+    limitations.dedup();
+    Ok((exported, limitations))
+}
 /// Export Unicode code-point columns with exclusive SARIF ends and no implicit URI base.
 pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<Value> {
     let view = View::new(stored)?;
@@ -51,7 +105,7 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
     let mut results = vec![];
     for finding in &view.findings {
         let rule = finding["rule_id"].as_str().unwrap_or("unknown");
-        rules.entry(rule.into()).or_insert_with(||json!({"id":rule,"defaultConfiguration":{"level":level(finding)},"properties":{"provider":finding.get("provider").or_else(||finding.get("tool_name")),"nativeRuleId":finding.get("native_rule_id").or_else(||finding.get("tool_rule_id")),"tags":finding["tags"]}}));
+        rules.entry(rule.into()).or_insert_with(||json!({"id":rule,"defaultConfiguration":{"level":level(finding)},"properties":{"provider":finding.get("provider").or_else(||finding.get("tool_name")),"nativeRuleId":finding.get("native_rule_id").or_else(||finding.get("tool_rule_id")),"tags":finding.get("tags").cloned().unwrap_or_else(||json!([]))}}));
         let mut properties = finding.as_object().cloned().unwrap_or_default();
         for key in [
             "primary_location",
@@ -62,7 +116,7 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
         ] {
             properties.remove(key);
         }
-        let mut entry = json!({"ruleId":rule,"level":level(finding),"message":{"text":finding["message"]},
+        let mut entry = json!({"ruleId":rule,"level":level(finding),"message":{"text":finding["message"].as_str().unwrap_or("")},
             "locations":[{"physicalLocation":physical(&finding["primary_location"])?}],
             "partialFingerprints":{"ici.fingerprint":finding["fingerprint"]},"properties":properties});
         if let Some(related) = finding["related_locations"]
@@ -83,11 +137,27 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
                 }
             }
         }
+        if let Some(delta) = baseline["entries"].as_array().and_then(|entries| {
+            entries
+                .iter()
+                .find(|entry| entry["fingerprint"] == finding["fingerprint"])
+        }) {
+            if matches!(delta["state"].as_str(), Some("new" | "unchanged")) {
+                entry["baselineState"] = delta["state"].clone();
+            } else if delta["state"] == "moved" {
+                entry["baselineState"] = json!("updated");
+            }
+        }
         if suppressed(finding) {
             entry["suppressions"] = json!([{"kind":if finding["suppression"]["kind"]=="inline"{"inSource"}else{"external"},"justification":finding["suppression"]["reason"],"properties":{"origin":finding["suppression"]["origin"]}}]);
         }
-        // Suggested edits are retained as literal properties. Historical fix coordinates
-        // have producer-specific units/end conventions, so no executable edit is invented.
+        let (exported, limitations) = fixes(finding)?;
+        if !exported.is_empty() {
+            entry["fixes"] = json!(exported);
+        }
+        if !limitations.is_empty() {
+            entry["properties"]["fixLimitations"] = json!(limitations);
+        }
         results.push(entry);
     }
     let axes = view.axes();
@@ -101,13 +171,15 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
         document.validate()?;
         supporting.push(safe::redact(&document.to_value()?));
     }
-    Ok(
-        json!({"$schema":"https://json.schemastore.org/sarif-2.1.0.json","version":"2.1.0","runs":[{
-            "tool":{"driver":{"name":"ici","version":version,"rules":rules.into_values().collect::<Vec<_>>()}},
-            "columnKind":"unicodeCodePoints","invocations":[{"executionSuccessful":axes["execution"]["required_complete"]==true,"exitCode":axes["exit_code"].as_i64().unwrap_or(0)}],
-            "results":results,"properties":{"ici.schemaId":stored.schema(),"axes":axes,"baseline":view.baseline(),"metrics":view.metrics(),"supportingEvidence":supporting}
-        }]}),
-    )
+    let mut document = json!({"$schema":"https://json.schemastore.org/sarif-2.1.0.json","version":"2.1.0","runs":[{
+        "tool":{"driver":{"name":"ici","version":version,"rules":rules.into_values().collect::<Vec<_>>()}},
+        "columnKind":"unicodeCodePoints",
+        "results":results,"properties":{"ici.schemaId":stored.schema(),"axes":axes,"baseline":view.baseline(),"metrics":view.metrics(),"supportingEvidence":supporting}
+    }]});
+    if view.run.is_some() {
+        document["runs"][0]["invocations"] = json!([{"executionSuccessful":axes["execution"]["required_complete"]==true,"exitCode":axes["exit_code"]}]);
+    }
+    Ok(document)
 }
 pub fn render_sarif(stored: &StoredResult, options: &RenderOptions) -> Result<String> {
     crate::canonical_json(&sarif_document(stored, options)?)

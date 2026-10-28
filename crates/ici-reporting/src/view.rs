@@ -1,5 +1,15 @@
 use crate::{Result, StoredResult, safe};
 use serde_json::{Value, json};
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ConsoleGroupBy {
+    #[default]
+    Engine,
+    Severity,
+    Category,
+    File,
+    Rule,
+}
 #[derive(Clone, Debug)]
 pub struct RenderOptions {
     pub title: String,
@@ -8,6 +18,10 @@ pub struct RenderOptions {
     pub max_annotations: usize,
     pub max_markdown_bytes: usize,
     pub auxiliary: Vec<crate::AuxiliaryDocument>,
+    pub verbose: bool,
+    pub group_by: ConsoleGroupBy,
+    pub max_locations: usize,
+    pub console_width: usize,
 }
 impl Default for RenderOptions {
     fn default() -> Self {
@@ -18,6 +32,10 @@ impl Default for RenderOptions {
             max_annotations: 50,
             max_markdown_bytes: 900_000,
             auxiliary: vec![],
+            verbose: false,
+            group_by: ConsoleGroupBy::Engine,
+            max_locations: 4,
+            console_width: 80,
         }
     }
 }
@@ -26,6 +44,7 @@ pub(crate) struct View {
     pub run: Option<Value>,
     pub engines: Vec<Value>,
     pub findings: Vec<Value>,
+    pub finding_engines: Vec<String>,
 }
 impl View {
     pub fn new(stored: &StoredResult) -> Result<Self> {
@@ -48,16 +67,29 @@ impl View {
         let findings = if !engines.is_empty() {
             engines
                 .iter()
-                .flat_map(|engine| engine["findings"].as_array().cloned().unwrap_or_default())
+                .flat_map(|engine| decorated_findings(engine, run.as_ref()))
                 .collect()
         } else {
             document["findings"].as_array().cloned().unwrap_or_default()
         };
+        let finding_engines = engines
+            .iter()
+            .flat_map(|engine| {
+                std::iter::repeat_n(
+                    engine["engine_name"]
+                        .as_str()
+                        .unwrap_or("unknown")
+                        .to_string(),
+                    engine["findings"].as_array().map_or(0, Vec::len),
+                )
+            })
+            .collect();
         Ok(Self {
             document,
             run,
             engines,
             findings,
+            finding_engines,
         })
     }
     pub fn verdict(&self) -> String {
@@ -95,6 +127,83 @@ impl View {
             &self.document["tem_score"]
         }
     }
+}
+fn decorated_findings(engine: &Value, run: Option<&Value>) -> Vec<Value> {
+    use std::collections::{BTreeMap, VecDeque};
+    let modern: BTreeMap<_, _> = run
+        .and_then(|run| run["findings"].as_array())
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|finding| Some((finding["fingerprint"].as_str()?, finding)))
+        .collect();
+    let mut mappings = BTreeMap::<&str, VecDeque<&Value>>::new();
+    for mapping in engine["extra"]["finding_identity_map"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+    {
+        if let Some(fp) = mapping["legacy_fingerprint"].as_str() {
+            mappings.entry(fp).or_default().push_back(mapping);
+        }
+    }
+    let checks: BTreeMap<_, _> = engine["extra"]["native_checks"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|check| Some((check["task_id"].as_str()?, check)))
+        .collect();
+    engine["findings"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|mut finding| {
+            finding["evidence"] = engine["evidence"].clone();
+            if let Some(mapping) = finding["fingerprint"]
+                .as_str()
+                .and_then(|fp| mappings.get_mut(fp))
+                .and_then(VecDeque::pop_front)
+            {
+                if let Some(native) = mapping["modern_fingerprint"]
+                    .as_str()
+                    .and_then(|fp| modern.get(fp))
+                {
+                    for key in [
+                        "evidence",
+                        "component_id",
+                        "analysis_unit_id",
+                        "variant",
+                        "task_id",
+                        "limitations",
+                    ] {
+                        if let Some(value) = native.get(key) {
+                            finding[key] = value.clone();
+                        }
+                    }
+                    if let Some(origin) = native
+                        .get("suppression")
+                        .and_then(|value| value.get("origin"))
+                    {
+                        finding["suppression"]["origin"] = origin.clone();
+                    }
+                }
+                if let Some(details) = mapping["task_id"]
+                    .as_str()
+                    .and_then(|task| checks.get(task))
+                    .and_then(|check| {
+                        check["extra"]["finding_details"]
+                            .get(mapping["raw_fingerprint"].as_str().unwrap_or(""))
+                    })
+                    && let Some(fixes) = details.get("fixes")
+                {
+                    finding["fixes"] = fixes.clone();
+                }
+            }
+            finding
+        })
+        .collect()
 }
 pub(crate) fn suppressed(finding: &Value) -> bool {
     finding["suppression"]["suppressed"] == true

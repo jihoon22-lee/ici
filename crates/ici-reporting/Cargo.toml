@@ -13,6 +13,7 @@ serde_json.workspace = true
 sha2.workspace = true
 thiserror.workspace = true
 regex = "1.12"
+unicode-width = "=0.2.3"
 quick-xml = "=0.41.0"
 percent-encoding = "=2.3.2"
 chrono = { version = "=0.4.45", default-features = false, features = ["std"] }

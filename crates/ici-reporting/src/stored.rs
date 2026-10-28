@@ -1,6 +1,6 @@
 use crate::{
     ReportError, Result,
-    json::{MAX_RECORDS, strict_json, validate_shape},
+    json::{MAX_RECORDS, strict_stored_json, validate_stored_shape},
 };
 use ici_domain::{RunResult, Validate};
 use serde_json::Value;
@@ -17,7 +17,7 @@ pub struct LegacyDocument {
 }
 impl LegacyDocument {
     pub fn from_value(payload: Value) -> Result<Self> {
-        validate_shape(&payload)?;
+        validate_stored_shape(&payload)?;
         let object = payload
             .as_object()
             .ok_or_else(|| ReportError("Legacy result must be an object".into()))?;
@@ -102,10 +102,10 @@ pub enum StoredResult {
 }
 impl StoredResult {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        Self::from_value(strict_json(bytes)?)
+        Self::from_value(strict_stored_json(bytes)?)
     }
     pub fn from_value(value: Value) -> Result<Self> {
-        validate_shape(&value)?;
+        validate_stored_shape(&value)?;
         if value.get("schema_id").is_some() {
             return Ok(Self::Run(Box::new(RunResult::from_value(value)?)));
         }
@@ -122,7 +122,7 @@ impl StoredResult {
         }
     }
     pub fn to_json(&self) -> Result<String> {
-        crate::json::canonical_json(&self.to_value()?)
+        Ok(ici_domain::canonical_json(&self.to_value()?)?)
     }
     pub fn schema(&self) -> &str {
         match self {

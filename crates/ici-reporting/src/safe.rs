@@ -1,12 +1,24 @@
 use serde_json::Value;
 pub(crate) fn redact(value: &Value) -> Value {
-    let value = ici_execution::redaction::redact_value(value);
-    fn keys(value: &mut Value) {
+    use std::collections::{BTreeMap, BTreeSet};
+    fn text(value: &str, cache: &mut BTreeMap<String, String>) -> String {
+        if let Some(cached) = cache.get(value) {
+            return cached.clone();
+        }
+        let safe = ici_execution::redaction::redact_text(value);
+        if cache.len() < 4096 && value.len() <= 512 {
+            cache.insert(value.into(), safe.clone());
+        }
+        safe
+    }
+    fn walk(value: &Value, cache: &mut BTreeMap<String, String>) -> Value {
         match value {
             Value::Object(items) => {
+                let mut safe = serde_json::Map::new();
+                let mut keys = BTreeSet::new();
                 for (key, item) in items {
-                    let key = key.to_ascii_lowercase().replace(['-', '_'], "");
-                    if [
+                    let normalized = key.to_ascii_lowercase().replace(['-', '_'], "");
+                    let item = if [
                         "password",
                         "passwd",
                         "secret",
@@ -18,21 +30,31 @@ pub(crate) fn redact(value: &Value) -> Value {
                         "authorization",
                         "cookie",
                     ]
-                    .contains(&key.as_str())
+                    .contains(&normalized.as_str())
                     {
-                        *item = Value::String(ici_execution::redaction::REDACTED.into());
+                        Value::String(ici_execution::redaction::REDACTED.into())
                     } else {
-                        keys(item);
+                        walk(item, cache)
+                    };
+                    let base = text(key, cache);
+                    let mut key = base.clone();
+                    let mut suffix = 2;
+                    while !keys.insert(key.clone()) {
+                        key = format!("{base}#{suffix}");
+                        suffix += 1;
                     }
+                    safe.insert(key, item);
                 }
+                Value::Object(safe)
             }
-            Value::Array(items) => items.iter_mut().for_each(keys),
-            _ => {}
+            Value::Array(items) => {
+                Value::Array(items.iter().map(|item| walk(item, cache)).collect())
+            }
+            Value::String(value) => Value::String(text(value, cache)),
+            _ => value.clone(),
         }
     }
-    let mut value = value;
-    keys(&mut value);
-    value
+    walk(value, &mut BTreeMap::new())
 }
 pub(crate) fn html(text: &str) -> String {
     text.replace('&', "&amp;")

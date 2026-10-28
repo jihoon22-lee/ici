@@ -7,6 +7,7 @@ use serde::{
 use serde_json::Value;
 use std::{collections::BTreeSet, fmt};
 pub const MAX_BYTES: usize = 32 * 1024 * 1024;
+pub(crate) const MAX_STORED_BYTES: usize = 64 * 1024 * 1024;
 pub const MAX_RECORDS: usize = 100_000;
 const MAX_NODES: usize = 1_000_000;
 #[derive(Debug)]
@@ -81,14 +82,20 @@ impl<'de> Deserialize<'de> for Unique {
     }
 }
 pub(crate) fn validate_shape(value: &Value) -> Result<()> {
+    validate_shape_bound(value, MAX_NODES)
+}
+pub(crate) fn validate_stored_shape(value: &Value) -> Result<()> {
+    validate_shape_bound(value, 8_000_000)
+}
+fn validate_shape_bound(value: &Value, maximum: usize) -> Result<()> {
     let mut nodes = 0usize;
     let mut pending = vec![(value, 0u32)];
     while let Some((value, depth)) = pending.pop() {
         nodes += 1;
-        if nodes > MAX_NODES || depth > 128 {
-            return Err(ReportError(
-                "Report exceeds one million JSON nodes or 128 nesting levels".into(),
-            ));
+        if nodes > maximum || depth > 128 {
+            return Err(ReportError(format!(
+                "Report exceeds {maximum} JSON nodes or 128 nesting levels"
+            )));
         }
         match value {
             Value::Array(items) => pending.extend(items.iter().map(|item| (item, depth + 1))),
@@ -109,13 +116,27 @@ pub fn strict_json(bytes: &[u8]) -> Result<Value> {
     validate_shape(&value)?;
     Ok(value)
 }
+pub(crate) fn strict_stored_json(bytes: &[u8]) -> Result<Value> {
+    if bytes.len() > MAX_STORED_BYTES {
+        return Err(ReportError(
+            "Stored result exceeds 64 MiB input bound".into(),
+        ));
+    }
+    let bytes = bytes.strip_prefix(b"\xef\xbb\xbf").unwrap_or(bytes);
+    let mut deserializer = serde_json::Deserializer::from_slice(bytes);
+    let Unique(value) = Unique::deserialize(&mut deserializer)?;
+    deserializer.end()?;
+    validate_stored_shape(&value)?;
+    Ok(value)
+}
 pub fn canonical_json(value: &Value) -> Result<String> {
     validate_shape(value)?;
     Ok(ici_domain::canonical_json(value)?)
 }
 /// HTML raw-text elements need JSON escapes even when the document has no executable script.
 pub fn script_json(value: &Value) -> Result<String> {
-    Ok(canonical_json(value)?
+    validate_stored_shape(value)?;
+    Ok(ici_domain::canonical_json(value)?
         .replace('&', "\\u0026")
         .replace('<', "\\u003c")
         .replace('>', "\\u003e")
