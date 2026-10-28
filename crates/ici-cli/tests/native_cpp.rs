@@ -251,7 +251,7 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
         )
     })
     .collect::<String>();
-    fs::write(root.path().join("ici.toml"),runtime_config(&["cpp.test","cpp.coverage","cpp.artifact","cpp.binary-compat"],&format!("{tools}[engines.test]\nmin_line_cov=100.0\nmin_file_statements=1\nmax_coverage_regression=2.0\n[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n"))).unwrap();
+    fs::write(root.path().join("ici.toml"),runtime_config(&["cpp.test","cpp.coverage","cpp.artifact","cpp.binary-compat"],&format!("{tools}[engines.test]\nmin_line_cov=100.0\nmin_file_statements=1\nmax_coverage_regression=2.0\nmin_tem_score=0.0\nmin_changed_line_cov=100.0\nchanged_lines=['main.cpp:1']\n[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n"))).unwrap();
     let invocation =
         registry::parse(["ici", "next", "verify", "--events", "events.jsonl"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
@@ -264,6 +264,12 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
             .max_coverage_regression,
         Some(2.0)
     );
+    let options = &preview.validations["project.cpp.coverage"][0]
+        .context
+        .options;
+    assert_eq!(options.min_tem_score, Some(0.0));
+    assert_eq!(options.min_changed_line_cov, Some(100.0));
+    assert_eq!(options.changed_lines, ["main.cpp:1"]);
     assert_eq!(
         preview.validations["project.cpp.coverage"].len(),
         1,
@@ -305,6 +311,16 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
             .iter()
             .any(|target| target.file_path == "main.cpp")
     );
+    for label in ["TEM score", "Changed executable-line coverage"] {
+        assert!(
+            run.outputs["project.cpp.coverage"]
+                .targets
+                .iter()
+                .any(|target| target.target_name == label && target.status == "PASS"),
+            "{:#?}",
+            run.outputs["project.cpp.coverage"]
+        );
+    }
     assert!(
         run.outputs["project.cpp.binary-compat"]
             .targets

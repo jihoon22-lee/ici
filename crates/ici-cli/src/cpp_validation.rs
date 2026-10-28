@@ -223,6 +223,10 @@ fn bind_inner(
             request.options.min_branch_cov = number(cfg, "min_branch_cov");
             request.options.min_func_cov = number(cfg, "min_func_cov");
             request.options.max_coverage_regression = number(cfg, "max_coverage_regression");
+            request.options.min_tem_score = number(cfg, "min_tem_score");
+            request.options.min_changed_line_cov = number(cfg, "min_changed_line_cov");
+            request.options.changed_lines = strings(cfg.and_then(|cfg| cfg.get("changed_lines")));
+
             request.options.min_file_statements = cfg
                 .and_then(|cfg| cfg.get("min_file_statements"))
                 .and_then(Value::as_u64)
