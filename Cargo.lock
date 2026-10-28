@@ -811,6 +811,7 @@ dependencies = [
  "base64 0.22.1",
  "crc32fast",
  "csv",
+ "idna",
  "ici-domain",
  "num-bigint",
  "pep440_rs",
