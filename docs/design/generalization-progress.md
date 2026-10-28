@@ -160,3 +160,8 @@ Linux/WSL/CI를 우선한다. RHEL/GHES/idk 인수는 각각의 지원 근거이
   known-answer 통과이며 모든 샘플 코드가 깨끗하다는 의미가 아니다.
 - corpus unit은 새 hash를 정확한 selector 집합에 추가한 뒤 68개 통과(기존 hash 모두 보존).
   전체 16개 실제 tool corpus 인수는 protected-main workflow에서 수행할 예정이다.
+
+- 동일 0.13.0 candidate pyz를 fresh Python/Rust/JavaScript/TypeScript fixture에서 직접
+  실행했다. 4/4에서 의도한 위반과 exit 1을 얻었고, unique run_id·result/event 일치,
+  HTML 생성, TS composite metadata 격리/noEmit을 확인했다. 코드를 깨끗하다고 판정한
+  PASS가 아니라 결함 검출 및 artifact 실행 계약의 PASS다.
