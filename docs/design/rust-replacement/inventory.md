@@ -1,7 +1,9 @@
 # Rust 교체 기능·계약 원장
 
 이 원장은 고정 공개판 소스의 정적 수집 결과다. 항목 수나 추출 성공은 Rust 동등성 인수가 아니다.
-구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json에서 개별 관리한다.
+구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json과 closure/*.json에서
+개별 관리한다. 아래 상태는 둘을 결합한 값이며, 여러 출처가 같은 행을 다루면 가장 덜 닫힌 상태가
+적용된다. complete는 모든 출처가 complete이고 각자 증거를 갖출 때만 성립한다.
 현재 status가 not_started인 행은 미구현·미검증이다. 전환 승인은 전체 원장과 source audit를 닫아야 한다.
 
 - 고정 oracle: `v0.13.0`, source `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`.
@@ -39,6 +41,19 @@ cutover에서 제거한 뒤에도 Git history가 있으면 재생성할 수 있�
 | wire_schema | 6 |
 | 원본 파일 audit | 291 |
 | Python module | 283 |
+
+## 결합 closure 상태
+
+closure fragment: `closure/common.json`, `closure/cpp.json`, `closure/distribution.json`
+
+| 대상 | 상태 | 개수 |
+|---|---|---:|
+| requirement | complete | 8 |
+| requirement | difference_review | 28 |
+| requirement | not_started | 779 |
+| requirement | verified | 32 |
+| source audit | mapped | 8 |
+| source audit | unreviewed | 283 |
 
 CLI는 decorator와 app.command(...)(function) 등록을 모두 수집하고 imported option 정의를
 원래 파일까지 따라간다. alias는 개별 사용자 진입점으로 보존한다. config는 key allowlist와
@@ -132,13 +147,13 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `ici export-compilation-context` | 4 | not_started |
 | `ici import-report` | 5 | complete |
 | `ici init` | 4 | not_started |
-| `ici line` | 1 | verified |
+| `ici line` | 1 | not_started |
 | `ici lint` | 1 | not_started |
 | `ici next diff` | 2 | not_started |
 | `ici next doctor` | 7 | not_started |
 | `ici next init` | 4 | not_started |
 | `ici next migrate` | 3 | complete |
-| `ici next plan` | 8 | not_started |
+| `ici next plan` | 8 | verified |
 | `ici next publish` | 4 | difference_review |
 | `ici next report` | 4 | not_started |
 | `ici next verify` | 12 | not_started |

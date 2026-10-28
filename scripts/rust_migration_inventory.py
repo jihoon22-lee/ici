@@ -26,6 +26,15 @@ PYZ_SHA256 = "c179986f3d0eac110cf436a961458e56c0f4a218517e9883ff47cd67addc1cde"
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "docs/design/rust-replacement"
 STATES = {"not_started", "implemented", "verified", "difference_review", "complete"}
+# Conjunctive closure: a shared row is only as closed as its least-closed fragment.
+STATUS_RANK = {
+    "not_started": 0,
+    "implemented": 1,
+    "difference_review": 2,
+    "verified": 3,
+    "complete": 4,
+}
+CLOSURE_DIR = "closure"
 
 
 def expression(node: ast.AST | None) -> str | None:
@@ -894,6 +903,125 @@ def preserve_evidence(document: dict[str, Any], previous: dict[str, Any]) -> Non
             item["audit"] = files[item["path"]]["audit"]
 
 
+def complete_evidence(progress: dict[str, Any]) -> bool:
+    return all(
+        (
+            progress["rust_paths"],
+            progress["evidence"],
+            progress["comparison"],
+            *[progress["fixtures"][kind] for kind in ("positive", "negative", "failure")],
+        )
+    )
+
+
+def read_fragments(directory: Path) -> dict[str, dict[str, Any]]:
+    if not directory.is_dir():
+        return {}
+    return {
+        path.stem: json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(directory.glob("*.json"))
+    }
+
+
+def unique(values: list[Any]) -> list[Any]:
+    seen: list[Any] = []
+    for value in values:
+        if value not in seen:
+            seen.append(value)
+    return seen
+
+
+def merge_requirement(
+    current: dict[str, Any], claims: list[tuple[str, dict[str, Any]]]
+) -> dict[str, Any]:
+    if current["status"] != "not_started":
+        claims = [("inventory", current), *claims]
+    if not claims:
+        return current
+    status = min((claim["status"] for _, claim in claims), key=STATUS_RANK.__getitem__)
+    texts = {
+        key: "\n".join(f"[{name}] {claim[key]}" for name, claim in claims if claim.get(key)) or None
+        for key in ("comparison", "difference_reason")
+    }
+    return {
+        "status": status,
+        "rust_paths": unique([path for _, claim in claims for path in claim["rust_paths"]]),
+        "evidence": unique([entry for _, claim in claims for entry in claim["evidence"]]),
+        "fixtures": {
+            kind: unique([entry for _, claim in claims for entry in claim["fixtures"][kind]])
+            for kind in ("positive", "negative", "failure")
+        },
+        **texts,
+    }
+
+
+def merge_audit(
+    path: str, current: dict[str, Any], claims: list[tuple[str, dict[str, Any]]]
+) -> dict[str, Any]:
+    if current["disposition"] != "unreviewed":
+        claims = [("inventory", current), *claims]
+    if not claims:
+        return current
+    requirements = unique([ref for _, claim in claims for ref in claim["requirements"]])
+    dispositions = {claim["disposition"] for _, claim in claims}
+    if "unreviewed" in dispositions:
+        disposition = "unreviewed"
+    elif len(dispositions) == 1:
+        disposition = dispositions.pop()
+    else:
+        raise ValueError(f"conflicting source dispositions for {path}: {sorted(dispositions)}")
+    reason = "\n".join(f"[{name}] {claim['reason']}" for name, claim in claims if claim["reason"])
+    return {"disposition": disposition, "reason": reason or None, "requirements": requirements}
+
+
+def merge_fragments(
+    document: dict[str, Any], fragments: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
+    """Overlay closure fragments conjunctively without rewriting inventory.json."""
+    effective = copy.deepcopy(document)
+    ids = {item["id"] for item in effective["requirements"]}
+    paths = {item["path"] for item in effective["source_files"]}
+    requirement_claims: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    audit_claims: dict[str, list[tuple[str, dict[str, Any]]]] = {}
+    for name, fragment in fragments.items():
+        for identifier, claim in fragment.get("requirements", {}).items():
+            if identifier not in ids:
+                raise ValueError(f"fragment {name} names unknown requirement {identifier}")
+            if claim["status"] not in STATES:
+                raise ValueError(f"fragment {name} has invalid status for {identifier}")
+            if claim["status"] == "complete" and not complete_evidence(claim):
+                raise ValueError(f"fragment {name}: incomplete closure evidence for {identifier}")
+            requirement_claims.setdefault(identifier, []).append((name, claim))
+        for path, claim in fragment.get("source_files", {}).items():
+            if path not in paths:
+                raise ValueError(f"fragment {name} names unknown source file {path}")
+            if not set(claim["requirements"]) <= ids:
+                raise ValueError(f"fragment {name}: unknown requirement reference for {path}")
+            audit_claims.setdefault(path, []).append((name, claim))
+    for item in effective["requirements"]:
+        item["migration"] = merge_requirement(
+            item["migration"], requirement_claims.get(item["id"], [])
+        )
+    for item in effective["source_files"]:
+        item["audit"] = merge_audit(item["path"], item["audit"], audit_claims.get(item["path"], []))
+    return effective
+
+
+def closure_counts(document: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "requirements": dict(
+            sorted(
+                Counter(item["migration"]["status"] for item in document["requirements"]).items()
+            )
+        ),
+        "source_files": dict(
+            sorted(
+                Counter(item["audit"]["disposition"] for item in document["source_files"]).items()
+            )
+        ),
+    }
+
+
 def validate(document: dict[str, Any], *, require_closed: bool = False) -> None:
     ids = {item["id"] for item in document["requirements"]}
     pending = []
@@ -902,14 +1030,7 @@ def validate(document: dict[str, Any], *, require_closed: bool = False) -> None:
         if progress["status"] not in STATES:
             raise ValueError(f"invalid migration status for {item['id']}")
         if progress["status"] == "complete":
-            if not all(
-                (
-                    progress["rust_paths"],
-                    progress["evidence"],
-                    progress["comparison"],
-                    *[progress["fixtures"][kind] for kind in ("positive", "negative", "failure")],
-                )
-            ):
+            if not complete_evidence(progress):
                 raise ValueError(f"incomplete closure evidence for {item['id']}")
         else:
             pending.append(item["id"])
@@ -931,13 +1052,16 @@ def validate(document: dict[str, Any], *, require_closed: bool = False) -> None:
         )
 
 
-def markdown(document: dict[str, Any]) -> str:
+def markdown(document: dict[str, Any], fragments: list[str] | None = None) -> str:
     counts = document["coverage"]["counts"]
+    closure = closure_counts(document)
     lines = [
         "# Rust 교체 기능·계약 원장",
         "",
         "이 원장은 고정 공개판 소스의 정적 수집 결과다. 항목 수나 추출 성공은 Rust 동등성 인수가 아니다.",
-        "구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json에서 개별 관리한다.",
+        "구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json과 closure/*.json에서",
+        "개별 관리한다. 아래 상태는 둘을 결합한 값이며, 여러 출처가 같은 행을 다루면 가장 덜 닫힌 상태가",
+        "적용된다. complete는 모든 출처가 complete이고 각자 증거를 갖출 때만 성립한다.",
         "현재 status가 not_started인 행은 미구현·미검증이다. 전환 승인은 전체 원장과 source audit를 닫아야 한다.",
         "",
         f"- 고정 oracle: `v0.13.0`, source `{ORACLE}`.",
@@ -970,6 +1094,22 @@ def markdown(document: dict[str, Any]) -> str:
         [
             f"| 원본 파일 audit | {document['coverage']['source_files']} |",
             f"| Python module | {document['coverage']['source_modules']} |",
+            "",
+            "## 결합 closure 상태",
+            "",
+            "closure fragment: "
+            + (", ".join(f"`closure/{name}.json`" for name in fragments or []) or "없음"),
+            "",
+            "| 대상 | 상태 | 개수 |",
+            "|---|---|---:|",
+            *[
+                f"| requirement | {status} | {count} |"
+                for status, count in closure["requirements"].items()
+            ],
+            *[
+                f"| source audit | {status} | {count} |"
+                for status, count in closure["source_files"].items()
+            ],
             "",
             "CLI는 decorator와 app.command(...)(function) 등록을 모두 수집하고 imported option 정의를",
             "원래 파일까지 따라간다. alias는 개별 사용자 진입점으로 보존한다. config는 key allowlist와",
@@ -1040,6 +1180,90 @@ def markdown(document: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def merge_self_test(document: dict[str, Any]) -> None:
+    identifier = document["requirements"][0]["id"]
+    document = copy.deepcopy(document)
+    document["source_files"] = [
+        {
+            "path": "src/ici/x.py",
+            "audit": {"disposition": "unreviewed", "reason": None, "requirements": []},
+        }
+    ]
+    proven = {
+        "status": "complete",
+        "rust_paths": ["crates/x.rs"],
+        "evidence": ["log"],
+        "comparison": "matches",
+        "difference_reason": None,
+        "fixtures": {"positive": ["p"], "negative": ["n"], "failure": ["f"]},
+    }
+    partial = {**copy.deepcopy(proven), "status": "verified", "evidence": ["other"]}
+    merged = merge_fragments(
+        document,
+        {"a": {"requirements": {identifier: proven}}, "b": {"requirements": {identifier: partial}}},
+    )
+    progress = merged["requirements"][0]["migration"]
+    assert progress["status"] == "verified" and progress["evidence"] == ["log", "other"]
+    assert document["requirements"][0]["migration"]["status"] == "not_started"  # never rewritten
+    both = merge_fragments(
+        document,
+        {"a": {"requirements": {identifier: proven}}, "b": {"requirements": {identifier: proven}}},
+    )
+    assert both["requirements"][0]["migration"]["status"] == "complete"
+    for bad, message in (
+        ({"requirements": {"missing:row": proven}}, "unknown requirement"),
+        ({"requirements": {identifier: {**proven, "evidence": []}}}, "incomplete closure evidence"),
+        (
+            {
+                "source_files": {
+                    "src/ici/absent.py": {
+                        "disposition": "mapped",
+                        "reason": "r",
+                        "requirements": [],
+                    }
+                }
+            },
+            "unknown source",
+        ),
+    ):
+        try:
+            merge_fragments(document, {"bad": bad})
+        except ValueError as error:
+            assert message in str(error), error
+        else:
+            raise AssertionError(f"accepted fragment with {message}")
+    audits = {
+        "a": {
+            "source_files": {
+                "src/ici/x.py": {
+                    "disposition": "mapped",
+                    "reason": "r",
+                    "requirements": [identifier],
+                }
+            }
+        },
+        "b": {
+            "source_files": {
+                "src/ici/x.py": {
+                    "disposition": "unreviewed",
+                    "reason": "pending",
+                    "requirements": [],
+                }
+            }
+        },
+    }
+    assert (
+        merge_fragments(document, audits)["source_files"][0]["audit"]["disposition"] == "unreviewed"
+    )
+    audits["b"]["source_files"]["src/ici/x.py"]["disposition"] = "retired"
+    try:
+        merge_fragments(document, audits)
+    except ValueError as error:
+        assert "conflicting source dispositions" in str(error)
+    else:
+        raise AssertionError("conflicting dispositions accepted")
+
+
 def self_test() -> None:
     """Exercise alias resolution and evidence guards without importing ici."""
     source = Source(
@@ -1096,8 +1320,10 @@ def self_test() -> None:
         assert "discard" in str(error)
     else:
         raise AssertionError("evidence deletion accepted")
+    merge_self_test(document)
     print(
-        "PASS: command/option aliases, source location, open/false closure, evidence preservation/deletion"
+        "PASS: command/option aliases, source location, open/false closure, evidence preservation/deletion,"
+        " conjunctive fragment merge"
     )
 
 
@@ -1119,10 +1345,13 @@ def main() -> int:
     document = collect(read_oracle())
     if target.exists():
         preserve_evidence(document, json.loads(target.read_text(encoding="utf-8")))
-    validate(document, require_closed=args.require_closed)
+    validate(document)
+    fragments = read_fragments(args.output_dir / CLOSURE_DIR)
+    effective = merge_fragments(document, fragments)
+    validate(effective, require_closed=args.require_closed)
     outputs = {
         target: json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        args.output_dir / "inventory.md": markdown(document),
+        args.output_dir / "inventory.md": markdown(effective, sorted(fragments)),
     }
     if args.check:
         stale = [
@@ -1136,7 +1365,13 @@ def main() -> int:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         for path, content in outputs.items():
             path.write_text(content, encoding="utf-8")
-    print(json.dumps(document["coverage"], ensure_ascii=False, sort_keys=True))
+    print(
+        json.dumps(
+            {**document["coverage"], "closure": closure_counts(effective)},
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
