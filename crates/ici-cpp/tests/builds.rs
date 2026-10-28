@@ -325,3 +325,117 @@ fn journal_and_database_symlinks_or_hardlinks_never_modify_their_targets() {
     assert!(lease.finalize_qmake(&plan).is_err());
     assert_eq!(fs::read_to_string(outside).unwrap(), "preserve original");
 }
+
+fn count_gcno(directory: &Path) -> usize {
+    fs::read_dir(directory)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|entry| {
+            let kind = entry.file_type().unwrap();
+            if kind.is_dir() {
+                count_gcno(&entry.path())
+            } else {
+                usize::from(
+                    entry
+                        .path()
+                        .extension()
+                        .is_some_and(|extension| extension == "gcno"),
+                )
+            }
+        })
+        .sum()
+}
+#[test]
+fn actual_cmake_and_qmake_coverage_variants_preserve_native_flags_through_recorder_reconfigure() {
+    let helper = capture_helper();
+    for system in ["cmake", "qmake5", "qmake6"] {
+        let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("main.cpp"),"#ifndef CAPTURE_FEATURE\n#error native project flags were lost\n#endif\nint main(){return 0;}\n").unwrap();
+        let mut request = BuildRequest {
+            variant: "coverage".into(),
+            ici_binary: Some(helper.path().join("capture helper")),
+            ..Default::default()
+        };
+        if system == "cmake" {
+            fs::write(root.path().join("CMakeLists.txt"),"cmake_minimum_required(VERSION 3.16)\nproject(coverage_fixture LANGUAGES CXX)\nadd_executable(fixture main.cpp)\n").unwrap();
+            request.extra_cmake_args = vec!["-DCMAKE_CXX_FLAGS:STRING=-DCAPTURE_FEATURE=1".into()];
+        } else {
+            fs::write(root.path().join("app.pro"),"QT += core\nQT -= gui\nCONFIG += console\nCONFIG -= app_bundle\nTEMPLATE=app\nSOURCES += main.cpp\n").unwrap();
+            request.system = "qmake".into();
+            request.project = "app.pro".into();
+            request.tools.insert(
+                "qmake".into(),
+                if system == "qmake5" {
+                    "/usr/bin/qmake"
+                } else {
+                    "/usr/bin/qmake6"
+                }
+                .into(),
+            );
+            request.extra_qmake_args = vec!["DEFINES+=CAPTURE_FEATURE=1".into()];
+        }
+        let (plan, context) = run(root.path(), &request);
+        assert!(context.complete(), "{system}: {:?}", context.diagnostics);
+        let main = context
+            .units
+            .iter()
+            .find(|unit| unit.source == "main.cpp")
+            .unwrap();
+        assert!(main.argv.contains(&"--coverage".into()));
+        assert!(
+            main.defines
+                .iter()
+                .any(|define| define.name == "CAPTURE_FEATURE")
+        );
+        assert!(
+            count_gcno(&root.path().join(plan.shadow)) > 0,
+            "{system} produced no coverage note files"
+        );
+    }
+}
+#[test]
+fn sanitizer_variant_plans_are_debug_and_keep_output_and_install_hooks_out_of_added_arguments() {
+    let root = tempfile::tempdir().unwrap();
+    for (variant, flag) in [
+        ("sanitize", "-fsanitize=address,undefined"),
+        ("thread-sanitize", "-fsanitize=thread"),
+    ] {
+        let request = BuildRequest {
+            variant: variant.into(),
+            ..Default::default()
+        };
+        let plan = plan_build(root.path(), &request).unwrap();
+        assert!(
+            plan.tasks[0]
+                .argv
+                .contains(&"-DCMAKE_BUILD_TYPE=Debug".into())
+        );
+        assert!(
+            plan.tasks[0]
+                .argv
+                .iter()
+                .any(|argument| argument.contains(flag))
+        );
+        assert!(!root.path().join(".ici").exists());
+    }
+    assert!(
+        plan_build(
+            root.path(),
+            &BuildRequest {
+                extra_cxx_flags: vec!["-o/user/data".into()],
+                ..Default::default()
+            }
+        )
+        .is_err()
+    );
+    assert!(
+        plan_build(
+            root.path(),
+            &BuildRequest {
+                extra_qmake_args: vec!["-set".into(), "GLOBAL".into(), "value".into()],
+                ..Default::default()
+            }
+        )
+        .is_err()
+    );
+}

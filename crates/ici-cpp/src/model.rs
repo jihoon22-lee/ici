@@ -134,6 +134,15 @@ pub struct BuildRequest {
     pub build_argv: Vec<String>,
     pub environment: BTreeMap<String, String>,
     pub extra_cmake_args: Vec<String>,
+    /// Additional diagnostic/instrumentation flags, separate from native project configuration.
+    #[serde(default)]
+    pub extra_c_flags: Vec<String>,
+    #[serde(default)]
+    pub extra_cxx_flags: Vec<String>,
+    #[serde(default)]
+    pub extra_link_flags: Vec<String>,
+    #[serde(default)]
+    pub extra_qmake_args: Vec<String>,
 }
 impl Default for BuildRequest {
     fn default() -> Self {
@@ -151,6 +160,10 @@ impl Default for BuildRequest {
             build_argv: vec![],
             environment: BTreeMap::new(),
             extra_cmake_args: vec![],
+            extra_c_flags: vec![],
+            extra_cxx_flags: vec![],
+            extra_link_flags: vec![],
+            extra_qmake_args: vec![],
         }
     }
 }
@@ -179,6 +192,10 @@ pub struct QmakeCaptureRequest {
     pub qmake: String,
     pub ici_binary: PathBuf,
     pub journal: String,
+    #[serde(default)]
+    pub arguments: Vec<String>,
+    #[serde(default)]
+    pub assignments: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

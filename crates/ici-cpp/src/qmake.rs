@@ -180,6 +180,27 @@ fn observed_compilers(root: &Path, shadow: &Path) -> Result<(String, String), Cp
 
 /// Read only the generated CC/CXX assignments. Recipes and variable expressions are never evaluated.
 pub fn qmake_capture_command(request: &QmakeCaptureRequest) -> Result<Vec<String>, CppError> {
+    crate::build::validate_qmake_arguments(&request.arguments)?;
+    for assignment in &request.assignments {
+        let (name, value) = assignment.split_once("+=").ok_or_else(|| {
+            CppError::new(
+                "capture-flags",
+                "Invalid capture instrumentation assignment",
+            )
+        })?;
+        if !["QMAKE_CFLAGS", "QMAKE_CXXFLAGS", "QMAKE_LFLAGS"].contains(&name) {
+            return Err(CppError::new(
+                "capture-flags",
+                "Unknown capture instrumentation assignment",
+            ));
+        }
+        crate::build::analysis_flags(
+            &value
+                .split_whitespace()
+                .map(str::to_owned)
+                .collect::<Vec<_>>(),
+        )?;
+    }
     let root = request
         .root
         .canonicalize()
@@ -225,11 +246,15 @@ pub fn qmake_capture_command(request: &QmakeCaptureRequest) -> Result<Vec<String
         .to_str()
         .ok_or_else(|| CppError::new("capture-recorder", "ici recorder path must be UTF-8"))?;
     let (cc, cxx) = observed_compilers(&root, &shadow)?;
-    Ok(vec![
+    let mut argv = vec![
         request.qmake.clone(),
         "-recursive".into(),
         project.display().to_string(),
-        "-after".into(),
+    ];
+    argv.extend(request.arguments.clone());
+    argv.push("-after".into());
+    argv.extend(request.assignments.clone());
+    argv.extend([
         format!(
             "QMAKE_CC={} __qmake-record -- {}",
             quote(binary),
@@ -242,14 +267,15 @@ pub fn qmake_capture_command(request: &QmakeCaptureRequest) -> Result<Vec<String
         ),
         format!(
             "CONFIG+={}",
-            if request.variant.eq_ignore_ascii_case("debug") {
-                "debug"
-            } else {
+            if request.variant.eq_ignore_ascii_case("release") {
                 "release"
+            } else {
+                "debug"
             }
         ),
         "CONFIG-=debug_and_release".into(),
-    ])
+    ]);
+    Ok(argv)
 }
 
 /// Hidden same-binary entry point; accepts one bounded JSON argument after an optional `--`.

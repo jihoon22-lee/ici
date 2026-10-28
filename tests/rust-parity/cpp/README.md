@@ -41,3 +41,10 @@ sections are excluded. The parser requires an approved GCC driver, observed GNU
 ld identity, ELF `EXEC`, complete function-section compile coverage, direct
 objects, stable source identity and a located binutils section/symbol record.
 CMake's linker dependency-file output is removed from diagnostic relinks.
+
+Coverage/sanitizer/thread-sanitizer build variants select Debug and carry their
+instrumentation through both native CMake and qmake capture phases. Actual CMake,
+Qt 5 and Qt 6 coverage builds preserve a project macro and produce `.gcno` notes.
+Additional analysis flags are bounded; qmake output/install/global-setting hooks
+are refused in the extra argument interface. The native project still owns its
+compiler/toolchain configuration.

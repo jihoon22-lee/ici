@@ -90,8 +90,115 @@ fn tool(request: &BuildRequest, name: &str) -> String {
         .unwrap_or_else(|| name.into())
 }
 
+pub(crate) fn analysis_flags(flags: &[String]) -> Result<(), CppError> {
+    for flag in flags {
+        let exact = [
+            "-O0",
+            "-O1",
+            "-O2",
+            "-O3",
+            "-Og",
+            "-Os",
+            "-Oz",
+            "-g",
+            "-g1",
+            "-g2",
+            "-g3",
+            "--coverage",
+            "-fprofile-arcs",
+            "-ftest-coverage",
+            "-fno-omit-frame-pointer",
+            "-fno-inline",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-fno-lto",
+            "-fno-pie",
+            "-no-pie",
+            "-pthread",
+            "-static-libasan",
+            "-static-libubsan",
+            "-static-libtsan",
+            "-Wl,--gc-sections",
+            "-Wl,--print-gc-sections",
+        ];
+        let sanitize = ["-fsanitize=", "-fno-sanitize=", "-fno-sanitize-recover="]
+            .iter()
+            .any(|prefix| {
+                flag.strip_prefix(prefix).is_some_and(|tail| {
+                    !tail.is_empty()
+                        && tail
+                            .bytes()
+                            .all(|byte| byte.is_ascii_lowercase() || byte == b',' || byte == b'-')
+                })
+            });
+        if !exact.contains(&flag.as_str()) && !sanitize {
+            return Err(CppError::new(
+                "unsupported-analysis-build-flag",
+                format!(
+                    "Additional analysis flag {flag:?} is outside the bounded instrumentation contract"
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+fn qmake_assignments(request: &BuildRequest) -> Vec<String> {
+    [
+        ("QMAKE_CFLAGS", &request.extra_c_flags),
+        ("QMAKE_CXXFLAGS", &request.extra_cxx_flags),
+        ("QMAKE_LFLAGS", &request.extra_link_flags),
+    ]
+    .into_iter()
+    .filter(|(_, flags)| !flags.is_empty())
+    .map(|(key, flags)| format!("{key}+={}", flags.join(" ")))
+    .collect()
+}
+pub(crate) fn validate_qmake_arguments(arguments: &[String]) -> Result<(), CppError> {
+    if arguments.len() > 256
+        || arguments.iter().map(String::len).sum::<usize>() > 32 * 1024
+        || arguments.iter().any(|argument| {
+            argument.contains(['\0', '\r', '\n'])
+                || argument.starts_with("-o")
+                || ["-set", "-unset", "-install", "-query", "-project"].contains(&argument.as_str())
+        })
+    {
+        return Err(CppError::new(
+            "unsupported-qmake-argument",
+            "qmake arguments may only configure the owned native project",
+        ));
+    }
+    Ok(())
+}
+
 /// Pure command construction: no mkdir, package install, configure, build, or version probe.
 pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppError> {
+    let mut effective = request.clone();
+    let (compile, link): (&[&str], &[&str]) = match request.variant.as_str() {
+        "coverage" => (&["--coverage"], &["--coverage"]),
+        "sanitize" => (
+            &[
+                "-fsanitize=address,undefined",
+                "-fno-omit-frame-pointer",
+                "-g",
+            ],
+            &["-fsanitize=address,undefined"],
+        ),
+        "thread-sanitize" => (
+            &["-fsanitize=thread", "-fno-omit-frame-pointer", "-g"],
+            &["-fsanitize=thread"],
+        ),
+        _ => (&[], &[]),
+    };
+    effective
+        .extra_c_flags
+        .splice(0..0, compile.iter().map(|flag| (*flag).to_owned()));
+    effective
+        .extra_cxx_flags
+        .splice(0..0, compile.iter().map(|flag| (*flag).to_owned()));
+    effective
+        .extra_link_flags
+        .splice(0..0, link.iter().map(|flag| (*flag).to_owned()));
+    let request = &effective;
     if !root.is_absolute()
         || !identifier(&request.id)
         || !identifier(&request.variant)
@@ -113,6 +220,10 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
             "build project must stay workspace-relative",
         ));
     }
+    analysis_flags(&request.extra_c_flags)?;
+    analysis_flags(&request.extra_cxx_flags)?;
+    analysis_flags(&request.extra_link_flags)?;
+    validate_qmake_arguments(&request.extra_qmake_args)?;
     let shadow = format!(".ici/rust-v1/build/{}/{}", request.id, request.variant);
     let shadow_path = root.join(&shadow);
     let project = root.join(&request.project);
@@ -138,10 +249,10 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
             } else {
                 project
             };
-            let build_type = if request.variant.eq_ignore_ascii_case("debug") {
-                "Debug"
-            } else {
+            let build_type = if request.variant.eq_ignore_ascii_case("release") {
                 "Release"
+            } else {
+                "Debug"
             };
             let mut argv = vec![
                 tool(request, "cmake"),
@@ -166,6 +277,37 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                     ));
                 }
                 argv.push(arg.clone());
+            }
+            for (key, environment, flags) in [
+                ("CMAKE_C_FLAGS", "CFLAGS", &request.extra_c_flags),
+                ("CMAKE_CXX_FLAGS", "CXXFLAGS", &request.extra_cxx_flags),
+                (
+                    "CMAKE_EXE_LINKER_FLAGS",
+                    "LDFLAGS",
+                    &request.extra_link_flags,
+                ),
+            ] {
+                if flags.is_empty() {
+                    continue;
+                }
+                let prefix = format!("-D{key}=");
+                let base = request
+                    .extra_cmake_args
+                    .iter()
+                    .rev()
+                    .find_map(|argument| {
+                        let (name, value) = argument.strip_prefix("-D")?.split_once('=')?;
+                        (name.split(':').next() == Some(key)).then(|| value.to_owned())
+                    })
+                    .or_else(|| request.environment.get(environment).cloned())
+                    .or_else(|| std::env::var(environment).ok())
+                    .unwrap_or_default();
+                argv.push(format!(
+                    "{prefix}{}{}{}",
+                    base,
+                    if base.is_empty() { "" } else { " " },
+                    flags.join(" ")
+                ));
             }
             tasks.push(task(configure_id.clone(), "cmake", argv, root));
             let mut build = task(
@@ -203,8 +345,10 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                 tool(request, "qmake"),
                 "-recursive".into(),
                 project.display().to_string(),
-                "-after".into(),
             ];
+            probe_argv.extend(request.extra_qmake_args.clone());
+            probe_argv.push("-after".into());
+            probe_argv.extend(qmake_assignments(request));
             if !request.compiler_c.is_empty() {
                 probe_argv.push(format!("QMAKE_CC={}", request.compiler_c));
             }
@@ -214,10 +358,10 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
             probe_argv.extend([
                 format!(
                     "CONFIG+={}",
-                    if request.variant.eq_ignore_ascii_case("debug") {
-                        "debug"
-                    } else {
+                    if request.variant.eq_ignore_ascii_case("release") {
                         "release"
+                    } else {
+                        "debug"
                     }
                 ),
                 "CONFIG-=debug_and_release".into(),
@@ -232,6 +376,8 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                 qmake: tool(request, "qmake"),
                 ici_binary: binary.clone(),
                 journal: journal.clone(),
+                arguments: request.extra_qmake_args.clone(),
+                assignments: qmake_assignments(request),
             };
             let encoded = ici_domain::canonical_json(&capture_request)
                 .map_err(|error| CppError::new("capture-request", error.to_string()))?;
