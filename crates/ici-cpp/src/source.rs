@@ -83,6 +83,17 @@ impl ParsedSource {
             line_starts,
         })
     }
+    pub fn byte_at(&self, line: u32, column: u32) -> Option<usize> {
+        let line = line.checked_sub(1)? as usize;
+        let start = *self.line_starts.get(line)?;
+        let offset = start.checked_add(column.checked_sub(1)? as usize)?;
+        let end = self
+            .line_starts
+            .get(line + 1)
+            .copied()
+            .unwrap_or(self.text.len());
+        (offset < end && self.text.is_char_boundary(offset)).then_some(offset)
+    }
     pub fn location(&self, offset: usize) -> (u32, u32) {
         let offset = offset.min(self.text.len());
         let line = self
@@ -197,4 +208,13 @@ pub(crate) fn physical_lines(mut text: &str) -> impl Iterator<Item = &str> {
         text = &text[index + width..];
         Some(line)
     })
+}
+
+pub(crate) fn unqualified_name(name: &str) -> &str {
+    let name = name.rsplit("::").next().unwrap_or(name);
+    if name.starts_with("operator") {
+        name
+    } else {
+        name.split('<').next().unwrap_or(name)
+    }
 }

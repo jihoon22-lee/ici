@@ -289,7 +289,7 @@ pub fn parse_clang_function_boundaries(
             .as_str()
             .ok_or_else(|| CppError::new("ast-function-name", "Compiler function lacks a name"))?;
         let spelled = source::function_name(&file, *function);
-        if spelled.rsplit("::").next().unwrap_or(&spelled) != name {
+        if source::unqualified_name(&spelled) != name {
             return Err(CppError::new(
                 "ast-source-mismatch",
                 "Compiler name does not agree with immutable source declarator",

@@ -396,3 +396,46 @@ fn compiler_include_graphs_never_merge_incompatible_variant_edges_into_a_cycle()
         TaskState::Failed
     );
 }
+
+#[test]
+fn actual_missing_header_diagnostics_preserve_unresolved_location_without_inventing_an_edge() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("main.cpp"),
+        "#include \"never-generated.h\"\nint main(){return 0;}\n",
+    )
+    .unwrap();
+    let context = context(root.path());
+    let task = compiler_probe_task(
+        root.path(),
+        &context.units[0],
+        Path::new("/usr/bin/g++"),
+        ReplayPurpose::IncludeTrace,
+        "missing",
+    )
+    .unwrap();
+    let result = Runner::default().run(&task, &Cancellation::default());
+    assert_eq!(result.exit_code, Some(1));
+    let stderr = String::from_utf8(result.stderr).unwrap();
+    let targets = ici_cpp::parse_missing_include_targets(
+        root.path(),
+        root.path(),
+        &root.path().join("main.cpp"),
+        &stderr,
+    )
+    .unwrap();
+    assert_eq!(targets.len(), 1);
+    assert_eq!(targets[0].file_path, "main.cpp");
+    assert_eq!(targets[0].start_line, 1);
+    assert_eq!(targets[0].target_name, "CppIncludeUnresolved");
+    assert_eq!(targets[0].metrics["include"], "never-generated.h");
+    assert!(
+        ici_cpp::parse_missing_include_targets(
+            root.path(),
+            root.path(),
+            &root.path().join("main.cpp"),
+            &format!("{stderr}\nunknown compiler message")
+        )
+        .is_err()
+    );
+}

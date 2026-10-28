@@ -143,6 +143,7 @@ pub fn replay_command(
                     ));
                 }
                 source_seen = true;
+                argv.push(source.display().to_string());
             }
             break;
         }
@@ -163,7 +164,9 @@ pub fn replay_command(
         }
         if PRESERVE_VALUE.contains(&token.as_str()) {
             let value = option_value(&unit.argv, i)?;
-            if ["-x", "--language"].contains(&token.as_str()) && !(["c", "c++"].contains(&value)) {
+            if ["-x", "--language"].contains(&token.as_str())
+                && !(["c", "c++", "c-header", "c++-header", "none"].contains(&value))
+            {
                 return Err(CppError::new(
                     "unsafe-compiler-language",
                     "unsupported analysis language",
@@ -195,6 +198,7 @@ pub fn replay_command(
             ));
         }
         source_seen = true;
+        argv.push(source.display().to_string());
         i += 1;
     }
     if !source_seen {
@@ -234,7 +238,6 @@ pub fn replay_command(
             "-ast-dump=json".into(),
         ]),
     }
-    argv.push(source.display().to_string());
     crate::arguments::validate(&argv)?;
     Ok(ReplayCommand {
         argv,

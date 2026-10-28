@@ -5,8 +5,18 @@
     {
       "case": "unicode",
       "previous": "ASCII-only fallback name scanner omitted source-spelled C++ functions with Unicode identifiers",
-      "expected": {"name": "café", "complexity": 2, "cognitive": 1},
+      "expected": {
+        "name": "café",
+        "complexity": 2,
+        "cognitive": 1
+      },
       "evidence": "Pinned concrete C++ grammar recognizes identifier café; source locations count Unicode characters"
+    },
+    {
+      "case": "source-argument-position",
+      "previous": "Syntax replay moved the source after all flags and could apply a trailing -x language switch to the wrong input. Driver-selected C++ mode for .c could also be mislabelled.",
+      "expected": "Preserve the source operand position, bind language at that operand, and retain the invocation alias.",
+      "evidence": "Actual GCC C++ template fixture in main.c succeeds with original and replayed g++ -x c++ main.c -x c; no object is written."
     }
   ]
 }

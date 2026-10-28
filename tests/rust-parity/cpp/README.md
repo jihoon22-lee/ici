@@ -59,3 +59,12 @@ confirmation to establish complete boundary geometry.
 Line counting does not invoke the grammar and keeps its separate snapshot bound.
 LF, CRLF and CR-only locations are covered. Active line and cached duplicate
 normalization cancellation are tested against the two-second cancellation budget.
+
+The dedicated clang-tidy boundary probe uses an inline configuration independent
+of project `.clang-tidy` files. Frozen and live Clang 21.1.8 function-size notes
+preserve per-configuration lines/statements/parameters; suppressed or unknown
+records refuse exact evidence. The selected GCC driver's C++ and C include
+searches are probed separately. Their observed difference supplies
+`-nostdinc++` / `-isystem` arguments for Clang tooling; no GCC version or private
+library path is guessed. Missing active includes retain their located warning
+and do not create a dependency edge.

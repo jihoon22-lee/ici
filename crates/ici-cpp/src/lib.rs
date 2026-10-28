@@ -49,3 +49,16 @@ pub use linker::{
 pub use compiler::{
     CompilerIncludeObservation, analyze_compiler_include_cycles, apply_compiler_boundaries,
 };
+mod missing_includes;
+pub use missing_includes::parse_missing_include_targets;
+mod toolchain;
+pub use toolchain::{
+    GccStdlibProjection, gcc_include_search_tasks, gcc_standard_library_projection,
+    parse_compiler_include_search,
+};
+
+mod tidy_boundaries;
+pub use tidy_boundaries::{
+    ClangTidyBoundaryEvidence, FunctionSizeMetric, apply_function_size_metrics,
+    clang_tidy_boundary_task, parse_clang_tidy_boundaries,
+};

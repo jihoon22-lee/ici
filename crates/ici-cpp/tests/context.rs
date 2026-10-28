@@ -268,3 +268,56 @@ fn string_tokenizers_preserve_literal_quotes_without_executing_shell_or_expandin
         ["cl.exe", "/DNAME=two words", "C:\\source path\\a.cpp"]
     );
 }
+
+#[test]
+fn replay_preserves_source_position_and_driver_language_before_trailing_language_changes() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(
+        root.path().join("main.c"),
+        "template<class T>T identity(T value){return value;}\nint main(){return identity(0);}\n",
+    )
+    .unwrap();
+    database(
+        root.path(),
+        json!([{"directory":root.path(),"file":"main.c","arguments":["g++","-x","c++","main.c","-x","c","-c","-o","must-not-write.o"]}]),
+    );
+    let context = load_compilation_context(
+        root.path(),
+        &ContextRequest {
+            selected_sources: vec!["main.c".into()],
+            ..Default::default()
+        },
+    );
+    assert!(context.complete(), "{:?}", context.diagnostics);
+    assert_eq!(context.units[0].language, "c++");
+    let replay = replay_command(
+        root.path(),
+        &context.units[0],
+        Path::new("/usr/bin/g++"),
+        ReplayPurpose::Diagnostics,
+    )
+    .unwrap();
+    let source = replay.source.display().to_string();
+    let source_index = replay
+        .argv
+        .iter()
+        .position(|argument| argument == &source)
+        .unwrap();
+    let last_language = replay
+        .argv
+        .iter()
+        .rposition(|argument| argument == "-x")
+        .unwrap();
+    assert!(source_index < last_language);
+    let output = std::process::Command::new(&replay.argv[0])
+        .args(&replay.argv[1..])
+        .current_dir(&replay.cwd)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(!root.path().join("must-not-write.o").exists());
+}

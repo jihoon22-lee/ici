@@ -292,7 +292,7 @@ fn parse_row(
 pub fn is_translation_unit(path: &str) -> bool {
     matches!(
         Path::new(path).extension().and_then(|s| s.to_str()),
-        Some("c" | "cc" | "cpp" | "cxx" | "m" | "mm")
+        Some("c" | "C" | "cc" | "cpp" | "cxx" | "c++" | "m" | "mm")
     )
 }
 fn language(path: &str) -> &'static str {
@@ -300,7 +300,7 @@ fn language(path: &str) -> &'static str {
         Some("c") => "c",
         Some("m") => "objective-c",
         Some("mm") => "objective-c++",
-        Some("cc" | "cpp" | "cxx" | "h" | "hpp") => "c++",
+        Some("C" | "cc" | "cpp" | "cxx" | "c++" | "h" | "hpp") => "c++",
         _ => "",
     }
 }
@@ -316,7 +316,17 @@ fn metadata(
         .or(unit.original_argv.first())
         .map(|s| s.rsplit(['/', '\\']).next().unwrap_or(s).to_string())
         .unwrap_or_default();
-    unit.language = language(&unit.source).into();
+    unit.language = if unit.compiler == "c++"
+        || unit.compiler.contains("g++")
+        || unit.compiler.contains("clang++")
+    {
+        "c++"
+    } else {
+        language(&unit.source)
+    }
+    .into();
+    let default_language = unit.language.clone();
+    let mut source_language = None;
     let msvc = ["cl", "cl.exe", "clang-cl", "clang-cl.exe"]
         .contains(&unit.compiler.to_ascii_lowercase().as_str());
     let mut output = None;
@@ -325,6 +335,7 @@ fn metadata(
     while i < argv.len() {
         let token = &argv[i];
         if token == "--" {
+            source_language = Some(unit.language.clone());
             operands.extend(argv[i + 1..].iter().cloned());
             break;
         }
@@ -399,6 +410,7 @@ fn metadata(
                     unit.language = match value.as_str() {
                         "c" | "c-header" => "c".into(),
                         "c++" | "c++-header" => "c++".into(),
+                        "none" => default_language.clone(),
                         "objective-c" | "objective-c++" => value,
                         _ => {
                             unit.diagnostics.push(ContextDiagnostic::error(
@@ -492,6 +504,9 @@ fn metadata(
             continue;
         }
         if !token.starts_with('-') && !msvc {
+            if scoped(root, cwd, token).is_ok_and(|(path, _, _)| path == unit.source) {
+                source_language = Some(unit.language.clone());
+            }
             operands.push(token.clone());
         }
         i += 1;
@@ -520,6 +535,9 @@ fn metadata(
             unit.target = name.into();
             break;
         }
+    }
+    if !msvc && let Some(language) = source_language {
+        unit.language = language;
     }
     let sources: Vec<_> = operands
         .iter()
