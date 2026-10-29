@@ -1371,6 +1371,68 @@ pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
     Some(count)
 }
 
+/// Frozen SanitizeEngine / ThreadSanitizeEngine direct g++ projection. Each instrumented test
+/// group ends with its "Instrumented suite" target: a group with sanitizer diagnostics keeps
+/// only those located targets, a clean run becomes one `<label>` PASS target, and the summary
+/// is the frozen clean or "<n> <noun> Defect(s) Detected" text. Any other outcome (an executable
+/// failing without a diagnostic) is left untouched rather than guessed.
+pub fn legacy_direct_sanitizer(output: &mut AnalysisOutput, check_id: &str) {
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let (label, clean, summary, noun) = if check_id == "cpp.tsan" {
+        (
+            "TSan",
+            "ThreadSanitizer completed without diagnostics",
+            "Thread Safety & TSan Clean (0 Defects)",
+            "Thread Safety",
+        )
+    } else {
+        (
+            "ASan/UBSan",
+            "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+            "Memory Safety & Sanitize Clean (0 Defects)",
+            "Memory / Resource",
+        )
+    };
+    let mut reshaped = vec![];
+    let mut group: Vec<InspectionTarget> = vec![];
+    for target in &output.targets {
+        if target.target_name != "Instrumented suite" {
+            group.push(target.clone());
+            continue;
+        }
+        let (executables, diagnostics): (Vec<_>, Vec<_>) = group.drain(..).partition(|item| {
+            item.target_name == item.file_path && item.message.starts_with("executable exited")
+        });
+        if !diagnostics.is_empty() {
+            reshaped.extend(diagnostics);
+        } else if executables.len() == 1 && executables[0].status == "PASS" {
+            let mut target = InspectionTarget::at(&executables[0].file_path, 1);
+            target.target_name = label.into();
+            target.message = clean.into();
+            reshaped.push(target);
+        } else {
+            return;
+        }
+    }
+    if !group.is_empty() || reshaped.is_empty() {
+        return;
+    }
+    let issues = reshaped
+        .iter()
+        .filter(|target| matches!(target.status.as_str(), "WARN" | "FAIL"))
+        .count();
+    output.targets = reshaped;
+    output.summary = if output.status == "PASS" {
+        summary.into()
+    } else {
+        format!("{issues} {noun} Defect(s) Detected")
+    };
+}
+
 /// Frozen BinaryCompatibilityEngine verdict when it cannot select or inspect artifacts: the
 /// not-applicable SKIP, or `BinaryCompatibility:AnalysisUnavailable` ERROR at ".".
 pub fn legacy_binary_compat_unavailable(id: &str, error: Option<&str>) -> AnalysisOutput {

@@ -5620,16 +5620,27 @@
       "difference_reason": "Open: the no-scope `Sanitize` SKIP target at '.' (no C++ sources, no C++ tests and no Python scope) is not compared; the C++ test-less SKIP path now matches frozen (tests/rust-parity/cpp/sanitize-oracle.json), so the earlier exit 3 observation no longer applies."
     },
     "finding_site:src/ici/engines/sanitize.py:385:24": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-validation/src/sanitizer.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+        ],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:385); enclosing frozen function _run_cpp_sanitizer.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "evidence": [
+        "tests/rust-parity/cpp/sanitize-oracle.json now also holds 4 direct g++ runs captured by tests/rust-parity/cpp/capture_sanitize_cli.py (fixtures parity-fixtures/cpp/sanitize-direct-clean and sanitize-direct: a clean test and a heap use-after-free test) for `ici sanitize` and `ici thread-sanitize`; the 8 earlier cases were reproduced byte for byte.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_sanitize --test native_cpp_direct --test native_cpp --test legacy_direct_build --test legacy_binary_compat --test native_validation_extra --locked -j2 -- --include-ignored --test-threads=2: 2+6+28+3+1+27 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-runs.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen direct g++ sanitizer run: a clean instrumented test is one `<CPP_LABEL>` PASS target at the test source ('ASan/UBSan' 'AddressSanitizer and UndefinedBehaviorSanitizer completed'; 'TSan' 'ThreadSanitizer completed without diagnostics'), summary CLEAN_SUMMARY, exit 0. Rust's legacy projection (crate::cpp::legacy_direct_sanitizer, execute.rs, direct-gcc builds only) collapses each instrumented group to the same target; the clean and mixed cases match exactly for both engines.",
+      "difference_reason": "Open: a test that exits non-zero without a sanitizer diagnostic (frozen `SanitizerExecution` ERROR) and compile failures (`SanitizerCompile`) keep the Rust per-executable shape (the projection does not guess them); not captured."
     },
     "finding_site:src/ici/engines/sanitize.py:566:12": {
       "status": "not_started",
@@ -5644,16 +5655,27 @@
       "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
     },
     "finding_site:src/ici/engines/sanitize.py:630:21": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-validation/src/sanitizer.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+        ],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:630); enclosing frozen function _append_sanitizer_diagnostics.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "evidence": [
+        "tests/rust-parity/cpp/sanitize-oracle.json now also holds 4 direct g++ runs captured by tests/rust-parity/cpp/capture_sanitize_cli.py (fixtures parity-fixtures/cpp/sanitize-direct-clean and sanitize-direct: a clean test and a heap use-after-free test) for `ici sanitize` and `ici thread-sanitize`; the 8 earlier cases were reproduced byte for byte.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_sanitize --test native_cpp_direct --test native_cpp --test legacy_direct_build --test legacy_binary_compat --test native_validation_extra --locked -j2 -- --include-ignored --test-threads=2: 2+6+28+3+1+27 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-runs.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _append_sanitizer_diagnostics: one `<ASan/UBSan|TSan|LSan> Error` FAIL target per normalized diagnostic at its project location (heap use after free at tests/test_uaf.cpp:2), summary '<n> <noun> Defect(s) Detected', exit 1. Rust's ici-validation diagnostic targets already match; the projection drops the extra executable/suite targets; both engines match exactly.",
+      "difference_reason": "Open: the unlocated diagnostic branch (`SanitizerDiagnosticLocation` ERROR) and LSan-only reports are not captured; adapter (Make/CMake) sanitizer cases use '[C++ <label>] <case>' targets and are not compared."
     },
     "finding_site:src/ici/engines/sanitize.py:669:16": {
       "status": "not_started",

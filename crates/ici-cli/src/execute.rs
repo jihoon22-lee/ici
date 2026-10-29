@@ -526,6 +526,20 @@ pub fn execute(
                                 .unwrap_or_default();
                             crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
                         }
+                        if prepared.legacy_projection
+                            && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                            && prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == planned.component_id)
+                                .and_then(|component| {
+                                    crate::cpp::linked_build(&prepared.project, component)
+                                })
+                                .is_some_and(|build| build.system.as_deref() == Some("direct-gcc"))
+                        {
+                            crate::cpp::legacy_direct_sanitizer(&mut output, &planned.check.id);
+                        }
                         output
                     } else {
                         unavailable(

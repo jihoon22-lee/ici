@@ -27,6 +27,10 @@ fn copy_tree(from: &Path, to: &Path) {
 }
 
 fn run(fixture: &str, command: &str, config: &str) -> Value {
+    run_with(fixture, command, config, "/usr/bin:/bin", false)
+}
+
+fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool) -> Value {
     let root = tempfile::tempdir().unwrap();
     copy_tree(
         &Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -40,7 +44,7 @@ fn run(fixture: &str, command: &str, config: &str) -> Value {
     )
     .unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let environment = BTreeMap::from([("PATH".to_string(), path.to_string())]);
     let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
     let report: Value = serde_json::from_slice(
         &fs::read(
@@ -66,7 +70,7 @@ fn run(fixture: &str, command: &str, config: &str) -> Value {
     // Nothing is prepared: no project build tree and no owned sanitizer build directory.
     let owned_builds = root.path().join(".ici/rust-v1/build");
     assert!(
-        !owned_builds.exists() || fs::read_dir(&owned_builds).unwrap().next().is_none(),
+        builds || !owned_builds.exists() || fs::read_dir(&owned_builds).unwrap().next().is_none(),
         "{fixture} {command}: a sanitizer build directory was created"
     );
     json!({
@@ -92,8 +96,8 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
         ("tested-make-without-sanitizer-argv", "sanitize-tested"),
     ]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 8);
-    for (name, expected) in cases {
+    assert_eq!(cases.len(), 12);
+    for (name, expected) in cases.iter().filter(|(name, _)| !name.contains(":direct-")) {
         let (command, config) = name.split_once(':').unwrap();
         let mut actual = run(
             fixtures[config],
@@ -118,4 +122,33 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
         }
         assert_eq!(&actual, expected, "{name}");
     }
+}
+
+#[test]
+#[ignore = "explicit actual g++ sanitizer runs (ICI_TEST_CXX)"]
+fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/sanitize-oracle.json"
+    ))
+    .unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
+    let path = format!(
+        "{}:/usr/bin:/bin",
+        Path::new(&compiler).parent().unwrap().display()
+    );
+    let fixtures = BTreeMap::from([
+        ("direct-clean", "sanitize-direct-clean"),
+        ("direct-defect", "sanitize-direct"),
+    ]);
+    let mut seen = 0;
+    for (name, expected) in oracle["cases"].as_object().unwrap() {
+        let (command, config) = name.split_once(':').unwrap();
+        let Some(fixture) = fixtures.get(config) else {
+            continue;
+        };
+        seen += 1;
+        let actual = run_with(fixture, command, "", &path, true);
+        assert_eq!(&actual, expected, "{name}");
+    }
+    assert_eq!(seen, 4);
 }
