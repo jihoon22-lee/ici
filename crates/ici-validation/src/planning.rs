@@ -278,6 +278,33 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
     }
     Ok(plan)
 }
+/// Directories of the declared production sources, so coverage.py also reports files that no
+/// test imported (measured 0%) instead of silently omitting them (frozen `--source=` intent).
+fn coverage_source(request: &crate::ValidationRequest) -> Option<String> {
+    let directories = request
+        .source_files
+        .iter()
+        .filter(|path| path.ends_with(".py"))
+        .map(|path| {
+            let parent = std::path::Path::new(path)
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .map_or_else(|| request.root.clone(), |parent| request.root.join(parent));
+            parent.to_string_lossy().into_owned()
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    // A bounded argv; beyond it omitted files stay explicitly unmeasured (incomplete).
+    if directories.is_empty()
+        || directories.len() > 256
+        || directories.iter().any(|directory| directory.contains(','))
+    {
+        return None;
+    }
+    Some(format!(
+        "--source={}",
+        directories.into_iter().collect::<Vec<_>>().join(",")
+    ))
+}
 fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     let request = &plan.context;
     if request.targets.is_empty() {
@@ -299,6 +326,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         } else {
             vec![]
         };
+        let source = with_coverage.then(|| coverage_source(request)).flatten();
         if with_coverage {
             args.extend([
                 "-m".into(),
@@ -308,6 +336,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 "--data-file".into(),
                 data.to_string_lossy().into_owned(),
             ]);
+            args.extend(source.clone());
         }
         args.extend([
             "-m".into(),
@@ -350,7 +379,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             // Quality repeats must not overwrite the primary coverage database.
             let mut repeat_args = args.clone();
             if with_coverage {
-                repeat_args.drain(..6);
+                repeat_args.drain(..6 + usize::from(source.is_some()));
             }
             let mut repeat = task(request, &format!("repeat{}", index + 1), repeat_args);
             repeat.kind = TaskKind::Test;

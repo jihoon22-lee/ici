@@ -81,6 +81,7 @@ pub fn legacy_projection(
     }
     let mut engines = BTreeMap::<String, Value>::new();
     let mut attributed = BTreeSet::new();
+    let mut errored = BTreeSet::new();
     for check in run.checks.as_deref().unwrap_or_default() {
         let name = context
             .engine_names
@@ -111,6 +112,18 @@ pub fn legacy_projection(
         };
         if rank(status) > rank(engine["status"].as_str().unwrap_or("SKIP")) {
             engine["status"] = json!(status);
+        }
+        // Frozen engines report their tool error as the summary; a passing sibling check's
+        // count must not stand next to an ERROR verdict.
+        if status == "ERROR" && errored.insert(name.to_owned()) {
+            engine["summary"] = json!(format!(
+                "{}: {}",
+                check.check_id,
+                output
+                    .map(|output| output.summary.as_str())
+                    .filter(|summary| !summary.is_empty())
+                    .unwrap_or("analysis did not complete")
+            ));
         }
         let evidence = output
             .map(|output| {
