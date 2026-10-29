@@ -34,7 +34,8 @@
 - 레거시 `ici test`가 coverage 없이 unittest로 대신 실행될 때와, 테스트 수집 결과가 비었을 때, 변경 줄 정책이
   거부될 때도 이전 제품과 같은 판정과 exit code를 유지합니다. `--fail-on-new`로 찾은 새 이슈는 이 판정
   때문에 통과로 바뀌지 않습니다.
-- deep 프로필의 느린 테스트 관찰 순서와, 거부된 integration 설정의 레거시 ERROR 대상이 이전 제품과 같습니다.
+- deep 프로필의 느린 테스트 관찰 순서와, 거부된 integration 설정의 레거시 ERROR 대상(`Integration:ConfigurationError`)이
+  이전 제품과 같습니다. 레거시 `ici sanitize`의 Python ResourceWarning 요약 문구도 이전과 같습니다.
 - 선언한 산출물(`[builds.<id>]`) 계약 검사 결과가 이전 제품과 같은 대상·메시지로 보고됩니다.
 - 테스트 파일이 전혀 없는 C++ 프로젝트에서 레거시 `ici test`가 이전처럼 "No tests collected" FAIL(exit 1)을
   보고합니다. 개별 `ici test` 명령은 deep 프로필의 테스트 품질 검사(반복 실행·느린 테스트)를 자동으로
