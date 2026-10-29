@@ -61,16 +61,37 @@ pub fn bind_compiled_artifacts(
             });
         let Some(index) = packaging else { continue };
         let check = &mut prepared.plan.checks[index];
+        // Frozen adapter builds (CMake, qmake, Make) publish the release tree and loaders only;
+        // the direct g++ build publishes its binary into bin/. Next-schema projects (which the
+        // frozen pyz rejects) keep publishing their measured binaries.
+        let adapter = prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+            && contexts.iter().any(|context| {
+                context.plan.component_id == component.id
+                    && matches!(
+                        context.plan.build.system.as_str(),
+                        "cmake" | "qmake" | "make"
+                    )
+            });
         let build =
             crate::export_context::compiled_artifacts(&prepared.project, component, contexts)
                 .and_then(|artifacts| {
-                    crate::artifact_build::describe_compiled(
-                        &prepared.project,
-                        component,
-                        &check.task_id,
-                        environment,
-                        &artifacts,
-                    )
+                    if adapter {
+                        crate::artifact_build::describe_adapter(
+                            &prepared.project,
+                            component,
+                            &check.task_id,
+                            environment,
+                            artifacts.len(),
+                        )
+                    } else {
+                        crate::artifact_build::describe_compiled(
+                            &prepared.project,
+                            component,
+                            &check.task_id,
+                            environment,
+                            &artifacts,
+                        )
+                    }
                 });
         match build {
             Ok(build) => {

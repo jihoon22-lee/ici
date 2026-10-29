@@ -156,6 +156,17 @@ pub fn select(
             break;
         }
     }
+    // Under `ici build` the build checks are the command's whole subject: they are required for
+    // this invocation whatever engines.build.required says, so a failed build is never a PASS gate.
+    let subject: BTreeSet<String> = if family == "build" {
+        checks
+            .iter()
+            .filter(|check| ici_application::plan::engine_name(&check.id) == Some(family))
+            .map(|check| check.id.clone())
+            .collect()
+    } else {
+        BTreeSet::new()
+    };
     // Typing an individual command explicitly selects that family even when omitted from verify.
     for id in &selected {
         let mut settings = project
@@ -170,11 +181,19 @@ pub fn select(
             });
         settings.enabled = true;
         settings.settings["enabled"] = true.into();
+        if subject.contains(id) {
+            settings.required = true;
+            settings.settings["required"] = true.into();
+        }
         project.checks.insert(id.clone(), settings);
         for component in &mut project.components {
             if let Some(setting) = component.checks.get_mut(id) {
                 setting.enabled = true;
                 setting.settings["enabled"] = true.into();
+                if subject.contains(id) {
+                    setting.required = true;
+                    setting.settings["required"] = true.into();
+                }
             }
         }
     }

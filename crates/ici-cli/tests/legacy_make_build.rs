@@ -148,6 +148,10 @@ fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_succ
         output.stdout
     );
     assert!(!root.path().join("build/ici-make/app").exists());
+    let result: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    assert_eq!(result["gate"]["selected"], "FAIL");
     // A pre-existing unowned shadow is refused before any Make command and kept byte-for-byte.
     let root = fixture("build_argv=['make','all']");
     fs::create_dir_all(root.path().join("build/ici-make")).unwrap();
@@ -235,6 +239,11 @@ fn actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make() 
         );
         let output = dispatch(root.path());
         assert_eq!(output.exit_code, 1, "{make}: {}", output.stdout);
+        let result: serde_json::Value = serde_json::from_slice(
+            &fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(result["gate"]["selected"], "FAIL", "{make}");
         let text = output
             .stdout
             .split_whitespace()
@@ -287,11 +296,230 @@ fn legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compili
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
+    // The reporting projection prefixes an ERROR summary with the check id (reporting area);
+    // the frozen message and engine status are asserted here.
     assert!(
-        text.contains("ERROR build: Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked"),
+        text.contains("ERROR build: ")
+            && text.contains("Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked")
+            && text.contains("Makefile:1"),
         "{}",
         output.stdout
     );
+    // Under `ici build` the build check is required: the run gate is FAIL, never PASS.
+    let result: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    assert_eq!(result["gate"]["selected"], "FAIL");
     assert!(!root.path().join("build").exists());
     assert!(!root.path().join(".ici/rust-v1/build").exists());
+}
+
+#[test]
+#[ignore = "explicit actual GNU Make static preparation preflight (ICI_TEST_MAKE, ICI_TEST_CXX)"]
+fn doctor_and_next_plan_show_static_preparation_refusals_without_building() {
+    for (make, reason, pyz) in [
+        (
+            "workdir='native'\nbuild_argv=['make','all']",
+            "build.make.workdir \"native\" must be an existing project directory",
+            false,
+        ),
+        (
+            "build_argv=['/nonexistent/make','all']",
+            "configured executable is unavailable: /nonexistent/make",
+            false,
+        ),
+        (
+            "build_argv=['make','all']",
+            "already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir",
+            true,
+        ),
+    ] {
+        let root = fixture(make);
+        if pyz {
+            fs::create_dir_all(root.path().join("build/ici-make")).unwrap();
+            fs::write(root.path().join("build/ici-make/old.o"), "keep").unwrap();
+        }
+        for command in [&["ici", "doctor"][..], &["ici", "next", "plan"][..]] {
+            let invocation = registry::parse(command.iter().copied()).unwrap();
+            let output = commands::dispatch(&invocation, root.path(), &environment()).unwrap();
+            let text = output
+                .stdout
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            assert!(
+                text.contains("declared release build cannot be prepared (Makefile)")
+                    && text.contains(reason)
+                    && text.contains("nothing was built"),
+                "{make} {command:?}: {}",
+                output.stdout
+            );
+            if command[1] == "doctor" {
+                assert!(text.contains("prepare: blocked"), "{}", output.stdout);
+            }
+        }
+        // Static facts only: no build, no shadow marker, no result, pyz bytes kept.
+        assert!(!root.path().join(".ici").exists(), "{make}");
+        if pyz {
+            assert_eq!(
+                fs::read_to_string(root.path().join("build/ici-make/old.o")).unwrap(),
+                "keep"
+            );
+            assert!(!root.path().join("build/ici-make/.ici-owner.json").exists());
+        } else {
+            assert!(!root.path().join("build").exists(), "{make}");
+        }
+    }
+}
+
+fn package_tree(release: &Path) -> serde_json::Map<String, serde_json::Value> {
+    use std::os::unix::fs::PermissionsExt;
+    fn walk(path: &Path, base: &Path, out: &mut serde_json::Map<String, serde_json::Value>) {
+        let metadata = fs::symlink_metadata(path).unwrap();
+        let relative = path
+            .strip_prefix(base)
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        let mode = format!("0o{:o}", metadata.permissions().mode() & 0o777);
+        if metadata.is_dir() {
+            out.insert(relative, serde_json::json!({"type":"dir","mode":mode}));
+            let mut children = fs::read_dir(path)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect::<Vec<_>>();
+            children.sort();
+            for child in children {
+                walk(&child, base, out);
+            }
+        } else {
+            let bytes = fs::read(path).unwrap();
+            let digest = if bytes.starts_with(b"\x7fELF") {
+                "elf".to_string()
+            } else {
+                ici_domain::sha256(&bytes)
+                    .trim_start_matches("sha256:")
+                    .to_string()
+            };
+            out.insert(
+                relative,
+                serde_json::json!({"type":"file","mode":mode,"sha256":digest}),
+            );
+        }
+    }
+    let mut out = serde_json::Map::new();
+    walk(release, release.parent().unwrap(), &mut out);
+    out
+}
+
+#[test]
+#[ignore = "explicit actual Make/g++/CMake release package acceptance (ICI_TEST_MAKE, ICI_TEST_CXX, ICI_TEST_CMAKE)"]
+fn legacy_build_package_trees_match_the_frozen_tree_and_loader_digests() {
+    use std::os::unix::fs::PermissionsExt;
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/package-tree-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    // Directories follow the process umask like frozen mkdir; the oracle was captured at 022.
+    let probe = tempfile::tempdir().unwrap();
+    let created = probe.path().join("probe");
+    std::fs::DirBuilder::new().create(&created).unwrap();
+    let umask = 0o777 & !(fs::metadata(&created).unwrap().permissions().mode() & 0o777);
+    let tools = ["ICI_TEST_MAKE", "ICI_TEST_CXX", "ICI_TEST_CMAKE"]
+        .map(|name| std::env::var(name).unwrap_or_else(|_| panic!("explicit {name}")));
+    let path = tools
+        .iter()
+        .map(|tool| Path::new(tool).parent().unwrap().display().to_string())
+        .chain(["/usr/bin".into(), "/bin".into()])
+        .collect::<Vec<_>>()
+        .join(":");
+    let environment = BTreeMap::from([("PATH".to_string(), path)]);
+    for (name, fixture) in [
+        ("make", include_dir_files("package-make")),
+        ("direct", include_dir_files("package-direct")),
+        ("cmake", include_dir_files("package-cmake")),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        for (relative, text) in fixture {
+            let path = root.path().join(relative);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text).unwrap();
+        }
+        let invocation = registry::parse(["ici", "build"]).unwrap();
+        let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
+        let expected = &oracle["cases"][name];
+        assert_eq!(
+            output.exit_code, expected["exit_code"],
+            "{name}: {}",
+            output.stdout
+        );
+        let mut want = expected["tree"].as_object().unwrap().clone();
+        for value in want.values_mut() {
+            if value["type"] == "dir" {
+                value["mode"] = serde_json::json!(format!("0o{:o}", 0o777 & !umask));
+            }
+        }
+        assert_eq!(
+            package_tree(&root.path().join("v2.3.4")),
+            want,
+            "{name}: {}",
+            output.stdout
+        );
+    }
+}
+
+fn include_dir_files(name: &str) -> Vec<(&'static str, &'static str)> {
+    match name {
+        "package-make" => vec![
+            (
+                "src/main.cpp",
+                include_str!("../../../parity-fixtures/cpp/package-make/src/main.cpp"),
+            ),
+            (
+                "pyproject.toml",
+                include_str!("../../../parity-fixtures/cpp/package-make/pyproject.toml"),
+            ),
+            (
+                "ici.toml",
+                include_str!("../../../parity-fixtures/cpp/package-make/ici.toml"),
+            ),
+            (
+                "Makefile",
+                include_str!("../../../parity-fixtures/cpp/package-make/Makefile"),
+            ),
+        ],
+        "package-direct" => vec![
+            (
+                "src/main.cpp",
+                include_str!("../../../parity-fixtures/cpp/package-direct/src/main.cpp"),
+            ),
+            (
+                "pyproject.toml",
+                include_str!("../../../parity-fixtures/cpp/package-direct/pyproject.toml"),
+            ),
+            (
+                "ici.toml",
+                include_str!("../../../parity-fixtures/cpp/package-direct/ici.toml"),
+            ),
+        ],
+        _ => vec![
+            (
+                "src/main.cpp",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/src/main.cpp"),
+            ),
+            (
+                "pyproject.toml",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/pyproject.toml"),
+            ),
+            (
+                "ici.toml",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/ici.toml"),
+            ),
+            (
+                "CMakeLists.txt",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/CMakeLists.txt"),
+            ),
+        ],
+    }
 }

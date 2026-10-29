@@ -1154,6 +1154,23 @@ fn render(document: &Value, brief: bool) -> String {
                 inputs["expected"]
             ));
         }
+        // Static preparation refusals are plan-time facts; nothing was built.
+        let prefix = format!("{} release: ", component["id"].as_str().unwrap_or("-"));
+        for limitation in document["limitations"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|limitation| {
+                limitation.starts_with(&prefix)
+                    && limitation.contains("declared release build cannot be prepared")
+            })
+        {
+            text.push_str(&format!(
+                "  prepare: blocked — {}\n    resolve: fix the build declaration named above; doctor does not build\n",
+                &limitation[prefix.len()..]
+            ));
+        }
     }
     text.push_str(if brief {
         "tools\n"

@@ -365,14 +365,17 @@
     "command:ici build": {
       "status": "difference_review",
       "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/export_context.rs",
-        "crates/ici-cli/src/planning.rs"
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
-          "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_legacy_build_compiles_owned_sources_and_publishes_actual_binary"
+          "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_legacy_build_compiles_owned_sources_and_publishes_actual_binary",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_package_trees_match_the_frozen_tree_and_loader_digests"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling"
@@ -384,10 +387,11 @@
         ]
       },
       "evidence": [
-        "Frozen BuildEngine probe (oracle 6fe3e40, development-only /tmp/ici-rust-replacement-20261028/w-cpp-prep/scripts/probe.py calling the frozen BuildEngine in fresh project copies) versus the Rust binary: okay -> frozen PASS 'Build Completed', Rust PASS exit 0 (previously exit 3: the Make shadow has no compile_commands.json, which was still captured as an input and left the build unlinked); missing workdir, symlinked workdir, unavailable argv[0] and a failing recipe -> frozen FAIL 'Build did not produce a complete artifact set' with a BuildAdapter target at Makefile:1, exit 1; Rust now exit 1 with the same summary and a BuildAdapter target at Makefile:1 (previously exit 2, SKIP 'no build linked', and the run gate read PASS); a Makefile without build.make.enabled -> frozen and Rust ERROR exit 1 'Makefile at the project root has no configured adapter; ...' at '.'. cargo test -p ici-cli --test legacy_make_build -- --include-ignored (4 passed) plus regression of legacy_direct_build, native_cpp_direct, compilation_commands, native_preparation (all passed); /tmp/ici-rust-replacement-20261028/w-cpp-typed-prep.log, w-cpp-typed-regress2.log"
+        "Frozen BuildEngine probe (oracle 6fe3e40, development-only /tmp/ici-rust-replacement-20261028/w-cpp-prep/scripts/probe.py calling the frozen BuildEngine in fresh project copies) versus the Rust binary: okay -> frozen PASS 'Build Completed', Rust PASS exit 0 (previously exit 3: the Make shadow has no compile_commands.json, which was still captured as an input and left the build unlinked); missing workdir, symlinked workdir, unavailable argv[0] and a failing recipe -> frozen FAIL 'Build did not produce a complete artifact set' with a BuildAdapter target at Makefile:1, exit 1; Rust now exit 1 with the same summary and a BuildAdapter target at Makefile:1 (previously exit 2, SKIP 'no build linked', and the run gate read PASS); a Makefile without build.make.enabled -> frozen and Rust ERROR exit 1 'Makefile at the project root has no configured adapter; ...' at '.'. cargo test -p ici-cli --test legacy_make_build -- --include-ignored (4 passed) plus regression of legacy_direct_build, native_cpp_direct, compilation_commands, native_preparation (all passed); /tmp/ici-rust-replacement-20261028/w-cpp-typed-prep.log, w-cpp-typed-regress2.log",
+        "Frozen package-tree oracle captured by tests/rust-parity/cpp/capture_package_tree.py (oracle 6fe3e40, frozen .venv `python -m ici build`, umask 022) into package-tree-oracle.json over parity-fixtures/cpp/package-{make,direct,cmake}: every path, type and mode of v2.3.4/ and the sha256 of env.sh/env.csh (ELF bytes compared by kind). cargo test -p ici-cli --test legacy_make_build -- --include-ignored (6 passed) plus legacy_direct_build, native_preparation, native_validation_extra (27), native_cpp (28), native_cpp_direct, legacy_commands, compilation_commands, doctor_commands and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-package2.log, w-cpp-package3.log"
       ],
       "comparison": "C++ Make facet of legacy `ici build` compared with the frozen BuildEngine: success (PASS, exit 0, 'Build Completed: <name> <version> into <version>/x86_64', env.sh/env.csh), Make misconfiguration and failing recipes (exit 1, 'Build did not produce a complete artifact set', BuildAdapter at Makefile:1) and an unadapted Makefile (ERROR, exit 1, frozen message, no g++). Planning distinguishes typed outcomes (export_context::PreparationUnavailable): NothingToPrepare (no declared build and no selectable descriptor) keeps the legacy direct-compile fallback or limitation; Misconfigured (missing or symlinked workdir, unavailable argv[0], invalid declared system, refused shadow) never falls back: it blocks the variant's dependent checks with the located reason, and legacy `ici build` reports the frozen FAIL (exit 1) with the reason at the descriptor. Execution-time Make step failures are observed the same way (configure -> BuildError ERROR, clean/build -> BuildAdapter FAIL 'Make <step> command did not complete successfully').",
-      "difference_reason": "Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process. The legacy engine status is ERROR rather than frozen FAIL because the run records the build check as a failed execution (reporting projection maps a Failed check to ERROR); the exit code (1) and summary match. Legacy single-engine commands keep the frozen engines.build.required=false policy, so the embedded native run gate stays non-blocking for this advisory check, exactly as for direct compile failures. Packaging differs and is recorded for review, not accepted: Rust copies the measured ELF outputs of the owned Make shadow into <version>/x86_64/bin (frozen leaves bin/ empty for the Make adapter and only records the manifest), does not create an empty lib/, and its env.sh/env.csh also prepend <version>/x86_64/lib to LD_LIBRARY_PATH. Open: CMake/qmake configure/build failures still report as execution failures without the frozen BuildAdapter/BuildError target shape, Python packaging and [build.artifacts] are not compared here. Root decision requested: legacy `ici build` keeps the frozen engines.build.required=false policy, so the stored native run gate of a failed legacy build reads PASS (the legacy exit is 1, as for the existing direct-compile failure path, whose stored gate also reads PASS). Making that gate INCOMPLETE would turn the legacy exit into 3 (legacy_execute skips the engine-status exit when the gate is INCOMPLETE); making it FAIL needs a required check with a blocking finding. Measured: legacy `ici verify` on the same missing-workdir fixture is INCOMPLETE exit 3 with the located reason on cpp.compile/cpp.diagnostics, and modern `ici analyze` is INCOMPLETE exit 3 (it plans no build preparation). Doctor and `ici next plan` do not plan legacy context preparation, so they do not show this reason (or the pyz-era shadow refusal); it appears in legacy plan limitations and the `ici build` output."
+      "difference_reason": "Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process.  Open: CMake/qmake configure/build failures still report as execution failures without the frozen BuildAdapter/BuildError target shape, Python packaging and [build.artifacts] are not compared here. Root decision (18:45) implemented: under `ici build` the build checks are required for that invocation (legacy::select), and a build failure is a measured verdict with a blocking `build.adapter` finding at the Makefile (or the compiler finding at the direct-compile source), so the stored gate is FAIL with exit 1 and the legacy engine prints FAIL; legacy `ici verify` stays INCOMPLETE exit 3 and modern `ici analyze` INCOMPLETE exit 3. Packaging now matches frozen exactly (root decision 18:45): legacy adapter builds (Make, CMake, qmake) publish <version>/x86_64 with empty bin/ and lib/ plus the frozen env.sh/env.csh bytes; the direct g++ build publishes bin/<name>; directories follow the process umask like frozen mkdir. Next-schema projects (rejected by the frozen pyz) keep publishing measured binaries, and only a package that publishes a shared library adds lib/ to LD_LIBRARY_PATH (the frozen pyz never publishes one). Root item 4 resolved for the cpp side: build failures are now measured verdicts, so the legacy projection prints frozen FAIL for adapter and recipe failures; the unadapted-Makefile BuildError is ERROR in frozen too. Still open in the reporting area (crates/ici-reporting/src/projection.rs): an ERROR engine summary gets a 'cpp.artifact: ' prefix that frozen does not print."
     },
     "command:ici cognitive": {
       "status": "verified",
@@ -1074,9 +1078,10 @@
       "difference_reason": ""
     },
     "config_key:legacy:build.make.build_argv": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/doctor.rs",
         "crates/ici-cli/src/export_context.rs",
         "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/build.rs",
@@ -1092,7 +1097,8 @@
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make",
+          "crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building"
         ],
         "failure": [
           "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
@@ -1105,10 +1111,11 @@
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
-        "Frozen BuildEngine probe (oracle 6fe3e40, development-only /tmp/ici-rust-replacement-20261028/w-cpp-prep/scripts/probe.py calling the frozen BuildEngine in fresh project copies) versus the Rust binary: okay -> frozen PASS 'Build Completed', Rust PASS exit 0 (previously exit 3: the Make shadow has no compile_commands.json, which was still captured as an input and left the build unlinked); missing workdir, symlinked workdir, unavailable argv[0] and a failing recipe -> frozen FAIL 'Build did not produce a complete artifact set' with a BuildAdapter target at Makefile:1, exit 1; Rust now exit 1 with the same summary and a BuildAdapter target at Makefile:1 (previously exit 2, SKIP 'no build linked', and the run gate read PASS); a Makefile without build.make.enabled -> frozen and Rust ERROR exit 1 'Makefile at the project root has no configured adapter; ...' at '.'. cargo test -p ici-cli --test legacy_make_build -- --include-ignored (4 passed) plus regression of legacy_direct_build, native_cpp_direct, compilation_commands, native_preparation (all passed); /tmp/ici-rust-replacement-20261028/w-cpp-typed-prep.log, w-cpp-typed-regress2.log"
+        "Frozen BuildEngine probe (oracle 6fe3e40, development-only /tmp/ici-rust-replacement-20261028/w-cpp-prep/scripts/probe.py calling the frozen BuildEngine in fresh project copies) versus the Rust binary: okay -> frozen PASS 'Build Completed', Rust PASS exit 0 (previously exit 3: the Make shadow has no compile_commands.json, which was still captured as an input and left the build unlinked); missing workdir, symlinked workdir, unavailable argv[0] and a failing recipe -> frozen FAIL 'Build did not produce a complete artifact set' with a BuildAdapter target at Makefile:1, exit 1; Rust now exit 1 with the same summary and a BuildAdapter target at Makefile:1 (previously exit 2, SKIP 'no build linked', and the run gate read PASS); a Makefile without build.make.enabled -> frozen and Rust ERROR exit 1 'Makefile at the project root has no configured adapter; ...' at '.'. cargo test -p ici-cli --test legacy_make_build -- --include-ignored (4 passed) plus regression of legacy_direct_build, native_cpp_direct, compilation_commands, native_preparation (all passed); /tmp/ici-rust-replacement-20261028/w-cpp-typed-prep.log, w-cpp-typed-regress2.log",
+        "cargo test -p ici-cli --test legacy_make_build -- --include-ignored (5 passed), doctor_commands (11), plan_commands (2), native_cpp (28) passed; /tmp/ici-rust-replacement-20261028/w-cpp-doctor.log, w-cpp-doctor2.log"
       ],
       "comparison": "Frozen build_argv: required, <=64 tokens x 1024 chars, 32 KiB total, no control/$/backtick, only whole {jobs}, no shells (casefolded basename) and no -c,/c,-command token anywhere after argv[0] (so 'make -C dir' is refused exactly as frozen). Failing recipes fail preparation and legacy ici build does not pass. Planning distinguishes typed outcomes (export_context::PreparationUnavailable): NothingToPrepare (no declared build and no selectable descriptor) keeps the legacy direct-compile fallback or limitation; Misconfigured (missing or symlinked workdir, unavailable argv[0], invalid declared system, refused shadow) never falls back: it blocks the variant's dependent checks with the located reason, and legacy `ici build` reports the frozen FAIL (exit 1) with the reason at the descriptor. Execution-time Make step failures are observed the same way (configure -> BuildError ERROR, clean/build -> BuildAdapter FAIL 'Make <step> command did not complete successfully').",
-      "difference_reason": "Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process. The legacy engine status is ERROR rather than frozen FAIL because the run records the build check as a failed execution (reporting projection maps a Failed check to ERROR); the exit code (1) and summary match. Legacy single-engine commands keep the frozen engines.build.required=false policy, so the embedded native run gate stays non-blocking for this advisory check, exactly as for direct compile failures. Root decision requested: legacy `ici build` keeps the frozen engines.build.required=false policy, so the stored native run gate of a failed legacy build reads PASS (the legacy exit is 1, as for the existing direct-compile failure path, whose stored gate also reads PASS). Making that gate INCOMPLETE would turn the legacy exit into 3 (legacy_execute skips the engine-status exit when the gate is INCOMPLETE); making it FAIL needs a required check with a blocking finding. Measured: legacy `ici verify` on the same missing-workdir fixture is INCOMPLETE exit 3 with the located reason on cpp.compile/cpp.diagnostics, and modern `ici analyze` is INCOMPLETE exit 3 (it plans no build preparation). Doctor and `ici next plan` do not plan legacy context preparation, so they do not show this reason (or the pyz-era shadow refusal); it appears in legacy plan limitations and the `ici build` output."
+      "difference_reason": "Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process.  Root decision (18:45) implemented: under `ici build` the build checks are required for that invocation (legacy::select), and a build failure is a measured verdict with a blocking `build.adapter` finding at the Makefile (or the compiler finding at the direct-compile source), so the stored gate is FAIL with exit 1 and the legacy engine prints FAIL; legacy `ici verify` stays INCOMPLETE exit 3 and modern `ici analyze` INCOMPLETE exit 3. Intended improvement (root decision 18:45): `ici doctor` (limitations plus a 'prepare: blocked' line per component), `ici next doctor`, `ici next plan` and `ici analyze --plan` run a static, read-only preparation preflight and show this refusal with the cause and the fix, without building, writing a marker or a result (fixture crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building)."
     },
     "config_key:legacy:build.make.clean_argv": {
       "status": "complete",
@@ -1313,10 +1320,12 @@
     "config_key:legacy:build.make.sanitize_build_argv": {
       "status": "verified",
       "rust_paths": [
-        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/build.rs",
-        "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/model.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1326,16 +1335,19 @@
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
         ]
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
-        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
       ],
-      "comparison": "Frozen sanitize variant: build.make.sanitize_build_argv is required (missing -> 'build.make.sanitize_build_argv is required for sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet.",
+      "comparison": "Frozen sanitize variant: build.make.sanitize_build_argv is required (missing -> 'build.make.sanitize_build_argv is required for sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix).",
       "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_test_argv": {
@@ -1363,12 +1375,14 @@
       "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
     },
     "config_key:legacy:build.make.shadow_dir": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
-        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cli/src/doctor.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/build.rs",
-        "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/model.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1380,7 +1394,8 @@
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir",
           "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
+          "crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building"
         ],
         "failure": [
           "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes",
@@ -1391,10 +1406,11 @@
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
-        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
+        "cargo test -p ici-cli --test legacy_make_build -- --include-ignored (5 passed), doctor_commands (11), plan_commands (2), native_cpp (28) passed; /tmp/ici-rust-replacement-20261028/w-cpp-doctor.log, w-cpp-doctor2.log"
       ],
       "comparison": "Frozen shadow_dir: contained non-root path, default build/ici-make, shared by every variant (no variant suffix). Rust uses it as the owned shadow, generated root (excluded from build inputs) and artifact discovery root; release then coverage reuse the same shadow without ownership mismatch.",
-      "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/owners/make/<sha>.json for this root/build/shadow (outside the build-id namespace, so a clean recipe that recreates the shadow keeps working). The frozen pyz leaves no ownership marker in build/ici-make (verified against oracle 6fe3e40 core/make.py: only mkdir(exist_ok=True)), so a nonempty pyz-era shadow cannot be proven ici-created and is refused at planning time, before any Make command or filesystem change, with the located message 'build.make.shadow_dir \"build/ici-make\" already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir to an empty or new path', which appears in the plan limitations and the build output; the bytes stay unchanged. Symlinked shadows and foreign markers are refused the same way; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private. `ici doctor` and `ici next plan` plan no legacy context preparation, so they do not show this refusal; it appears in the legacy plan limitations (fixture) and in the `ici build` output/result."
+      "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/owners/make/<sha>.json for this root/build/shadow (outside the build-id namespace, so a clean recipe that recreates the shadow keeps working). The frozen pyz leaves no ownership marker in build/ici-make (verified against oracle 6fe3e40 core/make.py: only mkdir(exist_ok=True)), so a nonempty pyz-era shadow cannot be proven ici-created and is refused at planning time, before any Make command or filesystem change, with the located message 'build.make.shadow_dir \"build/ici-make\" already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir to an empty or new path', which appears in the plan limitations and the build output; the bytes stay unchanged. Symlinked shadows and foreign markers are refused the same way; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private. Intended improvement (root decision 18:45): `ici doctor` (limitations plus a 'prepare: blocked' line per component), `ici next doctor`, `ici next plan` and `ici analyze --plan` run a static, read-only preparation preflight and show this refusal with the cause and the fix, without building, writing a marker or a result (fixture crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building)."
     },
     "config_key:legacy:build.make.test_argv": {
       "status": "implemented",
@@ -1423,10 +1439,12 @@
     "config_key:legacy:build.make.thread_sanitize_build_argv": {
       "status": "verified",
       "rust_paths": [
-        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/build.rs",
-        "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/model.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1436,16 +1454,19 @@
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
         ]
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
-        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
       ],
-      "comparison": "Frozen thread-sanitize variant: build.make.thread_sanitize_build_argv is required (missing -> 'build.make.thread_sanitize_build_argv is required for thread-sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet.",
+      "comparison": "Frozen thread-sanitize variant: build.make.thread_sanitize_build_argv is required (missing -> 'build.make.thread_sanitize_build_argv is required for thread-sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix).",
       "difference_reason": ""
     },
     "config_key:legacy:build.make.thread_sanitize_test_argv": {
@@ -1473,9 +1494,10 @@
       "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
     },
     "config_key:legacy:build.make.workdir": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/doctor.rs",
         "crates/ici-cli/src/export_context.rs",
         "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/build.rs",
@@ -1491,7 +1513,8 @@
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make",
+          "crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
@@ -1503,10 +1526,11 @@
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
-        "Frozen BuildEngine probe (oracle 6fe3e40, development-only /tmp/ici-rust-replacement-20261028/w-cpp-prep/scripts/probe.py calling the frozen BuildEngine in fresh project copies) versus the Rust binary: okay -> frozen PASS 'Build Completed', Rust PASS exit 0 (previously exit 3: the Make shadow has no compile_commands.json, which was still captured as an input and left the build unlinked); missing workdir, symlinked workdir, unavailable argv[0] and a failing recipe -> frozen FAIL 'Build did not produce a complete artifact set' with a BuildAdapter target at Makefile:1, exit 1; Rust now exit 1 with the same summary and a BuildAdapter target at Makefile:1 (previously exit 2, SKIP 'no build linked', and the run gate read PASS); a Makefile without build.make.enabled -> frozen and Rust ERROR exit 1 'Makefile at the project root has no configured adapter; ...' at '.'. cargo test -p ici-cli --test legacy_make_build -- --include-ignored (4 passed) plus regression of legacy_direct_build, native_cpp_direct, compilation_commands, native_preparation (all passed); /tmp/ici-rust-replacement-20261028/w-cpp-typed-prep.log, w-cpp-typed-regress2.log"
+        "Frozen BuildEngine probe (oracle 6fe3e40, development-only /tmp/ici-rust-replacement-20261028/w-cpp-prep/scripts/probe.py calling the frozen BuildEngine in fresh project copies) versus the Rust binary: okay -> frozen PASS 'Build Completed', Rust PASS exit 0 (previously exit 3: the Make shadow has no compile_commands.json, which was still captured as an input and left the build unlinked); missing workdir, symlinked workdir, unavailable argv[0] and a failing recipe -> frozen FAIL 'Build did not produce a complete artifact set' with a BuildAdapter target at Makefile:1, exit 1; Rust now exit 1 with the same summary and a BuildAdapter target at Makefile:1 (previously exit 2, SKIP 'no build linked', and the run gate read PASS); a Makefile without build.make.enabled -> frozen and Rust ERROR exit 1 'Makefile at the project root has no configured adapter; ...' at '.'. cargo test -p ici-cli --test legacy_make_build -- --include-ignored (4 passed) plus regression of legacy_direct_build, native_cpp_direct, compilation_commands, native_preparation (all passed); /tmp/ici-rust-replacement-20261028/w-cpp-typed-prep.log, w-cpp-typed-regress2.log",
+        "cargo test -p ici-cli --test legacy_make_build -- --include-ignored (5 passed), doctor_commands (11), plan_commands (2), native_cpp (28) passed; /tmp/ici-rust-replacement-20261028/w-cpp-doctor.log, w-cpp-doctor2.log"
       ],
       "comparison": "Frozen workdir: project-relative POSIX (no backslash/drive/absolute/..), default '.', and cwd of configure/clean/build commands; previously Rust ran Make in its shadow. Actual Make records pwd == project root by default and == native/ for workdir='native'. Planning distinguishes typed outcomes (export_context::PreparationUnavailable): NothingToPrepare (no declared build and no selectable descriptor) keeps the legacy direct-compile fallback or limitation; Misconfigured (missing or symlinked workdir, unavailable argv[0], invalid declared system, refused shadow) never falls back: it blocks the variant's dependent checks with the located reason, and legacy `ici build` reports the frozen FAIL (exit 1) with the reason at the descriptor. Execution-time Make step failures are observed the same way (configure -> BuildError ERROR, clean/build -> BuildAdapter FAIL 'Make <step> command did not complete successfully').",
-      "difference_reason": "Rust additionally requires the workdir to already exist as a contained directory without symlink traversal at plan time; frozen resolved symlinks and failed only when the process could not start. ici never creates or writes the workdir. Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process. The legacy engine status is ERROR rather than frozen FAIL because the run records the build check as a failed execution (reporting projection maps a Failed check to ERROR); the exit code (1) and summary match. Legacy single-engine commands keep the frozen engines.build.required=false policy, so the embedded native run gate stays non-blocking for this advisory check, exactly as for direct compile failures. Root decision requested: legacy `ici build` keeps the frozen engines.build.required=false policy, so the stored native run gate of a failed legacy build reads PASS (the legacy exit is 1, as for the existing direct-compile failure path, whose stored gate also reads PASS). Making that gate INCOMPLETE would turn the legacy exit into 3 (legacy_execute skips the engine-status exit when the gate is INCOMPLETE); making it FAIL needs a required check with a blocking finding. Measured: legacy `ici verify` on the same missing-workdir fixture is INCOMPLETE exit 3 with the located reason on cpp.compile/cpp.diagnostics, and modern `ici analyze` is INCOMPLETE exit 3 (it plans no build preparation). Doctor and `ici next plan` do not plan legacy context preparation, so they do not show this reason (or the pyz-era shadow refusal); it appears in legacy plan limitations and the `ici build` output."
+      "difference_reason": "Rust additionally requires the workdir to already exist as a contained directory without symlink traversal at plan time; frozen resolved symlinks and failed only when the process could not start. ici never creates or writes the workdir. Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process.  Root decision (18:45) implemented: under `ici build` the build checks are required for that invocation (legacy::select), and a build failure is a measured verdict with a blocking `build.adapter` finding at the Makefile (or the compiler finding at the direct-compile source), so the stored gate is FAIL with exit 1 and the legacy engine prints FAIL; legacy `ici verify` stays INCOMPLETE exit 3 and modern `ici analyze` INCOMPLETE exit 3. Intended improvement (root decision 18:45): `ici doctor` (limitations plus a 'prepare: blocked' line per component), `ici next doctor`, `ici next plan` and `ici analyze --plan` run a static, read-only preparation preflight and show this refusal with the cause and the fix, without building, writing a marker or a result (fixture crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building)."
     },
     "config_key:legacy:engines.binary_compat": {
       "status": "not_started",
@@ -2954,16 +2978,26 @@
       "difference_reason": "Open: the C++ effect of legacy engines.sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.sanitize.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required).",
+      "difference_reason": "Open: the effect of required=true on measured or unmeasured sanitizer scopes (ERROR for unexecuted adapter cases, gate blocking) needs actual sanitizer runs and is not compared."
     },
     "config_key:legacy:engines.security": {
       "status": "not_started",
@@ -3451,16 +3485,26 @@
       "difference_reason": "Open: the C++ effect of legacy engines.thread_sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.thread_sanitize.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.thread_sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required).",
+      "difference_reason": "Open: the effect of required=true on measured or unmeasured sanitizer scopes (ERROR for unexecuted adapter cases, gate blocking) needs actual sanitizer runs and is not compared."
     },
     "config_key:legacy:engines.type": {
       "status": "not_started",
@@ -5395,7 +5439,7 @@
       },
       "evidence": [],
       "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:200); enclosing frozen function run.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "difference_reason": "Open: the no-scope `Sanitize` SKIP target at '.' (no C++ sources, no C++ tests and no Python scope) is not compared; the C++ test-less SKIP path now matches frozen (tests/rust-parity/cpp/sanitize-oracle.json), so the earlier exit 3 observation no longer applies."
     },
     "finding_site:src/ici/engines/sanitize.py:385:24": {
       "status": "not_started",
@@ -5446,28 +5490,52 @@
       "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
     },
     "finding_site:src/ici/engines/sanitize.py:838:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:838); enclosing frozen function _append_scope_error.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen _append_scope_error via _fail_adapter_scope: a sanitizer adapter configure failure is one `C++Sanitizer` ERROR target at the descriptor (Makefile) with the configuration message; engine ERROR, summary = the message, exit 1, nothing built. Rust legacy planning maps the typed Misconfigured preparation error of the sanitize/thread-sanitize variant to crate::cpp::legacy_sanitizer_configuration_error; target, status and exit match the oracle for the missing build.make.{sanitize,thread_sanitize}_build_argv cases.",
+      "difference_reason": "Open: (1) the Rust ERROR summary carries the reporting projection prefix ('cpp.sanitize: ' / 'cpp.tsan: ') that frozen does not print (crates/ici-reporting/src/projection.rs, reporting worker); (2) build failures after configure, the no-tests-reported and missing-process-evidence callers need actual sanitizer adapter runs and are not compared."
     },
     "finding_site:src/ici/engines/sanitize.py:865:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:865); enclosing frozen function _mark_scope_skip.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen _mark_scope_skip appends one target and counts a skipped scope; its not-required caller in _run_cpp_sanitizer (no tests/**/*.cpp under the project root) gives `C++Sanitizer` SKIP at `tests` line 1, 'No C++ sanitizer test sources were selected; compilation was not run', engine SKIP with SKIP_SUMMARY and exit 2 for both ASan/UBSan and TSan, even with engines.*.required=true. Rust legacy planning walks tests/ with the frozen ignore names (no symlink traversal) and, when no .cpp is proven, records crate::cpp::legacy_sanitizer_skip and does not prepare or build the sanitizer variant; the 8 oracle cases match exactly.",
+      "difference_reason": "Open: the required (ERROR) caller for adapter test cases that were not executed ('[C++ ASan/UBSan] <case>' at the descriptor) is not compared; it needs an actual sanitizer adapter run."
     },
     "finding_site:src/ici/engines/test.py:352:12": {
       "status": "not_started",
@@ -6200,7 +6268,7 @@
         "finding_site:src/ici/engines/sanitize.py:838:12",
         "finding_site:src/ici/engines/sanitize.py:865:12"
       ],
-      "reason": "Unreviewed: Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here. Exact frozen hash 00ef0db22f4b6ff183e1e7998182fe7197124da26ee78ce1ad88c6bb86b58aba and 36 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed: Open: the test-less C++ SKIP and missing-sanitizer-argv ERROR paths match frozen (tests/rust-parity/cpp/sanitize-oracle.json); actual ASan/UBSan/TSan adapter and direct runs, their diagnostics and findings are not compared yet. Exact frozen hash 00ef0db22f4b6ff183e1e7998182fe7197124da26ee78ce1ad88c6bb86b58aba and 36 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
     },
     "src/ici/engines/test.py": {
       "disposition": "unreviewed",

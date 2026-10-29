@@ -518,11 +518,34 @@ fn prepare_resolved_omitting(
                     "test"
                 });
             }
-            if selected.contains("cpp.sanitize") {
-                variants.insert("sanitize");
-            }
-            if selected.contains("cpp.tsan") {
-                variants.insert("thread-sanitize");
+            for (check_id, variant) in [
+                ("cpp.sanitize", "sanitize"),
+                ("cpp.tsan", "thread-sanitize"),
+            ] {
+                if !selected.contains(check_id) {
+                    continue;
+                }
+                if !crate::cpp::legacy_sanitizer_tests_absent(&project.root) {
+                    variants.insert(variant);
+                    continue;
+                }
+                // Frozen sanitizer engines skip before choosing a backend when the project has
+                // no `tests/**/*.cpp`: nothing is built, so the variant is not prepared.
+                plan.limitations.push(format!(
+                    "{} {variant}: no tests/**/*.cpp sanitizer test sources; the variant was not prepared or built",
+                    component.id
+                ));
+                for check in plan.checks.iter_mut().filter(|check| {
+                    check.component_id == component.id && check.check.id == check_id
+                }) {
+                    cpp.fail_preparation(
+                        &check.task_id,
+                        crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id),
+                    );
+                    validations.remove(&check.task_id);
+                    check.check.needs.clear();
+                    check.work = Work::Internal;
+                }
             }
             if selected.contains("cpp.dead")
                 && component
@@ -574,8 +597,9 @@ fn prepare_resolved_omitting(
                     }) => {
                         // A declared or explicitly enabled build that cannot be planned blocks
                         // the variant's dependent checks; it never falls back or passes.
+                        let configuration = reason;
                         let reason =
-                            format!("declared {variant} build cannot be prepared: {reason}");
+                            format!("declared {variant} build cannot be prepared: {configuration}");
                         plan.limitations
                             .push(format!("{} {variant}: {reason}", component.id));
                         for check in plan.checks.iter_mut().filter(|check| {
@@ -596,11 +620,27 @@ fn prepare_resolved_omitting(
                                     crate::cpp::build_failure(
                                         &check.task_id,
                                         descriptor.as_deref().unwrap_or("."),
+                                        descriptor.as_deref().unwrap_or("ici.toml"),
                                         false,
                                         &reason,
                                         &reason,
                                     ),
                                 );
+                                check.check.needs.clear();
+                                check.work = Work::Internal;
+                            } else if matches!(check.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                            {
+                                // Frozen sanitizer engines: the adapter configure failure is a
+                                // `C++Sanitizer` ERROR at the descriptor; nothing is built.
+                                cpp.fail_preparation(
+                                    &check.task_id,
+                                    crate::cpp::legacy_sanitizer_configuration_error(
+                                        &check.task_id,
+                                        descriptor.as_deref().unwrap_or("."),
+                                        &configuration,
+                                    ),
+                                );
+                                validations.remove(&check.task_id);
                                 check.check.needs.clear();
                                 check.work = Work::Internal;
                             } else {
@@ -621,10 +661,15 @@ fn prepare_resolved_omitting(
                         .is_some() =>
                     {
                         // Frozen BuildEngine refuses generic g++ next to an unadapted descriptor.
-                        let label = crate::export_context::unadapted_descriptor(
+                        let (label, name) = crate::export_context::unadapted_descriptor(
                             &crate::files::under(&project.root, &component.root),
                         )
                         .unwrap_or_default();
+                        let file = if component.root == "." {
+                            name
+                        } else {
+                            format!("{}/{name}", component.root)
+                        };
                         let message = format!(
                             "{label} at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked"
                         );
@@ -638,6 +683,7 @@ fn prepare_resolved_omitting(
                                 crate::cpp::build_failure(
                                     &check.task_id,
                                     ".",
+                                    &file,
                                     true,
                                     &message,
                                     &message,
@@ -688,6 +734,35 @@ fn prepare_resolved_omitting(
                         }
                     }
                 }
+            }
+        }
+    }
+    if !crate::legacy::is_legacy(invocation)
+        && (matches!(
+            invocation.command().as_str(),
+            "next plan" | "doctor" | "next doctor"
+        ) || (invocation.command() == "analyze" && invocation.flag("plan")))
+    {
+        // Doctor and plan run nothing, but static preparation refusals (an unowned or symlinked
+        // shadow, a missing or symlinked workdir, an unavailable configured executable) are
+        // plan-time facts users look for here.
+        let binary = std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
+        for component in project
+            .components
+            .iter()
+            .filter(|component| component.languages.iter().any(|language| language == "cpp"))
+        {
+            if let Err(crate::export_context::PreparationUnavailable::Misconfigured {
+                reason,
+                descriptor,
+            }) =
+                crate::export_context::plan_preparation(&project, component, environment, &binary)
+            {
+                plan.limitations.push(format!(
+                    "{} release: declared release build cannot be prepared{}: {reason} (static preparation preflight; nothing was built)",
+                    component.id,
+                    descriptor.map(|path| format!(" ({path})")).unwrap_or_default()
+                ));
             }
         }
     }

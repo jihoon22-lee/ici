@@ -418,6 +418,7 @@ fn execute_native_preparation(
                 let mut output = crate::cpp::build_failure(
                     &outcome.task_id,
                     &plan.descriptor,
+                    &plan.descriptor,
                     configuration,
                     &format!("Make {step} command did not complete successfully"),
                     &detail,
@@ -676,14 +677,14 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
 
 /// Frozen BuildEngine `_has_build_descriptor`: a root native descriptor that no configured
 /// adapter selected (for example a Makefile without `build.make.enabled = true`). Returns the
-/// frozen descriptor label used in its "has no configured adapter" error.
-pub fn unadapted_descriptor(directory: &Path) -> Option<String> {
+/// frozen descriptor label used in its "has no configured adapter" error and the file name.
+pub fn unadapted_descriptor(directory: &Path) -> Option<(String, String)> {
     let regular = |path: &Path| fs::symlink_metadata(path).is_ok_and(|metadata| metadata.is_file());
     if let Some(name) = ["Makefile", "makefile", "GNUmakefile"]
         .into_iter()
         .find(|name| regular(&directory.join(name)))
     {
-        return Some(name.into());
+        return Some((name.into(), name.into()));
     }
     let mut names = fs::read_dir(directory)
         .ok()?
@@ -693,14 +694,14 @@ pub fn unadapted_descriptor(directory: &Path) -> Option<String> {
         .collect::<Vec<_>>();
     names.sort();
     names
-        .iter()
-        .any(|name| {
+        .into_iter()
+        .find(|name| {
             name.ends_with(".pro")
                 || name.starts_with("Makefile.")
                 || name.ends_with(".mk")
                 || name.ends_with(".make")
         })
-        .then(|| "A build descriptor".into())
+        .map(|name| ("A build descriptor".into(), name))
 }
 
 /// The legacy `build.make` table: component-scoped settings first, else the project effective

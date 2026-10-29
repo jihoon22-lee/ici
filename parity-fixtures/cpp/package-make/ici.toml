@@ -1,0 +1,6 @@
+[project]
+type='cpp'
+source_dirs=['src']
+[build.make]
+enabled=true
+build_argv=['make','all']
