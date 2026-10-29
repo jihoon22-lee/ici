@@ -279,7 +279,8 @@ fn cancellation_during_tool_execution_reaps_process_and_saves_partial_evidence()
     let child_cancel = cancellation.clone();
     let marker = directory.path().join("marker");
     let thread = std::thread::spawn(move || {
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        // Startup (self digest, snapshot) is not under test; only cancellation latency is.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(25);
         while !marker.is_file() && std::time::Instant::now() < deadline {
             std::thread::sleep(std::time::Duration::from_millis(10));
         }

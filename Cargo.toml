@@ -22,3 +22,8 @@ unsafe_code = "forbid"
 lto = "thin"
 strip = "debuginfo"
 codegen-units = 1
+
+# Every run digests its own executable; unoptimised SHA-256 over a debug test binary (~300 MB)
+# costs seconds before any tool starts. Optimise only the hash crates in dev/test builds.
+[profile.dev.package.sha2]
+opt-level = 3
