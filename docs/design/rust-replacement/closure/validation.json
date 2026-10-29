@@ -152,6 +152,407 @@
       "comparison": "pytest.collection-error now uses the frozen raw identity sha256(pytest\\0collect:<printed path>\\0error); rule, message 'collection error in <path>', line-1 location and the attributed fingerprint equal the frozen golden.",
       "difference_reason": "Corrected frozen defect: its regex `(?:collecting\\s+)?` also matched the short-summary line `FAILED tests/test_a.py::test_bad - ...`, adding a spurious collection error for every failing test file (captured in the golden); native requires `ERROR/FAILED collecting <file>.py`. A collection failure leaves python.test incomplete where frozen reported SUCCEEDED."
     },
+    "finding_site:src/ici/analysis/_python_packaging.py:121:11": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: the Package:SourceMetadata / Package:Wheel targets keep frozen location, status and message (PASS/WARN/FAIL inventory in all 105 cases). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_packaging.py:294:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.import-distribution-mismatch (import-distribution-name) at the pyproject name line; 3 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_packaging.py:312:16": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.entrypoint-missing (entrypoint-target) at the entry-point value line; 4 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_packaging.py:323:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.discovery-empty (package-discovery) at pyproject.toml:1. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_packaging.py:378:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-missing (wheel.discovery) for a configured glob that matched nothing. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_packaging.py:394:16": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "ici.package.wheel-invalid (wheel.structure) for unreadable or structurally invalid wheels; 35 frozen cases equal in identity, message and metadata.",
+      "difference_reason": "Four ZIP-structure cases are recorded corrections in the golden: native preflight rejects a central-directory member-count mismatch, local/central name disagreement and overlapping compressed ranges before decompression, and returns a located finding for a non-UTF-8 member name where frozen raised UnicodeDecodeError. The golden itself was captured with Python 3.14.7; re-verifying it against the frozen checkout with Python 3.10 diverges at compression-zstandard (zipfile zstd support is interpreter-dependent)."
+    },
+    "finding_site:src/ici/analysis/_python_packaging.py:98:11": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: the shared _finding helper: every ici.package.* finding keeps the frozen rule id, fingerprint, message, severity, confidence, category, tool rule id and line. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:118:11": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: the wheel _finding helper (identity, message, severity and tool rule id of every wheel finding). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:462:8": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-record-integrity (wheel.record); 9 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:510:8": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-metadata-mismatch (wheel.metadata-identity); 4 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:534:8": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-tag-mismatch (wheel.tags). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:566:8": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.native-wheel-forbidden (wheel.pure-policy); 2 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:592:8": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.package-files-missing (wheel.package-files). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:625:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-entrypoints-missing (wheel.entry-points). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:638:8": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-entrypoints-mismatch (wheel.entry-points); 3 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
+    "finding_site:src/ici/analysis/_python_wheel.py:680:16": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-analysis/src/package.rs",
+        "crates/ici-analysis/src/wheel.rs",
+        "crates/ici-analysis/src/wheel_zip.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "negative": [
+          "crates/ici-analysis/src/tests.rs::package_and_wheel_contracts_match_frozen_findings_targets_and_metadata"
+        ],
+        "failure": [
+          "crates/ici-analysis/src/tests.rs::package_inspection_scope_is_explicit_and_missing_requested_metadata_is_incomplete",
+          "crates/ici-analysis/src/tests.rs::wheel_chunk_cancellation_retains_completed_source_metadata_without_partial_success"
+        ]
+      },
+      "evidence": [
+        "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+      ],
+      "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-metadata-mismatch (wheel.dist-info-identity); 2 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
+    },
     "finding_site:src/ici/engines/coverage_policy.py:165:11": {
       "status": "complete",
       "rust_paths": [
