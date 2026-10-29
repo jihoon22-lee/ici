@@ -38,13 +38,13 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
-    "actual `ici report --result result.json --out report.html` on the capture_cli_oracle.py one-file project: frozen oracle 7,096 B, native before 165,113 B (root release measurement 165,618/165,097 B), native after 43,800 B (debug, commit 9cbbfe4); Node DOM harness hydrated all 49 sections; /tmp/ici-rust-replacement-20261028/w-reporting-html-size.log",
-    "cargo test -p ici-cli --test report_commands --test publish_commands --test legacy_commands --locked -j2 -- --include-ignored; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-details-placement.log",
-    "cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings; passed; /tmp/ici-rust-replacement-20261028/w-reporting-details-clippy.log (re-run for ici-reporting after later units: /tmp/ici-rust-replacement-20261028/w-reporting-sarif-absent-clippy.log)"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "actual `target/debug/ici report --result result.json --out report-head.html` on the capture_cli_oracle.py one-file project (HTML output has no build-profile dependent code): frozen oracle 7,096 B; native before 165,113 B (root release measurement 165,618/165,097 B); 43,800 B at 9cbbfe4; 46,419 B at the fragment commit after the engine table was added; 49 lazy sections hydrated by `node tests/rust-parity/reporting/lazy-dom-check.cjs`; /tmp/ici-rust-replacement-20261028/w-reporting-html-size.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test report_commands --test publish_commands --test legacy_commands --no-fail-fast -- --include-ignored --test-threads=2`; 17 passed (5+6+6); /tmp/ici-rust-replacement-20261028/w-reporting-head-cli.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log"
    ],
    "comparison": "Reporting facet only. Reviewed frozen reporting/view_model.py, reporting/offline_html.py, reporters/baseline_view.py, reporters/console.py, reporters/markdown.py (summary, engine table, capability, baseline, issue projection) and the SARIF resolved/absent path. Native renderers now carry every oracle offline-view fact (scope, execution, checks, gate reasons, findings with provider/baseline marks, measurements, limitations), the legacy engine table (issues, score display, cache, duration), status tally, gate_reason, capability snapshot and issues-first baseline deltas with severity transitions, all pinned to frozen captures (suite-overview.json). HTML is Zero-CDN and verified by DOM/text equality of on-demand sections with the server renderer, not bytes. Open for complete: the 12 legacy html/sections/*.py, html/large.py, html/report.py and markdown target/related/failure-snippet rows were not field-by-field audited in this pass (rich-19 sentinels only), and legacy GitHub annotations come from findings rather than the frozen target list.",
-   "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 43,800 B for the budget fixture). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read)."
+   "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 46,419 B for the budget fixture at the fragment commit). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read)."
   },
   "capability:legacy-command-config-result-projection": {
    "status": "verified",
@@ -70,9 +70,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-reporting --test migration_edges ...; 13 frozen edge cases pass, and the same test fails on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
-    "cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings; passed; /tmp/ici-rust-replacement-20261028/w-reporting-details-clippy.log (re-run for ici-reporting after later units: /tmp/ici-rust-replacement-20261028/w-reporting-sarif-absent-clippy.log)"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log"
    ],
    "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas.",
    "difference_reason": "Engine-name slugs and metric-unit names use Unicode lowercase rather than Python full casefold; they differ only for code points whose fold is not their lowercase (e.g. 'ß'). Dict-valued text fields render as Python repr in sorted key order (the JSON reader does not keep insertion order)."
@@ -97,8 +97,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-reporting --test migration_edges ...; 13 frozen edge cases pass, and the same test fails on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Report-boundary redaction facet only. Reviewed core/redaction_values.py (all six patterns, redact_data key-collision suffixes) and core/redaction.py engine/finding/delta/capability/argv redaction. Fixed: values after --token/--password/--secret/--api-key flags in any argv array were not hidden; identity now derives from redacted target text as the frozen serializer did. Cancellation, saving and process cleanup facets belong to the runtime area.",
    "difference_reason": "Native output redaction is stricter: values under credential-named keys and URL user:password@ credentials are also masked. Compilation argv path relativization (_redact_compilation_*) is applied by the producer, not re-derived at report time."
@@ -122,8 +122,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Config suppression application and report preservation facet. Frozen application/suppressions.py (conjunctive fingerprint/rule-prefix/component/path selectors, first declaration wins, kind=config with reason and origin, basename vs anchored fnmatchcase) maps one-to-one to SuppressionPolicy; reports keep suppressed findings, counts, reasons/origins and SARIF suppressions. Inline source suppressions are produced by analysis areas."
   },
@@ -148,8 +148,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Reviewed frozen core/baseline.py compare_suite_to_baseline (NEW/MOVED/RESOLVED/UNCHANGED deltas with regressed/gated flags, coverage regression records, compatibility warnings, engines-that-did-not-look) and application/baseline.py. Native comparison is the modern new/unchanged/carried/resolved model with policy/toolchain/scope gating; historical v3 baselines are read and rendered (counts, gate label, deltas, SARIF absent) but a new legacy-format delta comparison is not produced.",
    "difference_reason": "Needs root decision: the frozen legacy FindingDelta comparator (moved/regressed/gated, fail_on_new on gated count, coverage regression deltas) is replaced by the conservative native comparator (plan §5.3) instead of being ported; historical baselines are treated as incompatible and both inputs are preserved."
@@ -174,8 +174,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-reporting --test migration_edges ...; 13 frozen edge cases pass, and the same test fails on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Reader/writer behaviour proven against frozen migration and pipeline captures. The 922-line JSON Schema file itself was not compared constraint by constraint against the native validator in this pass."
   },
@@ -198,8 +198,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-reporting --test migration_edges ...; 13 frozen edge cases pass, and the same test fails on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Exact frozen captures (migration-v2.json, migration-v2-edges.json, legacy-pipeline.json): _target_from_payload: metrics kept only when an object, target_name via Python str(), file_path 'unknown' fallback, Python int() positions."
   },
@@ -222,8 +222,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-reporting --test migration_edges ...; 13 frozen edge cases pass, and the same test fails on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Exact frozen captures (migration-v2.json, migration-v2-edges.json, legacy-pipeline.json): legacy_target_to_finding: coarse ici.legacy.<engine>.target rule, numeric finite non-bool metrics with units, tool_rule_id only for colon names, identity from redacted target."
   },
@@ -245,8 +245,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-reporting --test migration_edges ...; 13 frozen edge cases pass, and the same test fails on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "redact_engine_result target fields (file_path, target_name, message, snippet, metrics via redact_data) are redacted before identity; frozen capture secret-in-target-name matches including the fingerprint."
   },
@@ -263,7 +263,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "finding metrics/tool_rule_id redaction is covered by recursive output redaction of every string and key; no dedicated frozen capture of a credential inside a metric key or delta rule id was taken."
   },
@@ -280,7 +280,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "baseline delta rule_id redaction is covered by recursive output redaction of every string and key; no dedicated frozen capture of a credential inside a metric key or delta rule id was taken."
   },
@@ -297,7 +297,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
    ],
    "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
    "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
@@ -315,7 +315,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
    ],
    "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
    "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
@@ -333,7 +333,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
    ],
    "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
    "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
@@ -351,7 +351,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
    ],
    "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
    "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
@@ -369,7 +369,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
    ],
    "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
    "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
@@ -387,7 +387,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
    ],
    "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
    "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
@@ -405,7 +405,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-application -p ici-domain --test suppressions --test baseline --test identity --test wire --locked; 17 passed; /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
    ],
    "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
    "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
@@ -423,7 +423,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Resolved delta -> SARIF absent result with baseline location, baseline severity level, rule-id message fallback and delta properties; matches frozen serialize_sarif output for the captured case.",
    "difference_reason": "The absent result keeps the saved delta fingerprint; the frozen serializer recomputed one from rule and location."
@@ -442,7 +442,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "RunView metrics rows (name, value, unit, numerator/denominator) are shown from saved run metrics; native shows raw numerator and denominator columns rather than the formatted 'n of d' string."
   },
@@ -460,7 +460,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
   },
@@ -478,7 +478,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
   },
@@ -496,7 +496,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
   },
@@ -514,7 +514,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
   },
@@ -532,7 +532,7 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
   },
@@ -550,9 +550,64 @@
     "failure": []
    },
    "evidence": [
-    "cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_NODE=/home/jihoon/.local/bin/node v24.18.0); every crate test incl. the Node DOM harness and the 100,000-record case passed; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
    "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+  },
+  "finding_site:src/ici/application/report.py:92:11": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "Not closed in this pass: next-run RunResult metrics (observation measurements plus the TEM tuple) were not compared against the native run producer; the dynamic metric keys still need review before closure."
+  },
+  "wire_schema:ici-compilation-export-v1.schema.json": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "Not reviewed in this pass: the frozen compilation export envelope (cpp area producer) JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+  },
+  "wire_schema:ici-next-event-v1.schema.json": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "Not reviewed in this pass: the frozen next event stream JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+  },
+  "wire_schema:ici-next-run-v1.schema.json": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "Not reviewed in this pass: the frozen next run v1 envelope JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+  },
+  "wire_schema:ici-next-run-v2.schema.json": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "Not reviewed in this pass: the frozen next run v2 envelope JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
   }
  },
  "source_files": {
@@ -593,6 +648,328 @@
     "finding_site:src/ici/reporters/json_rep.py:738:11"
    ],
    "reason": "Complete 899-line module reviewed. Migration/intake behaviour is captured and fixed (migration_edges.rs). Serializer validation (_serialize_delta presence/relationship/flag checks, support-matrix rules, artifact manifest/analysis-context serializers) is producer-side and was not mapped to native writers in this pass."
+  },
+  "src/ici/application/baseline.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "Reviewed. The modern baseline application maps to ici_application::baseline (application tests in w-reporting-application-domain.log); open while capability:identity-cache-baseline needs a root difference decision."
+  },
+  "src/ici/application/suppressions.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:suppression"
+   ],
+   "reason": "Complete module reviewed and mapped one-to-one to SuppressionPolicy (conjunctive selectors, first reason wins, fnmatchcase paths); open until capability:suppression is complete (currently verified)."
+  },
+  "src/ici/application/finding_identity.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "Not read in this pass; identity behaviour is only covered indirectly through crates/ici-application/tests/identity.rs."
+  },
+  "src/ici/application/gates.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass; gate evaluation was not compared with the native gate model."
+  },
+  "src/ici/application/report.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "finding_site:src/ici/application/report.py:92:11"
+   ],
+   "reason": "Partly read; the RunResult metric construction (finding_site report.py:92) is not closed."
+  },
+  "src/ici/core/baseline.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "compare_suite_to_baseline reviewed; the legacy FindingDelta comparator is not ported (root difference decision pending on its seven finding sites)."
+  },
+  "src/ici/core/findings.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "finding_site:src/ici/core/findings.py:263:11"
+   ],
+   "reason": "Legacy target adapters reviewed and pinned by migration/pipeline captures (findings.py:263 complete); the rest of the module was not mapped field by field."
+  },
+  "src/ici/core/redaction.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:execution-cancel-save-redact",
+    "finding_site:src/ici/core/redaction.py:491:8"
+   ],
+   "reason": "Engine/finding/delta/capability/argv redaction reviewed (redaction.py:491 complete); open because redaction.py:360/447 are only verified and the compilation argv helpers are producer-side."
+  },
+  "src/ici/core/result_keys.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:legacy-command-config-result-projection"
+   ],
+   "reason": "Not read in this pass."
+  },
+  "src/ici/engines/publish.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass; publish engine behaviour is covered only by the publish_commands CLI tests."
+  },
+  "src/ici/engines/publish_baseline.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "Not read in this pass."
+  },
+  "src/ici/engines/verify.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:legacy-command-config-result-projection"
+   ],
+   "reason": "Not read in this pass."
+  },
+  "src/ici/reporters/console.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Reviewed for engine table, footer tally, suite reason, capability snapshot, baseline delta lines, hidden-location and snippet lines (suite_overview.rs); per-engine detail renderers were not mapped field by field."
+  },
+  "src/ici/reporters/markdown.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Summary, engine table, capability, baseline and issue projection reviewed (suite_overview.rs); target/related/failure-snippet sections were not mapped field by field."
+  },
+  "src/ici/reporters/sarif.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "finding_site:src/ici/reporters/sarif.py:296:14"
+   ],
+   "reason": "Resolved/absent path, message fallback and delta properties reviewed (sarif.py:296 difference_review); the remaining rule/region serialization was not re-audited."
+  },
+  "src/ici/reporting/sarif.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass; modern SARIF writer only covered by rendering.rs tests."
+  },
+  "src/ici/reporting/__init__.py": {
+   "disposition": "unreviewed",
+   "requirements": [],
+   "reason": "Not read in this pass (package export surface)."
+  },
+  "src/ici/reporters/issue_view.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "finding_site:src/ici/reporters/issue_view.py:195:20",
+    "finding_site:src/ici/reporters/issue_view.py:305:12"
+   ],
+   "reason": "Covered by the fifteen frozen issue-groups.json cases (R7 capture); not re-audited in this pass."
+  },
+  "src/ici/reporters/python_issue_projection.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "finding_site:src/ici/reporters/python_issue_projection.py:288:11",
+    "finding_site:src/ici/reporters/python_issue_projection.py:313:11"
+   ],
+   "reason": "Covered by the frozen issue-groups.json cases; not re-audited in this pass."
+  },
+  "src/ici/reporters/issue_models.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass; issue group models are exercised only through issues.rs."
+  },
+  "src/ici/reporters/html/utils.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "finding_site:src/ici/reporters/html/utils.py:86:12",
+    "finding_site:src/ici/reporters/html/utils.py:110:16"
+   ],
+   "reason": "Only the finding-site helpers (utils.py:86/110) were checked via issues.rs; the other helpers were not read."
+  },
+  "src/ici/schemas/ici-result-v3.schema.json": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "wire_schema:ici-result-v3.schema.json"
+   ],
+   "reason": "Reader/writer behaviour verified by captures; the schema constraints were not compared one by one with the native validator."
+  },
+  "src/ici/reporters/html/__init__.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/report.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/large.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/assets_loader.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/assets/app.js": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/assets/style.css": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/__init__.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/baseline.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/complexity.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/cycles.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/dup.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/issues.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/line.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/static_analysis.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/summary.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/support.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/test.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html/sections/type_check.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/reporters/html_assets.py": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+  },
+  "src/ici/schemas/ici-compilation-export-v1.schema.json": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "wire_schema:ici-compilation-export-v1.schema.json"
+   ],
+   "reason": "Not read in this pass; see wire_schema row."
+  },
+  "src/ici/schemas/ici-next-event-v1.schema.json": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "wire_schema:ici-next-event-v1.schema.json"
+   ],
+   "reason": "Not read in this pass; see wire_schema row."
+  },
+  "src/ici/schemas/ici-next-run-v1.schema.json": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "wire_schema:ici-next-run-v1.schema.json"
+   ],
+   "reason": "Not read in this pass; see wire_schema row."
+  },
+  "src/ici/schemas/ici-next-run-v2.schema.json": {
+   "disposition": "unreviewed",
+   "requirements": [
+    "wire_schema:ici-next-run-v2.schema.json"
+   ],
+   "reason": "Not read in this pass; see wire_schema row."
+  },
+  "src/ici/schemas/ici-auxiliary-v1.schema.json": {
+   "disposition": "unreviewed",
+   "requirements": [],
+   "reason": "Not read in this pass by reporting; its wire_schema row is closed by the common fragment."
   }
  }
 }
