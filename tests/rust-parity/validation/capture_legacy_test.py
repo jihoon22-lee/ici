@@ -36,6 +36,16 @@ SCENARIOS = {
         ),
         "extra_config": 'changed_lines = ["src/calc.py:2-4"]\n',
     },
+    "changed_unexecutable": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "extra_config": 'changed_lines = ["src/calc.py:3-4"]\n',
+    },
+    "changed_invalid": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "extra_config": 'changed_lines = ["src/calc.py:1-2", "src/calc.py:2"]\n',
+    },
     "empty": {
         "src/calc.py": "def add(a, b):\n    return a + b\n",
         "tests/helper.py": "VALUE = 1\n",

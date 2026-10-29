@@ -176,7 +176,7 @@ fn passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates() {
 
 #[test]
 #[ignore = "explicit project pytest legacy test-engine acceptance"]
-fn empty_suite_keeps_the_frozen_located_no_tests_target_but_is_not_a_measured_verdict() {
+fn empty_suite_keeps_the_frozen_no_tests_verdict_while_the_modern_check_stays_incomplete() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let frozen = &oracle["runs"]["empty"];
     let (exit, native) = run(&oracle, "empty");
@@ -191,11 +191,21 @@ fn empty_suite_keeps_the_frozen_located_no_tests_target_but_is_not_a_measured_ve
             .iter()
             .any(|finding| finding["fingerprint"] == frozen["findings"][0]["fingerprint"])
     );
-    // Frozen FAILs with fabricated estimated coverage (45%/50%); nothing was verified, so the
-    // native descriptor is incomplete (ERROR, exit 3) and reports no coverage or TEM.
+    // Legacy view: the frozen FAIL verdict and exit code. Frozen pairs it with fabricated
+    // ESTIMATED coverage (45%/50%) and TEM 0.00; native reports no coverage or TEM.
     assert_eq!(frozen["engine"]["evidence"], "ESTIMATED");
-    assert_eq!((exit, native["status"].as_str()), (3, Some("ERROR")));
+    assert_eq!(i64::from(exit), frozen["exit_code"].as_i64().unwrap());
+    assert_eq!(native["status"], frozen["engine"]["status"]);
+    assert_eq!(native["summary"], "0/0 Tests Passed; No tests collected");
     assert_eq!(native["score"], Value::Null);
+    // The modern check stays incomplete: nothing was verified.
+    let checks = native["native_run"]["checks"].as_array().unwrap();
+    let test = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.test")
+        .unwrap();
+    assert_eq!(test["state"], "FAILED", "{native:#}");
+    assert_eq!(test["evidence_complete"], false);
 }
 
 #[test]
@@ -221,7 +231,9 @@ fn missing_coverage_module_keeps_frozen_cases_but_never_fabricates_coverage() {
             .unwrap()
             .contains("(est)")
     );
-    assert_eq!((exit, native["status"].as_str()), (1, Some("ERROR")));
+    // Frozen verdict class and exit code are kept: optional coverage missing is a WARN.
+    assert_eq!(i64::from(exit), frozen["exit_code"].as_i64().unwrap());
+    assert_eq!(native["status"], frozen["engine"]["status"]);
     assert!(
         native["summary"]
             .as_str()
@@ -230,4 +242,65 @@ fn missing_coverage_module_keeps_frozen_cases_but_never_fabricates_coverage() {
         "{native:#}"
     );
     assert_eq!(native["score"], Value::Null);
+}
+
+#[test]
+#[ignore = "explicit project pytest/coverage legacy test-engine acceptance"]
+fn unmeasurable_changed_lines_and_refused_policy_keep_the_frozen_error_and_exit_code() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    for (scenario, target_name) in [
+        ("changed_unexecutable", "Coverage:Changed lines"),
+        ("changed_invalid", "Coverage:Policy configuration"),
+    ] {
+        let frozen = &oracle["runs"][scenario];
+        let (exit, native) = run(&oracle, scenario);
+        assert_eq!(
+            (i64::from(exit), &native["status"]),
+            (
+                frozen["exit_code"].as_i64().unwrap(),
+                &frozen["engine"]["status"]
+            ),
+            "{scenario}: {native:#}"
+        );
+        assert!(
+            frozen["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|target| target["target_name"] == target_name)
+        );
+        // The located target keeps the frozen legacy identity.
+        let frozen_policy = frozen["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|finding| {
+                finding["message"]
+                    .as_str()
+                    .unwrap()
+                    .starts_with(if scenario == "changed_invalid" {
+                        "Coverage policy could not be evaluated"
+                    } else {
+                        "Changed-line coverage has no executable"
+                    })
+            })
+            .unwrap();
+        assert!(
+            findings(&native)
+                .iter()
+                .any(|finding| finding["fingerprint"] == frozen_policy["fingerprint"]),
+            "{scenario}: {:#?}",
+            findings(&native)
+        );
+        // The verdict class is frozen's; the reason names the unmeasured or refused input.
+        assert!(
+            native["summary"]
+                .as_str()
+                .unwrap()
+                .to_lowercase()
+                .contains("changed"),
+            "{scenario}: {}",
+            native["summary"]
+        );
+    }
 }
