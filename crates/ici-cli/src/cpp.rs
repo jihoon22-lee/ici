@@ -1637,7 +1637,9 @@ pub fn legacy_sanitizer_skip(id: &str, check_id: &str) -> AnalysisOutput {
     output.observation.measurements.push(Measurement {
         name: "applicability".into(),
         value: 0.0,
-        evidence: ici_domain::EvidenceLevel::NotApplicable,
+        // Frozen `_mark_scope_skip` counts a skipped scope, so the verdict is ESTIMATED (it keeps
+        // the required legacy suite at ERROR), not NOT_APPLICABLE.
+        evidence: ici_domain::EvidenceLevel::Estimated,
         unit: "checks".into(),
         numerator: None,
         denominator: None,
