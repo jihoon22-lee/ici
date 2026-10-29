@@ -135,6 +135,8 @@ pub fn command(
     let run = crate::execute::execute(&internal, cwd, environment, false, &cancellation)?;
     // Validate comparison before any requested export, especially --write-baseline.
     let mut exit_code = run.result.exit_code();
+    // A --fail-on-new regression is a gate decision; later legacy verdict projections never lower it.
+    let mut regressed = false;
     if invocation.flag("fail_on_new") {
         match &run.result.baseline {
             Some(delta) if delta.state == ici_domain::BaselineState::Comparable => {
@@ -154,6 +156,7 @@ pub fn command(
                             || !finding.tags.iter().any(|tag| tag == "advisory"))
                 }) && run.result.gate.selected != GateVerdict::Incomplete
                 {
+                    regressed = true;
                     exit_code = 1;
                 }
             }
@@ -196,16 +199,14 @@ pub fn command(
         {
             // Frozen optional coverage: a missing coverage module is a WARN beside the measured
             // test verdict (FAIL still wins). Native never invents the frozen estimate.
-            let failed = value["targets"]
-                .as_array()
-                .is_some_and(|targets| targets.iter().any(|target| target["status"] == "FAIL"));
-            value["status"] = serde_json::json!(if failed { "FAIL" } else { "WARN" });
+            let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
+            value["status"] = serde_json::json!(status);
             let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
             let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
             value["summary"] = serde_json::json!(format!(
                 "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
             ));
-            exit_code = i32::from(failed);
+            exit_code = code;
         } else if run.result.gate.selected != GateVerdict::Incomplete {
             exit_code = exit_code.max(match value["status"].as_str() {
                 Some("FAIL" | "ERROR") => 1,
@@ -547,4 +548,57 @@ fn refused_policy(engine: &serde_json::Value) -> Option<String> {
         .filter_map(|check| check["summary"].as_str())
         .find(|summary| summary.starts_with("changed line"))
         .map(str::to_owned)
+}
+
+/// Frozen optional-coverage verdict: a measured FAIL/ERROR target wins over the coverage WARN,
+/// and a `--fail-on-new` regression keeps exit 1 even when every target passed.
+fn optional_coverage_verdict(targets: &serde_json::Value, regressed: bool) -> (&'static str, i32) {
+    let any = |status: &str| {
+        targets
+            .as_array()
+            .is_some_and(|targets| targets.iter().any(|target| target["status"] == status))
+    };
+    let status = if any("ERROR") {
+        "ERROR"
+    } else if any("FAIL") {
+        "FAIL"
+    } else {
+        "WARN"
+    };
+    (status, i32::from(status != "WARN" || regressed))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::optional_coverage_verdict;
+    use serde_json::json;
+
+    #[test]
+    fn optional_coverage_verdict_never_lowers_failures_or_regressions() {
+        let targets = |statuses: &[&str]| {
+            json!(
+                statuses
+                    .iter()
+                    .map(|status| json!({"status": status}))
+                    .collect::<Vec<_>>()
+            )
+        };
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["PASS"]), false),
+            ("WARN", 0)
+        );
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["PASS"]), true),
+            ("WARN", 1)
+        );
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["PASS", "FAIL"]), false),
+            ("FAIL", 1)
+        );
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["FAIL", "ERROR"]), false),
+            ("ERROR", 1)
+        );
+        assert_eq!(optional_coverage_verdict(&json!(null), true), ("WARN", 1));
+    }
 }
