@@ -54,7 +54,8 @@ pub struct CppPlans {
     inactive: BTreeMap<String, String>,
     /// Legacy `ici dead` without recorded compilation: frozen SKIP (ERROR when required) target.
     legacy_unavailable: BTreeMap<String, bool>,
-    /// Legacy build checks whose declared native build could not be planned: frozen FAIL output.
+    /// Legacy outputs decided while planning preparation: frozen build FAIL/ERROR for a declared
+    /// build that cannot be planned, or the sanitizer SKIP when no C++ test source exists.
     preparation_failures: BTreeMap<String, AnalysisOutput>,
     inactive_paths: BTreeMap<String, Vec<String>>,
     abi_inputs: BTreeMap<String, BTreeMap<String, usize>>,
@@ -1285,6 +1286,109 @@ pub fn preparation_dependent(check_id: &str, variant: &str, has_tasks: bool) -> 
     }
 }
 
+/// Frozen sanitizer engines compile only `tests/**/*.cpp` under the project root. `true` means
+/// the walk proved there is none; a symlinked `tests`, an unreadable entry or a walk over its
+/// bounds is not proof, so the normal (blocking) preparation path decides those.
+pub fn legacy_sanitizer_tests_absent(root: &Path) -> bool {
+    const IGNORED: [&str; 7] = [
+        ".venv",
+        "venv",
+        "build",
+        "__pycache__",
+        ".git",
+        ".pytest_cache",
+        ".ruff_cache",
+    ];
+    let tests = root.join("tests");
+    let Ok(metadata) = std::fs::symlink_metadata(&tests) else {
+        return true;
+    };
+    if !metadata.is_dir() {
+        return !metadata.file_type().is_symlink();
+    }
+    let mut pending = vec![(tests, 0usize)];
+    let mut entries = 0usize;
+    while let Some((directory, depth)) = pending.pop() {
+        let Ok(listing) = std::fs::read_dir(&directory) else {
+            return false;
+        };
+        for entry in listing {
+            entries += 1;
+            let (Ok(entry), true) = (entry, entries <= 100_000) else {
+                return false;
+            };
+            let Ok(kind) = entry.file_type() else {
+                return false;
+            };
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if kind.is_dir() {
+                if depth >= 64 {
+                    return false;
+                }
+                if !IGNORED.contains(&name.as_ref())
+                    && !name.starts_with("v0.")
+                    && !name.starts_with("v1.")
+                {
+                    pending.push((entry.path(), depth + 1));
+                }
+            } else if kind.is_file() && Path::new(name.as_ref()).extension() == Some("cpp".as_ref())
+            {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// Frozen SanitizeEngine / ThreadSanitizeEngine verdict when no C++ test source exists: one
+/// not-required `C++Sanitizer` SKIP target at `tests`, before any backend or build is chosen.
+pub fn legacy_sanitizer_skip(id: &str, check_id: &str) -> AnalysisOutput {
+    const MESSAGE: &str = "No C++ sanitizer test sources were selected; compilation was not run";
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    output.status = "SKIP".into();
+    output.summary = if check_id == "cpp.tsan" {
+        "ThreadSanitizer skipped: no applicable C++ checks were executed"
+    } else {
+        "Sanitize skipped: no applicable checks were executed"
+    }
+    .into();
+    output.observation.measurements.push(Measurement {
+        name: "applicability".into(),
+        value: 0.0,
+        evidence: ici_domain::EvidenceLevel::NotApplicable,
+        unit: "checks".into(),
+        numerator: None,
+        denominator: None,
+    });
+    output.observation.limitations.push(MESSAGE.into());
+    let mut target = InspectionTarget::at("tests", 1);
+    target.target_name = "C++Sanitizer".into();
+    target.status = "SKIP".into();
+    target.message = MESSAGE.into();
+    output.targets.push(target);
+    output
+}
+
+/// Frozen `_fail_adapter_scope` for a sanitizer build declaration that cannot be configured: one
+/// `C++Sanitizer` ERROR target at the descriptor whose message is the configuration error.
+pub fn legacy_sanitizer_configuration_error(
+    id: &str,
+    descriptor: &str,
+    message: &str,
+) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    output.status = "ERROR".into();
+    output.summary = message.into();
+    output.observation.limitations.push(message.into());
+    let mut target = InspectionTarget::at(descriptor, 1);
+    target.target_name = "C++Sanitizer".into();
+    target.status = "ERROR".into();
+    target.message = message.into();
+    output.targets.push(target);
+    output
+}
+
 /// Frozen BuildEngine result for a native build that did not produce a complete artifact set:
 /// one located adapter target (`BuildAdapter` FAIL, or `BuildError` ERROR for configuration).
 pub fn build_failure(
@@ -1376,7 +1480,7 @@ fn artifact_identity(project: &ResolvedProject, build: &ici_config::Build) -> Va
 }
 
 impl CppPlans {
-    /// Record a located legacy build failure for a check whose declared build cannot be planned.
+    /// Record the frozen legacy output for a check decided while planning its preparation.
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
     }

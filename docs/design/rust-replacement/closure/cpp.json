@@ -1320,10 +1320,12 @@
     "config_key:legacy:build.make.sanitize_build_argv": {
       "status": "verified",
       "rust_paths": [
-        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/build.rs",
-        "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/model.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1333,16 +1335,19 @@
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
         ]
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
-        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
       ],
-      "comparison": "Frozen sanitize variant: build.make.sanitize_build_argv is required (missing -> 'build.make.sanitize_build_argv is required for sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet.",
+      "comparison": "Frozen sanitize variant: build.make.sanitize_build_argv is required (missing -> 'build.make.sanitize_build_argv is required for sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix).",
       "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_test_argv": {
@@ -1434,10 +1439,12 @@
     "config_key:legacy:build.make.thread_sanitize_build_argv": {
       "status": "verified",
       "rust_paths": [
-        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/planning.rs",
         "crates/ici-cpp/src/build.rs",
-        "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/model.rs"
       ],
       "fixtures": {
         "positive": [
@@ -1447,16 +1454,19 @@
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
         ]
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
-        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
       ],
-      "comparison": "Frozen thread-sanitize variant: build.make.thread_sanitize_build_argv is required (missing -> 'build.make.thread_sanitize_build_argv is required for thread-sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet.",
+      "comparison": "Frozen thread-sanitize variant: build.make.thread_sanitize_build_argv is required (missing -> 'build.make.thread_sanitize_build_argv is required for thread-sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix).",
       "difference_reason": ""
     },
     "config_key:legacy:build.make.thread_sanitize_test_argv": {
@@ -2968,16 +2978,26 @@
       "difference_reason": "Open: the C++ effect of legacy engines.sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.sanitize.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required).",
+      "difference_reason": "Open: the effect of required=true on measured or unmeasured sanitizer scopes (ERROR for unexecuted adapter cases, gate blocking) needs actual sanitizer runs and is not compared."
     },
     "config_key:legacy:engines.security": {
       "status": "not_started",
@@ -3465,16 +3485,26 @@
       "difference_reason": "Open: the C++ effect of legacy engines.thread_sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.thread_sanitize.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.thread_sanitize keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required).",
+      "difference_reason": "Open: the effect of required=true on measured or unmeasured sanitizer scopes (ERROR for unexecuted adapter cases, gate blocking) needs actual sanitizer runs and is not compared."
     },
     "config_key:legacy:engines.type": {
       "status": "not_started",
@@ -5409,7 +5439,7 @@
       },
       "evidence": [],
       "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:200); enclosing frozen function run.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "difference_reason": "Open: the no-scope `Sanitize` SKIP target at '.' (no C++ sources, no C++ tests and no Python scope) is not compared; the C++ test-less SKIP path now matches frozen (tests/rust-parity/cpp/sanitize-oracle.json), so the earlier exit 3 observation no longer applies."
     },
     "finding_site:src/ici/engines/sanitize.py:385:24": {
       "status": "not_started",
@@ -5460,28 +5490,52 @@
       "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
     },
     "finding_site:src/ici/engines/sanitize.py:838:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:838); enclosing frozen function _append_scope_error.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen _append_scope_error via _fail_adapter_scope: a sanitizer adapter configure failure is one `C++Sanitizer` ERROR target at the descriptor (Makefile) with the configuration message; engine ERROR, summary = the message, exit 1, nothing built. Rust legacy planning maps the typed Misconfigured preparation error of the sanitize/thread-sanitize variant to crate::cpp::legacy_sanitizer_configuration_error; target, status and exit match the oracle for the missing build.make.{sanitize,thread_sanitize}_build_argv cases.",
+      "difference_reason": "Open: (1) the Rust ERROR summary carries the reporting projection prefix ('cpp.sanitize: ' / 'cpp.tsan: ') that frozen does not print (crates/ici-reporting/src/projection.rs, reporting worker); (2) build failures after configure, the no-tests-reported and missing-process-evidence callers need actual sanitizer adapter runs and are not compared."
     },
     "finding_site:src/ici/engines/sanitize.py:865:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:865); enclosing frozen function _mark_scope_skip.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "evidence": [
+        "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+      ],
+      "comparison": "Frozen _mark_scope_skip appends one target and counts a skipped scope; its not-required caller in _run_cpp_sanitizer (no tests/**/*.cpp under the project root) gives `C++Sanitizer` SKIP at `tests` line 1, 'No C++ sanitizer test sources were selected; compilation was not run', engine SKIP with SKIP_SUMMARY and exit 2 for both ASan/UBSan and TSan, even with engines.*.required=true. Rust legacy planning walks tests/ with the frozen ignore names (no symlink traversal) and, when no .cpp is proven, records crate::cpp::legacy_sanitizer_skip and does not prepare or build the sanitizer variant; the 8 oracle cases match exactly.",
+      "difference_reason": "Open: the required (ERROR) caller for adapter test cases that were not executed ('[C++ ASan/UBSan] <case>' at the descriptor) is not compared; it needs an actual sanitizer adapter run."
     },
     "finding_site:src/ici/engines/test.py:352:12": {
       "status": "not_started",
@@ -6214,7 +6268,7 @@
         "finding_site:src/ici/engines/sanitize.py:838:12",
         "finding_site:src/ici/engines/sanitize.py:865:12"
       ],
-      "reason": "Unreviewed: Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here. Exact frozen hash 00ef0db22f4b6ff183e1e7998182fe7197124da26ee78ce1ad88c6bb86b58aba and 36 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed: Open: the test-less C++ SKIP and missing-sanitizer-argv ERROR paths match frozen (tests/rust-parity/cpp/sanitize-oracle.json); actual ASan/UBSan/TSan adapter and direct runs, their diagnostics and findings are not compared yet. Exact frozen hash 00ef0db22f4b6ff183e1e7998182fe7197124da26ee78ce1ad88c6bb86b58aba and 36 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
     },
     "src/ici/engines/test.py": {
       "disposition": "unreviewed",

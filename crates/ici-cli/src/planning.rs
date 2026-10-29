@@ -518,11 +518,34 @@ fn prepare_resolved_omitting(
                     "test"
                 });
             }
-            if selected.contains("cpp.sanitize") {
-                variants.insert("sanitize");
-            }
-            if selected.contains("cpp.tsan") {
-                variants.insert("thread-sanitize");
+            for (check_id, variant) in [
+                ("cpp.sanitize", "sanitize"),
+                ("cpp.tsan", "thread-sanitize"),
+            ] {
+                if !selected.contains(check_id) {
+                    continue;
+                }
+                if !crate::cpp::legacy_sanitizer_tests_absent(&project.root) {
+                    variants.insert(variant);
+                    continue;
+                }
+                // Frozen sanitizer engines skip before choosing a backend when the project has
+                // no `tests/**/*.cpp`: nothing is built, so the variant is not prepared.
+                plan.limitations.push(format!(
+                    "{} {variant}: no tests/**/*.cpp sanitizer test sources; the variant was not prepared or built",
+                    component.id
+                ));
+                for check in plan.checks.iter_mut().filter(|check| {
+                    check.component_id == component.id && check.check.id == check_id
+                }) {
+                    cpp.fail_preparation(
+                        &check.task_id,
+                        crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id),
+                    );
+                    validations.remove(&check.task_id);
+                    check.check.needs.clear();
+                    check.work = Work::Internal;
+                }
             }
             if selected.contains("cpp.dead")
                 && component
@@ -574,8 +597,9 @@ fn prepare_resolved_omitting(
                     }) => {
                         // A declared or explicitly enabled build that cannot be planned blocks
                         // the variant's dependent checks; it never falls back or passes.
+                        let configuration = reason;
                         let reason =
-                            format!("declared {variant} build cannot be prepared: {reason}");
+                            format!("declared {variant} build cannot be prepared: {configuration}");
                         plan.limitations
                             .push(format!("{} {variant}: {reason}", component.id));
                         for check in plan.checks.iter_mut().filter(|check| {
@@ -602,6 +626,21 @@ fn prepare_resolved_omitting(
                                         &reason,
                                     ),
                                 );
+                                check.check.needs.clear();
+                                check.work = Work::Internal;
+                            } else if matches!(check.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                            {
+                                // Frozen sanitizer engines: the adapter configure failure is a
+                                // `C++Sanitizer` ERROR at the descriptor; nothing is built.
+                                cpp.fail_preparation(
+                                    &check.task_id,
+                                    crate::cpp::legacy_sanitizer_configuration_error(
+                                        &check.task_id,
+                                        descriptor.as_deref().unwrap_or("."),
+                                        &configuration,
+                                    ),
+                                );
+                                validations.remove(&check.task_id);
                                 check.check.needs.clear();
                                 check.work = Work::Internal;
                             } else {
