@@ -196,6 +196,30 @@ fn exception_rules_mask_literals_preserve_pass_and_find_actual_syntax() {
     );
 }
 #[test]
+fn modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs() {
+    // The same corpus as the frozen legacy oracle (exception-oracle.json); the modern analyze
+    // path keeps syntax-tree semantics, so these intended differences are explicit here.
+    let mut session = CppAnalysisSession::new();
+    let output = session.analyze(&request(
+        "exception",
+        vec![(
+            "dtor.cpp",
+            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/dtor.cpp"),
+        )],
+    ));
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    let lines = output
+        .targets
+        .iter()
+        .filter(|target| target.target_name == "DestructorThrow")
+        .map(|target| target.start_line)
+        .collect::<Vec<_>>();
+    // Frozen legacy lines: [3, 4, 10, 17, 22, 25, 27, 32, 37]. Modern: the lambda throw (10) is
+    // not a destructor throw, `~Spec() throw()` (27) is a non-throwing specification, and each
+    // throw statement on lines 4 and 37 is its own located target.
+    assert_eq!(lines, [3, 4, 4, 17, 22, 25, 32, 37, 37]);
+}
+#[test]
 fn include_cycles_resolve_direct_paths_and_report_ambiguous_and_self_edges() {
     let mut session = CppAnalysisSession::new();
     let output = session.analyze(&request(

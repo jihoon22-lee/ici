@@ -34,6 +34,7 @@ pub use recorder::{record_compiler_invocation, recorder_main};
 
 mod analysis;
 mod cycles;
+mod legacy_exceptions;
 mod source;
 mod source_rules;
 pub use analysis::CppAnalysisSession;

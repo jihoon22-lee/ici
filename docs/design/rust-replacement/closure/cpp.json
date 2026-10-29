@@ -256,14 +256,18 @@
     "check:cpp.exception": {
       "status": "verified",
       "rust_paths": [
-        "crates/ici-cpp/src/source_rules.rs"
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/legacy_exceptions.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+          "crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs"
         ],
         "failure": [
           "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
@@ -271,10 +275,11 @@
       },
       "evidence": [
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "Frozen exception corpus oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici exception --report`) into exception-oracle.json over tests/rust-parity/cpp/exception-fixture (one-line, multi-throw, split declaration/definition, lambda-in-destructor, noexcept(false) on its own line, try/catch inside a destructor, rethrow, comment/string throw, `throw()` specification, defaulted destructor, nested local class, template out-of-class destructor, raw strings, a line-splice comment, char-literal braces, escaped string quotes and a CRLF file); cargo test -p ici-cli --test legacy_cpp_metrics (5 passed) and -p ici-cpp --test source (11 passed); /tmp/ici-rust-replacement-20261028/w-cpp-exception.log, w-cpp-exception2.log, w-cpp-exception3.log"
       ],
-      "comparison": "Legacy C++ exception projection matches the frozen CLI on the fixture: sources only (.cpp/.cc/.cxx/.c, headers excluded; Rust previously flagged a header destructor throw), DestructorThrow/CatchAllSwallowed targets carry only the start line, per-file order is destructor throws then empty catch-alls, then CppExceptionSafety PASS with the frozen messages and exit 1.",
-      "difference_reason": "Frozen detection is a masked line regex (any `throw` token on a line inside a destructor body, including lambdas, one target per line). Rust uses the C++ syntax tree: lambdas inside destructors are excluded and each throw statement is a target, so a line with two throws yields two targets. Recorded for review; not covered by the oracle fixture."
+      "comparison": "Legacy C++ exception projection matches the frozen CLI byte-for-byte on two oracle corpora (status, exit 1, every target name/status/message/line/file): sources only (.cpp/.cc/.cxx/.c, headers excluded), the frozen _mask_cpp_literals blanking ported exactly (comments, line splices, string/char/raw literals), destructor bodies tracked by brace depth with every line spelling `throw` reported once (so the lambda throw on line 10 and the two throws on lines 4 and 37 keep exactly the frozen targets: no frozen finding is lost), empty catch(...) found by the frozen first-`}` regex, start-line-only targets, per-file order destructor throws then catch-alls then CppExceptionSafety PASS.",
+      "difference_reason": "Modern analyze path only (legacy has no difference): it keeps syntax-tree semantics. A throw inside a lambda in a destructor is not a destructor throw, a `throw()` dynamic exception specification is not a throw (the frozen heuristic reports it), and each throw statement is its own located target with end line and columns (two throws on one line give two targets). Fixture: crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs on the same oracle corpus (frozen lines [3,4,10,17,22,25,27,32,37] versus modern [3,4,4,17,22,25,32,37,37])."
     },
     "check:cpp.line": {
       "status": "not_started",

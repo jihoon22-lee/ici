@@ -67,4 +67,9 @@ cycle = {
     + "\n",
     encoding="utf-8",
 )
-print(f"{len(scope)} scope cases, {len(cycle)} cycle cases")
+exception = {"exception": run(PARITY / "exception-fixture", "exception")}
+(PARITY / "exception-oracle.json").write_text(
+    json.dumps({"oracle": EXPECTED, "cases": exception}, indent=1, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+print(f"{len(scope)} scope cases, {len(cycle)} cycle cases, {len(exception)} exception cases")

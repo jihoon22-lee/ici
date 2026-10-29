@@ -263,3 +263,76 @@ fn legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic()
         }
     }
 }
+
+#[test]
+fn legacy_cpp_exception_lines_match_frozen_masked_line_heuristic() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/exception-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    for (name, text) in [
+        (
+            "dtor.cpp",
+            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/dtor.cpp"),
+        ),
+        (
+            "catch.cpp",
+            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/catch.cpp"),
+        ),
+        (
+            "clean.cc",
+            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/clean.cc"),
+        ),
+        (
+            "literals.cpp",
+            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/literals.cpp"),
+        ),
+        (
+            "crlf.cpp",
+            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/crlf.cpp"),
+        ),
+    ] {
+        fs::write(root.path().join("src").join(name), text).unwrap();
+    }
+    fs::write(
+        root.path().join("ici.toml"),
+        "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+    )
+    .unwrap();
+    let invocation = registry::parse(["ici", "exception", "--report"]).unwrap();
+    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.path().join("exception_report.json")).unwrap())
+            .unwrap();
+    let targets: Vec<Value> = report["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|target| {
+            Value::Object(
+                FIELDS
+                    .iter()
+                    .map(|key| ((*key).to_owned(), target[*key].clone()))
+                    .collect(),
+            )
+        })
+        .collect();
+    let actual = serde_json::json!({"exit_code":output.exit_code,"status":report["status"],"targets":targets});
+    let expected = &oracle["cases"]["exception"];
+    assert_eq!(&actual, expected);
+    // Every frozen finding is kept: a lambda throw inside a destructor (line 10), two throws on
+    // one line reported once (lines 4 and 37), and the frozen `~Spec() throw()` line (27).
+    let lines = |name: &str| {
+        targets
+            .iter()
+            .filter(|target| target["target_name"] == name && target["file_path"] == "src/dtor.cpp")
+            .map(|target| target["start_line"].as_u64().unwrap())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(lines("DestructorThrow"), [3, 4, 10, 17, 22, 25, 27, 32, 37]);
+    assert_eq!(output.exit_code, 1);
+}
