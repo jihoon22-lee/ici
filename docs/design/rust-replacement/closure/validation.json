@@ -1606,7 +1606,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "comparison": "OPEN: '[test-quality] Base run outcomes' (base run without per-node verdicts). The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
     },
     "finding_site:src/ici/engines/test_quality.py:405:24": {
       "status": "not_started",
@@ -1617,7 +1617,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "comparison": "OPEN: '[test-quality] Repeat run N' for a timed-out repeat. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
     },
     "finding_site:src/ici/engines/test_quality.py:418:24": {
       "status": "not_started",
@@ -1628,7 +1628,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "comparison": "OPEN: '[test-quality] Repeat run N' for a repeat without per-test evidence. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
     },
     "finding_site:src/ici/engines/test_quality.py:434:24": {
       "status": "not_started",
@@ -1639,7 +1639,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "comparison": "OPEN: '[test-quality] Repeat run N' for a repeat with a changed collection. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
     },
     "finding_site:src/ici/engines/test_quality.py:502:16": {
       "status": "difference_review",
@@ -1675,7 +1675,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "comparison": "OPEN: '[test-quality] Mutation capability' SKIP (no mutation tool). The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
     },
     "finding_site:src/ici/engines/test_quality.py:580:12": {
       "status": "not_started",
@@ -1686,7 +1686,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "comparison": "OPEN: '[test-quality] Mutation capability' measured status. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
     },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
       "status": "difference_review",
