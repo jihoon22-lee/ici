@@ -167,6 +167,30 @@ fn prepare_resolved_omitting(
         })
         .transpose()?
         .or_else(|| crate::legacy::individual_profile(invocation));
+    // A frozen single-engine command selects every check of its descriptor but runs the test
+    // engine without an analysis context, so deep test-quality observations stay off. Only an
+    // explicit v2 `profile = "deep"` keeps them for the individual command.
+    if invocation.value("profile").is_none()
+        && crate::legacy::individual_profile(invocation).is_some()
+        && (project.schema_family == ici_config::SchemaFamily::Legacy
+            || project.profile != Profile::Deep)
+    {
+        for component in &mut project.components {
+            if let Some(settings) = component.settings.as_object_mut() {
+                let engines = settings.entry("engines").or_insert_with(|| json!({}));
+                if let Some(test) = engines
+                    .as_object_mut()
+                    .map(|engines| engines.entry("test").or_insert_with(|| json!({})))
+                    .and_then(Value::as_object_mut)
+                {
+                    let quality = test.entry("quality").or_insert_with(|| json!({}));
+                    if let Some(quality) = quality.as_object_mut() {
+                        quality.insert("enabled".into(), json!(false));
+                    }
+                }
+            }
+        }
+    }
     if let Some(id) = match crate::legacy::engine(&invocation.command()) {
         Some("sanitize") => Some("python.sanitize"),
         Some("build") => Some("python.artifact"),

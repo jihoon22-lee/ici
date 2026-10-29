@@ -1,0 +1,578 @@
+{
+  "config": "[ici]\nprofile = \"standard\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
+  "runs": {
+    "empty": {
+      "engine": {
+        "evidence": "ESTIMATED",
+        "max_score": 5.0,
+        "required": true,
+        "score": 0.0,
+        "status": "FAIL",
+        "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 50.0,
+        "line_coverage": null,
+        "metrics_summary": "TEM: 0.00/5.0 (Line: 45%, Func: 50%, PassRate: 0%)",
+        "pass_rate": 0.0,
+        "passed_tests": 0,
+        "quality_enabled": false,
+        "skipped_tests": 0,
+        "tem_score": 0.0,
+        "test_suites": [
+          {
+            "failed": 1,
+            "file": "tests",
+            "passed": 0,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "No tests collected",
+                "name": "[Python] Tests",
+                "status": "FAIL"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 0
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:eeeb43ac6a7b461f14ead456d5878ad10dc38479ff761cc3ac1a142168e10911",
+          "message": "No tests collected",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "No tests collected",
+          "metrics": {},
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "[Python] Tests"
+        }
+      ]
+    },
+    "failing": {
+      "engine": {
+        "evidence": "MEASURED",
+        "max_score": 5.0,
+        "required": true,
+        "score": 1.17,
+        "status": "FAIL",
+        "summary": "2/4 Tests Passed | Line: 75.0%, Func: 50.0%, Branch: 100.0% -> TEM: 1.17 / 5.0"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 50.0,
+        "line_coverage": 75.0,
+        "metrics_summary": "TEM: 1.17/5.0 (Line: 75%, Func: 50%, PassRate: 50%)",
+        "pass_rate": 0.5,
+        "passed_tests": 2,
+        "quality_enabled": false,
+        "skipped_tests": 1,
+        "tem_score": 1.17,
+        "test_suites": [
+          {
+            "failed": 1,
+            "file": "tests/test_calc.py",
+            "passed": 2,
+            "skipped": 1,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              },
+              {
+                "message": "Test assertion failed",
+                "name": "tests/test_calc.py::test_bad",
+                "status": "FAIL"
+              },
+              {
+                "message": "Test was collected but not executed",
+                "name": "tests/test_calc.py::test_skip",
+                "status": "SKIP"
+              },
+              {
+                "message": "Expected failure was exercised",
+                "name": "tests/test_calc.py::test_xfail",
+                "status": "PASS"
+              }
+            ],
+            "total": 4
+          }
+        ],
+        "total_tests": 4
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:4c3aeadcc5780cbc1f0ef767888bc3b67b82e3ab9a7f00fa6596fc8b7b69a2a3",
+          "message": "Expected failure was exercised",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+          "message": "Aggregate function coverage 50.0% is below the configured minimum 90.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:6274c406116baeaacd21f4951c36a802523df357f7eea3a9b1d4af3f8da311af",
+          "message": "Function add was exercised by the aggregate project test suite",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:9c072a4f04295d1d67b8c98a5d20feaf5236aad5236b3d22ff4dec0a9b54f105",
+          "message": "Function unused was not exercised by the aggregate project test suite",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:a544a18d1ceab8ac903a8800e84077475b2151885b1db02f797fc450e2a97b0f",
+          "message": "Test was collected but not executed",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:a8257ab25fe5314c164ffb2db104998c4fa170a00fd8aac306455b06fdd824e7",
+          "message": "Test assertion failed",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+          "message": "Overall line coverage 75.0% is below the configured minimum 80.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test assertion failed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "tests/test_calc.py::test_bad"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test was collected but not executed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "tests/test_calc.py::test_skip"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Expected failure was exercised",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_xfail"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Overall line coverage 75.0% is below the configured minimum 80.0%",
+          "metrics": {
+            "actual": 75.0,
+            "covered_lines": 3,
+            "executable_lines": 4,
+            "gated": true,
+            "threshold": 80.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:Overall line"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Aggregate function coverage 50.0% is below the configured minimum 90.0%",
+          "metrics": {
+            "actual": 50.0,
+            "covered_functions": 1,
+            "functions": 2,
+            "gated": true,
+            "threshold": 90.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:Functions"
+        },
+        {
+          "end_line": 2,
+          "file_path": "src/calc.py",
+          "message": "Function add was exercised by the aggregate project test suite",
+          "metrics": {
+            "covered": true,
+            "gated": false,
+            "symbol": "add",
+            "test_scope": "aggregate-project-suite"
+          },
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Coverage:Function:add"
+        },
+        {
+          "end_line": 6,
+          "file_path": "src/calc.py",
+          "message": "Function unused was not exercised by the aggregate project test suite",
+          "metrics": {
+            "covered": false,
+            "gated": false,
+            "symbol": "unused",
+            "test_scope": "aggregate-project-suite"
+          },
+          "start_line": 5,
+          "status": "WARN",
+          "target_name": "Coverage:Function:unused"
+        }
+      ]
+    },
+    "no_coverage": {
+      "engine": {
+        "evidence": "ESTIMATED",
+        "max_score": 5.0,
+        "required": true,
+        "score": 4.75,
+        "status": "WARN",
+        "summary": "1/1 Tests Passed | Line: 85.0% (est), Func: 95.0%, Branch: 85.0% -> TEM: 4.75 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "exit_code": 0,
+      "extra": {
+        "function_coverage": 95.0,
+        "line_coverage": null,
+        "metrics_summary": "TEM: 4.75/5.0 (Line: 85%, Func: 95%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 1,
+        "quality_enabled": false,
+        "skipped_tests": 0,
+        "tem_score": 4.75,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 1
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        }
+      ]
+    },
+    "passing": {
+      "engine": {
+        "evidence": "MEASURED",
+        "max_score": 5.0,
+        "required": true,
+        "score": 1.78,
+        "status": "FAIL",
+        "summary": "1/1 Tests Passed | Line: 57.1%, Func: 50.0%, Branch: 50.0% -> TEM: 1.78 / 5.0"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 50.0,
+        "line_coverage": 57.1,
+        "metrics_summary": "TEM: 1.78/5.0 (Line: 57%, Func: 50%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 1,
+        "quality_enabled": false,
+        "skipped_tests": 0,
+        "tem_score": 1.78,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_positive",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 2,
+            "file": ".",
+            "passed": 0,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "TEM score 1.78 is below the configured minimum 4.00",
+                "name": "Threshold: TEM score",
+                "status": "WARN"
+              },
+              {
+                "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+                "name": "Threshold: Branch coverage",
+                "status": "WARN"
+              }
+            ],
+            "total": 2
+          }
+        ],
+        "total_tests": 1
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:3dba6df15d7ddf7d83b0036a825ba5440076951169886657f8cccbcb52ae1bed",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:533429c6e0aa93f59f9641a0557a87dfffaf8ebf54cf20828f00acafe2a59406",
+          "message": "Changed executable-line coverage 66.7% is below the configured minimum 100.0%",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+          "message": "Aggregate function coverage 50.0% is below the configured minimum 90.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:5988d4629e8ffb6c5ed3110ac41895b4f20e5ee0332bc9e1f5203cec78d91dce",
+          "message": "Function classify was exercised by the aggregate project test suite",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:854108249b5c8bb8e20d2b38ad22f7171ece24351ecb8b536237adf2e98125b4",
+          "message": "File line coverage 57.1% is below the configured minimum 80.0%",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:9c072a4f04295d1d67b8c98a5d20feaf5236aad5236b3d22ff4dec0a9b54f105",
+          "message": "Function unused was not exercised by the aggregate project test suite",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:bcb47e549d62e45d4726f2a89475fa61eab7f2c702a41cb8a5924e4e0e93e0aa",
+          "message": "TEM score 1.78 is below the configured minimum 4.00",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+          "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+          "message": "Overall line coverage 57.1% is below the configured minimum 80.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_positive"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Overall line coverage 57.1% is below the configured minimum 80.0%",
+          "metrics": {
+            "actual": 57.1,
+            "covered_lines": 4,
+            "executable_lines": 7,
+            "gated": true,
+            "threshold": 80.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:Overall line"
+        },
+        {
+          "end_line": null,
+          "file_path": "src/calc.py",
+          "message": "File line coverage 57.1% is below the configured minimum 80.0%",
+          "metrics": {
+            "actual": 57.1,
+            "covered_lines": 4,
+            "executable_lines": 7,
+            "gated": true,
+            "missed_lines": 3,
+            "threshold": 80.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:File"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Aggregate function coverage 50.0% is below the configured minimum 90.0%",
+          "metrics": {
+            "actual": 50.0,
+            "covered_functions": 1,
+            "functions": 2,
+            "gated": true,
+            "threshold": 90.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:Functions"
+        },
+        {
+          "end_line": 4,
+          "file_path": "src/calc.py",
+          "message": "Function classify was exercised by the aggregate project test suite",
+          "metrics": {
+            "covered": true,
+            "gated": false,
+            "symbol": "classify",
+            "test_scope": "aggregate-project-suite"
+          },
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Coverage:Function:classify"
+        },
+        {
+          "end_line": 9,
+          "file_path": "src/calc.py",
+          "message": "Function unused was not exercised by the aggregate project test suite",
+          "metrics": {
+            "covered": false,
+            "gated": false,
+            "symbol": "unused",
+            "test_scope": "aggregate-project-suite"
+          },
+          "start_line": 7,
+          "status": "WARN",
+          "target_name": "Coverage:Function:unused"
+        },
+        {
+          "end_line": 4,
+          "file_path": "src/calc.py",
+          "message": "Changed executable-line coverage 66.7% is below the configured minimum 100.0%",
+          "metrics": {
+            "actual": 66.7,
+            "covered_lines": 2,
+            "executable_lines": 3,
+            "gated": true,
+            "non_executable_lines": 0,
+            "requested_lines": 3,
+            "threshold": 100.0
+          },
+          "start_line": 2,
+          "status": "WARN",
+          "target_name": "Coverage:Changed lines"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "TEM score 1.78 is below the configured minimum 4.00",
+          "metrics": {
+            "actual": 1.78,
+            "threshold": 4.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Threshold: TEM score"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+          "metrics": {
+            "actual": 50.0,
+            "threshold": 80.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Threshold: Branch coverage"
+        }
+      ]
+    }
+  },
+  "scenarios": {
+    "empty": {
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/helper.py": "VALUE = 1\n"
+    },
+    "failing": {
+      "src/calc.py": "def add(a, b):\n    return a + b\n\n\ndef unused():\n    return 0\n",
+      "tests/test_calc.py": "import pytest\nfrom calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n\n\ndef test_bad():\n    assert add(1, 1) == 3\n\n\n@pytest.mark.skip(reason=\"x\")\ndef test_skip():\n    pass\n\n\n@pytest.mark.xfail\ndef test_xfail():\n    assert False\n"
+    },
+    "no_coverage": {
+      "interpreter": "without-coverage",
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+    },
+    "passing": {
+      "extra_config": "changed_lines = [\"src/calc.py:2-4\"]\n",
+      "src/calc.py": "def classify(value):\n    if value > 0:\n        return 'positive'\n    return 'other'\n\n\ndef unused(value):\n    total = value + 1\n    return total\n",
+      "tests/test_calc.py": "from calc import classify\n\n\ndef test_positive():\n    assert classify(1) == 'positive'\n"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

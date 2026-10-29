@@ -155,3 +155,59 @@ fn missing_optional_coverage_has_no_report_score_or_invented_zero_denominator() 
     assert_eq!(result.extra["coverage_policy"]["regression_tolerance"], 0.0);
     assert_eq!(result.targets[0].status, "SKIP");
 }
+#[test]
+fn coverage_run_selects_declared_source_directories_so_unimported_files_are_measured() {
+    let root = tempfile::tempdir().unwrap();
+    let mut request = request(root.path(), ValidationKind::PythonTest);
+    request.source_files = vec!["src/pkg/a.py".into(), "main.py".into(), "README.md".into()];
+    request.options.repeat_runs = 2;
+    let plan = plan(&request).unwrap();
+    let suite = plan
+        .tasks
+        .iter()
+        .find(|task| task.id == python_coverage::suite_id(&plan))
+        .unwrap();
+    let source = format!(
+        "--source={},{}",
+        root.path().display(),
+        root.path().join("src/pkg").display()
+    );
+    assert_eq!(suite.argv[7], source);
+    assert_eq!(suite.argv[8..10], ["-m", "pytest"]);
+    // The uncovered fallback and the quality repeat never inherit coverage options.
+    for task in plan.tasks.iter().filter(|task| task.id != suite.id) {
+        assert!(
+            !task
+                .argv
+                .iter()
+                .any(|argument| argument.starts_with("--source=")
+                    || argument == "coverage" && task.argv.iter().any(|item| item == "pytest")),
+            "{:?}",
+            task.argv
+        );
+    }
+    // Without declared Python sources, or beyond the argv bound, nothing is guessed.
+    let mut none = request.clone();
+    none.source_files = vec!["README.md".into()];
+    assert!(
+        !plan_argv(&none)
+            .iter()
+            .any(|argument| argument.starts_with("--source="))
+    );
+    let mut many = request;
+    many.source_files = (0..257).map(|index| format!("d{index}/m.py")).collect();
+    assert!(
+        !plan_argv(&many)
+            .iter()
+            .any(|argument| argument.starts_with("--source="))
+    );
+}
+fn plan_argv(request: &ValidationRequest) -> Vec<String> {
+    let plan = plan(request).unwrap();
+    let suite = python_coverage::suite_id(&plan);
+    plan.tasks
+        .into_iter()
+        .find(|task| task.id == suite)
+        .unwrap()
+        .argv
+}

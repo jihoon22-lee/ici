@@ -21,6 +21,8 @@ pub struct TestCase {
 pub struct TestEvidence {
     pub cases: BTreeMap<String, TestCase>,
     pub collection_errors: Vec<String>,
+    /// The path exactly as pytest printed it, paired with `collection_errors` (frozen identity).
+    pub collection_sources: Vec<String>,
     pub collection_error: bool,
 }
 
@@ -40,6 +42,7 @@ pub fn parse_pytest(
             let path = planning::relative(&capture[1], &request.root, &request.cwd)?;
             if !result.collection_errors.contains(&path) {
                 result.collection_errors.push(path);
+                result.collection_sources.push(capture[1].to_owned());
             }
             result.collection_error = true;
         }
@@ -245,8 +248,7 @@ fn observe_suite(
             _ => "FAIL",
         }
         .into();
-        target.message = case.verdict.clone();
-        output.targets.push(target);
+        target.message = case_message(&case.verdict).into();
         if matches!(case.verdict.as_str(), "FAILED" | "ERROR" | "XPASS") {
             let mut finding = finding(
                 plan,
@@ -256,17 +258,28 @@ fn observe_suite(
                 case.line,
             );
             finding.fingerprint = sha256(format!("pytest\0{}\0{}", case.node, case.verdict));
+            // The historical view keeps one issue per case: the verdict target already carries it.
+            output.extra["finding_details"][&finding.fingerprint] =
+                json!({"legacy_message":target.message});
             output.observation.findings.push(finding);
         }
+        output.targets.push(target);
     }
-    for path in &evidence.collection_errors {
-        output.observation.findings.push(finding(
+    for (path, source) in evidence
+        .collection_errors
+        .iter()
+        .zip(&evidence.collection_sources)
+    {
+        let mut item = finding(
             plan,
             "pytest.collection-error",
             &format!("collection error in {path}"),
             path,
             1,
-        ));
+        );
+        // Frozen provider identity: sha256("pytest\0collect:<printed path>\0error").
+        item.fingerprint = sha256(format!("pytest\0collect:{source}\0error"));
+        output.observation.findings.push(item);
     }
     let total = evidence.cases.len() as u64;
     let passed = evidence
@@ -298,6 +311,14 @@ fn observe_suite(
         return Err(ValidationError(
             "pytest collection failed; suite scope is incomplete".into(),
         ));
+    }
+    if total == 0 && matches!(outcome.exit_code, Some(0 | 5)) {
+        // Frozen `_parse_pytest_result`: the located descriptor-level verdict for an empty suite.
+        let mut target = InspectionTarget::at("tests", 1);
+        target.target_name = "[Python] Tests".into();
+        target.status = "FAIL".into();
+        target.message = "No tests collected".into();
+        output.targets.push(target);
     }
     if total == 0 || !matches!(outcome.exit_code, Some(0 | 1)) {
         return Err(ValidationError(format!(
@@ -404,7 +425,12 @@ fn observe_coverage(
                 .push(pair(name, covered, total));
         }
     }
-    for file in report.files.values() {
+    // With a file gate the policy owns the per-file inventory (frozen `Coverage:File`).
+    for file in report
+        .files
+        .values()
+        .filter(|_| plan.context.options.min_file_cov.is_none())
+    {
         let mut target = InspectionTarget::at(&file.path, 1);
         target.target_name = format!("Coverage: {}", file.path);
         target
@@ -420,7 +446,7 @@ fn observe_coverage(
         .values()
         .filter(|case| matches!(case.verdict.as_str(), "PASSED" | "XFAIL"))
         .count() as u64;
-    let score = tem::calculate(&tem::TemInputs {
+    let inputs = tem::TemInputs {
         passed,
         total: tests.cases.len() as u64,
         line_coverage: tem::percentage(report.counts.covered_lines, report.counts.total_lines),
@@ -434,7 +460,10 @@ fn observe_coverage(
             .zip(report.counts.total_functions)
             .and_then(|(a, b)| tem::percentage(a, b)),
         estimated_coverage: None,
-    });
+    };
+    let score = tem::calculate(&inputs);
+    let legacy_tem = tem::calculate(&tem::legacy_inputs(&inputs));
+    output.extra["legacy_tem"] = json!(legacy_tem);
     output.score = score.score;
     output.max_score = Some(5.0);
     output.extra["tem"] = json!(score);
@@ -452,7 +481,21 @@ fn observe_coverage(
         report.counts.total_branches
     );
     crate::test_metrics::coverage(plan, &report, output);
-    crate::policy::evaluate(plan, &report, score.score, output)
+    let suite_failed = tests
+        .cases
+        .values()
+        .any(|case| matches!(case.verdict.as_str(), "FAILED" | "ERROR" | "XPASS"));
+    crate::policy::evaluate_suite(plan, &report, legacy_tem.score, suite_failed, output)
+}
+/// Frozen `TestOutputMixin._parse_pytest_stdout` case messages.
+pub(crate) fn case_message(verdict: &str) -> &'static str {
+    match verdict {
+        "PASSED" => "Test passed successfully",
+        "XFAIL" => "Expected failure was exercised",
+        "SKIPPED" => "Test was collected but not executed",
+        "XPASS" => "Unexpected pass violated the expected-failure contract",
+        _ => "Test assertion failed",
+    }
 }
 fn observe_runtime(
     plan: &ValidationPlan,
@@ -520,7 +563,10 @@ fn observe_runtime_metadata(
             output.observation.findings.push(finding(
                 plan,
                 "python.compat.runtime-version",
-                &format!("project Python {version} is outside requires-python {requirement}"),
+                &format!(
+                    "declared interpreter reports Python {version}, outside requires-python {}",
+                    crate::integration::repr(requirement)
+                ),
                 "pyproject.toml",
                 1,
             ));
@@ -666,7 +712,7 @@ fn compile_finding(
 ) {
     output.observation.findings.push(finding(
         plan,
-        "python.compat.runtime-syntax",
+        "python.compat.compile-failure",
         detail,
         path,
         row,

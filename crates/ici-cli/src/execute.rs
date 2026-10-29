@@ -1237,8 +1237,20 @@ fn execute_validation(
             .observation
             .tool_versions
             .extend(output.observation.tool_versions);
-        if combined.status == "PASS" && output.status != "PASS" {
-            combined.status = output.status.clone();
+        // A later required FAIL must not be hidden by an earlier advisory WARN.
+        // Other states keep the original first-non-PASS rule; incompleteness is handled below.
+        let rank = |status: &str| match status {
+            "PASS" => Some(0),
+            "WARN" => Some(1),
+            "FAIL" => Some(2),
+            _ => None,
+        };
+        match (rank(&combined.status), rank(&output.status)) {
+            (Some(current), Some(next)) if next > current => {
+                combined.status = output.status.clone();
+            }
+            (Some(0), None) => combined.status = output.status.clone(),
+            _ => {}
         }
         if !complete {
             combined.observation.state = output.observation.state;
@@ -1283,5 +1295,48 @@ fn execute_validation(
         }
         combined.extra[&plan.context.task_id] = output.extra;
     }
+    aggregate_integration_cases(plans, &mut combined);
     combined
+}
+/// Frozen IntegrationEngine reports one case table and one summary for every declared case.
+fn aggregate_integration_cases(
+    plans: &[ici_validation::ValidationPlan],
+    combined: &mut AnalysisOutput,
+) {
+    if plans.is_empty()
+        || !combined.observation.evidence_is_complete()
+        || !plans.iter().all(|plan| {
+            plan.kind == ici_validation::ValidationKind::Integration
+                && plan.context.options.integration_case_name.is_some()
+        })
+    {
+        return;
+    }
+    let cases = plans
+        .iter()
+        .filter_map(|plan| {
+            combined.extra[&plan.context.task_id]
+                .pointer("/integration/cases/0")
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    if cases.len() != plans.len() {
+        return;
+    }
+    let violations = cases.iter().filter(|case| case["status"] != "PASS").count();
+    combined.summary = format!(
+        "Integration contracts: {} run, {violations} violation(s)",
+        cases.len()
+    );
+    combined.extra["integration"] = json!({"state":"MEASURED","cases":cases});
+    combined.extra["tool_evidence"] = json!(
+        plans
+            .iter()
+            .filter_map(|plan| {
+                combined.extra[&plan.context.task_id]
+                    .pointer("/tool_evidence/0")
+                    .cloned()
+            })
+            .collect::<Vec<_>>()
+    );
 }

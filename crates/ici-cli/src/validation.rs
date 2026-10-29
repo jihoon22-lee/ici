@@ -381,6 +381,13 @@ pub fn bind(
             imports.task_id = format!("{id}.imports");
             imports.kind = ValidationKind::PythonImports;
             imports.options.modules = modules;
+            imports.options.import_roots = component
+                .source_dirs
+                .iter()
+                .map(|directory| crate::files::under(&project.root, directory))
+                .filter(|directory| directory.is_dir() && directory.starts_with(&project.root))
+                .filter(|directory| *directory != imports.cwd)
+                .collect();
             imports.options.compile_sources = false;
             match ici_validation::plan(&imports) {
                 Ok(plan) => plans.push(plan),
@@ -805,6 +812,7 @@ fn integration_plans(
         if !names.insert(name) {
             return Err(format!("duplicate integration case {name:?}"));
         }
+        integration_case_bounds(name, case)?;
         let mut targets = integration_python_targets(
             project,
             settings.and_then(|settings| settings.get("python_targets")),
@@ -961,6 +969,73 @@ fn integration_plans(
     }
     Ok((plans, selected_tool))
 }
+/// Frozen `analysis/_integration.py` transport bounds that the shared schema does not narrow.
+fn integration_case_bounds(name: &str, case: &Value) -> Result<(), String> {
+    let printable = |text: &str, maximum: usize| {
+        !text.is_empty() && text.chars().count() <= maximum && !text.chars().any(|c| c < ' ')
+    };
+    if name.chars().count() > 128 {
+        return Err(format!("integration {name:?} name exceeds 128 characters"));
+    }
+    let argv = strings(case.get("argv"));
+    if argv.len() > 64
+        || argv.iter().any(|token| !printable(token, 1024))
+        || argv
+            .iter()
+            .map(|token| token.chars().count())
+            .sum::<usize>()
+            > 32 * 1024
+    {
+        return Err(format!(
+            "integration {name:?} argv must hold at most 64 bounded tokens within 32 KiB"
+        ));
+    }
+    for key in [
+        "stdout_contains",
+        "stderr_contains",
+        "stdout_not_contains",
+        "stderr_not_contains",
+    ] {
+        let values = strings(case.get(key));
+        if values.len() > 32 || values.iter().any(|value| !printable(value, 1024)) {
+            return Err(format!(
+                "integration {name:?} {key} must hold at most 32 bounded strings"
+            ));
+        }
+    }
+    let environment_name = |text: &str| {
+        text.len() <= 128
+            && text
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+            && text.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    };
+    if !strings(case.get("inherit_env"))
+        .iter()
+        .all(|text| environment_name(text))
+    {
+        return Err(format!(
+            "integration {name:?} inherit_env contains an invalid environment name"
+        ));
+    }
+    for output in case
+        .get("output_artifacts")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        if output
+            .get("kind")
+            .is_some_and(|kind| kind.as_str().is_none_or(|kind| !printable(kind, 128)))
+        {
+            return Err(format!(
+                "integration {name:?} output artifact kind must be bounded"
+            ));
+        }
+    }
+    Ok(())
+}
 fn integration_python_targets(
     project: &ResolvedProject,
     value: Option<&Value>,
@@ -975,9 +1050,27 @@ fn integration_python_targets(
     values
         .iter()
         .map(|(name, value)| {
+            // Frozen `_PYTHON_TARGET_RE`: an alphanumeric first character, then up to 63 more.
+            if name.len() > 64
+                || !name
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_ascii_alphanumeric())
+                || !name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "_.-".contains(c))
+            {
+                return Err(format!(
+                    "integration Python target {name:?} must be a bounded name"
+                ));
+            }
             let configured = value
                 .as_str()
-                .filter(|value| !value.is_empty())
+                .filter(|value| {
+                    !value.is_empty()
+                        && value.chars().count() <= 1024
+                        && !value.chars().any(|c| c < ' ')
+                })
                 .ok_or_else(|| format!("integration Python target {name:?} must be a path"))?;
             let tool = integration_executable(&project.root, configured, environment)
                 .map_err(|failure| format!("integration Python target {name:?}: {failure}"))?;
@@ -1011,11 +1104,81 @@ fn integration_executable(
     .resolve()
     .map_err(|failure| failure.to_string())
 }
+/// Frozen `core/cmake.py::_artifact_id` hashes only identities longer than this.
+const ARTIFACT_ID_LIMIT: usize = 512;
+const BUILD_VARIANTS: [&str; 4] = ["release", "coverage", "sanitize", "thread-sanitize"];
+
+/// Resolve the frozen `VARIANT:shadow:PATH` artifact identity (including its exceptional
+/// `VARIANT:shadow:path-<sha256>` form) against the native build tree this run prepared.
+/// Returns `None` for any other spelling; the project-relative path is never guessed.
+pub(crate) fn shadow_artifact(
+    component: &Component,
+    identity: &str,
+) -> Option<Result<String, String>> {
+    let (variant, rest) = identity.split_once(':')?;
+    let path = rest.strip_prefix("shadow:")?;
+    if !BUILD_VARIANTS.contains(&variant) {
+        return Some(Err(format!(
+            "artifact identity {identity:?} names unknown build variant {variant:?}"
+        )));
+    }
+    Some((|| {
+        let prepared = component
+            .settings
+            .pointer(&format!("/native_build_variants/{variant}"))
+            .ok_or_else(|| {
+                format!(
+                    "artifact identity {identity:?} has no prepared native {variant} build; prepare the declared build first"
+                )
+            })?;
+        let directory = prepared
+            .get("directory")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("prepared {variant} build has no shadow directory"))?;
+        let prefix = format!("{directory}/");
+        let hashed = path
+            .strip_prefix("path-")
+            .filter(|digest| digest.len() == 64 && digest.bytes().all(|b| b.is_ascii_hexdigit()));
+        let mut matched = prepared
+            .get("artifacts")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|artifact| {
+                artifact.strip_prefix(&prefix).is_some_and(|tail| {
+                    let full = format!("{variant}:shadow:{tail}");
+                    // Frozen compares Python code points, not UTF-8 bytes.
+                    if full.chars().count() > ARTIFACT_ID_LIMIT {
+                        hashed.is_some_and(|digest| {
+                            ici_domain::sha256(&full).strip_prefix("sha256:") == Some(digest)
+                        })
+                    } else {
+                        tail == path
+                    }
+                })
+            });
+        let first = matched.next().ok_or_else(|| {
+            format!(
+                "artifact identity {identity:?} is not an observed output of the prepared {variant} build"
+            )
+        })?;
+        if matched.next().is_some() {
+            return Err(format!("artifact identity {identity:?} is ambiguous"));
+        }
+        ici_domain::validation::relative_path(first, false).map_err(|error| error.to_string())?;
+        Ok(first.to_owned())
+    })())
+}
+
 fn integration_artifact(
     project: &ResolvedProject,
     component: &Component,
     identity: &str,
 ) -> Result<PathBuf, String> {
+    if let Some(shadow) = shadow_artifact(component, identity) {
+        return contained_artifact(project, identity, shadow?);
+    }
     let canonical_id = identity.strip_prefix("release:project:");
     let candidate = canonical_id.unwrap_or(identity);
     ici_domain::validation::relative_path(candidate, false)
@@ -1072,6 +1235,13 @@ fn integration_artifact(
         }
         relative
     };
+    contained_artifact(project, identity, relative)
+}
+fn contained_artifact(
+    project: &ResolvedProject,
+    identity: &str,
+    relative: String,
+) -> Result<PathBuf, String> {
     let absolute = project.root.join(relative);
     let canonical=absolute.canonicalize().map_err(|failure|format!("declared integration artifact {identity:?} is unavailable: {failure}; prepare the declared build first"))?;
     if canonical != absolute

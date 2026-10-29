@@ -238,12 +238,30 @@ fn integration_checks_declared_streams_exit_and_fresh_output_without_touching_us
             .findings
             .is_empty()
     );
-    let mut bad = outcomes;
-    bad.get_mut(&id).unwrap().timed_out = true;
-    assert_eq!(
-        observe(&planned, &bad, &artifacts).observation.state,
-        TaskState::Failed
-    );
+    for failure in ["timeout", "truncated", "signal", "cancelled"] {
+        let mut bad = outcomes.clone();
+        let outcome = bad.get_mut(&id).unwrap();
+        match failure {
+            "timeout" => outcome.timed_out = true,
+            "truncated" => outcome.truncated = true,
+            "signal" => {
+                outcome.signal = Some(9);
+                outcome.exit_code = None;
+            }
+            _ => {
+                outcome.cancelled = true;
+                outcome.state = TaskState::Cancelled;
+            }
+        }
+        let observed = observe(&planned, &bad, &artifacts);
+        // Incomplete process evidence is never a contract finding (frozen: ConfigurationError).
+        assert_ne!(
+            observed.observation.state,
+            TaskState::Succeeded,
+            "{failure}"
+        );
+        assert!(observed.observation.findings.is_empty(), "{failure}");
+    }
 }
 #[test]
 fn native_binary_header_policy_distinguishes_non_elf_from_tool_failure_and_honors_limits() {

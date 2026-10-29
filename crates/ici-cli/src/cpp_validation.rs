@@ -652,6 +652,16 @@ pub(crate) fn abi_scope(
         );
     } else {
         for value in &selected {
+            if let Some(shadow) = crate::validation::shadow_artifact(component, value) {
+                let path = shadow?;
+                if !records.iter().any(|(_, recorded, _)| *recorded == path) {
+                    return Err(format!(
+                        "configured ABI artifact {value:?} is not in the linked build inventory"
+                    ));
+                }
+                targets.insert(path);
+                continue;
+            }
             let canonical = value.strip_prefix("release:project:");
             let matched = records
                 .iter()
