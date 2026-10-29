@@ -1,5 +1,30 @@
 # ici Rust 전면 교체 실행 계획
 
+### Ownership transfer and closure fan-out (2026-10-29)
+
+- Ownership moved to a new root at `2c43027`. The inherited uncommitted work became behavior-scoped
+  commits, and `origin/main` (#298) was merged with an identical tree. The closure fragments
+  `closure/*.json` are now merged conjunctively by `scripts/rust_migration_inventory.py`: the
+  least-closed claim wins, unknown rows are rejected and `complete` requires every claim's evidence.
+  `inventory.md` stays generated from `inventory.json` only. The combined counts are printed as
+  `closure` and drive `--require-closed`.
+- Six frozen-source review areas (validation, python, cpp, config, reporting, runtime) cover all
+  291 source files disjointly and run in separate worktrees with one fragment each.
+- Defects found during the transfer gates: validation freshness compared a precise start clock with
+  coarse file timestamps and rejected fresh outputs; reruns refused their own previous event stream;
+  ici-built packages consumed by the ABI check were treated as mid-run user edits. All three are
+  fixed with actual-tool regressions. An `ici resource|security|python-compat` exit expectation was
+  corrected to the frozen SKIP (2), confirmed by running the frozen source.
+- R8 budget harness (`tests/rust-parity/perf/measure_budget.py`) on a release build of the
+  development branch, same host as the frozen oracle: cold 0.23 s vs 1.20 s, warm 0.22 s vs 0.55 s,
+  peak RSS 16.7 MiB vs 86 MiB, SIGINT exit 130 with descendants gone in 0.21 s. The 165 KB HTML
+  report exceeded the 64 KiB budget; the reporting unit now embeds the result once (compressed) and
+  renders closed sections on demand — 46 KB for the same fixture, all sections DOM-equivalent.
+  These are development measurements; the R8 candidate repeats them on the exact-source archive.
+- Known frozen-behaviour differences recorded for review: coverage silently omitted never-imported
+  declared sources (oracle 100%); native refuses that as complete. Pyz-era v3 baselines are readable
+  but not comparable per ADR-0008; regeneration guidance is required.
+
 ### Legacy line scope and gate policy follow-up (2026-10-29)
 
 - Historical line input collection now includes shell/configuration/document files, with separate
@@ -607,7 +632,9 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
 ### Stored CLI reports and supporting evidence
 
 - Every native execution keeps the unchanged run-v2 envelope and a separate redacted rich legacy
-  projection under `runs/<run-id>/details.json` beside the selected result. The projection retains
+  projection under `.ici/rust-v1/details/<result file>/<run-id>/details.json` in the selected
+  result's directory (earlier `runs/<run-id>/details.json` archives stay readable; the move keeps a
+  custom `--result` from adding a generic `runs/` directory to the project). The projection retains
   PASS targets, producer details and raw metric denominators. Report intake requires its embedded
   run to equal the selected envelope, preventing a stale details archive from being attached.
 - `report`/`next report` only read stored artifacts; they can render after source deletion and
