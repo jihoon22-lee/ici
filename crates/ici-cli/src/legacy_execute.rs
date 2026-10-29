@@ -27,6 +27,7 @@ pub fn command(
     );
     let prepared = crate::planning::prepare(&internal, cwd, environment, false)?;
     let root = prepared.project.root.clone();
+    let legacy_schema = prepared.project.schema_family == ici_config::SchemaFamily::Legacy;
     let result_path = root.join(crate::DEFAULT_RESULT);
     let report_path = invocation.flag("report").then(|| {
         root.join(engine(&invocation.command()).map_or_else(
@@ -168,6 +169,7 @@ pub fn command(
             .cloned()
             .ok_or_else(|| CliError(format!("{family}: no applicable language/check selected")))?;
         if family == "test"
+            && legacy_schema
             && let Some(languages) = no_tests_collected(&root, &value)
         {
             // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
@@ -404,7 +406,19 @@ pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) ->
 /// before running, return the languages the frozen engine would report as having no tests.
 fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
     let checks = engine["extra"]["native_checks"].as_array()?;
-    if checks.is_empty() || checks.iter().any(|check| check["state"] != "BLOCKED") {
+    // Only "no runnable suite exists" blocks qualify; any other block (interpreter, config,
+    // tool) stays incomplete evidence.
+    let no_suite = |check: &serde_json::Value| {
+        check["summary"].as_str().is_some_and(|summary| {
+            summary.starts_with("no sources in scope")
+                || summary == "C++ runtime checks require a declared component build"
+        })
+    };
+    if checks.is_empty()
+        || checks
+            .iter()
+            .any(|check| check["state"] != "BLOCKED" || !no_suite(check))
+    {
         return None;
     }
     let mut pending = vec![root.join("tests")];

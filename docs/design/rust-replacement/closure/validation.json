@@ -173,7 +173,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: the Package:SourceMetadata / Package:Wheel targets keep frozen location, status and message (PASS/WARN/FAIL inventory in all 105 cases). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -198,7 +199,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.import-distribution-mismatch (import-distribution-name) at the pyproject name line; 3 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -223,7 +225,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.entrypoint-missing (entrypoint-target) at the entry-point value line; 4 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -248,7 +251,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.discovery-empty (package-discovery) at pyproject.toml:1. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -273,7 +277,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-missing (wheel.discovery) for a configured glob that matched nothing. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -298,10 +303,11 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "ici.package.wheel-invalid (wheel.structure) for unreadable or structurally invalid wheels; 35 frozen cases equal in identity, message and metadata.",
-      "difference_reason": "Four ZIP-structure cases are recorded corrections in the golden: native preflight rejects a central-directory member-count mismatch, local/central name disagreement and overlapping compressed ranges before decompression, and returns a located finding for a non-UTF-8 member name where frozen raised UnicodeDecodeError. The golden itself was captured with Python 3.14.7; re-verifying it against the frozen checkout with Python 3.10 diverges at compression-zstandard (zipfile zstd support is interpreter-dependent)."
+      "difference_reason": "Four ZIP-structure cases are recorded corrections in the golden: native preflight rejects a central-directory member-count mismatch, local/central name disagreement and overlapping compressed ranges before decompression, and returns a located finding for a non-UTF-8 member name where frozen raised UnicodeDecodeError."
     },
     "finding_site:src/ici/analysis/_python_packaging.py:98:11": {
       "status": "complete",
@@ -324,7 +330,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: the shared _finding helper: every ici.package.* finding keeps the frozen rule id, fingerprint, message, severity, confidence, category, tool rule id and line. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -349,7 +356,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: the wheel _finding helper (identity, message, severity and tool rule id of every wheel finding). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -374,7 +382,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-record-integrity (wheel.record); 9 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -399,7 +408,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-metadata-mismatch (wheel.metadata-identity); 4 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -424,7 +434,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-tag-mismatch (wheel.tags). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -449,7 +460,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.native-wheel-forbidden (wheel.pure-policy); 2 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -474,7 +486,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.package-files-missing (wheel.package-files). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -499,7 +512,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-entrypoints-missing (wheel.entry-points). Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -524,7 +538,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-entrypoints-mismatch (wheel.entry-points); 3 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -549,7 +564,8 @@
       },
       "evidence": [
         "tests/rust-parity/python/package.json (105 frozen _python_packaging/_python_wheel cases captured by tests/rust-parity/python/package_oracle.py from the frozen checkout with Python 3.14.7, packaging 26.3, tomli 2.4.1)",
-        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log"
+        "cargo test -p ici-analysis --lib --locked -- --include-ignored package wheel; /tmp/ici-rust-replacement-20261028/w-validation-package-wheel.log",
+        "Not re-verified locally: tests/rust-parity/python/package_oracle.py against the frozen checkout with the available Python 3.10.21 venv stops at case compression-zstandard; the golden records Python 3.14.7 and the interpreter-dependence of that case is inferred, not verified."
       ],
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-metadata-mismatch (wheel.dist-info-identity); 2 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
@@ -822,7 +838,8 @@
           "crates/ici-cli/tests/legacy_test_parity.rs::empty_suite_keeps_the_frozen_located_no_tests_target_but_is_not_a_measured_verdict"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected"
+          "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected",
+          "crates/ici-cli/tests/legacy_no_tests.rs::a_v2_project_with_blocked_test_checks_stays_incomplete_instead_of_no_tests"
         ],
         "failure": [
           "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
@@ -832,7 +849,7 @@
         "python3 tests/rust-parity/validation/capture_legacy_cpp_no_tests.py (frozen legacy `ici test --report` on parity-fixtures/cpp/legacy-no-tests/{root-main,src-sources}) -> tests/rust-parity/validation/legacy-cpp-no-tests-oracle.json",
         "cargo test -p ici-cli --test legacy_no_tests --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-no-tests-cpp.log"
       ],
-      "comparison": "Frozen _mark_zero_tests: with no tests/**/test_*.py and no tests/**/*.cpp the legacy `ici test` is FAIL, exit 1, with one '[Python|C++|Project] Tests' FAIL 'No tests collected' target at tests:1. Native legacy `ici test` reproduces status, exit code, target and legacy fingerprint for a Make tree without C++ sources in scope ('[Project]') and with C++ sources but no build-declared tests ('[C++]'); any frozen test file keeps the blocked checks incomplete (exit 3). An empty pytest suite keeps the same located target (test_output.py:83).",
+      "comparison": "Frozen _mark_zero_tests: with no tests/**/test_*.py and no tests/**/*.cpp the legacy `ici test` is FAIL, exit 1, with one '[Python|C++|Project] Tests' FAIL 'No tests collected' target at tests:1. Native legacy `ici test` reproduces status, exit code, target and legacy fingerprint for a Make tree without C++ sources in scope ('[Project]') and with C++ sources but no build-declared tests ('[C++]'); any frozen test file keeps the blocked checks incomplete (exit 3). An empty pytest suite keeps the same located target (test_output.py:83). The override applies only to the legacy schema and only to 'no runnable suite' blocks (no sources in scope / no declared component build); other blocks and v2 projects stay incomplete.",
       "difference_reason": "Frozen pairs the verdict with fabricated ESTIMATED coverage (100%/45%) and TEM 0.00 in the summary; native reports '0/0 Tests Passed; No tests collected' with no coverage or TEM. The empty-pytest-suite variant (tests/ exists, pytest exit 5) stays an incomplete check (ERROR, exit 3) rather than FAIL."
     },
     "finding_site:src/ici/engines/test_coverage.py:384:16": {

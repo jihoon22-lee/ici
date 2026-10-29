@@ -102,3 +102,34 @@ fn a_declared_cpp_test_file_is_never_reported_as_no_tests_collected() {
             .any(|target| target["message"] == "No tests collected")
     );
 }
+
+#[test]
+fn a_v2_project_with_blocked_test_checks_stays_incomplete_instead_of_no_tests() {
+    // The frozen "look under tests/" rule is the legacy schema's; a v2 project whose test
+    // checks are blocked keeps an incomplete result.
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::write(
+        root.path().join("src/calc.cpp"),
+        "int add(int a,int b){return a+b;}\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        "schema_version=2\n[[components]]\nid='app'\nroot='.'\nlanguages=['cpp']\nsources=['src/calc.cpp']\n",
+    )
+    .unwrap();
+    let result = commands::dispatch(
+        &registry::parse(["ici", "test", "--report"]).unwrap(),
+        root.path(),
+        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+    )
+    .unwrap();
+    assert_eq!(result.exit_code, 3, "{} {}", result.stdout, result.stderr);
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.path().join("test_report.json")).unwrap()).unwrap();
+    assert!(
+        report["extra"].get("no_tests_collected").is_none(),
+        "{report:#}"
+    );
+}
