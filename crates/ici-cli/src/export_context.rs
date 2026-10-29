@@ -10,7 +10,7 @@ use ici_cpp::{BuildLease, BuildPlan, BuildRequest, CompilationContext, ContextRe
 use ici_domain::sha256;
 use ici_execution::{Cancellation, Scheduler};
 use ici_providers::resolver::{ResolvedTool, ToolRequest};
-pub use preparation_failure::PreparationFailure;
+pub use preparation_failure::{PreparationFailure, PreparationUnavailable};
 pub use public_export::{ExportMetadata, compilation_export_payload, render_compilation_export};
 use serde_json::{Value, json};
 use std::{
@@ -51,6 +51,41 @@ pub struct PreparedContext {
 }
 
 pub fn plan_preparation(
+    project: &ResolvedProject,
+    component: &Component,
+    environment: &BTreeMap<String, String>,
+    ici_binary: &Path,
+) -> Result<ContextPreparationPlan, PreparationUnavailable> {
+    let directory = crate::files::under(&project.root, &component.root);
+    // A direct-compile overlay of an earlier variant is not a declared native build.
+    let declared = crate::cpp::linked_build(project, component)
+        .is_some_and(|build| build.system.as_deref() != Some("direct-gcc"));
+    let selected = if declared {
+        None
+    } else {
+        // Without a declared build, only a selectable root descriptor (CMake, qmake or an
+        // explicitly enabled Make build) means there is something to prepare.
+        Some(
+            select_descriptor(
+                &project.root,
+                &directory,
+                None,
+                make_table(project, component),
+            )
+            .map_err(PreparationUnavailable::NothingToPrepare)?,
+        )
+    };
+    plan_selected_preparation(project, component, environment, ici_binary).map_err(|reason| {
+        PreparationUnavailable::Misconfigured {
+            reason,
+            descriptor: selected.or_else(|| {
+                crate::cpp::linked_build(project, component).and_then(|build| build.project.clone())
+            }),
+        }
+    })
+}
+
+fn plan_selected_preparation(
     project: &ResolvedProject,
     component: &Component,
     environment: &BTreeMap<String, String>,
@@ -295,6 +330,9 @@ pub fn execute_preparation(
     execute_preparation_typed(plan, scheduler, cancellation, events)
         .map_err(|error| error.to_string())
 }
+fn incomplete(error: impl std::fmt::Display) -> PreparationFailure {
+    PreparationFailure::Incomplete(error.to_string())
+}
 pub fn execute_preparation_typed(
     plan: &ContextPreparationPlan,
     scheduler: &Scheduler,
@@ -305,7 +343,6 @@ pub fn execute_preparation_typed(
         direct::execute(plan, scheduler, cancellation, events)
     } else {
         execute_native_preparation(plan, scheduler, cancellation, events)
-            .map_err(PreparationFailure::Incomplete)
     }
 }
 fn execute_native_preparation(
@@ -313,32 +350,30 @@ fn execute_native_preparation(
     scheduler: &Scheduler,
     cancellation: &Cancellation,
     events: &crate::events::EventLog,
-) -> Result<PreparedContext, String> {
+) -> Result<PreparedContext, PreparationFailure> {
     let lease = BuildLease::acquire(
         &plan.root,
         &plan.build,
         cancellation,
         Duration::from_secs(120),
     )
-    .map_err(|error| error.to_string())?;
-    let shadow = lease
-        .prepare(&plan.build)
-        .map_err(|error| error.to_string())?;
+    .map_err(incomplete)?;
+    let shadow = lease.prepare(&plan.build).map_err(incomplete)?;
     // Only this verified leased shadow is eligible for resetting accumulated runtime counters.
-    for entry in crate::files::tree(&plan.root, &shadow).map_err(|error| error.to_string())? {
+    for entry in crate::files::tree(&plan.root, &shadow).map_err(incomplete)? {
         if entry.relative.ends_with(".gcda") {
             let path = plan.root.join(&entry.relative);
-            let metadata = fs::symlink_metadata(&path).map_err(|error| error.to_string())?;
+            let metadata = fs::symlink_metadata(&path).map_err(incomplete)?;
             if !entry.contained
                 || !metadata.is_file()
                 || metadata.nlink() != 1
-                || path.canonicalize().map_err(|error| error.to_string())? != path
+                || path.canonicalize().map_err(incomplete)? != path
             {
-                return Err(
-                    "owned coverage reset refuses redirected or multiply linked gcda files".into(),
-                );
+                return Err(incomplete(
+                    "owned coverage reset refuses redirected or multiply linked gcda files",
+                ));
             }
-            fs::remove_file(path).map_err(|error| error.to_string())?;
+            fs::remove_file(path).map_err(incomplete)?;
         }
     }
     let outcomes = scheduler
@@ -350,7 +385,7 @@ fn execute_native_preparation(
                 "explicit native preparation",
             )
         })
-        .map_err(|error| error.to_string())?;
+        .map_err(incomplete)?;
     for outcome in outcomes.outcomes {
         events.emit(
             "task.completed",
@@ -359,7 +394,7 @@ fn execute_native_preparation(
             &format!("{:?}", outcome.state),
         );
         if !outcome.prerequisite_succeeded() {
-            return Err(format!(
+            let detail = format!(
                 "native preparation {} failed (exit {:?}, timed_out={}, truncated={}): {} {}",
                 outcome.task_id,
                 outcome.exit_code,
@@ -370,23 +405,38 @@ fn execute_native_preparation(
                     .chars()
                     .take(2048)
                     .collect::<String>()
-            ));
+            );
+            if plan.build.system == "make" {
+                // Frozen Make adapter: a failed configure is a configuration error; a failed
+                // clean or build means the build did not produce a complete artifact set.
+                let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
+                let (step, configuration) = match step {
+                    "configure" => ("configure", true),
+                    "clean" => ("clean", false),
+                    _ => ("build", false),
+                };
+                let mut output = crate::cpp::build_failure(
+                    &outcome.task_id,
+                    &plan.descriptor,
+                    configuration,
+                    &format!("Make {step} command did not complete successfully"),
+                    &detail,
+                );
+                output.observation.exit_code = outcome.exit_code;
+                output.observation.timed_out = outcome.timed_out;
+                output.observation.truncated = outcome.truncated;
+                return Err(PreparationFailure::Observed {
+                    phase: format!("Make {step}"),
+                    output: Box::new(output),
+                });
+            }
+            return Err(PreparationFailure::Incomplete(detail));
         }
     }
     if plan.build.system == "qmake" {
-        lease
-            .finalize_qmake(&plan.build)
-            .map_err(|error| error.to_string())?;
+        lease.finalize_qmake(&plan.build).map_err(incomplete)?;
     }
-    let context = ici_cpp::load_compilation_context(
-        &plan.root,
-        &ContextRequest {
-            database: Some(plan.build.compilation_database.clone()),
-            variant: Some(plan.build.variant.clone()),
-            selected_sources: plan.selected_sources.clone(),
-            ..Default::default()
-        },
-    );
+    let context = prepared_context(plan);
     if plan.build.system != "make"
         && (context.database_path.is_none()
             || context.units.is_empty()
@@ -396,14 +446,14 @@ fn execute_native_preparation(
                 .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
                 .any(|diagnostic| diagnostic.level == "error"))
     {
-        return Err(format!(
+        return Err(PreparationFailure::Incomplete(format!(
             "prepared compilation evidence is incomplete: {:?}",
             context.diagnostics
-        ));
+        )));
     }
     let mut artifacts = vec![];
     let mut executables = vec![];
-    for entry in crate::files::tree(&plan.root, &shadow).map_err(|error| error.to_string())? {
+    for entry in crate::files::tree(&plan.root, &shadow).map_err(incomplete)? {
         if build_metadata_path(&entry.relative, &plan.build.shadow) {
             continue;
         }
@@ -411,15 +461,15 @@ fn execute_native_preparation(
             continue;
         }
         let path = plan.root.join(&entry.relative);
-        let metadata = fs::symlink_metadata(&path).map_err(|error| error.to_string())?;
+        let metadata = fs::symlink_metadata(&path).map_err(incomplete)?;
         if !metadata.is_file()
             || metadata.nlink() != 1
-            || path.canonicalize().map_err(|error| error.to_string())? != path
+            || path.canonicalize().map_err(incomplete)? != path
         {
             continue;
         }
         let mut bytes = [0u8; 20];
-        let mut file = fs::File::open(&path).map_err(|error| error.to_string())?;
+        let mut file = fs::File::open(&path).map_err(incomplete)?;
         if file.read_exact(&mut bytes).is_ok() && &bytes[..4] == b"\x7fELF" {
             let kind = match bytes[5] {
                 1 => u16::from_le_bytes([bytes[16], bytes[17]]),
@@ -439,7 +489,7 @@ fn execute_native_preparation(
             &plan.root.join(&plan.descriptor),
             1024 * 1024,
         )
-        .map_err(|error| error.to_string())?;
+        .map_err(incomplete)?;
         String::from_utf8_lossy(&bytes)
             .lines()
             .map(|line| line.split('#').next().unwrap_or(""))
@@ -464,6 +514,30 @@ fn execute_native_preparation(
     })
 }
 
+/// The owned build's recorded compilation context. A handwritten Make backend need not write a
+/// compilation database; then no database is claimed (and none is discovered elsewhere).
+fn prepared_context(plan: &ContextPreparationPlan) -> CompilationContext {
+    if plan.build.system == "make"
+        && !fs::symlink_metadata(plan.root.join(&plan.build.compilation_database))
+            .is_ok_and(|metadata| metadata.is_file())
+    {
+        return CompilationContext {
+            variant: plan.build.variant.clone(),
+            selected_sources: plan.selected_sources.clone(),
+            ..Default::default()
+        };
+    }
+    ici_cpp::load_compilation_context(
+        &plan.root,
+        &ContextRequest {
+            database: Some(plan.build.compilation_database.clone()),
+            variant: Some(plan.build.variant.clone()),
+            selected_sources: plan.selected_sources.clone(),
+            ..Default::default()
+        },
+    )
+}
+
 pub fn for_consumer(
     context: &PreparedContext,
     plan: &ContextPreparationPlan,
@@ -481,15 +555,7 @@ pub fn for_consumer(
     }
     let mut alias = context.clone();
     alias.plan = plan.clone();
-    alias.context = ici_cpp::load_compilation_context(
-        &plan.root,
-        &ContextRequest {
-            database: Some(plan.build.compilation_database.clone()),
-            variant: Some(plan.build.variant.clone()),
-            selected_sources: plan.selected_sources.clone(),
-            ..Default::default()
-        },
-    );
+    alias.context = prepared_context(plan);
     Ok(alias)
 }
 
@@ -596,12 +662,45 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
             }
             if primary || component.build.is_none() {
                 component.build = Some(id.clone());
-                component.settings["project"]["compile_database"] =
-                    json!(plan.root.join(&plan.build.compilation_database));
+                // A handwritten Make backend need not write a compilation database; only an
+                // observed database becomes an analysis input.
+                if context.context.database_path.is_some() {
+                    component.settings["project"]["compile_database"] =
+                        json!(plan.root.join(&plan.build.compilation_database));
+                }
             }
         }
     }
     overlay
+}
+
+/// Frozen BuildEngine `_has_build_descriptor`: a root native descriptor that no configured
+/// adapter selected (for example a Makefile without `build.make.enabled = true`). Returns the
+/// frozen descriptor label used in its "has no configured adapter" error.
+pub fn unadapted_descriptor(directory: &Path) -> Option<String> {
+    let regular = |path: &Path| fs::symlink_metadata(path).is_ok_and(|metadata| metadata.is_file());
+    if let Some(name) = ["Makefile", "makefile", "GNUmakefile"]
+        .into_iter()
+        .find(|name| regular(&directory.join(name)))
+    {
+        return Some(name.into());
+    }
+    let mut names = fs::read_dir(directory)
+        .ok()?
+        .filter_map(Result::ok)
+        .filter(|entry| regular(&entry.path()))
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .collect::<Vec<_>>();
+    names.sort();
+    names
+        .iter()
+        .any(|name| {
+            name.ends_with(".pro")
+                || name.starts_with("Makefile.")
+                || name.ends_with(".mk")
+                || name.ends_with(".make")
+        })
+        .then(|| "A build descriptor".into())
 }
 
 /// The legacy `build.make` table: component-scoped settings first, else the project effective
