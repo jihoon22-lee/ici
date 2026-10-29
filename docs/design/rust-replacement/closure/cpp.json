@@ -160,7 +160,7 @@
       },
       "evidence": [],
       "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:34).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "check:cpp.complexity": {
       "status": "verified",
@@ -242,7 +242,7 @@
       },
       "evidence": [],
       "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:47).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "check:cpp.dup": {
       "status": "implemented",
@@ -559,7 +559,7 @@
       },
       "evidence": [],
       "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:352, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "command:ici next verify": {
       "status": "not_started",
@@ -3961,7 +3961,7 @@
       },
       "evidence": [],
       "comparison": "Full C++ behavior audit pending for this exact frozen descriptor row (src/ici/core/pipeline.py:94).",
-      "difference_reason": "Open: descriptor-level parity needs every check, command and finding-site row of this descriptor closed first; see those rows."
+      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "descriptor:python_compat": {
       "status": "not_started",
