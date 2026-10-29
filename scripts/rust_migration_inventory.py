@@ -1052,16 +1052,15 @@ def validate(document: dict[str, Any], *, require_closed: bool = False) -> None:
         )
 
 
-def markdown(document: dict[str, Any], fragments: list[str] | None = None) -> str:
+def markdown(document: dict[str, Any]) -> str:
     counts = document["coverage"]["counts"]
-    closure = closure_counts(document)
     lines = [
         "# Rust 교체 기능·계약 원장",
         "",
         "이 원장은 고정 공개판 소스의 정적 수집 결과다. 항목 수나 추출 성공은 Rust 동등성 인수가 아니다.",
         "구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json과 closure/*.json에서",
-        "개별 관리한다. 아래 상태는 둘을 결합한 값이며, 여러 출처가 같은 행을 다루면 가장 덜 닫힌 상태가",
-        "적용된다. complete는 모든 출처가 complete이고 각자 증거를 갖출 때만 성립한다.",
+        "개별 관리한다. 아래 표는 inventory.json 자체의 상태다. fragment를 결합한 상태는 스크립트 실행",
+        "결과의 `closure` 값이며, 여러 출처가 같은 행을 다루면 가장 덜 닫힌 상태가 적용된다.",
         "현재 status가 not_started인 행은 미구현·미검증이다. 전환 승인은 전체 원장과 source audit를 닫아야 한다.",
         "",
         f"- 고정 oracle: `v0.13.0`, source `{ORACLE}`.",
@@ -1094,22 +1093,6 @@ def markdown(document: dict[str, Any], fragments: list[str] | None = None) -> st
         [
             f"| 원본 파일 audit | {document['coverage']['source_files']} |",
             f"| Python module | {document['coverage']['source_modules']} |",
-            "",
-            "## 결합 closure 상태",
-            "",
-            "closure fragment: "
-            + (", ".join(f"`closure/{name}.json`" for name in fragments or []) or "없음"),
-            "",
-            "| 대상 | 상태 | 개수 |",
-            "|---|---|---:|",
-            *[
-                f"| requirement | {status} | {count} |"
-                for status, count in closure["requirements"].items()
-            ],
-            *[
-                f"| source audit | {status} | {count} |"
-                for status, count in closure["source_files"].items()
-            ],
             "",
             "CLI는 decorator와 app.command(...)(function) 등록을 모두 수집하고 imported option 정의를",
             "원래 파일까지 따라간다. alias는 개별 사용자 진입점으로 보존한다. config는 key allowlist와",
@@ -1351,7 +1334,7 @@ def main() -> int:
     validate(effective, require_closed=args.require_closed)
     outputs = {
         target: json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        args.output_dir / "inventory.md": markdown(effective, sorted(fragments)),
+        args.output_dir / "inventory.md": markdown(document),
     }
     if args.check:
         stale = [
