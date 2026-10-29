@@ -204,7 +204,7 @@ fn modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs() {
         "exception",
         vec![(
             "dtor.cpp",
-            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/dtor.cpp"),
+            include_str!("../../../parity-fixtures/cpp/exception-fixture/src/dtor.cpp"),
         )],
     ));
     assert_eq!(output.observation.state, TaskState::Succeeded);

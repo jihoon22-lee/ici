@@ -17,7 +17,7 @@ fn run(config: &str, command: &str) -> Value {
     fs::create_dir(root.path().join("src")).unwrap();
     fs::write(
         root.path().join("src/main.cpp"),
-        include_str!("../../../tests/rust-parity/cpp/metric-cli-fixture.cpp"),
+        include_str!("../../../parity-fixtures/cpp/metric-cli-fixture.cpp"),
     )
     .unwrap();
     fs::write(
@@ -98,23 +98,23 @@ fn legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_tar
     let files = [
         (
             "a.hpp",
-            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/a.hpp"),
+            include_str!("../../../parity-fixtures/cpp/legacy-scope-fixture/src/a.hpp"),
         ),
         (
             "b.hpp",
-            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/b.hpp"),
+            include_str!("../../../parity-fixtures/cpp/legacy-scope-fixture/src/b.hpp"),
         ),
         (
             "extra.cc",
-            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/extra.cc"),
+            include_str!("../../../parity-fixtures/cpp/legacy-scope-fixture/src/extra.cc"),
         ),
         (
             "main.cpp",
-            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/main.cpp"),
+            include_str!("../../../parity-fixtures/cpp/legacy-scope-fixture/src/main.cpp"),
         ),
         (
             "util.cpp",
-            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/util.cpp"),
+            include_str!("../../../parity-fixtures/cpp/legacy-scope-fixture/src/util.cpp"),
         ),
     ];
     for (command, expected) in oracle["cases"].as_object().unwrap() {
@@ -164,31 +164,31 @@ fn cycle_report(config: &str) -> Value {
     for (name, text) in [
         (
             "core/fmt.hpp",
-            include_str!("../../../tests/rust-parity/cpp/cycle-fixture/src/core/fmt.hpp"),
+            include_str!("../../../parity-fixtures/cpp/cycle-fixture/src/core/fmt.hpp"),
         ),
         (
             "ui/fmt.hpp",
-            include_str!("../../../tests/rust-parity/cpp/cycle-fixture/src/ui/fmt.hpp"),
+            include_str!("../../../parity-fixtures/cpp/cycle-fixture/src/ui/fmt.hpp"),
         ),
         (
             "main.cpp",
-            include_str!("../../../tests/rust-parity/cpp/cycle-fixture/src/main.cpp"),
+            include_str!("../../../parity-fixtures/cpp/cycle-fixture/src/main.cpp"),
         ),
         (
             "self.cpp",
-            include_str!("../../../tests/rust-parity/cpp/cycle-fixture/src/self.cpp"),
+            include_str!("../../../parity-fixtures/cpp/cycle-fixture/src/self.cpp"),
         ),
         (
             "x.hpp",
-            include_str!("../../../tests/rust-parity/cpp/cycle-fixture/src/x.hpp"),
+            include_str!("../../../parity-fixtures/cpp/cycle-fixture/src/x.hpp"),
         ),
         (
             "y.hpp",
-            include_str!("../../../tests/rust-parity/cpp/cycle-fixture/src/y.hpp"),
+            include_str!("../../../parity-fixtures/cpp/cycle-fixture/src/y.hpp"),
         ),
         (
             "z.hpp",
-            include_str!("../../../tests/rust-parity/cpp/cycle-fixture/src/z.hpp"),
+            include_str!("../../../parity-fixtures/cpp/cycle-fixture/src/z.hpp"),
         ),
     ] {
         let path = root.path().join("src").join(name);
@@ -276,23 +276,23 @@ fn legacy_cpp_exception_lines_match_frozen_masked_line_heuristic() {
     for (name, text) in [
         (
             "dtor.cpp",
-            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/dtor.cpp"),
+            include_str!("../../../parity-fixtures/cpp/exception-fixture/src/dtor.cpp"),
         ),
         (
             "catch.cpp",
-            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/catch.cpp"),
+            include_str!("../../../parity-fixtures/cpp/exception-fixture/src/catch.cpp"),
         ),
         (
             "clean.cc",
-            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/clean.cc"),
+            include_str!("../../../parity-fixtures/cpp/exception-fixture/src/clean.cc"),
         ),
         (
             "literals.cpp",
-            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/literals.cpp"),
+            include_str!("../../../parity-fixtures/cpp/exception-fixture/src/literals.cpp"),
         ),
         (
             "crlf.cpp",
-            include_str!("../../../tests/rust-parity/cpp/exception-fixture/src/crlf.cpp"),
+            include_str!("../../../parity-fixtures/cpp/exception-fixture/src/crlf.cpp"),
         ),
     ] {
         fs::write(root.path().join("src").join(name), text).unwrap();
