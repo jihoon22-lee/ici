@@ -1463,15 +1463,28 @@
       "difference_reason": "The message carries the native reason ('Coverage policy could not be evaluated: changed line ranges overlap') instead of frozen's indexed reason; test cases are not run because the whole plan is refused. Accepted by the root (22:35): frozen exit code and verdict class kept."
     },
     "finding_site:src/ici/engines/test_output.py:146:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_unittest.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::unittest_fallback_keeps_frozen_case_targets_identities_and_verdict"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::failing_suite_keeps_frozen_case_coverage_and_function_identities"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/unittest_fallback.rs"
+        ]
       },
-      "comparison": "OPEN: Unittest fallback case targets ('Unittest passed', 'Expected failure was exercised', 'Unittest assertion failure' at tests:1); native python_unittest.rs emits its own messages/locations; not replayed against a frozen golden."
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_test.py --python-without-pytest <uv cpython 3.12.13> (scenario unittest) -> tests/rust-parity/validation/legacy-test-oracle.json",
+        "ICI_TEST_PYTHON_BARE=<pytest-free interpreter> cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-unittest.log"
+      ],
+      "comparison": "With pytest unavailable the visible project unittest runner is used. Every frozen case target ('<test> (<module>.<Class>.<test>)' at tests:1 with 'Unittest passed' / 'Unittest assertion failure' / \"skipped 'x'\" / 'Expected failure was exercised') and its legacy fingerprint equal the golden; the legacy `ici test` keeps frozen's FAIL and exit 1 (optional coverage missing never masks a failing case).",
+      "difference_reason": "Frozen fabricates ESTIMATED coverage (45%/50%) and TEM 0.70 for the unittest run; native adds one not-measured 'Coverage capability' SKIP target, reports no score and no percentage. Accepted by the root (22:35, item 2)."
     },
     "finding_site:src/ici/engines/test_output.py:195:16": {
       "status": "difference_review",

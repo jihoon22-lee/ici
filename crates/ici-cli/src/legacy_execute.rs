@@ -534,7 +534,8 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
     (checks.len() == 2
         && test["state"] == "SUCCEEDED"
         && coverage["state"] == "FAILED"
-        && reason.starts_with("coverage module is unavailable"))
+        && (reason.starts_with("coverage module is unavailable")
+            || reason.starts_with("pytest module is unavailable; fallback unittest")))
     .then(|| reason.to_owned())
 }
 

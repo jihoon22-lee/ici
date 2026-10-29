@@ -817,6 +817,123 @@
           "target_name": "Threshold: Branch coverage"
         }
       ]
+    },
+    "unittest": {
+      "engine": {
+        "evidence": "ESTIMATED",
+        "max_score": 5.0,
+        "required": true,
+        "score": 0.7,
+        "status": "FAIL",
+        "summary": "2/4 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.70 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 50.0,
+        "line_coverage": null,
+        "metrics_summary": "TEM: 0.70/5.0 (Line: 45%, Func: 50%, PassRate: 50%)",
+        "pass_rate": 0.5,
+        "passed_tests": 2,
+        "quality_enabled": false,
+        "skipped_tests": 1,
+        "tem_score": 0.7,
+        "test_suites": [
+          {
+            "failed": 1,
+            "file": "tests",
+            "passed": 2,
+            "skipped": 1,
+            "tests": [
+              {
+                "message": "Unittest passed",
+                "name": "test_add (test_calc.CalcTest.test_add)",
+                "status": "PASS"
+              },
+              {
+                "message": "Unittest assertion failure",
+                "name": "test_bad (test_calc.CalcTest.test_bad)",
+                "status": "FAIL"
+              },
+              {
+                "message": "skipped 'x'",
+                "name": "test_skip (test_calc.CalcTest.test_skip)",
+                "status": "SKIP"
+              },
+              {
+                "message": "Expected failure was exercised",
+                "name": "test_xfail (test_calc.CalcTest.test_xfail)",
+                "status": "PASS"
+              }
+            ],
+            "total": 4
+          }
+        ],
+        "total_tests": 4
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:3a5c51cc7e18a80180b543164d95c98e523aa29425a17c1207d895c32c7f8c07",
+          "message": "Unittest passed",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:704846353b70d65cf3468303789ca5a38ead4dc18182d887d75f3023fe3cc29b",
+          "message": "Expected failure was exercised",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:ca270e9155a3ec84a1a2a05adb6437695fe4c86d7d876c8cdea232a03ff1ccb2",
+          "message": "Unittest assertion failure",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:ec46167b575277f9715e3652680dee2ec628158da9633c3b0baa80baa07584e7",
+          "message": "skipped 'x'",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "Unittest passed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "test_add (test_calc.CalcTest.test_add)"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "Unittest assertion failure",
+          "metrics": {},
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "test_bad (test_calc.CalcTest.test_bad)"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "skipped 'x'",
+          "metrics": {},
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "test_skip (test_calc.CalcTest.test_skip)"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "Expected failure was exercised",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "test_xfail (test_calc.CalcTest.test_xfail)"
+        }
+      ]
     }
   },
   "scenarios": {
@@ -847,6 +964,11 @@
       "extra_config": "changed_lines = [\"src/calc.py:2-4\"]\n",
       "src/calc.py": "def classify(value):\n    if value > 0:\n        return 'positive'\n    return 'other'\n\n\ndef unused(value):\n    total = value + 1\n    return total\n",
       "tests/test_calc.py": "from calc import classify\n\n\ndef test_positive():\n    assert classify(1) == 'positive'\n"
+    },
+    "unittest": {
+      "interpreter": "without-pytest",
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "import unittest\nfrom calc import add\n\n\nclass CalcTest(unittest.TestCase):\n    def test_add(self):\n        self.assertEqual(add(1, 2), 3)\n\n    def test_bad(self):\n        self.assertEqual(add(1, 1), 3)\n\n    @unittest.skip(\"x\")\n    def test_skip(self):\n        pass\n\n    @unittest.expectedFailure\n    def test_xfail(self):\n        self.assertTrue(False)\n"
     }
   },
   "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"

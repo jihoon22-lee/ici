@@ -20,12 +20,13 @@ fn run(oracle: &Value, scenario: &str) -> (i32, Value) {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text.as_str().unwrap()).unwrap();
     }
-    let interpreter = if files.contains_key("interpreter") {
+    let interpreter = match files.get("interpreter").and_then(Value::as_str) {
         // pytest is importable but coverage.py is not (frozen golden used the same interpreter).
-        std::env::var("ICI_TEST_PYTHON_NEW")
-            .expect("set ICI_TEST_PYTHON_NEW to an interpreter with pytest and without coverage")
-    } else {
-        python()
+        Some("without-coverage") => std::env::var("ICI_TEST_PYTHON_NEW")
+            .expect("set ICI_TEST_PYTHON_NEW to an interpreter with pytest and without coverage"),
+        Some(_) => std::env::var("ICI_TEST_PYTHON_BARE")
+            .expect("set ICI_TEST_PYTHON_BARE to an interpreter without pytest or coverage"),
+        None => python(),
     };
     let config = oracle["config"]
         .as_str()
@@ -303,4 +304,34 @@ fn unmeasurable_changed_lines_and_refused_policy_keep_the_frozen_error_and_exit_
             native["summary"]
         );
     }
+}
+
+#[test]
+#[ignore = "explicit pytest-free project interpreter legacy unittest acceptance"]
+fn unittest_fallback_keeps_frozen_case_targets_identities_and_verdict() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["runs"]["unittest"];
+    let (exit, native) = run(&oracle, "unittest");
+    assert_eq!(i64::from(exit), frozen["exit_code"].as_i64().unwrap());
+    assert_eq!(native["status"], frozen["engine"]["status"], "{native:#}");
+    let frozen_targets = frozen["targets"].as_array().unwrap();
+    for (native_target, frozen_target) in native["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(frozen_targets)
+    {
+        assert_eq!(project(native_target, true), project(frozen_target, true));
+    }
+    // One addition: the not-measured coverage capability (frozen invents 45%/50% instead).
+    let extra = &native["targets"][frozen_targets.len()];
+    assert_eq!(
+        (extra["target_name"].as_str(), extra["status"].as_str()),
+        (Some("Coverage capability"), Some("SKIP"))
+    );
+    let native_findings = findings(&native);
+    for finding in frozen["findings"].as_array().unwrap() {
+        assert!(native_findings.contains(finding), "{finding:#}");
+    }
+    assert_eq!(native["score"], Value::Null);
 }
