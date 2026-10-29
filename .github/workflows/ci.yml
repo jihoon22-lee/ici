@@ -234,14 +234,22 @@ jobs:
           rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy
           rustc --version
 
+      # Non-ignored C++ build tests run the real Qt5 (/usr/bin/qmake via qtchooser) and
+      # Qt6 qmake, pkg-config and clang-tidy; cmake and g++ ship with the runner image.
+      - name: Install the C++ toolchain for the native build tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qtbase5-dev qt6-base-dev qmake6 pkg-config clang-tidy clazy
+
       - name: Format
         run: cargo fmt --all -- --check
 
       - name: Clippy (strict)
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      # --no-fail-fast reports every failing test binary in one run.
       - name: Tests
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --locked --no-fail-fast
 
   # The Qt shell sits outside every ici engine's scope by design — the core is
   # what gets verified — so nothing else would notice a broken GUI build.
