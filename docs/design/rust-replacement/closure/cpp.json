@@ -1197,7 +1197,7 @@
       "difference_reason": ""
     },
     "config_key:legacy:build.make.coverage_test_argv": {
-      "status": "difference_review",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
@@ -1218,7 +1218,7 @@
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
       ],
       "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
+      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
     },
     "config_key:legacy:build.make.enabled": {
       "status": "complete",
@@ -1339,7 +1339,7 @@
       "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_test_argv": {
-      "status": "difference_review",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
@@ -1360,7 +1360,7 @@
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
       ],
       "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
+      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
     },
     "config_key:legacy:build.make.shadow_dir": {
       "status": "complete",
@@ -1397,7 +1397,7 @@
       "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/owners/make/<sha>.json for this root/build/shadow (outside the build-id namespace, so a clean recipe that recreates the shadow keeps working). The frozen pyz leaves no ownership marker in build/ici-make (verified against oracle 6fe3e40 core/make.py: only mkdir(exist_ok=True)), so a nonempty pyz-era shadow cannot be proven ici-created and is refused at planning time, before any Make command or filesystem change, with the located message 'build.make.shadow_dir \"build/ici-make\" already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir to an empty or new path', which appears in the plan limitations and the build output; the bytes stay unchanged. Symlinked shadows and foreign markers are refused the same way; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private."
     },
     "config_key:legacy:build.make.test_argv": {
-      "status": "difference_review",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
@@ -1418,7 +1418,7 @@
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
       ],
       "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
+      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
     },
     "config_key:legacy:build.make.thread_sanitize_build_argv": {
       "status": "verified",
@@ -1449,7 +1449,7 @@
       "difference_reason": ""
     },
     "config_key:legacy:build.make.thread_sanitize_test_argv": {
-      "status": "difference_review",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
@@ -1470,7 +1470,7 @@
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
       ],
       "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
+      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
     },
     "config_key:legacy:build.make.workdir": {
       "status": "complete",
