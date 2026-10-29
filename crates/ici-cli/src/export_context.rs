@@ -67,11 +67,21 @@ pub fn plan_preparation(
         let descriptor = if let Some(path) = &build.project {
             path.clone()
         } else {
-            select_descriptor(&project.root, &directory, Some(&system), component)?
+            select_descriptor(
+                &project.root,
+                &directory,
+                Some(&system),
+                make_table(project, component),
+            )?
         };
         (system, descriptor)
     } else {
-        let descriptor = select_descriptor(&project.root, &directory, None, component)?;
+        let descriptor = select_descriptor(
+            &project.root,
+            &directory,
+            None,
+            make_table(project, component),
+        )?;
         let system = if Path::new(&descriptor)
             .file_name()
             .is_some_and(|name| name == "CMakeLists.txt")
@@ -86,7 +96,12 @@ pub fn plan_preparation(
     };
     let descriptor_path = project.root.join(&descriptor);
     if descriptor_path.is_dir() {
-        descriptor = select_descriptor(&project.root, &descriptor_path, Some(&system), component)?;
+        descriptor = select_descriptor(
+            &project.root,
+            &descriptor_path,
+            Some(&system),
+            make_table(project, component),
+        )?;
     }
     let descriptor_path = project.root.join(&descriptor);
     if !fs::symlink_metadata(&descriptor_path).is_ok_and(|metadata| metadata.is_file())
@@ -125,7 +140,7 @@ pub fn plan_preparation(
         let tool = resolve(project, environment, name, None, &directory)?;
         tools.insert(name.into(), tool);
     }
-    let make = component.settings.pointer("/build/make");
+    let make = make_table(project, component);
     if system == "make"
         && make
             .and_then(|value| value.get("enabled"))
@@ -147,25 +162,24 @@ pub fn plan_preparation(
         ..Default::default()
     };
     if system == "make" {
-        request.project = make
-            .and_then(|value| value.get("workdir"))
-            .and_then(Value::as_str)
-            .unwrap_or(&component.root)
-            .into();
-        request.configure_argv = strings(make.and_then(|value| value.get("configure_argv")));
-        let field = match request.variant.as_str() {
-            "coverage" => "coverage_build_argv",
-            "sanitize" => "sanitize_build_argv",
-            "thread-sanitize" => "thread_sanitize_build_argv",
-            _ => "build_argv",
-        };
-        request.build_argv = strings(make.and_then(|value| value.get(field)));
-        if request.build_argv.is_empty() && field != "build_argv" {
-            return Err(format!(
-                "build.make.{field} is required for this instrumented variant"
-            ));
-        }
-        for argv in [&mut request.configure_argv, &mut request.build_argv] {
+        // Frozen make_plan: validated contract, cwd = workdir, variant-shared shadow, configured
+        // jobs substituted into whole {jobs} tokens after the native two-job cap.
+        let mut settings = ici_cpp::make_settings(
+            make,
+            &request.variant,
+            Path::new(&descriptor)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("Makefile"),
+            2,
+        )
+        .map_err(|error| format!("Make configuration failed: {}", error.message))?;
+        request.project = settings.workdir.clone();
+        for argv in [
+            &mut settings.configure_argv,
+            &mut settings.clean_argv,
+            &mut settings.build_argv,
+        ] {
             if let Some(first) = argv.first_mut() {
                 let selected = first.clone();
                 let tool = resolve(
@@ -179,11 +193,18 @@ pub fn plan_preparation(
                         .contains('/')
                         .then(|| crate::files::under(&project.root, &selected)),
                     &directory,
-                )?;
+                )
+                .map_err(|error| {
+                    format!("configured executable is unavailable: {selected}: {error}")
+                })?;
                 *first = tool.path.to_string_lossy().into_owned();
                 tools.insert(format!("make-command:{}", tool.id), tool);
             }
         }
+        request.configure_argv = settings.configure_argv.clone();
+        request.build_argv = settings.build_argv.clone();
+        request.jobs = settings.effective_jobs as usize;
+        request.make = Some(settings);
     }
     for (field, names) in [
         (&mut request.compiler_c, ["cc", "gcc", "clang"]),
@@ -211,8 +232,14 @@ pub fn plan_preparation(
         ici_cpp::plan_build(&project.root, &request)
     }
     .map_err(|error| error.to_string())?;
-    let inputs =
+    let mut inputs =
         crate::files::build_inputs(&project.root, &directory).map_err(|error| error.to_string())?;
+    inputs.retain(|path| {
+        !build
+            .generated_roots
+            .iter()
+            .any(|owned| Path::new(path).starts_with(owned))
+    });
     for task in &mut build.tasks {
         let executable = Path::new(&task.argv[0]);
         if let Some(tool) = tools.values().find(|tool| tool.path == executable) {
@@ -234,7 +261,7 @@ pub fn plan_preparation(
             .collect();
         task.analysis_unit_ids = vec![format!("{}.cpp", component.id)];
     }
-    let effects = json!({"owned_roots":build.generated_roots,"reset":{"glob":format!("{}/**/*.gcda",build.shadow),"policy":"single-link regular files without symlink traversal under the held BuildLease"},"native_tasks":build.tasks.iter().map(|task|json!({"id":task.id,"argv":task.argv,"cwd":task.cwd,"work_dirs":task.work_dirs})).collect::<Vec<_>>()});
+    let effects = json!({"owned_roots":build.generated_roots,"reset":{"glob":format!("{}/**/*.gcda",build.shadow),"policy":"single-link regular files without symlink traversal under the held BuildLease"},"native_tasks":build.tasks.iter().map(|task|json!({"id":task.id,"argv":task.argv,"cwd":task.cwd,"work_dirs":task.work_dirs})).collect::<Vec<_>>(),"limitations":build.limitations});
     Ok(ContextPreparationPlan {
         root: project.root.clone(),
         component_id: component.id.clone(),
@@ -573,11 +600,22 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
     overlay
 }
 
+/// The legacy `build.make` table: component-scoped settings first, else the project effective
+/// configuration (component settings copy only language/engine tables).
+pub(crate) fn make_table<'a>(
+    project: &'a ResolvedProject,
+    component: &'a Component,
+) -> Option<&'a Value> {
+    component
+        .settings
+        .pointer("/build/make")
+        .or_else(|| project.effective.pointer("/build/make"))
+}
 fn select_descriptor(
     root: &Path,
     directory: &Path,
     system: Option<&str>,
-    component: &Component,
+    make: Option<&Value>,
 ) -> Result<String, String> {
     let regular = |path: &Path| fs::symlink_metadata(path).is_ok_and(|metadata| metadata.is_file());
     if system.is_none_or(|system| system == "cmake") && regular(&directory.join("CMakeLists.txt")) {
@@ -598,9 +636,8 @@ fn select_descriptor(
         }
     }
     if system.is_none_or(|system| system == "make")
-        && component
-            .settings
-            .pointer("/build/make/enabled")
+        && make
+            .and_then(|make| make.get("enabled"))
             .and_then(Value::as_bool)
             == Some(true)
     {
@@ -641,15 +678,6 @@ fn relative(root: &Path, path: &Path) -> Result<String, String> {
         .to_str()
         .map(str::to_owned)
         .ok_or_else(|| "native path is not UTF-8".into())
-}
-fn strings(value: Option<&Value>) -> Vec<String> {
-    value
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .map(str::to_owned)
-        .collect()
 }
 
 fn build_metadata_path(path: &str, shadow: &str) -> bool {

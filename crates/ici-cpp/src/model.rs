@@ -146,6 +146,9 @@ pub struct BuildRequest {
     pub extra_link_flags: Vec<String>,
     #[serde(default)]
     pub extra_qmake_args: Vec<String>,
+    /// Required for `system = "make"`: the validated frozen `build.make` contract.
+    #[serde(default)]
+    pub make: Option<crate::MakeSettings>,
 }
 impl Default for BuildRequest {
     fn default() -> Self {
@@ -167,6 +170,7 @@ impl Default for BuildRequest {
             extra_cxx_flags: vec![],
             extra_link_flags: vec![],
             extra_qmake_args: vec![],
+            make: None,
         }
     }
 }
@@ -181,6 +185,9 @@ pub struct BuildPlan {
     pub compilation_database: String,
     pub capture_journal: Option<String>,
     pub generated_roots: Vec<String>,
+    /// Visible preparation limitations, such as a capped Make job count.
+    #[serde(default)]
+    pub limitations: Vec<String>,
 }
 
 /// Bounded same-binary qmake configure phase after native Makefile metadata was produced.

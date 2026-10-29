@@ -889,196 +889,456 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:build.make": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:80).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "C++ consumer facet: the legacy [build.make] table is read from component settings or else the project effective configuration (component settings copy only language/engine tables, which previously hid the table and made legacy Make builds silently skip preparation). Root Makefile/makefile/GNUmakefile selection requires the exact enabled=true. Config-schema acceptance of the table itself is the config area's facet.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.build_argv": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen build_argv: required, <=64 tokens x 1024 chars, 32 KiB total, no control/$/backtick, only whole {jobs}, no shells (casefolded basename) and no -c,/c,-command token anywhere after argv[0] (so 'make -C dir' is refused exactly as frozen). Failing recipes fail preparation and legacy ici build does not pass.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.clean_argv": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen order configure -> clean -> build in workdir; a nonzero/timeout/truncated clean stops the chain so build never runs (actual Make: bad-clean exit 2, compile not started, no app). Shell/placeholder validation matches the frozen _argv.",
+      "difference_reason": "Frozen removed only shadow/ici-gcov before clean; Rust gcov output lives in the run-owned .ici/rust-v1/runs directory and never in the Make shadow, so that pre-clean deletion is not applicable and not ported."
     },
     "config_key:legacy:build.make.configure_argv": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen configure_argv runs first in the workdir (actual log shows configure before clean); empty means no step; {jobs}/shell/placeholder/bounds validation matches the frozen golden.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.coverage_build_argv": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen coverage variant: build.make.coverage_build_argv is required (missing -> 'build.make.coverage_build_argv is required for coverage') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Actual Make coverage variant built app-coverage in the shared shadow.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.coverage_test_argv": {
       "status": "difference_review",
-      "rust_paths": [],
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
+      ],
+      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust plan settings now select/validate the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but cpp_validation still binds Make test_argv as a single declared QTest executable; arbitrary 'make check' needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
+      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
     },
     "config_key:legacy:build.make.enabled": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen make_enabled/make_plan: only boolean true enables the backend (1/false/missing/non-table refused with the frozen message); a root Makefile without it is not prepared.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.jobs": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::native_job_cap_substitutes_effective_value_and_is_reported_in_the_plan",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen jobs: integer 1..64 (bool/float/0/65 refused with the frozen message), default 1, substituted only into whole {jobs} tokens of every argv. Actual GNU Make sees -j2 for jobs=4/3 and 1 for the default.",
+      "difference_reason": "Native execution caps the substituted value at 2 parallel jobs (shared host jobs/thread limit). The configured value stays in the plan and a visible limitation 'build.make.jobs=N was capped to 2 ...' is recorded in BuildPlan.limitations and preparation effects; values <=2 are unchanged and report nothing."
     },
     "config_key:legacy:build.make.out_of_tree": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen out_of_tree: allow|required (other values refused); required needs a non-root workdir, including when workdir is absent. Like frozen it has no other effect; actual Make with workdir='native', out_of_tree='required' runs in native/.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_build_argv": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen sanitize variant: build.make.sanitize_build_argv is required (missing -> 'build.make.sanitize_build_argv is required for sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_test_argv": {
       "status": "difference_review",
-      "rust_paths": [],
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
+      ],
+      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust plan settings now select/validate the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but cpp_validation still binds Make test_argv as a single declared QTest executable; arbitrary 'make check' needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
+      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
     },
     "config_key:legacy:build.make.shadow_dir": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen shadow_dir: contained non-root path, default build/ici-make, shared by every variant (no variant suffix). Rust uses it as the owned shadow, generated root (excluded from build inputs) and artifact discovery root; release then coverage reuse the same shadow without ownership mismatch.",
+      "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/build/make-owners/<sha>.json for this root/build/shadow (so a clean recipe that recreates the shadow keeps working). A nonempty unowned shadow (for example a pyz-era build/ici-make), a symlinked shadow or a foreign marker is refused before any Make command and left byte-for-byte; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private."
     },
     "config_key:legacy:build.make.test_argv": {
       "status": "difference_review",
-      "rust_paths": [],
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
+      ],
+      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust plan settings now select/validate the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but cpp_validation still binds Make test_argv as a single declared QTest executable; arbitrary 'make check' needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
+      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
     },
     "config_key:legacy:build.make.thread_sanitize_build_argv": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen thread-sanitize variant: build.make.thread_sanitize_build_argv is required (missing -> 'build.make.thread_sanitize_build_argv is required for thread-sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.thread_sanitize_test_argv": {
       "status": "difference_review",
-      "rust_paths": [],
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
+      ],
+      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust plan settings now select/validate the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but cpp_validation still binds Make test_argv as a single declared QTest executable; arbitrary 'make check' needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
+      "difference_reason": "Open: execution/transcript parity of Make test commands is not implemented; only validation/selection is proven."
     },
     "config_key:legacy:build.make.workdir": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/make.rs",
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-cpp/src/model.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+        ],
+        "negative": [
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "evidence": [],
-      "comparison": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+      ],
+      "comparison": "Frozen workdir: project-relative POSIX (no backslash/drive/absolute/..), default '.', and cwd of configure/clean/build commands; previously Rust ran Make in its shadow. Actual Make records pwd == project root by default and == native/ for workdir='native'.",
+      "difference_reason": "Rust additionally requires the workdir to already exist as a contained directory without symlink traversal at plan time; frozen resolved symlinks and failed only when the process could not start. ici never creates or writes the workdir."
     },
     "config_key:legacy:engines.binary_compat": {
       "status": "not_started",
@@ -5683,7 +5943,7 @@
     "known_open_families": {
       "engines.line.": "Strict thresholds and shared source/gate/extra intake are implemented and covered by actual CLI fixtures; full descriptor/source-file review is still independent of those key-level proofs.",
       "project.cpp_pkg_config": "Legacy lint syntax fallback and observed ordered package flags are implemented; standalone binary build and sanitizer consumers still need implementation and exact acceptance.",
-      "build.make.": "Shell-free explicit Make preparation exists, but jobs/clean/shadow_dir/out_of_tree and variant argv semantics need individual effect/failure comparisons.",
+      "build.make.": "Options jobs/workdir/shadow_dir/out_of_tree/clean/configure/build and variant build argv are closed with frozen golden + actual Make fixtures. Open: test_argv family (make-check transcript provider) and actual sanitize/thread-sanitize Make runs.",
       "engines.test.changed_lines": "C++ bindings now consume this option and the real CMake/CTest/gcov positive CLI proof passed at c3953eb. R6 validation.json owns complete positive/negative/failure acceptance for test-policy rows.",
       "engines.test.min_changed_line_cov": "C++ bindings now consume this option and the real CMake/CTest/gcov positive CLI proof passed at c3953eb. R6 validation.json owns complete positive/negative/failure acceptance for test-policy rows.",
       "engines.test.min_tem_score": "C++ bindings now consume this option and the real CMake/CTest/gcov positive CLI proof passed at c3953eb. R6 validation.json owns complete positive/negative/failure acceptance for test-policy rows.",

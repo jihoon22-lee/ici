@@ -26,10 +26,9 @@ fn owned_object_compile_preserves_build_warning_debug_policy_and_analysis_stays_
     let plan = plan_build(
         root.path(),
         &BuildRequest {
+            // Any pure plan provides the fixed Rust-owned shadow namespace; nothing runs here.
             id: "direct".into(),
-            system: "make".into(),
             project: ".".into(),
-            build_argv: vec!["/usr/bin/g++".into()],
             ..Default::default()
         },
     )
