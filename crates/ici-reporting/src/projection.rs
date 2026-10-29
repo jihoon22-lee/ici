@@ -57,6 +57,21 @@ fn rank(status: &str) -> u8 {
         _ => 1,
     }
 }
+/// Frozen `EngineStatus` class of one saved check. Each frozen engine chose its own status: ERROR
+/// only when it could not reach a verdict (tool error, setup exception), FAIL/WARN for a measured
+/// verdict after its policy mode, SKIP when it did not apply. Native producers save that class in
+/// `AnalysisOutput.status`, so a failed task keeps a producer FAIL or ERROR; a failed task can
+/// never project as PASS, WARN or SKIP (R05/R10), and one without output is ERROR.
+pub(crate) fn legacy_status(state: TaskState, output: Option<&AnalysisOutput>) -> &str {
+    match state {
+        TaskState::Succeeded => output.map_or("SKIP", |output| output.status.as_str()),
+        TaskState::Failed => match output.map(|output| output.status.as_str()) {
+            Some(status @ ("FAIL" | "ERROR")) => status,
+            _ => "ERROR",
+        },
+        _ => "SKIP",
+    }
+}
 pub(crate) fn legacy_finding(finding: &Finding) -> Result<Value> {
     fn location(span: &ici_domain::SourceSpan) -> Value {
         json!({"path":span.path,"start_line":span.start_line,"end_line":span.end_line,"start_column":span.start_column,"end_column":span.end_column,"label":span.label})
@@ -81,7 +96,7 @@ pub fn legacy_projection(
     }
     let mut engines = BTreeMap::<String, Value>::new();
     let mut attributed = BTreeSet::new();
-    let mut errored = BTreeSet::new();
+    let mut errored = BTreeMap::<String, Vec<String>>::new();
     for check in run.checks.as_deref().unwrap_or_default() {
         let name = context
             .engine_names
@@ -101,29 +116,22 @@ pub fn legacy_projection(
             "targets":[], "findings":[], "extra":{"native_checks":[]}, "tool_evidence":[], "raw_output":""
         }));
         let output = outputs.get(&check.task_id);
-        let status = if check.state != TaskState::Succeeded {
-            if check.state == TaskState::Failed {
-                "ERROR"
-            } else {
-                "SKIP"
-            }
-        } else {
-            output.map_or("SKIP", |output| output.status.as_str())
-        };
+        let status = legacy_status(check.state, output);
         if rank(status) > rank(engine["status"].as_str().unwrap_or("SKIP")) {
             engine["status"] = json!(status);
         }
-        // Frozen engines report their tool error as the summary; a passing sibling check's
-        // count must not stand next to an ERROR verdict.
-        if status == "ERROR" && errored.insert(name.to_owned()) {
-            engine["summary"] = json!(format!(
-                "{}: {}",
-                check.check_id,
-                output
-                    .map(|output| output.summary.as_str())
-                    .filter(|summary| !summary.is_empty())
-                    .unwrap_or("analysis did not complete")
-            ));
+        // Frozen engines report their tool errors as the summary (`"; ".join(errors[:3])`); a
+        // passing sibling check's count must not stand next to an ERROR verdict.
+        if status == "ERROR" {
+            let reason = output
+                .map(|output| output.summary.as_str())
+                .filter(|summary| !summary.is_empty())
+                .unwrap_or("analysis did not complete");
+            let reasons = errored.entry(name.to_owned()).or_default();
+            if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
+                reasons.push(reason.to_owned());
+            }
+            engine["summary"] = json!(reasons.join("; "));
         }
         let evidence = output
             .map(|output| {

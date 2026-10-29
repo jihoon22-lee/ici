@@ -95,27 +95,11 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
     assert_eq!(cases.len(), 8);
     for (name, expected) in cases {
         let (command, config) = name.split_once(':').unwrap();
-        let mut actual = run(
+        let actual = run(
             fixtures[config],
             command,
             oracle["configs"][config].as_str().unwrap(),
         );
-        if expected["status"] == "ERROR" {
-            // Open reporting difference: the ERROR projection prefixes the check id
-            // (`cpp.sanitize: ` / `cpp.tsan: `) to the frozen summary.
-            let check = if command == "sanitize" {
-                "cpp.sanitize"
-            } else {
-                "cpp.tsan"
-            };
-            let summary = actual["summary"].as_str().unwrap().to_owned();
-            assert_eq!(
-                summary,
-                format!("{check}: {}", expected["summary"].as_str().unwrap()),
-                "{name}"
-            );
-            actual["summary"] = expected["summary"].clone();
-        }
         assert_eq!(&actual, expected, "{name}");
     }
 }
