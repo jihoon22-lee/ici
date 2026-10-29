@@ -111,10 +111,16 @@ fn rebind(
     )?;
     prepared.cpp.attach_prepared(contexts);
     bind_compiled_artifacts(&mut prepared, contexts, runtime.environment)?;
-    let roots: Vec<_> = contexts
+    let mut roots: Vec<_> = contexts
         .iter()
         .flat_map(|context| context.plan.build.generated_roots.iter().cloned())
         .collect();
+    // Packages ici published during preparation (verified ownership manifest) are
+    // preparation outputs that later checks consume, not user edits made mid-run.
+    // Unverifiable ownership adds nothing, so such files still count as drift.
+    if let Ok(owned) = crate::artifact_build::owned_outputs(&prepared.project.root) {
+        roots.extend(owned);
+    }
     let after = crate::inputs::capture_preserving(&prepared, original, original_limits, &roots)?;
     let mut limits = crate::inputs::binary_limits(&prepared);
     limits.extend(original_limits.clone());
@@ -298,6 +304,9 @@ pub fn execute(
                     prepared = after;
                     snapshot = captured;
                     intake_ok &= stable;
+                    if !stable {
+                        limitations.push("user inputs changed while ici built artifacts; analysis retains the original captured bytes".into());
+                    }
                 }
                 Err(reason) => {
                     intake_ok = false;
