@@ -366,16 +366,26 @@ pub(crate) fn metrics(
     let mut peak = 0;
     let mut functions = 0;
     let mut total_lambdas = 0;
-    let warn = option(
-        request,
-        "warn_limit",
-        if kind == "complexity" { 10 } else { 15 },
-    );
-    let fail = option(
-        request,
-        "fail_limit",
-        if kind == "complexity" { 20 } else { 30 },
-    );
+    // Frozen engines.complexity.warn_cc/fail_cc (15/25) and engines.cognitive.warn/fail (30/60)
+    // are the configured C++ thresholds; warn_limit/fail_limit remain explicit API overrides.
+    let complexity = kind == "complexity";
+    let threshold = |frozen: &str, generic: &str, default: u64| {
+        request
+            .options
+            .get(frozen)
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or_else(|| option(request, generic, default))
+    };
+    let warn = if complexity {
+        threshold("warn_cc", "warn_limit", 15)
+    } else {
+        threshold("warn", "warn_limit", 30)
+    };
+    let fail = if complexity {
+        threshold("fail_cc", "fail_limit", 25)
+    } else {
+        threshold("fail", "fail_limit", 60)
+    };
     let nesting_warn = option(request, "warn_nesting", 4);
     let legacy = request.options["legacy_projection"]
         .as_bool()
@@ -401,18 +411,31 @@ pub(crate) fn metrics(
             total_lambdas += metric.lambdas;
             found = true;
             let name = source::function_name(file, function);
-            let mut target = file.target(function, &name);
             let nesting = if kind == "complexity" {
                 metric.nesting
             } else {
                 metric.control_nesting
             };
-            let over_fail = if legacy { value >= fail } else { value > fail };
-            let over_warn = if legacy {
-                value >= warn || nesting >= nesting_warn
+            // Frozen C++ legacy cutoffs: complexity FAIL cc > fail_cc and WARN cc > warn_cc;
+            // cognitive FAIL >= fail and WARN >= warn; both WARN at nesting >= warn_nesting.
+            let over_fail = if legacy && !complexity {
+                value >= fail
             } else {
-                value > warn || nesting > nesting_warn
+                value > fail
             };
+            let over_warn = if !legacy {
+                value > warn || nesting > nesting_warn
+            } else if complexity {
+                value > warn || nesting >= nesting_warn
+            } else {
+                value >= warn || nesting >= nesting_warn
+            };
+            let label = if legacy && complexity && !name.ends_with("()") {
+                format!("{name}()")
+            } else {
+                name.clone()
+            };
+            let mut target = file.target(function, &label);
             target.status = if over_fail {
                 "FAIL"
             } else if over_warn {
@@ -421,8 +444,19 @@ pub(crate) fn metrics(
                 "PASS"
             }
             .into();
-            target.message =
-                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)");
+            target.message = if !legacy {
+                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)")
+            } else if !complexity {
+                format!("Cognitive {value} (control nesting {nesting}, estimated C++ metric)")
+            } else if over_fail {
+                format!("Critical complexity: {value} > {fail} (Immediate refactoring required)")
+            } else if over_warn {
+                format!(
+                    "High complexity: {value} (limit {warn}), Max Nesting: {nesting} (limit {nesting_warn})"
+                )
+            } else {
+                format!("Complexity: {value}, Nesting: {nesting}")
+            };
             for (key, value) in [
                 (kind, json!(value)),
                 ("complexity", json!(metric.complexity)),

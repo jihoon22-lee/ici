@@ -121,16 +121,31 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "check:cpp.cognitive": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:95).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open.",
+      "difference_reason": ""
     },
     "check:cpp.compile": {
       "status": "not_started",
@@ -145,16 +160,31 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "check:cpp.complexity": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:88).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open.",
+      "difference_reason": ""
     },
     "check:cpp.coverage": {
       "status": "not_started",
@@ -301,28 +331,58 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "command:ici cognitive": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:334, src/ici/__main__.py:459).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet of `ici cognitive --report`: exit code, report status and targets match the frozen CLI for 4 threshold configurations. Report extra/summary fields and Python facet are not claimed.",
+      "difference_reason": ""
     },
     "command:ici complexity": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:370, src/ici/__main__.py:459).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet of `ici complexity --report`: exit code, report status and targets match the frozen CLI for 4 threshold configurations. Report extra/summary fields and Python facet are not claimed.",
+      "difference_reason": ""
     },
     "command:ici cycle": {
       "status": "not_started",
@@ -1629,16 +1689,30 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.cognitive.fail": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet: frozen cognitive FAIL target when cognitive >= fail (default 60); default pass_warn mode keeps engine WARN/exit 0 exactly as frozen. Rust C++ metrics previously read only warn_limit/fail_limit (never configured; defaults 10/20 and 15/30) and used >= for legacy complexity, so `ici complexity` reported WARN/exit 0 where frozen failed with exit 1. Fixed: warn_cc/fail_cc (15/25) and cognitive warn/fail (30/60) with frozen cutoffs. Python facet belongs to the Python area.",
+      "difference_reason": ""
     },
     "config_key:legacy:engines.cognitive.mode": {
       "status": "not_started",
@@ -1665,28 +1739,56 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.cognitive.warn": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet: frozen cognitive WARN when cognitive >= warn (default 30). Rust C++ metrics previously read only warn_limit/fail_limit (never configured; defaults 10/20 and 15/30) and used >= for legacy complexity, so `ici complexity` reported WARN/exit 0 where frozen failed with exit 1. Fixed: warn_cc/fail_cc (15/25) and cognitive warn/fail (30/60) with frozen cutoffs. Python facet belongs to the Python area.",
+      "difference_reason": ""
     },
     "config_key:legacy:engines.cognitive.warn_nesting": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet: frozen cognitive WARN when control nesting >= warn_nesting (default 4). Python facet belongs to the Python area.",
+      "difference_reason": ""
     },
     "config_key:legacy:engines.compile_db": {
       "status": "not_started",
@@ -1843,16 +1945,30 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.complexity.fail_cc": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet: frozen FAIL when cc > fail_cc (default 25) with 'Critical complexity: N > F (Immediate refactoring required)' and exit 1 under pass_warn_fail. Rust C++ metrics previously read only warn_limit/fail_limit (never configured; defaults 10/20 and 15/30) and used >= for legacy complexity, so `ici complexity` reported WARN/exit 0 where frozen failed with exit 1. Fixed: warn_cc/fail_cc (15/25) and cognitive warn/fail (30/60) with frozen cutoffs. Python facet belongs to the Python area.",
+      "difference_reason": ""
     },
     "config_key:legacy:engines.complexity.mode": {
       "status": "not_started",
@@ -1879,28 +1995,56 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.complexity.warn_cc": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet: frozen _make_cpp_target WARN when cc > warn_cc (default 15); equal value stays PASS. Rust C++ metrics previously read only warn_limit/fail_limit (never configured; defaults 10/20 and 15/30) and used >= for legacy complexity, so `ici complexity` reported WARN/exit 0 where frozen failed with exit 1. Fixed: warn_cc/fail_cc (15/25) and cognitive warn/fail (30/60) with frozen cutoffs. Python facet belongs to the Python area.",
+      "difference_reason": ""
     },
     "config_key:legacy:engines.complexity.warn_nesting": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "C++ facet: frozen WARN when control nesting >= warn_nesting (default 4), message 'High complexity: N (limit W), Max Nesting: M (limit K)'. Python facet belongs to the Python area.",
+      "difference_reason": ""
     },
     "config_key:legacy:engines.cycle": {
       "status": "not_started",
@@ -3888,16 +4032,31 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:510:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_cognitive.py:510); enclosing frozen function _target.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "Frozen _target: name, status (>= cutoffs), message 'Cognitive N (control nesting M, estimated C++ metric)' and line span reproduced for heuristic boundaries (CLI oracle).",
+      "difference_reason": ""
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:557:8": {
       "status": "not_started",
@@ -4740,16 +4899,31 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "finding_site:src/ici/engines/complexity.py:556:15": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/inputs.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/complexity.py:556); enclosing frozen function _make_cpp_target.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+      ],
+      "comparison": "Frozen _make_cpp_target: target name 'name()', status/message cutoffs and line span reproduced for heuristic source boundaries (8 CLI oracle cases). Exact clang-tidy boundary targets keep the same status/message; legacy 'name()' labels are matched to compiler boundaries by stripping the display suffix (live Clang regression passed only for the modern label).",
+      "difference_reason": ""
     },
     "finding_site:src/ici/engines/dead.py:111:16": {
       "status": "not_started",
