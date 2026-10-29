@@ -97,7 +97,12 @@ def capture(name, variant, overrides, root):
     try:
         plan = make_plan(root, config, BuildVariant(variant))
     except MakeConfigError as err:
-        return {"name": name, "variant": variant, "make": config["build"]["make"], "error": str(err)}
+        return {
+            "name": name,
+            "variant": variant,
+            "make": config["build"]["make"],
+            "error": str(err),
+        }
     return {
         "name": name,
         "variant": variant,
@@ -117,7 +122,9 @@ with tempfile.TemporaryDirectory() as directory:
     root = Path(directory).resolve()
     (root / "Makefile").write_text("all:\n\t@true\n", encoding="utf-8")
     records = [capture(name, "release", overrides, root) for name, overrides in CASES]
-    records += [capture(name, variant, overrides, root) for name, variant, overrides in VARIANT_CASES]
+    records += [
+        capture(name, variant, overrides, root) for name, variant, overrides in VARIANT_CASES
+    ]
 
 output = ROOT / "tests/rust-parity/cpp/make-plan-oracle.json"
 output.write_text(
