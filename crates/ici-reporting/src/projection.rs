@@ -730,6 +730,30 @@ pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Resu
     Ok(())
 }
 
+/// Frozen `TestCoverageMixin`: an unusable coverage policy is a located ERROR target
+/// ("Coverage:Policy configuration" at `.`) and an ERROR engine. Native refuses the same input
+/// before running; the legacy view keeps the frozen verdict class with the native reason.
+pub fn legacy_policy_refused(engine: &mut Value, reason: &str) -> Result<()> {
+    let message = format!("Coverage policy could not be evaluated: {reason}");
+    let target = json!({"file_path":".","start_line":1,"end_line":null,"start_column":null,
+        "end_column":null,"target_name":"Coverage:Policy configuration","status":"ERROR",
+        "message":message,"snippet":"","metrics":{"gated":true}});
+    let mut alone = engine.clone();
+    alone["targets"] = json!([target.clone()]);
+    let adapted = crate::migration::adapted_findings(&alone)?;
+    engine["targets"]
+        .as_array_mut()
+        .ok_or_else(|| ReportError("legacy engine targets must be an array".into()))?
+        .push(target);
+    engine["findings"]
+        .as_array_mut()
+        .ok_or_else(|| ReportError("legacy engine findings must be an array".into()))?
+        .extend(adapted);
+    engine["status"] = json!("ERROR");
+    engine["summary"] = json!(message);
+    Ok(())
+}
+
 fn normalize_findings(engine: &mut Value) -> Result<()> {
     let mut adapted = crate::migration::adapted_findings(engine)?;
     let candidates = engine["findings"].as_array().cloned().unwrap_or_default();
