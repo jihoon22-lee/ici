@@ -79,3 +79,73 @@ fn src_layout_imports_resolve_through_declared_source_dirs_and_unavailable_is_re
     );
     assert!(!root.path().join("src/pkg/__pycache__").exists());
 }
+
+#[test]
+#[ignore = "explicit project Python runtime-version and compileall acceptance"]
+fn runtime_version_and_compile_failure_keep_frozen_rule_ids_messages_and_locations() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/compat-next-oracle.json"
+    ))
+    .unwrap();
+    let root = tempfile::tempdir().unwrap();
+    for (path, text) in oracle["files"].as_object().unwrap() {
+        fs::write(root.path().join(path), text.as_str().unwrap()).unwrap();
+    }
+    fs::write(
+        root.path().join("ici.toml"),
+        oracle["config"]
+            .as_str()
+            .unwrap()
+            .replace("\"<PYTHON>\"", &serde_json::to_string(&python()).unwrap()),
+    )
+    .unwrap();
+    commands::dispatch(
+        &registry::parse(["ici", "next", "verify", "--python", "--no-cache"]).unwrap(),
+        root.path(),
+        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+    )
+    .unwrap();
+    let result: Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    let native: Vec<_> = result["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|item| {
+            item["rule_id"]
+                .as_str()
+                .is_some_and(|rule| rule.starts_with("python.compat."))
+        })
+        .map(|item| {
+            (
+                item["rule_id"].clone(),
+                item["message"].clone(),
+                item["severity"].clone(),
+                item["category"].clone(),
+                item["primary_location"]["path"].clone(),
+                item["primary_location"]["start_line"].clone(),
+            )
+        })
+        .collect();
+    let frozen: Vec<_> = oracle["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| {
+            (
+                item["rule_id"].clone(),
+                item["message"].clone(),
+                item["severity"].clone(),
+                item["category"].clone(),
+                item["location"]["path"].clone(),
+                item["location"]["start_line"].clone(),
+            )
+        })
+        .collect();
+    let mut native_sorted = native.clone();
+    native_sorted.sort_by_key(|item| item.0.to_string());
+    let mut frozen_sorted = frozen.clone();
+    frozen_sorted.sort_by_key(|item| item.0.to_string());
+    assert_eq!(native_sorted, frozen_sorted);
+}

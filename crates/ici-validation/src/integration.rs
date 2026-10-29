@@ -258,7 +258,7 @@ fn observe_named_case(
     output.observation.measurements.push(metric);
     Ok(())
 }
-fn repr(value: &str) -> String {
+pub(crate) fn repr(value: &str) -> String {
     let quote = if value.contains('\'') && !value.contains('"') {
         '"'
     } else {

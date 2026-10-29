@@ -58,6 +58,100 @@
       "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding.",
       "difference_reason": "Open product decision: frozen next emits one finding per failed aspect with rule ids integration.{exit,stdout,stderr,output} and a process_fingerprint over absolute argv (machine-dependent because the provider has no root); native emits one case-level finding. Baselines from frozen next integration results will not match. Root must choose whether modern runs adopt the frozen per-aspect rule family."
     },
+    "finding_site:src/ici/adapters/providers/pycompat.py:109:20": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs",
+        "crates/ici-cli/src/validation.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/python_compat_cli.rs::runtime_version_and_compile_failure_keep_frozen_rule_ids_messages_and_locations",
+          "crates/ici-cli/tests/python_compat_cli.rs::src_layout_imports_resolve_through_declared_source_dirs_and_unavailable_is_reported_once"
+        ],
+        "negative": [
+          "crates/ici-validation/tests/native_python.rs::runtime_metadata_compilation_and_declared_version_constraints_are_measured_separately"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/runtime.rs::runtime_matrix_keeps_missing_optional_and_required_subset_without_fallback"
+        ]
+      },
+      "evidence": [
+        "python3 -I tests/rust-parity/validation/capture_compat_next.py -> tests/rust-parity/validation/compat-next-oracle.json; /tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log"
+      ],
+      "comparison": "python.compat.runtime-version: rule id, message \"declared interpreter reports Python X, outside requires-python '<spec>'\" (Python repr quoting), high severity, compatibility category and pyproject.toml:1 location equal the frozen next golden; no requires-python leaves a limitation, never a finding.",
+      "difference_reason": "Native identity is not frozen process_fingerprint(provider, absolute interpreter argv), which is machine-dependent; the runtime version comes from the ADR-0008 fixed metadata probe instead of parsing `-VV`."
+    },
+    "finding_site:src/ici/adapters/providers/pycompat.py:222:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/python_compat_cli.rs::runtime_version_and_compile_failure_keep_frozen_rule_ids_messages_and_locations"
+        ],
+        "negative": [
+          "crates/ici-validation/tests/native_python.rs::runtime_metadata_compilation_and_declared_version_constraints_are_measured_separately"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/runtime.rs::compileall_source_lines_and_sorry_diagnostics_remain_when_runtime_metadata_is_unavailable"
+        ]
+      },
+      "evidence": [
+        "/tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log; golden tests/rust-parity/validation/compat-next-oracle.json"
+      ],
+      "comparison": "Native rule renamed from python.compat.runtime-syntax to the frozen python.compat.compile-failure; message '<Kind>: <msg>', source line from compileall, high severity, compatibility category equal the frozen golden (app.py:4 SyntaxError on except* under 3.10). An unattributable compile failure is incomplete, as frozen failed_to_parse.",
+      "difference_reason": "Bytecode is isolated inside the owned run directory; identity is not the frozen absolute-argv process fingerprint."
+    },
+    "finding_site:src/ici/adapters/providers/pytest.py:138:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs",
+        "crates/ici-application/src/verification.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone",
+          "crates/ici-validation/tests/contracts.rs::pytest_preserves_parameter_spaces_last_verdicts_and_source_facts"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_validation_extra.rs::expected_pytest_failure_counts_as_tool_pass_and_carries_a_prior_normal_failure"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete",
+          "crates/ici-validation/tests/native_python.rs::timed_out_suite_cannot_unlock_coverage_or_become_clean_evidence"
+        ]
+      },
+      "evidence": [
+        "python3 -I tests/rust-parity/validation/capture_pytest_next.py (frozen `next verify --python --no-cache`) -> tests/rust-parity/validation/pytest-next-oracle.json",
+        "cargo test -p ici-cli --test pytest_next_parity --test python_compat_cli --locked -- --include-ignored; ici-validation all + native_python --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log"
+      ],
+      "comparison": "Reviewed adapters/providers/pytest.py and analysis/pytest_output.py. Last verdict per node wins, ANSI stripped, parameter ids with spaces preserved; pytest.failed/pytest.error findings keep the frozen raw identity sha256(pytest\\0node\\0VERDICT), message '<node> <verdict>', high severity, and after application attribution the final fingerprint, rule id and message equal the frozen next golden; pytest.cases keeps the numerator/denominator.",
+      "difference_reason": "XPASS is also a pytest.xpass finding and XFAIL counts as a passed tool case, following the frozen legacy TestEngine contract (frozen next counted only PASSED); unfinished, truncated or collection-failed suites stay incomplete instead of measured."
+    },
+    "finding_site:src/ici/adapters/providers/pytest.py:156:12": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/pytest_next_parity.rs::collection_error_identity_matches_frozen_but_the_suite_stays_incomplete"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+        ]
+      },
+      "evidence": [
+        "/tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log; golden tests/rust-parity/validation/pytest-next-oracle.json"
+      ],
+      "comparison": "pytest.collection-error now uses the frozen raw identity sha256(pytest\\0collect:<printed path>\\0error); rule, message 'collection error in <path>', line-1 location and the attributed fingerprint equal the frozen golden.",
+      "difference_reason": "Corrected frozen defect: its regex `(?:collecting\\s+)?` also matched the short-summary line `FAILED tests/test_a.py::test_bad - ...`, adding a spurious collection error for every failing test file (captured in the golden); native requires `ERROR/FAILED collecting <file>.py`. A collection failure leaves python.test incomplete where frozen reported SUCCEEDED."
+    },
     "finding_site:src/ici/engines/integration.py:233:24": {
       "status": "complete",
       "rust_paths": [

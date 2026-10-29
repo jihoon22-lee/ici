@@ -21,6 +21,8 @@ pub struct TestCase {
 pub struct TestEvidence {
     pub cases: BTreeMap<String, TestCase>,
     pub collection_errors: Vec<String>,
+    /// The path exactly as pytest printed it, paired with `collection_errors` (frozen identity).
+    pub collection_sources: Vec<String>,
     pub collection_error: bool,
 }
 
@@ -40,6 +42,7 @@ pub fn parse_pytest(
             let path = planning::relative(&capture[1], &request.root, &request.cwd)?;
             if !result.collection_errors.contains(&path) {
                 result.collection_errors.push(path);
+                result.collection_sources.push(capture[1].to_owned());
             }
             result.collection_error = true;
         }
@@ -259,14 +262,21 @@ fn observe_suite(
             output.observation.findings.push(finding);
         }
     }
-    for path in &evidence.collection_errors {
-        output.observation.findings.push(finding(
+    for (path, source) in evidence
+        .collection_errors
+        .iter()
+        .zip(&evidence.collection_sources)
+    {
+        let mut item = finding(
             plan,
             "pytest.collection-error",
             &format!("collection error in {path}"),
             path,
             1,
-        ));
+        );
+        // Frozen provider identity: sha256("pytest\0collect:<printed path>\0error").
+        item.fingerprint = sha256(format!("pytest\0collect:{source}\0error"));
+        output.observation.findings.push(item);
     }
     let total = evidence.cases.len() as u64;
     let passed = evidence
@@ -520,7 +530,10 @@ fn observe_runtime_metadata(
             output.observation.findings.push(finding(
                 plan,
                 "python.compat.runtime-version",
-                &format!("project Python {version} is outside requires-python {requirement}"),
+                &format!(
+                    "declared interpreter reports Python {version}, outside requires-python {}",
+                    crate::integration::repr(requirement)
+                ),
                 "pyproject.toml",
                 1,
             ));
@@ -666,7 +679,7 @@ fn compile_finding(
 ) {
     output.observation.findings.push(finding(
         plan,
-        "python.compat.runtime-syntax",
+        "python.compat.compile-failure",
         detail,
         path,
         row,
