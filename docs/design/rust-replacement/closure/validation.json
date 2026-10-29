@@ -68,7 +68,8 @@
           "crates/ici-cli/tests/integration_legacy.rs::legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_table",
           "crates/ici-cli/tests/native_validation_extra.rs::integration_case_uses_declared_environment_nonzero_exit_streams_and_fresh_output",
           "crates/ici-cli/tests/integration_binding.rs::integration_accepts_declared_alias_and_named_path_targets_without_core_fallback",
-          "crates/ici-cli/tests/integration_legacy.rs::shadow_artifact_identities_resolve_only_observed_prepared_variant_outputs"
+          "crates/ici-cli/tests/integration_legacy.rs::shadow_artifact_identities_resolve_only_observed_prepared_variant_outputs",
+          "crates/ici-cli/tests/integration_legacy.rs::refused_case_configuration_keeps_the_frozen_located_error_target_and_identity"
         ],
         "negative": [
           "crates/ici-cli/tests/native_validation_extra.rs::optional_empty_integration_is_located_not_applicable_and_required_empty_scope_is_incomplete",
@@ -86,10 +87,12 @@
       "evidence": [
         "python3 -I tests/rust-parity/validation/capture_integration_legacy.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/integration-legacy-oracle.json; frozen `ici verify --report --profile deep` exit 1, integration FAIL with 4 findings",
         "cargo test -p ici-cli --test integration_legacy/integration_binding/published_abi --locked -- --include-ignored; native_validation_extra integration filter --include-ignored; ici-validation cpp_contracts+native_cpp integration filter --include-ignored; all passed; /tmp/ici-rust-replacement-20261028/w-validation-integration.log and w-validation-regression.log",
-        "cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-validation-integration-clippy.log"
+        "cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-validation-integration-clippy.log",
+        "python3 tests/rust-parity/validation/capture_integration_blocked.py (frozen legacy `ici verify --profile deep`: unknown python target, unknown placeholder, build disabled) -> tests/rust-parity/validation/integration-blocked-oracle.json",
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
       ],
       "comparison": "Reviewed frozen engines/integration.py, analysis/_integration.py, application/integration.py, adapters/providers/integration.py and languages/integration.py in full. The frozen legacy oracle golden is replayed through native `ici verify`: exit code, engine status/summary/required/evidence, all targets, the per-case table (assertion map, return codes, truncation flags) and all four finding fingerprints (finding_fingerprint(rule, ici.toml:1, symbol=case name) for ici.hybrid.process-contract and the adapted ici.legacy.integration.target rows), severities, confidences, messages and tool_rule_ids are identical; the projected v3 tool_evidence (per-case name, argv, returncode, stderr preview) now also gives adapted rows the frozen tool_name (including its first-evidence quirk). Deep-profile only, opt-in by declared cases; SKIP/NOT_APPLICABLE located target for empty optional scope and incomplete required-empty scope; whole-token {python:NAME}/{artifact:ID} placeholders; replace-not-merge environment (inherit_env subset + declared env); max_cases 1..32, max_output_bytes 1024..8 MiB, 64 argv tokens of <=1024 chars within 32 KiB, 32 bounded needles, python target name/value and inherit_env name bounds; timeout, truncation, signal, cancellation are incomplete process evidence rather than findings; required case FAIL vs advisory WARN; the case order no longer lets an earlier advisory WARN hide a later required FAIL (native defect fixed in execute.rs).",
-      "difference_reason": "Native never deletes declared outputs before a case (frozen _prepare_outputs unlinks stale files); it preserves user files and requires CLOCK_REALTIME_COARSE freshness against the pre-start inventory, so a stale file is a measured output assertion failure (cpp_contracts/native_validation_extra fixtures). {python:current} means the component's declared project interpreter, never ici's own runtime (frozen used sys.executable). Cases are executed independently and an incomplete case leaves the check incomplete instead of aborting later cases; invalid configuration is refused at plan time as a blocked check instead of a run-time Integration:ConfigurationError target. Shadow build outputs are addressed by BUILD/PATH or the frozen VARIANT:shadow:PATH (and >512-char path-<sha256>) identity of a prepared native variant; a bare shadow-relative path is not guessed. Open: frozen `ici next verify` emits one finding per failed aspect (integration.exit / integration.stdout / integration.stderr / integration.output, process_fingerprint over absolute argv) while native modern runs emit the single case-level ici.hybrid.process-contract finding (finding_site adapters/providers/integration.py:143:12); the shared ici-config argv bound counts UTF-8 bytes (1024 per token, 32768 total) where frozen _integration.py counts code points, so long non-ASCII tokens are refused earlier."
+      "difference_reason": "Native never deletes declared outputs before a case (frozen _prepare_outputs unlinks stale files); it preserves user files and requires CLOCK_REALTIME_COARSE freshness against the pre-start inventory, so a stale file is a measured output assertion failure (cpp_contracts/native_validation_extra fixtures). {python:current} means the component's declared project interpreter, never ici's own runtime (frozen used sys.executable). Cases are executed independently and an incomplete case leaves the check incomplete instead of aborting later cases; invalid configuration is refused at plan time; the legacy view renders it as frozen's ERROR 'Integration:ConfigurationError' target with the frozen fingerprint. Shadow build outputs are addressed by BUILD/PATH or the frozen VARIANT:shadow:PATH (and >512-char path-<sha256>) identity of a prepared native variant; a bare shadow-relative path is not guessed. Per-aspect next findings: native case-level ids in the modern view, legacy ids in the legacy view (root 22:35 item 4). The shared ici-config argv bound counts UTF-8 bytes where frozen counts code points. Remaining verdict differences for the root: (a) frozen deep `ici verify` refuses the whole pipeline (PipelineDefinitionError, exit 1, no report) when integration is enabled and engines.build is disabled, while native runs the integration cases without the build (PASS, exit 0; golden scenario no_build); (b) legacy `ici verify` exits 3 for an incomplete suite where frozen exits 1."
     },
     "finding_site:src/ici/adapters/providers/binarycompat.py:137:11": {
       "status": "not_started",
@@ -152,10 +155,11 @@
         ]
       },
       "evidence": [
-        "Frozen `ici next verify --profile deep` on a modern config with one case (expected_exit=3, stdout must/never) emitted integration.exit and two integration.stdout findings with messages \"integration case 'X': expected exit 3, got 0\" / \"missing 'missing' in stdout\" / \"forbidden 'actual' in stdout\"; observed manually 2026-10-29, temp project removed"
+        "Frozen `ici next verify --profile deep` on a modern config with one case (expected_exit=3, stdout must/never) emitted integration.exit and two integration.stdout findings with messages \"integration case 'X': expected exit 3, got 0\" / \"missing 'missing' in stdout\" / \"forbidden 'actual' in stdout\"; observed manually 2026-10-29, temp project removed",
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
       ],
       "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding.",
-      "difference_reason": "Open product decision: frozen next emits one finding per failed aspect with rule ids integration.{exit,stdout,stderr,output} and a process_fingerprint over absolute argv (machine-dependent because the provider has no root); native emits one case-level finding. Baselines from frozen next integration results will not match. Root must choose whether modern runs adopt the frozen per-aspect rule family."
+      "difference_reason": "Frozen next emits one finding per failed aspect (integration.{exit,stdout,stderr,output}, process_fingerprint over absolute argv, machine-dependent); native modern runs emit one case-level finding with native rule ids, and the legacy view uses ici.legacy.integration.target with the frozen legacy fingerprints. Accepted by the root (22:35, item 4): legacy ids in the legacy view, native ids in the modern view. Baselines saved by frozen `next verify` integration results do not carry over."
     },
     "finding_site:src/ici/adapters/providers/pycompat.py:109:20": {
       "status": "complete",
@@ -1142,20 +1146,24 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/integration_legacy.rs::frozen_transport_bounds_block_before_any_case_runs"
+          "crates/ici-cli/tests/integration_legacy.rs::refused_case_configuration_keeps_the_frozen_located_error_target_and_identity"
         ],
         "negative": [
           "crates/ici-cli/tests/integration_legacy.rs::legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_table"
         ],
         "failure": [
-          "crates/ici-cli/tests/integration_binding.rs::integration_build_placeholders_require_the_components_link_or_declared_need"
+          "crates/ici-cli/tests/integration_binding.rs::integration_build_placeholders_require_the_components_link_or_declared_need",
+          "crates/ici-cli/tests/integration_legacy.rs::schema_refused_placeholder_keeps_the_frozen_configuration_exit_code",
+          "crates/ici-cli/tests/integration_legacy.rs::frozen_transport_bounds_block_before_any_case_runs"
         ]
       },
       "evidence": [
-        "/tmp/ici-rust-replacement-20261028/w-validation-integration.log"
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration.log",
+        "python3 tests/rust-parity/validation/capture_integration_blocked.py (frozen legacy `ici verify --profile deep`: unknown python target, unknown placeholder, build disabled) -> tests/rust-parity/validation/integration-blocked-oracle.json",
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
       ],
-      "comparison": "Every frozen IntegrationConfigError cause (bounds, placeholders, unknown targets/artifacts, unsafe outputs) stops the check before any case runs and keeps the gate incomplete.",
-      "difference_reason": "Native refuses invalid integration configuration at plan time as a blocked check with the reason; it does not synthesize the frozen run-time 'Integration:ConfigurationError' ERROR target in the legacy v3 engine. Root/reporting must decide whether legacy projection should render blocked checks as that located target."
+      "comparison": "Every frozen IntegrationConfigError cause stops the check before any case runs. In the legacy view a check blocked by refused case configuration is the frozen ERROR engine (evidence NOT_RUN) with one 'Integration:ConfigurationError' ERROR target at ici.toml:1 and the frozen legacy fingerprint (ici.legacy.integration.target); a block caused by a missing prerequisite or by no declared case keeps SKIP. A schema-level refusal (untyped argv placeholder) exits 2 without a report, as frozen.",
+      "difference_reason": "The target message and summary carry the native reason (e.g. 'unknown Python target \"missing\"') instead of frozen's wording; the modern view keeps the blocked check with native wording and no invented finding. Accepted by the root (22:35, item 4). Legacy `ici verify` still exits 3 for this incomplete suite where frozen exits 1 (generic legacy-verify Incomplete->3 mapping, asserted by other areas' tests; root decision)."
     },
     "finding_site:src/ici/engines/integration.py:43:11": {
       "status": "complete",

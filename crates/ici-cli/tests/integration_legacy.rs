@@ -427,3 +427,102 @@ fn shadow_identity_selects_one_binary_compat_target_from_the_linked_build_invent
         assert!(!root.path().join(shadow).join("../../runs").exists());
     }
 }
+
+const BLOCKED: &str =
+    include_str!("../../../tests/rust-parity/validation/integration-blocked-oracle.json");
+
+#[test]
+fn refused_case_configuration_keeps_the_frozen_located_error_target_and_identity() {
+    let blocked: Value = serde_json::from_str(BLOCKED).unwrap();
+    let frozen = &blocked["runs"]["unknown_python_target"];
+    let config = frozen["config"]
+        .as_str()
+        .unwrap()
+        .replace("\"<PYTHON>\"", "\"/bin/sh\"");
+    let root = fixture(&config);
+    fs::write(root.path().join("x.py"), "echo x\n").unwrap();
+    let (_, engine) = verify(root.path());
+    let expected = &frozen["integration"];
+    assert_eq!(engine["status"], expected["status"], "{engine:#}");
+    assert_eq!(engine["evidence"], expected["evidence"]);
+    let shape = |target: &Value| {
+        json!([
+            target["file_path"],
+            target["start_line"],
+            target["target_name"],
+            target["status"]
+        ])
+    };
+    assert_eq!(
+        engine["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(shape)
+            .collect::<Vec<_>>(),
+        expected["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(shape)
+            .collect::<Vec<_>>()
+    );
+    let identity = |finding: &Value| json!([finding["rule_id"], finding["fingerprint"]]);
+    assert_eq!(
+        engine["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(identity)
+            .collect::<Vec<_>>(),
+        expected["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(identity)
+            .collect::<Vec<_>>()
+    );
+    // The reason is the native refusal; the summary keeps the frozen prefix.
+    assert!(
+        engine["summary"]
+            .as_str()
+            .unwrap()
+            .starts_with("Integration analysis incomplete: unknown Python target"),
+        "{}",
+        engine["summary"]
+    );
+    // The modern view keeps native rule ids: the check is blocked, no finding is invented.
+    let native = &engine["native_run"];
+    assert!(native.is_null() || native["findings"].as_array().is_none_or(Vec::is_empty));
+}
+
+#[test]
+fn schema_refused_placeholder_keeps_the_frozen_configuration_exit_code() {
+    let blocked: Value = serde_json::from_str(BLOCKED).unwrap();
+    let frozen = &blocked["runs"]["unknown_placeholder"];
+    let root = fixture(
+        &frozen["config"]
+            .as_str()
+            .unwrap()
+            .replace("\"<PYTHON>\"", "\"/bin/sh\""),
+    );
+    let output = commands::dispatch(
+        &registry::parse([
+            "ici",
+            "verify",
+            "--report",
+            "--profile",
+            "deep",
+            "--no-cache",
+        ])
+        .unwrap(),
+        root.path(),
+        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+    );
+    let code = match output {
+        Ok(output) => output.exit_code,
+        Err(_) => 2,
+    };
+    assert_eq!(i64::from(code), frozen["exit_code"].as_i64().unwrap());
+    assert!(!root.path().join("verify_report.json").exists());
+}

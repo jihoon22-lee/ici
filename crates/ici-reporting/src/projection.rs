@@ -283,6 +283,7 @@ pub fn legacy_projection(
             }
         }
         project_extra(engine)?;
+        integration_refusal(engine);
         normalize_findings(engine)?;
     }
     let mut results: Vec<_> = builtin_catalog()
@@ -752,6 +753,39 @@ pub fn legacy_policy_refused(engine: &mut Value, reason: &str) -> Result<()> {
     engine["status"] = json!("ERROR");
     engine["summary"] = json!(message);
     Ok(())
+}
+
+/// Frozen `IntegrationEngine`: invalid case configuration is an ERROR engine with one located
+/// `Integration:ConfigurationError` target at `ici.toml`:1. Native refuses it at plan time as a
+/// blocked check; a block caused by a missing prerequisite or by no declared case keeps the
+/// historical SKIP.
+fn integration_refusal(engine: &mut Value) {
+    if engine["engine_name"] != "integration" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let reason = match checks.as_slice() {
+        [check] if check["check_id"] == "integration" && check["state"] == "BLOCKED" => {
+            match check["summary"].as_str() {
+                Some(summary)
+                    if !summary.starts_with("prerequisite ")
+                        && !summary.starts_with("no integration cases") =>
+                {
+                    summary.to_owned()
+                }
+                _ => return,
+            }
+        }
+        _ => return,
+    };
+    engine["status"] = json!("ERROR");
+    engine["evidence"] = json!("NOT_RUN");
+    engine["summary"] = json!(format!("Integration analysis incomplete: {reason}"));
+    engine["targets"] = json!([{"file_path":"ici.toml","start_line":1,"end_line":null,
+        "start_column":null,"end_column":null,"target_name":"Integration:ConfigurationError",
+        "status":"ERROR","message":reason,"snippet":"","metrics":{}}]);
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {
