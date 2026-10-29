@@ -312,6 +312,14 @@ fn observe_suite(
             "pytest collection failed; suite scope is incomplete".into(),
         ));
     }
+    if total == 0 && matches!(outcome.exit_code, Some(0 | 5)) {
+        // Frozen `_parse_pytest_result`: the located descriptor-level verdict for an empty suite.
+        let mut target = InspectionTarget::at("tests", 1);
+        target.target_name = "[Python] Tests".into();
+        target.status = "FAIL".into();
+        target.message = "No tests collected".into();
+        output.targets.push(target);
+    }
     if total == 0 || !matches!(outcome.exit_code, Some(0 | 1)) {
         return Err(ValidationError(format!(
             "pytest did not report a completed nonempty suite (exit {:?})",

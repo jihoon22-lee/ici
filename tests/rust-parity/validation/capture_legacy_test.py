@@ -36,6 +36,15 @@ SCENARIOS = {
         ),
         "extra_config": 'changed_lines = ["src/calc.py:2-4"]\n',
     },
+    "empty": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/helper.py": "VALUE = 1\n",
+    },
+    "no_coverage": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        "interpreter": "without-coverage",
+    },
 }
 EXTRA = (
     "function_coverage",
@@ -51,15 +60,16 @@ EXTRA = (
 )
 
 
-def capture(oracle: Path, python: Path, files: dict[str, str]) -> dict[str, object]:
+def capture(oracle: Path, python: Path, bare: Path, files: dict[str, str]) -> dict[str, object]:
     with tempfile.TemporaryDirectory(prefix="ici-legacy-test-") as temporary:
         root = Path(temporary)
         for relative, text in files.items():
-            if relative == "extra_config":
+            if relative in ("extra_config", "interpreter"):
                 continue
             (root / relative).parent.mkdir(parents=True, exist_ok=True)
             (root / relative).write_text(text, encoding="utf-8")
-        config = CONFIG.replace("<PYTHON>", str(python)) + files.get("extra_config", "")
+        project = bare if files.get("interpreter") == "without-coverage" else python
+        config = CONFIG.replace("<PYTHON>", str(project)) + files.get("extra_config", "")
         (root / "ici.toml").write_text(config, encoding="utf-8")
         process = subprocess.run(
             [str(python), "-m", "ici", "test", "--report"],
@@ -112,6 +122,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--oracle", type=Path, required=True)
     parser.add_argument("--python", type=Path, required=True)
+    parser.add_argument(
+        "--python-without-coverage",
+        type=Path,
+        required=True,
+        help="a project interpreter with pytest but without coverage.py",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     document = {
@@ -119,7 +135,8 @@ def main() -> None:
         "config": CONFIG,
         "scenarios": SCENARIOS,
         "runs": {
-            name: capture(args.oracle, args.python, files) for name, files in SCENARIOS.items()
+            name: capture(args.oracle, args.python, args.python_without_coverage, files)
+            for name, files in SCENARIOS.items()
         },
     }
     args.out.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")

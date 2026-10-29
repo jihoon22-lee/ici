@@ -13,17 +13,24 @@ fn run(oracle: &Value, scenario: &str) -> (i32, Value) {
     let root = tempfile::tempdir().unwrap();
     let files = oracle["scenarios"][scenario].as_object().unwrap();
     for (path, text) in files {
-        if path == "extra_config" {
+        if path == "extra_config" || path == "interpreter" {
             continue;
         }
         let path = root.path().join(path);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text.as_str().unwrap()).unwrap();
     }
+    let interpreter = if files.contains_key("interpreter") {
+        // pytest is importable but coverage.py is not (frozen golden used the same interpreter).
+        std::env::var("ICI_TEST_PYTHON_NEW")
+            .expect("set ICI_TEST_PYTHON_NEW to an interpreter with pytest and without coverage")
+    } else {
+        python()
+    };
     let config = oracle["config"]
         .as_str()
         .unwrap()
-        .replace("<PYTHON>", &python())
+        .replace("<PYTHON>", &interpreter)
         + files
             .get("extra_config")
             .and_then(Value::as_str)
@@ -165,4 +172,62 @@ fn passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates() {
             .all(|test| test["name"].as_str().unwrap().starts_with("Threshold: "))
     );
     assert_eq!(native["extra"]["test_suites"], Value::Array(suites));
+}
+
+#[test]
+#[ignore = "explicit project pytest legacy test-engine acceptance"]
+fn empty_suite_keeps_the_frozen_located_no_tests_target_but_is_not_a_measured_verdict() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["runs"]["empty"];
+    let (exit, native) = run(&oracle, "empty");
+    let target = &native["targets"][0];
+    assert_eq!(
+        project(target, true),
+        project(&frozen["targets"][0], true),
+        "{native:#}"
+    );
+    assert!(
+        findings(&native)
+            .iter()
+            .any(|finding| finding["fingerprint"] == frozen["findings"][0]["fingerprint"])
+    );
+    // Frozen FAILs with fabricated estimated coverage (45%/50%); nothing was verified, so the
+    // native descriptor is incomplete (ERROR, exit 3) and reports no coverage or TEM.
+    assert_eq!(frozen["engine"]["evidence"], "ESTIMATED");
+    assert_eq!((exit, native["status"].as_str()), (3, Some("ERROR")));
+    assert_eq!(native["score"], Value::Null);
+}
+
+#[test]
+#[ignore = "explicit project pytest legacy test-engine acceptance"]
+fn missing_coverage_module_keeps_frozen_cases_but_never_fabricates_coverage() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["runs"]["no_coverage"];
+    let (exit, native) = run(&oracle, "no_coverage");
+    assert_eq!(
+        project(&native["targets"][0], false),
+        project(&frozen["targets"][0], false)
+    );
+    assert!(
+        findings(&native)
+            .iter()
+            .any(|finding| finding["fingerprint"] == frozen["findings"][0]["fingerprint"])
+    );
+    // Frozen: WARN with hard-coded 85%/95% estimates and TEM 4.75. Native: the coverage
+    // descriptor half is unavailable and says so; no percentage or TEM is invented.
+    assert!(
+        frozen["engine"]["summary"]
+            .as_str()
+            .unwrap()
+            .contains("(est)")
+    );
+    assert_eq!((exit, native["status"].as_str()), (1, Some("ERROR")));
+    assert!(
+        native["summary"]
+            .as_str()
+            .unwrap()
+            .contains("coverage module is unavailable"),
+        "{native:#}"
+    );
+    assert_eq!(native["score"], Value::Null);
 }

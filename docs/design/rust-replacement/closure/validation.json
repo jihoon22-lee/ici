@@ -408,6 +408,29 @@
       ],
       "comparison": "ici.hybrid.process-contract: identical fingerprint (rule, ici.toml line 1, symbol=case name), label, severity high/medium by case.required, confidence exact, category correctness, message listing failed assertion names in frozen order, tool_rule_id process.<first-failure>, tool_name 'ici integration runner', explanation and remediation."
     },
+    "finding_site:src/ici/engines/test.py:352:12": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::empty_suite_keeps_the_frozen_located_no_tests_target_but_is_not_a_measured_verdict"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+        ]
+      },
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_test.py (scenarios failing, passing, empty, no_coverage) -> tests/rust-parity/validation/legacy-test-oracle.json",
+        "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-legacy-test-empty.log"
+      ],
+      "comparison": "Frozen _mark_zero_tests ('[Python|C++|Project] Tests' FAIL 'No tests collected' at tests:1) is reproduced for the Python pytest path by the same located target as test_output.py:83 (pytest exit 5). An empty pytest suite (exit 5, or exit 0 without cases) emits the frozen located '[Python] Tests' FAIL 'No tests collected' target at 'tests':1; the legacy fingerprint equals the golden.",
+      "difference_reason": "Frozen marks the descriptor FAIL and fabricates ESTIMATED coverage (45%/50%) and TEM 0.00; native keeps the check incomplete (ERROR, exit 3) because nothing was verified, and reports no coverage or TEM. The C++ and 'Project' variants (no test files at all) are not separately replayed: native C++ suites come from the declared build's test inventory, so a C++ project without tests is reported by the C++ test check instead (C++ facet open, cpp area)."
+    },
     "finding_site:src/ici/engines/test_coverage.py:384:16": {
       "status": "difference_review",
       "rust_paths": [
@@ -456,6 +479,29 @@
       ],
       "comparison": "pytest node targets keep the node id, PASS/FAIL/SKIP and the frozen messages (Test passed successfully / Test assertion failed / Test was collected but not executed / Expected failure was exercised / Unexpected pass violated the expected-failure contract); legacy fingerprints equal the golden. The modern pytest.failed finding carries legacy_message so the legacy view keeps one issue per case (no extra ici.native.pytest.failed).",
       "difference_reason": "Native locates each case at its test definition line instead of the frozen line-1 placeholder (legacy identity excludes the line, so fingerprints are unchanged)."
+    },
+    "finding_site:src/ici/engines/test_output.py:83:20": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::empty_suite_keeps_the_frozen_located_no_tests_target_but_is_not_a_measured_verdict"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+        ]
+      },
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_test.py (scenarios failing, passing, empty, no_coverage) -> tests/rust-parity/validation/legacy-test-oracle.json",
+        "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-legacy-test-empty.log"
+      ],
+      "comparison": "An empty pytest suite (exit 5, or exit 0 without cases) emits the frozen located '[Python] Tests' FAIL 'No tests collected' target at 'tests':1; the legacy fingerprint equals the golden.",
+      "difference_reason": "Frozen marks the descriptor FAIL and fabricates ESTIMATED coverage (45%/50%) and TEM 0.00; native keeps the check incomplete (ERROR, exit 3) because nothing was verified, and reports no coverage or TEM."
     },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
       "status": "difference_review",
