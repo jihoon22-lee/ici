@@ -103,6 +103,19 @@ fn actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned
         output.stdout,
         output.stderr
     );
+    // A Make backend writes no compilation database; the build still completes like frozen
+    // (exit 0, "Build Completed") instead of failing input capture or reporting no build.
+    assert_eq!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
+    assert!(
+        output
+            .stdout
+            .contains("PASS build: Build Completed: legacy-make-proof ")
+            && !output.stdout.contains("inputs changed while running")
+            && !output.stdout.contains("no build linked"),
+        "{}",
+        output.stdout
+    );
+    assert!(!shadow.join("compile_commands.json").exists());
     // The owned shadow is adopted on the next run and clean runs again before build.
     dispatch(root.path());
     assert_eq!(
@@ -121,7 +134,19 @@ fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_succ
     // Failing recipe: the build is not a pass and nothing is published.
     let root = fixture("build_argv=['make','broken']");
     let output = dispatch(root.path());
-    assert_ne!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
+    // Frozen BuildEngine: FAIL, exit 1, a BuildAdapter target at the Makefile.
+    assert_eq!(output.exit_code, 1, "{} {}", output.stdout, output.stderr);
+    assert!(
+        output
+            .stdout
+            .contains("Make build command did not complete successfully")
+            && output.stdout.contains("Makefile:1")
+            && output
+                .stdout
+                .contains("build: Build did not produce a complete artifact set"),
+        "{}",
+        output.stdout
+    );
     assert!(!root.path().join("build/ici-make/app").exists());
     // A pre-existing unowned shadow is refused before any Make command and kept byte-for-byte.
     let root = fixture("build_argv=['make','all']");
@@ -140,7 +165,7 @@ fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_succ
     assert!(explained, "{:?}", planned.plan.limitations);
     assert!(!root.path().join("build/ici-make/.ici-owner.json").exists());
     let output = dispatch(root.path());
-    assert_ne!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
+    assert_eq!(output.exit_code, 1, "{} {}", output.stdout, output.stderr);
     assert!(
         format!("{}{}", output.stdout, output.stderr).contains("shadow_dir")
             || fs::read_to_string(root.path().join(".ici/rust-v1/result.json"))
@@ -173,4 +198,100 @@ fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_succ
         assert!(error.to_string().contains(message), "{make}: {error}");
         assert!(!root.path().join("build").exists() && !root.path().join(".ici").exists());
     }
+}
+
+#[test]
+#[ignore = "explicit actual GNU Make legacy build misconfiguration acceptance (ICI_TEST_MAKE, ICI_TEST_CXX)"]
+fn actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make() {
+    // Frozen `ici build` exits 1 with "Build did not produce a complete artifact set" for each.
+    for (make, reason) in [
+        (
+            "workdir='native'\nbuild_argv=['make','all']",
+            "build.make.workdir \"native\" must be an existing project directory",
+        ),
+        (
+            "workdir='linked'\nbuild_argv=['make','all']",
+            "build.make.workdir \"linked\" must be an existing project directory",
+        ),
+        (
+            "build_argv=['/nonexistent/make','all']",
+            "configured executable is unavailable: /nonexistent/make",
+        ),
+    ] {
+        let root = fixture(make);
+        fs::create_dir(root.path().join("real")).unwrap();
+        std::os::unix::fs::symlink("real", root.path().join("linked")).unwrap();
+        let invocation = registry::parse(["ici", "build"]).unwrap();
+        let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
+        // Misconfiguration is not "nothing to prepare": no direct-compile fallback is planned.
+        assert!(planned.context_preparations.is_empty(), "{make}");
+        assert!(
+            planned.plan.limitations.iter().any(|limitation| {
+                limitation.contains("declared release build cannot be prepared")
+                    && limitation.contains(reason)
+            }),
+            "{make}: {:?}",
+            planned.plan.limitations
+        );
+        let output = dispatch(root.path());
+        assert_eq!(output.exit_code, 1, "{make}: {}", output.stdout);
+        let text = output
+            .stdout
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert!(
+            text.contains("build: Build did not produce a complete artifact set")
+                && text.contains("Makefile:1")
+                && text.contains(reason)
+                && !text.contains("no build linked"),
+            "{make}: {}",
+            output.stdout
+        );
+        // Nothing ran: no shadow, no Make output, and the sources are unchanged.
+        assert!(!root.path().join("build").exists(), "{make}");
+        assert!(
+            fs::read_dir(root.path().join("real"))
+                .unwrap()
+                .next()
+                .is_none(),
+            "{make}"
+        );
+        assert_eq!(
+            fs::read_to_string(root.path().join("src/main.cpp")).unwrap(),
+            "int main(){return 0;}\n"
+        );
+    }
+}
+
+#[test]
+fn legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling() {
+    // Frozen BuildEngine: a root Makefile without build.make.enabled=true is a BuildError and
+    // generic g++ is not invoked (exit 1); it is neither a direct compile nor a SKIP.
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::write(root.path().join("src/main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(root.path().join("Makefile"), "all:\n\texit 9\n").unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+    )
+    .unwrap();
+    let invocation = registry::parse(["ici", "build"]).unwrap();
+    let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
+    assert!(planned.context_preparations.is_empty());
+    let output = dispatch(root.path());
+    assert_eq!(output.exit_code, 1, "{}", output.stdout);
+    let text = output
+        .stdout
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(
+        text.contains("ERROR build: Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked"),
+        "{}",
+        output.stdout
+    );
+    assert!(!root.path().join("build").exists());
+    assert!(!root.path().join(".ici/rust-v1/build").exists());
 }

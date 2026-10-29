@@ -452,11 +452,11 @@ fn prepare_resolved_omitting(
     let mut context_preparations = vec![];
     if crate::legacy::is_legacy(invocation) && plan.profile != Profile::Fast {
         for component in &project.components {
-            let selected: BTreeSet<_> = plan
+            let selected: BTreeSet<String> = plan
                 .checks
                 .iter()
                 .filter(|check| check.component_id == component.id && check.check.language == "cpp")
-                .map(|check| check.check.id.as_str())
+                .map(|check| check.check.id.clone())
                 .collect();
             let mut variants = BTreeSet::new();
             let primary = crate::cpp::linked_build(&project, component)
@@ -464,7 +464,7 @@ fn prepare_resolved_omitting(
                 .unwrap_or("release");
             if selected.iter().any(|id| {
                 matches!(
-                    *id,
+                    id.as_str(),
                     "cpp.compile"
                         | "cpp.diagnostics"
                         | "cpp.tidy"
@@ -544,7 +544,88 @@ fn prepare_resolved_omitting(
                         }
                         context_preparations.push(preparation);
                     }
-                    Err(reason) => {
+                    Err(crate::export_context::PreparationUnavailable::Misconfigured {
+                        reason,
+                        descriptor,
+                    }) => {
+                        // A declared or explicitly enabled build that cannot be planned blocks
+                        // the variant's dependent checks; it never falls back or passes.
+                        let reason =
+                            format!("declared {variant} build cannot be prepared: {reason}");
+                        plan.limitations
+                            .push(format!("{} {variant}: {reason}", component.id));
+                        for check in plan.checks.iter_mut().filter(|check| {
+                            check.component_id == component.id
+                                && check.check.language == "cpp"
+                                && crate::cpp::preparation_dependent(
+                                    &check.check.id,
+                                    variant,
+                                    !check.tasks().is_empty(),
+                                )
+                        }) {
+                            // Context preparation is planned only for legacy commands.
+                            if variant == "release" && check.check.id == "cpp.artifact" {
+                                // Frozen BuildEngine: FAIL, "Build did not produce a complete
+                                // artifact set", one adapter target at the descriptor.
+                                cpp.fail_preparation(
+                                    &check.task_id,
+                                    crate::cpp::build_failure(
+                                        &check.task_id,
+                                        descriptor.as_deref().unwrap_or("."),
+                                        false,
+                                        &reason,
+                                        &reason,
+                                    ),
+                                );
+                                check.check.needs.clear();
+                                check.work = Work::Internal;
+                            } else {
+                                check.work = Work::Blocked {
+                                    reason: reason.clone(),
+                                };
+                            }
+                        }
+                    }
+                    Err(crate::export_context::PreparationUnavailable::NothingToPrepare(
+                        reason,
+                    )) if variant == "release"
+                        && selected.contains("cpp.artifact")
+                        && crate::export_context::unadapted_descriptor(&crate::files::under(
+                            &project.root,
+                            &component.root,
+                        ))
+                        .is_some() =>
+                    {
+                        // Frozen BuildEngine refuses generic g++ next to an unadapted descriptor.
+                        let label = crate::export_context::unadapted_descriptor(
+                            &crate::files::under(&project.root, &component.root),
+                        )
+                        .unwrap_or_default();
+                        let message = format!(
+                            "{label} at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked"
+                        );
+                        plan.limitations
+                            .push(format!("{} {variant}: {reason}; {message}", component.id));
+                        for check in plan.checks.iter_mut().filter(|check| {
+                            check.component_id == component.id && check.check.id == "cpp.artifact"
+                        }) {
+                            cpp.fail_preparation(
+                                &check.task_id,
+                                crate::cpp::build_failure(
+                                    &check.task_id,
+                                    ".",
+                                    true,
+                                    &message,
+                                    &message,
+                                ),
+                            );
+                            check.check.needs.clear();
+                            check.work = Work::Internal;
+                        }
+                    }
+                    Err(crate::export_context::PreparationUnavailable::NothingToPrepare(
+                        reason,
+                    )) => {
                         let direct = if crate::legacy::is_legacy(invocation)
                             && match variant {
                                 "release" => selected.contains("cpp.artifact"),

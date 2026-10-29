@@ -54,6 +54,8 @@ pub struct CppPlans {
     inactive: BTreeMap<String, String>,
     /// Legacy `ici dead` without recorded compilation: frozen SKIP (ERROR when required) target.
     legacy_unavailable: BTreeMap<String, bool>,
+    /// Legacy build checks whose declared native build could not be planned: frozen FAIL output.
+    preparation_failures: BTreeMap<String, AnalysisOutput>,
     inactive_paths: BTreeMap<String, Vec<String>>,
     abi_inputs: BTreeMap<String, BTreeMap<String, usize>>,
     compiler_configurations: BTreeMap<String, BTreeMap<String, usize>>,
@@ -1259,6 +1261,62 @@ fn failed(mut output: AnalysisOutput, reason: &str) -> AnalysisOutput {
     }
     output
 }
+/// Checks that consume a prepared native build variant and are blocked when it is unavailable.
+pub fn preparation_dependent(check_id: &str, variant: &str, has_tasks: bool) -> bool {
+    match variant {
+        "coverage" => check_id == "cpp.coverage",
+        "sanitize" => check_id == "cpp.sanitize",
+        "thread-sanitize" => check_id == "cpp.tsan",
+        "link-reachability" => check_id == "cpp.dead",
+        _ => {
+            matches!(
+                check_id,
+                "cpp.compile"
+                    | "cpp.diagnostics"
+                    | "cpp.tidy"
+                    | "cpp.artifact"
+                    | "cpp.binary-compat"
+            ) || (has_tasks
+                && !matches!(
+                    check_id,
+                    "cpp.test" | "cpp.coverage" | "cpp.sanitize" | "cpp.tsan"
+                ))
+        }
+    }
+}
+
+/// Frozen BuildEngine result for a native build that did not produce a complete artifact set:
+/// one located adapter target (`BuildAdapter` FAIL, or `BuildError` ERROR for configuration).
+pub fn build_failure(
+    id: &str,
+    descriptor: &str,
+    configuration: bool,
+    message: &str,
+    detail: &str,
+) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    let status = if configuration { "ERROR" } else { "FAIL" };
+    output.observation.state = TaskState::Failed;
+    output.observation.limitations.push(detail.into());
+    output.status = status.into();
+    output.summary = if configuration {
+        message.into()
+    } else {
+        "Build did not produce a complete artifact set".into()
+    };
+    let mut target = InspectionTarget::at(descriptor, 1);
+    target.target_name = if configuration {
+        "BuildError"
+    } else {
+        "BuildAdapter"
+    }
+    .into();
+    target.status = status.into();
+    target.message = message.into();
+    output.targets.push(target);
+    output
+}
+
 pub(crate) fn failed_probe(
     id: &str,
     provider: &str,
@@ -1302,11 +1360,16 @@ fn artifact_identity(project: &ResolvedProject, build: &ici_config::Build) -> Va
 }
 
 impl CppPlans {
+    /// Record a located legacy build failure for a check whose declared build cannot be planned.
+    pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
+        self.preparation_failures.insert(id.into(), output);
+    }
     pub fn handles(&self, id: &str) -> bool {
         self.diagnostics.contains_key(id)
             || self.includes.contains_key(id)
             || self.inactive.contains_key(id)
             || self.legacy_unavailable.contains_key(id)
+            || self.preparation_failures.contains_key(id)
             || self.boundaries.contains_key(id)
             || self.linkers.contains_key(id)
             || self.fallbacks.contains_key(id)
@@ -1319,6 +1382,7 @@ impl CppPlans {
             && !self.linkers.contains_key(id)
             && !self.fallbacks.contains_key(id)
             && !self.legacy_unavailable.contains_key(id)
+            && !self.preparation_failures.contains_key(id)
     }
     pub fn finalize_plan(&self, plan: &mut ici_application::plan::Plan) {
         for planned in &mut plan.checks {
@@ -1381,6 +1445,9 @@ impl CppPlans {
                 );
             }
             return linker_output;
+        }
+        if let Some(output) = self.preparation_failures.get(&request.task_id) {
+            return output.clone();
         }
         if let Some(required) = self.legacy_unavailable.get(&request.task_id) {
             let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");

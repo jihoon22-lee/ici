@@ -47,3 +47,27 @@ impl From<String> for PreparationFailure {
         Self::Incomplete(reason)
     }
 }
+
+/// Why no native preparation plan exists for a component variant.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PreparationUnavailable {
+    /// No declared build and no selectable root descriptor: there is nothing to prepare, so a
+    /// legacy direct-compile fallback (or a visible limitation) applies.
+    NothingToPrepare(String),
+    /// A declared or explicitly enabled build exists but is misconfigured or unavailable. The
+    /// variant's dependent checks are blocked with this located reason instead of falling back.
+    Misconfigured {
+        reason: String,
+        /// Project-relative native descriptor the reason refers to, when one was selected.
+        descriptor: Option<String>,
+    },
+}
+impl std::fmt::Display for PreparationUnavailable {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NothingToPrepare(reason) | Self::Misconfigured { reason, .. } => {
+                formatter.write_str(reason)
+            }
+        }
+    }
+}

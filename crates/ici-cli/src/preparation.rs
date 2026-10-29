@@ -335,26 +335,11 @@ pub fn execute(
             if check.component_id != component || check.check.language != "cpp" {
                 continue;
             }
-            let affected = match variant.as_str() {
-                "coverage" => check.check.id == "cpp.coverage",
-                "sanitize" => check.check.id == "cpp.sanitize",
-                "thread-sanitize" => check.check.id == "cpp.tsan",
-                "link-reachability" => check.check.id == "cpp.dead",
-                _ => {
-                    matches!(
-                        check.check.id.as_str(),
-                        "cpp.compile"
-                            | "cpp.diagnostics"
-                            | "cpp.tidy"
-                            | "cpp.artifact"
-                            | "cpp.binary-compat"
-                    ) || (!check.tasks().is_empty()
-                        && !matches!(
-                            check.check.id.as_str(),
-                            "cpp.test" | "cpp.coverage" | "cpp.sanitize" | "cpp.tsan"
-                        ))
-                }
-            };
+            let affected = crate::cpp::preparation_dependent(
+                &check.check.id,
+                &variant,
+                !check.tasks().is_empty(),
+            );
             if affected {
                 if observed_failures.contains(&check.task_id) {
                     prepared.graph.blocked.remove(&check.task_id);
