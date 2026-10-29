@@ -130,7 +130,8 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
-          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
@@ -142,9 +143,10 @@
       "evidence": [
         "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
-        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
+        "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log"
       ],
-      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open.",
+      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
       "difference_reason": ""
     },
     "check:cpp.compile": {
@@ -169,7 +171,8 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
-          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
@@ -181,9 +184,10 @@
       "evidence": [
         "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
-        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
+        "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log"
       ],
-      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open.",
+      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
       "difference_reason": ""
     },
     "check:cpp.coverage": {
@@ -235,16 +239,26 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "check:cpp.exception": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+        ],
+        "failure": [
+          "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:125).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log"
+      ],
+      "comparison": "Legacy C++ exception projection matches the frozen CLI on the fixture: sources only (.cpp/.cc/.cxx/.c, headers excluded; Rust previously flagged a header destructor throw), DestructorThrow/CatchAllSwallowed targets carry only the start line, per-file order is destructor throws then empty catch-alls, then CppExceptionSafety PASS with the frozen messages and exit 1.",
+      "difference_reason": "Frozen detection is a masked line regex (any `throw` token on a line inside a destructor body, including lambdas, one target per line). Rust uses the C++ syntax tree: lambdas inside destructors are excluded and each throw statement is a target, so a line with two throws yields two targets. Recorded for review; not covered by the oracle fixture."
     },
     "check:cpp.line": {
       "status": "not_started",
@@ -340,7 +354,8 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
-          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
@@ -352,9 +367,10 @@
       "evidence": [
         "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
-        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
+        "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log"
       ],
-      "comparison": "C++ facet of `ici cognitive --report`: exit code, report status and targets match the frozen CLI for 4 threshold configurations. Report extra/summary fields and Python facet are not claimed.",
+      "comparison": "C++ facet of `ici cognitive --report`: exit code, report status and targets match the frozen CLI for 4 threshold configurations. Report extra/summary fields and Python facet are not claimed. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
       "difference_reason": ""
     },
     "command:ici complexity": {
@@ -367,7 +383,8 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
-          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
@@ -379,9 +396,10 @@
       "evidence": [
         "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
-        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
+        "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log"
       ],
-      "comparison": "C++ facet of `ici complexity --report`: exit code, report status and targets match the frozen CLI for 4 threshold configurations. Report extra/summary fields and Python facet are not claimed.",
+      "comparison": "C++ facet of `ici complexity --report`: exit code, report status and targets match the frozen CLI for 4 threshold configurations. Report extra/summary fields and Python facet are not claimed. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
       "difference_reason": ""
     },
     "command:ici cycle": {
@@ -4041,7 +4059,8 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
-          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
@@ -4053,9 +4072,10 @@
       "evidence": [
         "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
-        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
+        "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log"
       ],
-      "comparison": "Frozen _target: name, status (>= cutoffs), message 'Cognitive N (control nesting M, estimated C++ metric)' and line span reproduced for heuristic boundaries (CLI oracle).",
+      "comparison": "Frozen _target: name, status (>= cutoffs), message 'Cognitive N (control nesting M, estimated C++ metric)' and line span reproduced for heuristic boundaries (CLI oracle). Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
       "difference_reason": ""
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:557:8": {
@@ -4908,7 +4928,8 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
-          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values"
+          "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
@@ -4920,9 +4941,10 @@
       "evidence": [
         "Frozen CLI oracle captured by development-only tests/rust-parity/cpp/capture_metric_cli.py (oracle 6fe3e40, frozen .venv `python -m ici complexity|cognitive --report` in fresh temp projects) into tests/rust-parity/cpp/metric-cli-oracle.json: 8 command x threshold cases (defaults, low, equal cutoffs, nesting) with exit code, engine status and every target name/status/message/lines.",
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
-        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log"
+        "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
+        "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log"
       ],
-      "comparison": "Frozen _make_cpp_target: target name 'name()', status/message cutoffs and line span reproduced for heuristic source boundaries (8 CLI oracle cases). Exact clang-tidy boundary targets keep the same status/message; legacy 'name()' labels are matched to compiler boundaries by stripping the display suffix (live Clang regression passed only for the modern label).",
+      "comparison": "Frozen _make_cpp_target: target name 'name()', status/message cutoffs and line span reproduced for heuristic source boundaries (8 CLI oracle cases). Exact clang-tidy boundary targets keep the same status/message; legacy 'name()' labels are matched to compiler boundaries by stripping the display suffix (live Clang regression passed only for the modern label). Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
       "difference_reason": ""
     },
     "finding_site:src/ici/engines/dead.py:111:16": {

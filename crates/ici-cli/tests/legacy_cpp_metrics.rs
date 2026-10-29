@@ -88,3 +88,73 @@ fn inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis() {
         assert!(!root.path().join(format!("{command}_report.json")).exists());
     }
 }
+
+#[test]
+fn legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/legacy-scope-oracle.json"
+    ))
+    .unwrap();
+    let files = [
+        (
+            "a.hpp",
+            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/a.hpp"),
+        ),
+        (
+            "b.hpp",
+            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/b.hpp"),
+        ),
+        (
+            "extra.cc",
+            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/extra.cc"),
+        ),
+        (
+            "main.cpp",
+            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/main.cpp"),
+        ),
+        (
+            "util.cpp",
+            include_str!("../../../tests/rust-parity/cpp/legacy-scope-fixture/src/util.cpp"),
+        ),
+    ];
+    for (command, expected) in oracle["cases"].as_object().unwrap() {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir(root.path().join("src")).unwrap();
+        for (name, text) in files {
+            fs::write(root.path().join("src").join(name), text).unwrap();
+        }
+        fs::write(
+            root.path().join("ici.toml"),
+            "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+        )
+        .unwrap();
+        let invocation = registry::parse(["ici", command.as_str(), "--report"]).unwrap();
+        let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+        let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
+        let report: Value = serde_json::from_slice(
+            &fs::read(root.path().join(format!("{command}_report.json"))).unwrap(),
+        )
+        .unwrap();
+        let targets: Vec<Value> = report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|target| {
+                Value::Object(
+                    FIELDS
+                        .iter()
+                        .map(|key| ((*key).to_owned(), target[*key].clone()))
+                        .collect(),
+                )
+            })
+            .collect();
+        let actual = serde_json::json!({"exit_code":output.exit_code,"status":report["status"],"targets":targets});
+        assert_eq!(&actual, expected, "{command}");
+        // Header functions and the header destructor throw stay outside these frozen scopes.
+        assert!(
+            targets
+                .iter()
+                .all(|target| !target["file_path"].as_str().unwrap().ends_with(".hpp"))
+        );
+    }
+}

@@ -1,0 +1,375 @@
+{
+ "cases": {
+  "cognitive": {
+   "exit_code": 0,
+   "status": "PASS",
+   "targets": [
+    {
+     "end_line": 3,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "~Guard"
+    },
+    {
+     "end_line": 4,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 4,
+     "status": "PASS",
+     "target_name": "cc_helper"
+    },
+    {
+     "end_line": 5,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 5,
+     "status": "PASS",
+     "target_name": "cc_internal"
+    },
+    {
+     "end_line": 6,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 6,
+     "status": "PASS",
+     "target_name": "cc_one"
+    },
+    {
+     "end_line": 7,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 7,
+     "status": "PASS",
+     "target_name": "cc_two"
+    },
+    {
+     "end_line": 8,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 8,
+     "status": "PASS",
+     "target_name": "f"
+    },
+    {
+     "end_line": 9,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 9,
+     "status": "PASS",
+     "target_name": "~Z"
+    },
+    {
+     "end_line": 10,
+     "file_path": "src/extra.cc",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 10,
+     "status": "PASS",
+     "target_name": "g"
+    },
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 23 (control nesting 3, estimated C++ metric)",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "branchy"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 6 (control nesting 3, estimated C++ metric)",
+     "start_line": 23,
+     "status": "PASS",
+     "target_name": "nested"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main"
+    },
+    {
+     "end_line": 3,
+     "file_path": "src/util.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "~Guard"
+    },
+    {
+     "end_line": 4,
+     "file_path": "src/util.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 4,
+     "status": "PASS",
+     "target_name": "unused_helper"
+    },
+    {
+     "end_line": 5,
+     "file_path": "src/util.cpp",
+     "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+     "start_line": 5,
+     "status": "PASS",
+     "target_name": "internal_only"
+    },
+    {
+     "end_line": 6,
+     "file_path": "src/util.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 6,
+     "status": "PASS",
+     "target_name": "dup_one"
+    },
+    {
+     "end_line": 7,
+     "file_path": "src/util.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 7,
+     "status": "PASS",
+     "target_name": "dup_two"
+    }
+   ]
+  },
+  "complexity": {
+   "exit_code": 0,
+   "status": "PASS",
+   "targets": [
+    {
+     "end_line": 3,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "~Guard()"
+    },
+    {
+     "end_line": 4,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 4,
+     "status": "PASS",
+     "target_name": "cc_helper()"
+    },
+    {
+     "end_line": 5,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 5,
+     "status": "PASS",
+     "target_name": "cc_internal()"
+    },
+    {
+     "end_line": 6,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 6,
+     "status": "PASS",
+     "target_name": "cc_one()"
+    },
+    {
+     "end_line": 7,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 7,
+     "status": "PASS",
+     "target_name": "cc_two()"
+    },
+    {
+     "end_line": 8,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 8,
+     "status": "PASS",
+     "target_name": "f()"
+    },
+    {
+     "end_line": 9,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 9,
+     "status": "PASS",
+     "target_name": "~Z()"
+    },
+    {
+     "end_line": 10,
+     "file_path": "src/extra.cc",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 10,
+     "status": "PASS",
+     "target_name": "g()"
+    },
+    {
+     "end_line": 2,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 2,
+     "status": "PASS",
+     "target_name": "simple()"
+    },
+    {
+     "end_line": 16,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 11, Nesting: 3",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "branchy()"
+    },
+    {
+     "end_line": 22,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 19,
+     "status": "PASS",
+     "target_name": "operator()"
+    },
+    {
+     "end_line": 31,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 4, Nesting: 3",
+     "start_line": 23,
+     "status": "PASS",
+     "target_name": "nested()"
+    },
+    {
+     "end_line": 37,
+     "file_path": "src/main.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 33,
+     "status": "PASS",
+     "target_name": "main()"
+    },
+    {
+     "end_line": 3,
+     "file_path": "src/util.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 3,
+     "status": "PASS",
+     "target_name": "~Guard()"
+    },
+    {
+     "end_line": 4,
+     "file_path": "src/util.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 4,
+     "status": "PASS",
+     "target_name": "unused_helper()"
+    },
+    {
+     "end_line": 5,
+     "file_path": "src/util.cpp",
+     "message": "Complexity: 1, Nesting: 0",
+     "start_line": 5,
+     "status": "PASS",
+     "target_name": "internal_only()"
+    },
+    {
+     "end_line": 6,
+     "file_path": "src/util.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 6,
+     "status": "PASS",
+     "target_name": "dup_one()"
+    },
+    {
+     "end_line": 7,
+     "file_path": "src/util.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 7,
+     "status": "PASS",
+     "target_name": "dup_two()"
+    }
+   ]
+  },
+  "exception": {
+   "exit_code": 1,
+   "status": "FAIL",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/extra.cc",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 3,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/extra.cc",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 9,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/extra.cc",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 8,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/extra.cc",
+     "message": "Silent catch(...) block without logging or re-throw",
+     "start_line": 10,
+     "status": "FAIL",
+     "target_name": "CatchAllSwallowed"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/extra.cc",
+     "message": "C++ exception constructs were inspected; see findings above",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/main.cpp",
+     "message": "C++ exception constructs were inspected",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/util.cpp",
+     "message": "C++ destructor throws an exception and may call std::terminate",
+     "start_line": 3,
+     "status": "FAIL",
+     "target_name": "DestructorThrow"
+    },
+    {
+     "end_line": null,
+     "file_path": "src/util.cpp",
+     "message": "C++ exception constructs were inspected; see findings above",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppExceptionSafety"
+    }
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
