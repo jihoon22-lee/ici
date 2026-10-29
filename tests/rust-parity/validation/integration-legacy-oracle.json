@@ -1,0 +1,201 @@
+{
+  "engines": {
+    "build": "FAIL",
+    "integration": "FAIL"
+  },
+  "exit_code": 1,
+  "fixture_config": "[ici]\nprofile = \"deep\"\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[[engines.integration.cases]]\nname = \"contract one\"\nargv = [\"{python:py}\", \"contract.py\"]\nstdout_contains = [\"missing\"]\n[[engines.integration.cases]]\nname = \"advisory two\"\nrequired = false\nargv = [\"{python:py}\", \"advisory.py\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = true\n",
+  "integration": {
+    "evidence": "MEASURED",
+    "extra": {
+      "integration": {
+        "cases": [
+          {
+            "assertions": {
+              "exit_code": true,
+              "output_artifacts": true,
+              "stderr_contains": true,
+              "stderr_not_contains": true,
+              "stdout_contains": false,
+              "stdout_not_contains": true
+            },
+            "name": "contract one",
+            "returncode": 0,
+            "status": "FAIL",
+            "stderr_truncated": false,
+            "stdout_truncated": false
+          },
+          {
+            "assertions": {
+              "exit_code": false,
+              "output_artifacts": true,
+              "stderr_contains": true,
+              "stderr_not_contains": true,
+              "stdout_contains": true,
+              "stdout_not_contains": true
+            },
+            "name": "advisory two",
+            "returncode": 2,
+            "status": "WARN",
+            "stderr_truncated": false,
+            "stdout_truncated": false
+          }
+        ],
+        "state": "MEASURED"
+      }
+    },
+    "findings": [
+      {
+        "category": "correctness",
+        "confidence": "high",
+        "explanation": "Adapted from the legacy integration InspectionTarget contract.",
+        "fingerprint": "sha256:274f4b96bebab415ccdfe90036f6b67a75147560db383dc9b78be9561640b637",
+        "fixes": [],
+        "message": "Failed assertions: stdout_contains",
+        "metrics": {},
+        "primary_location": {
+          "end_column": null,
+          "end_line": null,
+          "label": "Integration:contract one",
+          "path": "ici.toml",
+          "start_column": null,
+          "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.integration.target",
+        "severity": "high",
+        "snippet": "",
+        "suppression": {
+          "kind": "none",
+          "reason": "",
+          "suppressed": false
+        },
+        "tool_name": "integration case: contract one",
+        "tool_rule_id": "Integration:contract one",
+        "tool_version": ""
+      },
+      {
+        "category": "correctness",
+        "confidence": "exact",
+        "explanation": "A declared cross-language process assertion was not satisfied.",
+        "fingerprint": "sha256:60a91ad93a21c518ebe80b76095b75461757b8c7e5ca5f8f9a90fdf747d43223",
+        "fixes": [],
+        "message": "Integration case 'advisory two' failed assertions: exit_code",
+        "metrics": {},
+        "primary_location": {
+          "end_column": null,
+          "end_line": null,
+          "label": "advisory two",
+          "path": "ici.toml",
+          "start_column": null,
+          "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "Correct the producer/consumer contract or its declared expected result.",
+        "rule_id": "ici.hybrid.process-contract",
+        "severity": "medium",
+        "snippet": "",
+        "suppression": {
+          "kind": "none",
+          "reason": "",
+          "suppressed": false
+        },
+        "tool_name": "ici integration runner",
+        "tool_rule_id": "process.exit-code",
+        "tool_version": ""
+      },
+      {
+        "category": "correctness",
+        "confidence": "high",
+        "explanation": "Adapted from the legacy integration InspectionTarget contract.",
+        "fingerprint": "sha256:a76e36be10668568cd183a25a946fd824d75391c2ebdd0d0d9c62a372811e781",
+        "fixes": [],
+        "message": "Failed assertions: exit_code",
+        "metrics": {},
+        "primary_location": {
+          "end_column": null,
+          "end_line": null,
+          "label": "Integration:advisory two",
+          "path": "ici.toml",
+          "start_column": null,
+          "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "",
+        "rule_id": "ici.legacy.integration.target",
+        "severity": "medium",
+        "snippet": "",
+        "suppression": {
+          "kind": "none",
+          "reason": "",
+          "suppressed": false
+        },
+        "tool_name": "integration case: contract one",
+        "tool_rule_id": "Integration:advisory two",
+        "tool_version": ""
+      },
+      {
+        "category": "correctness",
+        "confidence": "exact",
+        "explanation": "A declared cross-language process assertion was not satisfied.",
+        "fingerprint": "sha256:c92bd3978bd1adc84e9d866d94d11fb08304e624250148876d234a4cd3dbd4f0",
+        "fixes": [],
+        "message": "Integration case 'contract one' failed assertions: stdout_contains",
+        "metrics": {},
+        "primary_location": {
+          "end_column": null,
+          "end_line": null,
+          "label": "contract one",
+          "path": "ici.toml",
+          "start_column": null,
+          "start_line": 1
+        },
+        "related_locations": [],
+        "remediation": "Correct the producer/consumer contract or its declared expected result.",
+        "rule_id": "ici.hybrid.process-contract",
+        "severity": "high",
+        "snippet": "",
+        "suppression": {
+          "kind": "none",
+          "reason": "",
+          "suppressed": false
+        },
+        "tool_name": "ici integration runner",
+        "tool_rule_id": "process.stdout-contains",
+        "tool_version": ""
+      }
+    ],
+    "required": true,
+    "status": "FAIL",
+    "summary": "Integration contracts: 2 run, 2 violation(s)",
+    "targets": [
+      {
+        "end_column": null,
+        "end_line": null,
+        "file_path": "ici.toml",
+        "message": "Failed assertions: stdout_contains",
+        "metrics": {},
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "Integration:contract one"
+      },
+      {
+        "end_column": null,
+        "end_line": null,
+        "file_path": "ici.toml",
+        "message": "Failed assertions: exit_code",
+        "metrics": {},
+        "snippet": "",
+        "start_column": null,
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Integration:advisory two"
+      }
+    ]
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "suite_status": "FAIL"
+}

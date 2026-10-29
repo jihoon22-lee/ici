@@ -1203,7 +1203,14 @@ fn execute_validation(
             .observation
             .tool_versions
             .extend(output.observation.tool_versions);
-        if combined.status == "PASS" && output.status != "PASS" {
+        // A later required FAIL must not be hidden by an earlier advisory WARN.
+        let rank = |status: &str| match status {
+            "PASS" => 0,
+            "WARN" => 1,
+            "FAIL" => 2,
+            _ => 3,
+        };
+        if rank(&output.status) > rank(&combined.status) {
             combined.status = output.status.clone();
         }
         if !complete {
@@ -1249,5 +1256,38 @@ fn execute_validation(
         }
         combined.extra[&plan.context.task_id] = output.extra;
     }
+    aggregate_integration_cases(plans, &mut combined);
     combined
+}
+/// Frozen IntegrationEngine reports one case table and one summary for every declared case.
+fn aggregate_integration_cases(
+    plans: &[ici_validation::ValidationPlan],
+    combined: &mut AnalysisOutput,
+) {
+    if plans.is_empty()
+        || !combined.observation.evidence_is_complete()
+        || !plans.iter().all(|plan| {
+            plan.kind == ici_validation::ValidationKind::Integration
+                && plan.context.options.integration_case_name.is_some()
+        })
+    {
+        return;
+    }
+    let cases = plans
+        .iter()
+        .filter_map(|plan| {
+            combined.extra[&plan.context.task_id]
+                .pointer("/integration/cases/0")
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    if cases.len() != plans.len() {
+        return;
+    }
+    let violations = cases.iter().filter(|case| case["status"] != "PASS").count();
+    combined.summary = format!(
+        "Integration contracts: {} run, {violations} violation(s)",
+        cases.len()
+    );
+    combined.extra["integration"] = json!({"state":"MEASURED","cases":cases});
 }

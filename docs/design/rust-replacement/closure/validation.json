@@ -1,0 +1,191 @@
+{
+  "requirements": {
+    "check:integration": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/integration.rs",
+        "crates/ici-cli/src/validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-config/src/schema.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/integration_legacy.rs::legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_table",
+          "crates/ici-cli/tests/native_validation_extra.rs::integration_case_uses_declared_environment_nonzero_exit_streams_and_fresh_output",
+          "crates/ici-cli/tests/integration_binding.rs::integration_accepts_declared_alias_and_named_path_targets_without_core_fallback",
+          "crates/ici-cli/tests/integration_legacy.rs::shadow_artifact_identities_resolve_only_observed_prepared_variant_outputs"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_validation_extra.rs::optional_empty_integration_is_located_not_applicable_and_required_empty_scope_is_incomplete",
+          "crates/ici-cli/tests/integration_binding.rs::integration_build_placeholders_require_the_components_link_or_declared_need",
+          "crates/ici-cli/tests/native_validation_extra.rs::canonical_declared_integration_artifacts_require_exact_typed_membership_and_containment",
+          "crates/ici-cli/tests/integration_legacy.rs::frozen_transport_bounds_block_before_any_case_runs"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/cpp_contracts.rs::integration_checks_declared_streams_exit_and_fresh_output_without_touching_user_files",
+          "crates/ici-validation/tests/native_cpp.rs::real_integration_process_checks_exit_streams_and_output_freshness",
+          "crates/ici-cli/tests/native_validation_extra.rs::optional_integration_failure_keeps_one_rich_case_finding_and_existing_output",
+          "crates/ici-cli/tests/integration_legacy.rs::advisory_case_before_required_failure_never_downgrades_the_engine_status"
+        ]
+      },
+      "evidence": [
+        "python3 -I tests/rust-parity/validation/capture_integration_legacy.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/integration-legacy-oracle.json; frozen `ici verify --report --profile deep` exit 1, integration FAIL with 4 findings",
+        "cargo test -p ici-cli --test integration_legacy/integration_binding/published_abi --locked -- --include-ignored; native_validation_extra integration filter --include-ignored; ici-validation cpp_contracts+native_cpp integration filter --include-ignored; all passed; /tmp/ici-rust-replacement-20261028/w-validation-integration.log",
+        "cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-validation-integration-clippy.log"
+      ],
+      "comparison": "Reviewed frozen engines/integration.py, analysis/_integration.py, application/integration.py, adapters/providers/integration.py and languages/integration.py in full. The frozen legacy oracle golden is replayed through native `ici verify`: exit code, engine status/summary/required/evidence, all targets, the per-case table (assertion map, return codes, truncation flags) and all four finding fingerprints (finding_fingerprint(rule, ici.toml:1, symbol=case name) for ici.hybrid.process-contract and the adapted ici.legacy.integration.target rows), severities, confidences, messages and tool_rule_ids are identical. Deep-profile only, opt-in by declared cases; SKIP/NOT_APPLICABLE located target for empty optional scope and incomplete required-empty scope; whole-token {python:NAME}/{artifact:ID} placeholders; replace-not-merge environment (inherit_env subset + declared env); max_cases 1..32, max_output_bytes 1024..8 MiB, 64 argv tokens of <=1024 chars within 32 KiB, 32 bounded needles, python target name/value and inherit_env name bounds; timeout, truncation, signal, cancellation are incomplete process evidence rather than findings; required case FAIL vs advisory WARN; the case order no longer lets an earlier advisory WARN hide a later required FAIL (native defect fixed in execute.rs).",
+      "difference_reason": "Native never deletes declared outputs before a case (frozen _prepare_outputs unlinks stale files); it preserves user files and requires CLOCK_REALTIME_COARSE freshness against the pre-start inventory, so a stale file is a measured output assertion failure (cpp_contracts/native_validation_extra fixtures). {python:current} means the component's declared project interpreter, never ici's own runtime (frozen used sys.executable). Cases are executed independently and an incomplete case leaves the check incomplete instead of aborting later cases; invalid configuration is refused at plan time as a blocked check instead of a run-time Integration:ConfigurationError target. Shadow build outputs are addressed by BUILD/PATH or the frozen VARIANT:shadow:PATH (and >512-char path-<sha256>) identity of a prepared native variant; a bare shadow-relative path is not guessed."
+    },
+    "finding_site:src/ici/adapters/providers/integration.py:143:12": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/integration.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-validation/tests/cpp_contracts.rs::integration_checks_declared_streams_exit_and_fresh_output_without_touching_user_files"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_validation_extra.rs::integration_case_uses_declared_environment_nonzero_exit_streams_and_fresh_output"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/cpp_contracts.rs::integration_preserves_declared_signed_exit_policy_as_measured_assertion_data"
+        ]
+      },
+      "evidence": [
+        "Frozen `ici next verify --profile deep` on a modern config with one case (expected_exit=3, stdout must/never) emitted integration.exit and two integration.stdout findings with messages \"integration case 'X': expected exit 3, got 0\" / \"missing 'missing' in stdout\" / \"forbidden 'actual' in stdout\"; observed manually 2026-10-29, temp project removed"
+      ],
+      "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding.",
+      "difference_reason": "Open product decision: frozen next emits one finding per failed aspect with rule ids integration.{exit,stdout,stderr,output} and a process_fingerprint over absolute argv (machine-dependent because the provider has no root); native emits one case-level finding. Baselines from frozen next integration results will not match. Root must choose whether modern runs adopt the frozen per-aspect rule family."
+    },
+    "finding_site:src/ici/engines/integration.py:233:24": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/validation.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/native_validation_extra.rs::optional_empty_integration_is_located_not_applicable_and_required_empty_scope_is_incomplete"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/integration_legacy.rs::legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_table"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_validation_extra.rs::optional_empty_integration_is_located_not_applicable_and_required_empty_scope_is_incomplete"
+        ]
+      },
+      "evidence": [
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration.log"
+      ],
+      "comparison": "Empty optional scope: SKIP status, summary 'Integration analysis not applicable: no cases configured', located Integration:NotApplicable target at the declaring file line 1, extra.integration {state NOT_APPLICABLE, cases []}, NOT_APPLICABLE evidence; required empty scope stays incomplete (frozen: required engine has no cases -> error)."
+    },
+    "finding_site:src/ici/engines/integration.py:294:20": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/integration.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/integration_legacy.rs::legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_table"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_validation_extra.rs::integration_case_uses_declared_environment_nonzero_exit_streams_and_fresh_output"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/integration_legacy.rs::advisory_case_before_required_failure_never_downgrades_the_engine_status"
+        ]
+      },
+      "evidence": [
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration.log"
+      ],
+      "comparison": "Integration:<case> targets at ici.toml:1 with PASS/WARN/FAIL and frozen messages are byte-identical to the frozen golden; the case table and the aggregated 'Integration contracts: N run, M violation(s)' summary are restored for multi-case runs."
+    },
+    "finding_site:src/ici/engines/integration.py:333:16": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/validation.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/integration_legacy.rs::frozen_transport_bounds_block_before_any_case_runs"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/integration_legacy.rs::legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_table"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/integration_binding.rs::integration_build_placeholders_require_the_components_link_or_declared_need"
+        ]
+      },
+      "evidence": [
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration.log"
+      ],
+      "comparison": "Every frozen IntegrationConfigError cause (bounds, placeholders, unknown targets/artifacts, unsafe outputs) stops the check before any case runs and keeps the gate incomplete.",
+      "difference_reason": "Native refuses invalid integration configuration at plan time as a blocked check with the reason; it does not synthesize the frozen run-time 'Integration:ConfigurationError' ERROR target in the legacy v3 engine. Root/reporting must decide whether legacy projection should render blocked checks as that located target."
+    },
+    "finding_site:src/ici/engines/integration.py:43:11": {
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/integration.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/integration_legacy.rs::legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_table"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/native_validation_extra.rs::integration_case_uses_declared_environment_nonzero_exit_streams_and_fresh_output"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_validation_extra.rs::optional_integration_failure_keeps_one_rich_case_finding_and_existing_output",
+          "crates/ici-validation/tests/cpp_contracts.rs::integration_checks_declared_streams_exit_and_fresh_output_without_touching_user_files"
+        ]
+      },
+      "evidence": [
+        "Frozen legacy golden tests/rust-parity/validation/integration-legacy-oracle.json replayed; /tmp/ici-rust-replacement-20261028/w-validation-integration.log"
+      ],
+      "comparison": "ici.hybrid.process-contract: identical fingerprint (rule, ici.toml line 1, symbol=case name), label, severity high/medium by case.required, confidence exact, category correctness, message listing failed assertion names in frozen order, tool_rule_id process.<first-failure>, tool_name 'ici integration runner', explanation and remediation."
+    }
+  },
+  "source_files": {
+    "src/ici/adapters/providers/integration.py": {
+      "disposition": "unreviewed",
+      "reason": "Reviewed; per-aspect next finding family is an open difference (finding_site 143:12).",
+      "requirements": [
+        "finding_site:src/ici/adapters/providers/integration.py:143:12"
+      ]
+    },
+    "src/ici/analysis/_integration.py": {
+      "disposition": "mapped",
+      "reason": "Whole file reviewed; typed case parsing/bounds map to the shared schema plus native integration_case_bounds (check:integration).",
+      "requirements": [
+        "check:integration"
+      ]
+    },
+    "src/ici/application/integration.py": {
+      "disposition": "mapped",
+      "reason": "Whole file reviewed: per-case expansion, required refinement, declared/named Python targets (no core fallback), BUILD/PATH artifact links and blocked reasons map to check:integration.",
+      "requirements": [
+        "check:integration"
+      ]
+    },
+    "src/ici/engines/integration.py": {
+      "disposition": "mapped",
+      "reason": "Whole file reviewed; every branch maps to check:integration and its finding sites (see differences on 333:16).",
+      "requirements": [
+        "check:integration",
+        "finding_site:src/ici/engines/integration.py:43:11",
+        "finding_site:src/ici/engines/integration.py:233:24",
+        "finding_site:src/ici/engines/integration.py:294:20",
+        "finding_site:src/ici/engines/integration.py:333:16"
+      ]
+    },
+    "src/ici/languages/integration.py": {
+      "disposition": "mapped",
+      "reason": "Deep-only, tool-less, opt-in integration check definition reproduced by the native catalog (check:integration).",
+      "requirements": [
+        "check:integration"
+      ]
+    }
+  }
+}
