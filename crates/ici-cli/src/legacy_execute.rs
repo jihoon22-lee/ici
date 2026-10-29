@@ -178,6 +178,9 @@ pub fn command(
             .find(|result| result["engine_name"] == family)
             .cloned()
             .ok_or_else(|| CliError(format!("{family}: no applicable language/check selected")))?;
+        // Frozen measured verdicts that replace the native one (no test file, refused coverage
+        // policy) carry the frozen exit code; every other legacy view only adds its own class.
+        let mut replaced = false;
         if family == "test"
             && legacy_schema
             && let Some(languages) =
@@ -185,13 +188,13 @@ pub fn command(
         {
             // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
             ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
-            exit_code = 1;
+            replaced = true;
         } else if family == "test"
             && legacy_schema
             && let Some(reason) = refused_policy(&value)
         {
             ici_reporting::legacy_policy_refused(&mut value, &reason).map_err(error)?;
-            exit_code = 1;
+            replaced = true;
         } else if family == "test"
             && legacy_schema
             && !coverage_required
@@ -206,14 +209,16 @@ pub fn command(
             value["summary"] = serde_json::json!(format!(
                 "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
             ));
-            exit_code = code;
-        } else if run.result.gate.selected != GateVerdict::Incomplete {
-            exit_code = exit_code.max(match value["status"].as_str() {
-                Some("FAIL" | "ERROR") => 1,
-                Some("SKIP") => 2,
-                _ => 0,
-            });
+            exit_code = exit_code.max(code);
         }
+        let status = value["status"].as_str().unwrap_or_default();
+        exit_code = if replaced {
+            // Both replacements are FAIL/ERROR (exit 1); a regression already means exit 1.
+            ici_reporting::legacy_exit_code(status).max(i32::from(regressed))
+        } else {
+            // A legacy class never lowers the run's own exit (an incomplete run keeps 3).
+            exit_code.max(ici_reporting::legacy_exit_code(status))
+        };
         value["native_run"] = run.result.to_value().map_err(error)?;
         stored = StoredResult::from_value(value).map_err(error)?;
     }
@@ -554,19 +559,21 @@ fn refused_policy(engine: &serde_json::Value) -> Option<String> {
 /// Frozen optional-coverage verdict: a measured FAIL/ERROR target wins over the coverage WARN,
 /// and a `--fail-on-new` regression keeps exit 1 even when every target passed.
 fn optional_coverage_verdict(targets: &serde_json::Value, regressed: bool) -> (&'static str, i32) {
-    let any = |status: &str| {
-        targets
-            .as_array()
-            .is_some_and(|targets| targets.iter().any(|target| target["status"] == status))
-    };
-    let status = if any("ERROR") {
-        "ERROR"
-    } else if any("FAIL") {
-        "FAIL"
-    } else {
-        "WARN"
-    };
-    (status, i32::from(status != "WARN" || regressed))
+    let statuses = targets
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|target| match target["status"].as_str() {
+            Some("ERROR") => Some("ERROR"),
+            Some("FAIL") => Some("FAIL"),
+            _ => None,
+        });
+    let status = ici_reporting::legacy_worst_status(statuses, "WARN");
+    (
+        status,
+        ici_reporting::legacy_exit_code(status).max(i32::from(regressed)),
+    )
 }
 
 #[cfg(test)]

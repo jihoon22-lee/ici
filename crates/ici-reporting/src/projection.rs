@@ -57,6 +57,32 @@ fn rank(status: &str) -> u8 {
         _ => 1,
     }
 }
+/// Frozen `exit_code_for_status`: FAIL and ERROR exit 1, SKIP exits 2, PASS and WARN exit 0.
+pub fn legacy_exit_code(status: &str) -> i32 {
+    match status {
+        "FAIL" | "ERROR" => 1,
+        "SKIP" => 2,
+        _ => 0,
+    }
+}
+/// The most severe legacy status (ERROR > FAIL > WARN > PASS > SKIP), never below `floor`.
+pub fn legacy_worst_status<'a>(
+    statuses: impl IntoIterator<Item = &'a str>,
+    floor: &'a str,
+) -> &'a str {
+    statuses.into_iter().fold(floor, |worst, status| {
+        if rank(status) > rank(worst) {
+            status
+        } else {
+            worst
+        }
+    })
+}
+/// Frozen `EngineResult.required`. Native policy may be unknown (null): it never counts as a
+/// required engine, so the suite status and its gate reason read the same flag.
+pub(crate) fn engine_required(engine: &Value) -> bool {
+    engine["required"] == true
+}
 /// Frozen `EngineStatus` class of one saved check. Each frozen engine chose its own status: ERROR
 /// only when it could not reach a verdict (tool error, setup exception), FAIL/WARN for a measured
 /// verdict after its policy mode, SKIP when it did not apply. Native producers save that class in
@@ -117,9 +143,10 @@ pub fn legacy_projection(
         }));
         let output = outputs.get(&check.task_id);
         let status = legacy_status(check.state, output);
-        if rank(status) > rank(engine["status"].as_str().unwrap_or("SKIP")) {
-            engine["status"] = json!(status);
-        }
+        engine["status"] = json!(legacy_worst_status(
+            [status],
+            engine["status"].as_str().unwrap_or("SKIP")
+        ));
         // Frozen engines report their tool errors as the summary (`"; ".join(errors[:3])`); a
         // passing sibling check's count must not stand next to an ERROR verdict.
         if status == "ERROR" {
@@ -309,7 +336,7 @@ pub fn legacy_projection(
     let suite_status = if !run.execution.required_complete
         || results.is_empty()
         || results.iter().any(|engine| {
-            engine["required"] == true
+            engine_required(engine)
                 && engine["evidence"] != "NOT_APPLICABLE"
                 && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
                     || engine["evidence"] == "NOT_RUN")
@@ -317,15 +344,13 @@ pub fn legacy_projection(
         "ERROR"
     } else if results
         .iter()
-        .any(|engine| engine["required"] == true && engine["status"] == "FAIL")
+        .any(|engine| engine_required(engine) && engine["status"] == "FAIL")
     {
         "FAIL"
     } else if results.iter().any(|engine| {
         engine["evidence"] != "NOT_APPLICABLE"
             && (engine["status"] == "WARN"
-                || engine["required"]
-                    .as_bool()
-                    .is_none_or(|required| !required)
+                || !engine_required(engine)
                     && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
     }) {
         "WARN"

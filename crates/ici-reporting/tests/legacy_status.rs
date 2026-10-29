@@ -142,3 +142,51 @@ fn several_errors_of_one_engine_join_like_the_frozen_tool_error_summary() {
     assert_eq!(engines["complexity"]["status"], "ERROR");
     assert_eq!(engines["complexity"]["summary"], "parser failed");
 }
+
+#[test]
+fn one_frozen_exit_and_severity_rule_serves_every_legacy_verdict() {
+    use ici_reporting::{legacy_exit_code, legacy_worst_status};
+    // Frozen `exit_code_for_status`.
+    for (status, code) in [
+        ("PASS", 0),
+        ("WARN", 0),
+        ("FAIL", 1),
+        ("ERROR", 1),
+        ("SKIP", 2),
+        ("", 0),
+    ] {
+        assert_eq!(legacy_exit_code(status), code, "{status}");
+    }
+    assert_eq!(
+        legacy_worst_status(["PASS", "FAIL", "WARN"], "SKIP"),
+        "FAIL"
+    );
+    assert_eq!(legacy_worst_status(["FAIL", "ERROR"], "WARN"), "ERROR");
+    assert_eq!(legacy_worst_status([], "WARN"), "WARN");
+    // SKIP never hides a measured verdict and never outranks a pass.
+    assert_eq!(legacy_worst_status(["SKIP"], "PASS"), "PASS");
+}
+
+#[test]
+fn an_unknown_required_policy_never_explains_a_suite_with_a_required_engine() {
+    // Unknown task policy (null) is not a required engine for the suite status and therefore
+    // not for its gate reason either: both read one flag.
+    let mut run = RunResult::from_json(include_str!(
+        "../../../tests/fixtures/ici-next/run-success.json"
+    ))
+    .unwrap();
+    run.schema_version = 2;
+    run.checks = Some(vec![check("lint", "python.lint", TaskState::Succeeded)]);
+    let outputs = BTreeMap::from([output("lint", "ERROR", "tool crashed")]);
+    let document = legacy_projection(&run, &outputs, &ProjectionContext::default()).unwrap();
+    let value = document.to_value();
+    assert_eq!(value["results"][0]["required"], Value::Null);
+    assert_eq!(value["suite_status"], "WARN");
+    let text = ici_reporting::render_console(
+        &ici_reporting::StoredResult::Legacy(document),
+        &ici_reporting::RenderOptions::default(),
+    )
+    .unwrap();
+    assert!(text.contains("Suite: WARN"), "{text}");
+    assert!(!text.contains("required engine 'lint'"), "{text}");
+}
