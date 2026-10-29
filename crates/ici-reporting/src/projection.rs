@@ -57,6 +57,47 @@ fn rank(status: &str) -> u8 {
         _ => 1,
     }
 }
+/// Frozen `exit_code_for_status`: FAIL and ERROR exit 1, SKIP exits 2, PASS and WARN exit 0.
+pub fn legacy_exit_code(status: &str) -> i32 {
+    match status {
+        "FAIL" | "ERROR" => 1,
+        "SKIP" => 2,
+        _ => 0,
+    }
+}
+/// The most severe legacy status (ERROR > FAIL > WARN > PASS > SKIP), never below `floor`.
+pub fn legacy_worst_status<'a>(
+    statuses: impl IntoIterator<Item = &'a str>,
+    floor: &'a str,
+) -> &'a str {
+    statuses.into_iter().fold(floor, |worst, status| {
+        if rank(status) > rank(worst) {
+            status
+        } else {
+            worst
+        }
+    })
+}
+/// Frozen `EngineResult.required`. Native policy may be unknown (null): it never counts as a
+/// required engine, so the suite status and its gate reason read the same flag.
+pub(crate) fn engine_required(engine: &Value) -> bool {
+    engine["required"] == true
+}
+/// Frozen `EngineStatus` class of one saved check. Each frozen engine chose its own status: ERROR
+/// only when it could not reach a verdict (tool error, setup exception), FAIL/WARN for a measured
+/// verdict after its policy mode, SKIP when it did not apply. Native producers save that class in
+/// `AnalysisOutput.status`, so a failed task keeps a producer FAIL or ERROR; a failed task can
+/// never project as PASS, WARN or SKIP (R05/R10), and one without output is ERROR.
+pub(crate) fn legacy_status(state: TaskState, output: Option<&AnalysisOutput>) -> &str {
+    match state {
+        TaskState::Succeeded => output.map_or("SKIP", |output| output.status.as_str()),
+        TaskState::Failed => match output.map(|output| output.status.as_str()) {
+            Some(status @ ("FAIL" | "ERROR")) => status,
+            _ => "ERROR",
+        },
+        _ => "SKIP",
+    }
+}
 pub(crate) fn legacy_finding(finding: &Finding) -> Result<Value> {
     fn location(span: &ici_domain::SourceSpan) -> Value {
         json!({"path":span.path,"start_line":span.start_line,"end_line":span.end_line,"start_column":span.start_column,"end_column":span.end_column,"label":span.label})
@@ -81,7 +122,7 @@ pub fn legacy_projection(
     }
     let mut engines = BTreeMap::<String, Value>::new();
     let mut attributed = BTreeSet::new();
-    let mut errored = BTreeSet::new();
+    let mut errored = BTreeMap::<String, Vec<String>>::new();
     for check in run.checks.as_deref().unwrap_or_default() {
         let name = context
             .engine_names
@@ -101,29 +142,23 @@ pub fn legacy_projection(
             "targets":[], "findings":[], "extra":{"native_checks":[]}, "tool_evidence":[], "raw_output":""
         }));
         let output = outputs.get(&check.task_id);
-        let status = if check.state != TaskState::Succeeded {
-            if check.state == TaskState::Failed {
-                "ERROR"
-            } else {
-                "SKIP"
+        let status = legacy_status(check.state, output);
+        engine["status"] = json!(legacy_worst_status(
+            [status],
+            engine["status"].as_str().unwrap_or("SKIP")
+        ));
+        // Frozen engines report their tool errors as the summary (`"; ".join(errors[:3])`); a
+        // passing sibling check's count must not stand next to an ERROR verdict.
+        if status == "ERROR" {
+            let reason = output
+                .map(|output| output.summary.as_str())
+                .filter(|summary| !summary.is_empty())
+                .unwrap_or("analysis did not complete");
+            let reasons = errored.entry(name.to_owned()).or_default();
+            if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
+                reasons.push(reason.to_owned());
             }
-        } else {
-            output.map_or("SKIP", |output| output.status.as_str())
-        };
-        if rank(status) > rank(engine["status"].as_str().unwrap_or("SKIP")) {
-            engine["status"] = json!(status);
-        }
-        // Frozen engines report their tool error as the summary; a passing sibling check's
-        // count must not stand next to an ERROR verdict.
-        if status == "ERROR" && errored.insert(name.to_owned()) {
-            engine["summary"] = json!(format!(
-                "{}: {}",
-                check.check_id,
-                output
-                    .map(|output| output.summary.as_str())
-                    .filter(|summary| !summary.is_empty())
-                    .unwrap_or("analysis did not complete")
-            ));
+            engine["summary"] = json!(reasons.join("; "));
         }
         let evidence = output
             .map(|output| {
@@ -301,7 +336,7 @@ pub fn legacy_projection(
     let suite_status = if !run.execution.required_complete
         || results.is_empty()
         || results.iter().any(|engine| {
-            engine["required"] == true
+            engine_required(engine)
                 && engine["evidence"] != "NOT_APPLICABLE"
                 && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
                     || engine["evidence"] == "NOT_RUN")
@@ -309,15 +344,13 @@ pub fn legacy_projection(
         "ERROR"
     } else if results
         .iter()
-        .any(|engine| engine["required"] == true && engine["status"] == "FAIL")
+        .any(|engine| engine_required(engine) && engine["status"] == "FAIL")
     {
         "FAIL"
     } else if results.iter().any(|engine| {
         engine["evidence"] != "NOT_APPLICABLE"
             && (engine["status"] == "WARN"
-                || engine["required"]
-                    .as_bool()
-                    .is_none_or(|required| !required)
+                || !engine_required(engine)
                     && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
     }) {
         "WARN"

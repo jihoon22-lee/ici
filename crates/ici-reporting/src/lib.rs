@@ -8,8 +8,8 @@ pub use stored::{LegacyDocument, LegacyKind, StoredResult};
 mod projection;
 mod safe;
 pub use projection::{
-    ProjectionContext, legacy_engine, legacy_no_tests_collected, legacy_policy_refused,
-    legacy_projection,
+    ProjectionContext, legacy_engine, legacy_exit_code, legacy_no_tests_collected,
+    legacy_policy_refused, legacy_projection, legacy_worst_status,
 };
 mod facets;
 mod render;
