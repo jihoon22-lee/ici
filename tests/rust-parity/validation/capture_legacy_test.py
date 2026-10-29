@@ -46,6 +46,17 @@ SCENARIOS = {
         "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
         "extra_config": 'changed_lines = ["src/calc.py:1-2", "src/calc.py:2"]\n',
     },
+    "unittest": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": (
+            "import unittest\nfrom calc import add\n\n\nclass CalcTest(unittest.TestCase):\n"
+            "    def test_add(self):\n        self.assertEqual(add(1, 2), 3)\n\n"
+            "    def test_bad(self):\n        self.assertEqual(add(1, 1), 3)\n\n"
+            '    @unittest.skip("x")\n    def test_skip(self):\n        pass\n\n'
+            "    @unittest.expectedFailure\n    def test_xfail(self):\n        self.assertTrue(False)\n"
+        ),
+        "interpreter": "without-pytest",
+    },
     "empty": {
         "src/calc.py": "def add(a, b):\n    return a + b\n",
         "tests/helper.py": "VALUE = 1\n",
@@ -70,7 +81,9 @@ EXTRA = (
 )
 
 
-def capture(oracle: Path, python: Path, bare: Path, files: dict[str, str]) -> dict[str, object]:
+def capture(
+    oracle: Path, python: Path, bare: Path, no_pytest: Path, files: dict[str, str]
+) -> dict[str, object]:
     with tempfile.TemporaryDirectory(prefix="ici-legacy-test-") as temporary:
         root = Path(temporary)
         for relative, text in files.items():
@@ -78,7 +91,9 @@ def capture(oracle: Path, python: Path, bare: Path, files: dict[str, str]) -> di
                 continue
             (root / relative).parent.mkdir(parents=True, exist_ok=True)
             (root / relative).write_text(text, encoding="utf-8")
-        project = bare if files.get("interpreter") == "without-coverage" else python
+        project = {"without-coverage": bare, "without-pytest": no_pytest}.get(
+            files.get("interpreter", ""), python
+        )
         config = CONFIG.replace("<PYTHON>", str(project)) + files.get("extra_config", "")
         (root / "ici.toml").write_text(config, encoding="utf-8")
         process = subprocess.run(
@@ -138,6 +153,12 @@ def main() -> None:
         required=True,
         help="a project interpreter with pytest but without coverage.py",
     )
+    parser.add_argument(
+        "--python-without-pytest",
+        type=Path,
+        required=True,
+        help="a project interpreter with neither pytest nor coverage.py",
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     document = {
@@ -145,7 +166,13 @@ def main() -> None:
         "config": CONFIG,
         "scenarios": SCENARIOS,
         "runs": {
-            name: capture(args.oracle, args.python, args.python_without_coverage, files)
+            name: capture(
+                args.oracle,
+                args.python,
+                args.python_without_coverage,
+                args.python_without_pytest,
+                files,
+            )
             for name, files in SCENARIOS.items()
         },
     }

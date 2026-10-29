@@ -1,6 +1,6 @@
 //! Frozen legacy `ici test --report` targets, finding identities and summary replayed natively.
 use ici_cli::{commands, registry};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs};
 
 const ORACLE: &str = include_str!("../../../tests/rust-parity/validation/legacy-test-oracle.json");
@@ -20,12 +20,13 @@ fn run(oracle: &Value, scenario: &str) -> (i32, Value) {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(path, text.as_str().unwrap()).unwrap();
     }
-    let interpreter = if files.contains_key("interpreter") {
+    let interpreter = match files.get("interpreter").and_then(Value::as_str) {
         // pytest is importable but coverage.py is not (frozen golden used the same interpreter).
-        std::env::var("ICI_TEST_PYTHON_NEW")
-            .expect("set ICI_TEST_PYTHON_NEW to an interpreter with pytest and without coverage")
-    } else {
-        python()
+        Some("without-coverage") => std::env::var("ICI_TEST_PYTHON_NEW")
+            .expect("set ICI_TEST_PYTHON_NEW to an interpreter with pytest and without coverage"),
+        Some(_) => std::env::var("ICI_TEST_PYTHON_BARE")
+            .expect("set ICI_TEST_PYTHON_BARE to an interpreter without pytest or coverage"),
+        None => python(),
     };
     let config = oracle["config"]
         .as_str()
@@ -301,6 +302,143 @@ fn unmeasurable_changed_lines_and_refused_policy_keep_the_frozen_error_and_exit_
                 .contains("changed"),
             "{scenario}: {}",
             native["summary"]
+        );
+    }
+}
+
+#[test]
+#[ignore = "explicit pytest-free project interpreter legacy unittest acceptance"]
+fn unittest_fallback_keeps_frozen_case_targets_identities_and_verdict() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["runs"]["unittest"];
+    let (exit, native) = run(&oracle, "unittest");
+    assert_eq!(i64::from(exit), frozen["exit_code"].as_i64().unwrap());
+    assert_eq!(native["status"], frozen["engine"]["status"], "{native:#}");
+    let frozen_targets = frozen["targets"].as_array().unwrap();
+    for (native_target, frozen_target) in native["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(frozen_targets)
+    {
+        assert_eq!(project(native_target, true), project(frozen_target, true));
+    }
+    // One addition: the not-measured coverage capability (frozen invents 45%/50% instead).
+    let extra = &native["targets"][frozen_targets.len()];
+    assert_eq!(
+        (extra["target_name"].as_str(), extra["status"].as_str()),
+        (Some("Coverage capability"), Some("SKIP"))
+    );
+    let native_findings = findings(&native);
+    for finding in frozen["findings"].as_array().unwrap() {
+        assert!(native_findings.contains(finding), "{finding:#}");
+    }
+    assert_eq!(native["score"], Value::Null);
+}
+
+const QUALITY: &str =
+    include_str!("../../../tests/rust-parity/validation/legacy-quality-oracle.json");
+
+#[test]
+#[ignore = "explicit project pytest deep test-quality acceptance"]
+fn deep_verify_keeps_frozen_slow_and_flaky_targets_order_and_identities() {
+    let frozen: Value = serde_json::from_str(QUALITY).unwrap();
+    let root = tempfile::tempdir().unwrap();
+    for (path, text) in frozen["files"].as_object().unwrap() {
+        let path = root.path().join(path);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text.as_str().unwrap()).unwrap();
+    }
+    fs::write(
+        root.path().join("ici.toml"),
+        frozen["config"]
+            .as_str()
+            .unwrap()
+            .replace("<PYTHON>", &python()),
+    )
+    .unwrap();
+    let result = commands::dispatch(
+        &registry::parse([
+            "ici",
+            "verify",
+            "--report",
+            "--profile",
+            "deep",
+            "--no-cache",
+        ])
+        .unwrap(),
+        root.path(),
+        &BTreeMap::from([
+            ("PATH".into(), "/usr/bin:/bin".into()),
+            ("PYTEST_DISABLE_PLUGIN_AUTOLOAD".into(), "1".into()),
+        ]),
+    )
+    .unwrap();
+    assert_eq!(
+        i64::from(result.exit_code),
+        frozen["exit_code"].as_i64().unwrap()
+    );
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.path().join("verify_report.json")).unwrap()).unwrap();
+    let engine = report["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|engine| engine["engine_name"] == "test")
+        .unwrap();
+    assert_eq!(engine["status"], frozen["status"]);
+    let quality: Vec<_> = engine["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|target| {
+            target["target_name"]
+                .as_str()
+                .unwrap()
+                .starts_with("[test-quality]")
+        })
+        .map(|target| json!([target["file_path"], target["target_name"], target["status"]]))
+        .collect();
+    let expected: Vec<_> = frozen["quality_targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|target| json!([target["file_path"], target["target_name"], target["status"]]))
+        .collect();
+    assert_eq!(quality, expected);
+    // Legacy identities exclude the line: native locates the test definition (frozen line 1).
+    let mut identities: Vec<_> = engine["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|finding| {
+            finding["rule_id"]
+                .as_str()
+                .unwrap()
+                .starts_with("ici.test.")
+        })
+        .map(|finding| json!([finding["rule_id"], finding["fingerprint"]]))
+        .collect();
+    identities.sort_by_key(|item| item[1].as_str().unwrap().to_owned());
+    let expected: Vec<_> = frozen["quality_findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|finding| json!([finding["rule_id"], finding["fingerprint"]]))
+        .collect();
+    assert_eq!(identities, expected);
+    for key in [
+        "enabled",
+        "flaky_tests",
+        "repeat_runs",
+        "repeat_reruns",
+        "repeat_cases",
+        "slow_tests",
+        "mutation_status",
+    ] {
+        assert_eq!(
+            engine["extra"]["test_quality"][key], frozen["test_quality"][key],
+            "{key}"
         );
     }
 }
