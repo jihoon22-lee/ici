@@ -695,15 +695,26 @@
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-metadata-mismatch (wheel.dist-info-identity); 2 frozen cases. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:143:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python_sanitize.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_validation_extra.rs::python_sanitize_measures_resource_defects_and_keeps_other_pytest_failures_incomplete"
+        ]
       },
-      "comparison": "OPEN: Legacy Python sanitize scope/diagnostic targets; not yet replayed via a frozen legacy `ici sanitize` golden on a Python project."
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_python_sanitize.py (frozen legacy `ici sanitize --report`, clean + ResourceWarning scenarios) -> tests/rust-parity/validation/legacy-python-sanitize-oracle.json",
+        "cargo test -p ici-cli --test legacy_python_sanitize --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-python-sanitize.log"
+      ],
+      "comparison": "A clean pytest run with ResourceWarning promoted to errors keeps the frozen 'PythonResourceWarnings' PASS target at tests:1 with the frozen message and legacy fingerprint; status PASS, evidence MEASURED, summary 'Memory Safety & Sanitize Clean (0 Defects)', exit 0 equal to the golden (clean scenario); the leak scenario is the negative."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:155:20": {
       "status": "not_started",
@@ -714,7 +725,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Legacy Python sanitize scope/diagnostic targets; not yet replayed via a frozen legacy `ici sanitize` golden on a Python project."
+      "comparison": "OPEN: the unlocated 'ResourceWarning' FAIL target at tests:1 carrying an output snippet (a ResourceWarning with no project frame). The frozen legacy Python sanitize golden covers the clean and the located-warning cases only; native python_sanitize.rs has the unlocated anchor path but it is not replayed against a frozen scenario."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:219:12": {
       "status": "not_started",
@@ -725,18 +736,29 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Legacy Python sanitize scope/diagnostic targets; not yet replayed via a frozen legacy `ici sanitize` golden on a Python project."
+      "comparison": "OPEN: the per-file 'PythonResourceWarnings' status target (scope-level target on a non-tests file path). The frozen legacy Python sanitize golden covers the clean and the located-warning cases only; native python_sanitize.rs has the unlocated anchor path but it is not replayed against a frozen scenario."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:238:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python_sanitize.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_validation_extra.rs::python_sanitize_measures_resource_defects_and_keeps_other_pytest_failures_incomplete"
+        ]
       },
-      "comparison": "OPEN: Legacy Python sanitize scope/diagnostic targets; not yet replayed via a frozen legacy `ici sanitize` golden on a Python project."
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_python_sanitize.py (frozen legacy `ici sanitize --report`, clean + ResourceWarning scenarios) -> tests/rust-parity/validation/legacy-python-sanitize-oracle.json",
+        "cargo test -p ici-cli --test legacy_python_sanitize --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-python-sanitize.log"
+      ],
+      "comparison": "A ResourceWarning raised at src/calc.py:5 is the frozen located 'ResourceWarning' FAIL target ('ResourceWarning was promoted to an exception by the sanitizer') with the frozen legacy fingerprint; status FAIL, summary '1 Memory / Resource Defect(s) Detected', exit 1 equal to the golden (leak scenario); the clean scenario is the negative and other pytest failures keep the check incomplete (failure fixture)."
     },
     "finding_site:src/ici/analysis/_sanitizer_diagnostics.py:393:11": {
       "status": "not_started",
@@ -747,7 +769,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Legacy Python sanitize scope/diagnostic targets; not yet replayed via a frozen legacy `ici sanitize` golden on a Python project."
+      "comparison": "OPEN: SanitizerDiagnostic (ici.sanitize.<kind>.<defect>, '<tool> detected <defect>') is produced for ASan/UBSan/LSan/TSan reports; the C++ sanitize half is the cpp worker's (root 22:35 item 6). Native ici-validation sanitizer.rs builds the same rule ids; a frozen golden comparison for this diagnostic constructor is not in this branch."
     },
     "finding_site:src/ici/analysis/binary_abi.py:33:11": {
       "status": "not_started",
