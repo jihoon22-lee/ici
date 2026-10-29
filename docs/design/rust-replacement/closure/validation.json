@@ -1548,26 +1548,54 @@
       "difference_reason": "Frozen pairs the verdict with fabricated ESTIMATED coverage (45%/50%) and TEM 0.00; the legacy view reports '0/0 Tests Passed; No tests collected' without coverage or TEM. Accepted by the root (22:35) as an intended difference: fabricated evidence is a frozen defect (ADR-0008, R05)."
     },
     "finding_site:src/ici/engines/test_quality.py:196:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/finding_details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::deep_verify_keeps_frozen_slow_and_flaky_targets_order_and_identities"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::failing_suite_keeps_frozen_case_coverage_and_function_identities"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/quality_details.rs::optional_repeat_timeout_malformed_output_and_changed_collection_never_erase_the_base_suite",
+          "crates/ici-validation/tests/quality_details.rs::quality_findings_preserve_original_fields_and_stable_identity_when_durations_change"
+        ]
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality.py (frozen legacy `ici verify --profile deep`, slow + flaky pytest cases, repeat_runs=2) -> tests/rust-parity/validation/legacy-quality-oracle.json",
+        "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-quality.log"
+      ],
+      "comparison": "Quality findings ici.test.slow-test / ici.test.flaky-test keep the frozen rule id, message, test category, high confidence and the frozen legacy fingerprint (deep golden); report mode keeps them advisory and the engine PASS, exit 0.",
+      "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:355:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/finding_details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::deep_verify_keeps_frozen_slow_and_flaky_targets_order_and_identities"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::failing_suite_keeps_frozen_case_coverage_and_function_identities"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/quality_details.rs::optional_repeat_timeout_malformed_output_and_changed_collection_never_erase_the_base_suite",
+          "crates/ici-validation/tests/quality_details.rs::quality_findings_preserve_original_fields_and_stable_identity_when_durations_change"
+        ]
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality.py (frozen legacy `ici verify --profile deep`, slow + flaky pytest cases, repeat_runs=2) -> tests/rust-parity/validation/legacy-quality-oracle.json",
+        "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-quality.log"
+      ],
+      "comparison": "'[test-quality] Slow test: <node> (<phase>)' WARN with 'pytest <phase> phase took Xs (threshold Ys)', placed before the repeat/flaky observations as frozen, with equal fingerprint.",
+      "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:381:16": {
       "status": "not_started",
@@ -1614,15 +1642,29 @@
       "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
     },
     "finding_site:src/ici/engines/test_quality.py:502:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/finding_details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::deep_verify_keeps_frozen_slow_and_flaky_targets_order_and_identities"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_test_parity.rs::failing_suite_keeps_frozen_case_coverage_and_function_identities"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/quality_details.rs::optional_repeat_timeout_malformed_output_and_changed_collection_never_erase_the_base_suite",
+          "crates/ici-validation/tests/quality_details.rs::quality_findings_preserve_original_fields_and_stable_identity_when_durations_change"
+        ]
       },
-      "comparison": "OPEN: Deep-profile test quality (slow/flaky/mutation) targets. Frozen individual `ici test` never runs them (no analysis context; native now matches by disabling quality there); the targets need a frozen `ici verify --profile deep` golden, not yet captured."
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality.py (frozen legacy `ici verify --profile deep`, slow + flaky pytest cases, repeat_runs=2) -> tests/rust-parity/validation/legacy-quality-oracle.json",
+        "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-quality.log"
+      ],
+      "comparison": "'[test-quality] Flaky test: <node>' WARN with 'pytest verdict changed across bounded repeat runs: run 1=PASSED, run 2=FAILED' and the flaky inventory; equal fingerprint and repeat counters (repeat_runs, repeat_reruns, repeat_cases, flaky_tests).",
+      "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:550:16": {
       "status": "not_started",
