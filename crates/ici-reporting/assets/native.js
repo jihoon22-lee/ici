@@ -81,7 +81,7 @@
     where.appendChild(document.createTextNode(' ' + plain(finding.message)));
     article.appendChild(where); article.appendChild(node('p', plain(finding.explanation)));
     const marks = [];
-    for (const key of ['evidence', 'confidence', 'component_id', 'task_id', 'variant']) {
+    for (const key of ['evidence', 'confidence', 'provider', 'baseline_state', 'component_id', 'task_id', 'variant']) {
       if (typeof finding[key] === 'string' && finding[key]) marks.push(`${key}: ${finding[key]}`);
     }
     const suppression = finding.suppression || {};

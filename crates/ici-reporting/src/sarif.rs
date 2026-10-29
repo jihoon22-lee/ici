@@ -113,6 +113,8 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
             "message",
             "rule_id",
             "fingerprint",
+            // Emitted as the standard `baselineState` below.
+            "baseline_state",
         ] {
             properties.remove(key);
         }
