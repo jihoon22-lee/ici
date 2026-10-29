@@ -17,9 +17,16 @@ assert (
 )
 
 
+# Frozen Tarjan iterates Python sets of absolute paths, so captures pin both the hash seed and
+# the project path; a random temporary directory would reorder the reported cycles.
+WORK = Path(tempfile.gettempdir()) / "ici-cpp-parity-capture"
+
+
 def run(fixture: Path, command: str, config: str = "") -> dict:
-    with tempfile.TemporaryDirectory() as directory:
-        project = Path(directory) / "project"
+    shutil.rmtree(WORK, ignore_errors=True)
+    WORK.mkdir()
+    try:
+        project = WORK / "project"
         shutil.copytree(fixture, project)
         (project / "ici.toml").write_text(
             "[project]\ntype='cpp'\nsource_dirs=['src']\n" + config, encoding="utf-8"
@@ -29,9 +36,8 @@ def run(fixture: Path, command: str, config: str = "") -> dict:
             cwd=project,
             env={
                 "PATH": "/usr/bin:/bin",
-                "HOME": directory,
+                "HOME": str(WORK),
                 "PYTHONPATH": str(ORACLE / "src"),
-                # Frozen Tarjan iterates Python sets; pin hashing so captures are reproducible.
                 "PYTHONHASHSEED": "0",
             },
             capture_output=True,
@@ -40,6 +46,8 @@ def run(fixture: Path, command: str, config: str = "") -> dict:
             check=False,
         )
         report = json.loads((project / f"{command}_report.json").read_text(encoding="utf-8"))
+    finally:
+        shutil.rmtree(WORK, ignore_errors=True)
     return {
         "exit_code": result.returncode,
         "status": report["status"],
@@ -48,8 +56,10 @@ def run(fixture: Path, command: str, config: str = "") -> dict:
 
 
 PARITY = ROOT / "tests/rust-parity/cpp"
+# C++ fixture sources live outside tests/ so the stable pyz never treats them as tests.
+FIXTURES = ROOT / "parity-fixtures/cpp"
 scope = {
-    command: run(PARITY / "legacy-scope-fixture", command)
+    command: run(FIXTURES / "legacy-scope-fixture", command)
     for command in ("complexity", "cognitive", "exception")
 }
 (PARITY / "legacy-scope-oracle.json").write_text(
@@ -58,7 +68,7 @@ scope = {
 )
 CYCLE_CONFIGS = {"default": "", "limit-one": "[engines.cycle]\nmax_reported=1\n"}
 cycle = {
-    name: run(PARITY / "cycle-fixture", "cycle", config) for name, config in CYCLE_CONFIGS.items()
+    name: run(FIXTURES / "cycle-fixture", "cycle", config) for name, config in CYCLE_CONFIGS.items()
 }
 (PARITY / "cycle-oracle.json").write_text(
     json.dumps(
@@ -67,4 +77,25 @@ cycle = {
     + "\n",
     encoding="utf-8",
 )
-print(f"{len(scope)} scope cases, {len(cycle)} cycle cases")
+exception = {"exception": run(FIXTURES / "exception-fixture", "exception")}
+(PARITY / "exception-oracle.json").write_text(
+    json.dumps({"oracle": EXPECTED, "cases": exception}, indent=1, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+# Frozen get_all_cpp_headers adds top-level include/ headers even when source_dirs omits it.
+include_scope = {
+    command: run(FIXTURES / "include-scope-fixture", command)
+    for command in ("cycle", "dup", "dead")
+}
+for policy in ("off", "required"):
+    include_scope[f"dead:{policy}"] = run(
+        FIXTURES / "include-scope-fixture", "dead", f"[engines.dead]\ncpp_unused='{policy}'\n"
+    )
+(PARITY / "include-scope-oracle.json").write_text(
+    json.dumps({"oracle": EXPECTED, "cases": include_scope}, indent=1, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+print(
+    f"{len(scope)} scope, {len(cycle)} cycle, {len(exception)} exception, "
+    f"{len(include_scope)} include-scope cases"
+)

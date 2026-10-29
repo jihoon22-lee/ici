@@ -32,6 +32,8 @@ pub struct BoundaryProbe {
     pub unit: CompilationUnit,
     pub tidy: bool,
 }
+const LEGACY_UNUSED_UNAVAILABLE: &str =
+    "Exact C++ unused-function analysis requires a compilation database";
 #[derive(Default)]
 pub struct CppPlans {
     /// Only explicit legacy commands may use the documented c++17 syntax fallback.
@@ -50,6 +52,8 @@ pub struct CppPlans {
     held_contexts: Vec<crate::export_context::PreparedContext>,
     source_session: ici_cpp::CppAnalysisSession,
     inactive: BTreeMap<String, String>,
+    /// Legacy `ici dead` without recorded compilation: frozen SKIP (ERROR when required) target.
+    legacy_unavailable: BTreeMap<String, bool>,
     inactive_paths: BTreeMap<String, Vec<String>>,
     abi_inputs: BTreeMap<String, BTreeMap<String, usize>>,
     compiler_configurations: BTreeMap<String, BTreeMap<String, usize>>,
@@ -516,6 +520,12 @@ impl CppPlans {
         };
         if mode == "off" {
             return Ok(Work::steps(linker_tasks, false));
+        }
+        if self.legacy_projection && linker_tasks.is_empty() && context.units.is_empty() {
+            // Frozen DeadCodeEngine reports C++UnusedFunctionsUnavailable instead of running.
+            self.legacy_unavailable
+                .insert(id.into(), mode == "required");
+            return Ok(Work::Internal);
         }
         if !context.complete() {
             return Err(
@@ -1296,6 +1306,7 @@ impl CppPlans {
         self.diagnostics.contains_key(id)
             || self.includes.contains_key(id)
             || self.inactive.contains_key(id)
+            || self.legacy_unavailable.contains_key(id)
             || self.boundaries.contains_key(id)
             || self.linkers.contains_key(id)
             || self.fallbacks.contains_key(id)
@@ -1307,12 +1318,21 @@ impl CppPlans {
             && !self.boundaries.contains_key(id)
             && !self.linkers.contains_key(id)
             && !self.fallbacks.contains_key(id)
+            && !self.legacy_unavailable.contains_key(id)
     }
     pub fn finalize_plan(&self, plan: &mut ici_application::plan::Plan) {
         for planned in &mut plan.checks {
             if self.fallbacks.contains_key(&planned.task_id) {
                 planned.check.needs.clear();
                 plan.limitations.push(format!("{}: legacy c++17 heuristic fallback; ordered pkg-config probes resolve only the declared package flags at execution; no recorded compilation or reusable header closure is claimed",planned.task_id));
+            }
+            if let Some(required) = self.legacy_unavailable.get(&planned.task_id) {
+                planned.check.needs.clear();
+                plan.limitations.push(format!(
+                    "{}: {LEGACY_UNUSED_UNAVAILABLE}; the legacy projection reports it as {} like the frozen pyz, without running the compiler",
+                    planned.task_id,
+                    if *required { "ERROR" } else { "SKIP" }
+                ));
             }
             if let Some(reason) = self.inactive.get(&planned.task_id) {
                 planned.check.needs.clear();
@@ -1362,6 +1382,37 @@ impl CppPlans {
             }
             return linker_output;
         }
+        if let Some(required) = self.legacy_unavailable.get(&request.task_id) {
+            let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
+            let status = if *required { "ERROR" } else { "SKIP" };
+            output.status = status.into();
+            output.summary = LEGACY_UNUSED_UNAVAILABLE.into();
+            output.observation.measurements.push(Measurement {
+                name: "cpp_unused_configurations_checked".into(),
+                value: 0.0,
+                evidence: ici_domain::EvidenceLevel::NotRun,
+                unit: "configurations".into(),
+                numerator: None,
+                denominator: None,
+            });
+            output
+                .observation
+                .limitations
+                .push(LEGACY_UNUSED_UNAVAILABLE.into());
+            // Frozen: one target at the first selected C/C++ source in path order.
+            let path = request
+                .inputs
+                .iter()
+                .map(|source| source.path.clone())
+                .min()
+                .unwrap_or_else(|| ".".into());
+            let mut target = InspectionTarget::at(&path, 1);
+            target.target_name = "C++UnusedFunctionsUnavailable".into();
+            target.status = status.into();
+            target.message = LEGACY_UNUSED_UNAVAILABLE.into();
+            output.targets.push(target);
+            return output;
+        }
         if let Some(reason) = self.inactive.get(&request.task_id) {
             let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
             output.status = "SKIP".into();
@@ -1385,7 +1436,9 @@ impl CppPlans {
                         .map(|source| source.path.clone())
                         .collect()
                 });
-            let paths = if paths.is_empty() {
+            let legacy_disabled = self.legacy_projection && request.check_id == "cpp.dead";
+            let paths = if paths.is_empty() || legacy_disabled {
+                // Frozen DeadCodeEngine reports one disabled-policy target at the project root.
                 vec![".".into()]
             } else {
                 paths
@@ -1402,12 +1455,18 @@ impl CppPlans {
                     "Security:NotApplicable"
                 } else if request.check_id == "cpp.python-compat" {
                     "PythonCompatibility:NotApplicable"
+                } else if legacy_disabled {
+                    "C++UnusedFunctionsDisabled"
                 } else {
                     "CppAnalysisDisabled"
                 }
                 .into();
                 target.status = "SKIP".into();
-                target.message = reason.clone();
+                target.message = if legacy_disabled {
+                    "Compiler-backed C++ unused-function analysis is disabled".into()
+                } else {
+                    reason.clone()
+                };
                 output.targets.push(target);
             }
             if request.check_id == "cpp.binary-compat" {

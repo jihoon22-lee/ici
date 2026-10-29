@@ -1,5 +1,9 @@
 # C/C++ native evidence corpus
 
+C/C++ fixture sources live in the top-level `parity-fixtures/cpp/` directory, outside
+`tests/` and the stable source directories, because the stable pyz test and sanitize
+engines compile every `.cpp` under `tests/`. Goldens, JSON and capture scripts stay here.
+
 The source and lexical oracle files were captured from the frozen Python product
 `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188` by the development-only
 `capture_source_oracle.py`. The Rust product does not invoke this script or Python.
@@ -12,7 +16,7 @@ The source and lexical oracle files were captured from the frozen Python product
 - `lexical-oracle.json`: 57 token and directive cases covering physical line
   provenance, C++ line splicing, literal classes/suffixes, Qt/API anchors,
   digraphs, malformed opaque literals and ordinary identifier renaming.
-- `clang-boundaries.cpp` / `.json`: actual Clang 21.1.8 AST output, with the input
+- `parity-fixtures/cpp/clang-boundaries.cpp` / `clang-boundaries.json`: actual Clang 21.1.8 AST output, with the input
   path normalized to `/fixture/main.cpp`. Compiler source ranges must agree with
   the immutable source syntax. Macro-generated and lambda call-operator bodies
   are excluded; repeated template instantiations share one source boundary.

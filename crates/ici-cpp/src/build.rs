@@ -95,7 +95,7 @@ fn valid_make_shadow(shadow: &str) -> bool {
 }
 fn make_owner_record(plan: &BuildPlan) -> String {
     format!(
-        ".ici/rust-v1/build/make-owners/{}.json",
+        ".ici/rust-v1/owners/make/{}.json",
         &ici_domain::sha256(&plan.shadow)[7..39]
     )
 }
@@ -276,7 +276,7 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
         ici_domain::canonical_json(&identity)
             .map_err(|e| CppError::new("identity", e.to_string()))?,
     );
-    let mut limitations = vec![];
+    let limitations = vec![];
     let mut tasks = vec![];
     let mut capture = None;
     let configure_id = format!("build:{}:{}:configure", request.id, request.variant);
@@ -479,7 +479,6 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                 ));
             }
             if !(1..=64).contains(&make.jobs)
-                || !(1..=make.jobs).contains(&make.effective_jobs)
                 || !["allow", "required"].contains(&make.out_of_tree.as_str())
                 || (make.out_of_tree == "required" && make.workdir == ".")
             {
@@ -514,12 +513,6 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                     format!(
                         "build.make.workdir {workdir:?} must be an existing project directory without symlink traversal"
                     ),
-                ));
-            }
-            if make.effective_jobs < make.jobs {
-                limitations.push(format!(
-                    "build.make.jobs={} was capped to {} native parallel jobs; whole {{jobs}} tokens receive {}",
-                    make.jobs, make.effective_jobs, make.effective_jobs
                 ));
             }
             let phases = [
@@ -586,48 +579,7 @@ pub fn prepare_owned_shadow(root: &Path, plan: &BuildPlan) -> Result<PathBuf, Cp
     let record = custom.then(|| make_owner_record(plan));
     let path = owned_directory(&root, &plan.shadow)?;
     let marker = path.join(".ici-owner.json");
-    // A configured Make clean recipe may delete and recreate its whole shadow, including the
-    // in-shadow marker. The Rust-namespace record proves this exact path was adopted earlier
-    // for the same owner; any other nonempty directory remains unowned and untouched.
-    let recorded = match &record {
-        Some(record) if root.join(record).exists() => {
-            let metadata = strict_json(&read_contained(&root, &root.join(record), 4096)?)?;
-            metadata["schema_id"] == "ici.rust.make-shadow-owner"
-                && metadata["digest"] == plan.owner_digest
-                && metadata["shadow"] == plan.shadow
-        }
-        _ => false,
-    };
-    if marker.exists() {
-        let bytes = read_contained(&root, &marker, 4096)?;
-        let metadata = strict_json(&bytes)?;
-        if metadata["schema_id"] != "ici.rust.build-owner"
-            || metadata["digest"] != plan.owner_digest
-        {
-            return Err(CppError::new(
-                "ownership-mismatch",
-                "build directory belongs to another request/project",
-            ));
-        }
-    } else {
-        if !recorded
-            && fs::read_dir(&path)
-                .map_err(|e| CppError::new("shadow-inspect", e.to_string()))?
-                .next()
-                .is_some()
-        {
-            return Err(CppError::new(
-                "unowned-build-directory",
-                if custom {
-                    format!(
-                        "refusing to adopt nonempty build.make.shadow_dir {:?} that ici did not create; move its contents away or choose an empty shadow_dir",
-                        plan.shadow
-                    )
-                } else {
-                    "refusing to adopt a nonempty build directory".into()
-                },
-            ));
-        }
+    if !shadow_ownership(&root, plan, &path)? {
         let bytes=serde_json::to_vec(&json!({"schema_id":"ici.rust.build-owner","schema_version":1,"digest":plan.owner_digest,"id":plan.id,"variant":plan.variant})).unwrap();
         ici_execution::storage::atomic_write(
             &marker,
@@ -637,7 +589,7 @@ pub fn prepare_owned_shadow(root: &Path, plan: &BuildPlan) -> Result<PathBuf, Cp
         .map_err(|e| CppError::new("owner-write", e.to_string()))?;
     }
     if let Some(record) = &record {
-        owned_directory(&root, ".ici/rust-v1/build/make-owners")?;
+        owned_directory(&root, ".ici/rust-v1/owners/make")?;
         let bytes = serde_json::to_vec(&json!({"schema_id":"ici.rust.make-shadow-owner","schema_version":1,"digest":plan.owner_digest,"id":plan.id,"shadow":plan.shadow})).unwrap();
         ici_execution::storage::atomic_write(
             &root.join(record),
@@ -663,6 +615,104 @@ pub fn prepare_owned_shadow(root: &Path, plan: &BuildPlan) -> Result<PathBuf, Cp
         .map_err(|e| CppError::new("capture-reset", e.to_string()))?;
     }
     Ok(path)
+}
+
+/// Read-only ownership classification shared by planning preflight and preparation.
+/// Returns whether the in-shadow marker already exists. Missing, empty, marker-owned or
+/// owner-recorded shadows are adoptable; every other nonempty directory is refused untouched.
+fn shadow_ownership(root: &Path, plan: &BuildPlan, path: &Path) -> Result<bool, CppError> {
+    let custom = plan.shadow != format!(".ici/rust-v1/build/{}/{}", plan.id, plan.variant);
+    let marker = path.join(".ici-owner.json");
+    match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(CppError::new("shadow-inspect", error.to_string())),
+        Ok(metadata) if !metadata.is_dir() => {
+            return Err(CppError::new(
+                "unsafe-shadow",
+                format!(
+                    "build shadow {:?} is a symlink or not a directory; remove it or choose another shadow_dir",
+                    plan.shadow
+                ),
+            ));
+        }
+        Ok(_) => {}
+    }
+    if marker.exists() {
+        let metadata = strict_json(&read_contained(root, &marker, 4096)?)?;
+        if metadata["schema_id"] != "ici.rust.build-owner"
+            || metadata["digest"] != plan.owner_digest
+        {
+            return Err(CppError::new(
+                "ownership-mismatch",
+                "build directory belongs to another request/project",
+            ));
+        }
+        return Ok(true);
+    }
+    // A configured Make clean recipe may delete and recreate its whole shadow, including the
+    // in-shadow marker. The owner record proves this exact path was adopted earlier.
+    if custom {
+        let record = root.join(make_owner_record(plan));
+        if record.exists() {
+            let metadata = strict_json(&read_contained(root, &record, 4096)?)?;
+            if metadata["schema_id"] == "ici.rust.make-shadow-owner"
+                && metadata["digest"] == plan.owner_digest
+                && metadata["shadow"] == plan.shadow
+            {
+                return Ok(false);
+            }
+        }
+    }
+    if fs::read_dir(path)
+        .map_err(|e| CppError::new("shadow-inspect", e.to_string()))?
+        .next()
+        .is_some()
+    {
+        return Err(CppError::new(
+            "unowned-build-directory",
+            if custom {
+                format!(
+                    "build.make.shadow_dir {:?} already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir to an empty or new path",
+                    plan.shadow
+                )
+            } else {
+                "refusing to adopt a nonempty build directory".into()
+            },
+        ));
+    }
+    Ok(false)
+}
+
+/// Planning preflight: report a shadow that preparation would refuse, without any mutation.
+pub fn check_shadow_adoptable(root: &Path, plan: &BuildPlan) -> Result<(), CppError> {
+    let root = root
+        .canonicalize()
+        .map_err(|e| CppError::new("invalid-root", e.to_string()))?;
+    let mut path = root.clone();
+    for part in Path::new(&plan.shadow).components() {
+        let Component::Normal(name) = part else {
+            return Err(CppError::new(
+                "invalid-shadow",
+                "non-normal shadow component",
+            ));
+        };
+        path.push(name);
+        match fs::symlink_metadata(&path) {
+            Err(_) => return Ok(()),
+            Ok(metadata) if metadata.file_type().is_symlink() || !metadata.is_dir() => {
+                return Err(CppError::new(
+                    "unsafe-shadow",
+                    format!(
+                        "build shadow {:?} passes through a symlink or file at {}; remove it or choose another shadow_dir",
+                        plan.shadow,
+                        path.display()
+                    ),
+                ));
+            }
+            Ok(_) => {}
+        }
+    }
+    shadow_ownership(&root, plan, &path).map(|_| ())
 }
 
 /// Create or open each component without following symlinks; returns the physical path.

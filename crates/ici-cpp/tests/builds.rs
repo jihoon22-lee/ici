@@ -164,7 +164,6 @@ fn explicit_make_argv_builds_in_owned_shadow_without_running_during_plan() {
         Some(&serde_json::json!({"enabled":true,"build_argv":["make","-f",root.path().join("fixture.mk").display().to_string(),"-j","{jobs}"]})),
         "release",
         "Makefile",
-        2,
     )
     .unwrap();
     let request = BuildRequest {

@@ -14,7 +14,7 @@ assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
     == EXPECTED
 )
-SOURCE = (ROOT / "tests/rust-parity/cpp/metric-cli-fixture.cpp").read_text(encoding="utf-8")
+SOURCE = (ROOT / "parity-fixtures/cpp/metric-cli-fixture.cpp").read_text(encoding="utf-8")
 CONFIGS = {
     "defaults": "",
     "low": "[engines.complexity]\nwarn_cc=3\nfail_cc=8\n[engines.cognitive]\nwarn=3\nfail=8\n",

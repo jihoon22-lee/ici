@@ -147,7 +147,7 @@
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
       ],
-      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
+      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
       "difference_reason": ""
     },
     "check:cpp.compile": {
@@ -189,7 +189,7 @@
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
       ],
-      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
+      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
       "difference_reason": ""
     },
     "check:cpp.coverage": {
@@ -207,11 +207,13 @@
     "check:cpp.cycle": {
       "status": "verified",
       "rust_paths": [
+        "crates/ici-config/src/components.rs",
         "crates/ici-cpp/src/cycles.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
@@ -222,11 +224,12 @@
         ]
       },
       "evidence": [
-        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over parity-fixtures/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
         "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "Frozen include-scope oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici cycle|dup|dead --report`, pinned project path and PYTHONHASHSEED=0, reproduced byte for byte on rerun) into include-scope-oracle.json over parity-fixtures/cpp/include-scope-fixture (source_dirs=['src'] plus a top-level include/ with headers and an include/extra.cpp); before the fix Rust omitted include/ headers (the earlier `ici dead` probe reported src/a.hpp where frozen reported include/top.hpp); cargo test -p ici-cli --test legacy_cpp_metrics (7 passed); /tmp/ici-rust-replacement-20261028/w-cpp-include.log"
       ],
-      "comparison": "C++ facet, heuristic mode. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap.",
+      "comparison": "C++ facet, heuristic mode. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap. Legacy C/C++ header scope now also takes top-level include/ headers (.h/.hh/.hpp/.hxx) even when source_dirs omits include, exactly like frozen get_all_cpp_headers (core/project.py:295); include/*.cpp stays out, as in the frozen engine path.",
       "difference_reason": "Frozen cycle report order follows Python set iteration in Tarjan (nondeterministic without PYTHONHASHSEED); Rust reports cycles in sorted component order, so with max_reported smaller than the cycle count the chosen subset may differ while count and every path/message match."
     },
     "check:cpp.diagnostics": {
@@ -242,28 +245,38 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "check:cpp.dup": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
         "negative": [],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:113).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen include-scope oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici cycle|dup|dead --report`, pinned project path and PYTHONHASHSEED=0, reproduced byte for byte on rerun) into include-scope-oracle.json over parity-fixtures/cpp/include-scope-fixture (source_dirs=['src'] plus a top-level include/ with headers and an include/extra.cpp); before the fix Rust omitted include/ headers (the earlier `ici dead` probe reported src/a.hpp where frozen reported include/top.hpp); cargo test -p ici-cli --test legacy_cpp_metrics (7 passed); /tmp/ici-rust-replacement-20261028/w-cpp-include.log"
+      ],
+      "comparison": "Include-scope facet only: legacy `ici dup` over a source_dirs=['src'] project with a top-level include/ matches the frozen CLI exactly (exit 0, WARN, the include/ header clone group with src/inner.hpp and DuplicateScan PASS targets for the remaining sources, include/extra.cpp excluded). Legacy C/C++ header scope now also takes top-level include/ headers (.h/.hh/.hpp/.hxx) even when source_dirs omits include, exactly like frozen get_all_cpp_headers (core/project.py:295); include/*.cpp stays out, as in the frozen engine path.",
+      "difference_reason": "Open: the full C++ duplicate engine audit (windowing, normalization, Python/C++ mix, thresholds, vendor/generated exclusion beyond the verified include_* keys, failure targets) has not been compared against the frozen engine yet."
     },
     "check:cpp.exception": {
       "status": "verified",
       "rust_paths": [
-        "crates/ici-cpp/src/source_rules.rs"
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/legacy_exceptions.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+          "crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs"
         ],
         "failure": [
           "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
@@ -271,10 +284,11 @@
       },
       "evidence": [
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "Frozen exception corpus oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici exception --report`) into exception-oracle.json over parity-fixtures/cpp/exception-fixture (one-line, multi-throw, split declaration/definition, lambda-in-destructor, noexcept(false) on its own line, try/catch inside a destructor, rethrow, comment/string throw, `throw()` specification, defaulted destructor, nested local class, template out-of-class destructor, raw strings, a line-splice comment, char-literal braces, escaped string quotes and a CRLF file); cargo test -p ici-cli --test legacy_cpp_metrics (5 passed) and -p ici-cpp --test source (11 passed); /tmp/ici-rust-replacement-20261028/w-cpp-exception.log, w-cpp-exception2.log, w-cpp-exception3.log"
       ],
-      "comparison": "Legacy C++ exception projection matches the frozen CLI on the fixture: sources only (.cpp/.cc/.cxx/.c, headers excluded; Rust previously flagged a header destructor throw), DestructorThrow/CatchAllSwallowed targets carry only the start line, per-file order is destructor throws then empty catch-alls, then CppExceptionSafety PASS with the frozen messages and exit 1.",
-      "difference_reason": "Frozen detection is a masked line regex (any `throw` token on a line inside a destructor body, including lambdas, one target per line). Rust uses the C++ syntax tree: lambdas inside destructors are excluded and each throw statement is a target, so a line with two throws yields two targets. Recorded for review; not covered by the oracle fixture."
+      "comparison": "Legacy C++ exception projection matches the frozen CLI byte-for-byte on two oracle corpora (status, exit 1, every target name/status/message/line/file): sources only (.cpp/.cc/.cxx/.c, headers excluded), the frozen _mask_cpp_literals blanking ported exactly (comments, line splices, string/char/raw literals), destructor bodies tracked by brace depth with every line spelling `throw` reported once (so the lambda throw on line 10 and the two throws on lines 4 and 37 keep exactly the frozen targets: no frozen finding is lost), empty catch(...) found by the frozen first-`}` regex, start-line-only targets, per-file order destructor throws then catch-alls then CppExceptionSafety PASS.",
+      "difference_reason": "Modern analyze path only (legacy has no difference): it keeps syntax-tree semantics. A throw inside a lambda in a destructor is not a destructor throw, a `throw()` dynamic exception specification is not a throw (the frozen heuristic reports it), and each throw statement is its own located target with end line and columns (two throws on one line give two targets). Fixture: crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs on the same oracle corpus (frozen lines [3,4,10,17,22,25,27,32,37] versus modern [3,4,4,17,22,25,32,37,37])."
     },
     "check:cpp.line": {
       "status": "not_started",
@@ -423,11 +437,13 @@
     "command:ici cycle": {
       "status": "verified",
       "rust_paths": [
+        "crates/ici-config/src/components.rs",
         "crates/ici-cpp/src/cycles.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
@@ -438,24 +454,37 @@
         ]
       },
       "evidence": [
-        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over parity-fixtures/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
         "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "Frozen include-scope oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici cycle|dup|dead --report`, pinned project path and PYTHONHASHSEED=0, reproduced byte for byte on rerun) into include-scope-oracle.json over parity-fixtures/cpp/include-scope-fixture (source_dirs=['src'] plus a top-level include/ with headers and an include/extra.cpp); before the fix Rust omitted include/ headers (the earlier `ici dead` probe reported src/a.hpp where frozen reported include/top.hpp); cargo test -p ici-cli --test legacy_cpp_metrics (7 passed); /tmp/ici-rust-replacement-20261028/w-cpp-include.log"
       ],
-      "comparison": "C++ facet of `ici cycle --report` (exit code, status, targets) for the heuristic graph. Python import cycles belong to the Python area. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap.",
+      "comparison": "C++ facet of `ici cycle --report` (exit code, status, targets) for the heuristic graph. Python import cycles belong to the Python area. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap. Legacy C/C++ header scope now also takes top-level include/ headers (.h/.hh/.hpp/.hxx) even when source_dirs omits include, exactly like frozen get_all_cpp_headers (core/project.py:295); include/*.cpp stays out, as in the frozen engine path.",
       "difference_reason": "Frozen cycle report order follows Python set iteration in Tarjan (nondeterministic without PYTHONHASHSEED); Rust reports cycles in sorted component order, so with max_reported smaller than the cycle count the chosen subset may differ while count and every path/message match."
     },
     "command:ici dead": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-config/src/components.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:388, src/ici/__main__.py:459).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen dead-policy oracle in include-scope-oracle.json (cases dead, dead:off, dead:required) captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py; before the fix Rust legacy `ici dead` without a compilation database exited 3 with no target (auto), exit 3 (required) and per-source CppAnalysisDisabled targets (off); probe /tmp/ici-rust-replacement-20261028/w-cpp-dead; cargo test -p ici-cli --test legacy_cpp_metrics (7 passed); /tmp/ici-rust-replacement-20261028/w-cpp-include.log"
+      ],
+      "comparison": "Legacy `ici dead` without recorded compilation (no units) and with cpp_linker off now matches the frozen DeadCodeEngine exactly: cpp_unused=auto gives one SKIP C++UnusedFunctionsUnavailable target at the first selected C/C++ source in path order with 'Exact C++ unused-function analysis requires a compilation database' and exit 2; required gives the same target as ERROR and exit 1; off gives one SKIP C++UnusedFunctionsDisabled target at '.' with 'Compiler-backed C++ unused-function analysis is disabled' and exit 2. The compiler is not run, the plan records the limitation, scope is not claimed complete, and the modern `ici analyze` gate stays BLOCKED/INCOMPLETE (exit 3; asserted in the same fixture). Legacy C/C++ header scope now also takes top-level include/ headers (.h/.hh/.hpp/.hxx) even when source_dirs omits include, exactly like frozen get_all_cpp_headers (core/project.py:295); include/*.cpp stays out, as in the frozen engine path.",
+      "difference_reason": "Open: compilation-database-backed and GNU ELF linker modes of `ici dead` are not yet compared against the frozen CLI."
     },
     "command:ici dup": {
       "status": "not_started",
@@ -1007,7 +1036,7 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
@@ -1035,8 +1064,8 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
@@ -1044,7 +1073,7 @@
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
           "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
         ]
       },
@@ -1067,14 +1096,14 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ]
       },
       "evidence": [
@@ -1096,13 +1125,13 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ]
       },
       "evidence": [
@@ -1125,7 +1154,7 @@
       "fixtures": {
         "positive": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
@@ -1177,7 +1206,7 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
@@ -1206,9 +1235,9 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::native_job_cap_substitutes_effective_value_and_is_reported_in_the_plan",
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::configured_jobs_are_substituted_exactly_like_the_frozen_contract",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
@@ -1224,8 +1253,8 @@
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
       ],
-      "comparison": "Frozen jobs: integer 1..64 (bool/float/0/65 refused with the frozen message), default 1, substituted only into whole {jobs} tokens of every argv. Actual GNU Make sees -j2 for jobs=4/3 and 1 for the default.",
-      "difference_reason": "Native execution caps the substituted value at 2 parallel jobs (shared host jobs/thread limit). The configured value stays in the plan and a visible limitation 'build.make.jobs=N was capped to 2 ...' is recorded in BuildPlan.limitations and preparation effects; values <=2 are unchanged and report nothing."
+      "comparison": "Frozen jobs: integer 1..64 (bool/float/0/65 refused with the frozen message), default 1, substituted unchanged into whole {jobs} tokens of every argv, exactly like frozen make_plan (no cap; root decision). Golden: jobs 64 substitutes -j 64 with no plan limitation; actual GNU Make sees j2 for configured jobs=2 (tests keep jobs <= 2 for the shared host limit) and the default 1.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.out_of_tree": {
       "status": "complete",
@@ -1237,7 +1266,7 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
@@ -1319,14 +1348,15 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir",
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
         ],
         "failure": [
           "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes",
@@ -1340,7 +1370,7 @@
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
       ],
       "comparison": "Frozen shadow_dir: contained non-root path, default build/ici-make, shared by every variant (no variant suffix). Rust uses it as the owned shadow, generated root (excluded from build inputs) and artifact discovery root; release then coverage reuse the same shadow without ownership mismatch.",
-      "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/build/make-owners/<sha>.json for this root/build/shadow (so a clean recipe that recreates the shadow keeps working). A nonempty unowned shadow (for example a pyz-era build/ici-make), a symlinked shadow or a foreign marker is refused before any Make command and left byte-for-byte; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private."
+      "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/owners/make/<sha>.json for this root/build/shadow (outside the build-id namespace, so a clean recipe that recreates the shadow keeps working). The frozen pyz leaves no ownership marker in build/ici-make (verified against oracle 6fe3e40 core/make.py: only mkdir(exist_ok=True)), so a nonempty pyz-era shadow cannot be proven ici-created and is refused at planning time, before any Make command or filesystem change, with the located message 'build.make.shadow_dir \"build/ici-make\" already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir to an empty or new path', which appears in the plan limitations and the build output; the bytes stay unchanged. Symlinked shadows and foreign markers are refused the same way; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private."
     },
     "config_key:legacy:build.make.test_argv": {
       "status": "difference_review",
@@ -1428,8 +1458,8 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
@@ -2199,16 +2229,26 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.dead.cpp_unused": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen dead-policy oracle in include-scope-oracle.json (cases dead, dead:off, dead:required) captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py; before the fix Rust legacy `ici dead` without a compilation database exited 3 with no target (auto), exit 3 (required) and per-source CppAnalysisDisabled targets (off); probe /tmp/ici-rust-replacement-20261028/w-cpp-dead; cargo test -p ici-cli --test legacy_cpp_metrics (7 passed); /tmp/ici-rust-replacement-20261028/w-cpp-include.log"
+      ],
+      "comparison": "Legacy `ici dead` without recorded compilation (no units) and with cpp_linker off now matches the frozen DeadCodeEngine exactly: cpp_unused=auto gives one SKIP C++UnusedFunctionsUnavailable target at the first selected C/C++ source in path order with 'Exact C++ unused-function analysis requires a compilation database' and exit 2; required gives the same target as ERROR and exit 1; off gives one SKIP C++UnusedFunctionsDisabled target at '.' with 'Compiler-backed C++ unused-function analysis is disabled' and exit 2. The compiler is not run, the plan records the limitation, scope is not claimed complete, and the modern `ici analyze` gate stays BLOCKED/INCOMPLETE (exit 3; asserted in the same fixture).",
+      "difference_reason": "Open: the compilation-database-backed auto/required unused-function results have not yet been compared against the frozen engine on the same corpus."
     },
     "config_key:legacy:engines.dead.enabled": {
       "status": "not_started",
@@ -4696,7 +4736,7 @@
         ]
       },
       "evidence": [
-        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over parity-fixtures/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
         "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
       ],
@@ -4721,7 +4761,7 @@
         ]
       },
       "evidence": [
-        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over parity-fixtures/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
         "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
       ],
@@ -5047,28 +5087,46 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "finding_site:src/ici/engines/dead.py:134:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:134); enclosing frozen function _unavailable_cpp_target.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen dead-policy oracle in include-scope-oracle.json (cases dead, dead:off, dead:required) captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py; before the fix Rust legacy `ici dead` without a compilation database exited 3 with no target (auto), exit 3 (required) and per-source CppAnalysisDisabled targets (off); probe /tmp/ici-rust-replacement-20261028/w-cpp-dead; cargo test -p ici-cli --test legacy_cpp_metrics (7 passed); /tmp/ici-rust-replacement-20261028/w-cpp-include.log"
+      ],
+      "comparison": "Legacy `ici dead` without recorded compilation (no units) and with cpp_linker off now matches the frozen DeadCodeEngine exactly: cpp_unused=auto gives one SKIP C++UnusedFunctionsUnavailable target at the first selected C/C++ source in path order with 'Exact C++ unused-function analysis requires a compilation database' and exit 2; required gives the same target as ERROR and exit 1; off gives one SKIP C++UnusedFunctionsDisabled target at '.' with 'Compiler-backed C++ unused-function analysis is disabled' and exit 2. The compiler is not run, the plan records the limitation, scope is not claimed complete, and the modern `ici analyze` gate stays BLOCKED/INCOMPLETE (exit 3; asserted in the same fixture).",
+      "difference_reason": "Covered facet is the missing-compilation-database reason. Other frozen unavailable reasons (no usable compiler, incomplete per-source configurations) keep the Rust BLOCKED/INCOMPLETE result in legacy too until compared."
     },
     "finding_site:src/ici/engines/dead.py:159:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:159); enclosing frozen function _analyze_cpp_scope.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen dead-policy oracle in include-scope-oracle.json (cases dead, dead:off, dead:required) captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py; before the fix Rust legacy `ici dead` without a compilation database exited 3 with no target (auto), exit 3 (required) and per-source CppAnalysisDisabled targets (off); probe /tmp/ici-rust-replacement-20261028/w-cpp-dead; cargo test -p ici-cli --test legacy_cpp_metrics (7 passed); /tmp/ici-rust-replacement-20261028/w-cpp-include.log"
+      ],
+      "comparison": "Legacy `ici dead` without recorded compilation (no units) and with cpp_linker off now matches the frozen DeadCodeEngine exactly: cpp_unused=auto gives one SKIP C++UnusedFunctionsUnavailable target at the first selected C/C++ source in path order with 'Exact C++ unused-function analysis requires a compilation database' and exit 2; required gives the same target as ERROR and exit 1; off gives one SKIP C++UnusedFunctionsDisabled target at '.' with 'Compiler-backed C++ unused-function analysis is disabled' and exit 2. The compiler is not run, the plan records the limitation, scope is not claimed complete, and the modern `ici analyze` gate stays BLOCKED/INCOMPLETE (exit 3; asserted in the same fixture).",
+      "difference_reason": ""
     },
     "finding_site:src/ici/engines/dead.py:219:16": {
       "status": "not_started",

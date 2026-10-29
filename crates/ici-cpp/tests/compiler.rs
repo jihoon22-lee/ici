@@ -26,7 +26,7 @@ fn request(input: SourceInput) -> AnalysisRequest {
 fn actual_clang21_ast_golden_excludes_macro_and_lambda_bodies_and_deduplicates_templates() {
     let source = SourceInput {
         path: "main.cpp".into(),
-        bytes: include_bytes!("../../../tests/rust-parity/cpp/clang-boundaries.cpp").to_vec(),
+        bytes: include_bytes!("../../../parity-fixtures/cpp/clang-boundaries.cpp").to_vec(),
     };
     let transcript = include_str!("../../../tests/rust-parity/cpp/clang-boundaries.json");
     let evidence = parse_clang_function_boundaries(
@@ -341,7 +341,7 @@ fn optional_installed_clang_probe_has_no_artifact_side_effects() {
 #[test]
 fn required_compiler_boundary_policy_preserves_estimated_metrics_and_rejects_missing_variants() {
     let root = tempfile::tempdir().unwrap();
-    let bytes = include_bytes!("../../../tests/rust-parity/cpp/clang-boundaries.cpp").to_vec();
+    let bytes = include_bytes!("../../../parity-fixtures/cpp/clang-boundaries.cpp").to_vec();
     fs::write(root.path().join("main.cpp"), &bytes).unwrap();
     let mut context = context(root.path());
     context.units.truncate(1);

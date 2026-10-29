@@ -526,6 +526,19 @@ pub(crate) fn metrics(
     output.extra = json!({"boundary_mode":"heuristic","estimated_boundaries":functions,"exact_boundaries":0,"lambdas_excluded":total_lambdas});
     Ok(())
 }
+fn exception_finding(
+    output: &mut AnalysisOutput,
+    request: &AnalysisRequest,
+    target: InspectionTarget,
+) {
+    let rule = format!("exception.{}", target.target_name.to_ascii_lowercase());
+    finding(output, request, &target, &rule, "high", false);
+    let issue = output.observation.findings.last_mut().unwrap();
+    issue.native_rule_id = target.target_name.clone();
+    issue.confidence = "medium".into();
+    issue.category = "correctness".into();
+    output.targets.push(target);
+}
 pub(crate) fn exceptions(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
@@ -536,8 +549,40 @@ pub(crate) fn exceptions(
         .unwrap_or(false);
     for file in legacy_source_scope(request, files) {
         let mut issues = 0;
-        let first_target = output.targets.len();
-        for node in source::nodes(file.tree.root_node())? {
+        if legacy {
+            // Frozen _exception_rules: one start-line target per masked source line, every
+            // destructor throw line first, then every empty catch-all.
+            let masked = crate::legacy_exceptions::mask_literals(&file.text);
+            for (lines, name, message) in [
+                (
+                    crate::legacy_exceptions::destructor_throw_lines(&masked),
+                    "DestructorThrow",
+                    "C++ destructor throws an exception and may call std::terminate",
+                ),
+                (
+                    crate::legacy_exceptions::empty_catch_all_lines(&masked),
+                    "CatchAllSwallowed",
+                    "Silent catch(...) block without logging or re-throw",
+                ),
+            ] {
+                for line in lines {
+                    let mut target =
+                        InspectionTarget::at(&file.path, u32::try_from(line).unwrap_or(u32::MAX));
+                    target.target_name = name.into();
+                    target.status = "FAIL".into();
+                    target.message = message.into();
+                    exception_finding(output, request, target);
+                    issues += 1;
+                }
+            }
+        }
+        // The modern path inspects syntax nodes; the legacy projection already used the lines.
+        let nodes = if legacy {
+            vec![]
+        } else {
+            source::nodes(file.tree.root_node())?
+        };
+        for node in nodes {
             if node.kind() == "function_definition"
                 && source::function_name(file, node)
                     .rsplit("::")
@@ -553,28 +598,10 @@ pub(crate) fn exceptions(
                     }
                     if inner.kind() == "throw_statement" {
                         let mut target = file.target(inner, "DestructorThrow");
-                        if legacy {
-                            // Frozen _exception_rules targets carry only the start line.
-                            target.end_line = None;
-                            target.start_column = None;
-                            target.end_column = None;
-                        }
                         target.status = "FAIL".into();
                         target.message =
                             "C++ destructor throws an exception and may call std::terminate".into();
-                        finding(
-                            output,
-                            request,
-                            &target,
-                            "exception.destructorthrow",
-                            "high",
-                            false,
-                        );
-                        let issue = output.observation.findings.last_mut().unwrap();
-                        issue.native_rule_id = target.target_name.clone();
-                        issue.confidence = "medium".into();
-                        issue.category = "correctness".into();
-                        output.targets.push(target);
+                        exception_finding(output, request, target);
                         issues += 1;
                     }
                     for i in 0..inner.named_child_count() {
@@ -601,36 +628,14 @@ pub(crate) fn exceptions(
                     }
                     if !noncomment {
                         let mut target = file.target(node, "CatchAllSwallowed");
-                        if legacy {
-                            target.end_line = None;
-                            target.start_column = None;
-                            target.end_column = None;
-                        }
                         target.status = "FAIL".into();
                         target.message =
                             "Silent catch(...) block without logging or re-throw".into();
-                        finding(
-                            output,
-                            request,
-                            &target,
-                            "exception.catchallswallowed",
-                            "high",
-                            false,
-                        );
-                        let issue = output.observation.findings.last_mut().unwrap();
-                        issue.native_rule_id = target.target_name.clone();
-                        issue.confidence = "medium".into();
-                        issue.category = "correctness".into();
-                        output.targets.push(target);
+                        exception_finding(output, request, target);
                         issues += 1;
                     }
                 }
             }
-        }
-        if legacy {
-            // Frozen order per file: every destructor throw line, then every empty catch-all.
-            output.targets[first_target..]
-                .sort_by_key(|target| (target.target_name != "DestructorThrow", target.start_line));
         }
         let mut target = InspectionTarget::at(&file.path, 1);
         target.target_name = "CppExceptionSafety".into();

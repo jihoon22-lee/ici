@@ -22,12 +22,11 @@ fn make_settings_match_every_frozen_make_plan_case() {
     assert_eq!(cases.len(), 46);
     for case in cases {
         let name = case["name"].as_str().unwrap();
-        // A cap of 64 never binds, so the substituted argv must equal the frozen plan exactly.
+        // Configured jobs are substituted unchanged, so argv must equal the frozen plan exactly.
         let actual = make_settings(
             Some(&case["make"]),
             case["variant"].as_str().unwrap(),
             "Makefile",
-            64,
         );
         match (&case["error"], actual) {
             (Value::String(expected), Err(error)) => {
@@ -51,7 +50,6 @@ fn make_settings_match_every_frozen_make_plan_case() {
                         "{name}.{field}"
                     );
                 }
-                assert_eq!(settings.effective_jobs, settings.jobs, "{name}");
             }
             (expected, actual) => panic!("{name}: expected {expected:?}, got {actual:?}"),
         }
@@ -59,43 +57,39 @@ fn make_settings_match_every_frozen_make_plan_case() {
 }
 
 #[test]
-fn native_job_cap_substitutes_effective_value_and_is_reported_in_the_plan() {
+fn configured_jobs_are_substituted_exactly_like_the_frozen_contract() {
     let root = tempfile::tempdir().unwrap();
-    let table = json!({"enabled":true,"jobs":5,"shadow_dir":"out","build_argv":["make","-j","{jobs}","all"],"configure_argv":["make","--jobs","{jobs}","configure"]});
-    let settings = make_settings(Some(&table), "release", "Makefile", 2).unwrap();
-    assert_eq!((settings.jobs, settings.effective_jobs), (5, 2));
-    assert_eq!(settings.build_argv, ["make", "-j", "2", "all"]);
+    let table = json!({"enabled":true,"jobs":64,"shadow_dir":"out","build_argv":["make","-j","{jobs}","all"],"configure_argv":["make","--jobs","{jobs}","configure"]});
+    let settings = make_settings(Some(&table), "release", "Makefile").unwrap();
+    assert_eq!(settings.jobs, 64);
+    assert_eq!(settings.build_argv, ["make", "-j", "64", "all"]);
     assert_eq!(
         settings.configure_argv,
-        ["make", "--jobs", "2", "configure"]
+        ["make", "--jobs", "64", "configure"]
     );
     let request = BuildRequest {
         system: "make".into(),
+        jobs: 64,
         make: Some(settings),
         ..Default::default()
     };
     let plan = plan_build(root.path(), &request).unwrap();
-    assert_eq!(plan.limitations.len(), 1, "{:?}", plan.limitations);
-    assert!(plan.limitations[0].contains("build.make.jobs=5 was capped to 2"));
-    // Jobs at or below the cap keep the frozen value and report nothing.
+    assert!(plan.limitations.is_empty(), "{:?}", plan.limitations);
+    assert_eq!(plan.tasks[1].argv, ["make", "-j", "64", "all"]);
     let one = make_settings(
         Some(&json!({"enabled":true,"build_argv":["make","-j","{jobs}"]})),
         "release",
         "Makefile",
-        2,
     )
     .unwrap();
-    assert_eq!(
-        (one.jobs, one.effective_jobs, one.shadow.as_str()),
-        (1, 1, "build/ici-make")
-    );
+    assert_eq!((one.jobs, one.shadow.as_str()), (1, "build/ici-make"));
     let request = BuildRequest {
         system: "make".into(),
+        jobs: 1,
         make: Some(one),
         ..Default::default()
     };
     let plan = plan_build(root.path(), &request).unwrap();
-    assert!(plan.limitations.is_empty());
     assert_eq!(plan.tasks.len(), 1);
     assert_eq!(plan.tasks[0].argv, ["make", "-j", "1"]);
     assert_eq!(plan.shadow, "build/ici-make");
@@ -117,19 +111,18 @@ fn plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir(
         json!(["make"]),
     ] {
         assert_eq!(
-            make_settings(Some(&table), "release", "Makefile", 2)
+            make_settings(Some(&table), "release", "Makefile")
                 .unwrap_err()
                 .message,
             "build.make.enabled must be true for the Make backend"
         );
     }
-    assert!(make_settings(None, "release", "Makefile", 2).is_err());
+    assert!(make_settings(None, "release", "Makefile").is_err());
     assert!(
         make_settings(
             Some(&json!({"enabled":true,"build_argv":["make"]})),
             "link-reachability",
             "Makefile",
-            2
         )
         .is_err()
     );
@@ -137,7 +130,6 @@ fn plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir(
         Some(&json!({"enabled":true,"build_argv":["make"],"shadow_dir":"out"})),
         "release",
         "Makefile",
-        2,
     )
     .unwrap();
     let error = plan_build(
@@ -218,7 +210,7 @@ fn project(root: &Path) {
     .unwrap();
 }
 fn settings(table: Value, variant: &str) -> ici_cpp::MakeSettings {
-    let mut settings = make_settings(Some(&table), variant, "Makefile", 2).unwrap();
+    let mut settings = make_settings(Some(&table), variant, "Makefile").unwrap();
     for argv in [
         &mut settings.configure_argv,
         &mut settings.clean_argv,
@@ -239,7 +231,7 @@ fn execute(
         system: "make".into(),
         variant: variant.into(),
         project: settings.workdir.clone(),
-        jobs: settings.effective_jobs as usize,
+        jobs: settings.jobs as usize,
         make: Some(settings),
         ..Default::default()
     };
@@ -255,11 +247,11 @@ fn execute(
 
 #[test]
 #[ignore = "explicit actual GNU Make preparation acceptance (ICI_TEST_MAKE, ICI_TEST_CXX)"]
-fn actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow() {
+fn actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow() {
     let root = tempfile::tempdir().unwrap();
     let root_path = root.path().canonicalize().unwrap();
     project(&root_path);
-    let table = json!({"enabled":true,"jobs":4,"shadow_dir":"out","configure_argv":["make","configure"],"clean_argv":["make","clean"],"build_argv":["make","-j","{jobs}","all"],"coverage_build_argv":["make","coverage"]});
+    let table = json!({"enabled":true,"jobs":2,"shadow_dir":"out","configure_argv":["make","configure"],"clean_argv":["make","clean"],"build_argv":["make","-j","{jobs}","all"],"coverage_build_argv":["make","coverage"]});
     let outcomes = execute(&root_path, settings(table.clone(), "release"), "release").unwrap();
     assert_eq!(
         outcomes
@@ -284,7 +276,7 @@ fn actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_s
         "configure\nclean\n"
     );
     let flags = fs::read_to_string(out.join("flags.txt")).unwrap();
-    assert!(flags.contains("j2") && !flags.contains("j4"), "{flags}");
+    assert!(flags.contains("j2"), "{flags}");
     assert!(out.join("app").is_file() && out.join(".ici-owner.json").is_file());
     // Rerun adopts the owned shadow; the coverage variant shares it without ownership mismatch.
     assert!(
@@ -315,6 +307,16 @@ fn actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_s
             .all(|outcome| outcome.prerequisite_succeeded())
     );
     assert!(!out.join(".ici-owner.json").exists() && out.join("app").is_file());
+    // The owner record lives outside the build-id namespace.
+    let records = fs::read_dir(root_path.join(".ici/rust-v1/owners/make"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .collect::<Vec<_>>();
+    assert!(
+        records.len() == 1 && records[0].ends_with(".json") && records[0].len() == 37,
+        "{records:?}"
+    );
+    assert!(!root_path.join(".ici/rust-v1/build/make-owners").exists());
     assert!(
         execute(&root_path, settings(wipe, "release"), "release")
             .unwrap()
