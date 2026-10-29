@@ -727,6 +727,41 @@ fn prepare_resolved_omitting(
                                 }
                                 context_preparations.push(preparation);
                             }
+                            Err(direct_reason)
+                                if variant == "release"
+                                    && selected.contains("cpp.artifact")
+                                    && direct_reason.starts_with("C++ adapter required:") =>
+                            {
+                                // Frozen BuildEngine `_record_error`: one BuildError at ".".
+                                plan.limitations.push(format!(
+                                    "{} {variant}: {direct_reason}; generic g++ was not invoked",
+                                    component.id
+                                ));
+                                let located = component
+                                    .files
+                                    .iter()
+                                    .find(|path| file_language(path) == Some("cpp"))
+                                    .cloned()
+                                    .unwrap_or_else(|| "ici.toml".into());
+                                for check in plan.checks.iter_mut().filter(|check| {
+                                    check.component_id == component.id
+                                        && check.check.id == "cpp.artifact"
+                                }) {
+                                    cpp.fail_preparation(
+                                        &check.task_id,
+                                        crate::cpp::build_failure(
+                                            &check.task_id,
+                                            ".",
+                                            &located,
+                                            true,
+                                            &direct_reason,
+                                            &direct_reason,
+                                        ),
+                                    );
+                                    check.check.needs.clear();
+                                    check.work = Work::Internal;
+                                }
+                            }
                             Err(direct_reason) => plan.limitations.push(format!(
                                 "{} {variant}: no automatic preparation available: {reason}; {direct_reason}",
                                 component.id

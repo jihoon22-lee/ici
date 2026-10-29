@@ -1325,6 +1325,99 @@ pub fn preparation_dependent(check_id: &str, variant: &str, has_tasks: bool) -> 
     }
 }
 
+/// Frozen `_count_adapter_artifacts` (no shared analysis context under `ici build`): regular,
+/// non-symlink files in the shadow tree that are linked binaries or `!<arch>` static archives,
+/// objects and coverage notes excluded. `None` when the walk cannot be completed.
+pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
+    const MAGICS: [&[u8]; 6] = [
+        b"\x7fELF",
+        b"MZ",
+        b"\xfe\xed\xfa\xce",
+        b"\xfe\xed\xfa\xcf",
+        b"\xce\xfa\xed\xfe",
+        b"\xcf\xfa\xed\xfe",
+    ];
+    let mut pending = vec![shadow.to_path_buf()];
+    let (mut visited, mut count) = (0usize, 0usize);
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(&directory).ok()? {
+            let entry = entry.ok()?;
+            visited += 1;
+            if visited > 100_000 {
+                return None;
+            }
+            let kind = entry.file_type().ok()?;
+            let path = entry.path();
+            if kind.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            let extension = path.extension().and_then(|value| value.to_str());
+            if !kind.is_file() || matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
+                continue;
+            }
+            let mut prefix = [0u8; 8];
+            let read = std::fs::File::open(&path)
+                .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
+                .unwrap_or(0);
+            let prefix = &prefix[..read];
+            let archive =
+                matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
+            if archive || MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
+                count += 1;
+            }
+        }
+    }
+    Some(count)
+}
+
+/// Frozen `_build_with_adapter` success target: `BuildAdapter[<backend>]` PASS at the descriptor,
+/// "<select_backend reason>; produced N artifact(s)".
+pub fn legacy_adapter_success(
+    root: &Path,
+    component_root: &str,
+    system: &str,
+    descriptor: &str,
+    produced: usize,
+) -> InspectionTarget {
+    let base = crate::files::under(root, component_root);
+    let name = Path::new(descriptor)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(descriptor)
+        .to_owned();
+    let reason = match system {
+        "cmake" => {
+            let mut reason =
+                "CMakeLists.txt at the project root selected the CMake backend".to_string();
+            let mut projects: Vec<String> = std::fs::read_dir(&base)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_file()))
+                .filter_map(|entry| entry.file_name().into_string().ok())
+                .filter(|name| name.ends_with(".pro"))
+                .collect();
+            projects.sort();
+            if let Some(first) = projects.first() {
+                reason.push_str(&format!("; {first} was present and passed over"));
+            }
+            reason
+        }
+        "qmake" => format!("{name} at the project root selected the qmake backend"),
+        _ => format!("{name} at the project root selected the configured Make backend"),
+    };
+    let backend = match system {
+        "cmake" => "cmake",
+        "qmake" => "qmake",
+        _ => "make",
+    };
+    let mut target = InspectionTarget::at(&name, 1);
+    target.target_name = format!("BuildAdapter[{backend}]");
+    target.message = format!("{reason}; produced {produced} artifact(s)");
+    target
+}
+
 /// Frozen sanitizer engines compile only `tests/**/*.cpp` under the project root. `true` means
 /// the walk proved there is none; a symlinked `tests`, an unreadable entry or a walk over its
 /// bounds is not proof, so the normal (blocking) preparation path decides those.

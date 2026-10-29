@@ -1,0 +1,306 @@
+{
+ "cases": {
+  "cmake": {
+   "changes": {},
+   "fixture": "package-cmake",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "targets": [
+     {
+      "file_path": "CMakeLists.txt",
+      "message": "CMakeLists.txt at the project root selected the CMake backend; produced 3 artifact(s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "BuildAdapter[cmake]"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "declared-artifacts": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.artifacts]\nreport=['reports/*.txt']\n",
+    "reports/summary.txt": "ok\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "ERROR",
+    "stdout": "✘ declared artifacts require a shared analysis context",
+    "summary": "declared artifacts require a shared analysis context",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "Compiled C++17 binary (<seconds>s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppBinary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": ".",
+      "message": "declared artifacts require a shared analysis context",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  },
+  "direct": {
+   "changes": {},
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "Compiled C++17 binary (<seconds>s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppBinary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "direct-compile-failure": {
+   "changes": {
+    "src/main.cpp": "int main() { return missing; }\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "stdout": "✘ Build did not produce a complete artifact set",
+    "summary": "Build did not produce a complete artifact set",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "C++ compilation failed: <work>/project/src/main.cpp: In function ‘int main()’:\n<work>/project/src/main.cpp:1:21: error: ‘missing’ was not declared in this scope\n    1 |",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "CppBinary"
+     }
+    ]
+   }
+  },
+  "main-count": {
+   "changes": {
+    "src/main.cpp": "int helper() { return 1; }\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "ERROR",
+    "stdout": "✘ C++ adapter required: expected exactly one int main definition, found 0",
+    "summary": "C++ adapter required: expected exactly one int main definition, found 0",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "C++ adapter required: expected exactly one int main definition, found 0",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  },
+  "make": {
+   "changes": {},
+   "fixture": "package-make",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "targets": [
+     {
+      "file_path": "Makefile",
+      "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "BuildAdapter[make]"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "make-failure": {
+   "changes": {
+    "Makefile": "all:\n\texit 5\n"
+   },
+   "fixture": "package-make",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "stdout": "✘ Build did not produce a complete artifact set",
+    "summary": "Build did not produce a complete artifact set",
+    "targets": [
+     {
+      "file_path": "Makefile",
+      "message": "Make build command did not complete successfully",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "BuildAdapter"
+     }
+    ]
+   }
+  },
+  "no-artifacts": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "src/main.cpp": null
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "stdout": "✘ Build did not produce a complete artifact set",
+    "summary": "Build did not produce a complete artifact set",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No Python library, launcher, or C++ binary artifact was created",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "BuildArtifacts"
+     }
+    ]
+   }
+  },
+  "python": {
+   "changes": {
+    "ici.toml": "[project]\ntype='python'\nsource_dirs=['src']\n",
+    "pyproject.toml": "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\npkg-tool='pkg.cli:main'\n",
+    "src/main.cpp": null,
+    "src/pkg/__init__.py": "",
+    "src/pkg/cli.py": "def main():\n    return 0\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/lib/pkg/__init__.py",
+      "message": "Packaged Python source pkg/__init__.py",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonLibrary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/lib/pkg/cli.py",
+      "message": "Packaged Python source pkg/cli.py",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonLibrary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg-tool",
+      "message": "Callable launcher for pkg.cli:main",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonLauncher"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "unadapted-makefile": {
+   "changes": {
+    "Makefile": "all:\n\ttrue\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "ERROR",
+    "stdout": "✘ Makefile at the project root has no configured adapter; CMake, qmake, and \nexplicitly enabled Make are supported, and generic g++ was not invoked",
+    "summary": "Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
