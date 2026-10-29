@@ -698,6 +698,35 @@ fn prepare_resolved_omitting(
             }
         }
     }
+    if !crate::legacy::is_legacy(invocation)
+        && (matches!(
+            invocation.command().as_str(),
+            "next plan" | "doctor" | "next doctor"
+        ) || (invocation.command() == "analyze" && invocation.flag("plan")))
+    {
+        // Doctor and plan run nothing, but static preparation refusals (an unowned or symlinked
+        // shadow, a missing or symlinked workdir, an unavailable configured executable) are
+        // plan-time facts users look for here.
+        let binary = std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
+        for component in project
+            .components
+            .iter()
+            .filter(|component| component.languages.iter().any(|language| language == "cpp"))
+        {
+            if let Err(crate::export_context::PreparationUnavailable::Misconfigured {
+                reason,
+                descriptor,
+            }) =
+                crate::export_context::plan_preparation(&project, component, environment, &binary)
+            {
+                plan.limitations.push(format!(
+                    "{} release: declared release build cannot be prepared{}: {reason} (static preparation preflight; nothing was built)",
+                    component.id,
+                    descriptor.map(|path| format!(" ({path})")).unwrap_or_default()
+                ));
+            }
+        }
+    }
     let mut preparation_owners = BTreeMap::new();
     for preparation in &context_preparations {
         let key = (&preparation.build.id, &preparation.build.variant);

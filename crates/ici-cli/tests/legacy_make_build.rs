@@ -313,3 +313,61 @@ fn legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compili
     assert!(!root.path().join("build").exists());
     assert!(!root.path().join(".ici/rust-v1/build").exists());
 }
+
+#[test]
+#[ignore = "explicit actual GNU Make static preparation preflight (ICI_TEST_MAKE, ICI_TEST_CXX)"]
+fn doctor_and_next_plan_show_static_preparation_refusals_without_building() {
+    for (make, reason, pyz) in [
+        (
+            "workdir='native'\nbuild_argv=['make','all']",
+            "build.make.workdir \"native\" must be an existing project directory",
+            false,
+        ),
+        (
+            "build_argv=['/nonexistent/make','all']",
+            "configured executable is unavailable: /nonexistent/make",
+            false,
+        ),
+        (
+            "build_argv=['make','all']",
+            "already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir",
+            true,
+        ),
+    ] {
+        let root = fixture(make);
+        if pyz {
+            fs::create_dir_all(root.path().join("build/ici-make")).unwrap();
+            fs::write(root.path().join("build/ici-make/old.o"), "keep").unwrap();
+        }
+        for command in [&["ici", "doctor"][..], &["ici", "next", "plan"][..]] {
+            let invocation = registry::parse(command.iter().copied()).unwrap();
+            let output = commands::dispatch(&invocation, root.path(), &environment()).unwrap();
+            let text = output
+                .stdout
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            assert!(
+                text.contains("declared release build cannot be prepared (Makefile)")
+                    && text.contains(reason)
+                    && text.contains("nothing was built"),
+                "{make} {command:?}: {}",
+                output.stdout
+            );
+            if command[1] == "doctor" {
+                assert!(text.contains("prepare: blocked"), "{}", output.stdout);
+            }
+        }
+        // Static facts only: no build, no shadow marker, no result, pyz bytes kept.
+        assert!(!root.path().join(".ici").exists(), "{make}");
+        if pyz {
+            assert_eq!(
+                fs::read_to_string(root.path().join("build/ici-make/old.o")).unwrap(),
+                "keep"
+            );
+            assert!(!root.path().join("build/ici-make/.ici-owner.json").exists());
+        } else {
+            assert!(!root.path().join("build").exists(), "{make}");
+        }
+    }
+}
