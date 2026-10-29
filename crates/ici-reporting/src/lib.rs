@@ -7,7 +7,9 @@ pub use json::{canonical_json, script_json, strict_json};
 pub use stored::{LegacyDocument, LegacyKind, StoredResult};
 mod projection;
 mod safe;
-pub use projection::{ProjectionContext, legacy_engine, legacy_projection};
+pub use projection::{
+    ProjectionContext, legacy_engine, legacy_no_tests_collected, legacy_projection,
+};
 mod facets;
 mod render;
 mod view;

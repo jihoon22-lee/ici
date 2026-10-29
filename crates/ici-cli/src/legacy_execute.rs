@@ -167,7 +167,13 @@ pub fn command(
             .find(|result| result["engine_name"] == family)
             .cloned()
             .ok_or_else(|| CliError(format!("{family}: no applicable language/check selected")))?;
-        if run.result.gate.selected != GateVerdict::Incomplete {
+        if family == "test"
+            && let Some(languages) = no_tests_collected(&root, &value)
+        {
+            // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
+            ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
+            exit_code = 1;
+        } else if run.result.gate.selected != GateVerdict::Incomplete {
             exit_code = exit_code.max(match value["status"].as_str() {
                 Some("FAIL" | "ERROR") => 1,
                 Some("SKIP") => 2,
@@ -391,4 +397,51 @@ pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) ->
         mode,
     )
     .map_err(error)
+}
+
+/// The frozen legacy test engine attempts a suite only for `tests/**/test_*.py` or
+/// `tests/**/*.cpp`. When no such file exists and every native test/coverage check was blocked
+/// before running, return the languages the frozen engine would report as having no tests.
+fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    if checks.is_empty() || checks.iter().any(|check| check["state"] != "BLOCKED") {
+        return None;
+    }
+    let mut pending = vec![root.join("tests")];
+    let mut visited = 0usize;
+    while let Some(directory) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            visited += 1;
+            if visited > 100_000 {
+                return None;
+            }
+            let Ok(metadata) = std::fs::symlink_metadata(entry.path()) else {
+                return None;
+            };
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if metadata.is_dir() {
+                pending.push(entry.path());
+            } else if (name.starts_with("test_") && name.ends_with(".py")) || name.ends_with(".cpp")
+            {
+                return None;
+            }
+        }
+    }
+    let mut languages = vec![];
+    for (prefix, label) in [("python.", "Python"), ("cpp.", "C++")] {
+        if checks.iter().any(|check| {
+            check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with(prefix))
+                && !check["summary"]
+                    .as_str()
+                    .is_some_and(|summary| summary.starts_with("no sources in scope"))
+        }) {
+            languages.push(label);
+        }
+    }
+    Some(languages)
 }
