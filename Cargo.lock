@@ -963,6 +963,7 @@ name = "ici-reporting"
 version = "0.14.0-dev.0"
 dependencies = [
  "chrono",
+ "flate2",
  "ici-domain",
  "ici-execution",
  "percent-encoding",

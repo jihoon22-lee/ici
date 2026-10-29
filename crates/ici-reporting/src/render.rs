@@ -533,7 +533,32 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         html(&view.verdict())
     );
     out.push_str("<h2>Scope, execution and publication</h2>");
-    rich(&view.axes(), &mut out)?;
+    let mut axes = view.axes();
+    let checks = axes.as_object_mut().and_then(|axes| axes.remove("checks"));
+    rich(&axes, &mut out)?;
+    if let (Some(Value::Array(checks)), Some(run)) = (checks, view.run_pointer()) {
+        out.push_str("<h3>Selected checks</h3><div class=scroll><table><tr><th>check</th><th>component</th><th>state</th><th>evidence complete</th><th>variant</th></tr>");
+        for check in &checks {
+            out.push_str("<tr data-search-row>");
+            for key in [
+                "task_id",
+                "component_id",
+                "state",
+                "evidence_complete",
+                "variant",
+            ] {
+                let _ = write!(out, "<td>{}</td>", html(&plain(&check[key])));
+            }
+            out.push_str("</tr>");
+        }
+        out.push_str("</table></div>");
+        lazy(
+            &mut out,
+            &format!("{run}/checks"),
+            None,
+            "Complete check records",
+        );
+    }
     if options.source_root.is_some() {
         out.push_str("<label>Open source with <select id=editor-select><option value=vscode>VS Code</option><option value=cursor>Cursor</option><option value=pycharm>PyCharm / IntelliJ</option><option value=sublime>Sublime Text</option><option value=file>Browser file</option><option value=copy>Copy location</option></select></label>");
     }
@@ -605,13 +630,11 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
             out,
             "<details><summary>{informational_count} informational inventory records</summary>"
         );
-        for finding in view
-            .findings
-            .iter()
-            .filter(|finding| !suppressed(finding) && informational(finding))
-        {
-            finding_card(finding, &mut out)?;
-        }
+        cards(
+            &view,
+            |finding| !suppressed(finding) && informational(finding),
+            &mut out,
+        )?;
         out.push_str("</details>");
     }
     if suppressed_count > 0 {
@@ -619,6 +642,7 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
             out,
             "<details><summary>{suppressed_count} suppressed findings</summary>"
         );
+        // Suppressed findings stay fully visible once their section is opened.
         for finding in view.findings.iter().filter(|finding| suppressed(finding)) {
             finding_card(finding, &mut out)?;
         }
@@ -633,7 +657,7 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         out.push_str("<h2>Baseline comparison</h2>");
         rich(&baseline_preview(view.baseline()), &mut out)?;
     }
-    crate::facets::render(&view.engines, &mut out)?;
+    crate::facets::render(&view.engines, &view.engine_pointers, &mut out)?;
     for key in [
         "support_matrix",
         "capability_inventory",
@@ -650,8 +674,9 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         out.push_str("<h2>Supporting external evidence — NOT_EVALUATED</h2>");
         rich(&safe::redact(&document.to_value()?), &mut out)?;
     }
-    // Complete escaped payload survives the presentation, including unknown producer fields.
-    let saved_json = crate::script_json(&view.document)?;
+    // Complete payload survives the presentation, including unknown producer fields. It is
+    // stored once, losslessly compressed; closed sections are built from it on demand.
+    let saved_json = ici_domain::canonical_json(&view.document)?;
     if let Some(config) = navigation {
         let _ = write!(
             out,
@@ -673,9 +698,10 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     }
     let _ = writeln!(
         out,
-        "<details><summary>Complete saved result</summary><pre id=raw-result></pre></details><script id=ici-result type=application/json>{}</script><script>{}</script></main></body></html>",
-        saved_json,
-        include_str!("../assets/native.js")
+        "<details><summary>Complete saved result</summary><pre id=raw-result></pre></details><script id=ici-result type=application/octet-stream data-encoding=deflate-raw+base64 data-bytes={}>{}</script><script>{}</script></main></body></html>",
+        saved_json.len(),
+        packed(saved_json.as_bytes())?,
+        script()
     );
     if out.len() > 128 * 1024 * 1024 {
         return Err(ReportError(
@@ -683,6 +709,82 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         ));
     }
     Ok(out)
+}
+/// A closed section whose content the page builds from the embedded saved result.
+pub(crate) fn lazy(out: &mut String, pointer: &str, indices: Option<&[usize]>, summary: &str) {
+    let _ = write!(out, "<details data-lazy=\"{}\"", html(pointer));
+    if let Some(indices) = indices {
+        let indices: Vec<String> = indices.iter().map(usize::to_string).collect();
+        let _ = write!(out, " data-indices=\"{}\"", indices.join(" "));
+    }
+    let _ = write!(out, "><summary>{}</summary></details>", html(summary));
+}
+/// Cards whose saved finding needs no display-time decoration are built on demand.
+fn cards(view: &View, select: impl Fn(&Value) -> bool, out: &mut String) -> Result<()> {
+    let mut deferred = vec![];
+    for (finding, (pointer, engine)) in view.findings.iter().zip(&view.finding_pointers) {
+        if !select(finding) {
+            continue;
+        }
+        let mut saved = pointer_value(&view.document, pointer).clone();
+        if let Some(engine) = engine {
+            saved["evidence"] = pointer_value(&view.document, engine)["evidence"].clone();
+        }
+        if &saved == finding {
+            deferred.push(json!([pointer, engine]));
+        } else {
+            finding_card(finding, out)?;
+        }
+    }
+    if !deferred.is_empty() {
+        let _ = write!(
+            out,
+            "<div data-lazy-findings=\"{}\"></div>",
+            html(&ici_domain::canonical_json(&Value::Array(deferred))?)
+        );
+    }
+    Ok(())
+}
+fn pointer_value<'a>(document: &'a Value, pointer: &str) -> &'a Value {
+    document.pointer(pointer).unwrap_or(&Value::Null)
+}
+/// Raw DEFLATE (RFC 1951) in standard base64; browsers inflate it with DecompressionStream.
+fn packed(bytes: &[u8]) -> Result<String> {
+    use std::io::Write as _;
+    let mut encoder =
+        flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder
+        .write_all(bytes)
+        .map_err(|error| ReportError(format!("HTML payload compression failed: {error}")))?;
+    let compressed = encoder
+        .finish()
+        .map_err(|error| ReportError(format!("HTML payload compression failed: {error}")))?;
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut text = String::with_capacity(compressed.len().div_ceil(3) * 4);
+    for chunk in compressed.chunks(3) {
+        let value = chunk.iter().enumerate().fold(0u32, |value, (index, byte)| {
+            value | u32::from(*byte) << (16 - 8 * index)
+        });
+        for index in 0..4 {
+            text.push(if index <= chunk.len() {
+                char::from(ALPHABET[(value >> (18 - 6 * index)) as usize & 63])
+            } else {
+                '='
+            });
+        }
+    }
+    Ok(text)
+}
+/// Page script with leading indentation removed; it contains no multi-line literals.
+fn script() -> &'static str {
+    static SCRIPT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    SCRIPT.get_or_init(|| {
+        include_str!("../assets/native.js")
+            .lines()
+            .map(str::trim_start)
+            .collect::<Vec<_>>()
+            .join("\n")
+    })
 }
 fn group_card(group: &crate::IssueGroup, out: &mut String) -> Result<()> {
     let mut finding = group
@@ -913,5 +1015,150 @@ mod baseline_preview_tests {
         assert_eq!(preview["details"].as_array().unwrap().len(), 20);
         assert_eq!(preview["omitted_changed"], 4);
         assert_eq!(preview["omitted_unchanged"], 1);
+    }
+}
+
+#[cfg(test)]
+mod on_demand_tests {
+    use super::{View, finding_card, rich};
+    use crate::{RenderOptions, StoredResult, render_html};
+    use serde_json::Value;
+    use std::path::Path;
+
+    fn text(html: &str) -> String {
+        let tags = regex::Regex::new("<[^>]*>").unwrap();
+        tags.replace_all(html, "")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&amp;", "&")
+    }
+    /// Browsers keep the JSON number, not its spelling (`5.0` reads back as `5`).
+    fn numbers(value: &Value) -> Value {
+        match value {
+            Value::Number(number) => match number.as_f64() {
+                // Integral floats are spelled `1.0` by the server and `1` by the browser.
+                Some(float) if float.fract() == 0.0 && float.abs() < 9.0e15 => {
+                    serde_json::json!(float as i64)
+                }
+                float => serde_json::json!(float),
+            },
+            Value::Array(items) => Value::Array(items.iter().map(numbers).collect()),
+            Value::Object(items) => Value::Object(
+                items
+                    .iter()
+                    .map(|(key, item)| (key.clone(), numbers(item)))
+                    .collect(),
+            ),
+            _ => value.clone(),
+        }
+    }
+    fn hydrated(html: &str, query: &str) -> Value {
+        let node = std::env::var("ICI_TEST_NODE")
+            .expect("ICI_TEST_NODE must name the Node.js used for the DOM harness");
+        let directory = tempfile::tempdir().unwrap();
+        let page = directory.path().join("report.html");
+        std::fs::write(&page, html).unwrap();
+        let harness = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/rust-parity/reporting/lazy-dom-check.cjs");
+        let output = std::process::Command::new(node)
+            .arg(harness)
+            .arg(&page)
+            .arg(query)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        serde_json::from_slice(&output.stdout).unwrap()
+    }
+
+    #[test]
+    #[ignore = "needs ICI_TEST_NODE; run with --include-ignored"]
+    fn on_demand_sections_show_exactly_the_server_rendered_text() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests");
+        for (fixture, query) in [
+            (
+                "rust-parity/reporting/budget-one-file/details.json",
+                "main.py",
+            ),
+            (
+                "rust-parity/reporting/rich-19-families.json",
+                "unused_function",
+            ),
+            ("fixtures/ici-next/run-success.json", "zzz-no-match"),
+        ] {
+            let bytes = std::fs::read(root.join(fixture)).unwrap();
+            let stored = StoredResult::from_bytes(&bytes).unwrap();
+            let html = render_html(&stored, &RenderOptions::default()).unwrap();
+            let view = View::new(&stored).unwrap();
+            let page = hydrated(&html, query);
+            assert_eq!(
+                numbers(&page["saved"]),
+                numbers(&view.document),
+                "{fixture}: inflated payload"
+            );
+            assert_eq!(
+                page["declared_bytes"].as_u64().unwrap() as usize,
+                ici_domain::canonical_json(&view.document).unwrap().len()
+            );
+            for section in page["sections"].as_array().unwrap() {
+                assert_eq!(section["state"], "true", "{fixture}: {section}");
+                let pointer = section["pointer"].as_str().unwrap();
+                let mut value = numbers(view.document.pointer(pointer).unwrap());
+                if let Some(indices) = section["indices"].as_str() {
+                    value = Value::Array(
+                        indices
+                            .split(' ')
+                            .map(|index| value[index.parse::<usize>().unwrap()].clone())
+                            .collect(),
+                    );
+                }
+                let mut expected = String::new();
+                rich(&value, &mut expected).unwrap();
+                assert_eq!(
+                    section["text"].as_str().unwrap(),
+                    text(&expected),
+                    "{fixture}: {pointer}"
+                );
+            }
+            for list in page["cards"].as_array().unwrap() {
+                assert_eq!(list["state"], "true");
+                for (pair, shown) in list["pointers"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .zip(list["texts"].as_array().unwrap())
+                {
+                    let index = view
+                        .finding_pointers
+                        .iter()
+                        .position(|(pointer, _)| pair[0] == pointer.as_str())
+                        .unwrap();
+                    let mut expected = String::new();
+                    finding_card(&numbers(&view.findings[index]), &mut expected).unwrap();
+                    assert_eq!(shown.as_str().unwrap(), text(&expected), "{fixture}");
+                }
+            }
+            let filtered = &page["filtered"];
+            assert!(filtered["total"].as_u64().unwrap() > 0, "{fixture}");
+            if query == "zzz-no-match" {
+                assert_eq!(filtered["shown"], 0);
+            } else {
+                assert!(
+                    filtered["shown"].as_u64().unwrap() > 0,
+                    "{fixture}: {filtered}"
+                );
+            }
+            println!(
+                "{fixture}: html={} sections={} card-lists={} filter={filtered}",
+                html.len(),
+                page["sections"].as_array().unwrap().len(),
+                page["cards"].as_array().unwrap().len()
+            );
+        }
     }
 }

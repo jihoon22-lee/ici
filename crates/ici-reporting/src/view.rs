@@ -51,6 +51,9 @@ pub(crate) struct View {
     pub engines: Vec<Value>,
     pub findings: Vec<Value>,
     pub finding_engines: Vec<String>,
+    /// JSON pointers into `document`: each engine, and each finding with its engine.
+    pub engine_pointers: Vec<String>,
+    pub finding_pointers: Vec<(String, Option<String>)>,
 }
 impl View {
     pub fn new(stored: &StoredResult) -> Result<Self> {
@@ -90,13 +93,47 @@ impl View {
                 )
             })
             .collect();
+        let engine_pointers: Vec<String> = if document["results"].is_array() {
+            (0..engines.len())
+                .map(|index| format!("/results/{index}"))
+                .collect()
+        } else {
+            engines.iter().map(|_| String::new()).collect()
+        };
+        let finding_pointers = if engines.is_empty() {
+            (0..findings.len())
+                .map(|index| (format!("/findings/{index}"), None))
+                .collect()
+        } else {
+            engines
+                .iter()
+                .zip(&engine_pointers)
+                .flat_map(|(engine, pointer)| {
+                    (0..engine["findings"].as_array().map_or(0, Vec::len)).map(move |index| {
+                        (format!("{pointer}/findings/{index}"), Some(pointer.clone()))
+                    })
+                })
+                .collect()
+        };
         Ok(Self {
             document,
             run,
             engines,
             findings,
             finding_engines,
+            engine_pointers,
+            finding_pointers,
         })
+    }
+    /// Pointer of the modern run inside `document`, when one is embedded.
+    pub fn run_pointer(&self) -> Option<&'static str> {
+        if self.document["schema_id"] == "ici.next.run" {
+            Some("")
+        } else if self.run.is_some() {
+            Some("/native_run")
+        } else {
+            None
+        }
     }
     pub fn verdict(&self) -> String {
         if let Some(run) = &self.run {
