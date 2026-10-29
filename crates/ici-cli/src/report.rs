@@ -18,27 +18,44 @@ pub fn read_bounded(path: &Path, maximum: usize) -> Result<Vec<u8>> {
     storage::read_bounded_regular(path, maximum).map_err(error)
 }
 
-pub fn details_path(result: &Path, run_id: &str) -> Result<PathBuf> {
+fn run_component(run_id: &str) -> String {
     if run_id.is_empty()
         || matches!(run_id, "." | "..")
         || !run_id
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.')
     {
-        let digest = ici_domain::sha256(run_id);
-        return Ok(result
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join("runs")
-            .join(&digest[7..])
-            .join("details.json"));
+        ici_domain::sha256(run_id)[7..].to_string()
+    } else {
+        run_id.to_string()
     }
-    Ok(result
+}
+/// Presentation archive of one saved run. It lives in ici's own `.ici/rust-v1` namespace
+/// beside the result, keyed by the result file name, so it never lands in a user's `runs/`.
+pub fn details_path(result: &Path, run_id: &str) -> Result<PathBuf> {
+    let parent = result.parent().unwrap_or(Path::new("."));
+    let namespace = if parent.ends_with(".ici/rust-v1") {
+        parent.to_path_buf()
+    } else {
+        parent.join(".ici/rust-v1")
+    };
+    let name = result
+        .file_name()
+        .ok_or_else(|| CliError("result path has no file name".into()))?;
+    Ok(namespace
+        .join("details")
+        .join(name)
+        .join(run_component(run_id))
+        .join("details.json"))
+}
+/// Placement written before 2026-10-29 (`<result dir>/runs/<run>/details.json`); read only.
+fn previous_details_path(result: &Path, run_id: &str) -> PathBuf {
+    result
         .parent()
         .unwrap_or(Path::new("."))
         .join("runs")
-        .join(run_id)
-        .join("details.json"))
+        .join(run_component(run_id))
+        .join("details.json")
 }
 pub fn save_details(run: &crate::execute::ExecutedRun) -> Result<PathBuf> {
     let details = ici_reporting::legacy_projection(
@@ -63,7 +80,14 @@ pub fn load(path: &Path) -> Result<StoredResult> {
     let stored =
         StoredResult::from_report_bytes(&read_bounded(path, 64 * 1024 * 1024)?).map_err(error)?;
     if let StoredResult::Run(run) = &stored {
-        let details = details_path(path, &run.run_id)?;
+        let mut details = details_path(path, &run.run_id)?;
+        if !details.try_exists().map_err(error)? {
+            // Results saved with the earlier placement stay readable; nothing is moved.
+            let previous = previous_details_path(path, &run.run_id);
+            if previous.try_exists().map_err(error)? {
+                details = previous;
+            }
+        }
         if details.try_exists().map_err(error)? {
             let saved = StoredResult::from_bytes(&read_bounded(&details, 64 * 1024 * 1024)?)
                 .map_err(error)?;
