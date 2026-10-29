@@ -40,8 +40,11 @@ pub(super) fn parse(
     Ok(parsed)
 }
 fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError> {
-    let diagnostic = Regex::new(r"^(.+?):([1-9]\d*):([1-9]\d*):\s*(fatal error|error|warning|note|remark):\s*(\S.*?)(?:\s+\[([^\]]+)\])?$").expect("constant regex");
+    // Frozen _TEXT_DIAGNOSTIC_RE: the column is optional (GCC -fno-show-column, old drivers).
+    let diagnostic = Regex::new(r"^(.+?):([1-9]\d*)(?::([1-9]\d*))?:\s*(fatal error|error|warning|note|remark):\s*(\S.*?)(?:\s+\[([^\]]+)\])?$").expect("constant regex");
     let fixit = Regex::new(r#"^fix-it:("(?:[^"\\]|\\.)*"):\{([1-9]\d*):([1-9]\d*)-([1-9]\d*):([1-9]\d*)\}:("(?:[^"\\]|\\.)*")$"#).expect("constant regex");
+    // Frozen _TEXT_CONTEXT_HEADER_RE / _TEXT_REQUIRED_FROM_RE ancillary GCC context lines.
+    let frozen_context = Regex::new(r"^(?:.+:\s+(?:At global scope|In (?:function|member function|constructor|destructor|lambda function|instantiation of)(?: .*)?):|.+:[1-9]\d*(?::[1-9]\d*)?:\s+required (?:from|by)\s+\S.*)$").expect("constant regex");
     let context = Regex::new(r"^(?:In file included from |\s+from |.*: In (?:function|member function|instantiation)|\d+ warnings? generated\.|\d+ errors? generated\.|Suppressed \d+ warnings?|Use -header-filter=|Error while processing |compilation terminated\.)").expect("constant regex");
     let mut parsed = Parsed::default();
     let mut saw_diagnostic = false;
@@ -56,7 +59,10 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
             saw_diagnostic = true;
             fixit_owner = true;
             let row = number(&captures[2])?;
-            let column = Some(number(&captures[3])?);
+            let column = captures
+                .get(3)
+                .map(|value| number(value.as_str()))
+                .transpose()?;
             if relative_location(&captures[1], &plan.context).is_err() {
                 if captures[4].contains("error") {
                     return Err(ProviderError("unattributed external compiler error".into()));
@@ -103,6 +109,7 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
             )?;
             add_edit(&mut parsed, edit)?;
         } else if context.is_match(line)
+            || frozen_context.is_match(line.trim())
             || (saw_diagnostic && line.starts_with(char::is_whitespace))
             || line.trim_start().starts_with(['^', '~', '|'])
         {

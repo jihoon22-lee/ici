@@ -4187,28 +4187,48 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:462:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-providers/src/diagnostics/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+        ],
+        "negative": [
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+        ],
+        "failure": [
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:462); enclosing frozen function _parse_text.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Actual frozen vs Rust `ici lint` on a GCC fixture with a throwing destructor: Rust failed the whole check ('unrecognized C++ diagnostic output: ... In destructor') where frozen parsed it. cargo test -p ici-providers --test diagnostics (19 passed) + strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-gcc-context.log"
+      ],
+      "comparison": "Frozen _parse_text grammar: optional column, 'At global scope'/'In function|member function|constructor|destructor|lambda function|instantiation of' headers and 'required from|by' lines are ancillary; anything else fails closed. Rust now accepts the same ancillary lines and column-less diagnostics, and still fails closed on other lines. After the fix the actual GCC fixture parses with the same files/lines/exit code.",
+      "difference_reason": "Open legacy lint projection: frozen targets are named Compiler:<rule> or C++Syntax with kind-prefixed messages ('warning: ...'), warnings stay WARN, notes are separate WARN targets, clean files get C++Syntax:fallback PASS, and ClangTidyUnavailable/ClazyUnavailable WARN targets are emitted; Rust legacy lint reports the native rule id, unprefixed message, FAIL for warnings and omits those targets."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:463:31": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-providers/src/diagnostics/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+        ],
+        "negative": [
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+        ],
+        "failure": [
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:463); enclosing frozen function _parse_text.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Actual frozen vs Rust `ici lint` on a GCC fixture with a throwing destructor: Rust failed the whole check ('unrecognized C++ diagnostic output: ... In destructor') where frozen parsed it. cargo test -p ici-providers --test diagnostics (19 passed) + strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-gcc-context.log"
+      ],
+      "comparison": "Frozen _parse_text grammar: optional column, 'At global scope'/'In function|member function|constructor|destructor|lambda function|instantiation of' headers and 'required from|by' lines are ancillary; anything else fails closed. Rust now accepts the same ancillary lines and column-less diagnostics, and still fails closed on other lines. After the fix the actual GCC fixture parses with the same files/lines/exit code.",
+      "difference_reason": "Open legacy lint projection: frozen targets are named Compiler:<rule> or C++Syntax with kind-prefixed messages ('warning: ...'), warnings stay WARN, notes are separate WARN targets, clean files get C++Syntax:fallback PASS, and ClangTidyUnavailable/ClazyUnavailable WARN targets are emitted; Rust legacy lint reports the native rule id, unprefixed message, FAIL for warnings and omits those targets."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:704:8": {
       "status": "not_started",
