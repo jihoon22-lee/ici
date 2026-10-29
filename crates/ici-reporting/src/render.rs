@@ -60,13 +60,16 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
             plain(&group.view["rule_id"]),
             plain(&group.view["message"])
         );
-        for location in group.view["locations"]
+        let locations = group.view["locations"]
             .as_array()
             .map(Vec::as_slice)
-            .unwrap_or_default()
-            .iter()
-            .take(options.max_locations)
-        {
+            .unwrap_or_default();
+        let shown = if options.verbose {
+            locations.len()
+        } else {
+            options.max_locations
+        };
+        for location in locations.iter().take(shown) {
             let _ = writeln!(
                 out,
                 "    {}:{}-{}",
@@ -74,6 +77,22 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
                 plain(&location["start_line"]),
                 plain(&location["end_line"])
             );
+        }
+        if locations.len() > shown {
+            let _ = writeln!(
+                out,
+                "    … {} additional location(s) hidden",
+                locations.len() - shown
+            );
+        }
+        for line in group.view["snippet"]
+            .as_str()
+            .unwrap_or("")
+            .trim()
+            .lines()
+            .take(if options.verbose { 4 } else { 1 })
+        {
+            let _ = writeln!(out, "    │ {line}");
         }
         let _ = writeln!(
             out,
@@ -90,24 +109,100 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
         projection.total_findings - visible,
         projection.groups.len() - visible_groups
     );
-    for limitation in projection.limitations {
+    for limitation in &projection.limitations {
         let _ = writeln!(out, "Display limitation: {limitation}");
     }
-    for engine in &view.engines {
+    let overview = crate::overview::overview(&view, &issue_counts(&view, &projection));
+    for (engine, row) in view.engines.iter().zip(
+        overview
+            .as_ref()
+            .and_then(|overview| overview["engines"].as_array())
+            .map(Vec::as_slice)
+            .unwrap_or_default(),
+    ) {
         let _ = writeln!(
             out,
-            "{} {}: {} ({} inspected targets)",
+            "{} {}: {} ({} inspected targets) · issues {} · score {} · cache {} · duration {}",
             plain(&engine["status"]),
             plain(&engine["engine_name"]),
             plain(&engine["summary"]),
-            engine["targets"].as_array().map_or(0, Vec::len)
+            engine["targets"].as_array().map_or(0, Vec::len),
+            plain(&row["issues"]),
+            plain(&row["score_or_metrics"]),
+            plain(&row["cache"]),
+            plain(&row["duration"])
+        );
+    }
+    if let Some(snapshot) = overview
+        .as_ref()
+        .map(|overview| &overview["capability_snapshot"])
+        .filter(|snapshot| !snapshot.is_null())
+    {
+        let _ = writeln!(
+            out,
+            "Tool capability snapshot: {} · counts {} · required policy {} · missing {} · incomplete {}",
+            plain(&snapshot["health"]),
+            crate::canonical_json(&snapshot["counts"])?,
+            plain(&snapshot["required_policy"]),
+            plain(&snapshot["missing_required"]),
+            plain(&snapshot["incomplete_required"])
         );
     }
     if !view.baseline().is_null() {
+        let preview = baseline_preview(view.baseline());
         let _ = writeln!(
             out,
-            "Baseline: {}",
-            crate::canonical_json(&baseline_preview(view.baseline()))?
+            "Baseline counts: {}",
+            crate::canonical_json(&preview["summary"])?
+        );
+        for row in preview["details"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+        {
+            if row.get("current").is_some() {
+                let _ = writeln!(
+                    out,
+                    "  {}{} {} / {} — {} · current {} · baseline {} · severity {}",
+                    plain(&row["state"]).to_uppercase(),
+                    if row["gated"] == true { " GATED" } else { "" },
+                    plain(&row["engine_name"]),
+                    plain(&row["rule_id"]),
+                    plain(&row["message"]),
+                    plain(&row["current"]),
+                    plain(&row["baseline"]),
+                    plain(&row["severity_transition"])
+                );
+            }
+        }
+        let _ = writeln!(out, "Baseline: {}", crate::canonical_json(&preview)?);
+    }
+    if let Some(tally) = overview
+        .as_ref()
+        .map(|overview| &overview["tally"])
+        .filter(|tally| tally.is_object())
+    {
+        let overview = overview.as_ref().expect("tally has overview");
+        let _ = writeln!(
+            out,
+            "Total Engines: {} (Pass: {}, Warn: {}, Fail: {}, Error: {}, Skip: {}){} | Cache Hits: {} | Total Time: {}",
+            plain(&tally["total"]),
+            plain(&tally["pass"]),
+            plain(&tally["warn"]),
+            plain(&tally["fail"]),
+            plain(&tally["error"]),
+            plain(&tally["skip"]),
+            tally["tem"]
+                .as_str()
+                .map_or_else(String::new, |tem| format!(" | TEM Score: {tem}")),
+            plain(&tally["cache_hits"]),
+            plain(&tally["total_time"])
+        );
+        let _ = writeln!(
+            out,
+            "Suite: {} — {}",
+            plain(&overview["suite_status"]),
+            plain(&overview["gate_reason"])
         );
     }
     for auxiliary in &options.auxiliary {
@@ -123,6 +218,34 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
         &safe::terminal(&ici_execution::redaction::redact_text(&out)),
         options.console_width,
     ))
+}
+/// Actionable findings per producing engine, as the frozen engine table counted them.
+fn issue_counts(
+    view: &View,
+    projection: &crate::IssueProjection,
+) -> std::collections::BTreeMap<String, usize> {
+    let mut counts = std::collections::BTreeMap::new();
+    for group in &projection.groups {
+        match group.view["producer_counts"]
+            .as_array()
+            .filter(|items| !items.is_empty())
+        {
+            Some(items) => {
+                for item in items {
+                    *counts.entry(plain(&item[0])).or_default() +=
+                        item[1].as_u64().unwrap_or(0) as usize;
+                }
+            }
+            None => {
+                for index in &group.source_indices {
+                    if let Some(engine) = view.finding_engines.get(*index) {
+                        *counts.entry(engine.clone()).or_default() += 1;
+                    }
+                }
+            }
+        }
+    }
+    counts
 }
 fn group_bucket(group: &Value, by: crate::ConsoleGroupBy) -> String {
     use crate::ConsoleGroupBy;
@@ -214,6 +337,59 @@ pub fn render_markdown(stored: &StoredResult, options: &RenderOptions) -> Result
         html(&crate::canonical_json(&view.axes())?)
     ));
     let projection = crate::issues::project(&view)?;
+    if let Some(overview) = crate::overview::overview(&view, &issue_counts(&view, &projection)) {
+        let tally = &overview["tally"];
+        if tally.is_object() {
+            let _ = writeln!(
+                out,
+                "> **Summary**: {} — {}. Total {} engines in {} (Pass {}, Warn {}, Fail {}, Error {}, Skip {}, Cache Hits {}){}\n",
+                md(&plain(&overview["suite_status"])),
+                md(&plain(&overview["gate_reason"])),
+                plain(&tally["total"]),
+                plain(&tally["total_time"]),
+                plain(&tally["pass"]),
+                plain(&tally["warn"]),
+                plain(&tally["fail"]),
+                plain(&tally["error"]),
+                plain(&tally["skip"]),
+                plain(&tally["cache_hits"]),
+                tally["tem"]
+                    .as_str()
+                    .map_or_else(String::new, |tem| format!(", TEM {}", md(tem)))
+            );
+        }
+        out.push_str("| Engine | Status | Summary | Issues | Score / Metrics | Cache | Duration |\n| --- | --- | --- | ---: | --- | --- | --- |\n");
+        for row in overview["engines"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+        {
+            let _ = writeln!(
+                out,
+                "| {} | {} | {} | {} | {} | {} | {} |",
+                md(&plain(&row["engine"])),
+                md(&plain(&row["status"])),
+                md(&plain(&row["summary"])),
+                plain(&row["issues"]),
+                md(&plain(&row["score_or_metrics"])),
+                plain(&row["cache"]),
+                plain(&row["duration"])
+            );
+        }
+        let snapshot = &overview["capability_snapshot"];
+        if snapshot.is_object() {
+            let _ = writeln!(
+                out,
+                "\n### Tool capability snapshot\n\n> **Health**: {} · **Inventory**: {} · **Required policy**: {} · **Missing required**: {} · **Incomplete required**: {}",
+                plain(&snapshot["health"]),
+                md(&crate::canonical_json(&snapshot["counts"])?),
+                md(&plain(&snapshot["required_policy"])),
+                md(&plain(&snapshot["missing_required"])),
+                md(&plain(&snapshot["incomplete_required"]))
+            );
+        }
+        out.push('\n');
+    }
     let _ = write!(
         out,
         "## Canonical issue groups\n\n{} original finding(s) shown as {} group(s). Saved JSON and baseline identities are unchanged.\n\n| Rule | Message | Original findings | Provenance |\n| --- | --- | --- | --- |\n",
@@ -322,10 +498,41 @@ pub fn render_markdown(stored: &StoredResult, options: &RenderOptions) -> Result
         );
     }
     if !view.baseline().is_null() {
+        let preview = baseline_preview(view.baseline());
+        let _ = write!(out, "\n## Baseline\n\n| Delta | Count |\n| --- | ---: |\n");
+        if let Some(summary) = preview["summary"].as_object() {
+            for (key, value) in summary {
+                let _ = writeln!(out, "| {} | {} |", md(key), md(&plain(value)));
+            }
+        }
+        let rows: Vec<_> = preview["details"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .filter(|row| row.get("current").is_some())
+            .collect();
+        if !rows.is_empty() {
+            out.push_str("\n| Delta | Engine / Rule | Current location | Baseline location | Severity transition | Gate | Message |\n| --- | --- | --- | --- | --- | --- | --- |\n");
+            for row in rows {
+                let _ = writeln!(
+                    out,
+                    "| {} | {} / {} | {} | {} | {} | {} | {} |",
+                    md(&plain(&row["state"]).to_uppercase()),
+                    md(&plain(&row["engine_name"])),
+                    md(&plain(&row["rule_id"])),
+                    md(&plain(&row["current"])),
+                    md(&plain(&row["baseline"])),
+                    md(&plain(&row["severity_transition"])),
+                    if row["gated"] == true { "GATED" } else { "—" },
+                    md(&plain(&row["message"]))
+                );
+            }
+        }
         let _ = write!(
             out,
-            "\n## Baseline\n\n<pre>{}</pre>\n",
-            html(&crate::canonical_json(&baseline_preview(view.baseline()))?)
+            "\n<pre>{}</pre>\n",
+            html(&crate::canonical_json(&preview)?)
         );
     }
     for document in &options.auxiliary {
@@ -568,6 +775,10 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         .filter(|finding| suppressed(finding))
         .count();
     let projection = crate::issues::project(&view)?;
+    if let Some(overview) = crate::overview::overview(&view, &issue_counts(&view, &projection)) {
+        out.push_str("<h2>Engines and suite tally</h2>");
+        rich(&overview, &mut out)?;
+    }
     let _ = write!(
         out,
         "<h2 id=issues>Issues ({})</h2><p>{} original findings in {} display groups; {suppressed_count} suppressed. Display grouping leaves JSON and baseline inventory unchanged.</p><input id=finding-filter type=search placeholder=\"Filter findings and targets\" aria-label=\"Filter findings and targets\"><span id=filter-count aria-live=polite></span>",
@@ -916,27 +1127,22 @@ fn baseline_preview(baseline: &Value) -> Value {
     let mut unchanged = Vec::new();
     if let Some(entries) = baseline["entries"].as_array() {
         let mut entries = entries.clone();
-        let order = |entry: &Value| {
-            let state = entry["state"].as_str().unwrap_or("").to_ascii_lowercase();
-            (
-                !entry["gated"].as_bool().unwrap_or(false),
-                match state.as_str() {
-                    "new" => 0,
-                    "moved" => 1,
-                    "resolved" => 2,
-                    "carried" => 3,
-                    "unchanged" => 4,
-                    _ => 5,
-                },
-                entry["engine_name"].as_str().unwrap_or("").to_owned(),
-                entry["fingerprint"].as_str().unwrap_or("").to_owned(),
-            )
-        };
-        entries.sort_by_key(order);
+        entries.sort_by_key(crate::overview::delta_order);
         for entry in entries {
-            let message = entry["message"].as_str().unwrap_or("");
-            let message = message.chars().take(512).collect::<String>();
-            let row = json!({"state":entry["state"],"gated":entry["gated"],"engine_name":entry["engine_name"],"rule_id":entry["rule_id"],"fingerprint":entry["fingerprint"],"current_location":entry["current_location"],"baseline_location":entry["baseline_location"],"baseline_severity":entry["baseline_severity"],"current_severity":entry["current_severity"],"message":message});
+            let severity = |key: &str| {
+                entry[key]
+                    .as_str()
+                    .map_or_else(|| "\u{2014}".to_string(), str::to_string)
+            };
+            let message = entry["message"]
+                .as_str()
+                .filter(|message| !message.is_empty())
+                .unwrap_or("\u{2014}");
+            let row = json!({"state":entry["state"],"gated":entry["gated"],"engine_name":entry["engine_name"],"rule_id":entry["rule_id"],"fingerprint":entry["fingerprint"],
+                "current":crate::overview::location_text(&entry["current_location"]),"baseline":crate::overview::location_text(&entry["baseline_location"]),
+                "severity_transition":format!("{} \u{2192} {}",severity("baseline_severity"),severity("current_severity")),
+                "regressed":entry["regressed"],"suppressed":entry["suppressed"],
+                "current_location":entry["current_location"],"baseline_location":entry["baseline_location"],"message":message});
             if entry["state"]
                 .as_str()
                 .is_some_and(|state| state.eq_ignore_ascii_case("unchanged"))
@@ -969,23 +1175,9 @@ fn baseline_preview(baseline: &Value) -> Value {
     let omitted_changed = changed_total - changed.len();
     let omitted_unchanged = unchanged_total - unchanged.len();
     changed.extend(unchanged);
-    let warnings = baseline["warnings"]
-        .as_array()
-        .map(Vec::as_slice)
-        .unwrap_or_default();
-    let visible_warnings = warnings
-        .iter()
-        .take(10)
-        .map(|warning| {
-            warning
-                .as_str()
-                .unwrap_or("")
-                .chars()
-                .take(512)
-                .collect::<String>()
-        })
-        .collect::<Vec<_>>();
-    json!({"state":baseline["state"],"origin":baseline["origin"],"reason":baseline["reason"],"source_path":baseline["source_path"],"fail_on_new":baseline["fail_on_new"],"gate_failed":baseline["gate_failed"],"warnings":visible_warnings,"omitted_warnings":warnings.len().saturating_sub(10),"counts":{"changed":changed_total,"unchanged":unchanged_total},"details":changed,"omitted_changed":omitted_changed,"omitted_unchanged":omitted_unchanged,"full_inventory":"The saved JSON report retains every baseline delta"})
+    json!({"state":baseline["state"],"origin":baseline["origin"],"reason":baseline["reason"],"source_path":baseline["source_path"],"fail_on_new":baseline["fail_on_new"],"gate_failed":baseline["gate_failed"],
+        "summary":crate::overview::baseline_summary(baseline),"warnings":baseline["warnings"],
+        "counts":{"changed":changed_total,"unchanged":unchanged_total},"details":changed,"omitted_changed":omitted_changed,"omitted_unchanged":omitted_unchanged,"full_inventory":"The saved JSON report retains every baseline delta"})
 }
 
 #[cfg(test)]
@@ -1006,7 +1198,14 @@ mod baseline_preview_tests {
         assert_eq!(preview["counts"]["changed"], 5);
         assert_eq!(preview["counts"]["unchanged"], 25);
         assert_eq!(preview["omitted_unchanged"], 22);
-        assert!(details[0]["message"].as_str().unwrap().len() <= 512);
+        // The frozen view printed each visible delta message in full.
+        assert_eq!(details[0]["message"].as_str().unwrap().len(), 2048);
+        assert_eq!(preview["summary"]["new"], 5);
+        assert_eq!(preview["summary"]["unchanged"], 25);
+        assert_eq!(
+            details[0]["severity_transition"],
+            "\u{2014} \u{2192} \u{2014}"
+        );
     }
     #[test]
     fn twenty_changed_rows_hide_all_unchanged_details() {

@@ -74,7 +74,7 @@ result remains the archive of record.
 `budget-one-file/` freezes the R8 budget fixture (`capture_cli_oracle.py`'s
 one-file Python project): the native `result.json`, its presentation archive
 `details.json`, and the frozen oracle's 7,096-byte HTML. The native report fell
-from 165,113 to 43,311 bytes against the `max(oracle×2, 64 KiB)` budget while
+from 165,113 to 45,900 bytes (43,311 before the engine table was added) against the `max(oracle×2, 64 KiB)` budget while
 every oracle-visible fact stays in visible markup (`tests/html_budget.rs`).
 
 Console output defaults to five groups per engine, four locations, and eighty
