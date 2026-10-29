@@ -106,3 +106,64 @@ fn every_renderer_states_the_frozen_gate_reason_scores_and_tally() {
         }
     }
 }
+
+#[test]
+fn resolved_historical_deltas_stay_visible_as_sarif_absent_results() {
+    let corpus = corpus();
+    let case = corpus["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["name"] == "baseline-gate")
+        .unwrap();
+    let stored = StoredResult::from_value(case["document"].clone()).unwrap();
+    let sarif = ici_reporting::sarif_document(&stored, &RenderOptions::default()).unwrap();
+    let results = sarif["runs"][0]["results"].as_array().unwrap();
+    // Frozen 6fe3e405 serialize_sarif emitted exactly one result here: the resolved delta.
+    let absent: Vec<_> = results
+        .iter()
+        .filter(|result| result["baselineState"] == "absent")
+        .collect();
+    assert_eq!(absent.len(), 1);
+    let result = absent[0];
+    assert_eq!(result["ruleId"], "ici.r");
+    assert_eq!(result["level"], "error");
+    assert_eq!(result["message"]["text"], "ici.r");
+    assert_eq!(
+        result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"],
+        "b.py"
+    );
+    assert_eq!(
+        result["locations"][0]["physicalLocation"]["region"]["startLine"],
+        1
+    );
+    for (key, value) in [
+        ("engine", "lint"),
+        ("category", "correctness"),
+        ("confidence", "low"),
+        ("delta_state", "resolved"),
+    ] {
+        assert_eq!(result["properties"][key], value);
+    }
+    assert_eq!(result["properties"]["delta_gated"], false);
+    // The saved baseline identity is kept so consumers can match the absent result.
+    assert_eq!(
+        result["partialFingerprints"]["ici.fingerprint"],
+        format!("sha256:{}", "b".repeat(64))
+    );
+    // A delta without a baseline location cannot be placed and is not invented.
+    let mut document = case["document"].clone();
+    document["baseline_comparison"]["entries"][1]["baseline_location"] = Value::Null;
+    document["baseline_comparison"]["entries"][1]["state"] = "new".into();
+    let stored = StoredResult::from_value(document);
+    if let Ok(stored) = stored {
+        let sarif = ici_reporting::sarif_document(&stored, &RenderOptions::default()).unwrap();
+        assert!(
+            sarif["runs"][0]["results"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|result| result["baselineState"] != "absent")
+        );
+    }
+}
