@@ -147,7 +147,7 @@
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
       ],
-      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
+      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
       "difference_reason": ""
     },
     "check:cpp.compile": {
@@ -189,7 +189,7 @@
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
       ],
-      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection.",
+      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
       "difference_reason": ""
     },
     "check:cpp.coverage": {
@@ -1007,7 +1007,7 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
@@ -1035,8 +1035,8 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
@@ -1044,7 +1044,7 @@
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
           "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
         ]
       },
@@ -1067,14 +1067,14 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ]
       },
       "evidence": [
@@ -1096,13 +1096,13 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ]
       },
       "evidence": [
@@ -1125,7 +1125,7 @@
       "fixtures": {
         "positive": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
@@ -1177,7 +1177,7 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
@@ -1206,9 +1206,9 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::native_job_cap_substitutes_effective_value_and_is_reported_in_the_plan",
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::configured_jobs_are_substituted_exactly_like_the_frozen_contract",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
@@ -1224,8 +1224,8 @@
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
       ],
-      "comparison": "Frozen jobs: integer 1..64 (bool/float/0/65 refused with the frozen message), default 1, substituted only into whole {jobs} tokens of every argv. Actual GNU Make sees -j2 for jobs=4/3 and 1 for the default.",
-      "difference_reason": "Native execution caps the substituted value at 2 parallel jobs (shared host jobs/thread limit). The configured value stays in the plan and a visible limitation 'build.make.jobs=N was capped to 2 ...' is recorded in BuildPlan.limitations and preparation effects; values <=2 are unchanged and report nothing."
+      "comparison": "Frozen jobs: integer 1..64 (bool/float/0/65 refused with the frozen message), default 1, substituted unchanged into whole {jobs} tokens of every argv, exactly like frozen make_plan (no cap; root decision). Golden: jobs 64 substitutes -j 64 with no plan limitation; actual GNU Make sees j2 for configured jobs=2 (tests keep jobs <= 2 for the shared host limit) and the default 1.",
+      "difference_reason": ""
     },
     "config_key:legacy:build.make.out_of_tree": {
       "status": "complete",
@@ -1237,7 +1237,7 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
@@ -1319,14 +1319,15 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
           "crates/ici-cpp/tests/make_plan.rs::plan_rejects_missing_contract_forged_shadow_and_missing_or_symlinked_workdir",
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
         ],
         "failure": [
           "crates/ici-cpp/tests/make_plan.rs::actual_make_refuses_unowned_symlinked_and_foreign_shadows_and_preserves_their_bytes",
@@ -1340,7 +1341,7 @@
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
       ],
       "comparison": "Frozen shadow_dir: contained non-root path, default build/ici-make, shared by every variant (no variant suffix). Rust uses it as the owned shadow, generated root (excluded from build inputs) and artifact discovery root; release then coverage reuse the same shadow without ownership mismatch.",
-      "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/build/make-owners/<sha>.json for this root/build/shadow (so a clean recipe that recreates the shadow keeps working). A nonempty unowned shadow (for example a pyz-era build/ici-make), a symlinked shadow or a foreign marker is refused before any Make command and left byte-for-byte; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private."
+      "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/owners/make/<sha>.json for this root/build/shadow (outside the build-id namespace, so a clean recipe that recreates the shadow keeps working). The frozen pyz leaves no ownership marker in build/ici-make (verified against oracle 6fe3e40 core/make.py: only mkdir(exist_ok=True)), so a nonempty pyz-era shadow cannot be proven ici-created and is refused at planning time, before any Make command or filesystem change, with the located message 'build.make.shadow_dir \"build/ici-make\" already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir to an empty or new path', which appears in the plan limitations and the build output; the bytes stay unchanged. Symlinked shadows and foreign markers are refused the same way; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private."
     },
     "config_key:legacy:build.make.test_argv": {
       "status": "difference_review",
@@ -1428,8 +1429,8 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_capped_jobs_and_shared_owned_shadow",
-          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow",
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
         "negative": [

@@ -43,9 +43,9 @@ fn dispatch(root: &Path) -> commands::CommandOutput {
 
 #[test]
 #[ignore = "explicit actual GNU Make legacy build acceptance (ICI_TEST_MAKE, ICI_TEST_CXX)"]
-fn actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_default_shadow() {
+fn actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow() {
     let root =
-        fixture("jobs=3\nclean_argv=['make','clean']\nbuild_argv=['make','-j','{jobs}','all']");
+        fixture("jobs=2\nclean_argv=['make','clean']\nbuild_argv=['make','-j','{jobs}','all']");
     let canonical = root.path().canonicalize().unwrap();
     let invocation = registry::parse(["ici", "build"]).unwrap();
     let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
@@ -76,12 +76,7 @@ fn actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_def
             .argv
             .ends_with(&["-j".into(), "2".into(), "all".into()])
     );
-    assert!(
-        preparation.effects["limitations"][0]
-            .as_str()
-            .unwrap()
-            .contains("build.make.jobs=3 was capped to 2")
-    );
+    assert_eq!(preparation.effects["limitations"], serde_json::json!([]));
     assert!(!root.path().join("build").exists() && !root.path().join(".ici").exists());
     let output = dispatch(root.path());
     let shadow = root.path().join("build/ici-make");
@@ -96,7 +91,7 @@ fn actual_legacy_make_build_runs_in_workdir_with_capped_jobs_clean_and_owned_def
         canonical.to_str().unwrap()
     );
     let flags = fs::read_to_string(shadow.join("flags.txt")).unwrap();
-    assert!(flags.contains("j2") && !flags.contains("j3"), "{flags}");
+    assert!(flags.contains("j2"), "{flags}");
     assert_eq!(
         fs::read_to_string(shadow.join("log.txt")).unwrap(),
         "clean\n"
@@ -132,6 +127,18 @@ fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_succ
     let root = fixture("build_argv=['make','all']");
     fs::create_dir_all(root.path().join("build/ici-make")).unwrap();
     fs::write(root.path().join("build/ici-make/user.txt"), "keep").unwrap();
+    // The frozen pyz leaves no ownership marker in its default shadow, so a pyz-era
+    // `build/ici-make` is refused already at planning time with the cause and the fix.
+    let invocation = registry::parse(["ici", "build"]).unwrap();
+    let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
+    assert!(planned.context_preparations.is_empty());
+    let explained = planned.plan.limitations.iter().any(|limitation| {
+        limitation.contains("\"build/ici-make\" already contains files that ici did not create")
+            && limitation.contains("frozen pyz Make builds leave no ownership marker")
+            && limitation.contains("remove that directory or set build.make.shadow_dir")
+    });
+    assert!(explained, "{:?}", planned.plan.limitations);
+    assert!(!root.path().join("build/ici-make/.ici-owner.json").exists());
     let output = dispatch(root.path());
     assert_ne!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
     assert!(

@@ -1,8 +1,6 @@
 //! Validated shell-free command plans for handwritten Make projects (frozen `core/make.py`).
 //!
-//! Validation order and messages follow the frozen contract. The only intended difference is
-//! the job count actually substituted into whole `{jobs}` tokens: the native product caps it at
-//! `job_cap` and reports the cap, while the configured value stays visible as `jobs`.
+//! Validation order, messages and `{jobs}` substitution follow the frozen contract exactly.
 use crate::CppError;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -35,10 +33,8 @@ pub struct MakeSettings {
     pub clean_argv: Vec<String>,
     pub build_argv: Vec<String>,
     pub test_argv: Vec<String>,
-    /// Configured `build.make.jobs` (1..=64).
+    /// Configured `build.make.jobs` (1..=64), substituted for whole `{jobs}` tokens.
     pub jobs: u64,
-    /// Value substituted for whole `{jobs}` tokens after the native cap.
-    pub effective_jobs: u64,
     pub out_of_tree: String,
 }
 
@@ -210,7 +206,6 @@ pub fn make_settings(
     table: Option<&Value>,
     variant: &str,
     descriptor: &str,
-    job_cap: u64,
 ) -> Result<MakeSettings, CppError> {
     let table = table
         .and_then(Value::as_object)
@@ -266,37 +261,30 @@ pub fn make_settings(
     } else {
         table.get("test_argv")
     };
-    let effective_jobs = jobs.min(job_cap.max(1));
     Ok(MakeSettings {
         descriptor: descriptor.into(),
         configure_argv: make_argv(
             table.get("configure_argv"),
             "build.make.configure_argv",
-            effective_jobs,
+            jobs,
             false,
         )?,
         clean_argv: make_argv(
             table.get("clean_argv"),
             "build.make.clean_argv",
-            effective_jobs,
+            jobs,
             false,
         )?,
         build_argv: make_argv(
             table.get(&build_key),
             &format!("build.make.{build_key}"),
-            effective_jobs,
+            jobs,
             true,
         )?,
-        test_argv: make_argv(
-            test_value,
-            &format!("build.make.{test_key}"),
-            effective_jobs,
-            false,
-        )?,
+        test_argv: make_argv(test_value, &format!("build.make.{test_key}"), jobs, false)?,
         workdir,
         shadow,
         jobs,
-        effective_jobs,
         out_of_tree: out_of_tree.into(),
     })
 }

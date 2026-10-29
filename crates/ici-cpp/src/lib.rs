@@ -26,7 +26,9 @@ pub use replay::{
     diagnostic_warning_argument, owned_object_command, replay_command, replay_environment,
 };
 
-pub use build::{BuildLease, finalize_qmake_capture, plan_build, prepare_owned_shadow};
+pub use build::{
+    BuildLease, check_shadow_adoptable, finalize_qmake_capture, plan_build, prepare_owned_shadow,
+};
 pub use qmake::{qmake_capture_command, qmake_configure_capture_main};
 pub use recorder::{record_compiler_invocation, recorder_main};
 

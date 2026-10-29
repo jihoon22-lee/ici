@@ -163,7 +163,7 @@ pub fn plan_preparation(
     };
     if system == "make" {
         // Frozen make_plan: validated contract, cwd = workdir, variant-shared shadow, configured
-        // jobs substituted into whole {jobs} tokens after the native two-job cap.
+        // jobs substituted into whole {jobs} tokens.
         let mut settings = ici_cpp::make_settings(
             make,
             &request.variant,
@@ -171,7 +171,6 @@ pub fn plan_preparation(
                 .file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or("Makefile"),
-            2,
         )
         .map_err(|error| format!("Make configuration failed: {}", error.message))?;
         request.project = settings.workdir.clone();
@@ -203,7 +202,7 @@ pub fn plan_preparation(
         }
         request.configure_argv = settings.configure_argv.clone();
         request.build_argv = settings.build_argv.clone();
-        request.jobs = settings.effective_jobs as usize;
+        request.jobs = settings.jobs as usize;
         request.make = Some(settings);
     }
     for (field, names) in [
@@ -232,6 +231,11 @@ pub fn plan_preparation(
         ici_cpp::plan_build(&project.root, &request)
     }
     .map_err(|error| error.to_string())?;
+    if system == "make" {
+        // Read-only preflight: plan/doctor name a shadow that preparation would refuse.
+        ici_cpp::check_shadow_adoptable(&project.root, &build)
+            .map_err(|error| format!("Make configuration failed: {}", error.message))?;
+    }
     let mut inputs =
         crate::files::build_inputs(&project.root, &directory).map_err(|error| error.to_string())?;
     inputs.retain(|path| {
