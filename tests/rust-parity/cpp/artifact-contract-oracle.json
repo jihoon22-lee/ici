@@ -1,0 +1,238 @@
+{
+ "cases": {
+  "absent-directory": {
+   "artifacts": [
+    "bin/app"
+   ],
+   "directory": "build",
+   "extra": "",
+   "frozen": {
+    "exit_code": 0,
+    "findings": [
+     {
+      "component_id": "app",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint_with_unit": "sha256:0257d1c2f32b9449b80ef7a29b9cae8b91655feb5e89a8e94767d63a5a6f1476",
+      "message": "declared artifact 'bin/app' of build 'release' produced nothing: the build directory is absent",
+      "primary_location": {
+       "path": "build",
+       "start_line": 1
+      },
+      "provider": "ici.artifacts",
+      "raw_fingerprint": "artifact-d506aabf443a175d",
+      "rule_id": "artifact.missing",
+      "severity": "high",
+      "task_id": "app.cpp.artifact"
+     }
+    ],
+    "gate": "PASS",
+    "metrics": [
+     {
+      "denominator": 1,
+      "name": "artifacts.satisfied",
+      "numerator": 0,
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "name": "artifacts.produced",
+      "numerator": null,
+      "value": 0.0
+     }
+    ]
+   },
+   "layout": []
+  },
+  "mixed": {
+   "artifacts": [
+    "bin/app",
+    "lib/*.a",
+    "dirs/*",
+    "ok/*.so"
+   ],
+   "directory": "build",
+   "extra": "",
+   "frozen": {
+    "exit_code": 0,
+    "findings": [
+     {
+      "component_id": "app",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint_with_unit": "sha256:65417c922b26c508794bd643dc2556055e7702f80f480f0596ccccaf9eae0548",
+      "message": "declared artifact 'bin/app' of build 'release' produced nothing: no match under the build directory",
+      "primary_location": {
+       "path": "build",
+       "start_line": 1
+      },
+      "provider": "ici.artifacts",
+      "raw_fingerprint": "artifact-d506aabf443a175d",
+      "rule_id": "artifact.missing",
+      "severity": "high",
+      "task_id": "app.cpp.artifact"
+     },
+     {
+      "component_id": "app",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint_with_unit": "sha256:d03fb2434f9cccd4a6fddcf1b36820951b09263e9d660834c4d3fdbe53bc36ac",
+      "message": "declared artifact build/lib/outside.a of build 'release' resolves outside the workspace — it is not an artifact this run produced",
+      "primary_location": {
+       "path": "build",
+       "start_line": 1
+      },
+      "provider": "ici.artifacts",
+      "raw_fingerprint": "artifact-f8c3d577cae348ea",
+      "rule_id": "artifact.invalid",
+      "severity": "high",
+      "task_id": "app.cpp.artifact"
+     },
+     {
+      "component_id": "app",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint_with_unit": "sha256:1ee247a402721639bc813d3d3ba1507e967cbff4f027963549d5adbe9f99d540",
+      "message": "declared artifact 'lib/*.a' of build 'release' produced nothing: no match under the build directory",
+      "primary_location": {
+       "path": "build",
+       "start_line": 1
+      },
+      "provider": "ici.artifacts",
+      "raw_fingerprint": "artifact-499e761e7fad82dc",
+      "rule_id": "artifact.missing",
+      "severity": "high",
+      "task_id": "app.cpp.artifact"
+     },
+     {
+      "component_id": "app",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint_with_unit": "sha256:c4d99f6f38386c8f564fb95f4b567f67e2e3baf6232951da220d222e97c02947",
+      "message": "declared artifact 'dirs/*' of build 'release' produced nothing: only 1 non-file match(es)",
+      "primary_location": {
+       "path": "build",
+       "start_line": 1
+      },
+      "provider": "ici.artifacts",
+      "raw_fingerprint": "artifact-e56b876a67d03e53",
+      "rule_id": "artifact.missing",
+      "severity": "high",
+      "task_id": "app.cpp.artifact"
+     }
+    ],
+    "gate": "PASS",
+    "metrics": [
+     {
+      "denominator": 4,
+      "name": "artifacts.satisfied",
+      "numerator": 1,
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "name": "artifacts.produced",
+      "numerator": null,
+      "value": 2.0
+     }
+    ]
+   },
+   "layout": [
+    "dir:build/bin",
+    "link:build/lib/dangling.a->../../missing/app",
+    "link:build/lib/outside.a->../../../outside",
+    "dir:build/dirs/sub",
+    "file:build/ok/a.so",
+    "file:build/ok/b.so"
+   ]
+  },
+  "required-broken": {
+   "artifacts": [
+    "bin/app"
+   ],
+   "directory": "build",
+   "extra": "[checks.\"cpp.artifact\"]\nrequired = true\n",
+   "frozen": {
+    "exit_code": 1,
+    "findings": [
+     {
+      "component_id": "app",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint_with_unit": "sha256:65417c922b26c508794bd643dc2556055e7702f80f480f0596ccccaf9eae0548",
+      "message": "declared artifact 'bin/app' of build 'release' produced nothing: no match under the build directory",
+      "primary_location": {
+       "path": "build",
+       "start_line": 1
+      },
+      "provider": "ici.artifacts",
+      "raw_fingerprint": "artifact-d506aabf443a175d",
+      "rule_id": "artifact.missing",
+      "severity": "high",
+      "task_id": "app.cpp.artifact"
+     }
+    ],
+    "gate": "FAIL",
+    "metrics": [
+     {
+      "denominator": 1,
+      "name": "artifacts.satisfied",
+      "numerator": 0,
+      "value": 0.0
+     },
+     {
+      "denominator": null,
+      "name": "artifacts.produced",
+      "numerator": null,
+      "value": 0.0
+     }
+    ]
+   },
+   "layout": [
+    "dir:build"
+   ]
+  },
+  "root-directory": {
+   "artifacts": [
+    "bin/app"
+   ],
+   "directory": ".",
+   "extra": "",
+   "frozen": {
+    "exit_code": 2,
+    "output": "config: build directory must name a path below the root"
+   },
+   "layout": []
+  },
+  "satisfied": {
+   "artifacts": [
+    "bin/app"
+   ],
+   "directory": "out/release",
+   "extra": "",
+   "frozen": {
+    "exit_code": 0,
+    "findings": [],
+    "gate": "PASS",
+    "metrics": [
+     {
+      "denominator": 1,
+      "name": "artifacts.satisfied",
+      "numerator": 1,
+      "value": 1.0
+     },
+     {
+      "denominator": null,
+      "name": "artifacts.produced",
+      "numerator": null,
+      "value": 1.0
+     }
+    ]
+   },
+   "layout": [
+    "file:out/release/bin/app"
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

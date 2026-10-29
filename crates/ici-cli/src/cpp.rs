@@ -1123,7 +1123,8 @@ pub fn analyze_contract(
     };
     let directory = build.directory.as_deref().unwrap_or(".");
     let base = crate::files::under(&project.root, directory);
-    let entries = if !base.exists() {
+    let present = base.is_dir();
+    let entries = if !present {
         vec![]
     } else {
         match crate::files::tree(&project.root, &base) {
@@ -1135,36 +1136,58 @@ pub fn analyze_contract(
         root: directory.into(),
         ..component.clone()
     };
+    // Frozen `ici.artifacts` locates contract findings at the build directory; "." is not a
+    // project-relative finding path here, so a root build keeps its declaration file instead.
+    let location = if directory == "." {
+        build
+            .origin
+            .file
+            .strip_prefix(&format!("{}/", project.root.display()))
+            .unwrap_or("ici.toml")
+    } else {
+        directory
+    };
     let candidates: Vec<_> = entries.iter().map(|entry| entry.relative.clone()).collect();
     let mut satisfied = 0u64;
     let mut produced = 0u64;
     for pattern in &build.artifacts {
-        let matches = match ici_config::matching_source_paths(
-            &view,
-            &candidates,
-            std::slice::from_ref(pattern),
-        ) {
-            Ok(matches) => matches,
-            Err(error) => return failed(output, &error.to_string()),
+        let matches = if present {
+            match ici_config::matching_source_paths(
+                &view,
+                &candidates,
+                std::slice::from_ref(pattern),
+            ) {
+                Ok(matches) => matches,
+                Err(error) => return failed(output, &error.to_string()),
+            }
+        } else {
+            vec![]
         };
         let mut count = 0u64;
+        let mut directories = 0u64;
         for path in matches {
             let entry = entries
                 .iter()
                 .find(|entry| entry.relative == path)
                 .expect("matched bounded inventory");
+            // Frozen resolves each match strictly: a dangling link vanished, so it is no match.
+            if project.root.join(&path).canonicalize().is_err() {
+                continue;
+            }
             let mut target = InspectionTarget::at(&path, 1);
             target.target_name = "DeclaredArtifact".into();
             target.metrics.insert("build".into(), json!(build.id));
             if !entry.contained {
                 target.status = "FAIL".into();
                 target.message = format!(
-                    "declared artifact {path} of build '{}' resolves outside the workspace",
+                    "declared artifact {path} of build '{}' resolves outside the workspace — it is not an artifact this run produced",
                     build.id
                 );
-                add_finding(
+                let mut located = target.clone();
+                located.file_path = location.into();
+                add_artifact_finding(
                     &mut output,
-                    &target,
+                    &located,
                     "artifact.invalid",
                     &format!("invalid:{}:{path}", build.id),
                 );
@@ -1172,6 +1195,7 @@ pub fn analyze_contract(
                 count += 1;
                 target.message = "Declared regular artifact exists inside the workspace".into();
             } else {
+                directories += 1;
                 continue;
             }
             output.targets.push(target);
@@ -1180,23 +1204,22 @@ pub fn analyze_contract(
             satisfied += 1;
             produced += count;
         } else {
-            let location = if directory == "." {
-                build
-                    .origin
-                    .file
-                    .strip_prefix(&format!("{}/", project.root.display()))
-                    .unwrap_or("ici.toml")
+            let detail = if !present {
+                "the build directory is absent".to_string()
+            } else if directories > 0 {
+                format!("only {directories} non-file match(es)")
             } else {
-                directory
+                "no match under the build directory".to_string()
             };
             let mut target = InspectionTarget::at(location, 1);
             target.status = "FAIL".into();
             target.target_name = "MissingDeclaredArtifact".into();
             target.message = format!(
-                "declared artifact {pattern:?} of build '{}' produced nothing: no regular match under the build directory",
+                "declared artifact {} of build '{}' produced nothing: {detail}",
+                ici_analysis::unicode::python_repr(pattern),
                 build.id
             );
-            add_finding(
+            add_artifact_finding(
                 &mut output,
                 &target,
                 "artifact.missing",
@@ -1235,6 +1258,22 @@ pub fn analyze_contract(
     );
     output.extra = json!({"build":build.id,"directory":directory,"patterns":build.artifacts,"satisfied":satisfied,"produced":produced});
     output
+}
+/// Frozen `ici.artifacts` raw fingerprint: `artifact-` + the first 16 hex digits of
+/// sha1("<kind>:<build>:<pattern or path>"); run attribution then derives the envelope id.
+fn add_artifact_finding(
+    output: &mut AnalysisOutput,
+    target: &InspectionTarget,
+    rule: &str,
+    identity: &str,
+) {
+    use sha1::Digest;
+    add_finding(output, target, rule, identity);
+    let digest = format!("{:x}", sha1::Sha1::digest(identity.as_bytes()));
+    if let Some(finding) = output.observation.findings.last_mut() {
+        finding.fingerprint = format!("artifact-{}", &digest[..16]);
+        finding.evidence = ici_domain::EvidenceLevel::Measured;
+    }
 }
 fn add_finding(output: &mut AnalysisOutput, target: &InspectionTarget, rule: &str, identity: &str) {
     let mut finding = Finding::new(

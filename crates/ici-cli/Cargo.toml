@@ -14,6 +14,7 @@ ici-domain = { path = "../ici-domain" }
 ici-config = { path = "../ici-config" }
 ici-application = { path = "../ici-application" }
 ici-analysis = { path = "../ici-analysis" }
+sha1 = "0.10"
 ici-cpp = { path = "../ici-cpp" }
 ici-validation = { path = "../ici-validation" }
 ici-execution = { path = "../ici-execution" }
