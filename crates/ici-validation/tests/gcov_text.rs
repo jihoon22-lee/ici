@@ -171,3 +171,89 @@ fn only_complete_recognized_capability_probes_select_one_visible_report_format()
         assert!(ready_steps(&planned, &broken).is_err(), "{failure}");
     }
 }
+#[test]
+fn frozen_actual_gcov7_text_replays_the_oracle_rows_and_function_anchor() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/gcov-text-native.json"
+    ))
+    .unwrap();
+    assert_eq!(fixture["gcov_version"], "7.4.0");
+    let report = fixture["report"]
+        .as_str()
+        .unwrap()
+        .replace("<ROOT>", "/workspace");
+    let mut request = request();
+    request.targets = vec!["main.gcno".into()];
+    let planned = plan(&request).unwrap();
+    let parsed = gcov_text::parse(report.as_bytes()).unwrap();
+    let (coverage, provenance) = gcov_text::merge(&[parsed], &planned).unwrap();
+    let oracle = &fixture["oracle"]["coverage_rows"][0];
+    assert_eq!(oracle["file"], "main.c");
+    let file = &coverage.files["main.c"];
+    let lines = |value: &serde_json::Value| {
+        value
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|line| line.as_u64().unwrap() as u32)
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert_eq!(file.executed, lines(&oracle["covered_lines"]));
+    assert_eq!(file.missing, lines(&oracle["missing_lines"]));
+    assert_eq!(
+        file.executed
+            .union(&file.missing)
+            .copied()
+            .collect::<Vec<_>>(),
+        lines(&oracle["executable_lines"])
+            .into_iter()
+            .collect::<Vec<_>>()
+    );
+    for (ours, key) in [
+        (file.counts.total_lines, "stmts"),
+        (file.counts.covered_lines, "covered"),
+        (file.counts.total_lines - file.counts.covered_lines, "miss"),
+        (file.counts.total_branches, "nb"),
+        (file.counts.covered_branches, "cb"),
+    ] {
+        assert_eq!(ours, oracle[key].as_u64().unwrap(), "{key}");
+        assert_eq!(ours, fixture["counts"][key].as_u64().unwrap(), "{key}");
+    }
+    let frozen = fixture["oracle"]["function_rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            (
+                row["name"].as_str().unwrap().to_owned(),
+                (row["covered"].clone(), row["start_line"].clone()),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let native = coverage
+        .function_rows
+        .iter()
+        .map(|row| {
+            (
+                row["name"].as_str().unwrap().to_owned(),
+                (row["covered"].clone(), row["start_line"].clone()),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    // Frozen text parsing also anchors every function at line 1; native says so explicitly.
+    assert_eq!(native, frozen);
+    assert!(
+        coverage
+            .function_rows
+            .iter()
+            .all(|row| row["geometry"] == "source-unit-anchor" && row["end_line"].is_null())
+    );
+    assert_eq!(
+        (
+            coverage.counts.covered_functions,
+            coverage.counts.total_functions
+        ),
+        (Some(2), Some(3))
+    );
+    assert_eq!(provenance["format"], "gcov-text");
+}

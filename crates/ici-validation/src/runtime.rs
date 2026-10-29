@@ -119,7 +119,11 @@ pub(crate) fn observe(
             target
                 .metrics
                 .insert("required".into(), json!(runtime.required));
-            output.targets.push(target);
+            // The runtime matrix owns the one located unavailability target; the dependent
+            // import matrix only carries its state (frozen reports one Unavailable target).
+            if plan.kind == ValidationKind::PythonRuntime {
+                output.targets.push(target);
+            }
             required_failed |= runtime.required;
             states.push(json!({"configured":runtime.configured,"required":runtime.required,"state":"unavailable"}));
             continue;

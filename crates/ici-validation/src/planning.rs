@@ -15,7 +15,7 @@ _ici_modules = _ici_json.loads(sys.argv[2])
 for _ici_name in set(sys.modules) - _ici_baseline:
     sys.modules.pop(_ici_name, None)
 sys.dont_write_bytecode = True
-sys.path.insert(0, sys.argv[1])
+sys.path[:0] = [sys.argv[1], *(_ici_json.loads(sys.argv[3]) if len(sys.argv) > 3 else [])]
 _ici_results = []
 for _ici_name in _ici_modules:
     try:
@@ -245,6 +245,22 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                     return Err(ValidationError(format!("invalid declared import {module}")));
                 }
             }
+            if request.options.import_roots.len() > 128
+                || request.options.import_roots.iter().any(|root| {
+                    !root.starts_with(&request.root)
+                        || root.components().any(|part| {
+                            !matches!(
+                                part,
+                                std::path::Component::RootDir | std::path::Component::Normal(_)
+                            )
+                        })
+                })
+            {
+                return Err(ValidationError(
+                    "import roots must be at most 128 normalized directories inside the workspace"
+                        .into(),
+                ));
+            }
             let mut imports = task(
                 request,
                 "imports",
@@ -255,6 +271,7 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                     IMPORT_SCRIPT.into(),
                     request.cwd.to_string_lossy().into_owned(),
                     serde_json::to_string(&request.options.modules).expect("strings serialize"),
+                    serde_json::to_string(&request.options.import_roots).expect("paths serialize"),
                 ],
             );
             imports.timeout_seconds = Some(30.0);

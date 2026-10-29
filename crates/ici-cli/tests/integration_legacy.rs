@@ -95,9 +95,8 @@ fn legacy_verify_reproduces_frozen_integration_fingerprints_targets_and_case_tab
         ] {
             assert_eq!(native[key], finding[key], "{key} of {}", finding["message"]);
         }
-        if finding["rule_id"] == "ici.hybrid.process-contract" {
-            assert_eq!(native["tool_name"], finding["tool_name"]);
-        }
+        // Includes the frozen quirk: adapted rows name the engine's first tool evidence.
+        assert_eq!(native["tool_name"], finding["tool_name"]);
     }
     // The case scripts are user data; neither run deletes nor rewrites them.
     assert_eq!(
@@ -193,6 +192,10 @@ fn frozen_transport_bounds_block_before_any_case_runs() {
     for (case, expected) in [
         (accepted.to_owned(), None),
         (
+            format!("[engines.integration]\nmax_cases=1\n{accepted}[[components.integrations]]\nname='second'\nargv=['{{python:sh}}']\n"),
+            Some("1..32 maximum"),
+        ),
+        (
             format!("[[components.integrations]]\nname='argv'\nargv=['{{python:sh}}',{many}]\n[components.integrations.python_targets]\nsh='/bin/sh'\n"),
             Some("at most 64"),
         ),
@@ -266,7 +269,9 @@ fn shadow_artifact_identities_resolve_only_observed_prepared_variant_outputs() {
     fs::write(root.path().join("app.py"), "VALUE=1\n").unwrap();
     let shadow = ".ici/rust-v1/builds/release";
     let deep = "nested/".repeat(80);
-    for relative in ["bin/app", &format!("{deep}tool")] {
+    // 222 code points but 622 UTF-8 bytes: frozen keeps this identity unhashed.
+    let wide = format!("{}app", format!("{}/", "가".repeat(50)).repeat(4));
+    for relative in ["bin/app", &format!("{deep}tool"), &wide] {
         let path = root.path().join(shadow).join(relative);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, "#!/bin/sh\necho from-shadow\n").unwrap();
@@ -281,6 +286,8 @@ fn shadow_artifact_identities_resolve_only_observed_prepared_variant_outputs() {
             .strip_prefix("sha256:")
             .unwrap()
     );
+    let wide_id = format!("release:shadow:{wide}");
+    assert!(wide_id.len() > 512 && wide_id.chars().count() <= 512);
     let environment = BTreeMap::new();
     for (identity, expected, prepared) in [
         (
@@ -289,6 +296,7 @@ fn shadow_artifact_identities_resolve_only_observed_prepared_variant_outputs() {
             true,
         ),
         (hashed.as_str(), Ok(format!("{shadow}/{deep}tool")), true),
+        (wide_id.as_str(), Ok(format!("{shadow}/{wide}")), true),
         (long_id.as_str(), Err("not an observed output"), true),
         (
             "release:shadow:bin/unlisted",
@@ -320,7 +328,7 @@ fn shadow_artifact_identities_resolve_only_observed_prepared_variant_outputs() {
         if prepared {
             project.components[0].settings["native_build_variants"]["release"] = json!({
                 "build_id":"native-release","directory":shadow,
-                "artifacts":[format!("{shadow}/bin/app"),format!("{shadow}/{deep}tool")]
+                "artifacts":[format!("{shadow}/bin/app"),format!("{shadow}/{deep}tool"),format!("{shadow}/{wide}")]
             });
         }
         let bound = bind(&project, &environment);

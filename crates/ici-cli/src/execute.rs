@@ -1204,14 +1204,19 @@ fn execute_validation(
             .tool_versions
             .extend(output.observation.tool_versions);
         // A later required FAIL must not be hidden by an earlier advisory WARN.
+        // Other states keep the original first-non-PASS rule; incompleteness is handled below.
         let rank = |status: &str| match status {
-            "PASS" => 0,
-            "WARN" => 1,
-            "FAIL" => 2,
-            _ => 3,
+            "PASS" => Some(0),
+            "WARN" => Some(1),
+            "FAIL" => Some(2),
+            _ => None,
         };
-        if rank(&output.status) > rank(&combined.status) {
-            combined.status = output.status.clone();
+        match (rank(&combined.status), rank(&output.status)) {
+            (Some(current), Some(next)) if next > current => {
+                combined.status = output.status.clone();
+            }
+            (Some(0), None) => combined.status = output.status.clone(),
+            _ => {}
         }
         if !complete {
             combined.observation.state = output.observation.state;
@@ -1290,4 +1295,14 @@ fn aggregate_integration_cases(
         cases.len()
     );
     combined.extra["integration"] = json!({"state":"MEASURED","cases":cases});
+    combined.extra["tool_evidence"] = json!(
+        plans
+            .iter()
+            .filter_map(|plan| {
+                combined.extra[&plan.context.task_id]
+                    .pointer("/tool_evidence/0")
+                    .cloned()
+            })
+            .collect::<Vec<_>>()
+    );
 }

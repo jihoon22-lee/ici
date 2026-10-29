@@ -381,6 +381,13 @@ pub fn bind(
             imports.task_id = format!("{id}.imports");
             imports.kind = ValidationKind::PythonImports;
             imports.options.modules = modules;
+            imports.options.import_roots = component
+                .source_dirs
+                .iter()
+                .map(|directory| crate::files::under(&project.root, directory))
+                .filter(|directory| directory.is_dir() && directory.starts_with(&project.root))
+                .filter(|directory| *directory != imports.cwd)
+                .collect();
             imports.options.compile_sources = false;
             match ici_validation::plan(&imports) {
                 Ok(plan) => plans.push(plan),
@@ -1141,7 +1148,8 @@ pub(crate) fn shadow_artifact(
             .filter(|artifact| {
                 artifact.strip_prefix(&prefix).is_some_and(|tail| {
                     let full = format!("{variant}:shadow:{tail}");
-                    if full.len() > ARTIFACT_ID_LIMIT {
+                    // Frozen compares Python code points, not UTF-8 bytes.
+                    if full.chars().count() > ARTIFACT_ID_LIMIT {
                         hashed.is_some_and(|digest| {
                             ici_domain::sha256(&full).strip_prefix("sha256:") == Some(digest)
                         })

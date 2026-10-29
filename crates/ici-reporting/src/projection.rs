@@ -191,6 +191,13 @@ pub fn legacy_projection(
                 .as_array_mut()
                 .expect("array")
                 .extend(scopes);
+            // Historical engines carry their process evidence; adapted targets name its first tool.
+            if let Some(items) = output.extra.get("tool_evidence").and_then(Value::as_array) {
+                engine["tool_evidence"]
+                    .as_array_mut()
+                    .expect("array")
+                    .extend(items.iter().cloned());
+            }
             engine["targets"].as_array_mut().expect("array").extend(
                 output
                     .targets
@@ -336,7 +343,7 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     if checks.len() == 1 {
         if let Some(extra) = check_extra(&checks[0]).as_object() {
             for (key, value) in extra {
-                if key != "native_checks" && key != "target_scopes" {
+                if key != "native_checks" && key != "target_scopes" && key != "tool_evidence" {
                     engine["extra"][key] = value.clone();
                 }
             }
