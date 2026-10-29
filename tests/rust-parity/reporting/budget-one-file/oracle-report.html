@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ici verification</title>
+<style>
+:root { color-scheme: light dark; --fg: #16181d; --bg: #ffffff; --muted: #5b6472;
+        --line: #d8dde5; --pass: #14733c; --fail: #a5121b; --incomplete: #8a5400;
+        --mark: #6b21a8; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg: #e6e8ec; --bg: #14161a; --muted: #9aa3b2; --line: #2c313a;
+          --pass: #57d98a; --fail: #ff8d8d; --incomplete: #f0b44a;
+          --mark: #c39af0; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px 16px; background: var(--bg); color: var(--fg);
+       font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 960px; margin: 0 auto; }
+h1 { font-size: 1.35rem; margin: 0 0 4px; }
+h2 { font-size: 1.05rem; margin: 28px 0 8px; }
+.verdict { display: inline-block; padding: 2px 10px; border-radius: 999px;
+           font-weight: 650; letter-spacing: .02em; border: 1px solid currentColor; }
+.PASS { color: var(--pass); } .FAIL { color: var(--fail); }
+.INCOMPLETE { color: var(--incomplete); } .NOT_EVALUATED { color: var(--muted); }
+.muted { color: var(--muted); }
+.mark { color: var(--mark); font-weight: 600; }
+table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+.scroll { overflow-x: auto; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line);
+         vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: .82rem;
+     text-transform: uppercase; letter-spacing: .04em; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+ul { margin: 6px 0; padding-left: 20px; }
+.empty { color: var(--muted); font-style: italic; }
+dl.scope { display: grid; grid-template-columns: max-content 1fr; gap: 2px 18px;
+           margin: 6px 0; }
+dl.scope dt { color: var(--muted); } dl.scope dd { margin: 0; }
+input[type="search"] { width: 100%; max-width: 320px; padding: 6px 10px;
+  margin-top: 6px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--fg); font: inherit; }
+input[type="search"]:focus { outline: 2px solid var(--pass); outline-offset: 1px; }
+</style>
+</head>
+<body>
+<main>
+<h1>ici verification</h1>
+<p><span class="verdict INCOMPLETE">INCOMPLETE</span> <span class="muted">the run did not finish what it was asked to do</span></p>
+<h2>Run</h2>
+<dl class="scope"><dt>run</dt><dd><code>3d385c9207464908b0dc67b4fa70a31b</code></dd><dt>ici</dt><dd><code>0.13.0</code></dd><dt>scope</dt><dd><code>partial</code></dd><dt>selected</dt><dd><code>project</code></dd><dt>required work complete</dt><dd><code>no</code></dd><dt>violations</dt><dd><code>no</code></dd><dt>exit code</dt><dd><code>3</code></dd><dt>languages</dt><dd><code>python</code></dd></dl>
+<h2>Execution</h2>
+<ul><li>blocked: <code>project.python.type</code></li></ul>
+<details><summary>Selected checks and evidence scope</summary><table><tr><th>check</th><th>execution</th><th>evidence</th></tr><tr><td>project.python.line</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.lint</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.format</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.type</td><td>BLOCKED</td><td>incomplete</td></tr><tr><td>project.python.complexity</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.cognitive</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.cycle</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.dup</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.security</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.resource</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.exception</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.dead</td><td>SUCCEEDED</td><td>complete</td></tr><tr><td>project.python.compat</td><td>SUCCEEDED</td><td>complete</td></tr></table></details><h2>Why</h2>
+<ul><li>project.python.type: mypy is not available</li></ul>
+<h2>Findings</h2>
+<p class="empty">none recorded</p>
+<h2>Measurements</h2>
+<div class="scroll"><table><tr><th>lines_total</th><td><code>4 lines</code></td><td class="muted"></td></tr><tr><th>lines_code</th><td><code>4 lines</code></td><td class="muted">4 of 4</td></tr><tr><th>lines_comment</th><td><code>0 lines</code></td><td class="muted">0 of 4</td></tr><tr><th>lines_blank</th><td><code>0 lines</code></td><td class="muted">0 of 4</td></tr><tr><th>files_counted</th><td><code>1 files</code></td><td class="muted">1 of 1</td></tr><tr><th>functions_measured</th><td><code>1 functions</code></td><td class="muted"></td></tr><tr><th>max_complexity</th><td><code>2 complexity</code></td><td class="muted"></td></tr><tr><th>functions_measured</th><td><code>1 functions</code></td><td class="muted"></td></tr><tr><th>max_cognitive</th><td><code>1 cognitive</code></td><td class="muted"></td></tr><tr><th>cycles_found</th><td><code>0 cycles</code></td><td class="muted"></td></tr><tr><th>clone_groups</th><td><code>0 groups</code></td><td class="muted"></td></tr><tr><th>duplicated_lines</th><td><code>0 lines</code></td><td class="muted">0 of 4</td></tr><tr><th>files_checked</th><td><code>1 files</code></td><td class="muted"></td></tr><tr><th>issues_found</th><td><code>0 issues</code></td><td class="muted"></td></tr><tr><th>files_checked</th><td><code>1 files</code></td><td class="muted"></td></tr><tr><th>issues_found</th><td><code>0 issues</code></td><td class="muted"></td></tr><tr><th>files_checked</th><td><code>1 files</code></td><td class="muted"></td></tr><tr><th>issues_found</th><td><code>0 issues</code></td><td class="muted"></td></tr><tr><th>files_checked</th><td><code>1 files</code></td><td class="muted"></td></tr><tr><th>issues_found</th><td><code>0 issues</code></td><td class="muted"></td></tr><tr><th>files_checked</th><td><code>1 files</code></td><td class="muted"></td></tr></table></div>
+<h2>Not covered</h2>
+<ul><li>mypy is not available</li><li>AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only</li><li>no requires-python floor could be inferred — the syntax and standard-library floors were not asserted</li><li>static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility</li><li>static selection: tests, runtime checks and build artifact checks omitted</li><li>project: TEM N/A — no coverage evidence — the score is not computed</li></ul>
+<script>(function(){var f=document.getElementById('finding-filter');if(!f)return;var rows=document.querySelectorAll('#findings tr[data-x]');var n=document.getElementById('finding-shown');f.addEventListener('input',function(){var q=f.value.toLowerCase();var shown=0;rows.forEach(function(r){var on=r.getAttribute('data-x').indexOf(q)>=0;r.style.display=on?'':'none';if(on)shown++;});if(n)n.textContent=shown+' of '+rows.length+' shown';});})();</script></main>
+</body>
+</html>

@@ -2,33 +2,149 @@
 use crate::{LegacyDocument, ReportError, Result, safe};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
+/// Python `int(value)` as the frozen `_optional_int` applies it (bool and failures are None).
 fn integer(value: &Value) -> Option<i64> {
-    if value.is_boolean() {
-        None
-    } else {
-        value
+    match value {
+        Value::Bool(_) | Value::Null => None,
+        Value::Number(number) => number
             .as_i64()
-            .or_else(|| value.as_f64().filter(|v| v.is_finite()).map(|v| v as i64))
-            .or_else(|| value.as_str().and_then(|v| v.parse().ok()))
+            .or_else(|| number.as_f64().filter(|v| v.is_finite()).map(|v| v as i64)),
+        Value::String(text) => python_int(text),
+        _ => None,
     }
+}
+/// `int(str)`: surrounding whitespace, one sign, decimal digits with single `_` separators.
+fn python_int(text: &str) -> Option<i64> {
+    let text = text.trim_matches(char::is_whitespace);
+    let (negative, digits) = match text.as_bytes().first() {
+        Some(b'-') => (true, &text[1..]),
+        Some(b'+') => (false, &text[1..]),
+        _ => (false, text),
+    };
+    if digits.is_empty()
+        || digits.starts_with('_')
+        || digits.ends_with('_')
+        || digits.contains("__")
+        || !digits.chars().all(|c| c.is_ascii_digit() || c == '_')
+    {
+        return None;
+    }
+    let value: i64 = digits.replace('_', "").parse().ok()?;
+    Some(if negative { -value } else { value })
+}
+/// Python `bool(value)` truthiness for JSON values.
+fn truthy(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Bool(value) => *value,
+        Value::Number(number) => number.as_f64() != Some(0.0),
+        Value::String(text) => !text.is_empty(),
+        Value::Array(items) => !items.is_empty(),
+        Value::Object(items) => !items.is_empty(),
+    }
+}
+/// Python `repr(float)`: shortest round-trip digits, exponent outside [1e-4, 1e16).
+fn python_float(value: f64) -> String {
+    if value.is_nan() {
+        return "nan".into();
+    }
+    if value.is_infinite() {
+        return if value > 0.0 { "inf" } else { "-inf" }.into();
+    }
+    let scientific = format!("{value:e}");
+    let (mantissa, exponent) = scientific.split_once('e').expect("exponent");
+    let exponent: i32 = exponent.parse().expect("exponent digits");
+    if (-4..16).contains(&exponent) {
+        let fixed = format!("{value}");
+        if fixed.contains('.') {
+            fixed
+        } else {
+            format!("{fixed}.0")
+        }
+    } else {
+        format!(
+            "{mantissa}e{}{:02}",
+            if exponent < 0 { '-' } else { '+' },
+            exponent.abs()
+        )
+    }
+}
+fn python_repr_text(text: &str) -> String {
+    let quote = if text.contains('\'') && !text.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
+    let mut out = String::from(quote);
+    for character in text.chars() {
+        match character {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c == quote => {
+                out.push('\\');
+                out.push(c);
+            }
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                out.push_str(&format!("\\x{:02x}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out.push(quote);
+    out
+}
+fn python_repr(value: &Value) -> String {
+    match value {
+        Value::String(text) => python_repr_text(text),
+        Value::Array(items) => format!(
+            "[{}]",
+            items.iter().map(python_repr).collect::<Vec<_>>().join(", ")
+        ),
+        // JSON objects reach here in key order; the frozen reader kept insertion order.
+        Value::Object(items) => format!(
+            "{{{}}}",
+            items
+                .iter()
+                .map(|(key, item)| format!("{}: {}", python_repr_text(key), python_repr(item)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
+        other => python_str(other),
+    }
+}
+/// Python `str(value)` for a decoded JSON value.
+fn python_str(value: &Value) -> String {
+    match value {
+        Value::Null => "None".into(),
+        Value::Bool(true) => "True".into(),
+        Value::Bool(false) => "False".into(),
+        Value::String(text) => text.clone(),
+        Value::Number(number) => match (number.as_i64(), number.as_u64()) {
+            (Some(value), _) => value.to_string(),
+            (_, Some(value)) => value.to_string(),
+            _ => python_float(number.as_f64().expect("finite JSON number")),
+        },
+        other => python_repr(other),
+    }
+}
+/// `str(payload.get(key, default))`: only an absent key takes the default.
+fn string_field(payload: &Value, key: &str, default: &str) -> String {
+    payload.get(key).map_or_else(|| default.into(), python_str)
 }
 fn string(value: &Value, default: &str) -> String {
     if value.is_null() {
         default.into()
-    } else if let Some(text) = value.as_str() {
-        text.into()
     } else {
-        value.to_string()
+        python_str(value)
     }
 }
+/// `_payload_number`: finite non-bool numbers become Python floats, otherwise the default.
 fn number(value: &Value, default: Value, nonnegative: bool) -> Value {
-    if value
-        .as_f64()
-        .is_some_and(|v| v.is_finite() && (!nonnegative || v >= 0.0))
-    {
-        value.clone()
-    } else {
-        default
+    match value.as_f64() {
+        Some(v) if v.is_finite() && (!nonnegative || v >= 0.0) => json!(v),
+        _ => default,
     }
 }
 fn status(value: &Value, default: &str) -> String {
@@ -47,24 +163,61 @@ fn target(value: &Value) -> Value {
         .filter(|column| *column > 0)
         .filter(|column| end.unwrap_or(start) != start || sc.is_none_or(|start| *column >= start));
     json!({"file_path":value["file_path"].as_str().filter(|p|!p.is_empty()).unwrap_or("unknown"),"start_line":start,"end_line":end,"start_column":sc,"end_column":ec,
-        "target_name":string(&value["target_name"],""),"status":if value.get("status").is_some(){status(&value["status"],"WARN")}else{"PASS".into()},"message":string(&value["message"],""),"snippet":string(&value["snippet"],""),"metrics":value.get("metrics").filter(|v|v.is_object()).cloned().unwrap_or_else(||json!({}))})
+        "target_name":string_field(value,"target_name",""),"status":if value.get("status").is_some(){status(&value["status"],"WARN")}else{"PASS".into()},"message":string_field(value,"message",""),"snippet":string_field(value,"snippet",""),"metrics":value.get("metrics").filter(|v|v.is_object()).cloned().unwrap_or_else(||json!({}))})
 }
-fn project_path(raw: &str, root: Option<&str>) -> Result<String> {
-    let mut path = raw.replace('\\', "/");
-    let absolute = path.starts_with('/') || path.as_bytes().get(1) == Some(&b':');
-    if absolute {
-        let root = root
+fn drive_absolute(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() >= 3 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' && bytes[2] == b'/'
+}
+/// Windows paths compare case-insensitively (frozen `_comparison_value`).
+fn comparison(value: &str) -> String {
+    if drive_absolute(value) {
+        value.to_lowercase()
+    } else {
+        value.into()
+    }
+}
+/// Frozen `canonical_project_path`: lexical, slash-separated and project-relative.
+pub(crate) fn project_path(raw: &str, root: Option<&str>) -> Result<String> {
+    let slashed = raw.replace('\\', "/");
+    let mut path = slashed.trim_end_matches('/').to_string();
+    if path.is_empty() {
+        path = ".".into();
+    }
+    let bytes = path.as_bytes();
+    if bytes.len() >= 2
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && bytes.get(2) != Some(&b'/')
+    {
+        return Err(ReportError(
+            "Drive-relative historical finding path is ambiguous".into(),
+        ));
+    }
+    if path.starts_with('/') || drive_absolute(&path) {
+        let root_value = root
             .ok_or_else(|| {
                 ReportError(
                     "Absolute historical finding paths require explicit project_root".into(),
                 )
             })?
             .replace('\\', "/");
-        let root = root.trim_end_matches('/');
-        if path == root {
+        let mut root = root_value.trim_end_matches('/').to_string();
+        if root.is_empty() && root_value.starts_with('/') {
+            root = "/".into();
+        }
+        if root.is_empty() {
+            return Err(ReportError(
+                "Absolute historical finding paths require explicit project_root".into(),
+            ));
+        }
+        let (value, base) = (comparison(&path), comparison(&root));
+        if value == base {
             path = ".".into();
-        } else if let Some(relative) = path.strip_prefix(&format!("{root}/")) {
-            path = relative.into();
+        } else if root == "/" {
+            path = path.trim_start_matches('/').to_string();
+        } else if value.starts_with(&format!("{base}/")) {
+            path = path.chars().skip(root.chars().count() + 1).collect();
         } else {
             return Err(ReportError(
                 "Historical finding leaves explicit project_root".into(),
@@ -73,7 +226,9 @@ fn project_path(raw: &str, root: Option<&str>) -> Result<String> {
     }
     let mut parts = vec![];
     for part in path.split('/') {
-        if part.is_empty() || part == "." {
+        let drive =
+            part.len() == 2 && part.as_bytes()[0].is_ascii_alphabetic() && part.ends_with(':');
+        if part.is_empty() || part == "." || drive {
             continue;
         }
         if part == ".." {
@@ -214,7 +369,23 @@ fn migrate_engine(engine: &mut Value, root: Option<&str>) -> Result<()> {
         .filter(|v| ["MEASURED", "ESTIMATED", "NOT_RUN", "NOT_APPLICABLE"].contains(v))
         .unwrap_or("NOT_RUN")
         .to_string();
-    let tools:Vec<_>=engine["tool_evidence"].as_array().map(Vec::as_slice).unwrap_or_default().iter().filter(|value|value.is_object()).map(|tool|json!({"name":string(&tool["name"],""),"path":string(&tool["path"],""),"version":string(&tool["version"],""),"argv":tool["argv"].as_array().map(|values|values.iter().map(|value|string(value,"")).collect::<Vec<_>>()).unwrap_or_default(),"returncode":integer(&tool["returncode"]),"timed_out":tool["timed_out"].as_bool().unwrap_or(false),"truncated":tool["truncated"].as_bool().unwrap_or(false),"error":string(&tool["error"],"")})).collect();
+    let tools: Vec<_> = engine["tool_evidence"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter(|value| value.is_object())
+        .map(|tool| {
+            let argv: Vec<String> = tool["argv"]
+                .as_array()
+                .map(|values| values.iter().map(python_str).collect())
+                .unwrap_or_default();
+            json!({"name":string_field(tool,"name",""),"path":string_field(tool,"path",""),
+                "version":string_field(tool,"version",""),"argv":safe::redact_argv(&argv),
+                "returncode":integer(&tool["returncode"]),"timed_out":tool.get("timed_out").is_some_and(truthy),
+                "truncated":tool.get("truncated").is_some_and(truthy),"error":string_field(tool,"error","")})
+        })
+        .collect();
     engine["tool_evidence"] = json!(tools);
     let targets: Vec<_> = engine["targets"]
         .as_array()
@@ -223,6 +394,8 @@ fn migrate_engine(engine: &mut Value, root: Option<&str>) -> Result<()> {
         .iter()
         .filter(|value| value.is_object())
         .map(target)
+        // Identity derives from the reporting-safe target, as the frozen serializer did.
+        .map(|target| safe::redact_plain(&target))
         .collect();
     let mut keys = BTreeMap::<(String, String), usize>::new();
     for target in &targets {
@@ -299,13 +472,13 @@ fn migrate_engine(engine: &mut Value, root: Option<&str>) -> Result<()> {
     engine["status"] = json!(status(&engine["status"], "ERROR"));
     engine["evidence"] = json!(evidence);
     for key in ["summary", "raw_output"] {
-        engine[key] = json!(string(&engine[key], ""));
+        engine[key] = json!(string_field(engine, key, ""));
     }
     for key in ["score", "max_score"] {
         engine[key] = number(&engine[key], Value::Null, false);
     }
     engine["duration"] = number(&engine["duration"], json!(0.0), true);
-    engine["required"] = json!(engine["required"].as_bool().unwrap_or(true));
+    engine["required"] = json!(engine.get("required").is_none_or(truthy));
     engine["extra"] = engine
         .get("extra")
         .filter(|v| v.is_object())

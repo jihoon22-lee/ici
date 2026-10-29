@@ -1,15 +1,9 @@
+mod common;
+use common::embedded;
 use ici_reporting::{
     RenderOptions, StoredResult, render_console, render_html, render_markdown, sarif_document,
 };
 use serde_json::Value;
-fn embedded(html: &str) -> &str {
-    html.split("<script id=ici-result type=application/json>")
-        .nth(1)
-        .unwrap()
-        .split("</script>")
-        .next()
-        .unwrap()
-}
 #[test]
 fn all_historical_families_render_their_rich_saved_payload_and_collapsed_normal_inventory() {
     let bytes = include_bytes!("../../../tests/rust-parity/reporting/rich-19-families.json");
@@ -52,15 +46,20 @@ fn all_historical_families_render_their_rich_saved_payload_and_collapsed_normal_
         "Source estimate preserves compiler boundary uncertainty",
         "keep rich extension",
     ] {
-        assert!(html.contains(sentinel), "{sentinel}");
+        // Visible now, or kept in the saved result for an on-demand section (whose rendered
+        // text the DOM harness test `render::on_demand_tests` proves equal to the server's).
+        let shown = html.split("<script id=").next().unwrap();
+        let saved = serde_json::to_string(&embedded(&html)).unwrap();
+        let raw = sentinel.replace("&lt;", "<").replace("&gt;", ">");
+        assert!(
+            shown.contains(sentinel) || saved.contains(&raw),
+            "{sentinel}"
+        );
     }
     assert!(html.contains("informational inventory records"));
     assert!(html.contains("<summary>PASS · src"));
     assert!(!html.contains("<script>alert(1)</script>"));
-    assert_eq!(
-        serde_json::from_str::<Value>(embedded(&html)).unwrap(),
-        value
-    );
+    assert_eq!(embedded(&html), value);
     let markdown = render_markdown(&stored, &options).unwrap();
     assert!(markdown.contains("Canonical issue groups"));
     assert!(markdown.contains("38") || markdown.contains("19"));

@@ -22,6 +22,7 @@ pub use migration::migrate_report_payload;
 mod issues;
 pub use issues::{IssueGroup, IssueProjection, project_issue_groups};
 mod navigation;
+mod overview;
 pub use navigation::source_link;
 
 mod auxiliary;

@@ -1,3 +1,5 @@
+mod common;
+use common::embedded;
 use ici_reporting::{
     ConsoleGroupBy, RenderOptions, StoredResult, bounded_summary, github_annotations,
     render_console, render_html, render_sarif,
@@ -38,14 +40,7 @@ fn large_html_keeps_100000_records_and_only_fifty_initial_issue_cards() {
     assert!(!html.contains("<script>alert('x')</script>"));
     assert!(!html.contains("innerHTML"));
     assert!(!html.contains("fetch("));
-    let raw = html
-        .split("<script id=ici-result type=application/json>")
-        .nth(1)
-        .unwrap()
-        .split("</script>")
-        .next()
-        .unwrap();
-    let data: Value = serde_json::from_str(raw).unwrap();
+    let data: Value = embedded(&html);
     assert_eq!(
         data["results"][0]["findings"].as_array().unwrap().len(),
         100_000

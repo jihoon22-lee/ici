@@ -51,6 +51,9 @@ pub(crate) struct View {
     pub engines: Vec<Value>,
     pub findings: Vec<Value>,
     pub finding_engines: Vec<String>,
+    /// JSON pointers into `document`: each engine, and each finding with its engine.
+    pub engine_pointers: Vec<String>,
+    pub finding_pointers: Vec<(String, Option<String>)>,
 }
 impl View {
     pub fn new(stored: &StoredResult) -> Result<Self> {
@@ -70,13 +73,23 @@ impl View {
         } else {
             vec![document.clone()]
         };
+        let states = baseline_states(run.as_ref());
         let findings = if !engines.is_empty() {
             engines
                 .iter()
-                .flat_map(|engine| decorated_findings(engine, run.as_ref()))
+                .flat_map(|engine| decorated_findings(engine, run.as_ref(), &states))
                 .collect()
         } else {
-            document["findings"].as_array().cloned().unwrap_or_default()
+            let mut findings = document["findings"].as_array().cloned().unwrap_or_default();
+            for finding in &mut findings {
+                if let Some(state) = finding["fingerprint"]
+                    .as_str()
+                    .and_then(|fp| states.get(fp))
+                {
+                    finding["baseline_state"] = json!(state);
+                }
+            }
+            findings
         };
         let finding_engines = engines
             .iter()
@@ -90,13 +103,47 @@ impl View {
                 )
             })
             .collect();
+        let engine_pointers: Vec<String> = if document["results"].is_array() {
+            (0..engines.len())
+                .map(|index| format!("/results/{index}"))
+                .collect()
+        } else {
+            engines.iter().map(|_| String::new()).collect()
+        };
+        let finding_pointers = if engines.is_empty() {
+            (0..findings.len())
+                .map(|index| (format!("/findings/{index}"), None))
+                .collect()
+        } else {
+            engines
+                .iter()
+                .zip(&engine_pointers)
+                .flat_map(|(engine, pointer)| {
+                    (0..engine["findings"].as_array().map_or(0, Vec::len)).map(move |index| {
+                        (format!("{pointer}/findings/{index}"), Some(pointer.clone()))
+                    })
+                })
+                .collect()
+        };
         Ok(Self {
             document,
             run,
             engines,
             findings,
             finding_engines,
+            engine_pointers,
+            finding_pointers,
         })
+    }
+    /// Pointer of the modern run inside `document`, when one is embedded.
+    pub fn run_pointer(&self) -> Option<&'static str> {
+        if self.document["schema_id"] == "ici.next.run" {
+            Some("")
+        } else if self.run.is_some() {
+            Some("/native_run")
+        } else {
+            None
+        }
     }
     pub fn verdict(&self) -> String {
         if let Some(run) = &self.run {
@@ -134,7 +181,33 @@ impl View {
         }
     }
 }
-fn decorated_findings(engine: &Value, run: Option<&Value>) -> Vec<Value> {
+/// Frozen `_baseline_states`: per-finding new/unchanged marks of a comparable modern baseline.
+fn baseline_states(run: Option<&Value>) -> std::collections::BTreeMap<String, &'static str> {
+    let mut states = std::collections::BTreeMap::new();
+    let Some(baseline) = run.map(|run| &run["baseline"]) else {
+        return states;
+    };
+    if baseline["state"] != "comparable" {
+        return states;
+    }
+    for (key, state) in [("new", "new"), ("unchanged", "unchanged")] {
+        for fingerprint in baseline[key]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+        {
+            if let Some(fingerprint) = fingerprint.as_str() {
+                states.insert(fingerprint.to_string(), state);
+            }
+        }
+    }
+    states
+}
+fn decorated_findings(
+    engine: &Value,
+    run: Option<&Value>,
+    states: &std::collections::BTreeMap<String, &'static str>,
+) -> Vec<Value> {
     use std::collections::{BTreeMap, VecDeque};
     let modern: BTreeMap<_, _> = run
         .and_then(|run| run["findings"].as_array())
@@ -188,6 +261,11 @@ fn decorated_findings(engine: &Value, run: Option<&Value>) -> Vec<Value> {
                             finding[key] = value.clone();
                         }
                     }
+                    if let Some(state) =
+                        native["fingerprint"].as_str().and_then(|fp| states.get(fp))
+                    {
+                        finding["baseline_state"] = json!(state);
+                    }
                     if let Some(origin) = native
                         .get("suppression")
                         .and_then(|value| value.get("origin"))
@@ -237,6 +315,8 @@ pub(crate) fn marks(finding: &Value) -> String {
     for key in [
         "evidence",
         "confidence",
+        "provider",
+        "baseline_state",
         "component_id",
         "task_id",
         "variant",

@@ -1,24 +1,146 @@
 (() => {
   'use strict';
   const payload = document.getElementById('ici-result');
-  let saved;
-  const getSaved = () => saved || (saved = JSON.parse(payload.textContent));
+  let savedPromise;
+  // The saved result is embedded once as raw DEFLATE + base64 and inflated locally.
+  const saved = () => savedPromise || (savedPromise = (async () => {
+    const binary = atob(payload.textContent.trim());
+    const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    return JSON.parse(await new Response(stream).text());
+  })());
+  const unavailable = 'This browser cannot expand the embedded saved result; open the saved JSON result instead.';
+  const node = (tag, text) => {
+    const element = document.createElement(tag);
+    if (text !== undefined) element.textContent = String(text);
+    return element;
+  };
+  const plain = value => typeof value === 'string' ? value : value === null || value === undefined ? '\u2014' : JSON.stringify(value);
+  const order = (left, right) => {
+    const a = [...left], b = [...right];
+    for (let index = 0; index < Math.min(a.length, b.length); index++) {
+      const difference = a[index].codePointAt(0) - b[index].codePointAt(0);
+      if (difference) return difference;
+    }
+    return a.length - b.length;
+  };
+  const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const copyLocation = (path, line, column) => {
+    const text = `${path}:${line}${Number.isInteger(column) && column >= 0 ? ':' + column : ''}`;
+    const span = node('span'); span.appendChild(node('code', text));
+    if (path === '[external]') return span;
+    const copy = node('button', 'Copy'); copy.type = 'button';
+    copy.dataset.path = path; copy.dataset.line = String(line); copy.dataset.copyLocation = text;
+    copy.setAttribute('aria-label', `Copy location ${text}`);
+    span.appendChild(document.createTextNode(' ')); span.appendChild(copy);
+    return span;
+  };
+  // Mirrors the server-side generic renderer: objects, tables, lists, preformatted text.
+  const rich = value => {
+    if (isObject(value)) {
+      const list = node('dl');
+      for (const key of Object.keys(value).sort(order)) { list.appendChild(node('dt', key)); const item = node('dd'); item.appendChild(rich(value[key])); list.appendChild(item); }
+      return list;
+    }
+    if (Array.isArray(value)) {
+      if (!value.length) { const empty = node('span', 'none recorded'); empty.className = 'muted'; return empty; }
+      if (value.every(isObject)) {
+        const keys = [...new Set(value.flatMap(Object.keys))].sort(order);
+        if (keys.length > 64) { const list = node('ol'); for (const item of value) { const entry = node('li'); entry.appendChild(rich(item)); list.appendChild(entry); } return list; }
+        const scroll = node('div'); scroll.className = 'scroll';
+        const table = node('table'), head = node('thead'), header = node('tr'), body = node('tbody');
+        for (const key of keys) header.appendChild(node('th', key));
+        head.appendChild(header); table.appendChild(head);
+        for (const item of value) {
+          const row = node('tr'); row.dataset.searchRow = '';
+          for (const key of keys) {
+            const cell = node('td');
+            if ((key === 'file_path' || key === 'path') && Number.isInteger(item.start_line) && item.start_line >= 0) {
+              cell.appendChild(copyLocation(typeof item[key] === 'string' ? item[key] : 'unknown', item.start_line, item.start_column));
+            } else cell.appendChild(rich(item[key]));
+            row.appendChild(cell);
+          }
+          body.appendChild(row);
+        }
+        table.appendChild(body); scroll.appendChild(table); return scroll;
+      }
+      const list = node('ul');
+      for (const item of value) { const entry = node('li'); entry.appendChild(rich(item)); list.appendChild(entry); }
+      return list;
+    }
+    if (typeof value === 'string' && /[\r\n]/.test(value)) return node('pre', value);
+    return document.createTextNode(plain(value));
+  };
+  const card = finding => {
+    const article = node('article'); article.className = 'finding'; article.dataset.searchRow = '';
+    const span = finding.primary_location || {};
+    article.appendChild(node('h3', `${plain(finding.rule_id)} \u00b7 ${plain(finding.severity)}`));
+    const where = node('p');
+    where.appendChild(copyLocation(typeof span.path === 'string' ? span.path : 'unknown',
+      Number.isInteger(span.start_line) && span.start_line >= 0 ? span.start_line : 1, span.start_column));
+    where.appendChild(document.createTextNode(' ' + plain(finding.message)));
+    article.appendChild(where); article.appendChild(node('p', plain(finding.explanation)));
+    const marks = [];
+    for (const key of ['evidence', 'confidence', 'provider', 'baseline_state', 'component_id', 'task_id', 'variant']) {
+      if (typeof finding[key] === 'string' && finding[key]) marks.push(`${key}: ${finding[key]}`);
+    }
+    const suppression = finding.suppression || {};
+    if (suppression.suppressed === true) marks.push(`suppressed: ${plain(suppression.reason)} (${plain(suppression.origin)})`);
+    const muted = node('p', marks.join(' \u00b7 ')); muted.className = 'muted'; article.appendChild(muted);
+    for (const key of ['remediation', 'snippet', 'metrics', 'related_locations', 'fixes', 'limitations', 'suppression']) {
+      const value = finding[key];
+      if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length) ||
+        (isObject(value) && !Object.keys(value).length)) continue;
+      const details = node('details'); details.appendChild(node('summary', key)); details.appendChild(rich(value));
+      article.appendChild(details);
+    }
+    return article;
+  };
+  const resolve = (data, pointer) => pointer === '' ? data : pointer.slice(1).split('/')
+    .reduce((value, key) => value === null || value === undefined ? undefined : value[key.replace(/~1/g, '/').replace(/~0/g, '~')], data);
+  let sourceControls = () => {};
+  const hydrate = element => {
+    if (element.dataset.hydrated) return Promise.resolve();
+    element.dataset.hydrated = 'pending';
+    return saved().then(data => {
+      if (element.dataset.lazyFindings !== undefined) {
+        for (const [pointer, engine] of JSON.parse(element.dataset.lazyFindings)) {
+          const finding = {...resolve(data, pointer)};
+          if (engine !== null) finding.evidence = (resolve(data, engine) || {}).evidence;
+          element.appendChild(card(finding));
+        }
+      } else {
+        let value = resolve(data, element.dataset.lazy);
+        if (element.dataset.indices !== undefined) value = element.dataset.indices.split(' ').map(index => value[Number(index)]);
+        element.appendChild(rich(value));
+      }
+      element.dataset.hydrated = 'true'; sourceControls(element);
+    }, () => { element.appendChild(node('p', unavailable)); element.dataset.hydrated = 'failed'; });
+  };
+  document.querySelectorAll('details[data-lazy]').forEach(details => details.addEventListener('toggle', () => { if (details.open) hydrate(details); }));
+  document.querySelectorAll('[data-lazy-findings]').forEach(list => {
+    const details = list.closest('details');
+    if (details) details.addEventListener('toggle', () => { if (details.open) hydrate(list); }); else hydrate(list);
+  });
+  let expanded;
+  const expandAll = () => expanded || (expanded = Promise.all([...document.querySelectorAll('[data-lazy],[data-lazy-findings]')].map(hydrate)));
   const raw = document.getElementById('raw-result');
   if (payload && raw) raw.closest('details').addEventListener('toggle', () => {
     if (!raw.closest('details').open || raw.textContent) return;
-    try { raw.textContent = JSON.stringify(getSaved(), null, 2); }
-    catch (_) { raw.textContent = 'Saved result could not be displayed'; }
+    saved().then(value => { raw.textContent = JSON.stringify(value, null, 2); }, () => { raw.textContent = unavailable; });
   });
   const filter = document.getElementById('finding-filter');
+  const matches = row => !filter || row.textContent.toLocaleLowerCase().includes(filter.value.toLocaleLowerCase());
   if (filter) {
-    const rows = [...document.querySelectorAll('[data-search-row]')];
     const count = document.getElementById('filter-count');
-    filter.addEventListener('input', () => {
-      const query = filter.value.toLocaleLowerCase();
+    filter.addEventListener('input', async () => {
+      // Searching covers the complete saved inventory, including sections not yet opened.
+      if (filter.value) await expandAll();
+      const rows = [...document.querySelectorAll('[data-search-row]')];
       let shown = 0;
       for (const row of rows) {
         const scope = row.closest('[data-line-scope]');
-        row.hidden = !row.textContent.toLocaleLowerCase().includes(query) ||
+        row.hidden = !matches(row) ||
           (row.dataset.sourceScope && row.dataset.sourceScope !== 'source' &&
             scope.querySelector('[data-scope-toggle]').value === 'source');
         if (!row.hidden) shown++;
@@ -28,8 +150,7 @@
   }
   document.querySelectorAll('[data-scope-toggle]').forEach(select => select.addEventListener('change', () => {
     select.closest('[data-line-scope]').querySelectorAll('[data-source-scope]').forEach(row => {
-      row.hidden = (select.value === 'source' && row.dataset.sourceScope !== 'source') ||
-        (filter && !row.textContent.toLocaleLowerCase().includes(filter.value.toLocaleLowerCase()));
+      row.hidden = (select.value === 'source' && row.dataset.sourceScope !== 'source') || !matches(row);
     });
   }));
   const navigationElement = document.getElementById('ici-source-navigation');
@@ -38,7 +159,7 @@
     character => '%' + character.charCodeAt(0).toString(16).toUpperCase());
   const relativePath = path => path && path !== '[external]' && !/[\\:\u0000-\u001f\u007f]/.test(path) &&
     !path.startsWith('/') && path.split('/').every(part => part && part !== '.' && part !== '..');
-  const sourceControls = root => {
+  sourceControls = root => {
     if (!navigation) return;
     root.querySelectorAll('[data-copy-location][data-path]').forEach(copy => {
       if (copy.dataset.sourceDecorated || !relativePath(copy.dataset.path)) return;
@@ -88,15 +209,11 @@
   });
   const groupPayload = document.getElementById('ici-groups');
   if (!groupPayload) return;
-  const data = JSON.parse(groupPayload.textContent), documentData = getSaved();
+  const data = JSON.parse(groupPayload.textContent);
+  saved().then(documentData => {
   const findings = Array.isArray(documentData.results)
     ? documentData.results.flatMap(engine => (engine.findings || []).map(finding => ({...finding, evidence: finding.evidence || engine.evidence})))
     : documentData.findings || [];
-  const node = (tag, text) => {
-    const element = document.createElement(tag);
-    if (text !== undefined) element.textContent = String(text);
-    return element;
-  };
   const root = document.getElementById('issue-groups');
   const previous = document.getElementById('group-prev'), next = document.getElementById('group-next');
   const label = document.getElementById('group-page');
@@ -142,4 +259,5 @@
     selected = data.groups.filter((_, index) => searchable[index].includes(query)); page = 0; render();
   });
   render();
+  }, () => { document.getElementById('issue-groups').appendChild(node('p', unavailable)); });
 })();
