@@ -4,6 +4,11 @@ mod build;
 mod context;
 mod entry_points;
 mod input;
+mod make;
+pub use make::{
+    MAX_ARGV_CHARS, MAX_ARGV_TOKEN_CHARS, MAX_ARGV_TOKENS, MakeSettings, contained_make_path,
+    make_argv, make_settings, validate_direct_make_argv,
+};
 mod model;
 pub use entry_points::legacy_main_definition_count;
 mod qmake;

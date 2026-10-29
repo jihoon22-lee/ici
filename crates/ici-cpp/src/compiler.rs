@@ -866,13 +866,22 @@ pub fn apply_compiler_boundaries(
         if !target.metrics.contains_key("boundary_source") {
             continue;
         }
-        let key = (
-            target.file_path.clone(),
-            target.start_line,
-            target.end_line.unwrap_or(target.start_line),
-            target.target_name.clone(),
-        );
-        if let Some(configurations) = confirmed.get(&key) {
+        let key = |name: &str| {
+            (
+                target.file_path.clone(),
+                target.start_line,
+                target.end_line.unwrap_or(target.start_line),
+                name.to_owned(),
+            )
+        };
+        // Legacy complexity labels append the frozen "()" display suffix to the source name.
+        let found = confirmed.get(&key(&target.target_name)).or_else(|| {
+            target
+                .target_name
+                .strip_suffix("()")
+                .and_then(|name| confirmed.get(&key(name)))
+        });
+        if let Some(configurations) = found {
             let required: BTreeSet<_> = expected
                 .iter()
                 .filter(|(source, _)| source == &target.file_path)

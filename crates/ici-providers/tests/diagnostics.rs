@@ -582,3 +582,33 @@ fn cpp_related_note_count_obeys_the_diagnostic_bound() {
     assert!(output.observation.findings.is_empty());
     assert!(output.extra.get("finding_details").is_none());
 }
+
+#[test]
+fn gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar() {
+    // Frozen _TEXT_CONTEXT_HEADER_RE / _TEXT_REQUIRED_FROM_RE accept these ancillary lines;
+    // a column-less diagnostic keeps its line with an unknown column.
+    let raw = "main.py: In destructor 'Guard::~Guard()':\nmain.py:3:20: warning: 'throw' will always call 'terminate' [-Wterminate]\nmain.py:3:20: note: in C++11 destructors default to 'noexcept'\nmain.py: At global scope:\nmain.py: In constructor 'A::A()':\nmain.py: In lambda function:\nmain.py: In instantiation of 'void f() [with T = int]':\nmain.py:9:5:   required from here\nmain.py:7: error: column-less diagnostic\n";
+    let plan = fixture(ProviderKind::Compiler);
+    let observation = observe(&plan, &outcome(&plan, "", raw, 1));
+    assert_eq!(observation.state, TaskState::Succeeded, "{observation:?}");
+    assert_eq!(observation.findings.len(), 2, "{:?}", observation.findings);
+    let columnless = observation
+        .findings
+        .iter()
+        .find(|finding| finding.message.contains("column-less"))
+        .unwrap();
+    assert_eq!(columnless.primary_location.start_line, 7);
+    assert_eq!(columnless.primary_location.start_column, None);
+    // Lines outside the frozen grammar still fail closed.
+    for unknown in [
+        "main.py: In static member function 'int f()':\n",
+        "cc1plus: some warnings being treated as errors\n",
+        "main.py:3:20: frobnicated: odd\n",
+    ] {
+        assert_eq!(
+            observe(&plan, &outcome(&plan, "", unknown, 1)).state,
+            TaskState::Failed,
+            "{unknown}"
+        );
+    }
+}

@@ -32,10 +32,7 @@ impl BuildLease {
         let root = root
             .canonicalize()
             .map_err(|error| CppError::new("invalid-root", error.to_string()))?;
-        if !identifier(&plan.id)
-            || !identifier(&plan.variant)
-            || plan.shadow != format!(".ici/rust-v1/build/{}/{}", plan.id, plan.variant)
-        {
+        if !identifier(&plan.id) || !identifier(&plan.variant) || !valid_shadow(plan) {
             return Err(CppError::new(
                 "invalid-shadow",
                 "build lease requires an owned Rust-v1 shadow",
@@ -81,6 +78,26 @@ fn identifier(value: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || "_.-".contains(c))
         && value != "."
         && value != ".."
+}
+/// Rust-owned shadows are fixed per build/variant. Only configured Make may name a custom,
+/// variant-shared project-relative shadow; it still passes the no-follow ownership guard.
+fn valid_shadow(plan: &BuildPlan) -> bool {
+    if plan.shadow == format!(".ici/rust-v1/build/{}/{}", plan.id, plan.variant) {
+        return true;
+    }
+    plan.system == "make" && valid_make_shadow(&plan.shadow)
+}
+fn valid_make_shadow(shadow: &str) -> bool {
+    crate::contained_make_path(&serde_json::Value::String(shadow.into()), "shadow", false)
+        .is_ok_and(|normal| normal == shadow)
+        && !shadow.split('/').any(|part| part.contains('\0'))
+        && shadow.split('/').next() != Some(".ici")
+}
+fn make_owner_record(plan: &BuildPlan) -> String {
+    format!(
+        ".ici/rust-v1/build/make-owners/{}.json",
+        &ici_domain::sha256(&plan.shadow)[7..39]
+    )
 }
 fn tool(request: &BuildRequest, name: &str) -> String {
     request
@@ -224,10 +241,42 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
     analysis_flags(&request.extra_cxx_flags)?;
     analysis_flags(&request.extra_link_flags)?;
     validate_qmake_arguments(&request.extra_qmake_args)?;
-    let shadow = format!(".ici/rust-v1/build/{}/{}", request.id, request.variant);
+    let make = if request.system == "make" {
+        Some(request.make.as_ref().ok_or_else(|| {
+            CppError::new(
+                "missing-make-contract",
+                "Make backend requires the validated build.make command contract",
+            )
+        })?)
+    } else {
+        None
+    };
+    let shadow = match make {
+        Some(make) if valid_make_shadow(&make.shadow) => make.shadow.clone(),
+        Some(make) => {
+            return Err(CppError::new(
+                "make-config",
+                format!(
+                    "build.make.shadow_dir {:?} must be a contained non-root directory outside .ici",
+                    make.shadow
+                ),
+            ));
+        }
+        None => format!(".ici/rust-v1/build/{}/{}", request.id, request.variant),
+    };
     let shadow_path = root.join(&shadow);
     let project = root.join(&request.project);
-    let digest=ici_domain::sha256(ici_domain::canonical_json(&json!({"schema":"ici.rust.build-owner/v1","root":root,"id":request.id,"variant":request.variant,"project":request.project})).map_err(|e|CppError::new("identity",e.to_string()))?);
+    // Configured Make shares one shadow across variants, so its owner excludes the variant.
+    let identity = if make.is_some() {
+        json!({"schema":"ici.rust.make-owner/v1","root":root,"id":request.id,"system":"make","shadow":shadow})
+    } else {
+        json!({"schema":"ici.rust.build-owner/v1","root":root,"id":request.id,"variant":request.variant,"project":request.project})
+    };
+    let digest = ici_domain::sha256(
+        ici_domain::canonical_json(&identity)
+            .map_err(|e| CppError::new("identity", e.to_string()))?,
+    );
+    let mut limitations = vec![];
     let mut tasks = vec![];
     let mut capture = None;
     let configure_id = format!("build:{}:{}:configure", request.id, request.variant);
@@ -422,49 +471,84 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
             tasks.push(build);
         }
         "make" => {
-            if request.build_argv.is_empty() {
+            let make = make.expect("checked Make contract");
+            if make.build_argv.is_empty() {
                 return Err(CppError::new(
                     "missing-build-argv",
                     "Make backend requires an explicit direct build argv",
                 ));
             }
-            for argv in [&request.configure_argv, &request.build_argv] {
-                if !argv.is_empty() {
-                    crate::arguments::validate(argv)?;
-                    if argv.iter().any(|v| v.contains(['\0', '$', '`']))
-                        || ["sh", "bash", "dash", "zsh", "cmd", "powershell"].contains(
-                            &Path::new(&argv[0])
-                                .file_name()
-                                .unwrap_or_default()
-                                .to_string_lossy()
-                                .as_ref(),
-                        )
-                    {
-                        return Err(CppError::new(
-                            "unsafe-build-argv",
-                            "Make commands must be direct argv without shell expansion",
-                        ));
-                    }
-                }
-            }
-            if !request.configure_argv.is_empty() {
-                tasks.push(task(
-                    configure_id.clone(),
-                    "make",
-                    expand_jobs(&request.configure_argv, request.jobs),
-                    &shadow_path,
+            if !(1..=64).contains(&make.jobs)
+                || !(1..=make.jobs).contains(&make.effective_jobs)
+                || !["allow", "required"].contains(&make.out_of_tree.as_str())
+                || (make.out_of_tree == "required" && make.workdir == ".")
+            {
+                return Err(CppError::new(
+                    "make-config",
+                    "Make jobs/out_of_tree/workdir contract is inconsistent",
                 ));
             }
-            let mut build = task(
-                format!("build:{}:{}:compile", request.id, request.variant),
-                "make",
-                expand_jobs(&request.build_argv, request.jobs),
-                &shadow_path,
-            );
-            if !tasks.is_empty() {
-                build.depends_on = vec![configure_id];
+            let workdir = crate::contained_make_path(
+                &serde_json::Value::String(make.workdir.clone()),
+                "build.make.workdir",
+                true,
+            )?;
+            if workdir != make.workdir {
+                return Err(CppError::new(
+                    "make-config",
+                    "build.make.workdir must be normalized",
+                ));
             }
-            tasks.push(build);
+            let cwd = if workdir == "." {
+                root.to_path_buf()
+            } else {
+                root.join(&workdir)
+            };
+            // Read-only check: the cwd must already be a contained real directory. ici never
+            // creates, adopts or writes this user directory; only the shadow is ici-owned.
+            if !fs::symlink_metadata(&cwd).is_ok_and(|metadata| metadata.is_dir())
+                || cwd.canonicalize().ok().as_deref() != Some(cwd.as_path())
+            {
+                return Err(CppError::new(
+                    "make-config",
+                    format!(
+                        "build.make.workdir {workdir:?} must be an existing project directory without symlink traversal"
+                    ),
+                ));
+            }
+            if make.effective_jobs < make.jobs {
+                limitations.push(format!(
+                    "build.make.jobs={} was capped to {} native parallel jobs; whole {{jobs}} tokens receive {}",
+                    make.jobs, make.effective_jobs, make.effective_jobs
+                ));
+            }
+            let phases = [
+                (
+                    "configure",
+                    "build.make.configure_argv",
+                    &make.configure_argv,
+                ),
+                ("clean", "build.make.clean_argv", &make.clean_argv),
+                ("compile", "build.make.build_argv", &make.build_argv),
+            ];
+            let mut previous: Option<String> = None;
+            for (phase, setting, argv) in phases {
+                if argv.is_empty() {
+                    continue;
+                }
+                crate::validate_direct_make_argv(argv, setting)?;
+                let mut step = task(
+                    format!("build:{}:{}:{phase}", request.id, request.variant),
+                    "make",
+                    argv.clone(),
+                    &cwd,
+                );
+                // Frozen order: configure, then clean, then build; a failed step stops the chain.
+                if let Some(previous) = previous.replace(step.id.clone()) {
+                    step.depends_on = vec![previous];
+                }
+                tasks.push(step);
+            }
         }
         _ => {
             return Err(CppError::new(
@@ -483,12 +567,8 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
         compilation_database: format!("{shadow}/compile_commands.json"),
         capture_journal: capture,
         generated_roots: vec![shadow],
+        limitations,
     })
-}
-fn expand_jobs(argv: &[String], jobs: usize) -> Vec<String> {
-    argv.iter()
-        .map(|arg| arg.replace("{jobs}", &jobs.to_string()))
-        .collect()
 }
 
 /// Explicit execution preparation. Never adopts nonempty, unowned or symlinked directories.
@@ -496,33 +576,28 @@ pub fn prepare_owned_shadow(root: &Path, plan: &BuildPlan) -> Result<PathBuf, Cp
     let root = root
         .canonicalize()
         .map_err(|e| CppError::new("invalid-root", e.to_string()))?;
-    let expected = format!(".ici/rust-v1/build/{}/{}", plan.id, plan.variant);
-    if plan.shadow != expected || !identifier(&plan.id) || !identifier(&plan.variant) {
+    if !valid_shadow(plan) || !identifier(&plan.id) || !identifier(&plan.variant) {
         return Err(CppError::new(
             "invalid-shadow",
             "shadow must use the owned Rust-v1 namespace",
         ));
     }
-    let flags = OFlag::O_RDONLY | OFlag::O_DIRECTORY | OFlag::O_NOFOLLOW | OFlag::O_CLOEXEC;
-    let mut directory = open(&root, flags, Mode::empty())
-        .map_err(|e| CppError::new("shadow-open", e.to_string()))?;
-    let mut path = root.clone();
-    for part in Path::new(&plan.shadow).components() {
-        let Component::Normal(name) = part else {
-            return Err(CppError::new(
-                "invalid-shadow",
-                "non-normal shadow component",
-            ));
-        };
-        path.push(name);
-        match mkdirat(&directory, Path::new(name), Mode::S_IRWXU) {
-            Ok(()) | Err(Errno::EEXIST) => {}
-            Err(e) => return Err(CppError::new("shadow-create", e.to_string())),
-        }
-        directory = openat(&directory, Path::new(name), flags, Mode::empty())
-            .map_err(|e| CppError::new("unsafe-shadow", e.to_string()))?;
-    }
+    let custom = plan.shadow != format!(".ici/rust-v1/build/{}/{}", plan.id, plan.variant);
+    let record = custom.then(|| make_owner_record(plan));
+    let path = owned_directory(&root, &plan.shadow)?;
     let marker = path.join(".ici-owner.json");
+    // A configured Make clean recipe may delete and recreate its whole shadow, including the
+    // in-shadow marker. The Rust-namespace record proves this exact path was adopted earlier
+    // for the same owner; any other nonempty directory remains unowned and untouched.
+    let recorded = match &record {
+        Some(record) if root.join(record).exists() => {
+            let metadata = strict_json(&read_contained(&root, &root.join(record), 4096)?)?;
+            metadata["schema_id"] == "ici.rust.make-shadow-owner"
+                && metadata["digest"] == plan.owner_digest
+                && metadata["shadow"] == plan.shadow
+        }
+        _ => false,
+    };
     if marker.exists() {
         let bytes = read_contained(&root, &marker, 4096)?;
         let metadata = strict_json(&bytes)?;
@@ -535,14 +610,22 @@ pub fn prepare_owned_shadow(root: &Path, plan: &BuildPlan) -> Result<PathBuf, Cp
             ));
         }
     } else {
-        if fs::read_dir(&path)
-            .map_err(|e| CppError::new("shadow-inspect", e.to_string()))?
-            .next()
-            .is_some()
+        if !recorded
+            && fs::read_dir(&path)
+                .map_err(|e| CppError::new("shadow-inspect", e.to_string()))?
+                .next()
+                .is_some()
         {
             return Err(CppError::new(
                 "unowned-build-directory",
-                "refusing to adopt a nonempty build directory",
+                if custom {
+                    format!(
+                        "refusing to adopt nonempty build.make.shadow_dir {:?} that ici did not create; move its contents away or choose an empty shadow_dir",
+                        plan.shadow
+                    )
+                } else {
+                    "refusing to adopt a nonempty build directory".into()
+                },
             ));
         }
         let bytes=serde_json::to_vec(&json!({"schema_id":"ici.rust.build-owner","schema_version":1,"digest":plan.owner_digest,"id":plan.id,"variant":plan.variant})).unwrap();
@@ -550,6 +633,16 @@ pub fn prepare_owned_shadow(root: &Path, plan: &BuildPlan) -> Result<PathBuf, Cp
             &marker,
             &bytes,
             ici_execution::storage::WriteMode::CreateNew,
+        )
+        .map_err(|e| CppError::new("owner-write", e.to_string()))?;
+    }
+    if let Some(record) = &record {
+        owned_directory(&root, ".ici/rust-v1/build/make-owners")?;
+        let bytes = serde_json::to_vec(&json!({"schema_id":"ici.rust.make-shadow-owner","schema_version":1,"digest":plan.owner_digest,"id":plan.id,"shadow":plan.shadow})).unwrap();
+        ici_execution::storage::atomic_write(
+            &root.join(record),
+            &bytes,
+            ici_execution::storage::WriteMode::ReplaceRegular,
         )
         .map_err(|e| CppError::new("owner-write", e.to_string()))?;
     }
@@ -568,6 +661,30 @@ pub fn prepare_owned_shadow(root: &Path, plan: &BuildPlan) -> Result<PathBuf, Cp
             ici_execution::storage::WriteMode::ReplaceRegular,
         )
         .map_err(|e| CppError::new("capture-reset", e.to_string()))?;
+    }
+    Ok(path)
+}
+
+/// Create or open each component without following symlinks; returns the physical path.
+fn owned_directory(root: &Path, relative: &str) -> Result<PathBuf, CppError> {
+    let flags = OFlag::O_RDONLY | OFlag::O_DIRECTORY | OFlag::O_NOFOLLOW | OFlag::O_CLOEXEC;
+    let mut directory = open(root, flags, Mode::empty())
+        .map_err(|e| CppError::new("shadow-open", e.to_string()))?;
+    let mut path = root.to_path_buf();
+    for part in Path::new(relative).components() {
+        let Component::Normal(name) = part else {
+            return Err(CppError::new(
+                "invalid-shadow",
+                "non-normal shadow component",
+            ));
+        };
+        path.push(name);
+        match mkdirat(&directory, Path::new(name), Mode::S_IRWXU) {
+            Ok(()) | Err(Errno::EEXIST) => {}
+            Err(e) => return Err(CppError::new("shadow-create", e.to_string())),
+        }
+        directory = openat(&directory, Path::new(name), flags, Mode::empty())
+            .map_err(|e| CppError::new("unsafe-shadow", e.to_string()))?;
     }
     Ok(path)
 }

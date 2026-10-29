@@ -155,24 +155,26 @@ fn explicit_make_argv_builds_in_owned_shadow_without_running_during_plan() {
     fs::write(
         root.path().join("fixture.mk"),
         format!(
-            "all:\n\tg++ '{}' -o fixture\n",
+            "all:\n\tg++ '{}' -o build/ici-make/fixture\n",
             root.path().join("main.cpp").display()
         ),
     )
     .unwrap();
+    let make = ici_cpp::make_settings(
+        Some(&serde_json::json!({"enabled":true,"build_argv":["make","-f",root.path().join("fixture.mk").display().to_string(),"-j","{jobs}"]})),
+        "release",
+        "Makefile",
+        2,
+    )
+    .unwrap();
     let request = BuildRequest {
         system: "make".into(),
-        build_argv: vec![
-            "make".into(),
-            "-f".into(),
-            root.path().join("fixture.mk").display().to_string(),
-            "-j{jobs}".into(),
-        ],
         jobs: 1,
+        make: Some(make),
         ..Default::default()
     };
     let plan = plan_build(root.path(), &request).unwrap();
-    assert!(!root.path().join(".ici").exists());
+    assert!(!root.path().join(".ici").exists() && !root.path().join("build").exists());
     let lease = BuildLease::acquire(
         root.path(),
         &plan,
