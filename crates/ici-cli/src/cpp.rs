@@ -1371,6 +1371,93 @@ pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
     Some(count)
 }
 
+/// Frozen BinaryCompatibilityEngine verdict when it cannot select or inspect artifacts: the
+/// not-applicable SKIP, or `BinaryCompatibility:AnalysisUnavailable` ERROR at ".".
+pub fn legacy_binary_compat_unavailable(id: &str, error: Option<&str>) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "binarycompat");
+    let mut target = InspectionTarget::at(".", 1);
+    if let Some(error) = error {
+        output.status = "ERROR".into();
+        output.summary = format!("Binary compatibility analysis incomplete: {error}");
+        output.observation.limitations.push(error.into());
+        target.target_name = "BinaryCompatibility:AnalysisUnavailable".into();
+        target.status = "ERROR".into();
+        target.message = error.into();
+    } else {
+        output.status = "SKIP".into();
+        output.summary =
+            "Binary compatibility not applicable: no selected manifest artifacts".into();
+        output.observation.measurements.push(Measurement {
+            name: "applicability".into(),
+            value: 0.0,
+            evidence: ici_domain::EvidenceLevel::NotApplicable,
+            unit: "checks".into(),
+            numerator: None,
+            denominator: None,
+        });
+        output.extra["elf"] = json!({"state":"NOT_APPLICABLE","artifacts_checked":0,"facts":[]});
+        target.target_name = "BinaryCompatibility:NotApplicable".into();
+        target.status = "SKIP".into();
+        target.message = "No executable or shared-library manifest artifacts were selected".into();
+    }
+    output.targets.push(target);
+    output
+}
+
+/// Frozen BinaryCompatibilityEngine targets and summary for measured ELF evidence: one
+/// `BinaryCompatibility:<variant>:shadow:<path>` target per inspected artifact at its shadow
+/// path, `BinaryCompatibility:NonElf` SKIP for allowed non-ELF files, and the
+/// "ELF compatibility: N checked, V violation(s), S skipped" summary.
+pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: &str) {
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let prefix = if shadow.is_empty() || shadow == "." {
+        String::new()
+    } else {
+        format!("{}/", shadow.trim_end_matches('/'))
+    };
+    let (mut checked, mut skipped) = (0usize, 0usize);
+    let findings = output.observation.findings.clone();
+    for target in &mut output.targets {
+        if target.target_name != "ELF/ABI artifact" {
+            continue;
+        }
+        let path = target.file_path.clone();
+        let relative = path.strip_prefix(&prefix).unwrap_or(&path).to_owned();
+        let identity = format!("{variant}:shadow:{relative}");
+        target.file_path = relative;
+        if target.message == "selected artifact is not ELF" {
+            if target.status == "SKIP" {
+                skipped += 1;
+                target.target_name = "BinaryCompatibility:NonElf".into();
+                target.message = "Manifest artifact is not ELF and policy allows it".into();
+            } else {
+                target.target_name = format!("BinaryCompatibility:{identity}");
+                target.message = "Selected binary manifest artifact is not an ELF object".into();
+            }
+            continue;
+        }
+        checked += 1;
+        let violations = findings
+            .iter()
+            .filter(|finding| finding.primary_location.path == path)
+            .count();
+        target.target_name = format!("BinaryCompatibility:{identity}");
+        target.message = if violations > 0 {
+            format!("{violations} binary compatibility violation(s)")
+        } else {
+            "ELF dependency, loader path, and ABI evidence verified".into()
+        };
+    }
+    output.summary = format!(
+        "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
+        findings.len()
+    );
+}
+
 /// Frozen `_build_with_adapter` success target: `BuildAdapter[<backend>]` PASS at the descriptor,
 /// "<select_backend reason>; produced N artifact(s)".
 pub fn legacy_adapter_success(
@@ -1615,6 +1702,10 @@ impl CppPlans {
     /// Record the frozen legacy output for a check decided while planning its preparation.
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
+    }
+    /// Whether a frozen legacy output was already decided for this task while planning.
+    pub fn planned_output(&self, id: &str) -> bool {
+        self.preparation_failures.contains_key(id)
     }
     pub fn handles(&self, id: &str) -> bool {
         self.diagnostics.contains_key(id)

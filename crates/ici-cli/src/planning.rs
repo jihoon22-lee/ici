@@ -299,6 +299,14 @@ fn prepare_resolved_omitting(
                 environment,
                 run_label,
             ) {
+                if crate::legacy::is_legacy(invocation)
+                    && check.id == "cpp.binary-compat"
+                    && let Work::Blocked { reason } = &bound.work
+                    && let Some(output) = legacy_binary_selection(component, task_id, reason)
+                {
+                    cpp.fail_preparation(task_id, output);
+                    return Ok(Work::Internal);
+                }
                 tools.extend(bound.tools);
                 if !bound.plans.is_empty() {
                     validations.insert(task_id.into(), bound.plans);
@@ -473,6 +481,12 @@ fn prepare_resolved_omitting(
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;
     cpp.finalize_plan(&mut plan);
+    for check in &mut plan.checks {
+        // A legacy binary-compat verdict decided while planning consumes no build prerequisite.
+        if check.check.id == "cpp.binary-compat" && cpp.planned_output(&check.task_id) {
+            check.check.needs.clear();
+        }
+    }
     let mut context_preparations = vec![];
     if crate::legacy::is_legacy(invocation) && plan.profile != Profile::Fast {
         for component in &project.components {
@@ -1218,4 +1232,39 @@ fn display_argument(value: &str) -> String {
     } else {
         value.into()
     }
+}
+
+/// Frozen BinaryCompatibilityEngine `_records` outcomes for a legacy run whose selection is empty
+/// or names an unpublished artifact; other blocked reasons stay blocked.
+fn legacy_binary_selection(
+    component: &ici_config::Component,
+    task_id: &str,
+    reason: &str,
+) -> Option<ici_domain::AnalysisOutput> {
+    let required = component
+        .settings
+        .pointer("/engines/binary_compat/required")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if reason.starts_with("no existing executable/shared-library artifact targets")
+        || reason.starts_with("binary compatibility requires existing verified")
+    {
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            required.then_some("no published executable or shared-library artifacts"),
+        ));
+    }
+    let unpublished = [
+        "is not an observed output",
+        "is not in the linked build inventory",
+        "is not an existing verified published or declared artifact",
+    ];
+    if unpublished.iter().any(|marker| reason.contains(marker)) {
+        let value = reason.split('"').nth(1)?;
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            Some(&format!("configured artifact was not published: {value}")),
+        ));
+    }
+    None
 }

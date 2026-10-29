@@ -4095,16 +4095,24 @@
       "difference_reason": "Open: descriptor-level parity needs every check, command and finding-site row of this descriptor closed first; see those rows."
     },
     "finding_site:src/ici/adapters/providers/binarycompat.py:137:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cpp/src/elf.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
         "positive": [],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/adapters/providers/binarycompat.py:137); enclosing frozen function _finding.",
-      "difference_reason": "Open: binary-compatibility provider site not compared with frozen."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen ici.binary.* findings (rule id, message, high/exact, path line 1). The violations oracle case shows Rust produces the same number of violations for forbidden_needed and max_glibc (target message '2 binary compatibility violation(s)').",
+      "difference_reason": "Open: finding rule ids, messages, fingerprints and locations are not compared field by field (the legacy oracle records engine targets only); frozen locates findings at the shadow-relative artifact path while Rust uses the project path."
     },
     "finding_site:src/ici/adapters/providers/compiler.py:225:16": {
       "status": "not_started",
@@ -4771,16 +4779,24 @@
       "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/analysis/binary_abi.py:33:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cpp/src/elf.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
         "positive": [],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/binary_abi.py:33); enclosing frozen function binary_finding.",
-      "difference_reason": "Open: ABI fact extraction not compared with frozen."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen ici.binary.* findings (rule id, message, high/exact, path line 1). The violations oracle case shows Rust produces the same number of violations for forbidden_needed and max_glibc (target message '2 binary compatibility violation(s)').",
+      "difference_reason": "Open: finding rule ids, messages, fingerprints and locations are not compared field by field (the legacy oracle records engine targets only); frozen locates findings at the shadow-relative artifact path while Rust uses the project path."
     },
     "finding_site:src/ici/analysis/cycles.py:491:12": {
       "status": "not_started",
@@ -4845,64 +4861,120 @@
       "difference_reason": ""
     },
     "finding_site:src/ici/engines/binary_compat.py:106:24": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
         "positive": [],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/binary_compat.py:106); enclosing frozen function run.",
-      "difference_reason": "Open: ELF binary-compatibility policy site not compared with frozen."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: no selected manifest artifact gives `BinaryCompatibility:NotApplicable` SKIP at '.', summary 'Binary compatibility not applicable: no selected manifest artifacts'. Rust legacy planning maps the empty ABI scope to crate::cpp::legacy_binary_compat_unavailable and clears the build prerequisite; the no-artifacts case matches exactly."
     },
     "finding_site:src/ici/engines/binary_compat.py:140:28": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
         "positive": [],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/binary_compat.py:140); enclosing frozen function run.",
-      "difference_reason": "Open: ELF binary-compatibility policy site not compared with frozen."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Rust's reshaping maps its non-ELF targets to the same names/messages.",
+      "difference_reason": "Open: Rust's legacy Make inventory selects only measured ELF outputs, so an MZ/Mach-O file in the shadow (which frozen _linked_artifact_paths lists) is never inspected; the allowed/rejected oracle cases show only the ELF target in Rust."
     },
     "finding_site:src/ici/engines/binary_compat.py:158:24": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
         "positive": [],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/binary_compat.py:158); enclosing frozen function run.",
-      "difference_reason": "Open: ELF binary-compatibility policy site not compared with frozen."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Rust's reshaping maps its non-ELF targets to the same names/messages.",
+      "difference_reason": "Open: Rust's legacy Make inventory selects only measured ELF outputs, so an MZ/Mach-O file in the shadow (which frozen _linked_artifact_paths lists) is never inspected; the allowed/rejected oracle cases show only the ELF target in Rust."
     },
     "finding_site:src/ici/engines/binary_compat.py:209:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/binary_compat.py:209); enclosing frozen function run.",
-      "difference_reason": "Open: ELF binary-compatibility policy site not compared with frozen."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: one `BinaryCompatibility:<variant>:shadow:<path>` target per inspected ELF at its shadow-relative path, PASS 'ELF dependency, loader path, and ABI evidence verified' or FAIL '<n> binary compatibility violation(s)', summary 'ELF compatibility: N checked, V violation(s), S skipped'. Rust reshapes the measured ici-validation ELF output for the legacy projection (crate::cpp::legacy_binary_compat, hooked in execute.rs); pass and forbidden_needed/max_glibc violation cases match exactly.",
+      "difference_reason": "Open: selections by explicit artifact id and multi-artifact shadows are not captured; the next-path (non-legacy) target shape stays the ici-validation 'ELF/ABI artifact' form by design."
     },
     "finding_site:src/ici/engines/binary_compat.py:247:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
         "positive": [],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/binary_compat.py:247); enclosing frozen function run.",
-      "difference_reason": "Open: ELF binary-compatibility policy site not compared with frozen."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: an analysis error gives `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' with the first error and summary 'Binary compatibility analysis incomplete: <error>'. Rust matches the required-without-artifacts case target and status.",
+      "difference_reason": "Open: (1) the ERROR summary carries the reporting 'cpp.binary-compat: ' prefix (crates/ici-reporting/src/projection.rs, reporting worker); (2) an artifacts selection naming an unpublished identity makes Rust drop cpp.binary-compat for the python.binary-compat entry (planning.rs cpp_binary_selected), which stays blocked (SKIP) instead of the frozen 'configured artifact was not published: <id>' ERROR; (3) readelf missing/incomplete evidence is not captured."
     },
     "finding_site:src/ici/engines/build.py:230:16": {
       "status": "difference_review",
