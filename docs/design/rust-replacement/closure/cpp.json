@@ -203,16 +203,28 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "check:cpp.cycle": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/cycles.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
+          "crates/ici-cpp/tests/source.rs::cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:104).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log"
+      ],
+      "comparison": "C++ facet, heuristic mode. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap.",
+      "difference_reason": "Frozen cycle report order follows Python set iteration in Tarjan (nondeterministic without PYTHONHASHSEED); Rust reports cycles in sorted component order, so with max_reported smaller than the cycle count the chosen subset may differ while count and every path/message match."
     },
     "check:cpp.diagnostics": {
       "status": "not_started",
@@ -403,16 +415,28 @@
       "difference_reason": ""
     },
     "command:ici cycle": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/cycles.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
+          "crates/ici-cpp/tests/source.rs::cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:340, src/ici/__main__.py:459).",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log"
+      ],
+      "comparison": "C++ facet of `ici cycle --report` (exit code, status, targets) for the heuristic graph. Python import cycles belong to the Python area. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap.",
+      "difference_reason": "Frozen cycle report order follows Python set iteration in Tarjan (nondeterministic without PYTHONHASHSEED); Rust reports cycles in sorted component order, so with max_reported smaller than the cycle count the chosen subset may differ while count and every path/message match."
     },
     "command:ici dead": {
       "status": "not_started",
@@ -4619,28 +4643,52 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "finding_site:src/ici/analysis/cycles.py:518:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/cycles.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
+          "crates/ici-cpp/tests/source.rs::cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/cycles.py:518); enclosing frozen function _append_cpp_cycle_targets.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log"
+      ],
+      "comparison": "Frozen _append_cpp_cycle_targets: CppCycle:N WARN at the first file of the actual edge-following path from the minimum member, line 1, basename message 'C++ include cycle (N files): a -> b -> a'. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap.",
+      "difference_reason": "Frozen cycle report order follows Python set iteration in Tarjan (nondeterministic without PYTHONHASHSEED); Rust reports cycles in sorted component order, so with max_reported smaller than the cycle count the chosen subset may differ while count and every path/message match."
     },
     "finding_site:src/ici/analysis/cycles.py:558:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/cycles.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_include_cycles_and_resolution_diagnostics_match_frozen_heuristic",
+          "crates/ici-cpp/tests/source.rs::cycle_report_limit_caps_groups_and_diagnostics_without_changing_graph_counts"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/native_cpp.rs::cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/cycles.py:558); enclosing frozen function _append_include_diagnostic_targets.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen `ici cycle --report` captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py (PYTHONHASHSEED=0) over tests/rust-parity/cpp/cycle-fixture into cycle-oracle.json: 3-file and 2-file cycles, ambiguous/unresolved/`..` includes, comment include, self include; default and max_reported=1.",
+        "cargo test -p ici-cli --test legacy_cpp_metrics (4 passed) and native_cpp cpp_cycle_report_limit... (passed after replacing self-include cycles, which frozen legacy never reports, with real two-file cycles); ici-cpp source/compiler tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-cycle.log and w-cpp-cycle-native.log"
+      ],
+      "comparison": "Frozen _append_include_diagnostic_targets: CppIncludeAmbiguous/CppIncludeUnresolved WARN targets with exact messages, include line and stripped snippet, bounded by max_reported, in frozen file/include order; any diagnostic makes the engine WARN. Legacy heuristic C++ include graph (no compilation context) now mirrors frozen _build_cpp_graph: raw-text `#include \"...\"` regex including comments, unique full-path-suffix resolution over sources+headers (no includer-relative preference, `..` unresolved), self-includes ignored. Previously Rust emitted per-include PASS/SKIP targets, IncludeGraph rows, sorted-member messages and treated self-includes as cycles. Compiler-trace (compilation-context) cycle mode is unchanged and not claimed. Headers under a top-level include/ directory are not part of Rust legacy component inputs (frozen get_all_cpp_headers adds include/): cross-area source-intake gap.",
+      "difference_reason": ""
     },
     "finding_site:src/ici/engines/binary_compat.py:106:24": {
       "status": "not_started",

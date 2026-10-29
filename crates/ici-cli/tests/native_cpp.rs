@@ -2138,8 +2138,16 @@ fn all_excluded_cpp_duplicate_scope_is_not_applicable_through_cli() {
 fn cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero() {
     let root = tempfile::tempdir().unwrap();
     fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
-    for path in ["a.h", "b.h", "c.h"] {
-        fs::write(root.path().join(path), format!("#include \"{path}\"\n")).unwrap();
+    // Three two-file cycles: frozen legacy `ici cycle` ignores self-includes.
+    for (path, other) in [
+        ("a.h", "b.h"),
+        ("b.h", "a.h"),
+        ("c.h", "d.h"),
+        ("d.h", "c.h"),
+        ("e.h", "f.h"),
+        ("f.h", "e.h"),
+    ] {
+        fs::write(root.path().join(path), format!("#include \"{other}\"\n")).unwrap();
     }
     let invocation = registry::parse(["ici", "cycle"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
