@@ -1,0 +1,104 @@
+{
+ "cases": {
+  "cmake": {
+   "exit_code": 0,
+   "tree": {
+    "v2.3.4": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64/bin": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64/env.csh": {
+     "mode": "0o755",
+     "sha256": "26cef3f140dd652af589fdafe140073bbe1909713e5471caeb212da3699c66ac",
+     "type": "file"
+    },
+    "v2.3.4/x86_64/env.sh": {
+     "mode": "0o755",
+     "sha256": "e8ce1a81e2d57574fdb0ffc6e910e9781178ee0fc30fc3286887d67b034fc9e8",
+     "type": "file"
+    },
+    "v2.3.4/x86_64/lib": {
+     "mode": "0o755",
+     "type": "dir"
+    }
+   }
+  },
+  "direct": {
+   "exit_code": 0,
+   "tree": {
+    "v2.3.4": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64/bin": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64/bin/pkg": {
+     "mode": "0o755",
+     "sha256": "elf",
+     "type": "file"
+    },
+    "v2.3.4/x86_64/env.csh": {
+     "mode": "0o755",
+     "sha256": "26cef3f140dd652af589fdafe140073bbe1909713e5471caeb212da3699c66ac",
+     "type": "file"
+    },
+    "v2.3.4/x86_64/env.sh": {
+     "mode": "0o755",
+     "sha256": "e8ce1a81e2d57574fdb0ffc6e910e9781178ee0fc30fc3286887d67b034fc9e8",
+     "type": "file"
+    },
+    "v2.3.4/x86_64/lib": {
+     "mode": "0o755",
+     "type": "dir"
+    }
+   }
+  },
+  "make": {
+   "exit_code": 0,
+   "tree": {
+    "v2.3.4": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64/bin": {
+     "mode": "0o755",
+     "type": "dir"
+    },
+    "v2.3.4/x86_64/env.csh": {
+     "mode": "0o755",
+     "sha256": "26cef3f140dd652af589fdafe140073bbe1909713e5471caeb212da3699c66ac",
+     "type": "file"
+    },
+    "v2.3.4/x86_64/env.sh": {
+     "mode": "0o755",
+     "sha256": "e8ce1a81e2d57574fdb0ffc6e910e9781178ee0fc30fc3286887d67b034fc9e8",
+     "type": "file"
+    },
+    "v2.3.4/x86_64/lib": {
+     "mode": "0o755",
+     "type": "dir"
+    }
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "umask": "0o022"
+}
