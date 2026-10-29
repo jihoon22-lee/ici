@@ -5824,6 +5824,52 @@
       "evidence": [],
       "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/type_check.py:452); enclosing frozen function _mark_python_type_check_skipped.",
       "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
+    },
+    "finding_site:src/ici/languages/artifacts.py:121:11": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+        ]
+      },
+      "evidence": [
+        "Frozen `ici next verify` oracle tests/rust-parity/cpp/artifact-contract-oracle.json captured by development-only tests/rust-parity/cpp/capture_artifact_contract.py (oracle 6fe3e40; fixture parity-fixtures/cpp/artifact-contract plus a scripted build tree): 5 cases (mixed regular/dangling-link/outside-link/directory-only/satisfied globs, absent build directory, all satisfied, required broken contract, directory='.'); exit code, gate, artifact findings (rule, message, location, severity, confidence, evidence, provider, component, task), the frozen raw `artifact-<sha1[:16]>` id recovered from each envelope fingerprint, and artifacts.* metrics.",
+        "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen languages/artifacts.py verify_artifacts: per declared glob under the build directory, strict resolve (dangling link = no match), outside-workspace match = artifact.invalid, directory-only match counted, no regular file = artifact.missing with detail 'the build directory is absent' / 'only N non-file match(es)' / 'no match under the build directory'; findings MEASURED, high/high, at build.directory, raw fingerprint 'artifact-'+sha1('<kind>:<build>:<pattern|path>')[:16]. Rust crates/ici-cli/src/cpp.rs::analyze_contract now matches every message (Python repr of the pattern, detail texts, the invalid tail), the location, evidence, raw fingerprint, the dangling-link skip and artifacts.satisfied/produced metrics on all oracle cases; the gate (advisory PASS exit 0, required FAIL exit 1) matches. This site: _missing.",
+      "difference_reason": "Open (cross-area): (1) the envelope fingerprint still differs because Rust attribution (crates/ici-application/src/verification.rs via PlannedCheck::analysis_units default '<component>.<language>') sets analysis_unit_id 'app.cpp' on internal-check findings while frozen finding_identity.attribute leaves internal checks (planned.task None) unattributed; with that single input the frozen raw id yields the Rust id exactly (asserted). Also the Rust check record has variant null where frozen records 'release'. (2) frozen rejects `[builds.<id>] directory = \".\"` ('config: build directory must name a path below the root', exit 2) while Rust accepts it (ici-config) and locates findings at the declaration file."
+    },
+    "finding_site:src/ici/languages/artifacts.py:142:11": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+        ]
+      },
+      "evidence": [
+        "Frozen `ici next verify` oracle tests/rust-parity/cpp/artifact-contract-oracle.json captured by development-only tests/rust-parity/cpp/capture_artifact_contract.py (oracle 6fe3e40; fixture parity-fixtures/cpp/artifact-contract plus a scripted build tree): 5 cases (mixed regular/dangling-link/outside-link/directory-only/satisfied globs, absent build directory, all satisfied, required broken contract, directory='.'); exit code, gate, artifact findings (rule, message, location, severity, confidence, evidence, provider, component, task), the frozen raw `artifact-<sha1[:16]>` id recovered from each envelope fingerprint, and artifacts.* metrics.",
+        "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log"
+      ],
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen languages/artifacts.py verify_artifacts: per declared glob under the build directory, strict resolve (dangling link = no match), outside-workspace match = artifact.invalid, directory-only match counted, no regular file = artifact.missing with detail 'the build directory is absent' / 'only N non-file match(es)' / 'no match under the build directory'; findings MEASURED, high/high, at build.directory, raw fingerprint 'artifact-'+sha1('<kind>:<build>:<pattern|path>')[:16]. Rust crates/ici-cli/src/cpp.rs::analyze_contract now matches every message (Python repr of the pattern, detail texts, the invalid tail), the location, evidence, raw fingerprint, the dangling-link skip and artifacts.satisfied/produced metrics on all oracle cases; the gate (advisory PASS exit 0, required FAIL exit 1) matches. This site: _invalid.",
+      "difference_reason": "Open (cross-area): (1) the envelope fingerprint still differs because Rust attribution (crates/ici-application/src/verification.rs via PlannedCheck::analysis_units default '<component>.<language>') sets analysis_unit_id 'app.cpp' on internal-check findings while frozen finding_identity.attribute leaves internal checks (planned.task None) unattributed; with that single input the frozen raw id yields the Rust id exactly (asserted). Also the Rust check record has variant null where frozen records 'release'. (2) frozen rejects `[builds.<id>] directory = \".\"` ('config: build directory must name a path below the root', exit 2) while Rust accepts it (ici-config) and locates findings at the declaration file."
     }
   },
   "source_files": {
