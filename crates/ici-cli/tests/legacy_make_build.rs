@@ -148,6 +148,10 @@ fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_succ
         output.stdout
     );
     assert!(!root.path().join("build/ici-make/app").exists());
+    let result: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    assert_eq!(result["gate"]["selected"], "FAIL");
     // A pre-existing unowned shadow is refused before any Make command and kept byte-for-byte.
     let root = fixture("build_argv=['make','all']");
     fs::create_dir_all(root.path().join("build/ici-make")).unwrap();
@@ -235,6 +239,11 @@ fn actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make() 
         );
         let output = dispatch(root.path());
         assert_eq!(output.exit_code, 1, "{make}: {}", output.stdout);
+        let result: serde_json::Value = serde_json::from_slice(
+            &fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(result["gate"]["selected"], "FAIL", "{make}");
         let text = output
             .stdout
             .split_whitespace()
@@ -287,11 +296,20 @@ fn legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compili
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
+    // The reporting projection prefixes an ERROR summary with the check id (reporting area);
+    // the frozen message and engine status are asserted here.
     assert!(
-        text.contains("ERROR build: Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked"),
+        text.contains("ERROR build: ")
+            && text.contains("Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked")
+            && text.contains("Makefile:1"),
         "{}",
         output.stdout
     );
+    // Under `ici build` the build check is required: the run gate is FAIL, never PASS.
+    let result: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    assert_eq!(result["gate"]["selected"], "FAIL");
     assert!(!root.path().join("build").exists());
     assert!(!root.path().join(".ici/rust-v1/build").exists());
 }

@@ -596,6 +596,7 @@ fn prepare_resolved_omitting(
                                     crate::cpp::build_failure(
                                         &check.task_id,
                                         descriptor.as_deref().unwrap_or("."),
+                                        descriptor.as_deref().unwrap_or("ici.toml"),
                                         false,
                                         &reason,
                                         &reason,
@@ -621,10 +622,15 @@ fn prepare_resolved_omitting(
                         .is_some() =>
                     {
                         // Frozen BuildEngine refuses generic g++ next to an unadapted descriptor.
-                        let label = crate::export_context::unadapted_descriptor(
+                        let (label, name) = crate::export_context::unadapted_descriptor(
                             &crate::files::under(&project.root, &component.root),
                         )
                         .unwrap_or_default();
+                        let file = if component.root == "." {
+                            name
+                        } else {
+                            format!("{}/{name}", component.root)
+                        };
                         let message = format!(
                             "{label} at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked"
                         );
@@ -638,6 +644,7 @@ fn prepare_resolved_omitting(
                                 crate::cpp::build_failure(
                                     &check.task_id,
                                     ".",
+                                    &file,
                                     true,
                                     &message,
                                     &message,

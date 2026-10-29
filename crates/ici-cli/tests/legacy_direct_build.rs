@@ -80,6 +80,8 @@ fn descriptorless_legacy_compile_failure_is_located_and_keeps_source_bytes() {
     let report: Value =
         serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
             .unwrap();
+    // Under `ici build` the build check is required, so the located compiler finding blocks.
+    assert_eq!(report["gate"]["selected"], "FAIL");
     assert!(report["findings"].as_array().unwrap().iter().any(
         |finding| finding["primary_location"]["path"] == "src/main.cpp"
             && finding["rule_id"] == "compiler.diagnostic"

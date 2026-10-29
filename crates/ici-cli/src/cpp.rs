@@ -1290,13 +1290,16 @@ pub fn preparation_dependent(check_id: &str, variant: &str, has_tasks: bool) -> 
 pub fn build_failure(
     id: &str,
     descriptor: &str,
+    finding_path: &str,
     configuration: bool,
     message: &str,
     detail: &str,
 ) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici.cpp");
     let status = if configuration { "ERROR" } else { "FAIL" };
-    output.observation.state = TaskState::Failed;
+    // The build verdict was measured: a failed build is a located, blocking finding (gate FAIL
+    // when the build check is required, as under `ici build`), not missing evidence.
+    output.observation.state = TaskState::Succeeded;
     output.observation.limitations.push(detail.into());
     output.status = status.into();
     output.summary = if configuration {
@@ -1313,6 +1316,19 @@ pub fn build_failure(
     .into();
     target.status = status.into();
     target.message = message.into();
+    // The frozen target may sit at "."; the blocking finding needs a project file location.
+    let mut located = target.clone();
+    located.file_path = finding_path.into();
+    add_finding(
+        &mut output,
+        &located,
+        "build.adapter",
+        &format!("build.adapter:{finding_path}:{message}"),
+    );
+    if let Some(finding) = output.observation.findings.last_mut() {
+        finding.native_rule_id = target.target_name.clone();
+        finding.category = "build".into();
+    }
     output.targets.push(target);
     output
 }
