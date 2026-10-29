@@ -700,6 +700,36 @@ fn frozen_test_summary(
     engine["summary"] = json!(summary);
 }
 
+/// Frozen legacy `TestEngine._mark_zero_tests`: a project without any test file is a located
+/// FAIL verdict ("[<language>] Tests" at `tests`:1), not missing evidence. The caller decides
+/// that no frozen test file exists; this only rewrites the historical engine view. Coverage and
+/// TEM stay absent instead of the frozen fabricated estimates.
+pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Result<()> {
+    let languages = if languages.is_empty() {
+        &["Project"][..]
+    } else {
+        languages
+    };
+    let targets: Vec<_> = languages
+        .iter()
+        .map(|language| {
+            json!({"file_path":"tests","start_line":1,"end_line":null,"start_column":null,
+                "end_column":null,"target_name":format!("[{language}] Tests"),"status":"FAIL",
+                "message":"No tests collected","snippet":"","metrics":{}})
+        })
+        .collect();
+    engine["targets"] = json!(targets);
+    engine["status"] = json!("FAIL");
+    engine["evidence"] = json!("MEASURED");
+    engine["score"] = Value::Null;
+    engine["summary"] = json!("0/0 Tests Passed; No tests collected");
+    engine["extra"]["passed_tests"] = json!(0);
+    engine["extra"]["total_tests"] = json!(0);
+    engine["extra"]["no_tests_collected"] = json!(languages);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
 fn normalize_findings(engine: &mut Value) -> Result<()> {
     let mut adapted = crate::migration::adapted_findings(engine)?;
     let candidates = engine["findings"].as_array().cloned().unwrap_or_default();
