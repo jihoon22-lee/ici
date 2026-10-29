@@ -1,5 +1,45 @@
 {
  "cases": {
+  "sanitize:direct-clean": {
+   "built": false,
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ASan/UBSan"
+    }
+   ]
+  },
+  "sanitize:direct-defect": {
+   "built": false,
+   "exit_code": 1,
+   "status": "FAIL",
+   "summary": "1 Memory / Resource Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ASan/UBSan"
+    },
+    {
+     "end_line": null,
+     "file_path": "tests/test_uaf.cpp",
+     "message": "AddressSanitizer detected heap use after free",
+     "start_line": 2,
+     "status": "FAIL",
+     "target_name": "ASan/UBSan Error"
+    }
+   ]
+  },
   "sanitize:tested-make-without-sanitizer-argv": {
    "built": false,
    "exit_code": 1,
@@ -61,6 +101,46 @@
      "start_line": 1,
      "status": "SKIP",
      "target_name": "C++Sanitizer"
+    }
+   ]
+  },
+  "thread-sanitize:direct-clean": {
+   "built": false,
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Thread Safety & TSan Clean (0 Defects)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    }
+   ]
+  },
+  "thread-sanitize:direct-defect": {
+   "built": false,
+   "exit_code": 1,
+   "status": "FAIL",
+   "summary": "1 Thread Safety Defect(s) Detected",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "tests/test_ok.cpp",
+     "message": "ThreadSanitizer completed without diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "TSan"
+    },
+    {
+     "end_line": null,
+     "file_path": "tests/test_uaf.cpp",
+     "message": "ThreadSanitizer detected thread safety defect",
+     "start_line": 2,
+     "status": "FAIL",
+     "target_name": "TSan Error"
     }
    ]
   },
@@ -130,6 +210,8 @@
   }
  },
  "configs": {
+  "direct-clean": "",
+  "direct-defect": "",
   "tested-make-without-sanitizer-argv": "[build.make]\nenabled=true\nbuild_argv=['/usr/bin/make','all']\n",
   "testless-direct": "",
   "testless-make": "[build.make]\nenabled=true\nbuild_argv=['/usr/bin/make','all']\n",

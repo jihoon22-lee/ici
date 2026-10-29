@@ -64,18 +64,21 @@ pub fn bind_compiled_artifacts(
         // Frozen adapter builds (CMake, qmake, Make) publish the release tree and loaders only;
         // the direct g++ build publishes its binary into bin/. Next-schema projects (which the
         // frozen pyz rejects) keep publishing their measured binaries.
-        let adapter = prepared.project.schema_family == ici_config::SchemaFamily::Legacy
-            && contexts.iter().any(|context| {
-                context.plan.component_id == component.id
+        let adapter = contexts
+            .iter()
+            .find(|context| {
+                prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                    && context.plan.component_id == component.id
                     && matches!(
                         context.plan.build.system.as_str(),
                         "cmake" | "qmake" | "make"
                     )
-            });
+            })
+            .map(|context| context.plan.clone());
         let build =
             crate::export_context::compiled_artifacts(&prepared.project, component, contexts)
                 .and_then(|artifacts| {
-                    if adapter {
+                    if let Some(adapter) = &adapter {
                         crate::artifact_build::describe_adapter(
                             &prepared.project,
                             component,
@@ -83,6 +86,20 @@ pub fn bind_compiled_artifacts(
                             environment,
                             artifacts.len(),
                         )
+                        .map(|mut build| {
+                            build.lead_targets.push(crate::cpp::legacy_adapter_success(
+                                &prepared.project.root,
+                                &component.root,
+                                &adapter.build.system,
+                                &adapter.descriptor,
+                                crate::cpp::legacy_shadow_linked_outputs(&crate::files::under(
+                                    &prepared.project.root,
+                                    &adapter.build.shadow,
+                                ))
+                                .unwrap_or(artifacts.len()),
+                            ));
+                            build
+                        })
                     } else {
                         crate::artifact_build::describe_compiled(
                             &prepared.project,
@@ -91,6 +108,14 @@ pub fn bind_compiled_artifacts(
                             environment,
                             &artifacts,
                         )
+                        .map(|mut build| {
+                            build.legacy_binary_message = legacy_direct_binary_message(
+                                prepared.project.schema_family,
+                                component,
+                                contexts,
+                            );
+                            build
+                        })
                     }
                 });
         match build {
@@ -114,6 +139,34 @@ pub fn bind_compiled_artifacts(
     prepared.graph = ici_application::graph::TaskGraph::build(&prepared.plan.checks)
         .map_err(|error| CliError(error.to_string()))?;
     Ok(())
+}
+/// Frozen BuildEngine direct g++ success: "Compiled C++17 binary (<seconds>s)", here the summed
+/// wall time of the observed compile and link tasks.
+fn legacy_direct_binary_message(
+    family: ici_config::SchemaFamily,
+    component: &ici_config::Component,
+    contexts: &[crate::export_context::PreparedContext],
+) -> Option<String> {
+    if family != ici_config::SchemaFamily::Legacy {
+        return None;
+    }
+    let context = contexts.iter().find(|context| {
+        context.plan.component_id == component.id && context.plan.build.system == "direct-gcc"
+    })?;
+    let seconds: f64 = context
+        .evidence
+        .as_ref()
+        .and_then(|evidence| evidence.get("outcomes"))
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|outcome| {
+            outcome
+                .get("duration_seconds")
+                .and_then(serde_json::Value::as_f64)
+        })
+        .sum();
+    Some(format!("Compiled C++17 binary ({seconds:.2}s)"))
 }
 fn rebind(
     runtime: &Runtime<'_>,
@@ -196,6 +249,14 @@ pub fn execute(
                         check.component_id == plan.component_id && check.check.id == "cpp.artifact"
                     }) && let Some(mut observed) = failure.observed_for(&check.task_id)
                     {
+                        if prepared.legacy_projection
+                            && plan.build.variant == "release"
+                            && plan.build.system == "direct-gcc"
+                        {
+                            // Frozen BuildEngine summary for a failed direct g++ build.
+                            observed.summary =
+                                "Build did not produce a complete artifact set".into();
+                        }
                         if let Err(redaction) = crate::execute::redact(&mut observed) {
                             limitations
                                 .push(format!("direct compiler evidence redaction: {redaction}"));

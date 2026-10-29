@@ -18,12 +18,15 @@ assert (
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-sanitize-capture"
 MAKE = "[build.make]\nenabled=true\nbuild_argv=['/usr/bin/make','all']\n"
 REQUIRED = "[engines.sanitize]\nrequired=true\n[engines.thread_sanitize]\nrequired=true\n"
-# fixture, ici.toml tail: none of these cases builds or runs anything.
+# fixture, ici.toml tail: only the direct-* cases compile and run instrumented tests.
 CONFIGS = {
     "testless-direct": ("sanitize-testless", ""),
     "testless-make": ("sanitize-testless", MAKE),
     "testless-make-required": ("sanitize-testless", MAKE + REQUIRED),
     "tested-make-without-sanitizer-argv": ("sanitize-tested", MAKE),
+    # Direct g++ runs: one clean test, and one clean plus one heap use-after-free test.
+    "direct-clean": ("sanitize-direct-clean", ""),
+    "direct-defect": ("sanitize-direct", ""),
 }
 
 

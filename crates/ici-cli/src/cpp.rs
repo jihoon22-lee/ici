@@ -1325,6 +1325,248 @@ pub fn preparation_dependent(check_id: &str, variant: &str, has_tasks: bool) -> 
     }
 }
 
+/// Frozen `_count_adapter_artifacts` (no shared analysis context under `ici build`): regular,
+/// non-symlink files in the shadow tree that are linked binaries or `!<arch>` static archives,
+/// objects and coverage notes excluded. `None` when the walk cannot be completed.
+pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
+    const MAGICS: [&[u8]; 6] = [
+        b"\x7fELF",
+        b"MZ",
+        b"\xfe\xed\xfa\xce",
+        b"\xfe\xed\xfa\xcf",
+        b"\xce\xfa\xed\xfe",
+        b"\xcf\xfa\xed\xfe",
+    ];
+    let mut pending = vec![shadow.to_path_buf()];
+    let (mut visited, mut count) = (0usize, 0usize);
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(&directory).ok()? {
+            let entry = entry.ok()?;
+            visited += 1;
+            if visited > 100_000 {
+                return None;
+            }
+            let kind = entry.file_type().ok()?;
+            let path = entry.path();
+            if kind.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            let extension = path.extension().and_then(|value| value.to_str());
+            if !kind.is_file() || matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
+                continue;
+            }
+            let mut prefix = [0u8; 8];
+            let read = std::fs::File::open(&path)
+                .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
+                .unwrap_or(0);
+            let prefix = &prefix[..read];
+            let archive =
+                matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
+            if archive || MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
+                count += 1;
+            }
+        }
+    }
+    Some(count)
+}
+
+/// Frozen SanitizeEngine / ThreadSanitizeEngine direct g++ projection. Each instrumented test
+/// group ends with its "Instrumented suite" target: a group with sanitizer diagnostics keeps
+/// only those located targets, a clean run becomes one `<label>` PASS target, and the summary
+/// is the frozen clean or "<n> <noun> Defect(s) Detected" text. Any other outcome (an executable
+/// failing without a diagnostic) is left untouched rather than guessed.
+pub fn legacy_direct_sanitizer(output: &mut AnalysisOutput, check_id: &str) {
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let (label, clean, summary, noun) = if check_id == "cpp.tsan" {
+        (
+            "TSan",
+            "ThreadSanitizer completed without diagnostics",
+            "Thread Safety & TSan Clean (0 Defects)",
+            "Thread Safety",
+        )
+    } else {
+        (
+            "ASan/UBSan",
+            "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+            "Memory Safety & Sanitize Clean (0 Defects)",
+            "Memory / Resource",
+        )
+    };
+    let mut reshaped = vec![];
+    let mut group: Vec<InspectionTarget> = vec![];
+    for target in &output.targets {
+        if target.target_name != "Instrumented suite" {
+            group.push(target.clone());
+            continue;
+        }
+        let (executables, diagnostics): (Vec<_>, Vec<_>) = group.drain(..).partition(|item| {
+            item.target_name == item.file_path && item.message.starts_with("executable exited")
+        });
+        if !diagnostics.is_empty() {
+            reshaped.extend(diagnostics);
+        } else if executables.len() == 1 && executables[0].status == "PASS" {
+            let mut target = InspectionTarget::at(&executables[0].file_path, 1);
+            target.target_name = label.into();
+            target.message = clean.into();
+            reshaped.push(target);
+        } else {
+            return;
+        }
+    }
+    if !group.is_empty() || reshaped.is_empty() {
+        return;
+    }
+    let issues = reshaped
+        .iter()
+        .filter(|target| matches!(target.status.as_str(), "WARN" | "FAIL"))
+        .count();
+    output.targets = reshaped;
+    output.summary = if output.status == "PASS" {
+        summary.into()
+    } else {
+        format!("{issues} {noun} Defect(s) Detected")
+    };
+}
+
+/// Frozen BinaryCompatibilityEngine verdict when it cannot select or inspect artifacts: the
+/// not-applicable SKIP, or `BinaryCompatibility:AnalysisUnavailable` ERROR at ".".
+pub fn legacy_binary_compat_unavailable(id: &str, error: Option<&str>) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "binarycompat");
+    let mut target = InspectionTarget::at(".", 1);
+    if let Some(error) = error {
+        output.status = "ERROR".into();
+        output.summary = format!("Binary compatibility analysis incomplete: {error}");
+        output.observation.limitations.push(error.into());
+        target.target_name = "BinaryCompatibility:AnalysisUnavailable".into();
+        target.status = "ERROR".into();
+        target.message = error.into();
+    } else {
+        output.status = "SKIP".into();
+        output.summary =
+            "Binary compatibility not applicable: no selected manifest artifacts".into();
+        output.observation.measurements.push(Measurement {
+            name: "applicability".into(),
+            value: 0.0,
+            evidence: ici_domain::EvidenceLevel::NotApplicable,
+            unit: "checks".into(),
+            numerator: None,
+            denominator: None,
+        });
+        output.extra["elf"] = json!({"state":"NOT_APPLICABLE","artifacts_checked":0,"facts":[]});
+        target.target_name = "BinaryCompatibility:NotApplicable".into();
+        target.status = "SKIP".into();
+        target.message = "No executable or shared-library manifest artifacts were selected".into();
+    }
+    output.targets.push(target);
+    output
+}
+
+/// Frozen BinaryCompatibilityEngine targets and summary for measured ELF evidence: one
+/// `BinaryCompatibility:<variant>:shadow:<path>` target per inspected artifact at its shadow
+/// path, `BinaryCompatibility:NonElf` SKIP for allowed non-ELF files, and the
+/// "ELF compatibility: N checked, V violation(s), S skipped" summary.
+pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: &str) {
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let prefix = if shadow.is_empty() || shadow == "." {
+        String::new()
+    } else {
+        format!("{}/", shadow.trim_end_matches('/'))
+    };
+    let (mut checked, mut skipped) = (0usize, 0usize);
+    let findings = output.observation.findings.clone();
+    for target in &mut output.targets {
+        if target.target_name != "ELF/ABI artifact" {
+            continue;
+        }
+        let path = target.file_path.clone();
+        let relative = path.strip_prefix(&prefix).unwrap_or(&path).to_owned();
+        let identity = format!("{variant}:shadow:{relative}");
+        target.file_path = relative;
+        if target.message == "selected artifact is not ELF" {
+            if target.status == "SKIP" {
+                skipped += 1;
+                target.target_name = "BinaryCompatibility:NonElf".into();
+                target.message = "Manifest artifact is not ELF and policy allows it".into();
+            } else {
+                target.target_name = format!("BinaryCompatibility:{identity}");
+                target.message = "Selected binary manifest artifact is not an ELF object".into();
+            }
+            continue;
+        }
+        checked += 1;
+        let violations = findings
+            .iter()
+            .filter(|finding| finding.primary_location.path == path)
+            .count();
+        target.target_name = format!("BinaryCompatibility:{identity}");
+        target.message = if violations > 0 {
+            format!("{violations} binary compatibility violation(s)")
+        } else {
+            "ELF dependency, loader path, and ABI evidence verified".into()
+        };
+    }
+    output.summary = format!(
+        "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
+        findings.len()
+    );
+}
+
+/// Frozen `_build_with_adapter` success target: `BuildAdapter[<backend>]` PASS at the descriptor,
+/// "<select_backend reason>; produced N artifact(s)".
+pub fn legacy_adapter_success(
+    root: &Path,
+    component_root: &str,
+    system: &str,
+    descriptor: &str,
+    produced: usize,
+) -> InspectionTarget {
+    let base = crate::files::under(root, component_root);
+    let name = Path::new(descriptor)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(descriptor)
+        .to_owned();
+    let reason = match system {
+        "cmake" => {
+            let mut reason =
+                "CMakeLists.txt at the project root selected the CMake backend".to_string();
+            let mut projects: Vec<String> = std::fs::read_dir(&base)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_file()))
+                .filter_map(|entry| entry.file_name().into_string().ok())
+                .filter(|name| name.ends_with(".pro"))
+                .collect();
+            projects.sort();
+            if let Some(first) = projects.first() {
+                reason.push_str(&format!("; {first} was present and passed over"));
+            }
+            reason
+        }
+        "qmake" => format!("{name} at the project root selected the qmake backend"),
+        _ => format!("{name} at the project root selected the configured Make backend"),
+    };
+    let backend = match system {
+        "cmake" => "cmake",
+        "qmake" => "qmake",
+        _ => "make",
+    };
+    let mut target = InspectionTarget::at(&name, 1);
+    target.target_name = format!("BuildAdapter[{backend}]");
+    target.message = format!("{reason}; produced {produced} artifact(s)");
+    target
+}
+
 /// Frozen sanitizer engines compile only `tests/**/*.cpp` under the project root. `true` means
 /// the walk proved there is none; a symlinked `tests`, an unreadable entry or a walk over its
 /// bounds is not proof, so the normal (blocking) preparation path decides those.
@@ -1522,6 +1764,10 @@ impl CppPlans {
     /// Record the frozen legacy output for a check decided while planning its preparation.
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
+    }
+    /// Whether a frozen legacy output was already decided for this task while planning.
+    pub fn planned_output(&self, id: &str) -> bool {
+        self.preparation_failures.contains_key(id)
     }
     pub fn handles(&self, id: &str) -> bool {
         self.diagnostics.contains_key(id)

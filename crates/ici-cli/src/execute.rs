@@ -506,7 +506,7 @@ pub fn execute(
                             &events,
                         )
                     } else if let Some(plans) = prepared.validations.get(id) {
-                        execute_validation(
+                        let mut output = execute_validation(
                             id,
                             plans,
                             &scheduler,
@@ -514,7 +514,33 @@ pub fn execute(
                             &events,
                             &mut step_outcomes,
                             &mut owned_runs,
-                        )
+                        );
+                        if prepared.legacy_projection && planned.check.id == "cpp.binary-compat" {
+                            let shadow = plans
+                                .first()
+                                .and_then(|plan| plan.context.options.build_roots.get(1))
+                                .and_then(|directory| {
+                                    directory.strip_prefix(&prepared.project.root).ok()
+                                })
+                                .map(|directory| directory.to_string_lossy().into_owned())
+                                .unwrap_or_default();
+                            crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
+                        }
+                        if prepared.legacy_projection
+                            && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                            && prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == planned.component_id)
+                                .and_then(|component| {
+                                    crate::cpp::linked_build(&prepared.project, component)
+                                })
+                                .is_some_and(|build| build.system.as_deref() == Some("direct-gcc"))
+                        {
+                            crate::cpp::legacy_direct_sanitizer(&mut output, &planned.check.id);
+                        }
+                        output
                     } else {
                         unavailable(
                             id,
