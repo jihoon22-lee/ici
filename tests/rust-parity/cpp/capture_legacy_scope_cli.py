@@ -82,4 +82,20 @@ exception = {"exception": run(FIXTURES / "exception-fixture", "exception")}
     json.dumps({"oracle": EXPECTED, "cases": exception}, indent=1, sort_keys=True) + "\n",
     encoding="utf-8",
 )
-print(f"{len(scope)} scope cases, {len(cycle)} cycle cases, {len(exception)} exception cases")
+# Frozen get_all_cpp_headers adds top-level include/ headers even when source_dirs omits it.
+include_scope = {
+    command: run(FIXTURES / "include-scope-fixture", command)
+    for command in ("cycle", "dup", "dead")
+}
+for policy in ("off", "required"):
+    include_scope[f"dead:{policy}"] = run(
+        FIXTURES / "include-scope-fixture", "dead", f"[engines.dead]\ncpp_unused='{policy}'\n"
+    )
+(PARITY / "include-scope-oracle.json").write_text(
+    json.dumps({"oracle": EXPECTED, "cases": include_scope}, indent=1, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+print(
+    f"{len(scope)} scope, {len(cycle)} cycle, {len(exception)} exception, "
+    f"{len(include_scope)} include-scope cases"
+)

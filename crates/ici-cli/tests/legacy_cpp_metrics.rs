@@ -1,4 +1,4 @@
-//! Legacy `ici complexity` / `ici cognitive` C++ thresholds against the frozen CLI oracle.
+//! Legacy C++ CLI projections (metrics, exception, cycle, dup, dead) against frozen CLI oracles.
 use ici_cli::{commands, registry};
 use serde_json::Value;
 use std::{collections::BTreeMap, fs};
@@ -335,4 +335,129 @@ fn legacy_cpp_exception_lines_match_frozen_masked_line_heuristic() {
     };
     assert_eq!(lines("DestructorThrow"), [3, 4, 10, 17, 22, 25, 27, 32, 37]);
     assert_eq!(output.exit_code, 1);
+}
+
+fn include_scope_project(config: &str) -> tempfile::TempDir {
+    let root = tempfile::tempdir().unwrap();
+    for (name, text) in [
+        (
+            "include/top.hpp",
+            include_str!("../../../parity-fixtures/cpp/include-scope-fixture/include/top.hpp"),
+        ),
+        (
+            "include/sub/deep.h",
+            include_str!("../../../parity-fixtures/cpp/include-scope-fixture/include/sub/deep.h"),
+        ),
+        (
+            "include/extra.cpp",
+            include_str!("../../../parity-fixtures/cpp/include-scope-fixture/include/extra.cpp"),
+        ),
+        (
+            "src/inner.hpp",
+            include_str!("../../../parity-fixtures/cpp/include-scope-fixture/src/inner.hpp"),
+        ),
+        (
+            "src/main.cpp",
+            include_str!("../../../parity-fixtures/cpp/include-scope-fixture/src/main.cpp"),
+        ),
+    ] {
+        let path = root.path().join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text).unwrap();
+    }
+    fs::write(
+        root.path().join("ici.toml"),
+        format!("[project]\ntype='cpp'\nsource_dirs=['src']\n{config}"),
+    )
+    .unwrap();
+    root
+}
+
+fn report(root: &std::path::Path, command: &str) -> Value {
+    let invocation = registry::parse(["ici", command, "--report"]).unwrap();
+    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let output = commands::dispatch(&invocation, root, &environment).unwrap();
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.join(format!("{command}_report.json"))).unwrap())
+            .unwrap();
+    let targets: Vec<Value> = report["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|target| {
+            Value::Object(
+                FIELDS
+                    .iter()
+                    .map(|key| ((*key).to_owned(), target[*key].clone()))
+                    .collect(),
+            )
+        })
+        .collect();
+    serde_json::json!({"exit_code":output.exit_code,"status":report["status"],"targets":targets})
+}
+
+#[test]
+fn legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/include-scope-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    for command in ["cycle", "dup", "dead"] {
+        let root = include_scope_project("");
+        let actual = report(root.path(), command);
+        assert_eq!(actual, oracle["cases"][command], "{command}");
+        // include/*.cpp stays outside the frozen header scope.
+        assert!(
+            actual["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|target| target["file_path"] != "include/extra.cpp"),
+            "{command}"
+        );
+    }
+    // The include/ header defines the cycle, the clone group and the first dead-code source.
+    assert_eq!(
+        oracle["cases"]["cycle"]["targets"][0]["file_path"],
+        "include/top.hpp"
+    );
+    assert_eq!(
+        oracle["cases"]["dead"]["targets"][0]["file_path"],
+        "include/sub/deep.h"
+    );
+}
+
+#[test]
+fn legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/include-scope-oracle.json"
+    ))
+    .unwrap();
+    // auto: SKIP exit 2; required: ERROR exit 1; off: the disabled-policy target at ".".
+    for (policy, case) in [
+        ("auto", "dead"),
+        ("off", "dead:off"),
+        ("required", "dead:required"),
+    ] {
+        let root = include_scope_project(&format!("[engines.dead]\ncpp_unused='{policy}'\n"));
+        assert_eq!(
+            report(root.path(), "dead"),
+            oracle["cases"][case],
+            "{policy}"
+        );
+    }
+    // The modern gate never turns the missing compilation evidence into a pass or a skip.
+    let root = include_scope_project("");
+    let invocation = registry::parse(["ici", "analyze"]).unwrap();
+    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
+    assert_eq!(output.exit_code, 3, "{}", output.stdout);
+    assert!(
+        output
+            .stdout
+            .contains("unused-function analysis requires complete recorded"),
+        "{}",
+        output.stdout
+    );
 }

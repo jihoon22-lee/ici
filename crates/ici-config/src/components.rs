@@ -165,7 +165,8 @@ pub(crate) fn component(
                 && (!body.get("source_dirs").is_some()
                     || source_dirs
                         .iter()
-                        .any(|directory| directory == "." || within.starts_with(directory)))
+                        .any(|directory| directory == "." || within.starts_with(directory))
+                    || (family == SchemaFamily::Legacy && legacy_include_header(&within)))
                 && discovery::language(file)
                     .is_some_and(|language| languages.iter().any(|name| name == language))
         })
@@ -342,6 +343,16 @@ pub(crate) fn automatic_components(
         return Err(parsed.error("components", "no supported source files discovered; declare component scope or add supported sources"));
     }
     Ok(result)
+}
+
+/// Frozen `get_all_cpp_headers` always adds the project's top-level `include/` headers to the
+/// legacy C/C++ header scope (cycle, dup, dead and lint inputs), whatever `source_dirs` says.
+fn legacy_include_header(within: &Path) -> bool {
+    within.starts_with("include")
+        && within
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| matches!(extension, "h" | "hh" | "hpp" | "hxx"))
 }
 
 pub(crate) fn legacy_components(
