@@ -248,8 +248,7 @@ fn observe_suite(
             _ => "FAIL",
         }
         .into();
-        target.message = case.verdict.clone();
-        output.targets.push(target);
+        target.message = case_message(&case.verdict).into();
         if matches!(case.verdict.as_str(), "FAILED" | "ERROR" | "XPASS") {
             let mut finding = finding(
                 plan,
@@ -259,8 +258,12 @@ fn observe_suite(
                 case.line,
             );
             finding.fingerprint = sha256(format!("pytest\0{}\0{}", case.node, case.verdict));
+            // The historical view keeps one issue per case: the verdict target already carries it.
+            output.extra["finding_details"][&finding.fingerprint] =
+                json!({"legacy_message":target.message});
             output.observation.findings.push(finding);
         }
+        output.targets.push(target);
     }
     for (path, source) in evidence
         .collection_errors
@@ -414,7 +417,12 @@ fn observe_coverage(
                 .push(pair(name, covered, total));
         }
     }
-    for file in report.files.values() {
+    // With a file gate the policy owns the per-file inventory (frozen `Coverage:File`).
+    for file in report
+        .files
+        .values()
+        .filter(|_| plan.context.options.min_file_cov.is_none())
+    {
         let mut target = InspectionTarget::at(&file.path, 1);
         target.target_name = format!("Coverage: {}", file.path);
         target
@@ -430,7 +438,7 @@ fn observe_coverage(
         .values()
         .filter(|case| matches!(case.verdict.as_str(), "PASSED" | "XFAIL"))
         .count() as u64;
-    let score = tem::calculate(&tem::TemInputs {
+    let inputs = tem::TemInputs {
         passed,
         total: tests.cases.len() as u64,
         line_coverage: tem::percentage(report.counts.covered_lines, report.counts.total_lines),
@@ -444,7 +452,10 @@ fn observe_coverage(
             .zip(report.counts.total_functions)
             .and_then(|(a, b)| tem::percentage(a, b)),
         estimated_coverage: None,
-    });
+    };
+    let score = tem::calculate(&inputs);
+    let legacy_tem = tem::calculate(&tem::legacy_inputs(&inputs));
+    output.extra["legacy_tem"] = json!(legacy_tem);
     output.score = score.score;
     output.max_score = Some(5.0);
     output.extra["tem"] = json!(score);
@@ -462,7 +473,21 @@ fn observe_coverage(
         report.counts.total_branches
     );
     crate::test_metrics::coverage(plan, &report, output);
-    crate::policy::evaluate(plan, &report, score.score, output)
+    let suite_failed = tests
+        .cases
+        .values()
+        .any(|case| matches!(case.verdict.as_str(), "FAILED" | "ERROR" | "XPASS"));
+    crate::policy::evaluate_suite(plan, &report, legacy_tem.score, suite_failed, output)
+}
+/// Frozen `TestOutputMixin._parse_pytest_stdout` case messages.
+pub(crate) fn case_message(verdict: &str) -> &'static str {
+    match verdict {
+        "PASSED" => "Test passed successfully",
+        "XFAIL" => "Expected failure was exercised",
+        "SKIPPED" => "Test was collected but not executed",
+        "XPASS" => "Unexpected pass violated the expected-failure contract",
+        _ => "Test assertion failed",
+    }
 }
 fn observe_runtime(
     plan: &ValidationPlan,

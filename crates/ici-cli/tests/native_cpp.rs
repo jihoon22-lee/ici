@@ -311,7 +311,7 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
             .iter()
             .any(|target| target.file_path == "main.cpp")
     );
-    for label in ["TEM score", "Changed executable-line coverage"] {
+    for label in ["Threshold: TEM score", "Coverage:Changed lines"] {
         assert!(
             run.outputs["project.cpp.coverage"]
                 .targets

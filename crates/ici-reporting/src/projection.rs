@@ -439,6 +439,7 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
     // Keep its coverage, but count the suite once and prefer the test producer.
     let mut suites = BTreeMap::<String, Value>::new();
     let mut coverage = BTreeMap::<String, Value>::new();
+    let mut phase_parts = BTreeMap::<String, Vec<Value>>::new();
     for check in checks {
         if check["evidence_complete"] != true {
             engine["extra"]["test_aggregation_limitation"] =
@@ -464,6 +465,10 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
                 return Ok(());
             }
             let phase = extra["test_execution"]["phase"].as_str();
+            phase_parts
+                .entry(phase.unwrap_or("").into())
+                .or_default()
+                .push(extra.clone());
             let physical = extra["physical_test_suites"].as_array().cloned().unwrap_or_else(||vec![json!({"canonical_suite_id":aggregate_identity,"complete":true,"passed_tests":extra["passed_tests"],"total_tests":extra["total_tests"],"skipped_tests":extra["skipped_tests"]})]);
             if physical.is_empty() {
                 engine["extra"]["test_aggregation_limitation"] =
@@ -580,16 +585,15 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
         if totals["covered"] > totals["stmts"] || totals["cb"] > totals["nb"] {
             return Err(ReportError("coverage numerator exceeds denominator".into()));
         }
-        let line = if totals["stmts"] > 0 {
-            Some(100.0 * totals["covered"] as f64 / totals["stmts"] as f64)
-        } else {
-            None
+        // Frozen totals carry `round(percent, 1)` (both sides round the exact binary value).
+        let percent = |covered: u64, total: u64| {
+            (total > 0).then(|| {
+                let value = 100.0 * covered as f64 / total as f64;
+                format!("{value:.1}").parse::<f64>().unwrap_or(value)
+            })
         };
-        let branch = if totals["nb"] > 0 {
-            Some(100.0 * totals["cb"] as f64 / totals["nb"] as f64)
-        } else {
-            None
-        };
+        let line = percent(totals["covered"], totals["stmts"]);
+        let branch = percent(totals["cb"], totals["nb"]);
         engine["extra"]["line_coverage"] = json!(line);
         engine["extra"]["branch_coverage"] = json!(branch);
         engine["extra"]["coverage_totals"] = json!({
@@ -600,7 +604,100 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
             "functions":null,"covered_functions":null
         });
     }
+    frozen_test_summary(engine, &phase_parts, passed, total);
     Ok(())
+}
+
+/// One test producer and one coverage producer of the same physical suite carry the frozen
+/// single-engine result: its direct extra keys, TEM score and summary line.
+fn frozen_test_summary(
+    engine: &mut Value,
+    parts: &BTreeMap<String, Vec<Value>>,
+    passed: u64,
+    total: u64,
+) {
+    let (Some([test]), Some([coverage])) = (
+        parts.get("test").map(Vec::as_slice),
+        parts.get("coverage").map(Vec::as_slice),
+    ) else {
+        return;
+    };
+    for key in [
+        "coverage_files",
+        "coverage_policy",
+        "coverage_provenance",
+        "coverage_source",
+        "function_coverage",
+        "function_rows",
+    ] {
+        if let Some(value) = coverage.get(key) {
+            engine["extra"][key] = value.clone();
+        }
+    }
+    for key in [
+        "test_suites",
+        "test_quality",
+        "quality_enabled",
+        "repeat_runs",
+        "repeat_reruns",
+        "repeat_cases",
+        "repeat_unavailable",
+        "repeat_timeouts",
+        "flaky_tests",
+        "flaky_test_inventory",
+        "slow_tests",
+        "slow_tests_observed",
+        "slow_test_inventory",
+        "mutation_probes",
+        "mutation_available",
+        "mutation_unavailable",
+        "mutation_status",
+    ] {
+        if let Some(value) = test.get(key) {
+            engine["extra"][key] = value.clone();
+        }
+    }
+    // The historical line/branch inputs are the rows' one-decimal percentages.
+    let tem = coverage
+        .get("legacy_tem")
+        .filter(|tem| tem.is_object())
+        .unwrap_or(&coverage["tem"]);
+    let (Some(score), Some(label), Some(shown), Some(function), Some(rate)) = (
+        tem["score"].as_f64(),
+        tem["coverage_label"].as_str(),
+        tem["coverage_shown"].as_f64(),
+        coverage["function_coverage"].as_f64(),
+        tem["pass_rate"].as_f64(),
+    ) else {
+        return;
+    };
+    engine["extra"]["tem_score"] = json!(score);
+    engine["extra"]["metrics_summary"] = json!(format!(
+        "TEM: {score:.2}/5.0 ({label}: {shown:.0}%, Func: {function:.0}%, PassRate: {:.0}%)",
+        rate * 100.0
+    ));
+    engine["score"] = json!(score);
+    engine["max_score"] = json!(5.0);
+    if engine["status"] == "ERROR" {
+        return;
+    }
+    let suffix = if tem["estimated"] == true {
+        " (est)"
+    } else {
+        ""
+    };
+    let mut summary = format!(
+        "{passed}/{total} Tests Passed | {label}: {shown:.1}%{suffix}, Func: {function:.1}% -> TEM: {score:.2} / 5.0"
+    );
+    // Frozen shows the branch gate input whenever TEM was not computed from it; an empty
+    // branch denominator is reported as such instead of the frozen vacuous 100.0%.
+    if label != "Branch" {
+        let branch = engine["extra"]["branch_coverage"]
+            .as_f64()
+            .map_or_else(|| "n/a".to_owned(), |branch| format!("{branch:.1}%"));
+        summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch} -> TEM:"), 1);
+    }
+    engine["summary"] = json!(summary);
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {
@@ -657,9 +754,13 @@ fn normalize_findings(engine: &mut Value) -> Result<()> {
             .cloned()
             .unwrap_or(Value::Null);
         let matched_message = details.get("legacy_message").unwrap_or(&native["message"]);
+        // A project-wide historical target (`.`) is anchored at a file in the modern finding.
+        let matched_path = details
+            .get("legacy_path")
+            .unwrap_or(&native["primary_location"]["path"]);
         let matched = target_index
             .get(&(
-                text(&native["primary_location"]["path"]),
+                text(matched_path),
                 native["primary_location"]["start_line"]
                     .as_u64()
                     .unwrap_or(1),
@@ -868,10 +969,8 @@ mod test_aggregation_tests {
             engine["extra"]["coverage_totals"]["cover"],
             engine["extra"]["line_coverage"]
         );
-        assert_eq!(
-            engine["extra"]["line_coverage"].as_f64().unwrap(),
-            100.0 * 10.0 / 12.0
-        );
+        // Raw denominators are summed first; the shown percent is frozen `round(cover, 1)`.
+        assert_eq!(engine["extra"]["line_coverage"].as_f64().unwrap(), 83.3);
         assert!(engine["extra"].get("test_aggregation_limitation").is_none());
     }
 

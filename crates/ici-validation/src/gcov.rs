@@ -723,7 +723,7 @@ pub(crate) fn observe(
     }
     output.extra["coverage"] = json!(report);
     crate::coverage_baseline::attach(plan, &report, output)?;
-    let score = crate::tem::calculate(&crate::tem::TemInputs {
+    let inputs = crate::tem::TemInputs {
         passed: tests.0,
         total: tests.1,
         line_coverage: crate::tem::percentage(
@@ -740,7 +740,10 @@ pub(crate) fn observe(
             .zip(report.counts.total_functions)
             .and_then(|(a, b)| crate::tem::percentage(a, b)),
         estimated_coverage: None,
-    });
+    };
+    let score = crate::tem::calculate(&inputs);
+    let legacy_tem = crate::tem::calculate(&crate::tem::legacy_inputs(&inputs));
+    output.extra["legacy_tem"] = json!(legacy_tem);
     output.score = score.score;
     output.max_score = Some(5.0);
     output.extra["tem"] = json!(score);
@@ -753,7 +756,14 @@ pub(crate) fn observe(
         report.counts.covered_lines, report.counts.total_lines
     );
     crate::test_metrics::coverage(plan, &report, output);
-    crate::policy::evaluate(plan, &report, score.score, output)
+    let suite_failed = output.extra["test_outcomes"]
+        .as_object()
+        .is_some_and(|nodes| {
+            nodes
+                .values()
+                .any(|verdict| matches!(verdict.as_str(), Some("FAILED" | "ERROR" | "XPASS")))
+        });
+    crate::policy::evaluate_suite(plan, &report, legacy_tem.score, suite_failed, output)
 }
 
 fn read_reports(

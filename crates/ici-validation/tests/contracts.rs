@@ -328,7 +328,7 @@ fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominato
         output
             .targets
             .iter()
-            .any(|target| target.target_name == "Function coverage" && target.status == "PASS")
+            .any(|target| target.target_name == "Coverage:Functions" && target.status == "PASS")
     );
     request.options.min_file_statements = 1;
     let planned = plan(&request).unwrap();
