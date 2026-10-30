@@ -131,31 +131,36 @@
    "comparison": "Config suppression application and report preservation facet. Frozen application/suppressions.py (conjunctive fingerprint/rule-prefix/component/path selectors, first declaration wins, kind=config with reason and origin, basename vs anchored fnmatchcase) maps one-to-one to SuppressionPolicy; reports keep suppressed findings, counts, reasons/origins and SARIF suppressions. Inline source suppressions are produced by analysis areas."
   },
   "capability:identity-cache-baseline": {
-   "status": "difference_review",
+   "status": "verified",
    "rust_paths": [
     "crates/ici-application/src/baseline.rs",
-    "crates/ici-reporting/src/overview.rs",
-    "crates/ici-reporting/src/sarif.rs",
-    "crates/ici-cli/src/legacy_execute.rs"
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not",
-     "crates/ici-reporting/tests/suite_overview.rs::every_renderer_states_the_frozen_gate_reason_scores_and_tally"
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-reporting/src/baseline_delta.rs::tests::frozen_is_regressed_and_is_actionable",
+     "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
     ],
     "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
      "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
     ],
     "failure": [
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
      "crates/ici-application/tests/baseline.rs::v1_unknown_scope_and_foreign_fingerprint_are_readable_but_not_comparable"
     ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Reviewed frozen core/baseline.py compare_suite_to_baseline (NEW/MOVED/RESOLVED/UNCHANGED deltas with regressed/gated flags, coverage regression records, compatibility warnings, engines-that-did-not-look) and application/baseline.py. Native comparison is the modern new/unchanged/carried/resolved model with policy/toolchain/scope gating; historical v3 baselines are read and rendered (counts, gate label, deltas, SARIF absent) but a new legacy-format delta comparison is not produced.",
-   "difference_reason": "Needs root decision: the frozen legacy FindingDelta comparator (moved/regressed/gated, fail_on_new on gated count, coverage regression deltas) is replaced by the conservative native comparator (plan §5.3) instead of being ported; historical baselines are treated as incompatible and both inputs are preserved."
+   "comparison": "Baseline facet closed under the root decision (all four conditions proven by legacy_baseline_gate.rs). Identity is covered by the application/domain identity tests; the cache facet was not reviewed by the reporting area, so this row stays verified rather than complete.",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "wire_schema:ici-result-v3.schema.json": {
    "status": "verified",
@@ -288,133 +293,229 @@
    "comparison": "baseline delta rule_id redaction is covered by recursive output redaction of every string and key; no dedicated frozen capture of a credential inside a metric key or delta rule id was taken."
   },
   "finding_site:src/ici/core/baseline.py:284:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-application/src/baseline.rs"
+    "crates/ici-application/src/baseline.rs",
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs",
+    "crates/ici-cli/src/coverage_regression.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
+     "crates/ici-cli/tests/coverage_regression.rs::actual_coverage_drop_gates_fail_on_new_without_changing_selected_gate_or_baseline",
+     "crates/ici-cli/tests/coverage_regression.rs::typed_coverage_drop_only_adds_baseline_findings_and_keeps_ordinary_gate"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/coverage_regression.rs::missing_rich_data_changed_scope_or_incomplete_baseline_never_invents_coverage_drop"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
-   "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
+   "comparison": "_CoverageSnapshot from a baseline payload: native-written baselines carry the coverage policy evidence that crates/ici-cli/src/coverage_regression.rs compares; a pyz-era snapshot is not read (whole baseline refused).",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/core/baseline.py:324:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-application/src/baseline.rs"
+    "crates/ici-application/src/baseline.rs",
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-reporting/src/baseline_delta.rs::tests::frozen_is_regressed_and_is_actionable",
      "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
+     "crates/ici-application/tests/baseline.rs::v1_unknown_scope_and_foreign_fingerprint_are_readable_but_not_comparable"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
-   "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
+   "comparison": "_FindingRecord read from a v3 baseline payload: a pyz-era v3 inventory is read (counted in the incompatibility reason) but never compared.",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/core/baseline.py:403:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-application/src/baseline.rs"
+    "crates/ici-application/src/baseline.rs",
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-reporting/src/baseline_delta.rs::tests::frozen_is_regressed_and_is_actionable",
      "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
+     "crates/ici-application/tests/baseline.rs::v1_unknown_scope_and_foreign_fingerprint_are_readable_but_not_comparable"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
-   "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
+   "comparison": "_record_from_finding for current findings: legacy_baseline_comparison takes engine, rule, message, location, severity and suppression from the current native findings.",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/core/baseline.py:458:12": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-application/src/baseline.rs"
+    "crates/ici-application/src/baseline.rs",
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs",
+    "crates/ici-cli/src/coverage_regression.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
+     "crates/ici-cli/tests/coverage_regression.rs::actual_coverage_drop_gates_fail_on_new_without_changing_selected_gate_or_baseline",
+     "crates/ici-cli/tests/coverage_regression.rs::typed_coverage_drop_only_adds_baseline_findings_and_keeps_ordinary_gate"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/coverage_regression.rs::missing_rich_data_changed_scope_or_incomplete_baseline_never_invents_coverage_drop"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
-   "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
+   "comparison": "Coverage-regression _FindingRecord: native coverage drops become baseline-only findings (coverage_regression.rs) that join the comparison before the frozen delta and gate are derived.",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/core/baseline.py:510:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-application/src/baseline.rs"
+    "crates/ici-application/src/baseline.rs",
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-reporting/src/baseline_delta.rs::tests::frozen_is_regressed_and_is_actionable",
      "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
+     "crates/ici-application/tests/baseline.rs::v1_unknown_scope_and_foreign_fingerprint_are_readable_but_not_comparable"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
-   "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
+   "comparison": "_paired_delta: unchanged fingerprints carry current/baseline locations and severities with frozen regressed/gated flags.",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/core/baseline.py:527:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-application/src/baseline.rs"
+    "crates/ici-application/src/baseline.rs",
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-reporting/src/baseline_delta.rs::tests::frozen_is_regressed_and_is_actionable",
      "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
+     "crates/ici-application/tests/baseline.rs::v1_unknown_scope_and_foreign_fingerprint_are_readable_but_not_comparable"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
-   "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
+   "comparison": "_new_delta: new fingerprints are gated when actionable (measured, unsuppressed, non-info, not a native advisory).",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/core/baseline.py:541:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-application/src/baseline.rs"
+    "crates/ici-application/src/baseline.rs",
+    "crates/ici-reporting/src/baseline_delta.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/overview.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-reporting/src/baseline_delta.rs::tests::frozen_is_regressed_and_is_actionable",
      "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-application/tests/baseline.rs::rule_configuration_or_plugin_change_cannot_turn_missing_finding_into_resolved"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
+     "crates/ici-application/tests/baseline.rs::v1_unknown_scope_and_foreign_fingerprint_are_readable_but_not_comparable"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
    ],
-   "comparison": "Legacy FindingDelta/_FindingRecord/_CoverageSnapshot construction of the frozen comparator.",
-   "difference_reason": "Same root decision as capability:identity-cache-baseline: the native comparator replaces the legacy delta comparator; rule ids/metrics are carried by native findings and coverage baselines rather than _FindingRecord."
+   "comparison": "_resolved_delta: resolved (and carried) baseline fingerprints keep their baseline location and severity, never gated.",
+   "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/reporters/sarif.py:296:14": {
-   "status": "difference_review",
+   "status": "verified",
    "rust_paths": [
     "crates/ici-reporting/src/sarif.rs"
    ],
@@ -422,14 +523,17 @@
     "positive": [
      "crates/ici-reporting/tests/suite_overview.rs::resolved_historical_deltas_stay_visible_as_sarif_absent_results"
     ],
-    "negative": [],
+    "negative": [
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new"
+    ],
     "failure": []
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log"
    ],
    "comparison": "Resolved delta -> SARIF absent result with baseline location, baseline severity level, rule-id message fallback and delta properties; matches frozen serialize_sarif output for the captured case.",
-   "difference_reason": "The absent result keeps the saved delta fingerprint; the frozen serializer recomputed one from rule and location."
+   "difference_reason": "The absent result keeps the saved delta fingerprint; the frozen serializer recomputed one from rule and location. Root decision accepted under ADR-0008: incompatible (pyz-era) baselines produce no absent or new SARIF results (legacy_baseline_gate.rs pyz test)."
   },
   "finding_site:src/ici/reporting/view_model.py:130:11": {
    "status": "verified",
@@ -676,7 +780,7 @@
    "requirements": [
     "capability:identity-cache-baseline"
    ],
-   "reason": "Reviewed. The modern baseline application maps to ici_application::baseline (application tests in w-reporting-application-domain.log); open while capability:identity-cache-baseline needs a root difference decision."
+   "reason": "Reviewed; the modern comparison maps to ici_application::baseline and the frozen delta/gate to ici_reporting::baseline_delta (legacy_baseline_gate.rs). Open while capability:identity-cache-baseline is verified."
   },
   "src/ici/application/suppressions.py": {
    "disposition": "unreviewed",
@@ -709,9 +813,16 @@
   "src/ici/core/baseline.py": {
    "disposition": "unreviewed",
    "requirements": [
-    "capability:identity-cache-baseline"
+    "capability:identity-cache-baseline",
+    "finding_site:src/ici/core/baseline.py:284:11",
+    "finding_site:src/ici/core/baseline.py:324:11",
+    "finding_site:src/ici/core/baseline.py:403:11",
+    "finding_site:src/ici/core/baseline.py:458:12",
+    "finding_site:src/ici/core/baseline.py:510:11",
+    "finding_site:src/ici/core/baseline.py:527:11",
+    "finding_site:src/ici/core/baseline.py:541:11"
    ],
-   "reason": "compare_suite_to_baseline reviewed; the legacy FindingDelta comparator is not ported (root difference decision pending on its seven finding sites)."
+   "reason": "Complete module reviewed against the root ADR-0008 decision; all seven finding sites are complete. Stays unreviewed only because capability:identity-cache-baseline is verified (its cache facet is outside reporting)."
   },
   "src/ici/core/findings.py": {
    "disposition": "unreviewed",

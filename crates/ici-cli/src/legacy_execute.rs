@@ -135,8 +135,12 @@ pub fn command(
     let run = crate::execute::execute(&internal, cwd, environment, false, &cancellation)?;
     // Validate comparison before any requested export, especially --write-baseline.
     let mut exit_code = run.result.exit_code();
-    // A --fail-on-new regression is a gate decision; later legacy verdict projections never lower it.
+    // A --fail-on-new failure (regression or incompatible baseline) is a gate decision; later
+    // legacy verdict projections never lower it.
     let mut regressed = false;
+    // An incompatible baseline under --fail-on-new fails like the frozen gate (exit 1, never a
+    // silent pass) with the exact command that regenerates it; nothing is reported as new.
+    let mut incompatible_baseline = None;
     if invocation.flag("fail_on_new") {
         match &run.result.baseline {
             Some(delta) if delta.state == ici_domain::BaselineState::Comparable => {
@@ -146,25 +150,23 @@ pub fn command(
                         run.result_path.display()
                     )));
                 }
-                if run.result.findings.iter().any(|finding| {
-                    delta.new.contains(&finding.fingerprint)
-                        && finding.counts_against_gate()
-                        && (finding
-                            .tags
-                            .iter()
-                            .any(|tag| tag == "baseline-only" || tag == "legacy-policy-advisory")
-                            || !finding.tags.iter().any(|tag| tag == "advisory"))
-                }) && run.result.gate.selected != GateVerdict::Incomplete
+                // Gated new findings and gated severity regressions (frozen FindingDelta.gated).
+                if !run.baseline_gate_failures.is_empty()
+                    && run.result.gate.selected != GateVerdict::Incomplete
                 {
                     regressed = true;
                     exit_code = 1;
                 }
             }
-            _ => {
-                return Err(CliError(format!(
-                    "baseline comparison is incompatible; result saved at {}; create a new baseline explicitly",
-                    run.result_path.display()
-                )));
+            Some(delta) => {
+                incompatible_baseline = Some(delta.reason.clone());
+                regressed = true;
+                exit_code = exit_code.max(1);
+            }
+            None => {
+                incompatible_baseline = Some("no baseline comparison was recorded".into());
+                regressed = true;
+                exit_code = exit_code.max(1);
             }
         }
     }
@@ -263,7 +265,13 @@ pub fn command(
         )?;
         stdout.push_str(&format!("wrote {}\n", path.display()));
     }
-    if let Some(path) = baseline_output {
+    if let Some(reason) = &incompatible_baseline {
+        // Validated before any requested export: the requested replacement is not written.
+        stdout.push_str(&format!(
+            "Baseline gate: FAILED — --fail-on-new cannot compare against {}: {reason}\n",
+            invocation.value("baseline").unwrap_or_default()
+        ));
+    } else if let Some(path) = baseline_output {
         write_result_export(&path, &stored, &run.result_path)?;
         stdout.push_str(&format!("wrote baseline {}\n", path.display()));
     }

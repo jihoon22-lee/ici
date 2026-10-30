@@ -153,7 +153,7 @@ fn incompatible_historical_baseline_never_writes_requested_replacement() {
         include_bytes!("../../../tests/fixtures/ici-next/legacy-v3-suite.json"),
     )
     .unwrap();
-    let error = call(
+    let output = call(
         root.path(),
         &[
             "ici",
@@ -165,12 +165,19 @@ fn incompatible_historical_baseline_never_writes_requested_replacement() {
             "replacement.json",
         ],
     )
-    .unwrap_err();
-    assert!(error.to_string().contains("incompatible"), "{error}");
+    .unwrap();
+    // Frozen gate failure path: exit 1 with the incompatibility and the regenerate command.
+    assert_eq!(output.exit_code, 1, "{}", output.stdout);
+    assert!(
+        output.stdout.contains("incompatible") || output.stdout.contains("regenerate it with"),
+        "{}",
+        output.stdout
+    );
     assert!(!root.path().join("replacement.json").exists());
     assert!(
         root.path().join(ici_cli::DEFAULT_RESULT).exists(),
-        "{error}"
+        "{}",
+        output.stdout
     );
 }
 
