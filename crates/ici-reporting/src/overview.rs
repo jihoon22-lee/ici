@@ -194,10 +194,15 @@ pub(crate) fn baseline_summary(baseline: &Value) -> Value {
         } else {
             "NOT ENFORCED"
         };
-        json!({"new":delta_count(baseline,"new"),"unchanged":delta_count(baseline,"unchanged"),
+        let mut summary = json!({"new":delta_count(baseline,"new"),"unchanged":delta_count(baseline,"unchanged"),
             "moved":delta_count(baseline,"moved"),"resolved":delta_count(baseline,"resolved"),
             "regressed":baseline["regressed_count"],"gated":baseline["gated_count"],
-            "fail_on_new_gate":label,"total_entries":baseline["entries"].as_array().map_or(0, Vec::len)})
+            "fail_on_new_gate":label,"total_entries":baseline["entries"].as_array().map_or(0, Vec::len)});
+        // A native-derived delta also keeps the fingerprints it could not prove resolved.
+        if baseline.get("carried_count").is_some() {
+            summary["carried"] = json!(delta_count(baseline, "carried"));
+        }
+        summary
     } else {
         let size = |key: &str| baseline[key].as_array().map_or(0, Vec::len);
         json!({"new":size("new"),"unchanged":size("unchanged"),"resolved":size("resolved"),
