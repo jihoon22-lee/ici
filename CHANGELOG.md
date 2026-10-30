@@ -39,6 +39,8 @@
 - 레거시 명령의 엔진 상태(FAIL·ERROR·WARN·SKIP)와 오류 요약 문구가 이전 제품과 같아졌습니다. 이전에는 실패한
   검사가 ERROR로 표시되거나 요약 앞에 `cpp.artifact:` 같은 내부 검사 ID가 붙었습니다.
 - 레거시 `ici build`·ELF 바이너리 호환성·직접 sanitizer 실행 결과의 대상과 요약이 이전 제품과 같습니다.
+- 컴파일 데이터베이스가 없을 때 레거시 C++ lint가 이전 제품과 같은 대상·메시지·요약을 보고하고, 경고만 있으면
+  WARN(exit 0)으로 판정합니다. sanitizer 빌드 명령이 빠진 Make 설정은 Makefile 위치의 ERROR(exit 1)로 보고합니다.
 - 선언한 산출물(`[builds.<id>]`) 계약 검사 결과가 이전 제품과 같은 대상·메시지로 보고됩니다.
 - 테스트 파일이 전혀 없는 C++ 프로젝트에서 레거시 `ici test`가 이전처럼 "No tests collected" FAIL(exit 1)을
   보고합니다. 개별 `ici test` 명령은 deep 프로필의 테스트 품질 검사(반복 실행·느린 테스트)를 자동으로
