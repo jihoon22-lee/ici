@@ -171,3 +171,154 @@ fn unapplied_preferences_reach_the_plan_output_of_the_binary() {
         );
     }
 }
+
+fn planned_tasks(tree: &Value, argv: &[String]) -> (Option<i32>, Option<Vec<String>>) {
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("project");
+    for (name, text) in tree.as_object().unwrap() {
+        let path = root.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text.as_str().unwrap()).unwrap();
+    }
+    fs::create_dir(root.join(".git")).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+        .args(argv)
+        .current_dir(&root)
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .env("HOME", temporary.path())
+        .env("XDG_CONFIG_HOME", temporary.path())
+        .output()
+        .unwrap();
+    assert!(
+        !temporary.path().join("ici").exists(),
+        "a plan writes no user configuration"
+    );
+    let tasks = (output.status.success()).then(|| {
+        let plan: Value = serde_json::from_slice(&output.stdout).unwrap();
+        let mut tasks: Vec<String> = plan["plans"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|item| item["checks"].as_array().unwrap())
+            .map(|check| check["task_id"].as_str().unwrap().to_owned())
+            .collect();
+        tasks.sort();
+        tasks
+    });
+    (output.status.code(), tasks)
+}
+
+#[test]
+fn plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs() {
+    // Golden: cli-selection-oracle.json (capture_cli_selection.py) — --component (single,
+    // repeated, unknown), --python/--cpp/--language, --profile (fast, deep, invalid),
+    // --require-full, --config (present, missing) and --local-config (accepted, policy refused).
+    let golden = fixture("cli-selection-oracle.json");
+    let mut seen = 0;
+    for (group, tree) in [
+        ("next_plan", "workspace"),
+        ("analyze_plan", "configless"),
+        ("analyze_configured_plan", "workspace"),
+    ] {
+        for (name, case) in golden["results"][group].as_object().unwrap() {
+            let argv: Vec<String> = serde_json::from_value(case["argv"].clone()).unwrap();
+            let expected: Option<Vec<String>> =
+                serde_json::from_value(case["tasks"].clone()).unwrap();
+            let (code, tasks) = planned_tasks(&golden[tree], &argv);
+            assert_eq!(
+                code,
+                case["exit_code"].as_i64().map(|code| code as i32),
+                "{group}:{name}"
+            );
+            assert_eq!(tasks, expected, "{group}:{name}");
+            seen += 1;
+        }
+    }
+    assert_eq!(seen, 32);
+}
+
+#[test]
+fn next_init_keeps_the_frozen_preview_refusal_and_force_contract() {
+    // Golden: cli-selection-oracle.json results.next_init. Intended differences, asserted:
+    // native writes the sparse schema_version=2 scaffold (an unrestricted preview names no
+    // languages; discovery supplies them), `--force` keeps the existing scope with a
+    // `.before-init` backup, and an unparseable existing file is refused with its location
+    // instead of being overwritten (frozen exit 0).
+    let golden = fixture("cli-selection-oracle.json");
+    let cases = golden["results"]["next_init"].as_object().unwrap();
+    assert_eq!(cases.len(), 8);
+    for (name, case) in cases {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().join("project");
+        for (file, text) in golden["configless"].as_object().unwrap() {
+            fs::create_dir_all(&root).unwrap();
+            fs::write(root.join(file), text.as_str().unwrap()).unwrap();
+        }
+        fs::create_dir(root.join(".git")).unwrap();
+        let target = root.join("ici.toml");
+        let existing = case["existing"].as_str();
+        if let Some(text) = existing {
+            fs::write(&target, text).unwrap();
+        }
+        let argv: Vec<String> = serde_json::from_value(case["argv"].clone()).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(&argv)
+            .current_dir(&root)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", temporary.path())
+            .env("XDG_CONFIG_HOME", temporary.path())
+            .output()
+            .unwrap();
+        assert!(
+            !temporary.path().join("ici").exists(),
+            "{name}: no user configuration"
+        );
+        let after = fs::read_to_string(&target).ok();
+        let unchanged = after.as_deref() == existing;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let languages = stdout.lines().find(|line| line.starts_with("languages"));
+        if name == "broken_force" {
+            assert_eq!(output.status.code(), Some(2), "{name}");
+            assert!(
+                unchanged,
+                "{name}: an unparseable file is preserved, not overwritten"
+            );
+            assert!(
+                String::from_utf8_lossy(&output.stderr).contains("ici.toml:1:"),
+                "{name}"
+            );
+            continue;
+        }
+        assert_eq!(
+            output.status.code(),
+            case["exit_code"].as_i64().map(|code| code as i32),
+            "{name}"
+        );
+        assert_eq!(
+            unchanged,
+            case["file_unchanged"].as_bool().unwrap(),
+            "{name}"
+        );
+        if argv.iter().any(|arg| arg == "--python" || arg == "--cpp") {
+            assert_eq!(languages, case["languages_line"].as_str(), "{name}");
+        } else if argv.iter().any(|arg| arg == "--preview") {
+            assert!(
+                stdout.contains("schema_version = 2") && languages.is_none(),
+                "{name}"
+            );
+        }
+        if name == "existing_force" {
+            let backup = fs::read_to_string(root.join("ici.toml.before-init")).unwrap();
+            assert_eq!(
+                Some(backup.as_str()),
+                existing,
+                "{name}: original kept as a backup"
+            );
+        }
+        if name == "fresh" {
+            assert!(after.unwrap().contains("schema_version = 2"), "{name}");
+        }
+    }
+}
