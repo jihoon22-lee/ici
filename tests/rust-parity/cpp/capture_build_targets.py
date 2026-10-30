@@ -18,7 +18,7 @@ EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 FIXTURES = ROOT / "parity-fixtures/cpp"
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-build-targets-capture"
-TOOLS = sorted({str(Path(shutil.which(name)).parent) for name in ("make", "g++", "cmake")})
+TOOLS = sorted({str(Path(shutil.which(name)).parent) for name in ("make", "g++", "cmake", "qmake")})
 FIELDS = ("target_name", "status", "message", "start_line", "file_path")
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
@@ -41,6 +41,8 @@ sys.argv = ["ici", "build"]
 cli.main()
 """
 BROKEN_MAKE = "all:\n\texit 5\n"
+BROKEN_SOURCE = "int main() { return missing; }\n"
+QMAKE_PROJECT = "TEMPLATE = app\nCONFIG += console c++17\nCONFIG -= qt\nTARGET = suite\nSOURCES += src/main.cpp\n"
 PY_TOML = "[project]\ntype='python'\nsource_dirs=['src']\n"
 PYPROJECT = "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\npkg-tool='pkg.cli:main'\n"
 DECLARED = (
@@ -53,6 +55,16 @@ CASES = {
     "direct": ("package-direct", {}),
     "cmake": ("package-cmake", {}),
     "make-failure": ("package-make", {"Makefile": BROKEN_MAKE}),
+    "cmake-compile-failure": ("package-cmake", {"src/main.cpp": BROKEN_SOURCE}),
+    "cmake-configure-failure": (
+        "package-cmake",
+        {"CMakeLists.txt": 'cmake_minimum_required(VERSION 3.16)\nmessage(FATAL_ERROR "broken")\n'},
+    ),
+    "qmake": ("package-cmake", {"CMakeLists.txt": None, "pkg.pro": QMAKE_PROJECT}),
+    "qmake-compile-failure": (
+        "package-cmake",
+        {"CMakeLists.txt": None, "pkg.pro": QMAKE_PROJECT, "src/main.cpp": BROKEN_SOURCE},
+    ),
     "direct-compile-failure": (
         "package-direct",
         {"src/main.cpp": "int main() { return missing; }\n"},

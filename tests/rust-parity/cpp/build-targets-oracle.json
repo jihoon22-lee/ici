@@ -33,6 +33,48 @@
     ]
    }
   },
+  "cmake-compile-failure": {
+   "changes": {
+    "src/main.cpp": "int main() { return missing; }\n"
+   },
+   "fixture": "package-cmake",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "stdout": "✘ Build did not produce a complete artifact set",
+    "summary": "Build did not produce a complete artifact set",
+    "targets": [
+     {
+      "file_path": "CMakeLists.txt",
+      "message": "cmake build failed: <work>/project/src/main.cpp: In function ‘int main()’:\n<work>/project/src/main.cpp:1:21: error: ‘missing’ was not declared in this scope\n    1 |",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "BuildAdapter"
+     }
+    ]
+   }
+  },
+  "cmake-configure-failure": {
+   "changes": {
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nmessage(FATAL_ERROR \"broken\")\n"
+   },
+   "fixture": "package-cmake",
+   "frozen": {
+    "exit_code": 1,
+    "status": "ERROR",
+    "stdout": "✘ cmake configure failed: CMake Warning (dev) in CMakeLists.txt:\n  No project() command is present.  The top-level CMakeLists.txt file must\n  contain a literal, direct call to the project() command.  Add a line of\n  code such",
+    "summary": "cmake configure failed: CMake Warning (dev) in CMakeLists.txt:\n  No project() command is present.  The top-level CMakeLists.txt file must\n  contain a literal, direct call to the project() command.  Add a line of\n  code such ",
+    "targets": [
+     {
+      "file_path": "CMakeLists.txt",
+      "message": "cmake configure failed: CMake Warning (dev) in CMakeLists.txt:\n  No project() command is present.  The top-level CMakeLists.txt file must\n  contain a literal, direct call to the project() command.  Add a line of\n  code such ",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  },
   "declared-artifacts": {
    "changes": {
     "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.artifacts]\nreport=['reports/*.txt']\n",
@@ -363,6 +405,65 @@
       "start_line": 1,
       "status": "PASS",
       "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "qmake": {
+   "changes": {
+    "CMakeLists.txt": null,
+    "pkg.pro": "TEMPLATE = app\nCONFIG += console c++17\nCONFIG -= qt\nTARGET = suite\nSOURCES += src/main.cpp\n"
+   },
+   "fixture": "package-cmake",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "targets": [
+     {
+      "file_path": "pkg.pro",
+      "message": "pkg.pro at the project root selected the qmake backend; produced 1 artifact(s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "BuildAdapter[qmake]"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "qmake-compile-failure": {
+   "changes": {
+    "CMakeLists.txt": null,
+    "pkg.pro": "TEMPLATE = app\nCONFIG += console c++17\nCONFIG -= qt\nTARGET = suite\nSOURCES += src/main.cpp\n",
+    "src/main.cpp": "int main() { return missing; }\n"
+   },
+   "fixture": "package-cmake",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "stdout": "✘ Build did not produce a complete artifact set",
+    "summary": "Build did not produce a complete artifact set",
+    "targets": [
+     {
+      "file_path": "pkg.pro",
+      "message": "qmake build failed: ../../src/main.cpp: In function ‘int main()’:\n../../src/main.cpp:1:21: error: ‘missing’ was not declared in this scope\n    1 | int main() { return missing; }\n      |                     ^~~~~~~\nmake: ",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "BuildAdapter"
      }
     ]
    }

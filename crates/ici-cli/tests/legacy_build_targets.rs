@@ -1,6 +1,5 @@
 //! Legacy `ici build` BuildEngine targets against the frozen CLI's own rendered engine result
 //! (`tests/rust-parity/cpp/capture_build_targets.py`).
-use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
@@ -34,6 +33,11 @@ fn normalized(message: &str) -> String {
     format!("{}Compiled C++17 binary (<seconds>s)", &message[..start])
 }
 
+struct Output {
+    exit_code: i32,
+    stdout: String,
+}
+
 fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
     let work = tempfile::tempdir().unwrap();
     let project = work.path().join("project");
@@ -59,8 +63,18 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
             }
         }
     }
-    let invocation = registry::parse(["ici", "build"]).unwrap();
-    let output = commands::dispatch(&invocation, project.as_path(), environment).unwrap();
+    // The real executable: the qmake adapter re-enters `ici` as its compiler capture shim.
+    let process = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+        .arg("build")
+        .current_dir(&project)
+        .env_clear()
+        .envs(environment)
+        .output()
+        .unwrap();
+    let output = Output {
+        exit_code: process.status.code().unwrap(),
+        stdout: String::from_utf8_lossy(&process.stdout).into_owned(),
+    };
     let runs = project.as_path().join(".ici/rust-v1/details/result.json");
     let run = fs::read_dir(&runs)
         .unwrap_or_else(|_| panic!("no details: {}", output.stdout))
@@ -85,7 +99,8 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
             json!({
                 "target_name": target["target_name"],
                 "status": target["status"],
-                "message": normalized(target["message"].as_str().unwrap()),
+                "message": normalized(target["message"].as_str().unwrap())
+                    .replace(&work.path().display().to_string(), "<work>"),
                 "start_line": target["start_line"],
                 "file_path": target["file_path"],
             })
@@ -102,7 +117,7 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
 }
 
 #[test]
-#[ignore = "explicit actual Make/g++/CMake legacy build targets (ICI_TEST_MAKE, ICI_TEST_CXX, ICI_TEST_CMAKE)"]
+#[ignore = "explicit actual Make/g++/CMake/qmake legacy build targets (ICI_TEST_MAKE, ICI_TEST_CXX, ICI_TEST_CMAKE; qmake from /usr/bin)"]
 fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/build-targets-oracle.json"
@@ -119,13 +134,11 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
         .join(":");
     let environment = BTreeMap::from([("PATH".to_string(), path)]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 12);
+    assert_eq!(cases.len(), 16);
     for (name, case) in cases {
         let frozen = &case["frozen"];
         let actual = run(case, &environment);
         match name.as_str() {
-            // Open: frozen `ici build` has no shared analysis context, so any
-            // `[build.artifacts]` declaration is a BuildError; Rust records the declared files.
             // Intended difference (root decision for build.py:230): frozen `ici build` has no
             // analysis context, so every [build.artifacts] declaration is a blanket BuildError.
             // Rust records a kept declaration and still refuses a broken one with ERROR exit 1.
@@ -167,6 +180,42 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
             "no-artifacts" => {
                 assert_eq!(frozen["targets"][0]["target_name"], "BuildArtifacts");
                 assert_eq!(actual["exit_code"], 3);
+                continue;
+            }
+            // CMake/qmake failures quote the first 200 characters of stderr. That excerpt is cut
+            // at a host-path-length-dependent point and its build-tree-relative paths differ
+            // (qmake), so beyond the frozen shape both excerpts must be prefixes of one text.
+            "cmake-compile-failure" | "cmake-configure-failure" | "qmake-compile-failure" => {
+                for key in ["exit_code", "status"] {
+                    assert_eq!(actual[key], frozen[key], "{name} {key}");
+                }
+                if frozen["status"] != "ERROR" {
+                    assert_eq!(actual["summary"], frozen["summary"], "{name}");
+                }
+                let (actual, frozen) = (&actual["targets"], &frozen["targets"]);
+                assert_eq!(actual.as_array().unwrap().len(), 1, "{name}");
+                for key in ["target_name", "status", "start_line", "file_path"] {
+                    assert_eq!(actual[0][key], frozen[0][key], "{name} {key}");
+                }
+                let excerpt = |message: &Value| {
+                    let message = message.as_str().unwrap();
+                    let (head, stderr) = message.split_once(" failed: ").unwrap();
+                    let stderr = stderr.replace(['\u{2018}', '\u{2019}'], "'");
+                    (head.to_owned(), stderr)
+                };
+                let (actual_head, actual_text) = excerpt(&actual[0]["message"]);
+                let (frozen_head, frozen_text) = excerpt(&frozen[0]["message"]);
+                assert_eq!(actual_head, frozen_head, "{name}");
+                if name.ends_with("compile-failure") {
+                    assert!(actual_text.contains("error: "), "{name}: {actual_text}");
+                }
+                if name != "qmake-compile-failure" {
+                    assert!(
+                        actual_text.starts_with(&frozen_text)
+                            || frozen_text.starts_with(&actual_text),
+                        "{name}: {actual_text:?} / {frozen_text:?}"
+                    );
+                }
                 continue;
             }
             _ => {}
