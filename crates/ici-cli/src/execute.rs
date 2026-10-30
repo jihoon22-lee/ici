@@ -798,6 +798,7 @@ pub fn execute(
             }
         }
     }
+    crate::legacy::annotation_fallback(&prepared, &mut outputs);
     crate::legacy::apply_gate_policy(&prepared, &mut outputs);
     let suppressions = SuppressionPolicy::new(&prepared.project.suppressions).map_err(error)?;
     let observations: Vec<Observation> = prepared

@@ -43,6 +43,10 @@ fn corrected(frozen: &Value) -> Value {
 }
 
 fn run(case: &Value, base: &str) -> Option<Value> {
+    run_with_path(case, base, "/usr/bin:/bin")
+}
+
+fn run_with_path(case: &Value, base: &str, path: &str) -> Option<Value> {
     let root = tempfile::tempdir().unwrap();
     let config = format!("{base}{}", case["config"].as_str().unwrap_or(""));
     fs::write(root.path().join("ici.toml"), config).unwrap();
@@ -66,7 +70,7 @@ fn run(case: &Value, base: &str) -> Option<Value> {
     }
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let environment = BTreeMap::from([("PATH".to_string(), path.to_string())]);
     let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
     let report: Value =
         serde_json::from_slice(&fs::read(root.path().join(format!("{command}_report.json"))).ok()?)
@@ -119,4 +123,46 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
         compared += 1;
     }
     assert_eq!(compared, 59);
+}
+
+fn required(name: &str) -> String {
+    std::env::var(name).unwrap_or_else(|_| panic!("required native fixture tool {name} is missing"))
+}
+
+/// Legacy `ici type` (frozen mypy) and `ici lint` (frozen ruff) with the project tools linked into
+/// one PATH directory, exactly as the capture linked the same files for the frozen CLI.
+#[test]
+#[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
+fn legacy_python_tool_engines_match_frozen_mypy_and_ruff_views() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/legacy-engines.json"
+    ))
+    .unwrap();
+    let tools = tempfile::tempdir().unwrap();
+    for (name, variable) in [("ruff", "ICI_TEST_RUFF"), ("mypy", "ICI_TEST_MYPY")] {
+        let target = required(variable);
+        let version = std::process::Command::new(&target)
+            .arg("--version")
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&version.stdout).trim(),
+            oracle["tool_versions"][name],
+            "{variable} is not the captured {name}"
+        );
+        std::os::unix::fs::symlink(target, tools.path().join(name)).unwrap();
+    }
+    let with_tools = format!("{}:/usr/bin:/bin", tools.path().display());
+    let base = oracle["base"].as_str().unwrap();
+    let cases = oracle["tool_cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 14);
+    for (name, case) in cases {
+        let path = if case["tools"] == true {
+            with_tools.as_str()
+        } else {
+            "/usr/bin:/bin"
+        };
+        let actual = run_with_path(case, base, path).unwrap_or_else(|| panic!("{name}: no report"));
+        assert_eq!(actual, corrected(&case["frozen"]), "{name}");
+    }
 }

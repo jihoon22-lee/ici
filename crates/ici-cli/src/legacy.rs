@@ -239,6 +239,63 @@ pub fn annotation_check(
     Some(definition)
 }
 
+/// Frozen `TypeCheckEngine._check_python_types` ran its AST annotation pass only when mypy did
+/// not finish cleanly (findings, failure or no mypy), skipped unparsable files silently, and
+/// never emitted a per-file inventory. The legacy-only `python.annotations` check keeps exactly
+/// that: nothing beside a clean mypy run, only its missing-annotation targets otherwise, measured
+/// when mypy ran (the AST facts are exact; only the missing type checker made frozen ESTIMATED).
+pub fn annotation_fallback(
+    prepared: &crate::planning::PreparedPlan,
+    outputs: &mut BTreeMap<String, ici_domain::AnalysisOutput>,
+) {
+    if !prepared.legacy_projection {
+        return;
+    }
+    for check in &prepared.plan.checks {
+        if check.check.id != "python.annotations" {
+            continue;
+        }
+        let mypy = prepared
+            .plan
+            .checks
+            .iter()
+            .find(|other| {
+                other.check.id == "python.type" && other.component_id == check.component_id
+            })
+            .and_then(|other| outputs.get(&other.task_id))
+            .and_then(|output| output.extra.get("legacy_mypy"))
+            .map(|marker| marker["clean"] == true);
+        let Some(output) = outputs.get_mut(&check.task_id) else {
+            continue;
+        };
+        let keep = mypy != Some(true);
+        output.targets.retain(|target| {
+            keep && target.status == "WARN" && target.target_name != "AnnotationCoverage"
+        });
+        output
+            .observation
+            .findings
+            .retain(|finding| keep && finding.rule_id == "type.missing-return-annotation");
+        if mypy.is_some() {
+            for finding in &mut output.observation.findings {
+                finding.evidence = ici_domain::EvidenceLevel::Measured;
+            }
+        }
+        if output.observation.state == ici_domain::TaskState::Failed {
+            output.observation.state = ici_domain::TaskState::Succeeded;
+            output.observation.limitations.push(
+                "unparsable Python sources were skipped by the historical annotation pass".into(),
+            );
+        }
+        output.status = if output.targets.is_empty() {
+            "PASS"
+        } else {
+            "WARN"
+        }
+        .into();
+    }
+}
+
 /// Binary ABI checks inspect published artifact bytes independently of source language.
 pub fn python_binary_compat_check() -> CheckDefinition {
     let mut definition = ici_domain::builtin_catalog()

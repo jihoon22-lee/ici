@@ -1954,5 +1954,422 @@
   }
  },
  "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
- "python": "Python 3.10.21"
+ "python": "Python 3.10.21",
+ "tool_cases": {
+  "type/annotation-after-clean": {
+   "command": "type",
+   "config": "[engines.type]\nwarn_on_missing_annotation=true\n",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\ndef h(y):\n    return y\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Static Type Check Passed",
+    "targets": []
+   },
+   "tools": true
+  },
+  "type/annotation-after-error": {
+   "command": "type",
+   "config": "[engines.type]\nwarn_on_missing_annotation=true\n",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\ndef h(y):\n    return y\n\n\nf('x')\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:385d7de9da4108a6d57911e793b12f8e908705f213cad9f29c8f28e7288cccc1",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:ab753cb79e4748b54c1de70ce501bf476329449c46d91170da25fd1e7fcdeff9",
+      "message": "Function 'h' is missing return type annotation",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "1 Type Findings, 1 Warnings",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "start_column": null,
+      "start_line": 9,
+      "status": "FAIL",
+      "target_name": "MypyError"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "Function 'h' is missing return type annotation",
+      "start_column": null,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "h()"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "type/clean": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Static Type Check Passed",
+    "targets": []
+   },
+   "tools": true
+  },
+  "type/error": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\nf('x')\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:385d7de9da4108a6d57911e793b12f8e908705f213cad9f29c8f28e7288cccc1",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "1 Type Findings, 0 Warnings",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "MypyError"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "type/mode-pass-warn-fail": {
+   "command": "type",
+   "config": "[engines.type]\nmode='pass_warn_fail'\n",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\nf('x')\nreveal_type(f)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:385d7de9da4108a6d57911e793b12f8e908705f213cad9f29c8f28e7288cccc1",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:643412bc5791a5b02172e1f082028f4b253633c2af626dc6e0262f0483e2132d",
+      "message": "Revealed type is \"def (x: int) -> int\"",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "FAIL",
+    "summary": "1 Type Findings, 1 Warnings",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "MypyError"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "Revealed type is \"def (x: int) -> int\"",
+      "start_column": null,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "MypyNote"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "type/mypy-missing": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "WARN",
+    "summary": "0 Type Findings, 1 Warnings; Mypy is unavailable; AST fallback is ESTIMATED",
+    "targets": []
+   },
+   "tools": false
+  },
+  "type/mypy-missing-annotation": {
+   "command": "type",
+   "config": "[engines.type]\nwarn_on_missing_annotation=true\n",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\ndef h(y):\n    return y\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:ab753cb79e4748b54c1de70ce501bf476329449c46d91170da25fd1e7fcdeff9",
+      "message": "Function 'h' is missing return type annotation",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "0 Type Findings, 2 Warnings; Mypy is unavailable; AST fallback is ESTIMATED",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Function 'h' is missing return type annotation",
+      "start_column": null,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "h()"
+     }
+    ]
+   },
+   "tools": false
+  },
+  "type/mypy-missing-required": {
+   "command": "type",
+   "config": "[engines.type]\nmypy_required=true\n",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [],
+    "status": "ERROR",
+    "summary": "Mypy is required but was not found",
+    "targets": []
+   },
+   "tools": false
+  },
+  "type/note": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\nreveal_type(f)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:643412bc5791a5b02172e1f082028f4b253633c2af626dc6e0262f0483e2132d",
+      "message": "Revealed type is \"def (x: int) -> int\"",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "0 Type Findings, 1 Warnings",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Revealed type is \"def (x: int) -> int\"",
+      "start_column": null,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "MypyNote"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "type/note-repeat": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\nreveal_type(f)\nreveal_type(f)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:643412bc5791a5b02172e1f082028f4b253633c2af626dc6e0262f0483e2132d",
+      "message": "Revealed type is \"def (x: int) -> int\" (x2)",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "0 Type Findings, 1 Warnings",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Revealed type is \"def (x: int) -> int\" (x2)",
+      "start_column": null,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "MypyNote"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "type/profile-ici": {
+   "command": "type",
+   "config": "[engines.type]\nmypy_profile='ici'\n",
+   "files": {
+    "src/a.py": "def g():\n    return 1 + 'x'\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:385d7de9da4108a6d57911e793b12f8e908705f213cad9f29c8f28e7288cccc1",
+      "message": "Unsupported operand types for + (\"int\" and \"str\") [operator]",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "1 Type Findings, 0 Warnings",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Unsupported operand types for + (\"int\" and \"str\") [operator]",
+      "start_column": null,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "MypyError"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "type/profile-project": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def g():\n    return 1 + 'x'\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Static Type Check Passed",
+    "targets": []
+   },
+   "tools": true
+  },
+  "type/tool-failure": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:385d7de9da4108a6d57911e793b12f8e908705f213cad9f29c8f28e7288cccc1",
+      "message": "Invalid syntax [syntax]",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Mypy tool failed with exit code 2",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Invalid syntax [syntax]",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "MypyError"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "type/two-files": {
+   "command": "type",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(x: int) -> int:\n    return x\n\n\nf('x')\n",
+    "src/pkg/b.py": "y: int = 'z'\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:385d7de9da4108a6d57911e793b12f8e908705f213cad9f29c8f28e7288cccc1",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:61712e77a08a3f1e23734e483d313c386ff1b309400f586e3d78072437534085",
+      "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\") [assignment]",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "2 Type Findings, 0 Warnings",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Argument 1 to \"f\" has incompatible type \"str\"; expected \"int\" [arg-type]",
+      "start_column": null,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "MypyError"
+     },
+     {
+      "file_path": "src/pkg/b.py",
+      "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\") [assignment]",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "MypyError"
+     }
+    ]
+   },
+   "tools": true
+  }
+ },
+ "tool_versions": {
+  "mypy": "mypy 2.3.1 (compiled: yes)",
+  "ruff": "ruff 0.16.4"
+ }
 }

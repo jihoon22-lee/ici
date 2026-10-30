@@ -71,6 +71,15 @@ pub struct NativeOptions {
     pub source_token: Option<String>,
     pub jobs: usize,
     pub advisory: bool,
+    /// Historical `ici <engine>` view: frozen argv and output grammar. Absent from modern plans.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub legacy: bool,
+    /// Frozen `engines.type.mypy_profile = "ici"` arguments for the historical mypy argv.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub legacy_args: Vec<String>,
+    /// Frozen mypy operands (source directories) when they differ from the declared files.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub legacy_targets: Vec<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderRequest {
@@ -129,6 +138,9 @@ pub struct DiagnosticContext {
     pub tool_version: String,
     #[serde(skip)]
     pub source_coordinates: std::sync::Arc<crate::SourceCoordinates>,
+    /// Historical engine view (frozen target shapes); never set for modern plans.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub legacy: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderPlan {
@@ -218,6 +230,44 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             argv.push("--".into());
             argv.extend(targets);
             timeout = 600.0;
+        }
+        ProviderKind::Mypy if request.options.legacy => {
+            // Frozen `TypeCheckEngine._run_mypy`: `mypy [ici profile] <source dirs>`, so project
+            // configuration decides columns, codes and output style exactly as it did. Only the
+            // cache moves out of the project (no `.mypy_cache` write); it never changes output.
+            push(
+                &mut argv,
+                &request
+                    .options
+                    .legacy_args
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>(),
+            );
+            push(
+                &mut argv,
+                &["--no-incremental", "--cache-dir", "/dev/null", "--"],
+            );
+            if request.options.legacy_targets.is_empty() {
+                argv.extend(targets);
+            } else {
+                for target in &request.options.legacy_targets {
+                    ici_domain::validation::relative_path(target, false)
+                        .map_err(|e| ProviderError(e.to_string()))?;
+                    argv.push(
+                        request
+                            .workspace_root
+                            .join(target)
+                            .to_string_lossy()
+                            .into_owned(),
+                    );
+                }
+            }
+            timeout = 600.0;
+            limitations.push(
+                "mypy may load project plugins; imports and stubs remain project dependencies"
+                    .into(),
+            );
         }
         ProviderKind::Mypy => {
             push(
@@ -403,6 +453,7 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
                 .into_owned(),
             tool_version: request.tool.version.clone().unwrap_or_default(),
             source_coordinates: Default::default(),
+            legacy: request.options.legacy,
         },
         advisory: request.options.advisory,
         scope_complete: false,

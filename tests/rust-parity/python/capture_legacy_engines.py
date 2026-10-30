@@ -17,6 +17,12 @@ ROOT = Path(__file__).resolve().parents[3]
 ORACLE = Path("/tmp/ici-rust-replacement-20261028/oracle")
 EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
+# Project tools for the tool-backed cases (the opus-env ICI_TEST_RUFF / ICI_TEST_MYPY), linked
+# into one PATH directory so frozen `shutil.which` and the native resolver find the same files.
+TOOLS = {
+    "ruff": "/tmp/ici-rust-replacement-20261028/tool-spike/ruff/ruff-x86_64-unknown-linux-musl/ruff",
+    "mypy": "/home/jihoon/projects/ici/.venv/bin/mypy",
+}
 FIELDS = ("target_name", "status", "message", "start_line", "start_column", "file_path")
 BASE = "[project]\ntype='python'\nsource_dirs=['src']\n"
 OUT = ROOT / "tests/rust-parity/python/legacy-engines.json"
@@ -66,6 +72,68 @@ CONFIGURED = {
 DECODE_ONLY = {"truncated", "continuation", "surrogate", "overlong"}
 
 
+TYPED = "def f(x: int) -> int:\n    return x\n\n\n"
+UNANNOTATED = "def h(y):\n    return y\n"
+WARN_ANNOTATION = "[engines.type]\nwarn_on_missing_annotation=true\n"
+# name: (command, files, extra configuration, whether PATH holds the tools)
+TOOL_CASES = {
+    "type/clean": ("type", {"src/a.py": TYPED}, "", True),
+    "type/error": ("type", {"src/a.py": TYPED + "f('x')\n"}, "", True),
+    "type/note": ("type", {"src/a.py": TYPED + "reveal_type(f)\n"}, "", True),
+    "type/note-repeat": (
+        "type",
+        {"src/a.py": TYPED + "reveal_type(f)\nreveal_type(f)\n"},
+        "",
+        True,
+    ),
+    "type/tool-failure": ("type", {"src/a.py": "def f(:\n    pass\n"}, "", True),
+    "type/profile-ici": (
+        "type",
+        {"src/a.py": "def g():\n    return 1 + 'x'\n"},
+        "[engines.type]\nmypy_profile='ici'\n",
+        True,
+    ),
+    "type/profile-project": ("type", {"src/a.py": "def g():\n    return 1 + 'x'\n"}, "", True),
+    "type/annotation-after-error": (
+        "type",
+        {"src/a.py": TYPED + UNANNOTATED + "\n\nf('x')\n"},
+        WARN_ANNOTATION,
+        True,
+    ),
+    "type/annotation-after-clean": (
+        "type",
+        {"src/a.py": TYPED + UNANNOTATED},
+        WARN_ANNOTATION,
+        True,
+    ),
+    "type/mode-pass-warn-fail": (
+        "type",
+        {"src/a.py": TYPED + "f('x')\nreveal_type(f)\n"},
+        "[engines.type]\nmode='pass_warn_fail'\n",
+        True,
+    ),
+    "type/two-files": (
+        "type",
+        {"src/a.py": TYPED + "f('x')\n", "src/pkg/b.py": "y: int = 'z'\n"},
+        "",
+        True,
+    ),
+    "type/mypy-missing": ("type", {"src/a.py": TYPED}, "", False),
+    "type/mypy-missing-annotation": (
+        "type",
+        {"src/a.py": TYPED + UNANNOTATED},
+        WARN_ANNOTATION,
+        False,
+    ),
+    "type/mypy-missing-required": (
+        "type",
+        {"src/a.py": TYPED},
+        "[engines.type]\nmypy_required=true\n",
+        False,
+    ),
+}
+
+
 def write(project: Path, files: dict) -> None:
     for name, content in files.items():
         path = project / name
@@ -76,9 +144,16 @@ def write(project: Path, files: dict) -> None:
             path.write_text(content, encoding="utf-8")
 
 
-def run(command: str, files: dict, config: str = "") -> dict:
+def run(command: str, files: dict, config: str = "", tools: bool = False) -> dict:
     work = Path(tempfile.mkdtemp(prefix="ici-legacy-engines-"))
+    path = "/usr/bin:/bin"
     try:
+        if tools:
+            bin_dir = work / "bin"
+            bin_dir.mkdir()
+            for name, target in TOOLS.items():
+                (bin_dir / name).symlink_to(target)
+            path = f"{bin_dir}:{path}"
         project = work / "project"
         project.mkdir()
         (project / "ici.toml").write_text(BASE + config, encoding="utf-8")
@@ -86,7 +161,7 @@ def run(command: str, files: dict, config: str = "") -> dict:
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
             cwd=project,
-            env={"PATH": "/usr/bin:/bin", "HOME": str(work), "PYTHONPATH": str(ORACLE / "src")},
+            env={"PATH": path, "HOME": str(work), "PYTHONPATH": str(ORACLE / "src")},
             capture_output=True,
             text=True,
             timeout=900,
@@ -133,10 +208,31 @@ def main() -> None:
             "files": files,
             "frozen": run(engine, files, config),
         }
+    tool_cases = {
+        name: {
+            "command": command,
+            "config": config,
+            "files": files,
+            "tools": tools,
+            "frozen": run(command, files, config, tools),
+        }
+        for name, (command, files, config, tools) in TOOL_CASES.items()
+    }
     python = subprocess.check_output([PYTHON, "--version"], text=True).strip()
+    versions = {
+        name: subprocess.check_output([target, "--version"], text=True).strip()
+        for name, target in TOOLS.items()
+    }
     OUT.write_text(
         json.dumps(
-            {"oracle": EXPECTED, "python": python, "base": BASE, "cases": cases},
+            {
+                "oracle": EXPECTED,
+                "python": python,
+                "base": BASE,
+                "cases": cases,
+                "tool_cases": tool_cases,
+                "tool_versions": versions,
+            },
             indent=1,
             sort_keys=True,
             ensure_ascii=False,
@@ -144,7 +240,11 @@ def main() -> None:
         + "\n",
         encoding="utf-8",
     )
-    print(f"{len(cases)} legacy engine cases with {python}", file=sys.stderr)
+    print(
+        f"{len(cases)} legacy engine cases and {len(tool_cases)} tool cases with {python}, "
+        f"{versions}",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

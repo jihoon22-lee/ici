@@ -326,6 +326,7 @@ pub fn legacy_projection(
         }
         project_extra(engine)?;
         integration_refusal(engine);
+        legacy_type_summary(engine);
         normalize_findings(engine)?;
     }
     let mut results: Vec<_> = builtin_catalog()
@@ -855,6 +856,41 @@ fn integration_refusal(engine: &mut Value) {
     engine["targets"] = json!([{"file_path":"ici.toml","start_line":1,"end_line":null,
         "start_column":null,"end_column":null,"target_name":"Integration:ConfigurationError",
         "status":"ERROR","message":reason,"snippet":"","metrics":{}}]);
+}
+
+/// Frozen `TypeCheckEngine` summary over the whole engine: mypy targets and the annotation
+/// fallback targets are counted together. Only a historical mypy run (`legacy_mypy`) has it.
+fn legacy_type_summary(engine: &mut Value) {
+    let historical = engine["engine_name"] == "type"
+        && engine["extra"]["native_checks"]
+            .as_array()
+            .is_some_and(|checks| {
+                checks
+                    .iter()
+                    .any(|check| check["extra"].get("legacy_mypy").is_some())
+            });
+    if !historical || matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")) {
+        return;
+    }
+    let targets = engine["targets"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let count = |status: &str| {
+        targets
+            .iter()
+            .filter(|target| target["status"] == status)
+            .count()
+    };
+    engine["summary"] = json!(if engine["status"] == "PASS" {
+        "Static Type Check Passed".to_owned()
+    } else {
+        format!(
+            "{} Type Findings, {} Warnings",
+            count("FAIL"),
+            count("WARN")
+        )
+    });
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {

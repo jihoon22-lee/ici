@@ -333,6 +333,9 @@ fn prepare_resolved_omitting(
             }
             let tool_id = match check.id.as_str() {
                 "python.lint" | "python.format" => "ruff",
+                // Frozen legacy `ici type`/`verify` always ran the project's mypy
+                // (`engines/type_check.py`); the modern view keeps its own selection.
+                "python.type" if crate::legacy::is_legacy(invocation) => "mypy",
                 "python.type" => match component.python_type_provider.as_deref() {
                     None | Some("ty") => "ty",
                     Some("mypy") => "mypy",
@@ -406,6 +409,24 @@ fn prepare_resolved_omitting(
                 .filter(|p| file_language(p) == Some(check.language.as_str()))
                 .cloned()
                 .collect();
+            let legacy_mypy = kind == ProviderKind::Mypy && crate::legacy::is_legacy(invocation);
+            // Frozen `_mypy_targets`: the source directories holding the selected sources (else
+            // the files themselves), relative to the project and sorted. Inputs stay the files.
+            let mut legacy_targets: Vec<_> = component
+                .source_dirs
+                .iter()
+                .filter(|directory| {
+                    legacy_mypy
+                        && targets.iter().any(|file| {
+                            directory.as_str() == "."
+                                || file == *directory
+                                || file.starts_with(&format!("{directory}/"))
+                        })
+                })
+                .cloned()
+                .collect();
+            legacy_targets.sort();
+            legacy_targets.dedup();
             let evidence = ici_providers::native_config::discover_native_configuration(
                 kind,
                 &project.root,
@@ -430,6 +451,28 @@ fn prepare_resolved_omitting(
                 .map(|p| p.to_string_lossy().into_owned())
                 .collect();
             provider_request.options.jobs = 2;
+            if legacy_mypy {
+                provider_request.options.legacy = true;
+                provider_request.options.legacy_targets = legacy_targets;
+                let settings = component
+                    .checks
+                    .get(&check.id)
+                    .map(|setting| &setting.settings);
+                let profile = component
+                    .settings
+                    .pointer("/engines/type/mypy_profile")
+                    .or_else(|| settings.and_then(|settings| settings.get("mypy_profile")))
+                    .and_then(Value::as_str);
+                if profile == Some("ici") {
+                    provider_request.options.legacy_args = [
+                        "--check-untyped-defs",
+                        "--warn-redundant-casts",
+                        "--warn-unused-ignores",
+                    ]
+                    .map(String::from)
+                    .to_vec();
+                }
+            }
             provider_request.options.python_version = component
                 .settings
                 .pointer("/python/target_version")

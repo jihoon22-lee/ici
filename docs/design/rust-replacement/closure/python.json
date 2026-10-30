@@ -1928,28 +1928,62 @@
    "difference_reason": null
   },
   "finding_site:src/ici/engines/type_check.py:306:20": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/legacy.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target MypyError/MypyNote: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
-   "difference_reason": null
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4, mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases unchanged plus 14 legacy `python -m ici type --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture2.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 14 tool cases identical after the accepted ERROR exit policy), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint and cargo test -p ici-providers -p ici-reporting with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-type-gates.log",
+    "Frozen vs native exploration of the same projects (status, summary, evidence, targets, findings, fingerprints, exit): /tmp/ici-rust-replacement-20261028/w-python2-type-explore3.log"
+   ],
+   "comparison": "Legacy `ici type --report` runs the project's mypy like frozen `_run_mypy` and reads exit 1/2 output with frozen `_parse_mypy_diagnostics`: MypyError FAIL / MypyNote WARN targets with mypy's message plus ` [code]`, column only when mypy printed one, relative path, the engine summary \"N Type Findings, M Warnings\" (annotation fallback targets counted), mode policy (pass_warn WARN exit 0; pass_warn_fail FAIL exit 1), `Mypy tool failed with exit code 2` ERROR keeping the parsed targets, and frozen fingerprints (type/error, two-files, mode-pass-warn-fail, profile-ici vs profile-project, annotation-after-error, tool-failure). Negative: clean projects keep no target and \"Static Type Check Passed\"; the modern view keeps its own provider selection and grammar (python_modern_parity unchanged; modern plans serialize no legacy option).",
+   "difference_reason": "Intended: (1) the legacy mypy argv keeps frozen's `mypy [--check-untyped-defs --warn-redundant-casts --warn-unused-ignores when mypy_profile='ici'] <source dirs>` and adds only `--no-incremental --cache-dir /dev/null --`, so no `.mypy_cache` is written into the project (output is unchanged); (2) an incomplete legacy run (mypy exit 2, mypy_required without mypy) exits 3 where frozen exited 1 (the accepted legacy exit policy, `corrected()` in the replay); (3) the native resolver prefers the project's .venv/venv mypy over PATH where frozen tried PATH first (same tool whenever only one exists); (4) mypy is run through the common executor as an external project tool (ADR-0008), never imported."
   },
   "finding_site:src/ici/engines/type_check.py:334:12": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/legacy.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target MypyError/MypyNote: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
-   "difference_reason": null
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4, mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases unchanged plus 14 legacy `python -m ici type --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture2.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 14 tool cases identical after the accepted ERROR exit policy), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint and cargo test -p ici-providers -p ici-reporting with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-type-gates.log",
+    "Frozen vs native exploration of the same projects (status, summary, evidence, targets, findings, fingerprints, exit): /tmp/ici-rust-replacement-20261028/w-python2-type-explore3.log"
+   ],
+   "comparison": "Legacy `ici type --report` on a successful mypy run validates frozen `_validated_mypy_success` (one exact `Success: no issues found in N source file(s)` last line, only notes before it) and appends MypyNote WARN targets, folding repeated identical notes of one file into the first with `(xN)` (type/note, type/note-repeat), WARN status and exit 0 under the default pass_warn mode; a clean run suppresses the annotation fallback exactly as frozen returned early (annotation-after-clean PASS vs annotation-after-error WARN). Failure: a missing mypy gives frozen's ESTIMATED WARN `Mypy is unavailable; AST fallback is ESTIMATED` (with or without annotation targets) and `mypy_required` gives the ERROR `Mypy is required but was not found`.",
+   "difference_reason": "Intended: (1) the legacy mypy argv keeps frozen's `mypy [--check-untyped-defs --warn-redundant-casts --warn-unused-ignores when mypy_profile='ici'] <source dirs>` and adds only `--no-incremental --cache-dir /dev/null --`, so no `.mypy_cache` is written into the project (output is unchanged); (2) an incomplete legacy run (mypy exit 2, mypy_required without mypy) exits 3 where frozen exited 1 (the accepted legacy exit policy, `corrected()` in the replay); (3) the native resolver prefers the project's .venv/venv mypy over PATH where frozen tried PATH first (same tool whenever only one exists); (4) mypy is run through the common executor as an external project tool (ADR-0008), never imported."
   },
   "finding_site:src/ici/engines/type_check.py:452:12": {
    "status": "complete",
@@ -1978,14 +2012,17 @@
    "status": "verified",
    "rust_paths": [
     "crates/ici-analysis/src/lib.rs",
-    "crates/ici-analysis/src/details.rs"
+    "crates/ici-analysis/src/details.rs",
+    "crates/ici-cli/src/legacy.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::explicit_annotation_projection_preserves_optin_and_nested_definitions"
+     "crates/ici-analysis/src/tests.rs::explicit_annotation_projection_preserves_optin_and_nested_definitions",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
     ],
     "failure": [
      "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
@@ -1995,7 +2032,8 @@
    },
    "evidence": [
     "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
-    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
+    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
+    "Legacy `ici type --report` (frozen CLI captures type/annotation-after-error, type/annotation-after-clean, type/mypy-missing-annotation): the <name>() WARN annotation targets appear only when mypy did not finish cleanly, after the mypy targets, with no per-file AnnotationCoverage inventory and MEASURED evidence when mypy ran; /tmp/ici-rust-replacement-20261028/w-python2-type-gates.log"
    ],
    "comparison": "Native producer emits <name>() missing-annotation target with the frozen name/status/metrics checked by the named oracle fixture.",
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."

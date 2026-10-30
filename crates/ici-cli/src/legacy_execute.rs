@@ -211,6 +211,46 @@ pub fn command(
             ici_reporting::legacy_no_sources(&mut value, status, evidence, &summary, target)
                 .map_err(error)?;
             replaced = true;
+        } else if family == "type" && legacy_schema && mypy_unavailable(&value) {
+            // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
+            // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
+            let setting = |key: &str| {
+                prepared.project.components.iter().find_map(|component| {
+                    component
+                        .settings
+                        .pointer(&format!("/engines/type/{key}"))
+                        .cloned()
+                })
+            };
+            if setting("mypy_required").and_then(|value| value.as_bool()) == Some(true) {
+                value["status"] = serde_json::json!("ERROR");
+                value["evidence"] = serde_json::json!("NOT_RUN");
+                value["summary"] = serde_json::json!("Mypy is required but was not found");
+            } else {
+                let mode = setting("mode")
+                    .and_then(|value| value.as_str().map(str::to_owned))
+                    .unwrap_or_else(|| "pass_warn".into());
+                let targets = value["targets"].as_array().cloned().unwrap_or_default();
+                let count = |status: &str| {
+                    targets
+                        .iter()
+                        .filter(|target| target["status"] == status)
+                        .count()
+                };
+                let (fail, warn) = (count("FAIL"), count("WARN") + 1);
+                let status = match mode.as_str() {
+                    "pass_warn" => "WARN",
+                    "pass_fail" => "FAIL",
+                    _ if fail > 0 => "FAIL",
+                    _ => "WARN",
+                };
+                value["status"] = serde_json::json!(status);
+                value["evidence"] = serde_json::json!("ESTIMATED");
+                value["summary"] = serde_json::json!(format!(
+                    "{fail} Type Findings, {warn} Warnings; Mypy is unavailable; AST fallback is ESTIMATED"
+                ));
+                replaced = true;
+            }
         } else if family == "test"
             && legacy_schema
             && let Some(reason) = refused_policy(&value)
@@ -544,6 +584,21 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
         }
     }
     Some(languages)
+}
+
+/// The historical mypy could not be resolved: the type check was refused at planning.
+fn mypy_unavailable(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            checks.iter().any(|check| {
+                check["check_id"] == "python.type"
+                    && check["state"] == "BLOCKED"
+                    && check["summary"]
+                        .as_str()
+                        .is_some_and(|summary| summary.starts_with("mypy: "))
+            })
+        })
 }
 
 type NoSources = (
