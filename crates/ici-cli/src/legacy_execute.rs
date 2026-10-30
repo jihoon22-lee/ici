@@ -238,9 +238,28 @@ pub fn command(
         source_root: Some(root.to_string_lossy().into_owned()),
         ..Default::default()
     };
-    let mut stdout = ici_reporting::render_console(&stored, &options).map_err(error)?;
-    if let Some(path) = report_path {
-        write_result_export(&path, &stored, &run.result_path)?;
+    // Frozen single-engine commands print only the engine line (plus the line chart and the
+    // report notice); the saved result stays complete. `verify` keeps the full console.
+    let single = match (engine(&invocation.command()), &stored) {
+        (Some(family), StoredResult::Legacy(legacy)) => Some((family, legacy.as_value().clone())),
+        _ => None,
+    };
+    let mut stdout = match &single {
+        Some(_) => String::new(),
+        None => ici_reporting::render_console(&stored, &options).map_err(error)?,
+    };
+    if let Some(path) = &report_path {
+        write_result_export(path, &stored, &run.result_path)?;
+    }
+    if let Some((family, engine)) = &single {
+        let report = report_path
+            .as_ref()
+            .map(|_| format!("{family}_report.json"));
+        stdout.push_str(&ici_reporting::legacy_engine_console(
+            engine,
+            report.as_deref(),
+        ));
+    } else if let Some(path) = &report_path {
         stdout.push_str(&format!("wrote {}\n", path.display()));
     }
     if let Some(path) = sarif_path {
@@ -346,7 +365,9 @@ pub fn command(
             }
         }
     }
-    stdout.push_str(&format!("Result: {}\n", run.result_path.display()));
+    if single.is_none() {
+        stdout.push_str(&format!("Result: {}\n", run.result_path.display()));
+    }
     Ok(CommandOutput {
         stdout,
         stderr,

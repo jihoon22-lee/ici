@@ -36,6 +36,50 @@ fn fixture(make: &str) -> tempfile::TempDir {
 fn environment() -> BTreeMap<String, String> {
     BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())])
 }
+/// The saved legacy build engine of the latest run (summary, then each target's
+/// and finding `path:line message`). Frozen `ici build` prints only its engine line.
+fn saved_build_text(root: &Path) -> String {
+    let run: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join(".ici/rust-v1/result.json")).unwrap()).unwrap();
+    let details: serde_json::Value = serde_json::from_slice(
+        &fs::read(
+            root.join(".ici/rust-v1/details/result.json")
+                .join(run["run_id"].as_str().unwrap())
+                .join("details.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let engine = details["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|engine| engine["engine_name"] == "build")
+        .unwrap()
+        .clone();
+    let mut text = format!(
+        "{} build: {}",
+        engine["status"].as_str().unwrap(),
+        engine["summary"].as_str().unwrap()
+    );
+    for target in engine["targets"].as_array().unwrap() {
+        text.push_str(&format!(
+            "\n{}:{} {}",
+            target["file_path"].as_str().unwrap(),
+            target["start_line"],
+            target["message"].as_str().unwrap()
+        ));
+    }
+    for finding in engine["findings"].as_array().unwrap() {
+        text.push_str(&format!(
+            "\n{}:{} {}",
+            finding["primary_location"]["path"].as_str().unwrap(),
+            finding["primary_location"]["start_line"],
+            finding["message"].as_str().unwrap()
+        ));
+    }
+    text
+}
 fn dispatch(root: &Path) -> commands::CommandOutput {
     let invocation = registry::parse(["ici", "build"]).unwrap();
     commands::dispatch(&invocation, root, &environment()).unwrap()
@@ -106,14 +150,17 @@ fn actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned
     // A Make backend writes no compilation database; the build still completes like frozen
     // (exit 0, "Build Completed") instead of failing input capture or reporting no build.
     assert_eq!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
+    // Frozen console: only the engine line.
+    assert_eq!(
+        output.stdout,
+        "✔ Build Completed: legacy-make-proof v1.2.3 into v1.2.3/x86_64\n"
+    );
+    let saved = saved_build_text(root.path());
     assert!(
-        output
-            .stdout
-            .contains("PASS build: Build Completed: legacy-make-proof ")
-            && !output.stdout.contains("inputs changed while running")
-            && !output.stdout.contains("no build linked"),
-        "{}",
-        output.stdout
+        saved.starts_with("PASS build: Build Completed: legacy-make-proof ")
+            && !saved.contains("inputs changed while running")
+            && !saved.contains("no build linked"),
+        "{saved}"
     );
     assert!(!shadow.join("compile_commands.json").exists());
     // The owned shadow is adopted on the next run and clean runs again before build.
@@ -136,16 +183,16 @@ fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_succ
     let output = dispatch(root.path());
     // Frozen BuildEngine: FAIL, exit 1, a BuildAdapter target at the Makefile.
     assert_eq!(output.exit_code, 1, "{} {}", output.stdout, output.stderr);
+    assert_eq!(
+        output.stdout,
+        "✘ Build did not produce a complete artifact set\n"
+    );
+    let saved = saved_build_text(root.path());
     assert!(
-        output
-            .stdout
-            .contains("Make build command did not complete successfully")
-            && output.stdout.contains("Makefile:1")
-            && output
-                .stdout
-                .contains("build: Build did not produce a complete artifact set"),
-        "{}",
-        output.stdout
+        saved.contains("Make build command did not complete successfully")
+            && saved.contains("Makefile:1")
+            && saved.contains("build: Build did not produce a complete artifact set"),
+        "{saved}"
     );
     assert!(!root.path().join("build/ici-make/app").exists());
     let result: serde_json::Value =
@@ -244,18 +291,17 @@ fn actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make() 
         )
         .unwrap();
         assert_eq!(result["gate"]["selected"], "FAIL", "{make}");
-        let text = output
-            .stdout
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
+        assert_eq!(
+            output.stdout, "✘ Build did not produce a complete artifact set\n",
+            "{make}"
+        );
+        let text = saved_build_text(root.path());
         assert!(
             text.contains("build: Build did not produce a complete artifact set")
                 && text.contains("Makefile:1")
                 && text.contains(reason)
                 && !text.contains("no build linked"),
-            "{make}: {}",
-            output.stdout
+            "{make}: {text}"
         );
         // Nothing ran: no shadow, no Make output, and the sources are unchanged.
         assert!(!root.path().join("build").exists(), "{make}");
@@ -291,18 +337,17 @@ fn legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compili
     assert!(planned.context_preparations.is_empty());
     let output = dispatch(root.path());
     assert_eq!(output.exit_code, 1, "{}", output.stdout);
-    let text = output
-        .stdout
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    // Frozen BuildError: ERROR engine whose summary is the tool error itself.
+    // Frozen BuildError console (rich wraps at 80 columns, keeping the trailing space).
+    assert_eq!(
+        output.stdout,
+        "✘ Makefile at the project root has no configured adapter; CMake, qmake, and \nexplicitly enabled Make are supported, and generic g++ was not invoked\n"
+    );
+    // The saved engine: ERROR whose summary is the tool error itself, located at the Makefile.
+    let text = saved_build_text(root.path());
     assert!(
-        text.contains("ERROR build: Makefile at the project root has no configured adapter")
-            && text.contains("Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked")
+        text.contains("ERROR build: Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked")
             && text.contains("Makefile:1"),
-        "{}",
-        output.stdout
+        "{text}"
     );
     // Under `ici build` the build check is required: the run gate is FAIL, never PASS.
     let result: serde_json::Value =

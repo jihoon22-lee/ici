@@ -99,13 +99,13 @@ fn unmeasurable_declared_source_keeps_coverage_incomplete_and_the_legacy_line_sa
     // coverage.py cannot parse this declared file, so its denominator is genuinely unknown.
     let root = fixture("def main(:\n    return 1\n");
     let output = call(root.path(), &["ici", "test"]);
+    // Frozen single-engine console: one `✘ <summary>` line (rich-wrapped at 80 columns).
     let line = output
         .stdout
-        .lines()
-        .find(|line| line.contains(" test:"))
-        .unwrap_or_default()
-        .to_owned();
-    assert!(line.starts_with("ERROR test:"), "{}", output.stdout);
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(line.starts_with("✘ "), "{}", output.stdout);
     // Frozen engines print the tool error itself as the ERROR summary (no check-id prefix).
     assert!(
         line.contains("coverage JSON command did not complete successfully"),

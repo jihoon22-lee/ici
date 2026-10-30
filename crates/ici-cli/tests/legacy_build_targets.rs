@@ -86,6 +86,8 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
         .collect();
     json!({
         "exit_code": output.exit_code,
+        // The capture stores Python `stdout.strip()`.
+        "stdout": output.stdout.trim(),
         "status": engine["status"],
         "summary": engine["summary"],
         "targets": targets,
@@ -130,7 +132,7 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
             // reports one CppBinary FAIL at the package path with the first 200 bytes of
             // stderr (absolute paths). Exit, status and summary match.
             "direct-compile-failure" => {
-                for key in ["exit_code", "status", "summary"] {
+                for key in ["exit_code", "status", "summary", "stdout"] {
                     assert_eq!(actual[key], frozen[key], "{name} {key}");
                 }
                 assert_eq!(frozen["targets"][0]["target_name"], "CppBinary");
@@ -146,8 +148,7 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
             }
             _ => {}
         }
-        let mut expected = frozen.clone();
-        expected.as_object_mut().unwrap().remove("stdout");
-        assert_eq!(actual, expected, "{name}");
+        // The frozen console (one rich-wrapped engine line) is compared byte for byte too.
+        assert_eq!(&actual, frozen, "{name}");
     }
 }
