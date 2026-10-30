@@ -264,6 +264,47 @@ pub(crate) fn adapted_findings(engine: &Value) -> Result<Vec<Value>> {
         .expect("adapted findings")
         .clone())
 }
+/// Frozen `_canonical_fix`: every replacement path is canonicalized like a location and its
+/// region must be a 1-indexed, non-reversed span; a malformed replacement refuses the finding
+/// rather than being dropped. Fixes stay out of the fingerprint.
+fn canonical_fixes(value: &mut Value) -> Result<()> {
+    let Some(fixes) = value.get_mut("fixes").and_then(Value::as_array_mut) else {
+        return Ok(());
+    };
+    for fix in fixes {
+        let Some(replacements) = fix.get_mut("replacements").and_then(Value::as_array_mut) else {
+            continue;
+        };
+        for replacement in replacements {
+            let path = replacement["path"]
+                .as_str()
+                .ok_or_else(|| ReportError("Historical fix replacement requires a path".into()))?;
+            replacement["path"] = json!(project_path(path, None)?);
+            let start = crate::paths::positive(&replacement["start_line"], "fix.start_line")?;
+            let mut bounds = [None; 3];
+            for (slot, key) in bounds
+                .iter_mut()
+                .zip(["end_line", "start_column", "end_column"])
+            {
+                if let Some(number) = replacement.get(key).filter(|value| !value.is_null()) {
+                    *slot = Some(crate::paths::positive(number, &format!("fix.{key}"))?);
+                }
+            }
+            let [end_line, start_column, end_column] = bounds;
+            if end_line.is_some_and(|end| end < start)
+                || (end_line.is_none_or(|end| end == start)
+                    && start_column
+                        .zip(end_column)
+                        .is_some_and(|(first, last)| last < first))
+            {
+                return Err(ReportError(
+                    "Historical fix replacement region is reversed".into(),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
 pub(crate) fn canonical_finding(value: &Value) -> Result<Value> {
     let mut value = value.clone();
     let rule = value["rule_id"]
@@ -315,6 +356,7 @@ pub(crate) fn canonical_finding(value: &Value) -> Result<Value> {
             .map(location)
             .collect::<Result<Vec<_>>>()?
     );
+    canonical_fixes(&mut value)?;
     value["fingerprint"] = json!(fingerprint(
         &rule,
         &value["primary_location"],
@@ -555,4 +597,70 @@ pub fn migrate_report_payload(
     }
     value["schema_version"] = json!("ici.result/v3");
     LegacyDocument::from_value(safe::redact(&value))
+}
+
+#[cfg(test)]
+mod frozen_fix_tests {
+    use serde_json::{Value, json};
+
+    /// tests/rust-parity/reporting/fix-canonicalization.json (capture_fix_canonicalization.py):
+    /// frozen `canonicalize_finding` without a project root, one fix replacement per case.
+    fn cases() -> Vec<Value> {
+        let golden: Value = serde_json::from_str(include_str!(
+            "../../../tests/rust-parity/reporting/fix-canonicalization.json"
+        ))
+        .unwrap();
+        assert_eq!(golden["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+        golden["cases"].as_array().unwrap().clone()
+    }
+
+    fn native(case: &Value) -> crate::Result<Value> {
+        super::canonical_finding(&json!({
+            "rule_id":"ici.lint.rule","message":"m","severity":"low",
+            "primary_location":{"path":"src/a.py","start_line":1},
+            "fixes":[{"description":"d","replacements":[case["replacement"]]}]
+        }))
+    }
+
+    #[test]
+    fn fix_replacement_paths_canonicalize_like_the_frozen_finding_reader() {
+        let accepted: Vec<Value> = cases()
+            .into_iter()
+            .filter(|case| case["refused"].is_null())
+            .collect();
+        assert_eq!(accepted.len(), 4);
+        for case in accepted {
+            let finding = native(&case).unwrap();
+            assert_eq!(
+                finding["fixes"][0]["replacements"][0]["path"], case["canonical_path"],
+                "{}",
+                case["name"]
+            );
+        }
+    }
+
+    #[test]
+    fn escaping_absolute_drive_and_malformed_fix_regions_refuse_the_finding_like_frozen() {
+        let refused: Vec<Value> = cases()
+            .into_iter()
+            .filter(|case| !case["refused"].is_null())
+            .collect();
+        assert_eq!(refused.len(), 8);
+        for case in refused {
+            assert!(native(&case).is_err(), "{}", case["name"]);
+        }
+    }
+
+    #[test]
+    fn fixes_stay_out_of_the_fingerprint() {
+        let base = json!({"rule_id":"ici.lint.rule","message":"m",
+            "primary_location":{"path":"src/a.py","start_line":1}});
+        let mut with_fix = base.clone();
+        with_fix["fixes"] = json!([{"description":"d","replacements":[{"path":"./src/a.py",
+            "start_line":1,"start_column":1,"end_line":1,"end_column":2,"replacement":"x"}]}]);
+        assert_eq!(
+            super::canonical_finding(&base).unwrap()["fingerprint"],
+            super::canonical_finding(&with_fix).unwrap()["fingerprint"]
+        );
+    }
 }
