@@ -239,20 +239,26 @@
    "fixtures": {
     "positive": [
      "crates/ici-reporting/tests/migration_edges.rs::malformed_v2_fields_coerce_exactly_like_the_frozen_reader",
-     "crates/ici-reporting/tests/legacy_pipeline.rs::original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved"
+     "crates/ici-reporting/tests/legacy_pipeline.rs::original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved",
+     "crates/ici-reporting/src/migration.rs::frozen_fix_tests::fix_replacement_paths_canonicalize_like_the_frozen_finding_reader"
     ],
     "negative": [
-     "crates/ici-reporting/tests/rendering.rs::explicit_v2_migration_matches_frozen_original_without_guessing_schema"
+     "crates/ici-reporting/tests/rendering.rs::explicit_v2_migration_matches_frozen_original_without_guessing_schema",
+     "crates/ici-reporting/src/migration.rs::frozen_fix_tests::fixes_stay_out_of_the_fingerprint"
     ],
     "failure": [
-     "crates/ici-reporting/tests/migration_edges.rs::paths_outside_or_ambiguous_to_the_root_are_refused_like_the_frozen_reader"
+     "crates/ici-reporting/tests/migration_edges.rs::paths_outside_or_ambiguous_to_the_root_are_refused_like_the_frozen_reader",
+     "crates/ici-reporting/src/migration.rs::frozen_fix_tests::escaping_absolute_drive_and_malformed_fix_regions_refuse_the_finding_like_frozen"
     ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 280 passed, 0 failed (includes the HTML budget and on-demand DOM tests); /tmp/ici-rust-replacement-20261028/w-reporting-decisions.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-decisions-clippy.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the fix tests fail on the previous reader; /tmp/ici-rust-replacement-20261028/w-reporting-fix-before.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Exact frozen captures (migration-v2.json, migration-v2-edges.json, legacy-pipeline.json): legacy_target_to_finding: coarse ici.legacy.<engine>.target rule, numeric finite non-bool metrics with units, tool_rule_id only for colon names, identity from redacted target."
+   "comparison": "Exact frozen captures (migration-v2.json, migration-v2-edges.json, legacy-pipeline.json): legacy_target_to_finding: coarse ici.legacy.<engine>.target rule, numeric finite non-bool metrics with units, tool_rule_id only for colon names, identity from redacted target. Root decision: historical native fix replacements are canonicalized like frozen _canonical_fix (tests/rust-parity/reporting/fix-canonicalization.json, 12 frozen cases without a project root): collapsed, backslash and trailing-slash paths become 'src/a.py'; parent, absolute, drive-absolute and drive-relative paths and zero, reversed-line or reversed-column regions refuse the finding; fixes stay out of the fingerprint."
   },
   "finding_site:src/ici/core/redaction.py:491:8": {
    "status": "complete",
@@ -575,22 +581,28 @@
    "difference_reason": "The absent result keeps the saved delta fingerprint; the frozen serializer recomputed one from rule and location. Root decision accepted under ADR-0008: incompatible (pyz-era) baselines produce no absent or new SARIF results (legacy_baseline_gate.rs pyz test)."
   },
   "finding_site:src/ici/reporting/view_model.py:130:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-reporting/src/render.rs",
-    "crates/ici-reporting/src/view.rs"
+    "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/html_budget.rs::one_file_python_report_shows_every_oracle_fact_without_opening_sections"
+     "crates/ici-reporting/tests/suite_overview.rs::run_measurements_render_the_frozen_value_unit_and_n_of_d_rows"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/tests/suite_overview.rs::a_run_without_measurements_has_no_measurements_table"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/suite_overview.rs::run_measurements_render_the_frozen_value_unit_and_n_of_d_rows"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 280 passed, 0 failed (includes the HTML budget and on-demand DOM tests); /tmp/ici-rust-replacement-20261028/w-reporting-decisions.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-decisions-clippy.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the measurement tests fail on the previous renderer; /tmp/ici-rust-replacement-20261028/w-reporting-html-rows-before.log"
    ],
-   "comparison": "RunView metrics rows (name, value, unit, numerator/denominator) are shown from saved run metrics; native shows raw numerator and denominator columns rather than the formatted 'n of d' string."
+   "comparison": "Root decision (match frozen): the saved-run Measurements table is frozen offline_html._metrics over view_model MetricRows: name, `_number` value (integers without a fraction, otherwise Python %g including 1.23457e+06 and 1.234e-05) with the unit, and '<n> of <d>' only when the denominator is known and non-zero. tests/rust-parity/reporting/run-measurements.json (capture_run_measurements.py, 9 metrics through the frozen reader) is contained verbatim in the native HTML; native rows also carry the report filter's data-search-row marker, and a run without metrics has no table, like frozen.",
+   "difference_reason": null
   },
   "finding_site:src/ici/reporters/issue_view.py:195:20": {
    "status": "complete",
@@ -728,22 +740,27 @@
    "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/html/utils.py:110:16": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/suite_overview.rs::error_and_skip_engines_without_issue_groups_get_the_frozen_engine_issue_row"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/tests/suite_overview.rs::error_and_skip_engines_without_issue_groups_get_the_frozen_engine_issue_row"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/suite_overview.rs::every_renderer_states_the_frozen_gate_reason_scores_and_tally"
+    ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 280 passed, 0 failed (includes the HTML budget and on-demand DOM tests); /tmp/ici-rust-replacement-20261028/w-reporting-decisions.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-decisions-clippy.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo test -p ici-reporting --locked -j2 --test suite_overview --no-fail-fast` on the previous renderer fails the engine-row and measurement tests; /tmp/ici-rust-replacement-20261028/w-reporting-html-rows-before.log"
    ],
-   "comparison": "Frozen adds an HtmlIssue with rule_id 'engine' (badge = status, message = summary) for an ERROR/SKIP engine that produced no issue group. Native HTML shows the same engine name, status and summary in the engine table, not as an issue row with a pseudo rule id; not closed until that presentation difference is accepted or reproduced."
+   "comparison": "Root decision (match frozen): an ERROR or SKIP legacy engine that produced no issue group gets an issues-first row with rule id 'engine', its status as badge, '[engine]' and 'engine result' in place of a location, and its summary as message. tests/rust-parity/reporting/suite-overview.json now records frozen _extract_suite_data's 'engine' issues for all 7 cases (capture_suite_overview.py, new 'error-with-issues' case: an ERROR engine with its own issue group gets no row while a SKIP engine does); the native rows equal them in order."
   },
   "finding_site:src/ici/application/report.py:92:11": {
    "status": "complete",
@@ -985,11 +1002,11 @@
    "reason": "Complete module reviewed against the root ADR-0008 decision; all seven finding sites are complete. Stays unreviewed only because capability:identity-cache-baseline is verified (its cache facet is outside reporting)."
   },
   "src/ici/core/findings.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "finding_site:src/ici/core/findings.py:263:11"
    ],
-   "reason": "Legacy target adapters reviewed and pinned by migration/pipeline captures (findings.py:263 complete); the rest of the module was not mapped field by field."
+   "reason": "Reviewed all 15 symbols against crates/ici-reporting/src/migration.rs: canonical_project_path/_slash_path/_comparison_value/_collapse_relative -> project_path/comparison; validate_source_region -> the location and fix region checks; finding_fingerprint -> fingerprint (ici-fingerprint/v1, symbol or region); _legacy_rule_id/_confidence/_metric_unit/_numeric_metrics/legacy_target_to_finding -> the legacy target adapter; _canonical_location/_canonical_fix/canonicalize_finding -> canonical_finding (paths, regions, sorted related locations, fixes excluded from identity); findings_for_result -> adapted_findings with the native replacement map. Pinned by migration-v2(-edges), legacy-pipeline and fix-canonicalization frozen captures."
   },
   "src/ici/core/redaction.py": {
    "disposition": "unreviewed",

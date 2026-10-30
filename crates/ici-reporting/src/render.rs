@@ -795,6 +795,15 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     {
         group_card(group, &mut out)?;
     }
+    for (engine, status, summary) in engine_issue_rows(&view, &projection) {
+        let _ = write!(
+            out,
+            "<article class=finding data-search-row data-engine-issue><h3>engine · {}</h3><p>[{}] <span class=muted>engine result</span></p><p>{}</p></article>",
+            html(&status),
+            html(&engine),
+            html(&summary)
+        );
+    }
     out.push_str("</div>");
     let group_data = if lazy {
         out.push_str("<p><button type=button id=group-prev>Previous</button> <span id=group-page aria-live=polite></span> <button type=button id=group-next>Next</button></p>");
@@ -862,8 +871,12 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     if view.findings.is_empty() {
         out.push_str("<p class=muted>No findings recorded.</p>");
     }
-    out.push_str("<h2>Measurements</h2>");
-    rich(view.metrics(), &mut out)?;
+    if view.run.is_some() {
+        measurements(view.metrics(), &mut out);
+    } else {
+        out.push_str("<h2>Measurements</h2>");
+        rich(view.metrics(), &mut out)?;
+    }
     if !view.baseline().is_null() {
         out.push_str("<h2>Baseline comparison</h2>");
         rich(&baseline_preview(view.baseline()), &mut out)?;
@@ -996,6 +1009,110 @@ fn script() -> &'static str {
             .collect::<Vec<_>>()
             .join("\n")
     })
+}
+/// Python `f"{value:g}"`: six significant digits, trailing zeros dropped, exponent form outside
+/// 1e-4 <= |value| < 1e6 with a signed two-digit exponent.
+fn python_g(value: f64) -> String {
+    if !value.is_finite() {
+        return if value.is_nan() {
+            "nan".into()
+        } else if value > 0.0 {
+            "inf".into()
+        } else {
+            "-inf".into()
+        };
+    }
+    let scientific = format!("{value:.5e}");
+    let (mantissa, exponent) = scientific.split_once('e').expect("exponent form");
+    let exponent: i32 = exponent.parse().expect("integer exponent");
+    let trim = |text: &str| {
+        if text.contains('.') {
+            text.trim_end_matches('0').trim_end_matches('.').to_owned()
+        } else {
+            text.to_owned()
+        }
+    };
+    if !(-4..6).contains(&exponent) {
+        let sign = if exponent < 0 { '-' } else { '+' };
+        return format!("{}e{sign}{:02}", trim(mantissa), exponent.abs());
+    }
+    trim(&format!("{value:.*}", (5 - exponent) as usize))
+}
+/// Frozen `view_model._number`: integral values print as integers, others as `%g`.
+fn python_number(value: f64) -> String {
+    if value.is_finite() && value.fract() == 0.0 {
+        format!("{value:.0}")
+    } else {
+        python_g(value)
+    }
+}
+/// Frozen `offline_html._metrics` over `view_model` MetricRows (reporting/view_model.py:130):
+/// name, value with unit, and the raw "numerator of denominator" when both are known. Rows stay
+/// searchable by the report filter.
+fn measurements(metrics: &Value, out: &mut String) {
+    let Some(items) = metrics.as_array().filter(|items| !items.is_empty()) else {
+        return;
+    };
+    out.push_str("<h2>Measurements</h2>\n<div class=\"scroll\"><table>");
+    for item in items {
+        let unit = item["unit"].as_str().unwrap_or("");
+        let raw = match (item["numerator"].as_u64(), item["denominator"].as_u64()) {
+            (Some(numerator), Some(denominator)) if denominator > 0 => {
+                format!("{numerator} of {denominator}")
+            }
+            _ => String::new(),
+        };
+        let _ = write!(
+            out,
+            "<tr data-search-row><th>{}</th><td><code>{}{}</code></td><td class=\"muted\">{}</td></tr>",
+            html(item["name"].as_str().unwrap_or("")),
+            html(&python_number(item["value"].as_f64().unwrap_or(0.0))),
+            if unit.is_empty() {
+                String::new()
+            } else {
+                format!(" {}", html(unit))
+            },
+            html(&raw)
+        );
+    }
+    out.push_str("</table></div>\n");
+}
+/// Frozen `html/utils.py`: an ERROR or SKIP legacy engine that produced no issue group still gets
+/// an issues-first row (rule id `engine`, badge = status, message = summary) so a broken engine
+/// cannot hide in the engine table.
+pub(crate) fn engine_issue_rows(
+    view: &crate::view::View,
+    projection: &crate::IssueProjection,
+) -> Vec<(String, String, String)> {
+    let with_issues: std::collections::BTreeSet<String> = projection
+        .groups
+        .iter()
+        .flat_map(|group| {
+            group.view["producer_counts"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+        })
+        .filter(|pair| pair[1].as_u64().is_some_and(|count| count > 0))
+        .filter_map(|pair| pair[0].as_str().map(str::to_owned))
+        .collect();
+    view.document["results"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter(|engine| matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")))
+        .filter_map(|engine| {
+            let name = engine["engine_name"].as_str()?;
+            (!with_issues.contains(name)).then(|| {
+                (
+                    name.to_owned(),
+                    plain(&engine["status"]),
+                    plain(&engine["summary"]),
+                )
+            })
+        })
+        .collect()
 }
 fn group_card(group: &crate::IssueGroup, out: &mut String) -> Result<()> {
     let mut finding = group
