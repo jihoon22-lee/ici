@@ -116,14 +116,9 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 5);
     for (name, case) in cases {
-        let mut actual = run(case, base, &environment);
+        let actual = run(case, base, &environment);
         let frozen = &case["frozen"];
-        if frozen["status"] == "ERROR" {
-            // Open (reporting): frozen tool errors are NOT_RUN evidence with exit 1; the
-            // projection derives NOT_RUN only from a non-succeeded task.
-            assert_eq!(frozen["evidence"], "NOT_RUN", "{name}");
-            actual["evidence"] = frozen["evidence"].clone();
-        }
+        // Frozen tool errors: ERROR with NOT_RUN evidence and exit 1, compared exactly.
         assert_eq!(&actual, frozen, "{name}");
     }
 }

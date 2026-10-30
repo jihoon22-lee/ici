@@ -191,6 +191,13 @@ pub fn legacy_projection(
                 }
             })
             .unwrap_or_default();
+        // Frozen engines pair a tool or analysis ERROR with NOT_RUN evidence: no verdict was
+        // measured, whatever the task state (the exit code stays the ERROR class's 1).
+        let evidence = if status == "ERROR" {
+            EvidenceLevel::NotRun
+        } else {
+            evidence
+        };
         // Different checks keep their own evidence; aggregate cannot upgrade an estimate.
         let evidence = serde_json::to_value(evidence)?;
         if engine["extra"]["native_checks"]
