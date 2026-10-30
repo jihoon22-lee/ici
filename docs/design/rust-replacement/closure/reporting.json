@@ -278,38 +278,54 @@
    "comparison": "redact_engine_result target fields (file_path, target_name, message, snippet, metrics via redact_data) are redacted before identity; frozen capture secret-in-target-name matches including the fingerprint."
   },
   "finding_site:src/ici/core/redaction.py:360:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-reporting/src/safe.rs"
+    "crates/ici-reporting/src/safe.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::finding_fields_metric_names_and_fixes_redact_like_the_frozen_finding_redactor",
      "crates/ici-reporting/tests/rendering.rs::saved_run_renderers_preserve_axes_baseline_suppression_unicode_and_escape_boundaries"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::secret_free_values_pass_through_redaction_unchanged"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/migration_edges.rs::secret_flag_values_in_argv_are_hidden_at_every_output_boundary"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 57 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-redaction.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-redaction-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "finding metrics/tool_rule_id redaction is covered by recursive output redaction of every string and key; no dedicated frozen capture of a credential inside a metric key or delta rule id was taken."
+   "comparison": "tests/rust-parity/reporting/finding-redaction.json (capture_finding_redaction.py, frozen _redact_finding over a GitHub token, a Bearer value and a password assignment in every string field): the native report redactor gives the frozen redacted finding exactly, including location paths and labels, message/explanation/remediation, tool rule/name/version, snippet, suppression reason, fix description/path/replacement, metric units, and metric names that collide once masked ('metric ***REDACTED***#2'). Native redaction is recursive over every string, so a credential in fields frozen leaves alone (rule_id, fingerprint) would also be masked; none occur in frozen output."
   },
   "finding_site:src/ici/core/redaction.py:447:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-reporting/src/safe.rs"
+    "crates/ici-reporting/src/safe.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::baseline_delta_rule_message_engine_and_locations_redact_like_the_frozen_delta_redactor",
      "crates/ici-reporting/tests/rendering.rs::saved_run_renderers_preserve_axes_baseline_suppression_unicode_and_escape_boundaries"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::secret_free_values_pass_through_redaction_unchanged"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/migration_edges.rs::secret_flag_values_in_argv_are_hidden_at_every_output_boundary"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 57 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-redaction.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-redaction-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "baseline delta rule_id redaction is covered by recursive output redaction of every string and key; no dedicated frozen capture of a credential inside a metric key or delta rule id was taken."
+   "comparison": "tests/rust-parity/reporting/finding-redaction.json: frozen _redact_delta over credentials in engine_name, rule_id, message and current/baseline locations; the native report redactor gives the frozen redacted delta exactly. Native legacy baseline entries (crates/ici-reporting/src/baseline_delta.rs, root decision under ADR-0008) pass through the same redactor before output."
   },
   "finding_site:src/ici/core/baseline.py:284:11": {
    "status": "complete",
