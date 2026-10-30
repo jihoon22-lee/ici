@@ -100,19 +100,12 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
     assert_eq!(cases.len(), 12);
     for (name, expected) in cases.iter().filter(|(name, _)| !name.contains(":direct-")) {
         let (command, config) = name.split_once(':').unwrap();
-        let mut actual = run(
+        let actual = run(
             fixtures[config],
             command,
             oracle["configs"][config].as_str().unwrap(),
         );
-        if expected["status"] == "ERROR" {
-            // Open (reporting): frozen tool/configuration errors carry NOT_RUN evidence with
-            // exit 1; the projection derives NOT_RUN only from a non-succeeded task, which the
-            // legacy verdict turns into INCOMPLETE (exit 3), so the ERROR stays MEASURED here.
-            assert_eq!(expected["evidence"], "NOT_RUN", "{name}");
-            assert_eq!(actual["evidence"], "MEASURED", "{name}");
-            actual["evidence"] = expected["evidence"].clone();
-        }
+        // Frozen tool/configuration errors: ERROR with NOT_RUN evidence and exit 1.
         assert_eq!(&actual, expected, "{name}");
     }
 }

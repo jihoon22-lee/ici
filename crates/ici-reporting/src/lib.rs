@@ -15,6 +15,8 @@ mod baseline_delta;
 pub use baseline_delta::{
     baseline_gate_failures, baseline_gated, legacy_baseline_comparison, severity_regressed,
 };
+mod legacy_console;
+pub use legacy_console::legacy_engine_console;
 mod facets;
 mod render;
 mod view;

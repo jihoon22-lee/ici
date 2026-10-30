@@ -190,3 +190,41 @@ fn an_unknown_required_policy_never_explains_a_suite_with_a_required_engine() {
     assert!(text.contains("Suite: WARN"), "{text}");
     assert!(!text.contains("required engine 'lint'"), "{text}");
 }
+
+#[test]
+fn a_tool_error_is_not_run_evidence_even_when_its_task_completed() {
+    // Frozen engines pair a tool/configuration ERROR with NOT_RUN evidence (exit stays 1); a
+    // completed native task whose producer saved ERROR must not read as a measured verdict.
+    let mut run = RunResult::from_json(include_str!(
+        "../../../tests/fixtures/ici-next/run-success.json"
+    ))
+    .unwrap();
+    run.schema_version = 2;
+    run.checks = Some(vec![
+        check("tidy", "cpp.tidy", TaskState::Succeeded),
+        check("ok", "python.cognitive", TaskState::Succeeded),
+    ]);
+    let outputs = BTreeMap::from([
+        output("tidy", "ERROR", "clang-tidy is required but unavailable"),
+        output("ok", "PASS", "clean"),
+    ]);
+    let document = legacy_projection(&run, &outputs, &ProjectionContext::default()).unwrap();
+    let value = document.to_value();
+    let engine = |name: &str| {
+        value["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == name)
+            .cloned()
+            .unwrap()
+    };
+    assert_eq!(engine("lint")["status"], "ERROR");
+    assert_eq!(engine("lint")["evidence"], "NOT_RUN");
+    assert_eq!(
+        engine("lint")["extra"]["native_checks"][0]["evidence"],
+        "NOT_RUN"
+    );
+    assert_eq!(engine("cognitive")["evidence"], "MEASURED");
+    assert_eq!(ici_reporting::legacy_exit_code("ERROR"), 1);
+}
