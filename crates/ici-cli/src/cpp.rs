@@ -1918,6 +1918,8 @@ pub fn build_failure(
     // The frozen target may sit at "."; the blocking finding needs a project file location.
     let mut located = target.clone();
     located.file_path = finding_path.into();
+    // A frozen message may end inside stderr whitespace; finding text must be trimmed.
+    located.message = message.trim().into();
     add_finding(
         &mut output,
         &located,
