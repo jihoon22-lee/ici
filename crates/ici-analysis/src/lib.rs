@@ -15,6 +15,7 @@ mod idna;
 mod idna_tables;
 pub use facts::{ClassFact, FunctionFact, SourceFacts};
 mod finding;
+mod legacy;
 mod lines;
 mod metadata;
 mod metrics;
@@ -114,6 +115,7 @@ impl AnalysisSession {
         cancellation: Option<&AtomicBool>,
         kind: &str,
     ) -> AnalysisOutput {
+        let legacy = legacy::requested(request);
         let provider = match kind {
             "line" => "ici.line",
             "complexity" | "cognitive" => "ici.metrics",
@@ -255,10 +257,10 @@ impl AnalysisSession {
             if !input.path.ends_with(".py") && !input.path.ends_with(".pyi") {
                 continue;
             }
-            if matches!(
-                kind,
-                "security" | "resource" | "exception" | "dead" | "dup" | "compat"
-            ) {
+            // The frozen legacy exception engine read every selected source (no vendor policy).
+            if matches!(kind, "security" | "resource" | "dead" | "dup" | "compat")
+                || (kind == "exception" && !legacy)
+            {
                 let excluded: Vec<_> = source::exclusion_reasons(&input.path)
                     .into_iter()
                     .filter(|reason| {
@@ -350,9 +352,15 @@ impl AnalysisSession {
         if cancelled(&mut output, cancellation) {
             return output;
         }
+        // Frozen legacy security/resource engines checked zero files and reported clean.
+        let legacy_clean_empty = legacy
+            && files.is_empty()
+            && !excluded_source_counts.is_empty()
+            && matches!(kind, "security" | "resource");
         if files.is_empty()
             && output.observation.state != TaskState::Failed
             && !excluded_source_counts.is_empty()
+            && !legacy_clean_empty
             && matches!(
                 kind,
                 "security" | "resource" | "exception" | "dead" | "compat"
@@ -365,9 +373,16 @@ impl AnalysisSession {
             output.extra["excluded_source_counts"] = json!(excluded_source_counts);
             output.extra["source_encodings"] = json!(source_encodings);
             output.extra["parser_identity"] = json!(PARSER_IDENTITY);
+            if legacy {
+                legacy::reshape(kind, request, &mut output);
+            }
             return output;
         }
-        if files.is_empty() && output.observation.state != TaskState::Failed && kind != "dup" {
+        if files.is_empty()
+            && output.observation.state != TaskState::Failed
+            && kind != "dup"
+            && !legacy_clean_empty
+        {
             failure(
                 &mut output,
                 ".",
@@ -410,6 +425,9 @@ impl AnalysisSession {
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);
         output.extra["source_encodings"] = json!(source_encodings);
         output.extra["parser_identity"] = json!(PARSER_IDENTITY);
+        if legacy {
+            legacy::reshape(kind, request, &mut output);
+        }
         output
     }
 }

@@ -1143,30 +1143,33 @@
    "difference_reason": "OPEN for complete: no dedicated negative/failure fixture for unknown rule ids or unmergeable legacy labels; the full python_rule_registry table was not replayed row by row against the frozen registry."
   },
   "finding_site:src/ici/engines/cognitive.py:50:20": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target PythonCognitiveAnalysisError.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen PythonCognitiveAnalysisError (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/cognitive.py:79:20": {
    "status": "complete",
@@ -1221,30 +1224,33 @@
    "difference_reason": null
   },
   "finding_site:src/ici/engines/dead.py:111:16": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target SourceInputError.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen SourceInputError (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/dead.py:270:12": {
    "status": "verified",
@@ -1299,30 +1305,33 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/dup.py:100:20": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target SourceInputError.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen SourceInputError (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/dup.py:121:20": {
    "status": "verified",
@@ -1351,56 +1360,49 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/dup.py:149:20": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target SourceTokenizationError.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen SourceTokenizationError (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/dup.py:207:20": {
    "status": "difference_review",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/python_duplicates.rs"
    ],
    "fixtures": {
-    "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
-    ],
-    "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
-    ],
-    "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
-     "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
-     "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
-    ]
+    "positive": [],
+    "negative": [],
+    "failure": []
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log"
    ],
-   "comparison": "Frozen legacy target DuplicateComparisonLimit.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Frozen DuplicateComparisonLimit target (bounded comparison limit).",
+   "difference_reason": "OPEN: no native producer of this legacy name and no frozen capture; native reports a bounded-comparison stop through the shared duplicate limit evidence. Needs a frozen capture that reaches the comparison limit."
   },
   "finding_site:src/ici/engines/dup.py:279:16": {
    "status": "verified",
@@ -1507,30 +1509,33 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/exception.py:150:12": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target <analysis error>.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen SyntaxError/ReadError analysis error (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": "Accepted (root ruling): the text after 'SyntaxError: ' is the pinned ruff parser's first error message, because frozen embedded the running CPython's SyntaxError.msg, which depends on the interpreter (3.10.21 'invalid syntax' vs 3.14.7 \"expected expression after 'else', but statement is given\" for the same input). Target name, status, file, line (including CPython's innermost unclosed bracket), summary shape and the legacy fingerprint are frozen's; the replay shows the legacy fingerprints unchanged, so they do not hash the message text."
   },
   "finding_site:src/ici/engines/exception.py:52:16": {
    "status": "verified",
@@ -1645,15 +1650,26 @@
    "difference_reason": null
   },
   "finding_site:src/ici/engines/lint.py:92:16": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target LintScope: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log"
+   ],
+   "comparison": "Legacy `ici lint --report` on a Python project with no Python source reports frozen's LintScope SKIP target, NOT_APPLICABLE evidence, summary, fingerprint and exit 2.",
    "difference_reason": null
   },
   "finding_site:src/ici/engines/resource.py:108:20": {
@@ -1683,56 +1699,62 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/resource.py:119:16": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target Resource:SourceInput.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen Resource:SourceInput (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/resource.py:185:12": {
-   "status": "difference_review",
+   "status": "verified",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target Resource:AnalysisUnavailable.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen Resource:AnalysisUnavailable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": "OPEN for complete: only the syntax branch is replayed; the ResourceAnalysisLimit branch (bounded-flow limit message) has no frozen capture."
   },
   "finding_site:src/ici/engines/resource.py:34:12": {
    "status": "verified",
@@ -1761,82 +1783,91 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/resource.py:73:20": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target Resource:NotApplicable.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen Resource:NotApplicable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/security.py:34:20": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target Security:NotApplicable.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen Security:NotApplicable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/security.py:68:24": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target Security:SyntaxUnavailable.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen Security:SyntaxUnavailable (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/security.py:83:20": {
    "status": "verified",
@@ -1865,30 +1896,33 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/security.py:94:16": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/legacy.rs",
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-analysis/src/dead.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
     ],
     "failure": [
-     "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
-     "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
      "crates/ici-analysis/src/tests.rs::source_codec_failures_and_raw_byte_cache_identity_cannot_reuse_other_evidence",
      "crates/ici-analysis/src/tests.rs::frozen_source_limit_accepts_sixteen_mib_and_rejects_larger_input"
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 58 legacy `python -m ici <engine> --report` captures (/tmp/ici-rust-replacement-20261028/w-python-legacy-capture.log); then with a temporary worktree .venv symlink, cargo test -p ici-cli --locked -j2 --no-fail-fast -- --test-threads=2 at 1503b44: 51 test binaries ok, including legacy_python_engines (56 compared, 2 frozen-crash cases checked to still report); /tmp/ici-rust-replacement-20261028/w-python-legacy-empty-cli.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
-   "comparison": "Frozen legacy target Security:SourceInput.",
-   "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
+   "comparison": "Legacy `ici <engine> --report` emits frozen Security:SourceInput (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/type_check.py:306:20": {
    "status": "not_started",
