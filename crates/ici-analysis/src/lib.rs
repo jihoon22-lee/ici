@@ -16,6 +16,7 @@ mod idna_tables;
 pub use facts::{ClassFact, FunctionFact, SourceFacts};
 mod finding;
 mod legacy;
+pub use legacy::lint_syntax_error;
 mod lines;
 mod metadata;
 mod metrics;

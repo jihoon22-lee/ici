@@ -1,5 +1,5 @@
 //! Legacy `ici <engine> --report` Python scaffolding targets (security, resource, dup, dead,
-//! cognitive, exception; no-source verdicts also for lint and cycle) against the frozen CLI oracle
+//! cognitive, exception; no-source verdicts also for lint, cycle, type and complexity) against the frozen CLI oracle
 //! (`tests/rust-parity/python/capture_legacy_engines.py`, CPython 3.10.21 venv).
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
@@ -43,8 +43,13 @@ fn corrected(frozen: &Value) -> Value {
 }
 
 fn run(case: &Value, base: &str) -> Option<Value> {
+    run_with_path(case, base, "/usr/bin:/bin")
+}
+
+fn run_with_path(case: &Value, base: &str, path: &str) -> Option<Value> {
     let root = tempfile::tempdir().unwrap();
-    fs::write(root.path().join("ici.toml"), base).unwrap();
+    let config = format!("{base}{}", case["config"].as_str().unwrap_or(""));
+    fs::write(root.path().join("ici.toml"), config).unwrap();
     for (name, content) in case["files"].as_object().unwrap() {
         let path = root.path().join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -65,7 +70,7 @@ fn run(case: &Value, base: &str) -> Option<Value> {
     }
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let environment = BTreeMap::from([("PATH".to_string(), path.to_string())]);
     let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
     let report: Value =
         serde_json::from_slice(&fs::read(root.path().join(format!("{command}_report.json"))).ok()?)
@@ -103,7 +108,7 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 58);
+    assert_eq!(cases.len(), 61);
     let mut compared = 0;
     for (name, case) in cases {
         let frozen = &case["frozen"];
@@ -117,5 +122,47 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
         assert_eq!(actual.unwrap(), corrected(frozen), "{name}");
         compared += 1;
     }
-    assert_eq!(compared, 56);
+    assert_eq!(compared, 59);
+}
+
+fn required(name: &str) -> String {
+    std::env::var(name).unwrap_or_else(|_| panic!("required native fixture tool {name} is missing"))
+}
+
+/// Legacy `ici type` (frozen mypy) and `ici lint` (frozen ruff) with the project tools linked into
+/// one PATH directory, exactly as the capture linked the same files for the frozen CLI.
+#[test]
+#[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
+fn legacy_python_tool_engines_match_frozen_mypy_and_ruff_views() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/legacy-engines.json"
+    ))
+    .unwrap();
+    let tools = tempfile::tempdir().unwrap();
+    for (name, variable) in [("ruff", "ICI_TEST_RUFF"), ("mypy", "ICI_TEST_MYPY")] {
+        let target = required(variable);
+        let version = std::process::Command::new(&target)
+            .arg("--version")
+            .output()
+            .unwrap();
+        assert_eq!(
+            String::from_utf8_lossy(&version.stdout).trim(),
+            oracle["tool_versions"][name],
+            "{variable} is not the captured {name}"
+        );
+        std::os::unix::fs::symlink(target, tools.path().join(name)).unwrap();
+    }
+    let with_tools = format!("{}:/usr/bin:/bin", tools.path().display());
+    let base = oracle["base"].as_str().unwrap();
+    let cases = oracle["tool_cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 27);
+    for (name, case) in cases {
+        let path = if case["tools"] == true {
+            with_tools.as_str()
+        } else {
+            "/usr/bin:/bin"
+        };
+        let actual = run_with_path(case, base, path).unwrap_or_else(|| panic!("{name}: no report"));
+        assert_eq!(actual, corrected(&case["frozen"]), "{name}");
+    }
 }

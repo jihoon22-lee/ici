@@ -35,6 +35,19 @@ pub fn command(
             .and_then(serde_json::Value::as_bool)
             == Some(true)
     });
+    // Frozen complexity summary names `engines.complexity.warn_cc` (legacy default 15).
+    let warn_cc = prepared
+        .project
+        .components
+        .iter()
+        .find_map(|component| {
+            component
+                .settings
+                .pointer("/engines/complexity/warn_cc")
+                .filter(|limit| limit.is_number())
+                .map(serde_json::Value::to_string)
+        })
+        .unwrap_or_else(|| "15".into());
     let result_path = root.join(crate::DEFAULT_RESULT);
     let report_path = invocation.flag("report").then(|| {
         root.join(engine(&invocation.command()).map_or_else(
@@ -192,11 +205,114 @@ pub fn command(
             ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
             replaced = true;
         } else if legacy_schema
-            && let Some((status, evidence, summary, target)) = no_python_sources(family, &value)
+            && let Some((status, evidence, summary, target)) =
+                no_python_sources(family, &value, &warn_cc)
         {
-            ici_reporting::legacy_no_sources(&mut value, status, evidence, summary, target)
+            ici_reporting::legacy_no_sources(&mut value, status, evidence, &summary, target)
                 .map_err(error)?;
             replaced = true;
+        } else if family == "lint" && legacy_schema && ruff_unavailable(&value) {
+            // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
+            // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under
+            // `ruff_required`, a tool error (NOT_RUN).
+            let setting = |key: &str| {
+                prepared.project.components.iter().find_map(|component| {
+                    component
+                        .settings
+                        .pointer(&format!("/engines/lint/{key}"))
+                        .cloned()
+                })
+            };
+            let mut targets = vec![];
+            let mut parsed = 0;
+            for component in &prepared.project.components {
+                parsed += component
+                    .files
+                    .iter()
+                    .filter(|path| path.ends_with(".py"))
+                    .count();
+                targets.extend(crate::legacy::python_syntax_targets(
+                    &root,
+                    &component.files,
+                ));
+            }
+            let fail = targets.len();
+            let mut targets: Vec<_> = targets
+                .into_iter()
+                .map(|target| serde_json::to_value(target).map_err(error))
+                .collect::<Result<_>>()?;
+            targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
+                "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
+                "snippet":"","metrics":{"files_parsed":parsed}}));
+            if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
+                ici_reporting::legacy_verdict(
+                    &mut value,
+                    "ERROR",
+                    "NOT_RUN",
+                    "Ruff is required but was not found",
+                    targets,
+                )
+                .map_err(error)?;
+            } else {
+                let mode = setting("mode")
+                    .and_then(|value| value.as_str().map(str::to_owned))
+                    .unwrap_or_else(|| "pass_warn_fail".into());
+                let status = match mode.as_str() {
+                    "pass_warn" => "WARN",
+                    "pass_fail" => "FAIL",
+                    _ if fail > 0 => "FAIL",
+                    _ => "WARN",
+                };
+                let summary = if fail == 0 {
+                    "Ruff is unavailable; AST syntax fallback is ESTIMATED".to_owned()
+                } else {
+                    format!("{fail} Errors, 1 Warnings Found")
+                };
+                ici_reporting::legacy_verdict(&mut value, status, "ESTIMATED", &summary, targets)
+                    .map_err(error)?;
+                replaced = true;
+            }
+        } else if family == "type" && legacy_schema && mypy_unavailable(&value) {
+            // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
+            // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
+            let setting = |key: &str| {
+                prepared.project.components.iter().find_map(|component| {
+                    component
+                        .settings
+                        .pointer(&format!("/engines/type/{key}"))
+                        .cloned()
+                })
+            };
+            if setting("mypy_required").and_then(|value| value.as_bool()) == Some(true) {
+                value["status"] = serde_json::json!("ERROR");
+                value["evidence"] = serde_json::json!("NOT_RUN");
+                value["summary"] = serde_json::json!("Mypy is required but was not found");
+            } else {
+                let mode = setting("mode")
+                    .and_then(|value| value.as_str().map(str::to_owned))
+                    .unwrap_or_else(|| "pass_warn".into());
+                let targets = value["targets"].as_array().cloned().unwrap_or_default();
+                let count = |status: &str| {
+                    targets
+                        .iter()
+                        .filter(|target| target["status"] == status)
+                        .count()
+                };
+                let (fail, warn) = (count("FAIL"), count("WARN") + 1);
+                let status = match mode.as_str() {
+                    "pass_warn" => "WARN",
+                    "pass_fail" => "FAIL",
+                    _ if fail > 0 => "FAIL",
+                    _ => "WARN",
+                };
+                value["status"] = serde_json::json!(status);
+                value["evidence"] = serde_json::json!("ESTIMATED");
+                value["summary"] = serde_json::json!(format!(
+                    "{fail} Type Findings, {warn} Warnings; Mypy is unavailable; AST fallback is ESTIMATED"
+                ));
+                replaced = true;
+            }
         } else if family == "test"
             && legacy_schema
             && let Some(reason) = refused_policy(&value)
@@ -532,15 +648,49 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
     Some(languages)
 }
 
+/// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
+/// refused at planning (a mixed C++ lint view keeps its native shape).
+fn ruff_unavailable(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            !checks.is_empty()
+                && checks.iter().all(|check| {
+                    matches!(
+                        check["check_id"].as_str(),
+                        Some("python.lint" | "python.format")
+                    ) && check["state"] == "BLOCKED"
+                        && check["summary"]
+                            .as_str()
+                            .is_some_and(|summary| summary.starts_with("ruff: "))
+                })
+        })
+}
+
+/// The historical mypy could not be resolved: the type check was refused at planning.
+fn mypy_unavailable(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            checks.iter().any(|check| {
+                check["check_id"] == "python.type"
+                    && check["state"] == "BLOCKED"
+                    && check["summary"]
+                        .as_str()
+                        .is_some_and(|summary| summary.starts_with("mypy: "))
+            })
+        })
+}
+
 type NoSources = (
     &'static str,
     &'static str,
-    &'static str,
+    String,
     Option<(&'static str, &'static str)>,
 );
 /// Frozen single-engine verdicts when the Python project selected no Python source: every
 /// native check of the engine was refused at planning ("no sources in scope for python").
-fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSources> {
+fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) -> Option<NoSources> {
     let checks = engine["extra"]["native_checks"].as_array()?;
     if checks.is_empty()
         || !checks.iter().all(|check| {
@@ -558,19 +708,19 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "security" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Security analysis skipped: no Python source files",
+            "Security analysis skipped: no Python source files".into(),
             Some(("Security:NotApplicable", none)),
         ),
         "resource" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Resource analysis skipped: no Python source files",
+            "Resource analysis skipped: no Python source files".into(),
             Some(("Resource:NotApplicable", none)),
         ),
         "lint" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Lint analysis skipped: no applicable source files",
+            "Lint analysis skipped: no applicable source files".into(),
             Some((
                 "LintScope",
                 "No applicable source files were selected; lint analysis was not run",
@@ -579,7 +729,7 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "exception" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Exception safety analysis skipped: no applicable source files",
+            "Exception safety analysis skipped: no applicable source files".into(),
             Some((
                 "ExceptionSafety",
                 "No applicable Python or C++ source files were selected; analysis was not run",
@@ -588,7 +738,7 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "dead" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Dead-code analysis skipped: no owned source files",
+            "Dead-code analysis skipped: no owned source files".into(),
             Some((
                 "DeadCode",
                 "No applicable source files were selected; dead-code analysis was not run",
@@ -597,16 +747,38 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "dup" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Duplicate analysis skipped: no owned source files",
+            "Duplicate analysis skipped: no owned source files".into(),
             Some(("DuplicateCode", "No applicable source files were selected")),
         ),
         "cognitive" => (
             "PASS",
             "MEASURED",
-            "Max cognitive complexity: 0 across 0 functions",
+            "Max cognitive complexity: 0 across 0 functions".into(),
             None,
         ),
-        "cycle" => ("PASS", "MEASURED", "No cyclic dependencies detected", None),
+        "cycle" => (
+            "PASS",
+            "MEASURED",
+            "No cyclic dependencies detected".into(),
+            None,
+        ),
+        // Frozen `ComplexityEngine` over no function: a measured PASS naming the warning limit.
+        "complexity" => (
+            "PASS",
+            "MEASURED",
+            format!("Max Cyclomatic Complexity: 0 (limit {warn_cc}) across 0 functions (0 issues)"),
+            None,
+        ),
+        // Frozen `_mark_python_type_check_skipped`: Mypy was not run, nothing is type-checkable.
+        "type" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Type checking not applicable: no Python sources; C++ is unsupported".into(),
+            Some((
+                "Mypy",
+                "No applicable Python source files were selected; Mypy was not run",
+            )),
+        ),
         _ => return None,
     })
 }

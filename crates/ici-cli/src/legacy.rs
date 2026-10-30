@@ -239,6 +239,123 @@ pub fn annotation_check(
     Some(definition)
 }
 
+/// Frozen `TypeCheckEngine._check_python_types` ran its AST annotation pass only when mypy did
+/// not finish cleanly (findings, failure or no mypy), skipped unparsable files silently, and
+/// never emitted a per-file inventory. The legacy-only `python.annotations` check keeps exactly
+/// that: nothing beside a clean mypy run, only its missing-annotation targets otherwise, measured
+/// when mypy ran (the AST facts are exact; only the missing type checker made frozen ESTIMATED).
+pub fn annotation_fallback(
+    prepared: &crate::planning::PreparedPlan,
+    outputs: &mut BTreeMap<String, ici_domain::AnalysisOutput>,
+) {
+    if !prepared.legacy_projection {
+        return;
+    }
+    for check in &prepared.plan.checks {
+        if check.check.id != "python.annotations" {
+            continue;
+        }
+        let mypy = prepared
+            .plan
+            .checks
+            .iter()
+            .find(|other| {
+                other.check.id == "python.type" && other.component_id == check.component_id
+            })
+            .and_then(|other| outputs.get(&other.task_id))
+            .and_then(|output| output.extra.get("legacy_mypy"))
+            .map(|marker| marker["clean"] == true);
+        let Some(output) = outputs.get_mut(&check.task_id) else {
+            continue;
+        };
+        let keep = mypy != Some(true);
+        output.targets.retain(|target| {
+            keep && target.status == "WARN" && target.target_name != "AnnotationCoverage"
+        });
+        output
+            .observation
+            .findings
+            .retain(|finding| keep && finding.rule_id == "type.missing-return-annotation");
+        if mypy.is_some() {
+            for finding in &mut output.observation.findings {
+                finding.evidence = ici_domain::EvidenceLevel::Measured;
+            }
+        }
+        if output.observation.state == ici_domain::TaskState::Failed {
+            output.observation.state = ici_domain::TaskState::Succeeded;
+            output.observation.limitations.push(
+                "unparsable Python sources were skipped by the historical annotation pass".into(),
+            );
+        }
+        output.status = if output.targets.is_empty() {
+            "PASS"
+        } else {
+            "WARN"
+        }
+        .into();
+    }
+}
+
+/// Frozen `LintEngine._check_python_syntax` beside Ruff: every selected Python file that does not
+/// parse is one `SyntaxError` FAIL target after the Ruff check and format targets. It belongs to
+/// the historical lint view only (the modern checks report syntax through their own findings).
+pub fn lint_syntax(
+    prepared: &crate::planning::PreparedPlan,
+    outputs: &mut BTreeMap<String, ici_domain::AnalysisOutput>,
+) {
+    if !prepared.legacy_projection {
+        return;
+    }
+    for component in &prepared.project.components {
+        let ran = |id: &str| {
+            prepared
+                .plan
+                .checks
+                .iter()
+                .find(|check| check.check.id == id && check.component_id == component.id)
+                .map(|check| check.task_id.clone())
+                .filter(|task| {
+                    outputs
+                        .get(task)
+                        .is_some_and(|output| output.extra.get("legacy_ruff").is_some())
+                })
+        };
+        let Some(task) = ran("python.format").or_else(|| ran("python.lint")) else {
+            continue;
+        };
+        let targets = python_syntax_targets(&prepared.project.root, &component.files);
+        let output = outputs.get_mut(&task).expect("checked output");
+        if !targets.is_empty() && output.status != "ERROR" {
+            output.status = "FAIL".into();
+        }
+        output.targets.extend(targets);
+    }
+}
+
+/// `SyntaxError` targets for the selected `.py` files, in their sorted order.
+pub fn python_syntax_targets(
+    root: &std::path::Path,
+    files: &[String],
+) -> Vec<ici_domain::InspectionTarget> {
+    files
+        .iter()
+        .filter(|path| path.ends_with(".py"))
+        .filter_map(|path| {
+            let bytes = std::fs::read(root.join(path)).ok()?;
+            let input = ici_domain::SourceInput {
+                path: path.clone(),
+                bytes,
+            };
+            let (line, message) = ici_analysis::lint_syntax_error(&input)?;
+            let mut target = ici_domain::InspectionTarget::at(path, line);
+            target.target_name = "SyntaxError".into();
+            target.status = "FAIL".into();
+            target.message = message;
+            Some(target)
+        })
+        .collect()
+}
+
 /// Binary ABI checks inspect published artifact bytes independently of source language.
 pub fn python_binary_compat_check() -> CheckDefinition {
     let mut definition = ici_domain::builtin_catalog()
