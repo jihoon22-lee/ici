@@ -1,5 +1,5 @@
 //! Legacy `ici <engine> --report` Python scaffolding targets (security, resource, dup, dead,
-//! cognitive, exception) against the frozen CLI oracle
+//! cognitive, exception; no-source verdicts also for lint and cycle) against the frozen CLI oracle
 //! (`tests/rust-parity/python/capture_legacy_engines.py`, CPython 3.10.21 venv).
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
@@ -103,7 +103,7 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 50);
+    assert_eq!(cases.len(), 58);
     let mut compared = 0;
     for (name, case) in cases {
         let frozen = &case["frozen"];
@@ -117,5 +117,5 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
         assert_eq!(actual.unwrap(), corrected(frozen), "{name}");
         compared += 1;
     }
-    assert_eq!(compared, 48);
+    assert_eq!(compared, 56);
 }

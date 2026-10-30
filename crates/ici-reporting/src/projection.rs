@@ -774,6 +774,32 @@ pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Resu
     Ok(())
 }
 
+/// Frozen engines with no selected source: a fixed verdict (SKIP/NOT_APPLICABLE with one `.`
+/// scope target, or a measured clean PASS without targets). Native refuses the same plan before
+/// running; the legacy view keeps the frozen shape.
+pub fn legacy_no_sources(
+    engine: &mut Value,
+    status: &str,
+    evidence: &str,
+    summary: &str,
+    target: Option<(&str, &str)>,
+) -> Result<()> {
+    let targets: Vec<_> = target
+        .into_iter()
+        .map(|(name, message)| {
+            json!({"file_path":".","start_line":1,"end_line":null,"start_column":null,
+                "end_column":null,"target_name":name,"status":"SKIP","message":message,
+                "snippet":"","metrics":{}})
+        })
+        .collect();
+    engine["targets"] = json!(targets);
+    engine["status"] = json!(status);
+    engine["evidence"] = json!(evidence);
+    engine["summary"] = json!(summary);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
 /// Frozen `TestCoverageMixin`: an unusable coverage policy is a located ERROR target
 /// ("Coverage:Policy configuration" at `.`) and an ERROR engine. Native refuses the same input
 /// before running; the legacy view keeps the frozen verdict class with the native reason.

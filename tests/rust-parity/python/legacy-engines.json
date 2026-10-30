@@ -125,6 +125,20 @@
     ]
    }
   },
+  "cognitive/no-python-source": {
+   "command": "cognitive",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Max cognitive complexity: 0 across 0 functions",
+    "targets": []
+   }
+  },
   "cognitive/nul": {
    "command": "cognitive",
    "files": {
@@ -259,6 +273,20 @@
     ]
    }
   },
+  "cycle/no-python-source": {
+   "command": "cycle",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "No cyclic dependencies detected",
+    "targets": []
+   }
+  },
   "dead/excluded-only": {
    "command": "dead",
    "files": {
@@ -351,6 +379,36 @@
       "start_line": 1,
       "status": "ERROR",
       "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dead/no-python-source": {
+   "command": "dead",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:e37d9d9dddbc355356cb3f205157dac24fa727bbb94aa54c2fa29a2bba53a823",
+      "message": "No applicable source files were selected; dead-code analysis was not run",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Dead-code analysis skipped: no owned source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable source files were selected; dead-code analysis was not run",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "DeadCode"
      }
     ]
    }
@@ -573,6 +631,36 @@
       "start_line": 1,
       "status": "ERROR",
       "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dup/no-python-source": {
+   "command": "dup",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:179be07d185cbd24974ec9844636e1f2c2a866e2dfab46360c910dde4d0dc04e",
+      "message": "No applicable source files were selected",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Duplicate analysis skipped: no owned source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable source files were selected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "DuplicateCode"
      }
     ]
    }
@@ -859,6 +947,36 @@
     ]
    }
   },
+  "exception/no-python-source": {
+   "command": "exception",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:d50746fa26a0010c7f50c50f7c5188cf9be886d21503e5df5ec7fb5970186828",
+      "message": "No applicable Python or C++ source files were selected; analysis was not run",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Exception safety analysis skipped: no applicable source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable Python or C++ source files were selected; analysis was not run",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "ExceptionSafety"
+     }
+    ]
+   }
+  },
   "exception/nul": {
    "command": "exception",
    "files": {
@@ -1089,6 +1207,36 @@
     ]
    }
   },
+  "lint/no-python-source": {
+   "command": "lint",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:e3a654d09f5f4b969b1f7764a301be6d434adfdf4728359425aa07e13fcbb1d8",
+      "message": "No applicable source files were selected; lint analysis was not run",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Lint analysis skipped: no applicable source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable source files were selected; lint analysis was not run",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "LintScope"
+     }
+    ]
+   }
+  },
   "resource/excluded-only": {
    "command": "resource",
    "files": {
@@ -1165,6 +1313,36 @@
       "start_line": 1,
       "status": "ERROR",
       "target_name": "Resource:SourceInput"
+     }
+    ]
+   }
+  },
+  "resource/no-python-source": {
+   "command": "resource",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+      "message": "No applicable Python source files were selected",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:NotApplicable"
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Resource analysis skipped: no Python source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Resource:NotApplicable"
      }
     ]
    }
@@ -1431,6 +1609,36 @@
       "start_line": 1,
       "status": "ERROR",
       "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/no-python-source": {
+   "command": "security",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+      "message": "No applicable Python source files were selected",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:NotApplicable"
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Security analysis skipped: no Python source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable Python source files were selected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Security:NotApplicable"
      }
     ]
    }

@@ -49,8 +49,11 @@ PROJECTS = {
     "second-file-invalid": {"src/a.py": FINDING, "src/b.py": hexed(b"\xff\n")},
     "nul": {"src/a.py": hexed(b"x = 1\x00\n")},
     "excluded-only": {"src/vendor/a.py": FINDING},
+    "no-python-source": {"src/README.md": "x\n"},
 }
 ENGINES = ("security", "resource", "dup", "dead", "cognitive", "exception")
+# Planning refuses an empty Python scope natively; these engines keep a frozen no-source verdict.
+NO_SOURCE_ENGINES = (*ENGINES, "lint", "cycle")
 # The full decode-error shape set only matters where the CPython message text is embedded.
 DECODE_ONLY = {"truncated", "continuation", "surrogate", "overlong"}
 
@@ -106,7 +109,7 @@ def run(command: str, files: dict) -> dict:
 def main() -> None:
     cases = {}
     for project, files in PROJECTS.items():
-        for engine in ENGINES:
+        for engine in NO_SOURCE_ENGINES if project == "no-python-source" else ENGINES:
             if project in DECODE_ONLY and engine not in ("exception", "security"):
                 continue
             cases[f"{engine}/{project}"] = {

@@ -191,6 +191,12 @@ pub fn command(
             // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
             ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
             replaced = true;
+        } else if legacy_schema
+            && let Some((status, evidence, summary, target)) = no_python_sources(family, &value)
+        {
+            ici_reporting::legacy_no_sources(&mut value, status, evidence, summary, target)
+                .map_err(error)?;
+            replaced = true;
         } else if family == "test"
             && legacy_schema
             && let Some(reason) = refused_policy(&value)
@@ -524,6 +530,85 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
         }
     }
     Some(languages)
+}
+
+type NoSources = (
+    &'static str,
+    &'static str,
+    &'static str,
+    Option<(&'static str, &'static str)>,
+);
+/// Frozen single-engine verdicts when the Python project selected no Python source: every
+/// native check of the engine was refused at planning ("no sources in scope for python").
+fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSources> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    if checks.is_empty()
+        || !checks.iter().all(|check| {
+            check["state"] == "BLOCKED"
+                && check["check_id"]
+                    .as_str()
+                    .is_some_and(|id| id.starts_with("python."))
+                && check["summary"] == "no sources in scope for python"
+        })
+    {
+        return None;
+    }
+    let none = "No applicable Python source files were selected";
+    Some(match family {
+        "security" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Security analysis skipped: no Python source files",
+            Some(("Security:NotApplicable", none)),
+        ),
+        "resource" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Resource analysis skipped: no Python source files",
+            Some(("Resource:NotApplicable", none)),
+        ),
+        "lint" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Lint analysis skipped: no applicable source files",
+            Some((
+                "LintScope",
+                "No applicable source files were selected; lint analysis was not run",
+            )),
+        ),
+        "exception" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Exception safety analysis skipped: no applicable source files",
+            Some((
+                "ExceptionSafety",
+                "No applicable Python or C++ source files were selected; analysis was not run",
+            )),
+        ),
+        "dead" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Dead-code analysis skipped: no owned source files",
+            Some((
+                "DeadCode",
+                "No applicable source files were selected; dead-code analysis was not run",
+            )),
+        ),
+        "dup" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Duplicate analysis skipped: no owned source files",
+            Some(("DuplicateCode", "No applicable source files were selected")),
+        ),
+        "cognitive" => (
+            "PASS",
+            "MEASURED",
+            "Max cognitive complexity: 0 across 0 functions",
+            None,
+        ),
+        "cycle" => ("PASS", "MEASURED", "No cyclic dependencies detected", None),
+        _ => return None,
+    })
 }
 
 /// Frozen `_parse_pytest_result`: pytest exit 5 (or exit 0 without a case) is the same
