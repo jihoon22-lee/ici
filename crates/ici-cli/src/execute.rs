@@ -497,14 +497,30 @@ pub fn execute(
                             prepared.legacy_projection,
                         );
                         let component = inputs::component(&prepared, planned).clone();
-                        prepared.cpp.run(
+                        let mut output = prepared.cpp.run(
                             &prepared.project,
                             &component,
                             &request,
                             &scheduler,
                             cancellation,
                             &events,
-                        )
+                        );
+                        if prepared.legacy_projection
+                            && planned.check.id == "cpp.diagnostics"
+                            && prepared.cpp.is_fallback(id)
+                        {
+                            let tooling = prepared
+                                .plan
+                                .checks
+                                .iter()
+                                .find(|check| {
+                                    check.component_id == planned.component_id
+                                        && check.check.id == "cpp.tidy"
+                                })
+                                .and_then(|check| prepared.cpp.planned(&check.task_id));
+                            crate::cpp::legacy_fallback_lint(&mut output, tooling);
+                        }
+                        output
                     } else if let Some(plans) = prepared.validations.get(id) {
                         let mut output = execute_validation(
                             id,

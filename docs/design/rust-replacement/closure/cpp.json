@@ -557,16 +557,29 @@
       "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
     },
     "command:ici lint": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:352, src/ici/__main__.py:459).",
-      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+      ],
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only).",
+      "difference_reason": "Open: (1) with a compilation database `ici lint` still uses the exact Rust path while frozen `ici lint` has no analysis context and always takes the heuristic fallback (compile-DB lint modes are the next unit); (2) a required-tool ERROR keeps MEASURED evidence (reporting); (3) execution/replay/budget error targets (C++SyntaxExecutionError, ContextMissing, ReplayError, BudgetError) and Qt codegen targets are not captured; (4) mixed Python+C++ lint summaries are not compared."
     },
     "command:ici next verify": {
       "status": "not_started",
@@ -2729,16 +2742,29 @@
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.lint.clang_tidy": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+      ],
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This key: 'off' drops the tool's Unavailable target (clang_tidy='off' case: 6 instead of 7 warnings), 'required' makes it ERROR (clazy='required' case), default auto WARN.",
+      "difference_reason": "Open (reporting): a required-tool ERROR is NOT_RUN evidence in frozen; the projection derives NOT_RUN only from a non-succeeded task, so Rust reports MEASURED for that ERROR (asserted). The tool-backed modes (compile database present) are the next unit."
     },
     "config_key:legacy:engines.lint.clang_tidy_checks": {
       "status": "not_started",
@@ -2765,16 +2791,29 @@
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.lint.clazy": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+      ],
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This key: 'off' drops the tool's Unavailable target (clang_tidy='off' case: 6 instead of 7 warnings), 'required' makes it ERROR (clazy='required' case), default auto WARN.",
+      "difference_reason": "Open (reporting): a required-tool ERROR is NOT_RUN evidence in frozen; the projection derives NOT_RUN only from a non-succeeded task, so Rust reports MEASURED for that ERROR (asserted). The tool-backed modes (compile database present) are the next unit."
     },
     "config_key:legacy:engines.lint.clazy_checks": {
       "status": "not_started",
@@ -3999,16 +4038,29 @@
       "difference_reason": "Open: descriptor-level parity needs every check, command and finding-site row of this descriptor closed first; see those rows."
     },
     "descriptor:lint": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen descriptor row (src/ici/core/pipeline.py:94).",
-      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+      ],
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only).",
+      "difference_reason": "Open: (1) with a compilation database `ici lint` still uses the exact Rust path while frozen `ici lint` has no analysis context and always takes the heuristic fallback (compile-DB lint modes are the next unit); (2) a required-tool ERROR keeps MEASURED evidence (reporting); (3) execution/replay/budget error targets (C++SyntaxExecutionError, ContextMissing, ReplayError, BudgetError) and Qt codegen targets are not captured; (4) mixed Python+C++ lint summaries are not compared."
     },
     "descriptor:python_compat": {
       "status": "not_started",
@@ -4187,28 +4239,50 @@
       "difference_reason": "Open: sanitizer provider parsing not compared with frozen."
     },
     "finding_site:src/ici/analysis/_clang_tidy.py:57:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_clang_tidy.py:57); enclosing frozen function _target.",
-      "difference_reason": "Open: clang-tidy invocation/result projection not compared with frozen beyond the function-size boundary probe; needs a frozen run with clang-tidy-21."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+      ],
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: ClangTidyUnavailable at '.' — WARN by default, absent when clang_tidy='off'; message 'clang-tidy requires an approved capability inventory and exact compilation context' under `ici lint` and 'clang-tidy is unavailable or incompletely probed' under verify without the tool.",
+      "difference_reason": "Open: 'clang-tidy requires an exact compilation database' (tool present, no database, verify) is implemented but not captured; required clang-tidy ERROR keeps MEASURED evidence (reporting)."
     },
     "finding_site:src/ici/analysis/_clazy.py:63:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_clazy.py:63); enclosing frozen function _target.",
-      "difference_reason": "Open: Clazy invocation/result projection not compared with frozen; needs a frozen run with clazy-standalone."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+      ],
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: ClazyUnavailable at '.', WARN by default and ERROR (summary = the message, exit 1) with clazy='required'.",
+      "difference_reason": "Open (reporting): a required-tool ERROR is NOT_RUN evidence in frozen; the projection derives NOT_RUN only from a non-succeeded task, so Rust reports MEASURED for that ERROR (asserted). The tool-present/no-database message is not captured."
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:510:11": {
       "status": "verified",
@@ -4325,50 +4399,64 @@
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:462:20": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
         "crates/ici-providers/src/diagnostics/cpp.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
         ],
         "negative": [
           "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
         ],
         "failure": [
-          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
         ]
       },
       "evidence": [
         "Actual frozen vs Rust `ici lint` on a GCC fixture with a throwing destructor: Rust failed the whole check ('unrecognized C++ diagnostic output: ... In destructor') where frozen parsed it. cargo test -p ici-providers --test diagnostics (19 passed) + strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-gcc-context.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
       ],
-      "comparison": "Frozen _parse_text grammar: optional column, 'At global scope'/'In function|member function|constructor|destructor|lambda function|instantiation of' headers and 'required from|by' lines are ancillary; anything else fails closed. Rust now accepts the same ancillary lines and column-less diagnostics, and still fails closed on other lines. After the fix the actual GCC fixture parses with the same files/lines/exit code.",
-      "difference_reason": "Open legacy lint projection: frozen targets are named Compiler:<rule> or C++Syntax with kind-prefixed messages ('warning: ...'), warnings stay WARN, notes are separate WARN targets, clean files get C++Syntax:fallback PASS, and ClangTidyUnavailable/ClazyUnavailable WARN targets are emitted; Rust legacy lint reports the native rule id, unprefixed message, FAIL for warnings and omits those targets."
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: the parsed text diagnostic target (name, status, kind-prefixed message, line, column).",
+      "difference_reason": "Open: JSON (-fdiagnostics-format=json) diagnostics and fix-it attachment are not part of the fallback oracle."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:463:31": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
         "crates/ici-providers/src/diagnostics/cpp.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
         ],
         "negative": [
           "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
         ],
         "failure": [
-          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar"
+          "crates/ici-providers/tests/diagnostics.rs::gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_text_grammar",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
         ]
       },
       "evidence": [
         "Actual frozen vs Rust `ici lint` on a GCC fixture with a throwing destructor: Rust failed the whole check ('unrecognized C++ diagnostic output: ... In destructor') where frozen parsed it. cargo test -p ici-providers --test diagnostics (19 passed) + strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-gcc-context.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
       ],
-      "comparison": "Frozen _parse_text grammar: optional column, 'At global scope'/'In function|member function|constructor|destructor|lambda function|instantiation of' headers and 'required from|by' lines are ancillary; anything else fails closed. Rust now accepts the same ancillary lines and column-less diagnostics, and still fails closed on other lines. After the fix the actual GCC fixture parses with the same files/lines/exit code.",
-      "difference_reason": "Open legacy lint projection: frozen targets are named Compiler:<rule> or C++Syntax with kind-prefixed messages ('warning: ...'), warnings stay WARN, notes are separate WARN targets, clean files get C++Syntax:fallback PASS, and ClangTidyUnavailable/ClazyUnavailable WARN targets are emitted; Rust legacy lint reports the native rule id, unprefixed message, FAIL for warnings and omits those targets."
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: the Compiler:<rule> / C++Syntax target name.",
+      "difference_reason": "Open: JSON diagnostics are not part of the fallback oracle."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:704:8": {
       "status": "not_started",
@@ -4539,16 +4627,25 @@
       "difference_reason": "Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:159:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
         "negative": [],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:159); enclosing frozen function _evaluate_process.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+      ],
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: the clean-source `C++Syntax:fallback` PASS target.",
+      "difference_reason": "Open: the exact-path suffix (C++Syntax:<configuration sha256[:12]>) needs a compilation database (next unit)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:169:8": {
       "status": "not_started",
