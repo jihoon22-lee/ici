@@ -487,6 +487,12 @@ fn prepare_resolved_omitting(
         if check.check.id == "cpp.binary-compat" && cpp.planned_output(&check.task_id) {
             check.check.needs.clear();
         }
+        // Standalone legacy lint never consumes compile inputs (see `legacy::select`).
+        if cpp.legacy_standalone
+            && matches!(check.check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
+        {
+            check.check.needs.clear();
+        }
     }
     let mut context_preparations = vec![];
     if crate::legacy::is_legacy(invocation) && plan.profile != Profile::Fast {
@@ -504,13 +510,9 @@ fn prepare_resolved_omitting(
             if selected.iter().any(|id| {
                 matches!(
                     id.as_str(),
-                    "cpp.compile"
-                        | "cpp.diagnostics"
-                        | "cpp.tidy"
-                        | "cpp.artifact"
-                        | "cpp.binary-compat"
-                        | "python.binary-compat"
-                )
+                    "cpp.compile" | "cpp.artifact" | "cpp.binary-compat" | "python.binary-compat"
+                ) || (!cpp.legacy_standalone
+                    && matches!(id.as_str(), "cpp.diagnostics" | "cpp.tidy"))
             }) {
                 variants.insert(primary);
             }

@@ -4,6 +4,7 @@
   "lint": {
    "command": "lint",
    "config": "",
+   "files": {},
    "fixture": "lint-fixture",
    "frozen": {
     "evidence": "ESTIMATED",
@@ -81,6 +82,7 @@
   "lint-clazy-required": {
    "command": "lint",
    "config": "[engines.lint]\nclazy='required'\n",
+   "files": {},
    "fixture": "lint-warnings",
    "frozen": {
     "evidence": "NOT_RUN",
@@ -123,9 +125,172 @@
     ]
    }
   },
+  "lint-explicit-database": {
+   "command": "lint",
+   "config": "compile_database='build/compile_commands.json'\n",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\":\"{root}\",\"file\":\"src/clean.cpp\",\"arguments\":[\"g++\",\"-std=c++17\",\"-Iinclude\",\"-c\",\"src/clean.cpp\"]}]"
+   },
+   "fixture": "lint-fixture",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "1 Errors, 7 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/broken.cpp",
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "start_column": 12,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "C++Syntax"
+     },
+     {
+      "file_path": "src/broken.cpp",
+      "message": "warning: unused variable 'unused_value'",
+      "start_column": 9,
+      "start_line": 4,
+      "status": "WARN",
+      "target_name": "Compiler:-Wunused-variable"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "start_column": 31,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Compiler:-Wsign-compare"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "start_column": 30,
+      "start_line": 13,
+      "status": "WARN",
+      "target_name": "Compiler:-Wdeprecated-declarations"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "note: declared here",
+      "start_column": 33,
+      "start_line": 11,
+      "status": "WARN",
+      "target_name": "C++Syntax"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   }
+  },
+  "lint-make": {
+   "command": "lint",
+   "config": "[build.make]\nenabled=true\nbuild_argv=['make','all']\n",
+   "files": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/*.cpp -o build/ici-make/app\n"
+   },
+   "fixture": "lint-fixture",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "1 Errors, 7 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/broken.cpp",
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "start_column": 12,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "C++Syntax"
+     },
+     {
+      "file_path": "src/broken.cpp",
+      "message": "warning: unused variable 'unused_value'",
+      "start_column": 9,
+      "start_line": 4,
+      "status": "WARN",
+      "target_name": "Compiler:-Wunused-variable"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "start_column": 31,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Compiler:-Wsign-compare"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "start_column": 30,
+      "start_line": 13,
+      "status": "WARN",
+      "target_name": "Compiler:-Wdeprecated-declarations"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "note: declared here",
+      "start_column": 33,
+      "start_line": 11,
+      "status": "WARN",
+      "target_name": "C++Syntax"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   }
+  },
   "lint-tidy-off": {
    "command": "lint",
    "config": "[engines.lint]\nclang_tidy='off'\n",
+   "files": {},
    "fixture": "lint-fixture",
    "frozen": {
     "evidence": "ESTIMATED",
@@ -195,6 +360,7 @@
   "lint-warnings-only": {
    "command": "lint",
    "config": "",
+   "files": {},
    "fixture": "lint-warnings",
    "frozen": {
     "evidence": "ESTIMATED",
@@ -237,9 +403,91 @@
     ]
    }
   },
+  "lint-with-database": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\":\"{root}\",\"file\":\"src/clean.cpp\",\"arguments\":[\"g++\",\"-std=c++17\",\"-Iinclude\",\"-c\",\"src/clean.cpp\"]}]"
+   },
+   "fixture": "lint-fixture",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "1 Errors, 7 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/broken.cpp",
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "start_column": 12,
+      "start_line": 5,
+      "status": "FAIL",
+      "target_name": "C++Syntax"
+     },
+     {
+      "file_path": "src/broken.cpp",
+      "message": "warning: unused variable 'unused_value'",
+      "start_column": 9,
+      "start_line": 4,
+      "status": "WARN",
+      "target_name": "Compiler:-Wunused-variable"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "start_column": 31,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Compiler:-Wsign-compare"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "start_column": 30,
+      "start_line": 13,
+      "status": "WARN",
+      "target_name": "Compiler:-Wdeprecated-declarations"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "note: declared here",
+      "start_column": 33,
+      "start_line": 11,
+      "status": "WARN",
+      "target_name": "C++Syntax"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   }
+  },
   "verify": {
    "command": "verify",
    "config": "",
+   "files": {},
    "fixture": "lint-fixture",
    "frozen": {
     "evidence": "ESTIMATED",

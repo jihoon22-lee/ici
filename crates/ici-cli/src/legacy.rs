@@ -138,6 +138,9 @@ pub fn select(
         let needs: BTreeSet<_> = checks
             .iter()
             .filter(|check| selected.contains(&check.id))
+            // Frozen `ici lint` has no analysis context: its C++ syntax check never consumes
+            // recorded compilation inputs, so it pulls in no compile/build prerequisite.
+            .filter(|check| !(family == "lint" && check.language == "cpp"))
             .flat_map(|check| check.needs.iter().cloned())
             .collect();
         let old = selected.len();
