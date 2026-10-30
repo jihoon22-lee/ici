@@ -211,6 +211,68 @@ pub fn command(
             ici_reporting::legacy_no_sources(&mut value, status, evidence, &summary, target)
                 .map_err(error)?;
             replaced = true;
+        } else if family == "lint" && legacy_schema && ruff_unavailable(&value) {
+            // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
+            // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under
+            // `ruff_required`, a tool error (NOT_RUN).
+            let setting = |key: &str| {
+                prepared.project.components.iter().find_map(|component| {
+                    component
+                        .settings
+                        .pointer(&format!("/engines/lint/{key}"))
+                        .cloned()
+                })
+            };
+            let mut targets = vec![];
+            let mut parsed = 0;
+            for component in &prepared.project.components {
+                parsed += component
+                    .files
+                    .iter()
+                    .filter(|path| path.ends_with(".py"))
+                    .count();
+                targets.extend(crate::legacy::python_syntax_targets(
+                    &root,
+                    &component.files,
+                ));
+            }
+            let fail = targets.len();
+            let mut targets: Vec<_> = targets
+                .into_iter()
+                .map(|target| serde_json::to_value(target).map_err(error))
+                .collect::<Result<_>>()?;
+            targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
+                "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
+                "snippet":"","metrics":{"files_parsed":parsed}}));
+            if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
+                ici_reporting::legacy_verdict(
+                    &mut value,
+                    "ERROR",
+                    "NOT_RUN",
+                    "Ruff is required but was not found",
+                    targets,
+                )
+                .map_err(error)?;
+            } else {
+                let mode = setting("mode")
+                    .and_then(|value| value.as_str().map(str::to_owned))
+                    .unwrap_or_else(|| "pass_warn_fail".into());
+                let status = match mode.as_str() {
+                    "pass_warn" => "WARN",
+                    "pass_fail" => "FAIL",
+                    _ if fail > 0 => "FAIL",
+                    _ => "WARN",
+                };
+                let summary = if fail == 0 {
+                    "Ruff is unavailable; AST syntax fallback is ESTIMATED".to_owned()
+                } else {
+                    format!("{fail} Errors, 1 Warnings Found")
+                };
+                ici_reporting::legacy_verdict(&mut value, status, "ESTIMATED", &summary, targets)
+                    .map_err(error)?;
+                replaced = true;
+            }
         } else if family == "type" && legacy_schema && mypy_unavailable(&value) {
             // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
             // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
@@ -584,6 +646,25 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
         }
     }
     Some(languages)
+}
+
+/// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
+/// refused at planning (a mixed C++ lint view keeps its native shape).
+fn ruff_unavailable(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            !checks.is_empty()
+                && checks.iter().all(|check| {
+                    matches!(
+                        check["check_id"].as_str(),
+                        Some("python.lint" | "python.format")
+                    ) && check["state"] == "BLOCKED"
+                        && check["summary"]
+                            .as_str()
+                            .is_some_and(|summary| summary.starts_with("ruff: "))
+                })
+        })
 }
 
 /// The historical mypy could not be resolved: the type check was refused at planning.

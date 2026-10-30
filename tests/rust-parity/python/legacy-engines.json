@@ -1956,6 +1956,480 @@
  "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
  "python": "Python 3.10.21",
  "tool_cases": {
+  "lint/clean": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "x = 1\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "0 Violations Found",
+    "targets": []
+   },
+   "tools": true
+  },
+  "lint/format-only": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "x=1\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:24b8d58160c1f819f6780c1a1816cce3f2146b741e9371ba0908f528204eedf8",
+      "message": "File would be reformatted",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Format:Style"
+     }
+    ],
+    "status": "WARN",
+    "summary": "0 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "File would be reformatted",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Format:Style"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "lint/mode-pass-warn": {
+   "command": "lint",
+   "config": "[engines.lint]\nmode='pass_warn'\n",
+   "files": {
+    "src/a.py": "import os\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:effeb65cc3e073e47b3f0d11fedea9c2a2e2405e35f1af5bcd923526e76f9e6c",
+      "message": "`os` imported but unused",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:F401"
+     }
+    ],
+    "status": "WARN",
+    "summary": "1 Errors, 0 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "`os` imported but unused",
+      "start_column": 8,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:F401"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "lint/ruff-excluded-explicit-file": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "ruff.toml": "extend-exclude = ['src/b.py']\n",
+    "src/a.py": "x = 1\n",
+    "src/b.py": "import os\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:321f57459f7f2e28286a5a2f4373f7821658cb86351ada128862e93ddbee95e1",
+      "message": "`os` imported but unused",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:F401"
+     }
+    ],
+    "status": "FAIL",
+    "summary": "1 Errors, 0 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "`os` imported but unused",
+      "start_column": 8,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:F401"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "lint/ruff-missing": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "x = 1\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:8c318d842eb228f61fde8f340466390bc89bff7ce84c4755a5ad2d68db70ddb2",
+      "message": "Ruff was unavailable; parsed 1 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "WARN",
+    "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "Ruff was unavailable; parsed 1 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ASTSyntaxFallback"
+     }
+    ]
+   },
+   "tools": false
+  },
+  "lint/ruff-missing-required": {
+   "command": "lint",
+   "config": "[engines.lint]\nruff_required=true\n",
+   "files": {
+    "src/a.py": "x = 1\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:8c318d842eb228f61fde8f340466390bc89bff7ce84c4755a5ad2d68db70ddb2",
+      "message": "Ruff was unavailable; parsed 1 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Ruff is required but was not found",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "Ruff was unavailable; parsed 1 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ASTSyntaxFallback"
+     }
+    ]
+   },
+   "tools": false
+  },
+  "lint/ruff-missing-syntax": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "x = 1\n",
+    "src/b.py": "def f(:\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:8c318d842eb228f61fde8f340466390bc89bff7ce84c4755a5ad2d68db70ddb2",
+      "message": "Ruff was unavailable; parsed 2 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:f85399d03b499f28dde1c1d44afce8d8d11b780270ed10f6a6b0c27d3100b610",
+      "message": "SyntaxError: invalid syntax",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "FAIL",
+    "summary": "1 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "SyntaxError: invalid syntax",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "SyntaxError"
+     },
+     {
+      "file_path": ".",
+      "message": "Ruff was unavailable; parsed 2 Python file(s) for syntax errors only. Style and lint rules were not checked.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ASTSyntaxFallback"
+     }
+    ]
+   },
+   "tools": false
+  },
+  "lint/stderr-warning": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "ruff.toml": "select = ['F']\n",
+    "src/a.py": "x = 1\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "WARN",
+    "summary": "warning: The top-level linter settings are deprecated in favour of their counterparts in the `lint` section. Please update the following options in `ruff.toml`:\n  - 'select' -> 'lint.select'; warning: The top-level linter settings are deprecated in favour of their counterparts in the `lint` section. Please update the following options in `ruff.toml`:\n  - 'select' -> 'lint.select'",
+    "targets": []
+   },
+   "tools": true
+  },
+  "lint/stderr-warning-violation": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "ruff.toml": "select = ['F']\n",
+    "src/a.py": "import os\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:effeb65cc3e073e47b3f0d11fedea9c2a2e2405e35f1af5bcd923526e76f9e6c",
+      "message": "`os` imported but unused",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:F401"
+     }
+    ],
+    "status": "FAIL",
+    "summary": "1 Errors, 2 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "`os` imported but unused",
+      "start_column": 8,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:F401"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "lint/syntax": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:54b4dc47cce117ed9a03d4fafd8d071b30996f6cc611ead16526c7f8649e4ce5",
+      "message": "Expected a parameter or the end of the parameter list",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:invalid-syntax"
+     },
+     {
+      "fingerprint": "sha256:8b75738e4485d04e7bcf76338948f4a16daec9dbb1f577423e1005eb1a22826d",
+      "message": "Expected `)`, found newline",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:invalid-syntax"
+     },
+     {
+      "fingerprint": "sha256:dd38461eca625ec4b60f7300bb6894ec2a12402e27f732bfc980af6583e4be72",
+      "message": "SyntaxError: invalid syntax",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Ruff format check failed with exit code 2",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Expected a parameter or the end of the parameter list",
+      "start_column": 7,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:invalid-syntax"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "Expected `)`, found newline",
+      "start_column": 8,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:invalid-syntax"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "SyntaxError: invalid syntax",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "SyntaxError"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "lint/two-files": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "x = 1\n",
+    "src/pkg/b.py": "import os\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:bea298c18251be5925ffe5ce4e9c0a118007e3f91c362eaef65b9bf6f058c829",
+      "message": "`os` imported but unused",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:F401"
+     }
+    ],
+    "status": "FAIL",
+    "summary": "1 Errors, 0 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/pkg/b.py",
+      "message": "`os` imported but unused",
+      "start_column": 8,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:F401"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "lint/unclosed": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "x = 1\ny = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd38461eca625ec4b60f7300bb6894ec2a12402e27f732bfc980af6583e4be72",
+      "message": "SyntaxError: '(' was never closed",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:ee57be3be339265e7ba2fd78b8015f13fe632b297804b6d9245d10dcb3f42351",
+      "message": "unexpected EOF while parsing",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:invalid-syntax"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Ruff format check failed with exit code 2",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "unexpected EOF while parsing",
+      "start_column": 1,
+      "start_line": 3,
+      "status": "FAIL",
+      "target_name": "Ruff:invalid-syntax"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "SyntaxError: '(' was never closed",
+      "start_column": null,
+      "start_line": 2,
+      "status": "FAIL",
+      "target_name": "SyntaxError"
+     }
+    ]
+   },
+   "tools": true
+  },
+  "lint/violations": {
+   "command": "lint",
+   "config": "",
+   "files": {
+    "src/a.py": "import sys, os\n\nprint(sys)\nx=1\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:24b8d58160c1f819f6780c1a1816cce3f2146b741e9371ba0908f528204eedf8",
+      "message": "File would be reformatted",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Format:Style"
+     },
+     {
+      "fingerprint": "sha256:4fbcfdb1140fdbe6ff0cfebbcbaff5fa8981f6e8866a229f2aaa24e3f7b669ec",
+      "message": "Import block is un-sorted or un-formatted",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:I001"
+     },
+     {
+      "fingerprint": "sha256:effeb65cc3e073e47b3f0d11fedea9c2a2e2405e35f1af5bcd923526e76f9e6c",
+      "message": "`os` imported but unused",
+      "rule_id": "ici.legacy.lint.target",
+      "tool_rule_id": "Ruff:F401"
+     }
+    ],
+    "status": "FAIL",
+    "summary": "2 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Import block is un-sorted or un-formatted",
+      "start_column": 1,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:I001"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "`os` imported but unused",
+      "start_column": 13,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:F401"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "File would be reformatted",
+      "start_column": null,
+      "start_line": 4,
+      "status": "WARN",
+      "target_name": "Format:Style"
+     }
+    ]
+   },
+   "tools": true
+  },
   "type/annotation-after-clean": {
    "command": "type",
    "config": "[engines.type]\nwarn_on_missing_annotation=true\n",

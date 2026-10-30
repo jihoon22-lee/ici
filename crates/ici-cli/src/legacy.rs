@@ -296,6 +296,66 @@ pub fn annotation_fallback(
     }
 }
 
+/// Frozen `LintEngine._check_python_syntax` beside Ruff: every selected Python file that does not
+/// parse is one `SyntaxError` FAIL target after the Ruff check and format targets. It belongs to
+/// the historical lint view only (the modern checks report syntax through their own findings).
+pub fn lint_syntax(
+    prepared: &crate::planning::PreparedPlan,
+    outputs: &mut BTreeMap<String, ici_domain::AnalysisOutput>,
+) {
+    if !prepared.legacy_projection {
+        return;
+    }
+    for component in &prepared.project.components {
+        let ran = |id: &str| {
+            prepared
+                .plan
+                .checks
+                .iter()
+                .find(|check| check.check.id == id && check.component_id == component.id)
+                .map(|check| check.task_id.clone())
+                .filter(|task| {
+                    outputs
+                        .get(task)
+                        .is_some_and(|output| output.extra.get("legacy_ruff").is_some())
+                })
+        };
+        let Some(task) = ran("python.format").or_else(|| ran("python.lint")) else {
+            continue;
+        };
+        let targets = python_syntax_targets(&prepared.project.root, &component.files);
+        let output = outputs.get_mut(&task).expect("checked output");
+        if !targets.is_empty() && output.status != "ERROR" {
+            output.status = "FAIL".into();
+        }
+        output.targets.extend(targets);
+    }
+}
+
+/// `SyntaxError` targets for the selected `.py` files, in their sorted order.
+pub fn python_syntax_targets(
+    root: &std::path::Path,
+    files: &[String],
+) -> Vec<ici_domain::InspectionTarget> {
+    files
+        .iter()
+        .filter(|path| path.ends_with(".py"))
+        .filter_map(|path| {
+            let bytes = std::fs::read(root.join(path)).ok()?;
+            let input = ici_domain::SourceInput {
+                path: path.clone(),
+                bytes,
+            };
+            let (line, message) = ici_analysis::lint_syntax_error(&input)?;
+            let mut target = ici_domain::InspectionTarget::at(path, line);
+            target.target_name = "SyntaxError".into();
+            target.status = "FAIL".into();
+            target.message = message;
+            Some(target)
+        })
+        .collect()
+}
+
 /// Binary ABI checks inspect published artifact bytes independently of source language.
 pub fn python_binary_compat_check() -> CheckDefinition {
     let mut definition = ici_domain::builtin_catalog()

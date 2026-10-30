@@ -136,6 +136,27 @@ fn syntax_detail(input: &SourceInput) -> (String, Option<(u32, u32)>) {
     (error.error.to_string(), location)
 }
 
+/// Frozen `LintEngine._check_python_syntax` for one source: the `SyntaxError` line and message
+/// (`SyntaxError: <pinned parser wording>`), or None when it parses. Frozen read strict UTF-8 and
+/// did not survive undecodable or NUL text, so those inputs yield no syntax target here.
+pub fn lint_syntax_error(input: &SourceInput) -> Option<(u32, String)> {
+    if strict_fault(&input.bytes).is_some() {
+        return None;
+    }
+    let source = SourceDocument::decode(input).ok()?;
+    let parsed = parse_unchecked(
+        &source.text,
+        ParseOptions::from(Mode::Module).with_target_version(PythonVersion::PY314),
+    );
+    let first = parsed.errors().first()?;
+    let (message, location) = syntax_detail(input);
+    let line = location.map_or_else(
+        || source.location(first.location.start().to_usize()).0,
+        |(line, _)| line,
+    );
+    Some((line, format!("SyntaxError: {message}")))
+}
+
 fn target(
     path: &str,
     line: u32,

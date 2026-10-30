@@ -131,6 +131,53 @@ TOOL_CASES = {
         "[engines.type]\nmypy_required=true\n",
         False,
     ),
+    "lint/clean": ("lint", {"src/a.py": "x = 1\n"}, "", True),
+    "lint/violations": ("lint", {"src/a.py": "import sys, os\n\nprint(sys)\nx=1\n"}, "", True),
+    "lint/format-only": ("lint", {"src/a.py": "x=1\n"}, "", True),
+    "lint/syntax": ("lint", {"src/a.py": SYNTAX}, "", True),
+    "lint/unclosed": ("lint", {"src/a.py": "x = 1\ny = (1,\n"}, "", True),
+    "lint/two-files": ("lint", {"src/a.py": "x = 1\n", "src/pkg/b.py": "import os\n"}, "", True),
+    "lint/stderr-warning": (
+        "lint",
+        {"src/a.py": "x = 1\n", "ruff.toml": "select = ['F']\n"},
+        "",
+        True,
+    ),
+    "lint/stderr-warning-violation": (
+        "lint",
+        {"src/a.py": "import os\n", "ruff.toml": "select = ['F']\n"},
+        "",
+        True,
+    ),
+    "lint/ruff-excluded-explicit-file": (
+        "lint",
+        {
+            "src/a.py": "x = 1\n",
+            "src/b.py": "import os\n",
+            "ruff.toml": "extend-exclude = ['src/b.py']\n",
+        },
+        "",
+        True,
+    ),
+    "lint/mode-pass-warn": (
+        "lint",
+        {"src/a.py": "import os\n"},
+        "[engines.lint]\nmode='pass_warn'\n",
+        True,
+    ),
+    "lint/ruff-missing": ("lint", {"src/a.py": "x = 1\n"}, "", False),
+    "lint/ruff-missing-syntax": (
+        "lint",
+        {"src/a.py": "x = 1\n", "src/b.py": "def f(:\n"},
+        "",
+        False,
+    ),
+    "lint/ruff-missing-required": (
+        "lint",
+        {"src/a.py": "x = 1\n"},
+        "[engines.lint]\nruff_required=true\n",
+        False,
+    ),
 }
 
 

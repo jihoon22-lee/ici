@@ -155,7 +155,7 @@ fn legacy_python_tool_engines_match_frozen_mypy_and_ruff_views() {
     let with_tools = format!("{}:/usr/bin:/bin", tools.path().display());
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["tool_cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 14);
+    assert_eq!(cases.len(), 27);
     for (name, case) in cases {
         let path = if case["tools"] == true {
             with_tools.as_str()

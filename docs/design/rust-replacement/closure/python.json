@@ -1593,64 +1593,144 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/lint.py:389:16": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/legacy_ruff.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs",
+    "crates/ici-analysis/src/legacy.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target ASTSyntaxFallback: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
-   "difference_reason": null
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases and 14 type cases unchanged plus 13 legacy `python -m ici lint --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture3.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 27 tool cases identical after the reviewed corrections), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint --test report_commands --test input_scope --test wire_schemas --test legacy_gcov_cli --test legacy_test_parity --test legacy_python_sanitize --test legacy_no_tests and cargo test -p ici-providers -p ici-reporting -p ici-analysis with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-analysis -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-lint-gates.log",
+    "Frozen vs native exploration of the same projects: /tmp/ici-rust-replacement-20261028/w-python2-lint-explore.log"
+   ],
+   "comparison": "Legacy `ici lint --report` without a resolvable Ruff reports frozen's `ASTSyntaxFallback` PASS inventory target at `.` (`parsed N Python file(s)`, metrics files_parsed) after any SyntaxError targets, the tool warning `Ruff is unavailable; AST syntax fallback is ESTIMATED` (WARN/ESTIMATED exit 0, or FAIL with a syntax error) and, under `ruff_required`, the ERROR `Ruff is required but was not found` (lint/ruff-missing, ruff-missing-syntax, ruff-missing-required). The engine summary is frozen's (`0 Violations Found`, `N Errors, M Warnings Found` with Ruff stderr warnings counted per stream, the joined warnings when nothing failed, or the tool errors), as are status under the mode policy, evidence (ESTIMATED with Ruff warnings, NOT_RUN on tool errors), fingerprints and exit codes. The modern `analyze` view keeps its own Ruff argv and grammar (python_modern_parity unchanged; modern plans serialize no legacy option).",
+   "difference_reason": "Intended: (1) legacy Ruff argv is frozen's (no --force-exclude, no --quiet, JSON formatter output) plus `--no-cache --`, so no `.ruff_cache` is written into the project (output unchanged); (2) an incomplete legacy run (Ruff format exit 2 on a syntax error, ruff_required without Ruff) exits 3 where frozen exited 1 (accepted legacy exit policy, `corrected()` in the replay); (3) root ruling: the text after `SyntaxError: ` is the pinned native parser's wording (frozen embedded the running CPython's message, which differs between interpreters); name, status, file, line (CPython's innermost unclosed bracket rule kept), summary and fingerprint stay frozen; (4) a non-UTF-8 or NUL source gets no SyntaxError target (frozen's strict read raised an uncaught exception and crashed the engine)."
   },
   "finding_site:src/ici/engines/lint.py:528:16": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/legacy_ruff.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs",
+    "crates/ici-analysis/src/legacy.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target Ruff:<code>: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
-   "difference_reason": null
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases and 14 type cases unchanged plus 13 legacy `python -m ici lint --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture3.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 27 tool cases identical after the reviewed corrections), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint --test report_commands --test input_scope --test wire_schemas --test legacy_gcov_cli --test legacy_test_parity --test legacy_python_sanitize --test legacy_no_tests and cargo test -p ici-providers -p ici-reporting -p ici-analysis with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-analysis -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-lint-gates.log",
+    "Frozen vs native exploration of the same projects: /tmp/ici-rust-replacement-20261028/w-python2-lint-explore.log"
+   ],
+   "comparison": "Legacy `ici lint --report` reads `ruff check` JSON like frozen `_evaluate_ruff_check`: `Ruff:<code>` FAIL targets with Ruff's message, path, line, column and inclusive end, including `Ruff:invalid-syntax`, explicit files that Ruff config excludes, and the tool-error contract (exit codes, stderr, empty/invalid JSON) (lint/violations, two-files, syntax, unclosed, ruff-excluded-explicit-file, mode-pass-warn, stderr-warning-violation). The engine summary is frozen's (`0 Violations Found`, `N Errors, M Warnings Found` with Ruff stderr warnings counted per stream, the joined warnings when nothing failed, or the tool errors), as are status under the mode policy, evidence (ESTIMATED with Ruff warnings, NOT_RUN on tool errors), fingerprints and exit codes. The modern `analyze` view keeps its own Ruff argv and grammar (python_modern_parity unchanged; modern plans serialize no legacy option).",
+   "difference_reason": "Intended: (1) legacy Ruff argv is frozen's (no --force-exclude, no --quiet, JSON formatter output) plus `--no-cache --`, so no `.ruff_cache` is written into the project (output unchanged); (2) an incomplete legacy run (Ruff format exit 2 on a syntax error, ruff_required without Ruff) exits 3 where frozen exited 1 (accepted legacy exit policy, `corrected()` in the replay); (3) root ruling: the text after `SyntaxError: ` is the pinned native parser's wording (frozen embedded the running CPython's message, which differs between interpreters); name, status, file, line (CPython's innermost unclosed bracket rule kept), summary and fingerprint stay frozen; (4) a non-UTF-8 or NUL source gets no SyntaxError target (frozen's strict read raised an uncaught exception and crashed the engine)."
   },
   "finding_site:src/ici/engines/lint.py:651:16": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-providers/src/diagnostics/legacy_ruff.rs"
+   ],
    "fixtures": {
-    "positive": [],
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ],
     "negative": [],
     "failure": []
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target Format:Style: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
-   "difference_reason": null
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases and 14 type cases unchanged plus 13 legacy `python -m ici lint --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture3.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 27 tool cases identical after the reviewed corrections), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint --test report_commands --test input_scope --test wire_schemas --test legacy_gcov_cli --test legacy_test_parity --test legacy_python_sanitize --test legacy_no_tests and cargo test -p ici-providers -p ici-reporting -p ici-analysis with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-analysis -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-lint-gates.log",
+    "Frozen vs native exploration of the same projects: /tmp/ici-rust-replacement-20261028/w-python2-lint-explore.log"
+   ],
+   "comparison": "Frozen `_evaluate_ruff_format` text path (`Format:Style` WARN \"File requires reformatting (PEP 8 style mismatch)\") is reached only when `ruff format --help` lacks `--output-format` (Ruff older than the JSON formatter). The legacy view always plans the JSON formatter and proves the JSON path (row 715) with the pinned Ruff 0.16.4.",
+   "difference_reason": "Native does not probe `ruff format --help`; with a Ruff whose formatter has no JSON output the legacy view reports the format task as a tool error (unsupported option, exit 2) instead of parsing the text dialect. No frozen capture of that branch exists because the pinned Ruff supports JSON; capturing it needs an older Ruff that is not in the environment."
   },
   "finding_site:src/ici/engines/lint.py:715:16": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/legacy_ruff.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs",
+    "crates/ici-analysis/src/legacy.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target Format:Style: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
-   "difference_reason": null
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases and 14 type cases unchanged plus 13 legacy `python -m ici lint --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture3.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 27 tool cases identical after the reviewed corrections), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint --test report_commands --test input_scope --test wire_schemas --test legacy_gcov_cli --test legacy_test_parity --test legacy_python_sanitize --test legacy_no_tests and cargo test -p ici-providers -p ici-reporting -p ici-analysis with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-analysis -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-lint-gates.log",
+    "Frozen vs native exploration of the same projects: /tmp/ici-rust-replacement-20261028/w-python2-lint-explore.log"
+   ],
+   "comparison": "Legacy `ici lint --report` runs `ruff format --check --output-format=json` and reads it like frozen `_parse_ruff_format_diagnostics`: one `Format:Style` WARN target per file at Ruff's row without a column and with Ruff's message (lint/format-only WARN exit 0, lint/violations), exit 2 as `Ruff format check failed with exit code 2` (lint/syntax, lint/unclosed). The engine summary is frozen's (`0 Violations Found`, `N Errors, M Warnings Found` with Ruff stderr warnings counted per stream, the joined warnings when nothing failed, or the tool errors), as are status under the mode policy, evidence (ESTIMATED with Ruff warnings, NOT_RUN on tool errors), fingerprints and exit codes. The modern `analyze` view keeps its own Ruff argv and grammar (python_modern_parity unchanged; modern plans serialize no legacy option).",
+   "difference_reason": "Intended: (1) legacy Ruff argv is frozen's (no --force-exclude, no --quiet, JSON formatter output) plus `--no-cache --`, so no `.ruff_cache` is written into the project (output unchanged); (2) an incomplete legacy run (Ruff format exit 2 on a syntax error, ruff_required without Ruff) exits 3 where frozen exited 1 (accepted legacy exit policy, `corrected()` in the replay); (3) root ruling: the text after `SyntaxError: ` is the pinned native parser's wording (frozen embedded the running CPython's message, which differs between interpreters); name, status, file, line (CPython's innermost unclosed bracket rule kept), summary and fingerprint stay frozen; (4) a non-UTF-8 or NUL source gets no SyntaxError target (frozen's strict read raised an uncaught exception and crashed the engine)."
   },
   "finding_site:src/ici/engines/lint.py:741:20": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/legacy_ruff.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/legacy.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs",
+    "crates/ici-analysis/src/legacy.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target SyntaxError: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
-   "difference_reason": null
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory): 61 scaffolding cases and 14 type cases unchanged plus 13 legacy `python -m ici lint --report` tool cases (/tmp/ici-rust-replacement-20261028/w-python2-capture3.log); cargo test -p ici-cli --test legacy_python_engines --locked -j2 -- --include-ignored --test-threads=2 (both tests passed, 27 tool cases identical after the reviewed corrections), cargo test -p ici-cli --test legacy_commands --test plan_commands --test python_modern_parity --test legacy_exit_policy --test legacy_mode_scope --test execution --test legacy_lint --test report_commands --test input_scope --test wire_schemas --test legacy_gcov_cli --test legacy_test_parity --test legacy_python_sanitize --test legacy_no_tests and cargo test -p ici-providers -p ici-reporting -p ici-analysis with --include-ignored all passed, strict clippy -p ici-providers -p ici-reporting -p ici-analysis -p ici-cli passed; /tmp/ici-rust-replacement-20261028/w-python2-lint-gates.log",
+    "Frozen vs native exploration of the same projects: /tmp/ici-rust-replacement-20261028/w-python2-lint-explore.log"
+   ],
+   "comparison": "Legacy `ici lint --report` appends frozen `_check_python_syntax` targets after the Ruff targets: `SyntaxError` FAIL at CPython's line (innermost unclosed bracket for an unclosed input) with message `SyntaxError: <parser wording>`, with Ruff present (lint/syntax, lint/unclosed) and as the only analysis without Ruff (lint/ruff-missing-syntax). The engine summary is frozen's (`0 Violations Found`, `N Errors, M Warnings Found` with Ruff stderr warnings counted per stream, the joined warnings when nothing failed, or the tool errors), as are status under the mode policy, evidence (ESTIMATED with Ruff warnings, NOT_RUN on tool errors), fingerprints and exit codes. The modern `analyze` view keeps its own Ruff argv and grammar (python_modern_parity unchanged; modern plans serialize no legacy option).",
+   "difference_reason": "Intended: (1) legacy Ruff argv is frozen's (no --force-exclude, no --quiet, JSON formatter output) plus `--no-cache --`, so no `.ruff_cache` is written into the project (output unchanged); (2) an incomplete legacy run (Ruff format exit 2 on a syntax error, ruff_required without Ruff) exits 3 where frozen exited 1 (accepted legacy exit policy, `corrected()` in the replay); (3) root ruling: the text after `SyntaxError: ` is the pinned native parser's wording (frozen embedded the running CPython's message, which differs between interpreters); name, status, file, line (CPython's innermost unclosed bracket rule kept), summary and fingerprint stay frozen; (4) a non-UTF-8 or NUL source gets no SyntaxError target (frozen's strict read raised an uncaught exception and crashed the engine)."
   },
   "finding_site:src/ici/engines/lint.py:92:16": {
    "status": "complete",

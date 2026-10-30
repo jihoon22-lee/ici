@@ -451,6 +451,11 @@ fn prepare_resolved_omitting(
                 .map(|p| p.to_string_lossy().into_owned())
                 .collect();
             provider_request.options.jobs = 2;
+            if matches!(kind, ProviderKind::RuffLint | ProviderKind::RuffFormat)
+                && crate::legacy::is_legacy(invocation)
+            {
+                provider_request.options.legacy = true;
+            }
             if legacy_mypy {
                 provider_request.options.legacy = true;
                 provider_request.options.legacy_targets = legacy_targets;

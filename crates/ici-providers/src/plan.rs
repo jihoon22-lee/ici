@@ -188,6 +188,37 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
     let mut timeout = 300.0;
     let compiler_columns = compiler_columns(request);
     match request.kind {
+        // Frozen `LintEngine._run_ruff_check`/`_run_ruff_format`: explicit files bypass Ruff's
+        // own exclusion (no --force-exclude), stderr warnings stay visible (no --quiet), and the
+        // formatter answers in JSON. Only the cache stays out of the project (`--no-cache`).
+        ProviderKind::RuffLint if request.options.legacy => {
+            push(
+                &mut argv,
+                &[
+                    "check",
+                    "--no-fix",
+                    "--no-fix-only",
+                    "--no-unsafe-fixes",
+                    "--output-format=json",
+                    "--no-cache",
+                    "--",
+                ],
+            );
+            argv.extend(targets);
+        }
+        ProviderKind::RuffFormat if request.options.legacy => {
+            push(
+                &mut argv,
+                &[
+                    "format",
+                    "--check",
+                    "--output-format=json",
+                    "--no-cache",
+                    "--",
+                ],
+            );
+            argv.extend(targets);
+        }
         ProviderKind::RuffLint => {
             push(
                 &mut argv,

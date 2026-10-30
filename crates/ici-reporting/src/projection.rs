@@ -327,6 +327,7 @@ pub fn legacy_projection(
         project_extra(engine)?;
         integration_refusal(engine);
         legacy_type_summary(engine);
+        legacy_lint_summary(engine);
         normalize_findings(engine)?;
     }
     let mut results: Vec<_> = builtin_catalog()
@@ -801,6 +802,23 @@ pub fn legacy_no_sources(
     Ok(())
 }
 
+/// A frozen engine verdict with its own target list (native refused the tool at planning): the
+/// legacy findings are recomputed from those targets exactly as for every other legacy target.
+pub fn legacy_verdict(
+    engine: &mut Value,
+    status: &str,
+    evidence: &str,
+    summary: &str,
+    targets: Vec<Value>,
+) -> Result<()> {
+    engine["targets"] = json!(targets);
+    engine["status"] = json!(status);
+    engine["evidence"] = json!(evidence);
+    engine["summary"] = json!(summary);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
 /// Frozen `TestCoverageMixin`: an unusable coverage policy is a located ERROR target
 /// ("Coverage:Policy configuration" at `.`) and an ERROR engine. Native refuses the same input
 /// before running; the legacy view keeps the frozen verdict class with the native reason.
@@ -891,6 +909,66 @@ fn legacy_type_summary(engine: &mut Value) {
             count("WARN")
         )
     });
+}
+
+/// Frozen `LintEngine` summary and evidence over the whole engine: Ruff stderr warnings count
+/// as warnings (unless a WARN target already says the same) and make the evidence ESTIMATED.
+/// Only a historical Ruff run (`legacy_ruff`) has it.
+fn legacy_lint_summary(engine: &mut Value) {
+    if engine["engine_name"] != "lint" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let warnings: Vec<String> = checks
+        .iter()
+        .filter_map(|check| check["extra"].get("legacy_ruff"))
+        .flat_map(|marker| marker["warnings"].as_array().cloned().unwrap_or_default())
+        .filter_map(|warning| warning.as_str().map(str::to_owned))
+        .collect();
+    if !checks
+        .iter()
+        .any(|check| check["extra"].get("legacy_ruff").is_some())
+        || matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
+    {
+        return;
+    }
+    let targets = engine["targets"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let count = |status: &str| {
+        targets
+            .iter()
+            .filter(|target| target["status"] == status)
+            .count()
+    };
+    let fail = count("FAIL");
+    let warn = count("WARN")
+        + warnings
+            .iter()
+            .filter(|warning| {
+                !targets
+                    .iter()
+                    .any(|target| target["status"] == "WARN" && target["message"] == **warning)
+            })
+            .count();
+    engine["summary"] = json!(if engine["status"] == "PASS" {
+        "0 Violations Found".to_owned()
+    } else if !warnings.is_empty() && fail == 0 {
+        warnings
+            .iter()
+            .take(2)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        format!("{fail} Errors, {warn} Warnings Found")
+    });
+    if !warnings.is_empty() {
+        engine["evidence"] = json!("ESTIMATED");
+    }
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {
