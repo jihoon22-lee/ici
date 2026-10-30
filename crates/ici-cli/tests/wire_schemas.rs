@@ -1,5 +1,6 @@
 //! Native wire documents against the frozen v0.13.0 JSON Schemas (`src/ici/schemas/`):
-//! next run v1/v2, the JSONL event stream v1 and the compilation export v1.
+//! next run v1/v2, the JSONL event stream v1, the compilation export v1 and the auxiliary import
+//! envelope v1.
 //!
 //! `check` implements exactly the draft 2020-12 keywords these four schemas use and panics on
 //! any other, so a schema change can never be skipped silently. Every document checked here is
@@ -8,6 +9,7 @@
 //! `jsonschema` validator that it agrees on each valid and invalid sample.
 use ici_cli::{commands, registry};
 use ici_domain::{RunResult, read_events};
+use ici_reporting::{ImportOptions, ImportProvenance, import_report, load_auxiliary};
 use regex::Regex;
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
@@ -22,6 +24,7 @@ fn schema(name: &str) -> Value {
         "ici-compilation-export-v1" => {
             include_str!("../../../src/ici/schemas/ici-compilation-export-v1.schema.json")
         }
+        "ici-auxiliary-v1" => include_str!("../../../src/ici/schemas/ici-auxiliary-v1.schema.json"),
         _ => unreachable!("{name}"),
     };
     serde_json::from_str(text).unwrap()
@@ -52,7 +55,9 @@ fn check(root: &Value, node: &Value, value: &Value, path: &str, errors: &mut Vec
     for (keyword, rule) in node {
         let mut violated = false;
         match keyword.as_str() {
-            "$schema" | "$id" | "$defs" | "title" | "description" => {}
+            // `format` is an annotation in draft 2020-12 unless a format checker is opted in,
+            // which the reference validator (and so the cross-check) does not do.
+            "$schema" | "$id" | "$defs" | "title" | "description" | "format" => {}
             "$ref" => {
                 let pointer = rule.as_str().unwrap().strip_prefix('#').unwrap();
                 let target = root.pointer(pointer).expect("local $ref");
@@ -522,5 +527,54 @@ fn native_compilation_export_validates_and_schema_violations_are_detected() {
     ] {
         let value = mutate(&payload, pointer, replacement);
         sample("ici-compilation-export-v1", label, &value, false);
+    }
+}
+
+#[test]
+fn native_auxiliary_imports_validate_and_invalid_envelopes_are_refused_by_both() {
+    let provenance = ImportProvenance {
+        source_path: "external-output".into(),
+        scope: "external CI job".into(),
+        imported_at: "2026-10-29T00:00:00Z".into(),
+        observed_at: Some("2026-10-28T23:59:00+09:00".into()),
+    };
+    let sarif = json!({"version":"2.1.0","runs":[{"tool":{"driver":{"name":"external"}},"results":[{"ruleId":"X1","level":"warning","message":{"text":"external finding"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"src/main.py"},"region":{"startLine":2,"startColumn":1}}}]}]}]});
+    let inputs: [(&str, Vec<u8>); 3] = [
+        ("lcov", b"SF:src/main.cpp\nDA:1,3\nDA:2,0\nend_of_record\n".to_vec()),
+        (
+            "junit",
+            br#"<testsuite name="suite"><testcase name="pass" file="tests/a.py" line="3"/><testcase name="fail"><failure>bad</failure></testcase><testcase name="skip"><skipped/></testcase></testsuite>"#.to_vec(),
+        ),
+        ("sarif", serde_json::to_vec(&sarif).unwrap()),
+    ];
+    let mut documents = vec![];
+    for (format, bytes) in inputs {
+        let document = import_report(format, &bytes, &provenance, &ImportOptions::default())
+            .unwrap()
+            .to_value()
+            .unwrap();
+        sample(
+            "ici-auxiliary-v1",
+            &format!("native-{format}"),
+            &document,
+            true,
+        );
+        documents.push(document);
+    }
+    for (label, pointer, replacement) in [
+        ("foreign-schema", "/schema_id", Some(json!("ici.next.run"))),
+        ("future-version", "/schema_version", Some(json!(2))),
+        ("claims-a-gate", "/gate", Some(json!("PASS"))),
+        ("measured-evidence", "/evidence", Some(json!("MEASURED"))),
+        ("unknown-format", "/format", Some(json!("xml"))),
+        ("missing-scope", "/scope", None),
+        ("unknown-key", "/unexpected", Some(json!(1))),
+    ] {
+        let value = mutate(&documents[0], pointer, replacement);
+        sample("ici-auxiliary-v1", label, &value, false);
+        assert!(
+            load_auxiliary(&serde_json::to_vec(&value).unwrap()).is_err(),
+            "native reader accepted schema-invalid {label}"
+        );
     }
 }

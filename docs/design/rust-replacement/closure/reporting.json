@@ -719,8 +719,8 @@
    },
    "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. The native standalone `ici export-compilation-context` payload and every payload in the frozen compilation-export corpus (tests/rust-parity/cpp/compilation-export-oracle.json) validate against ici-compilation-export-v1; five mutated payloads (future version, unknown evidence, missing project, unknown key, malformed digest) are rejected. Payload field parity with frozen is the cpp area's compilation_commands.rs corpus test; ici has no native reader of this export.",
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 4 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
-    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 68 samples (48 valid, 20 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 78 samples (51 valid, 27 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
     "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
@@ -745,8 +745,8 @@
    },
    "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. Every line of a native `ici analyze --events` stream validates against ici-next-event-v1; a future schema_version or foreign schema_id is rejected by the schema and refused by read_events; an unknown event_type is rejected by the schema while read_events skips it with a note, like the frozen tolerant reader.",
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 4 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
-    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 68 samples (48 valid, 20 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 78 samples (51 valid, 27 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
     "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
@@ -770,8 +770,8 @@
    },
    "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. The five published v1 goldens validate against ici-next-run-v1 before and after a native read/write (still schema_version 1); a v1 document carrying checks or an unknown key is rejected by the schema and by the native reader. Native writes only v2; v1 is read-compatible.",
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 4 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
-    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 68 samples (48 valid, 20 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 78 samples (51 valid, 27 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
     "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
@@ -797,8 +797,8 @@
    },
    "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. Native `ici analyze` runs (blocked tasks, findings, checks, TEM limitations, and a --baseline comparison) and the frozen analyze-cold/run-v2 captures validate against ici-next-run-v2; ten schema-invalid mutations (unknown key, future version, missing checks or gate, unknown evidence, absolute and parent locations, uppercase task id and component, non-sha256 digest) are rejected by both the schema and RunResult::from_value. Defect fixed: the native reader accepted non-identifier scope component/language entries and blocked/failed/reused task ids that frozen ScopeSelection/ExecutionSummary refuse.",
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 4 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
-    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 68 samples (48 valid, 20 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 5 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 78 samples (51 valid, 27 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
     "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
@@ -892,11 +892,11 @@
    "reason": "Not read in this pass; gate evaluation was not compared with the native gate model."
   },
   "src/ici/application/report.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "finding_site:src/ici/application/report.py:92:11"
    ],
-   "reason": "Partly read; the RunResult metric construction (finding_site report.py:92) is not closed."
+   "reason": "Reviewed all 3 symbols. build_result -> crates/ici-application/src/assemble.rs: run_id, producer, identity (fingerprint_version), scope (selected/required/omitted, full_required_satisfied only for a complete full scope; native also requires every required component selected and none omitted), execution (blocked ids only when incomplete, failed ids, reused ids from cache hits), gate, findings, metrics = observation measurements then the TEM tuple, limitations = observation, run and TEM limitations in frozen order (native drops repeated strings), baseline, checks. tem_metrics -> ici_domain::tem::run_metrics (tests/rust-parity/reporting/tem-metrics.json, 9 frozen cases, exact). digest_of -> ici_domain::sha256 'sha256:<hex>' of UTF-8 text."
   },
   "src/ici/core/baseline.py": {
    "disposition": "unreviewed",
@@ -1160,37 +1160,39 @@
    "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
   },
   "src/ici/schemas/ici-compilation-export-v1.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-compilation-export-v1.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 78 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-next-event-v1.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-next-event-v1.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 78 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-next-run-v1.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-next-run-v1.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 78 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-next-run-v2.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-next-run-v2.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 78 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-auxiliary-v1.schema.json": {
-   "disposition": "unreviewed",
-   "requirements": [],
-   "reason": "Not read in this pass by reporting; its wire_schema row is closed by the common fragment."
+   "disposition": "mapped",
+   "requirements": [
+    "wire_schema:ici-auxiliary-v1.schema.json"
+   ],
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs::native_auxiliary_imports_validate_and_invalid_envelopes_are_refused_by_both: native lcov, junit and sarif import envelopes validate; seven invalid envelopes (foreign schema, future version, a claimed gate, MEASURED evidence, unknown format, missing scope, unknown key) are rejected by the schema and by load_auxiliary; jsonschema 4.26.0 agrees on all 78 wire samples. `format` is an annotation, as in the reference validator. The wire_schema row itself is the common area's."
   }
  }
 }
