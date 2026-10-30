@@ -122,10 +122,6 @@ fn declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_f
                 ] {
                     projected[key] = finding[key].clone();
                 }
-                // Rust attributes analysis unit `app.cpp` where frozen leaves an internal check
-                // unattributed; with that one input the frozen raw id gives the same envelope id.
-                assert_eq!(finding["analysis_unit_id"], "app.cpp", "{name}");
-                projected["fingerprint_with_unit"] = finding["fingerprint"].clone();
                 projected
             })
             .collect();
@@ -136,6 +132,12 @@ fn declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_f
             .map(|finding| {
                 let mut finding = finding.clone();
                 finding.as_object_mut().unwrap().remove("raw_fingerprint");
+                // Recomputed by the capture with a unit frozen never attributes; the frozen
+                // envelope fingerprint itself is compared by the identity test below.
+                finding
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("fingerprint_with_unit");
                 finding
             })
             .collect();
@@ -154,5 +156,72 @@ fn declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_f
             })
             .collect();
         assert_eq!(json!(metrics), frozen["metrics"], "{name}");
+    }
+}
+
+fn projected(items: &Value, keys: &[&str]) -> Vec<Value> {
+    let mut projected: Vec<Value> = items
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| {
+            Value::Object(
+                keys.iter()
+                    .map(|key| {
+                        (
+                            (*key).to_owned(),
+                            item.get(*key).cloned().unwrap_or(Value::Null),
+                        )
+                    })
+                    .collect(),
+            )
+        })
+        .collect();
+    projected.sort_by_key(|item| item.to_string());
+    projected
+}
+
+/// Frozen `finding_identity.attribute` gives an internal check's findings no analysis unit or
+/// variant (it has no task), so their envelope fingerprints are frozen's exactly; frozen
+/// `check_scope` still names the component unit and that unit's build variant on the record
+/// (`tests/rust-parity/reporting/capture_artifact_identity.py`).
+#[test]
+fn internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint() {
+    let golden: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/reporting/artifact-identity.json"
+    ))
+    .unwrap();
+    let contract: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/artifact-contract-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(golden["oracle"], contract["oracle"]);
+    let cases = golden["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 2);
+    for (name, frozen) in cases {
+        let (_, document, output) = run(&contract["cases"][name]);
+        let document = document.unwrap_or_else(|| panic!("{name}: {output}"));
+        let finding_keys = [
+            "rule_id",
+            "fingerprint",
+            "component_id",
+            "analysis_unit_id",
+            "variant",
+            "task_id",
+        ];
+        assert_eq!(
+            projected(&document["findings"], &finding_keys),
+            projected(&frozen["findings"], &finding_keys),
+            "{name}"
+        );
+        // Task ids are left out: frozen expands `cpp.binary-compat` into one task per declared
+        // ELF artifact (`app.cpp.binary-compat.release-1`, `-2`), a cpp planning difference
+        // outside this identity contract.
+        let check_keys = ["check_id", "analysis_unit_id", "variant"];
+        let mut native = projected(&document["checks"], &check_keys);
+        native.dedup();
+        let mut expected = projected(&frozen["checks"], &check_keys);
+        expected.dedup();
+        assert_eq!(native, expected, "{name}");
     }
 }
