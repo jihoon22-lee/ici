@@ -46,8 +46,23 @@ fn run(oracle: &Value, scenario: &str) -> (i32, Value) {
         ]),
     )
     .unwrap();
-    let report =
+    let report: Value =
         serde_json::from_slice(&fs::read(root.path().join("test_report.json")).unwrap()).unwrap();
+    // Frozen `engines/verify.py`: the saved suite's TEM is the test engine's own score.
+    let run: Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    let details: Value = serde_json::from_slice(
+        &fs::read(
+            root.path()
+                .join(".ici/rust-v1/details/result.json")
+                .join(run["run_id"].as_str().unwrap())
+                .join("details.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(details["tem_score"], report["score"], "suite tem_score");
     (result.exit_code, report)
 }
 fn project(target: &Value, line: bool) -> Value {

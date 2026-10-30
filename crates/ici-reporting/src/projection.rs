@@ -364,10 +364,16 @@ pub fn legacy_projection(
     } else {
         "PASS"
     };
+    // Frozen `engines/verify.py`: the suite TEM is the legacy `test` engine's own score; the
+    // next run's `tem.*` metrics use the unrounded next formula and are not this value.
+    let tem_score = results
+        .iter()
+        .find(|engine| engine["engine_name"] == "test" && engine["score"].is_number())
+        .map(|engine| engine["score"].clone());
     let value = json!({"schema_version":"ici.result/v3","suite_status":suite_status,"project_name":context.project_name,
         "duration":context.duration_seconds,"passed_count":count("PASS"),"warned_count":count("WARN"),
         "failed_count":count("FAIL")+count("ERROR"),"error_count":count("ERROR"),"skipped_count":count("SKIP"),
-        "total_count":results.len(),"tem_score":run.metrics.iter().find(|m|m.name=="tem.workspace").map(|m|m.value),"max_tem_score":5.0,
+        "total_count":results.len(),"tem_score":tem_score,"max_tem_score":5.0,
         "results":results,"analysis_context":context.analysis_context,"support_matrix":context.support_matrix,
         "capability_inventory":context.capability_inventory,"baseline_comparison":context.legacy_baseline,
         "native_run":run.to_value()?,"analysis_metadata":context.analysis_metadata});

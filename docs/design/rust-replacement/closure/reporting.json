@@ -59,7 +59,8 @@
     "positive": [
      "crates/ici-reporting/tests/migration_edges.rs::malformed_v2_fields_coerce_exactly_like_the_frozen_reader",
      "crates/ici-reporting/tests/rendering.rs::explicit_v2_migration_matches_frozen_original_without_guessing_schema",
-     "crates/ici-reporting/tests/legacy_pipeline.rs::original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved"
+     "crates/ici-reporting/tests/legacy_pipeline.rs::original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved",
+     "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates"
     ],
     "negative": [
      "crates/ici-reporting/tests/stored.rs::reader_preserves_unknown_legacy_extension_data_but_refuses_unknown_schemas_and_invalid_regions",
@@ -75,9 +76,12 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 7 passed; the saved suite tem_score equals the test engine score (frozen engines/verify.py); /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the same run on the previous projection fails twice with suite tem_score null against 1.17 and 1.78; /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem-before.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log"
    ],
-   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas.",
+   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null).",
    "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
   },
   "capability:execution-cancel-save-redact": {
@@ -670,15 +674,32 @@
    "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
   },
   "finding_site:src/ici/application/report.py:92:11": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-domain/src/tem.rs",
+    "crates/ici-application/src/assemble.rs",
+    "crates/ici-validation/src/tem.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-domain/tests/tem_metrics.rs::scored_components_and_raw_count_workspace_match_the_frozen_run_metrics",
+     "crates/ici-cli/tests/run_tem.rs::analyze_appends_the_frozen_tem_limitation_after_every_other_limitation"
+    ],
+    "negative": [
+     "crates/ici-domain/tests/tem_metrics.rs::missing_coverage_or_function_evidence_is_a_limitation_never_a_score",
+     "crates/ici-cli/tests/artifact_contract.rs::internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/tem_metrics.rs::invalid_percent_only_unmarked_and_unscorable_workspace_inputs_match_frozen"
+    ]
    },
-   "evidence": [],
-   "comparison": "Not closed in this pass: next-run RunResult metrics (observation measurements plus the TEM tuple) were not compared against the native run producer; the dynamic metric keys still need review before closure."
+   "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo test -p ici-cli --locked -j2 --test run_tem -- --include-ignored`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-tem-e2e.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: run_tem.rs and the artifact_contract.rs identity test fail on the previous assembly (no TEM limitation); /tmp/ici-rust-replacement-20261028/w-reporting-tem-before.log",
+    "`cargo clippy -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-tem-clippy.log"
+   ],
+   "comparison": "Defect fixed: the native RunResult carried only observation measurements and never the frozen TEM tuple. assemble now appends ici_domain::tem::run_metrics (a port of frozen tem_metrics/inputs_from/counts_from/aggregate/calculate; ici-validation's calculate delegates to the same formula after its own input guard) after every other metric and limitation. tests/rust-parity/reporting/tem-metrics.json (capture_tem_metrics.py, frozen tem_metrics over 9 synthetic observation sets: scored Line/Branch components, raw-count workspace merge, last-coverage-wins, percent-only exclusion, unscorable workspace, unmarked task ids grouped as 'workspace', zero-denominator cases, invalid counts) matches metric names, values, units and limitation strings exactly. End to end, native `ici analyze` on the capture_cli_oracle fixture gives the frozen analyze-cold.json measurements (name, value, unit, counts, order) and the same final 'project: TEM N/A' limitation, and both cpp.artifact identity cases give the frozen 'app: TEM N/A' line. Evidence levels are not compared end to end: native python.dead `issues_found` is ESTIMATED where frozen is MEASURED (python-analysis area). Native de-duplicates repeated limitation strings where frozen keeps duplicates; TEM lines are never duplicated."
   },
   "wire_schema:ici-compilation-export-v1.schema.json": {
    "status": "not_started",

@@ -83,6 +83,11 @@ def run(case: dict) -> dict:
             ),
             key=lambda item: item["task_id"],
         ),
+        # Run TEM (application/report.py:92): what every cpp run appends after its own.
+        "tem": {
+            "metrics": [item for item in document["metrics"] if item["name"].startswith("tem.")],
+            "limitations": [item for item in document["limitations"] if "TEM" in item],
+        },
     }
 
 
