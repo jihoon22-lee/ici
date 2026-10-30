@@ -442,9 +442,9 @@ pub fn analyze(
             unit: "files".into(),
             ..Measurement::measured("files_checked", checked as f64)
         },
+        // The count of emitted findings is exact; each finding stays ESTIMATED.
         Measurement {
             unit: "issues".into(),
-            evidence: EvidenceLevel::Estimated,
             ..Measurement::measured("issues_found", issues as f64)
         },
     ]);

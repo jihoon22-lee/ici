@@ -1075,10 +1075,12 @@ fn unicode_and_legacy_threshold_boundaries_are_preserved() {
     input.options["warn"] = json!(0);
     let output = analyze(&input);
     assert_eq!(output.observation.findings.len(), 1);
-    assert_eq!(
-        output.observation.findings[0].primary_location.end_column,
-        Some(16)
-    );
+    // Unicode columns stay on the inspected target; the modern finding keeps the
+    // original line-only location so its attributed fingerprint is unchanged.
+    assert_eq!(output.targets[0].end_column, Some(16));
+    let location = &output.observation.findings[0].primary_location;
+    assert_eq!((location.start_line, location.end_line), (1, Some(3)));
+    assert_eq!((location.start_column, location.end_column), (None, None));
 }
 #[test]
 fn syntax_semantics_and_bounds_cannot_be_clean() {
@@ -1538,8 +1540,12 @@ fn cycle_preserves_exact_graph_and_native_fingerprint() {
         finding::sha1_short("cycle-", "python:b:a")
     );
     assert_eq!(
-        output.observation.findings[0].message,
-        "import cycle: a -> b -> a"
+        output.observation.findings[0].message, "import cycle: b -> a -> b",
+        "modern message starts at the original first SCC member"
+    );
+    assert_eq!(
+        output.observation.findings[0].primary_location.path,
+        "src/b.py"
     );
     assert_eq!(
         output.observation.findings[0].evidence,
@@ -2295,5 +2301,75 @@ fn repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused() {
             output.observation.limitations[0].contains("conflicting-input"),
             "{check}"
         );
+    }
+}
+
+#[test]
+fn fully_excluded_scopes_are_not_applicable_and_included_failures_stay_errors() {
+    for check in ["security", "resource", "exception", "dead", "compat"] {
+        let mut input = request(check, "");
+        input.inputs = vec![
+            SourceInput {
+                path: "vendor/lib.py".into(),
+                bytes: b"import pickle\npickle.loads(b'')\n".to_vec(),
+            },
+            SourceInput {
+                path: "generated/api.py".into(),
+                bytes: b"def _hidden():\n    return 1\n".to_vec(),
+            },
+        ];
+        let output = analyze(&input);
+        assert_eq!(output.observation.state, TaskState::Succeeded, "{check}");
+        assert_eq!(output.status, "SKIP", "{check}");
+        assert!(output.observation.findings.is_empty(), "{check}");
+        let measured: Vec<_> = output
+            .observation
+            .measurements
+            .iter()
+            .map(|item| (item.name.as_str(), item.evidence))
+            .collect();
+        assert!(measured.contains(&("files_checked", ici_domain::EvidenceLevel::Measured)));
+        assert!(measured.contains(&("applicability", ici_domain::EvidenceLevel::NotApplicable)));
+        assert!(
+            !measured.iter().any(|(name, _)| *name == "issues_found"),
+            "{check}"
+        );
+        let skipped: Vec<_> = output
+            .targets
+            .iter()
+            .filter(|target| target.status == "SKIP")
+            .map(|target| target.file_path.as_str())
+            .collect();
+        assert_eq!(
+            skipped,
+            ["vendor/lib.py", "generated/api.py", "."],
+            "{check}"
+        );
+        assert_eq!(
+            output.extra["excluded_source_counts"],
+            json!({"generated":1,"vendor":1})
+        );
+
+        // An explicit include makes the same file owned and measured.
+        input.options = json!({"include_vendor":true,"include_generated":true});
+        let output = analyze(&input);
+        assert_ne!(output.status, "SKIP", "{check}");
+        assert!(
+            output
+                .targets
+                .iter()
+                .all(|target| target.file_path != "."
+                    || target.target_name != "ExcludedAnalysisScope")
+        );
+
+        // An owned file that cannot be parsed is never hidden by exclusions.
+        input.options = json!({});
+        input.inputs.push(SourceInput {
+            path: "bad.py".into(),
+            bytes: b"def broken(:\n".to_vec(),
+        });
+        let output = analyze(&input);
+        assert_eq!(output.observation.state, TaskState::Failed, "{check}");
+        assert_eq!(output.status, "ERROR", "{check}");
     }
 }

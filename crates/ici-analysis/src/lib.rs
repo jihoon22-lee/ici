@@ -347,6 +347,23 @@ impl AnalysisSession {
         if cancelled(&mut output, cancellation) {
             return output;
         }
+        if files.is_empty()
+            && output.observation.state != TaskState::Failed
+            && !excluded_source_counts.is_empty()
+            && matches!(
+                kind,
+                "security" | "resource" | "exception" | "dead" | "compat"
+            )
+        {
+            // Every selected file was excluded by the generated/vendor policy:
+            // the old engines succeeded with zero checked files. Nothing was
+            // measured, so keep that as explicit not-applicable evidence.
+            excluded_scope_not_applicable(&mut output);
+            output.extra["excluded_source_counts"] = json!(excluded_source_counts);
+            output.extra["source_encodings"] = json!(source_encodings);
+            output.extra["parser_identity"] = json!(PARSER_IDENTITY);
+            return output;
+        }
         if files.is_empty() && output.observation.state != TaskState::Failed && kind != "dup" {
             failure(
                 &mut output,
@@ -433,6 +450,26 @@ fn canonical_inputs(request: &AnalysisRequest) -> Result<Option<AnalysisRequest>
         .map(|index| request.inputs[index].clone())
         .collect();
     Ok(Some(canonical))
+}
+fn excluded_scope_not_applicable(output: &mut AnalysisOutput) {
+    output.status = "SKIP".into();
+    output.summary = "Analysis skipped: every selected source was excluded".into();
+    let mut target = InspectionTarget::at(".", 1);
+    target.target_name = "ExcludedAnalysisScope".into();
+    target.status = "SKIP".into();
+    target.message = "All selected sources were excluded by the generated/vendor policy".into();
+    output.targets.push(target);
+    output.observation.measurements.extend([
+        ici_domain::Measurement {
+            unit: "files".into(),
+            ..ici_domain::Measurement::measured("files_checked", 0.0)
+        },
+        ici_domain::Measurement {
+            evidence: ici_domain::EvidenceLevel::NotApplicable,
+            unit: "checks".into(),
+            ..ici_domain::Measurement::measured("applicability", 0.0)
+        },
+    ]);
 }
 fn duplicate_not_applicable(output: &mut AnalysisOutput, excluded: bool) {
     output.status = "SKIP".into();

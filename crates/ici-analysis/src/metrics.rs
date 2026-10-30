@@ -320,12 +320,14 @@ pub fn analyze(
                     }
                     format!("{}: {}", row.name, parts.join("; "))
                 };
-                let mut item = Finding::new(
-                    format!("metrics.{kind}"),
-                    message,
-                    file.source.span(row.range),
-                    "ici.metrics",
-                );
+                // Modern metric findings name the function's line range only;
+                // columns stay on the inspection target so the attributed
+                // fingerprint keeps the original identity.
+                let mut location = file.source.span(row.range);
+                location.start_column = None;
+                location.end_column = None;
+                let mut item =
+                    Finding::new(format!("metrics.{kind}"), message, location, "ici.metrics");
                 item.fingerprint = finding::sha1_short(
                     "metrics-",
                     &format!("{}:{}:{kind}", file.source.path, row.name),

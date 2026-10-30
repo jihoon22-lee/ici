@@ -402,3 +402,25 @@ metrics and byte-AST observations remain in all 139 source fixtures.
 ```sh
 python3.14 -I -B tests/rust-parity/python/generate_unicode_codec_evidence.py --check
 ```
+
+## Modern check projects end to end
+
+`modern-findings.json` records 16 small projects analyzed by the frozen
+`ici analyze --json` (v0.13.0): every check state, finding (rule identity,
+message, severity, confidence, category, evidence, location and attributed
+fingerprint), measurement, limitation, gate and exit code. The native test
+`crates/ici-cli/tests/python_modern_parity.rs` replays them through the CLI and
+also recomputes each attributed fingerprint from the native raw fingerprint
+without the new analysis-unit attribution, requiring the original value.
+
+Reviewed differences live in each case's `corrections` with a reason: carried
+AST-shape clustering, uniform incomplete evidence for unparsable files,
+NOT_APPLICABLE fully excluded scopes, from-dot child-module cycles, parser
+floor locations, Unicode columns and honored coding cookies. The frozen run-level
+TEM limitation is outside this family. Requests that repeat a path with different
+bytes are refused; equal repeats are one input.
+
+```sh
+python3.14 -I -B tests/rust-parity/python/modern_oracle.py FROZEN_CHECKOUT \
+  --python FROZEN_PYTHON
+```

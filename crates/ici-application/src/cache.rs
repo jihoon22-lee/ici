@@ -328,7 +328,8 @@ fn validate_output(output: &AnalysisOutput) -> Result<()> {
         .validate()
         .map_err(|error| ApplicationError(error.to_string()))?;
     for target in &output.targets {
-        validation::relative_path(&target.file_path, false)
+        // Scope-level targets (whole selected scope) use the project root ".".
+        validation::relative_path(&target.file_path, true)
             .map_err(|error| ApplicationError(error.to_string()))?;
         if target.start_line == 0
             || target.end_line.is_some_and(|line| line < target.start_line)
