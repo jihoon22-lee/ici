@@ -402,3 +402,51 @@ metrics and byte-AST observations remain in all 139 source fixtures.
 ```sh
 python3.14 -I -B tests/rust-parity/python/generate_unicode_codec_evidence.py --check
 ```
+
+## Modern check projects end to end
+
+`modern-findings.json` records 16 small projects analyzed by the frozen
+`ici analyze --json` (v0.13.0): every check state, finding (rule identity,
+message, severity, confidence, category, evidence, location and attributed
+fingerprint), measurement, limitation, gate and exit code. The native test
+`crates/ici-cli/tests/python_modern_parity.rs` replays them through the CLI and
+also recomputes each attributed fingerprint from the native raw fingerprint
+without the new analysis-unit attribution, requiring the original value.
+
+Reviewed differences live in each case's `corrections` with a reason: carried
+AST-shape clustering, uniform incomplete evidence for unparsable files,
+NOT_APPLICABLE fully excluded scopes, from-dot child-module cycles, parser
+floor locations, Unicode columns and honored coding cookies. The frozen run-level
+TEM limitation is outside this family. Requests that repeat a path with different
+bytes are refused; equal repeats are one input.
+
+```sh
+python3.14 -I -B tests/rust-parity/python/modern_oracle.py FROZEN_CHECKOUT \
+  --python FROZEN_PYTHON
+```
+
+## IDNA and punycode source codecs
+
+`idna` decodes natively exactly as CPython 3.14.7 `encodings.idna` decodes bytes:
+without any case-insensitive `xn--` the source must be ASCII; otherwise every
+`.`-separated label must be ASCII, at most 1,024 bytes, and each `xn--` label must
+punycode-decode and round-trip through ToASCII (RFC 3491 nameprep over the RFC 3454
+Unicode 3.2 tables and CPython's `ucd_3_2_0` NFKC: current decompositions except
+3.2-unassigned characters and five corrections, current combining classes and
+composition). Decoded ACE labels map only their original label ends; interior
+positions are unrepresentable. `generate_idna_tables.py` pins the tables and
+2,401,001 CPython observations (nameprep of every code point including surrogates,
+NFKC of every scalar, 54,855 composition pairs, 60,000 pseudo-random strings),
+2,500 recorded labels and 17 actual byte-source compilations. Native tests replay
+all of them; this supersedes the earlier "IDNA pending" statements above.
+
+`punycode` is the exact codec too, and source decoding always fails by proof:
+CPython appends LF to non-empty exec input before decoding
+(`Parser/tokenizer/helpers.c`), and that LF lies in the extended part after the last
+`-` (or is the whole text's extended part) where it is never a punycode digit.
+Actual samples confirm that `#coding:punycode\nabc-` decodes as a standalone codec
+input but not as source. The available codec census has no pending family left.
+
+```sh
+python3.14 -I -B tests/rust-parity/python/generate_idna_tables.py --check
+```

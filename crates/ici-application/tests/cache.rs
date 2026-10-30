@@ -198,3 +198,26 @@ fn rich_cache_retains_inspected_targets_and_never_invents_them_from_old_observat
     output.targets[0].start_line = 0;
     assert!(cache.put_output(&key, &output).is_err());
 }
+#[test]
+fn scope_level_root_targets_are_cached_but_escaping_target_paths_are_refused() {
+    use ici_domain::{AnalysisOutput, InspectionTarget};
+    let directory = tempfile::tempdir().unwrap();
+    let cache = ObservationCache {
+        directory: directory.path().join("cache"),
+        core_digest: identity().core_digest,
+    };
+    let key = identity().key(&task()).unwrap().unwrap();
+    let mut output = AnalysisOutput::new("original", "ici.duplicates");
+    let mut target = InspectionTarget::at(".", 1);
+    target.target_name = "DuplicateCode".into();
+    target.status = "SKIP".into();
+    output.targets.push(target);
+    output.status = "SKIP".into();
+    assert!(cache.put_output(&key, &output).unwrap());
+    let stored = cache.get_output(&key, "logical").unwrap().unwrap();
+    assert_eq!(stored.targets[0].file_path, ".");
+    for path in ["./a.py", "../a.py", "/a.py", "a/../b.py", ""] {
+        output.targets[0].file_path = path.into();
+        assert!(cache.put_output(&key, &output).is_err(), "{path}");
+    }
+}

@@ -5876,7 +5876,7 @@
     },
     "idna": {
       "canonical_codec": "idna",
-      "disposition": "pending_source_audit",
+      "disposition": "native_decoder",
       "samples": [
         {
           "bytes_base64": "IyBjb2Rpbmc6aWRuYQpkZWYgaGVsbG8odmFsdWUpOgogICAgcmV0dXJuIHZhbHVlCg==",
@@ -9828,7 +9828,7 @@
     },
     "punycode": {
       "canonical_codec": "punycode",
-      "disposition": "pending_source_audit",
+      "disposition": "native_decoder",
       "samples": [
         {
           "bytes_base64": "IyBjb2Rpbmc6cHVueWNvZGUKZGVmIGhlbGxvKHZhbHVlKToKICAgIHJldHVybiB2YWx1ZQo=",

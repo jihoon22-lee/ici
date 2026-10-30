@@ -1,0 +1,3970 @@
+{
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "oracle_hashes": {
+  "src/ici/languages/hygiene.py": "ce0c55182df267aff67eb77c5971b9a57236c778fb9e4ea5d2c7b4bda2e92197",
+  "src/ici/languages/metrics.py": "097f02599a32e663635d169416bc929ba5e451ff589975b863d777569e2bb555",
+  "src/ici/languages/deadcode.py": "ceb4dff012ff7d01ae3eff8638a56c42561b6f47f2fc25d1f8fef3baeb5825f6",
+  "src/ici/languages/cycles.py": "1adf074a372fc27f591d98ef914d339c6f3e32afdb1329b5acd5cca47e1b8a7c",
+  "src/ici/languages/duplicates.py": "47baaf971e23d43524ffb4b34064499b954db932885ae388cc667a2dbefbe8c3",
+  "src/ici/languages/compat.py": "47477a8408a1d41125e7865aa9972173d4083a66f7261c0f673285afb7e62779",
+  "src/ici/languages/python/lines.py": "40613abfab9a5c111cc1951179377ce67c362d6f82867d862234f0c3cae277e1"
+ },
+ "cases": [
+  {
+   "id": "hygiene-rules",
+   "files": {
+    "main.py": "import hashlib\nimport os\nimport pickle\nimport random\nimport subprocess\n\nPASSWORD = \"hunter2hunter2xx\"\nAPI_TOKEN = \"Zx9Qw8Er7Ty6Ui5Op4As3Df2\"  # nosec\nKEY = \"-----BEGIN RSA PRIVATE KEY-----\"\n\n\ndef digest(data):\n    weak = hashlib.md5(data)\n    other = hashlib.sha1(data)\n    fine = hashlib.md5(data, usedforsecurity=False)\n    return weak, other, fine\n\n\ndef run(command, payload):\n    os.system(command)\n    subprocess.run(command, shell=True)\n    subprocess.run([command], shell=False)\n    eval(command)\n    token = random.choice(\"abc\")\n    return pickle.loads(payload), token\n\n\ndef shadowed(eval, text):\n    return eval(text)\n\n\ndef handlers(value):\n    try:\n        return int(value)\n    except:\n        pass\n    try:\n        return float(value)\n    except BaseException:\n        return None\n\n\ndef rethrow(value):\n    try:\n        return value()\n    except ValueError as error:\n        raise RuntimeError(\"failed\")\n\n\ndef resources(path, items=[]):\n    handle = open(path)\n    data = handle.read()\n    with open(path) as managed:\n        managed.read()\n    return data, items\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.security",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.resource",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.exception",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:cf8b8c3998e01e752c5794e0eb7220a1f82ae316ff9a957bbaa98ea177303d04",
+      "message": "Secret-like literal assigned to PASSWORD; value REDACTED",
+      "native_rule_id": "Security:HardcodedSecret",
+      "primary_location": {
+       "end_column": 29,
+       "end_line": 7,
+       "path": "main.py",
+       "start_column": 1,
+       "start_line": 7
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.hardcodedsecret",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:89b1d1594f9bdd07f051b4028cb0511d317bfbfa41ea86edbb56658c3f3dc659",
+      "message": "Private-key material is embedded in a source literal",
+      "native_rule_id": "Security:PrivateKey",
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 9,
+       "path": "main.py",
+       "start_column": 1,
+       "start_line": 9
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.privatekey",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:ead262d95183c2c6b5fece6ed8b4423a3c45915fe6757d7b6948b185614cad50",
+      "message": "MD5 is not collision resistant",
+      "native_rule_id": "Security:WeakCryptoMD5",
+      "primary_location": {
+       "end_column": 28,
+       "end_line": 13,
+       "path": "main.py",
+       "start_column": 12,
+       "start_line": 13
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.weakcryptomd5",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:3d717b8d635076988c2a0eba5695a0c3b1a091e8f228958969666127ef7e98d4",
+      "message": "SHA-1 is not collision resistant",
+      "native_rule_id": "Security:WeakCryptoSHA1",
+      "primary_location": {
+       "end_column": 30,
+       "end_line": 14,
+       "path": "main.py",
+       "start_column": 13,
+       "start_line": 14
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.weakcryptosha1",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:7f0a9961216d662728c119442f87ff306fc0858e45a5edcbdb7713c2db71ebc2",
+      "message": "Command text is executed through a system shell",
+      "native_rule_id": "Security:CommandProcessor",
+      "primary_location": {
+       "end_column": 22,
+       "end_line": 20,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 20
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.commandprocessor",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:7dc6d428aeabd153772539112dfe83a5def343f9dd45c4a7c7c4ba6e637290d1",
+      "message": "subprocess shell=True expands input through a command processor",
+      "native_rule_id": "Security:ShellTrue",
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 21,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 21
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.shelltrue",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:e8ba2ec2e0795f4930d1263e2824bc222d1f53e940a75267f72228ad066cf343",
+      "message": "Dynamic code execution accepts untrusted input",
+      "native_rule_id": "Security:EvalExec",
+      "primary_location": {
+       "end_column": 17,
+       "end_line": 23,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 23
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.evalexec",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:cf0e344699b909c9566429882a5fd38164c1d1ec0191a306eb7689f794b20fff",
+      "message": "The random module is not suitable for security-sensitive randomness",
+      "native_rule_id": "Security:WeakRandom",
+      "primary_location": {
+       "end_column": 32,
+       "end_line": 24,
+       "path": "main.py",
+       "start_column": 13,
+       "start_line": 24
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.weakrandom",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:1a635194bc44479ac14e79fe246b70f21796d7728318cccfa5b6e28c6ffea12f",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "native_rule_id": "Security:PickleLoad",
+      "primary_location": {
+       "end_column": 32,
+       "end_line": 25,
+       "path": "main.py",
+       "start_column": 12,
+       "start_line": 25
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.pickleload",
+      "severity": "high"
+     },
+     {
+      "category": "correctness",
+      "component_id": "project",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:d6c1f457f007f89a1ce913dd0d8a3e2547537c50bccec0810de4dde8a5628662",
+      "message": "Mutable default argument in resources() is shared across calls",
+      "native_rule_id": "Correctness:MutableDefault",
+      "primary_location": {
+       "end_column": 28,
+       "end_line": 50,
+       "path": "main.py",
+       "start_column": 27,
+       "start_line": 50
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "resource.mutabledefault",
+      "severity": "medium"
+     },
+     {
+      "category": "resource",
+      "component_id": "project",
+      "confidence": "medium",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:d3b3a1cba974aa3928183a47a1cbb2a65ea7395347d279e01c055243b1288c01",
+      "message": "handle from builtins.open may remain open on an exit path",
+      "native_rule_id": "Resource:OpenWithoutWith",
+      "primary_location": {
+       "end_column": 23,
+       "end_line": 51,
+       "path": "main.py",
+       "start_column": 14,
+       "start_line": 51
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "resource.openwithoutwith",
+      "severity": "medium"
+     },
+     {
+      "category": "correctness",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:ffcdedcfb786ffdb9e405d78262c0c78592648b41cea68d759410f73818e1aa4",
+      "message": "Dangerous bare 'except:' clause catches all exceptions",
+      "native_rule_id": "BareExcept",
+      "primary_location": {
+       "end_column": 12,
+       "end_line": 36,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 35
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "exception.bareexcept",
+      "severity": "high"
+     },
+     {
+      "category": "correctness",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:de2ee3fafe23574254232a9c13d80ab76e23e44d2ab4448a4eda367153a30f93",
+      "message": "Silent exception swallowing: handler only contains pass",
+      "native_rule_id": "ErrorSwallowing",
+      "primary_location": {
+       "end_column": 12,
+       "end_line": 36,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 35
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "exception.errorswallowing",
+      "severity": "high"
+     },
+     {
+      "category": "correctness",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:ca1df945aea581e23af486dd43b3e17dd760195e1d47259966ebd58ce140fd74",
+      "message": "Catching BaseException also intercepts system-exit and keyboard interrupt signals; catch a narrower exception type",
+      "native_rule_id": "BaseException",
+      "primary_location": {
+       "end_column": 24,
+       "end_line": 39,
+       "path": "main.py",
+       "start_column": 12,
+       "start_line": 39
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "exception.baseexception",
+      "severity": "high"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 55.0
+     },
+     {
+      "denominator": 55,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 42,
+      "unit": "lines",
+      "value": 42.0
+     },
+     {
+      "denominator": 55,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 55,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 13,
+      "unit": "lines",
+      "value": 13.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 6.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 3.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 6.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 37,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 9.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 3.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     }
+    ],
+    "limitations": [
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "14 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "main.py:19: semantic dynamic-eval: dynamic eval call is excluded",
+      "main.py:28: semantic dynamic-eval: dynamic eval call is excluded",
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+      "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "limitations": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named. Native python.dead states its static-heuristic evidence boundary explicitly; findings stay ESTIMATED as before."
+    }
+   }
+  },
+  {
+   "id": "invalid-syntax-and-valid-file",
+   "files": {
+    "main.py": "def ok():\n    return 1\n",
+    "bad.py": "def broken(:\n    pass\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 3,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.security",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.resource",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.exception",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "category": "maintainability",
+      "component_id": "project",
+      "confidence": "medium",
+      "evidence": "ESTIMATED",
+      "fingerprint": "sha256:abafd555ac482e22d2620f29279337fa2046aad10fa737ff059e8c2d3799a634",
+      "message": "SyntaxError: invalid syntax",
+      "native_rule_id": "SyntaxError",
+      "primary_location": {
+       "path": "bad.py",
+       "start_line": 1
+      },
+      "provider": "ici.deadcode",
+      "rule_id": "dead.syntaxerror",
+      "severity": "high"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 4.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 4,
+      "unit": "lines",
+      "value": 4.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     }
+    ],
+    "limitations": [
+     "bad.py: SyntaxError",
+     "bad.py: SyntaxError",
+     "bad.py: lexical normalization failed: Python syntax could not be parsed for duplicate-region boundaries",
+     "bad.py:1: syntax invalid — security analysis was not run",
+     "bad.py:1: syntax invalid — resource analysis was not run",
+     "bad.py:1: SyntaxError: invalid syntax — exception analysis was not run",
+     "SyntaxError: invalid syntax",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "bad.py:1: the running interpreter cannot parse this source — it was not checked",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "project.python.complexity: bad.py: SyntaxError",
+      "project.python.cognitive: bad.py: SyntaxError",
+      "project.python.dup: bad.py: lexical normalization failed: Python syntax could not be parsed for duplicate-region boundaries",
+      "project.python.security: bad.py:1: syntax invalid — security analysis was not run",
+      "project.python.resource: bad.py:1: syntax invalid — resource analysis was not run",
+      "project.python.exception: bad.py:1: SyntaxError: invalid syntax — exception analysis was not run"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "checks": [
+      {
+       "check_id": "python.line",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.complexity",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.cognitive",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.cycle",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.dup",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.security",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.resource",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.exception",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.dead",
+       "state": "FAILED",
+       "evidence_complete": false
+      },
+      {
+       "check_id": "python.compat",
+       "state": "FAILED",
+       "evidence_complete": false
+      }
+     ],
+     "findings": [],
+     "metrics": [
+      {
+       "evidence": "MEASURED",
+       "name": "lines_total",
+       "unit": "lines",
+       "value": 4.0
+      },
+      {
+       "denominator": 4,
+       "evidence": "MEASURED",
+       "name": "lines_code",
+       "numerator": 4,
+       "unit": "lines",
+       "value": 4.0
+      },
+      {
+       "denominator": 4,
+       "evidence": "MEASURED",
+       "name": "lines_comment",
+       "numerator": 0,
+       "unit": "lines",
+       "value": 0.0
+      },
+      {
+       "denominator": 4,
+       "evidence": "MEASURED",
+       "name": "lines_blank",
+       "numerator": 0,
+       "unit": "lines",
+       "value": 0.0
+      },
+      {
+       "denominator": 2,
+       "evidence": "MEASURED",
+       "name": "files_counted",
+       "numerator": 2,
+       "unit": "files",
+       "value": 2.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "functions_measured",
+       "unit": "functions",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "max_complexity",
+       "unit": "complexity",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "functions_measured",
+       "unit": "functions",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "max_cognitive",
+       "unit": "cognitive",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "cycles_found",
+       "unit": "cycles",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      }
+     ],
+     "limitations": [
+      "bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+      "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+      "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ],
+     "gate": {
+      "has_violations": false,
+      "reasons": [
+       "project.python.complexity: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.cognitive: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.cycle: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.dup: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.security: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.resource: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.exception: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.dead: bad.py:1:12: invalid-syntax: Python source contains a syntax error; recovered AST was not analyzed",
+       "project.python.compat: static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility"
+      ],
+      "selected": "INCOMPLETE",
+      "workspace": "NOT_EVALUATED"
+     }
+    },
+    "reasons": {
+     "checks": "An unparsable selected file is incomplete evidence for every native Python check (cycle, dead and compat included); the original cycle/dead/compat checks claimed SUCCEEDED, dead emitted an estimated dead.syntaxerror finding and counted the unparsed file. The gate stays INCOMPLETE and the limitation carries the exact parser location.",
+     "findings": "An unparsable selected file is incomplete evidence for every native Python check (cycle, dead and compat included); the original cycle/dead/compat checks claimed SUCCEEDED, dead emitted an estimated dead.syntaxerror finding and counted the unparsed file. The gate stays INCOMPLETE and the limitation carries the exact parser location.",
+     "metrics": "An unparsable selected file is incomplete evidence for every native Python check (cycle, dead and compat included); the original cycle/dead/compat checks claimed SUCCEEDED, dead emitted an estimated dead.syntaxerror finding and counted the unparsed file. The gate stays INCOMPLETE and the limitation carries the exact parser location.",
+     "limitations": "An unparsable selected file is incomplete evidence for every native Python check (cycle, dead and compat included); the original cycle/dead/compat checks claimed SUCCEEDED, dead emitted an estimated dead.syntaxerror finding and counted the unparsed file. The gate stays INCOMPLETE and the limitation carries the exact parser location.",
+     "gate": "An unparsable selected file is incomplete evidence for every native Python check (cycle, dead and compat included); the original cycle/dead/compat checks claimed SUCCEEDED, dead emitted an estimated dead.syntaxerror finding and counted the unparsed file. The gate stays INCOMPLETE and the limitation carries the exact parser location."
+    }
+   }
+  },
+  {
+   "id": "generated-and-vendor-exclusions",
+   "files": {
+    "main.py": "import pickle\n\n\ndef load(x):\n    return pickle.loads(x)\n",
+    "vendor/lib.py": "import pickle\n\n\ndef load(x):\n    return pickle.loads(x)\n",
+    "generated/api.py": "def _hidden():\n    return 1\n",
+    "ui_form.py": "PASSWORD = 'hunter2hunter2xx'\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.security",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.resource",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.exception",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:b05ad1153d754cf582d22717cbcfc4da43d1eec832eb62d7934edd5af8960acb",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "native_rule_id": "Security:PickleLoad",
+      "primary_location": {
+       "end_column": 26,
+       "end_line": 5,
+       "path": "main.py",
+       "start_column": 12,
+       "start_line": 5
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.pickleload",
+      "severity": "high"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 13.0
+     },
+     {
+      "denominator": 13,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 9,
+      "unit": "lines",
+      "value": 9.0
+     },
+     {
+      "denominator": 13,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 13,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 4,
+      "unit": "lines",
+      "value": 4.0
+     },
+     {
+      "denominator": 4,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 4,
+      "unit": "files",
+      "value": 4.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 3.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 3.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     }
+    ],
+    "limitations": [
+     "excluded generated/api.py: generated",
+     "excluded ui_form.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "excluded generated/api.py: generated",
+     "excluded ui_form.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded ui_form.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded ui_form.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded ui_form.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded ui_form.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "1 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "excluded generated/api.py: generated",
+      "excluded ui_form.py: generated",
+      "excluded vendor/lib.py: vendor",
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+      "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "limitations": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named. Native python.dead states its static-heuristic evidence boundary explicitly; findings stay ESTIMATED as before."
+    }
+   }
+  },
+  {
+   "id": "all-sources-excluded",
+   "files": {
+    "vendor/lib.py": "import pickle\n\n\ndef load(x):\n    return pickle.loads(x)\n",
+    "generated/api.py": "def _hidden():\n    return 1\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 0,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.security",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.resource",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.exception",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 7.0
+     },
+     {
+      "denominator": 7,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 5,
+      "unit": "lines",
+      "value": 5.0
+     },
+     {
+      "denominator": 7,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 7,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 0.0
+     }
+    ],
+    "limitations": [
+     "excluded generated/api.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "excluded generated/api.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "excluded generated/api.py: generated",
+     "excluded vendor/lib.py: vendor",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "metrics": [
+      {
+       "evidence": "MEASURED",
+       "name": "lines_total",
+       "unit": "lines",
+       "value": 7.0
+      },
+      {
+       "denominator": 7,
+       "evidence": "MEASURED",
+       "name": "lines_code",
+       "numerator": 5,
+       "unit": "lines",
+       "value": 5.0
+      },
+      {
+       "denominator": 7,
+       "evidence": "MEASURED",
+       "name": "lines_comment",
+       "numerator": 0,
+       "unit": "lines",
+       "value": 0.0
+      },
+      {
+       "denominator": 7,
+       "evidence": "MEASURED",
+       "name": "lines_blank",
+       "numerator": 2,
+       "unit": "lines",
+       "value": 2.0
+      },
+      {
+       "denominator": 2,
+       "evidence": "MEASURED",
+       "name": "files_counted",
+       "numerator": 2,
+       "unit": "files",
+       "value": 2.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "functions_measured",
+       "unit": "functions",
+       "value": 2.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "max_complexity",
+       "unit": "complexity",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "functions_measured",
+       "unit": "functions",
+       "value": 2.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "max_cognitive",
+       "unit": "cognitive",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "cycles_found",
+       "unit": "cycles",
+       "value": 0.0
+      },
+      {
+       "evidence": "NOT_APPLICABLE",
+       "name": "applicability",
+       "unit": "checks",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 0.0
+      },
+      {
+       "evidence": "NOT_APPLICABLE",
+       "name": "applicability",
+       "unit": "checks",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 0.0
+      },
+      {
+       "evidence": "NOT_APPLICABLE",
+       "name": "applicability",
+       "unit": "checks",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 0.0
+      },
+      {
+       "evidence": "NOT_APPLICABLE",
+       "name": "applicability",
+       "unit": "checks",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 0.0
+      },
+      {
+       "evidence": "NOT_APPLICABLE",
+       "name": "applicability",
+       "unit": "checks",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 0.0
+      },
+      {
+       "evidence": "NOT_APPLICABLE",
+       "name": "applicability",
+       "unit": "checks",
+       "value": 0.0
+      }
+     ],
+     "limitations": [
+      "excluded generated/api.py: generated",
+      "excluded vendor/lib.py: vendor",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "metrics": "When every selected source is excluded by the generated/vendor policy, native security/resource/exception/dead/compat/dup are SKIP with NOT_APPLICABLE applicability and files_checked=0 instead of measured zero issue/duplicate counts; the gate stays PASS.",
+     "limitations": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named. Static compat floor wording is emitted only when files were scanned."
+    }
+   }
+  },
+  {
+   "id": "metric-thresholds",
+   "files": {
+    "main.py": "def busy(a, b, c, d):\n    if a > 0:\n        if b:\n            if c:\n                if d:\n                    if a and b or c and d:\n                        a += 0\n    if a > 1:\n        if b:\n            if c:\n                if d:\n                    if a and b or c and d:\n                        a += 1\n    if a > 2:\n        if b:\n            if c:\n                if d:\n                    if a and b or c and d:\n                        a += 2\n    if a > 3:\n        if b:\n            if c:\n                if d:\n                    if a and b or c and d:\n                        a += 3\n    if a > 4:\n        if b:\n            if c:\n                if d:\n                    if a and b or c and d:\n                        a += 4\n    if a > 5:\n        if b:\n            if c:\n                if d:\n                    if a and b or c and d:\n                        a += 5\n    return a\n\n\ndef calm(x):\n    return x\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.security",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.resource",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.exception",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:6d093e9d53fc5aa148f9a438e411fd85a2d32518331811fc867b3bce472aa80d",
+      "message": "busy: complexity 49 exceeds fail limit 25",
+      "primary_location": {
+       "end_line": 38,
+       "path": "main.py",
+       "start_line": 1
+      },
+      "provider": "ici.metrics",
+      "rule_id": "metrics.complexity",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:7fcdef5b1a81536ad90a0419f6b7ce1070619132f515efcdd4793bd42e5a04d8",
+      "message": "busy: cognitive 198 exceeds fail limit 60",
+      "primary_location": {
+       "end_line": 38,
+       "path": "main.py",
+       "start_line": 1
+      },
+      "provider": "ici.metrics",
+      "rule_id": "metrics.cognitive",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:07318e9f35119d9375296f4c9807a71dfb26a7fd4b7801e1e500d60705dda65a",
+      "message": "duplicate block (17 lines, group #1) shared across 2 locations",
+      "primary_location": {
+       "end_line": 19,
+       "path": "main.py",
+       "start_line": 3
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:cacfd149ea94b601882d7b960f906d37186ff1934b80eaefa4e3e5f99da7d3d9",
+      "message": "duplicate block (17 lines, group #1) shared across 2 locations",
+      "primary_location": {
+       "end_line": 37,
+       "path": "main.py",
+       "start_line": 21
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:dc45393d34d6642b705b565c83ae0e84c00afc9bdf21e1f4977eb11129497081",
+      "message": "duplicate block (6 lines, group #2) shared across 2 locations",
+      "primary_location": {
+       "end_line": 10,
+       "path": "main.py",
+       "start_line": 5
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:7a36c59291f0d3721bf467edc5bf9711478a5b971067e36d2256c60d5ada23ff",
+      "message": "duplicate block (6 lines, group #2) shared across 2 locations",
+      "primary_location": {
+       "end_line": 16,
+       "path": "main.py",
+       "start_line": 11
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:353fe5645cea07664212319fcdd9822729d929f756747558e1828f8cfd04a58a",
+      "message": "duplicate block (6 lines, group #3) shared across 2 locations",
+      "primary_location": {
+       "end_line": 28,
+       "path": "main.py",
+       "start_line": 23
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:9da3133d0baf000bb1675f824d58ceedf1d01c16dcf8f9714a9d20815c99c66a",
+      "message": "duplicate block (6 lines, group #3) shared across 2 locations",
+      "primary_location": {
+       "end_line": 34,
+       "path": "main.py",
+       "start_line": 29
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 42.0
+     },
+     {
+      "denominator": 42,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 40,
+      "unit": "lines",
+      "value": 40.0
+     },
+     {
+      "denominator": 42,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 42,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 49.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 198.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 3.0
+     },
+     {
+      "denominator": 40,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 23,
+      "unit": "lines",
+      "value": 23.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     }
+    ],
+    "limitations": [
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "8 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+      "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "limitations": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named. Native python.dead states its static-heuristic evidence boundary explicitly; findings stay ESTIMATED as before."
+    }
+   }
+  },
+  {
+   "id": "import-cycle",
+   "files": {
+    "a.py": "import b\n\n\ndef fa():\n    return b.fb\n",
+    "b.py": "import a\n\n\ndef fb():\n    return a.fa\n",
+    "pkg/__init__.py": "from . import mod\n",
+    "pkg/mod.py": "from pkg import other\n",
+    "pkg/other.py": "from . import mod\n"
+   },
+   "checks": [
+    "cycle",
+    "dead",
+    "line"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:fdb07e5ea95a5fef43061196aee261106299208f752a83f3032b44c4e598c572",
+      "message": "import cycle: b -> a -> b",
+      "primary_location": {
+       "path": "b.py",
+       "start_line": 1
+      },
+      "provider": "ici.cycles",
+      "related_locations": [
+       {
+        "path": "a.py",
+        "start_line": 1
+       }
+      ],
+      "rule_id": "cycle.import",
+      "severity": "medium"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 13.0
+     },
+     {
+      "denominator": 13,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 9,
+      "unit": "lines",
+      "value": 9.0
+     },
+     {
+      "denominator": 13,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 13,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 4,
+      "unit": "lines",
+      "value": 4.0
+     },
+     {
+      "denominator": 5,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 5,
+      "unit": "files",
+      "value": 5.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 5.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "1 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "findings": [
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "import cycle: b -> a -> b",
+       "primary_location": {
+        "path": "b.py",
+        "start_line": 1
+       },
+       "provider": "ici.cycles",
+       "related_locations": [
+        {
+         "path": "a.py",
+         "start_line": 1
+        }
+       ],
+       "rule_id": "cycle.import",
+       "severity": "medium"
+      },
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "import cycle: pkg.other -> pkg.mod -> pkg.other",
+       "primary_location": {
+        "path": "pkg/other.py",
+        "start_line": 1
+       },
+       "provider": "ici.cycles",
+       "related_locations": [
+        {
+         "path": "pkg/mod.py",
+         "start_line": 1
+        }
+       ],
+       "rule_id": "cycle.import",
+       "severity": "medium"
+      }
+     ],
+     "metrics": [
+      {
+       "evidence": "MEASURED",
+       "name": "lines_total",
+       "unit": "lines",
+       "value": 13.0
+      },
+      {
+       "denominator": 13,
+       "evidence": "MEASURED",
+       "name": "lines_code",
+       "numerator": 9,
+       "unit": "lines",
+       "value": 9.0
+      },
+      {
+       "denominator": 13,
+       "evidence": "MEASURED",
+       "name": "lines_comment",
+       "numerator": 0,
+       "unit": "lines",
+       "value": 0.0
+      },
+      {
+       "denominator": 13,
+       "evidence": "MEASURED",
+       "name": "lines_blank",
+       "numerator": 4,
+       "unit": "lines",
+       "value": 4.0
+      },
+      {
+       "denominator": 5,
+       "evidence": "MEASURED",
+       "name": "files_counted",
+       "numerator": 5,
+       "unit": "files",
+       "value": 5.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "cycles_found",
+       "unit": "cycles",
+       "value": 2.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 5.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      }
+     ],
+     "limitations": [
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ],
+     "gate": {
+      "has_violations": true,
+      "reasons": [
+       "2 violation(s) found"
+      ],
+      "selected": "FAIL",
+      "workspace": "NOT_EVALUATED"
+     }
+    },
+    "reasons": {
+     "findings": "from-dot child-module imports (from . import mod) are graph edges; the original collector ignored imports with module=None and missed the pkg.mod <-> pkg.other cycle (cycle.json relative-module-name correction).",
+     "metrics": "from-dot child-module imports (from . import mod) are graph edges; the original collector ignored imports with module=None and missed the pkg.mod <-> pkg.other cycle (cycle.json relative-module-name correction).",
+     "limitations": "from-dot child-module imports (from . import mod) are graph edges; the original collector ignored imports with module=None and missed the pkg.mod <-> pkg.other cycle (cycle.json relative-module-name correction). Native python.dead states its static-heuristic evidence boundary explicitly; findings stay ESTIMATED as before.",
+     "gate": "from-dot child-module imports (from . import mod) are graph edges; the original collector ignored imports with module=None and missed the pkg.mod <-> pkg.other cycle (cycle.json relative-module-name correction)."
+    }
+   }
+  },
+  {
+   "id": "duplicate-functions",
+   "files": {
+    "one.py": "def first(values, limit):\n    total = 0\n    for item in values:\n        if item > limit:\n            total += item * 2\n        else:\n            total -= item\n        print(item, total, limit)\n    return total\n",
+    "two.py": "def second(values, limit):\n    total = 0\n    for item in values:\n        if item > limit:\n            total += item * 2\n        else:\n            total -= item\n        print(item, total, limit)\n    return total\n"
+   },
+   "checks": [
+    "dup",
+    "line"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:817d22615d9a4ed3d270e52a8fa4ee1bf031e232c6b63b60aa7a9a217f4d07b5",
+      "message": "duplicate block (9 lines, group #1) shared across 2 locations",
+      "primary_location": {
+       "end_line": 9,
+       "path": "one.py",
+       "start_line": 1
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:a5c7746b007eafd6e6183faeecb81df6eef5ed56d060a1eca318300403634598",
+      "message": "duplicate block (9 lines, group #1) shared across 2 locations",
+      "primary_location": {
+       "end_line": 9,
+       "path": "two.py",
+       "start_line": 1
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 18.0
+     },
+     {
+      "denominator": 18,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 18,
+      "unit": "lines",
+      "value": 18.0
+     },
+     {
+      "denominator": 18,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 18,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 1.0
+     },
+     {
+      "denominator": 18,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 9,
+      "unit": "lines",
+      "value": 9.0
+     }
+    ],
+    "limitations": [
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "2 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "limitations": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named."
+    }
+   }
+  },
+  {
+   "id": "semantic-shape-only-clone",
+   "files": {
+    "left.py": "def left(value):\n    step_0 = (\n        value\n        + 0\n    )\n    step_1 = (\n        value\n        + 1\n    )\n    step_2 = (\n        value\n        + 2\n    )\n    step_3 = (\n        value\n        + 3\n    )\n    step_4 = (\n        value\n        + 4\n    )\n    step_5 = (\n        value\n        + 5\n    )\n    step_6 = (\n        value\n        + 6\n    )\n    step_7 = (\n        value\n        + 7\n    )\n    return step_0 * step_7\n",
+    "right.py": "def right(amount):\n    part_0 = amount + 0\n    part_1 = amount + 1\n    part_2 = amount + 2\n    part_3 = amount + 3\n    part_4 = amount + 4\n    part_5 = amount + 5\n    part_6 = amount + 6\n    part_7 = amount + 7\n    return part_0 * part_7\n"
+   },
+   "checks": [
+    "dup"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.dup",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:05ef8e7560b93e1c0359b26b999044e8cd4047085d4a1d7d79cdfcac33417147",
+      "message": "duplicate block (15 lines, group #1) shared across 2 locations",
+      "primary_location": {
+       "end_line": 17,
+       "path": "left.py",
+       "start_line": 3
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:f8414b4a79f233b64d771e5e1b8d2cdb0292ab72d6c6042d49ea742a8a73c797",
+      "message": "duplicate block (15 lines, group #1) shared across 2 locations",
+      "primary_location": {
+       "end_line": 33,
+       "path": "left.py",
+       "start_line": 19
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:ffc40b27f5e6908fd6611bc4bb304191926a91f09f7253f46fd2ac77e1edf4cb",
+      "message": "duplicate block (8 lines, group #2) shared across 2 locations",
+      "primary_location": {
+       "end_line": 10,
+       "path": "left.py",
+       "start_line": 3
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:fb7cc546ec755926066ca2516ba3a2625d78318832a336e2ffc60da1616a24f5",
+      "message": "duplicate block (8 lines, group #2) shared across 2 locations",
+      "primary_location": {
+       "end_line": 18,
+       "path": "left.py",
+       "start_line": 11
+      },
+      "provider": "ici.dup",
+      "rule_id": "dup.type2-clone",
+      "severity": "medium"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 2.0
+     },
+     {
+      "denominator": 44,
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 23,
+      "unit": "lines",
+      "value": 23.0
+     }
+    ],
+    "limitations": [
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "4 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "findings": [
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "duplicate block (15 lines, group #1) shared across 2 locations",
+       "primary_location": {
+        "end_line": 17,
+        "path": "left.py",
+        "start_line": 3
+       },
+       "provider": "ici.dup",
+       "rule_id": "dup.type2-clone",
+       "severity": "medium"
+      },
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "duplicate block (15 lines, group #1) shared across 2 locations",
+       "primary_location": {
+        "end_line": 33,
+        "path": "left.py",
+        "start_line": 19
+       },
+       "provider": "ici.dup",
+       "rule_id": "dup.type2-clone",
+       "severity": "medium"
+      },
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "duplicate block (8 lines, group #2) shared across 2 locations",
+       "primary_location": {
+        "end_line": 10,
+        "path": "left.py",
+        "start_line": 3
+       },
+       "provider": "ici.dup",
+       "rule_id": "dup.type2-clone",
+       "severity": "medium"
+      },
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "duplicate block (8 lines, group #2) shared across 2 locations",
+       "primary_location": {
+        "end_line": 18,
+        "path": "left.py",
+        "start_line": 11
+       },
+       "provider": "ici.dup",
+       "rule_id": "dup.type2-clone",
+       "severity": "medium"
+      },
+      {
+       "category": "maintainability",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "ESTIMATED",
+       "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+       "primary_location": {
+        "end_line": 34,
+        "path": "left.py",
+        "start_line": 1
+       },
+       "provider": "ici.dup",
+       "rule_id": "dup.python-semantic-shape",
+       "severity": "medium"
+      },
+      {
+       "category": "maintainability",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "ESTIMATED",
+       "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+       "primary_location": {
+        "end_line": 10,
+        "path": "right.py",
+        "start_line": 1
+       },
+       "provider": "ici.dup",
+       "rule_id": "dup.python-semantic-shape",
+       "severity": "medium"
+      }
+     ],
+     "metrics": [
+      {
+       "evidence": "MEASURED",
+       "name": "clone_groups",
+       "unit": "groups",
+       "value": 3.0
+      },
+      {
+       "denominator": 44,
+       "evidence": "MEASURED",
+       "name": "duplicated_lines",
+       "numerator": 33,
+       "unit": "lines",
+       "value": 33.0
+      }
+     ],
+     "limitations": [
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "findings": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named.",
+     "metrics": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named.",
+     "limitations": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named."
+    }
+   }
+  },
+  {
+   "id": "dead-private-and-unreachable",
+   "files": {
+    "main.py": "def _unused():\n    return 1\n\n\ndef _used():\n    return 2\n\n\ndef public():\n    return _used()\n    print('never')\n"
+   },
+   "checks": [
+    "dead"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 0,
+    "checks": [
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "category": "maintainability",
+      "component_id": "project",
+      "confidence": "medium",
+      "evidence": "ESTIMATED",
+      "fingerprint": "sha256:d8de9e291ea0772e473b09061c6b8d56412d9608a2fa20b1d7de2b18d1dfbc0b",
+      "message": "Private module-level function '_unused' is never referenced",
+      "native_rule_id": "_unused()",
+      "primary_location": {
+       "end_line": 2,
+       "path": "main.py",
+       "start_line": 1
+      },
+      "provider": "ici.deadcode",
+      "rule_id": "dead.-unused()",
+      "severity": "medium"
+     },
+     {
+      "category": "maintainability",
+      "component_id": "project",
+      "confidence": "medium",
+      "evidence": "ESTIMATED",
+      "fingerprint": "sha256:18a2fa840dd6887b5bd6a2c8c66dc069148442159cf0b7e5af0048f8e58a8a72",
+      "message": "Unreachable code statement detected after terminal return/raise",
+      "native_rule_id": "UnreachableCode",
+      "primary_location": {
+       "end_column": 18,
+       "end_line": 11,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 11
+      },
+      "provider": "ici.deadcode",
+      "rule_id": "dead.unreachablecode",
+      "severity": "medium"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 2.0
+     }
+    ],
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "limitations": "Native python.dead states its static-heuristic evidence boundary explicitly; findings stay ESTIMATED as before."
+    }
+   }
+  },
+  {
+   "id": "compat-floor",
+   "files": {
+    "pyproject.toml": "[project]\nname = \"demo\"\nversion = \"1\"\nrequires-python = \">=3.8\"\n",
+    "main.py": "import tomllib\n\n\ndef parse(value):\n    if (n := len(value)) > 1:\n        match n:\n            case 2:\n                return tomllib\n    return value.removeprefix('x')\n"
+   },
+   "checks": [
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "category": "compatibility",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:277137c3c45e9364c79d5ca44db2def7f805ca66523a96450c8c8cd26994bb9e",
+      "message": "tomllib requires Python 3.11 or newer",
+      "native_rule_id": "Compatibility:StandardLibraryFloor",
+      "primary_location": {
+       "end_column": 14,
+       "end_line": 1,
+       "path": "main.py",
+       "start_column": 1,
+       "start_line": 1
+      },
+      "provider": "ici.compat",
+      "rule_id": "python.compat.standard-library-floor",
+      "severity": "medium"
+     },
+     {
+      "category": "compatibility",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:2625e9e16d72f07483e5f045b3b5dd4b5ef74852a2544e62500005c08237eb9e",
+      "message": "Syntax is not accepted by configured Python 3.8 floor",
+      "native_rule_id": "Compatibility:SyntaxFloor",
+      "primary_location": {
+       "path": "main.py",
+       "start_column": 4,
+       "start_line": 9
+      },
+      "provider": "ici.compat",
+      "rule_id": "python.compat.syntax-floor",
+      "severity": "medium"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     }
+    ],
+    "limitations": [
+     "floor asserted: Python 3.8 (from requires-python '>=3.8')",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "2 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "tomllib requires Python 3.11 or newer",
+       "native_rule_id": "Compatibility:StandardLibraryFloor",
+       "primary_location": {
+        "end_column": 14,
+        "end_line": 1,
+        "path": "main.py",
+        "start_column": 1,
+        "start_line": 1
+       },
+       "provider": "ici.compat",
+       "rule_id": "python.compat.standard-library-floor",
+       "severity": "medium"
+      },
+      {
+       "category": "compatibility",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "Syntax is not accepted by configured Python 3.8 floor",
+       "native_rule_id": "Compatibility:SyntaxFloor",
+       "primary_location": {
+        "path": "main.py",
+        "start_column": 9,
+        "start_line": 6
+       },
+       "provider": "ici.compat",
+       "rule_id": "python.compat.syntax-floor",
+       "severity": "medium"
+      }
+     ]
+    },
+    "reasons": {
+     "findings": "Syntax-floor location is the pinned parser's first unsupported-syntax location (match statement, line 6 column 9) instead of CPython feature_version's misleading later location (compat-static.json parser-specific floor correction)."
+    }
+   }
+  },
+  {
+   "id": "compat-without-floor",
+   "files": {
+    "main.py": "def f(x):\n    match x:\n        case 1:\n            return 1\n"
+   },
+   "checks": [
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 0,
+    "checks": [
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     }
+    ],
+    "limitations": [
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {},
+    "reasons": {}
+   }
+  },
+  {
+   "id": "line-file-size",
+   "files": {
+    "long.py": "value_0 = 0\nvalue_1 = 1\nvalue_2 = 2\nvalue_3 = 3\nvalue_4 = 4\nvalue_5 = 5\nvalue_6 = 6\nvalue_7 = 7\nvalue_8 = 8\nvalue_9 = 9\nvalue_10 = 10\nvalue_11 = 11\nvalue_12 = 12\nvalue_13 = 13\nvalue_14 = 14\nvalue_15 = 15\nvalue_16 = 16\nvalue_17 = 17\nvalue_18 = 18\nvalue_19 = 19\nvalue_20 = 20\nvalue_21 = 21\nvalue_22 = 22\nvalue_23 = 23\nvalue_24 = 24\nvalue_25 = 25\nvalue_26 = 26\nvalue_27 = 27\nvalue_28 = 28\nvalue_29 = 29\nvalue_30 = 30\nvalue_31 = 31\nvalue_32 = 32\nvalue_33 = 33\nvalue_34 = 34\nvalue_35 = 35\nvalue_36 = 36\nvalue_37 = 37\nvalue_38 = 38\nvalue_39 = 39\nvalue_40 = 40\nvalue_41 = 41\nvalue_42 = 42\nvalue_43 = 43\nvalue_44 = 44\nvalue_45 = 45\nvalue_46 = 46\nvalue_47 = 47\nvalue_48 = 48\nvalue_49 = 49\nvalue_50 = 50\nvalue_51 = 51\nvalue_52 = 52\nvalue_53 = 53\nvalue_54 = 54\nvalue_55 = 55\nvalue_56 = 56\nvalue_57 = 57\nvalue_58 = 58\nvalue_59 = 59\nvalue_60 = 60\nvalue_61 = 61\nvalue_62 = 62\nvalue_63 = 63\nvalue_64 = 64\nvalue_65 = 65\nvalue_66 = 66\nvalue_67 = 67\nvalue_68 = 68\nvalue_69 = 69\nvalue_70 = 70\nvalue_71 = 71\nvalue_72 = 72\nvalue_73 = 73\nvalue_74 = 74\nvalue_75 = 75\nvalue_76 = 76\nvalue_77 = 77\nvalue_78 = 78\nvalue_79 = 79\nvalue_80 = 80\nvalue_81 = 81\nvalue_82 = 82\nvalue_83 = 83\nvalue_84 = 84\nvalue_85 = 85\nvalue_86 = 86\nvalue_87 = 87\nvalue_88 = 88\nvalue_89 = 89\nvalue_90 = 90\nvalue_91 = 91\nvalue_92 = 92\nvalue_93 = 93\nvalue_94 = 94\nvalue_95 = 95\nvalue_96 = 96\nvalue_97 = 97\nvalue_98 = 98\nvalue_99 = 99\nvalue_100 = 100\nvalue_101 = 101\nvalue_102 = 102\nvalue_103 = 103\nvalue_104 = 104\nvalue_105 = 105\nvalue_106 = 106\nvalue_107 = 107\nvalue_108 = 108\nvalue_109 = 109\nvalue_110 = 110\nvalue_111 = 111\nvalue_112 = 112\nvalue_113 = 113\nvalue_114 = 114\nvalue_115 = 115\nvalue_116 = 116\nvalue_117 = 117\nvalue_118 = 118\nvalue_119 = 119\nvalue_120 = 120\nvalue_121 = 121\nvalue_122 = 122\nvalue_123 = 123\nvalue_124 = 124\nvalue_125 = 125\nvalue_126 = 126\nvalue_127 = 127\nvalue_128 = 128\nvalue_129 = 129\nvalue_130 = 130\nvalue_131 = 131\nvalue_132 = 132\nvalue_133 = 133\nvalue_134 = 134\nvalue_135 = 135\nvalue_136 = 136\nvalue_137 = 137\nvalue_138 = 138\nvalue_139 = 139\nvalue_140 = 140\nvalue_141 = 141\nvalue_142 = 142\nvalue_143 = 143\nvalue_144 = 144\nvalue_145 = 145\nvalue_146 = 146\nvalue_147 = 147\nvalue_148 = 148\nvalue_149 = 149\nvalue_150 = 150\nvalue_151 = 151\nvalue_152 = 152\nvalue_153 = 153\nvalue_154 = 154\nvalue_155 = 155\nvalue_156 = 156\nvalue_157 = 157\nvalue_158 = 158\nvalue_159 = 159\nvalue_160 = 160\nvalue_161 = 161\nvalue_162 = 162\nvalue_163 = 163\nvalue_164 = 164\nvalue_165 = 165\nvalue_166 = 166\nvalue_167 = 167\nvalue_168 = 168\nvalue_169 = 169\nvalue_170 = 170\nvalue_171 = 171\nvalue_172 = 172\nvalue_173 = 173\nvalue_174 = 174\nvalue_175 = 175\nvalue_176 = 176\nvalue_177 = 177\nvalue_178 = 178\nvalue_179 = 179\nvalue_180 = 180\nvalue_181 = 181\nvalue_182 = 182\nvalue_183 = 183\nvalue_184 = 184\nvalue_185 = 185\nvalue_186 = 186\nvalue_187 = 187\nvalue_188 = 188\nvalue_189 = 189\nvalue_190 = 190\nvalue_191 = 191\nvalue_192 = 192\nvalue_193 = 193\nvalue_194 = 194\nvalue_195 = 195\nvalue_196 = 196\nvalue_197 = 197\nvalue_198 = 198\nvalue_199 = 199\nvalue_200 = 200\nvalue_201 = 201\nvalue_202 = 202\nvalue_203 = 203\nvalue_204 = 204\nvalue_205 = 205\nvalue_206 = 206\nvalue_207 = 207\nvalue_208 = 208\nvalue_209 = 209\nvalue_210 = 210\nvalue_211 = 211\nvalue_212 = 212\nvalue_213 = 213\nvalue_214 = 214\nvalue_215 = 215\nvalue_216 = 216\nvalue_217 = 217\nvalue_218 = 218\nvalue_219 = 219\nvalue_220 = 220\nvalue_221 = 221\nvalue_222 = 222\nvalue_223 = 223\nvalue_224 = 224\nvalue_225 = 225\nvalue_226 = 226\nvalue_227 = 227\nvalue_228 = 228\nvalue_229 = 229\nvalue_230 = 230\nvalue_231 = 231\nvalue_232 = 232\nvalue_233 = 233\nvalue_234 = 234\nvalue_235 = 235\nvalue_236 = 236\nvalue_237 = 237\nvalue_238 = 238\nvalue_239 = 239\nvalue_240 = 240\nvalue_241 = 241\nvalue_242 = 242\nvalue_243 = 243\nvalue_244 = 244\nvalue_245 = 245\nvalue_246 = 246\nvalue_247 = 247\nvalue_248 = 248\nvalue_249 = 249\nvalue_250 = 250\nvalue_251 = 251\nvalue_252 = 252\nvalue_253 = 253\nvalue_254 = 254\nvalue_255 = 255\nvalue_256 = 256\nvalue_257 = 257\nvalue_258 = 258\nvalue_259 = 259\nvalue_260 = 260\nvalue_261 = 261\nvalue_262 = 262\nvalue_263 = 263\nvalue_264 = 264\nvalue_265 = 265\nvalue_266 = 266\nvalue_267 = 267\nvalue_268 = 268\nvalue_269 = 269\nvalue_270 = 270\nvalue_271 = 271\nvalue_272 = 272\nvalue_273 = 273\nvalue_274 = 274\nvalue_275 = 275\nvalue_276 = 276\nvalue_277 = 277\nvalue_278 = 278\nvalue_279 = 279\nvalue_280 = 280\nvalue_281 = 281\nvalue_282 = 282\nvalue_283 = 283\nvalue_284 = 284\nvalue_285 = 285\nvalue_286 = 286\nvalue_287 = 287\nvalue_288 = 288\nvalue_289 = 289\nvalue_290 = 290\nvalue_291 = 291\nvalue_292 = 292\nvalue_293 = 293\nvalue_294 = 294\nvalue_295 = 295\nvalue_296 = 296\nvalue_297 = 297\nvalue_298 = 298\nvalue_299 = 299\nvalue_300 = 300\nvalue_301 = 301\nvalue_302 = 302\nvalue_303 = 303\nvalue_304 = 304\nvalue_305 = 305\nvalue_306 = 306\nvalue_307 = 307\nvalue_308 = 308\nvalue_309 = 309\nvalue_310 = 310\nvalue_311 = 311\nvalue_312 = 312\nvalue_313 = 313\nvalue_314 = 314\nvalue_315 = 315\nvalue_316 = 316\nvalue_317 = 317\nvalue_318 = 318\nvalue_319 = 319\nvalue_320 = 320\nvalue_321 = 321\nvalue_322 = 322\nvalue_323 = 323\nvalue_324 = 324\nvalue_325 = 325\nvalue_326 = 326\nvalue_327 = 327\nvalue_328 = 328\nvalue_329 = 329\nvalue_330 = 330\nvalue_331 = 331\nvalue_332 = 332\nvalue_333 = 333\nvalue_334 = 334\nvalue_335 = 335\nvalue_336 = 336\nvalue_337 = 337\nvalue_338 = 338\nvalue_339 = 339\nvalue_340 = 340\nvalue_341 = 341\nvalue_342 = 342\nvalue_343 = 343\nvalue_344 = 344\nvalue_345 = 345\nvalue_346 = 346\nvalue_347 = 347\nvalue_348 = 348\nvalue_349 = 349\nvalue_350 = 350\nvalue_351 = 351\nvalue_352 = 352\nvalue_353 = 353\nvalue_354 = 354\nvalue_355 = 355\nvalue_356 = 356\nvalue_357 = 357\nvalue_358 = 358\nvalue_359 = 359\nvalue_360 = 360\nvalue_361 = 361\nvalue_362 = 362\nvalue_363 = 363\nvalue_364 = 364\nvalue_365 = 365\nvalue_366 = 366\nvalue_367 = 367\nvalue_368 = 368\nvalue_369 = 369\nvalue_370 = 370\nvalue_371 = 371\nvalue_372 = 372\nvalue_373 = 373\nvalue_374 = 374\nvalue_375 = 375\nvalue_376 = 376\nvalue_377 = 377\nvalue_378 = 378\nvalue_379 = 379\nvalue_380 = 380\nvalue_381 = 381\nvalue_382 = 382\nvalue_383 = 383\nvalue_384 = 384\nvalue_385 = 385\nvalue_386 = 386\nvalue_387 = 387\nvalue_388 = 388\nvalue_389 = 389\nvalue_390 = 390\nvalue_391 = 391\nvalue_392 = 392\nvalue_393 = 393\nvalue_394 = 394\nvalue_395 = 395\nvalue_396 = 396\nvalue_397 = 397\nvalue_398 = 398\nvalue_399 = 399\nvalue_400 = 400\nvalue_401 = 401\nvalue_402 = 402\nvalue_403 = 403\nvalue_404 = 404\nvalue_405 = 405\nvalue_406 = 406\nvalue_407 = 407\nvalue_408 = 408\nvalue_409 = 409\nvalue_410 = 410\nvalue_411 = 411\nvalue_412 = 412\nvalue_413 = 413\nvalue_414 = 414\nvalue_415 = 415\nvalue_416 = 416\nvalue_417 = 417\nvalue_418 = 418\nvalue_419 = 419\nvalue_420 = 420\nvalue_421 = 421\nvalue_422 = 422\nvalue_423 = 423\nvalue_424 = 424\nvalue_425 = 425\nvalue_426 = 426\nvalue_427 = 427\nvalue_428 = 428\nvalue_429 = 429\nvalue_430 = 430\nvalue_431 = 431\nvalue_432 = 432\nvalue_433 = 433\nvalue_434 = 434\nvalue_435 = 435\nvalue_436 = 436\nvalue_437 = 437\nvalue_438 = 438\nvalue_439 = 439\nvalue_440 = 440\nvalue_441 = 441\nvalue_442 = 442\nvalue_443 = 443\nvalue_444 = 444\nvalue_445 = 445\nvalue_446 = 446\nvalue_447 = 447\nvalue_448 = 448\nvalue_449 = 449\nvalue_450 = 450\nvalue_451 = 451\nvalue_452 = 452\nvalue_453 = 453\nvalue_454 = 454\nvalue_455 = 455\nvalue_456 = 456\nvalue_457 = 457\nvalue_458 = 458\nvalue_459 = 459\nvalue_460 = 460\nvalue_461 = 461\nvalue_462 = 462\nvalue_463 = 463\nvalue_464 = 464\nvalue_465 = 465\nvalue_466 = 466\nvalue_467 = 467\nvalue_468 = 468\nvalue_469 = 469\nvalue_470 = 470\nvalue_471 = 471\nvalue_472 = 472\nvalue_473 = 473\nvalue_474 = 474\nvalue_475 = 475\nvalue_476 = 476\nvalue_477 = 477\nvalue_478 = 478\nvalue_479 = 479\nvalue_480 = 480\nvalue_481 = 481\nvalue_482 = 482\nvalue_483 = 483\nvalue_484 = 484\nvalue_485 = 485\nvalue_486 = 486\nvalue_487 = 487\nvalue_488 = 488\nvalue_489 = 489\nvalue_490 = 490\nvalue_491 = 491\nvalue_492 = 492\nvalue_493 = 493\nvalue_494 = 494\nvalue_495 = 495\nvalue_496 = 496\nvalue_497 = 497\nvalue_498 = 498\nvalue_499 = 499\nvalue_500 = 500\nvalue_501 = 501\nvalue_502 = 502\nvalue_503 = 503\nvalue_504 = 504\nvalue_505 = 505\nvalue_506 = 506\nvalue_507 = 507\nvalue_508 = 508\nvalue_509 = 509\nvalue_510 = 510\nvalue_511 = 511\nvalue_512 = 512\nvalue_513 = 513\nvalue_514 = 514\nvalue_515 = 515\nvalue_516 = 516\nvalue_517 = 517\nvalue_518 = 518\nvalue_519 = 519\n",
+    "huge.py": "value_0 = 0\nvalue_1 = 1\nvalue_2 = 2\nvalue_3 = 3\nvalue_4 = 4\nvalue_5 = 5\nvalue_6 = 6\nvalue_7 = 7\nvalue_8 = 8\nvalue_9 = 9\nvalue_10 = 10\nvalue_11 = 11\nvalue_12 = 12\nvalue_13 = 13\nvalue_14 = 14\nvalue_15 = 15\nvalue_16 = 16\nvalue_17 = 17\nvalue_18 = 18\nvalue_19 = 19\nvalue_20 = 20\nvalue_21 = 21\nvalue_22 = 22\nvalue_23 = 23\nvalue_24 = 24\nvalue_25 = 25\nvalue_26 = 26\nvalue_27 = 27\nvalue_28 = 28\nvalue_29 = 29\nvalue_30 = 30\nvalue_31 = 31\nvalue_32 = 32\nvalue_33 = 33\nvalue_34 = 34\nvalue_35 = 35\nvalue_36 = 36\nvalue_37 = 37\nvalue_38 = 38\nvalue_39 = 39\nvalue_40 = 40\nvalue_41 = 41\nvalue_42 = 42\nvalue_43 = 43\nvalue_44 = 44\nvalue_45 = 45\nvalue_46 = 46\nvalue_47 = 47\nvalue_48 = 48\nvalue_49 = 49\nvalue_50 = 50\nvalue_51 = 51\nvalue_52 = 52\nvalue_53 = 53\nvalue_54 = 54\nvalue_55 = 55\nvalue_56 = 56\nvalue_57 = 57\nvalue_58 = 58\nvalue_59 = 59\nvalue_60 = 60\nvalue_61 = 61\nvalue_62 = 62\nvalue_63 = 63\nvalue_64 = 64\nvalue_65 = 65\nvalue_66 = 66\nvalue_67 = 67\nvalue_68 = 68\nvalue_69 = 69\nvalue_70 = 70\nvalue_71 = 71\nvalue_72 = 72\nvalue_73 = 73\nvalue_74 = 74\nvalue_75 = 75\nvalue_76 = 76\nvalue_77 = 77\nvalue_78 = 78\nvalue_79 = 79\nvalue_80 = 80\nvalue_81 = 81\nvalue_82 = 82\nvalue_83 = 83\nvalue_84 = 84\nvalue_85 = 85\nvalue_86 = 86\nvalue_87 = 87\nvalue_88 = 88\nvalue_89 = 89\nvalue_90 = 90\nvalue_91 = 91\nvalue_92 = 92\nvalue_93 = 93\nvalue_94 = 94\nvalue_95 = 95\nvalue_96 = 96\nvalue_97 = 97\nvalue_98 = 98\nvalue_99 = 99\nvalue_100 = 100\nvalue_101 = 101\nvalue_102 = 102\nvalue_103 = 103\nvalue_104 = 104\nvalue_105 = 105\nvalue_106 = 106\nvalue_107 = 107\nvalue_108 = 108\nvalue_109 = 109\nvalue_110 = 110\nvalue_111 = 111\nvalue_112 = 112\nvalue_113 = 113\nvalue_114 = 114\nvalue_115 = 115\nvalue_116 = 116\nvalue_117 = 117\nvalue_118 = 118\nvalue_119 = 119\nvalue_120 = 120\nvalue_121 = 121\nvalue_122 = 122\nvalue_123 = 123\nvalue_124 = 124\nvalue_125 = 125\nvalue_126 = 126\nvalue_127 = 127\nvalue_128 = 128\nvalue_129 = 129\nvalue_130 = 130\nvalue_131 = 131\nvalue_132 = 132\nvalue_133 = 133\nvalue_134 = 134\nvalue_135 = 135\nvalue_136 = 136\nvalue_137 = 137\nvalue_138 = 138\nvalue_139 = 139\nvalue_140 = 140\nvalue_141 = 141\nvalue_142 = 142\nvalue_143 = 143\nvalue_144 = 144\nvalue_145 = 145\nvalue_146 = 146\nvalue_147 = 147\nvalue_148 = 148\nvalue_149 = 149\nvalue_150 = 150\nvalue_151 = 151\nvalue_152 = 152\nvalue_153 = 153\nvalue_154 = 154\nvalue_155 = 155\nvalue_156 = 156\nvalue_157 = 157\nvalue_158 = 158\nvalue_159 = 159\nvalue_160 = 160\nvalue_161 = 161\nvalue_162 = 162\nvalue_163 = 163\nvalue_164 = 164\nvalue_165 = 165\nvalue_166 = 166\nvalue_167 = 167\nvalue_168 = 168\nvalue_169 = 169\nvalue_170 = 170\nvalue_171 = 171\nvalue_172 = 172\nvalue_173 = 173\nvalue_174 = 174\nvalue_175 = 175\nvalue_176 = 176\nvalue_177 = 177\nvalue_178 = 178\nvalue_179 = 179\nvalue_180 = 180\nvalue_181 = 181\nvalue_182 = 182\nvalue_183 = 183\nvalue_184 = 184\nvalue_185 = 185\nvalue_186 = 186\nvalue_187 = 187\nvalue_188 = 188\nvalue_189 = 189\nvalue_190 = 190\nvalue_191 = 191\nvalue_192 = 192\nvalue_193 = 193\nvalue_194 = 194\nvalue_195 = 195\nvalue_196 = 196\nvalue_197 = 197\nvalue_198 = 198\nvalue_199 = 199\nvalue_200 = 200\nvalue_201 = 201\nvalue_202 = 202\nvalue_203 = 203\nvalue_204 = 204\nvalue_205 = 205\nvalue_206 = 206\nvalue_207 = 207\nvalue_208 = 208\nvalue_209 = 209\nvalue_210 = 210\nvalue_211 = 211\nvalue_212 = 212\nvalue_213 = 213\nvalue_214 = 214\nvalue_215 = 215\nvalue_216 = 216\nvalue_217 = 217\nvalue_218 = 218\nvalue_219 = 219\nvalue_220 = 220\nvalue_221 = 221\nvalue_222 = 222\nvalue_223 = 223\nvalue_224 = 224\nvalue_225 = 225\nvalue_226 = 226\nvalue_227 = 227\nvalue_228 = 228\nvalue_229 = 229\nvalue_230 = 230\nvalue_231 = 231\nvalue_232 = 232\nvalue_233 = 233\nvalue_234 = 234\nvalue_235 = 235\nvalue_236 = 236\nvalue_237 = 237\nvalue_238 = 238\nvalue_239 = 239\nvalue_240 = 240\nvalue_241 = 241\nvalue_242 = 242\nvalue_243 = 243\nvalue_244 = 244\nvalue_245 = 245\nvalue_246 = 246\nvalue_247 = 247\nvalue_248 = 248\nvalue_249 = 249\nvalue_250 = 250\nvalue_251 = 251\nvalue_252 = 252\nvalue_253 = 253\nvalue_254 = 254\nvalue_255 = 255\nvalue_256 = 256\nvalue_257 = 257\nvalue_258 = 258\nvalue_259 = 259\nvalue_260 = 260\nvalue_261 = 261\nvalue_262 = 262\nvalue_263 = 263\nvalue_264 = 264\nvalue_265 = 265\nvalue_266 = 266\nvalue_267 = 267\nvalue_268 = 268\nvalue_269 = 269\nvalue_270 = 270\nvalue_271 = 271\nvalue_272 = 272\nvalue_273 = 273\nvalue_274 = 274\nvalue_275 = 275\nvalue_276 = 276\nvalue_277 = 277\nvalue_278 = 278\nvalue_279 = 279\nvalue_280 = 280\nvalue_281 = 281\nvalue_282 = 282\nvalue_283 = 283\nvalue_284 = 284\nvalue_285 = 285\nvalue_286 = 286\nvalue_287 = 287\nvalue_288 = 288\nvalue_289 = 289\nvalue_290 = 290\nvalue_291 = 291\nvalue_292 = 292\nvalue_293 = 293\nvalue_294 = 294\nvalue_295 = 295\nvalue_296 = 296\nvalue_297 = 297\nvalue_298 = 298\nvalue_299 = 299\nvalue_300 = 300\nvalue_301 = 301\nvalue_302 = 302\nvalue_303 = 303\nvalue_304 = 304\nvalue_305 = 305\nvalue_306 = 306\nvalue_307 = 307\nvalue_308 = 308\nvalue_309 = 309\nvalue_310 = 310\nvalue_311 = 311\nvalue_312 = 312\nvalue_313 = 313\nvalue_314 = 314\nvalue_315 = 315\nvalue_316 = 316\nvalue_317 = 317\nvalue_318 = 318\nvalue_319 = 319\nvalue_320 = 320\nvalue_321 = 321\nvalue_322 = 322\nvalue_323 = 323\nvalue_324 = 324\nvalue_325 = 325\nvalue_326 = 326\nvalue_327 = 327\nvalue_328 = 328\nvalue_329 = 329\nvalue_330 = 330\nvalue_331 = 331\nvalue_332 = 332\nvalue_333 = 333\nvalue_334 = 334\nvalue_335 = 335\nvalue_336 = 336\nvalue_337 = 337\nvalue_338 = 338\nvalue_339 = 339\nvalue_340 = 340\nvalue_341 = 341\nvalue_342 = 342\nvalue_343 = 343\nvalue_344 = 344\nvalue_345 = 345\nvalue_346 = 346\nvalue_347 = 347\nvalue_348 = 348\nvalue_349 = 349\nvalue_350 = 350\nvalue_351 = 351\nvalue_352 = 352\nvalue_353 = 353\nvalue_354 = 354\nvalue_355 = 355\nvalue_356 = 356\nvalue_357 = 357\nvalue_358 = 358\nvalue_359 = 359\nvalue_360 = 360\nvalue_361 = 361\nvalue_362 = 362\nvalue_363 = 363\nvalue_364 = 364\nvalue_365 = 365\nvalue_366 = 366\nvalue_367 = 367\nvalue_368 = 368\nvalue_369 = 369\nvalue_370 = 370\nvalue_371 = 371\nvalue_372 = 372\nvalue_373 = 373\nvalue_374 = 374\nvalue_375 = 375\nvalue_376 = 376\nvalue_377 = 377\nvalue_378 = 378\nvalue_379 = 379\nvalue_380 = 380\nvalue_381 = 381\nvalue_382 = 382\nvalue_383 = 383\nvalue_384 = 384\nvalue_385 = 385\nvalue_386 = 386\nvalue_387 = 387\nvalue_388 = 388\nvalue_389 = 389\nvalue_390 = 390\nvalue_391 = 391\nvalue_392 = 392\nvalue_393 = 393\nvalue_394 = 394\nvalue_395 = 395\nvalue_396 = 396\nvalue_397 = 397\nvalue_398 = 398\nvalue_399 = 399\nvalue_400 = 400\nvalue_401 = 401\nvalue_402 = 402\nvalue_403 = 403\nvalue_404 = 404\nvalue_405 = 405\nvalue_406 = 406\nvalue_407 = 407\nvalue_408 = 408\nvalue_409 = 409\nvalue_410 = 410\nvalue_411 = 411\nvalue_412 = 412\nvalue_413 = 413\nvalue_414 = 414\nvalue_415 = 415\nvalue_416 = 416\nvalue_417 = 417\nvalue_418 = 418\nvalue_419 = 419\nvalue_420 = 420\nvalue_421 = 421\nvalue_422 = 422\nvalue_423 = 423\nvalue_424 = 424\nvalue_425 = 425\nvalue_426 = 426\nvalue_427 = 427\nvalue_428 = 428\nvalue_429 = 429\nvalue_430 = 430\nvalue_431 = 431\nvalue_432 = 432\nvalue_433 = 433\nvalue_434 = 434\nvalue_435 = 435\nvalue_436 = 436\nvalue_437 = 437\nvalue_438 = 438\nvalue_439 = 439\nvalue_440 = 440\nvalue_441 = 441\nvalue_442 = 442\nvalue_443 = 443\nvalue_444 = 444\nvalue_445 = 445\nvalue_446 = 446\nvalue_447 = 447\nvalue_448 = 448\nvalue_449 = 449\nvalue_450 = 450\nvalue_451 = 451\nvalue_452 = 452\nvalue_453 = 453\nvalue_454 = 454\nvalue_455 = 455\nvalue_456 = 456\nvalue_457 = 457\nvalue_458 = 458\nvalue_459 = 459\nvalue_460 = 460\nvalue_461 = 461\nvalue_462 = 462\nvalue_463 = 463\nvalue_464 = 464\nvalue_465 = 465\nvalue_466 = 466\nvalue_467 = 467\nvalue_468 = 468\nvalue_469 = 469\nvalue_470 = 470\nvalue_471 = 471\nvalue_472 = 472\nvalue_473 = 473\nvalue_474 = 474\nvalue_475 = 475\nvalue_476 = 476\nvalue_477 = 477\nvalue_478 = 478\nvalue_479 = 479\nvalue_480 = 480\nvalue_481 = 481\nvalue_482 = 482\nvalue_483 = 483\nvalue_484 = 484\nvalue_485 = 485\nvalue_486 = 486\nvalue_487 = 487\nvalue_488 = 488\nvalue_489 = 489\nvalue_490 = 490\nvalue_491 = 491\nvalue_492 = 492\nvalue_493 = 493\nvalue_494 = 494\nvalue_495 = 495\nvalue_496 = 496\nvalue_497 = 497\nvalue_498 = 498\nvalue_499 = 499\nvalue_500 = 500\nvalue_501 = 501\nvalue_502 = 502\nvalue_503 = 503\nvalue_504 = 504\nvalue_505 = 505\nvalue_506 = 506\nvalue_507 = 507\nvalue_508 = 508\nvalue_509 = 509\nvalue_510 = 510\nvalue_511 = 511\nvalue_512 = 512\nvalue_513 = 513\nvalue_514 = 514\nvalue_515 = 515\nvalue_516 = 516\nvalue_517 = 517\nvalue_518 = 518\nvalue_519 = 519\nvalue_520 = 520\nvalue_521 = 521\nvalue_522 = 522\nvalue_523 = 523\nvalue_524 = 524\nvalue_525 = 525\nvalue_526 = 526\nvalue_527 = 527\nvalue_528 = 528\nvalue_529 = 529\nvalue_530 = 530\nvalue_531 = 531\nvalue_532 = 532\nvalue_533 = 533\nvalue_534 = 534\nvalue_535 = 535\nvalue_536 = 536\nvalue_537 = 537\nvalue_538 = 538\nvalue_539 = 539\nvalue_540 = 540\nvalue_541 = 541\nvalue_542 = 542\nvalue_543 = 543\nvalue_544 = 544\nvalue_545 = 545\nvalue_546 = 546\nvalue_547 = 547\nvalue_548 = 548\nvalue_549 = 549\nvalue_550 = 550\nvalue_551 = 551\nvalue_552 = 552\nvalue_553 = 553\nvalue_554 = 554\nvalue_555 = 555\nvalue_556 = 556\nvalue_557 = 557\nvalue_558 = 558\nvalue_559 = 559\nvalue_560 = 560\nvalue_561 = 561\nvalue_562 = 562\nvalue_563 = 563\nvalue_564 = 564\nvalue_565 = 565\nvalue_566 = 566\nvalue_567 = 567\nvalue_568 = 568\nvalue_569 = 569\nvalue_570 = 570\nvalue_571 = 571\nvalue_572 = 572\nvalue_573 = 573\nvalue_574 = 574\nvalue_575 = 575\nvalue_576 = 576\nvalue_577 = 577\nvalue_578 = 578\nvalue_579 = 579\nvalue_580 = 580\nvalue_581 = 581\nvalue_582 = 582\nvalue_583 = 583\nvalue_584 = 584\nvalue_585 = 585\nvalue_586 = 586\nvalue_587 = 587\nvalue_588 = 588\nvalue_589 = 589\nvalue_590 = 590\nvalue_591 = 591\nvalue_592 = 592\nvalue_593 = 593\nvalue_594 = 594\nvalue_595 = 595\nvalue_596 = 596\nvalue_597 = 597\nvalue_598 = 598\nvalue_599 = 599\nvalue_600 = 600\nvalue_601 = 601\nvalue_602 = 602\nvalue_603 = 603\nvalue_604 = 604\nvalue_605 = 605\nvalue_606 = 606\nvalue_607 = 607\nvalue_608 = 608\nvalue_609 = 609\nvalue_610 = 610\nvalue_611 = 611\nvalue_612 = 612\nvalue_613 = 613\nvalue_614 = 614\nvalue_615 = 615\nvalue_616 = 616\nvalue_617 = 617\nvalue_618 = 618\nvalue_619 = 619\nvalue_620 = 620\nvalue_621 = 621\nvalue_622 = 622\nvalue_623 = 623\nvalue_624 = 624\nvalue_625 = 625\nvalue_626 = 626\nvalue_627 = 627\nvalue_628 = 628\nvalue_629 = 629\nvalue_630 = 630\nvalue_631 = 631\nvalue_632 = 632\nvalue_633 = 633\nvalue_634 = 634\nvalue_635 = 635\nvalue_636 = 636\nvalue_637 = 637\nvalue_638 = 638\nvalue_639 = 639\nvalue_640 = 640\nvalue_641 = 641\nvalue_642 = 642\nvalue_643 = 643\nvalue_644 = 644\nvalue_645 = 645\nvalue_646 = 646\nvalue_647 = 647\nvalue_648 = 648\nvalue_649 = 649\nvalue_650 = 650\nvalue_651 = 651\nvalue_652 = 652\nvalue_653 = 653\nvalue_654 = 654\nvalue_655 = 655\nvalue_656 = 656\nvalue_657 = 657\nvalue_658 = 658\nvalue_659 = 659\nvalue_660 = 660\nvalue_661 = 661\nvalue_662 = 662\nvalue_663 = 663\nvalue_664 = 664\nvalue_665 = 665\nvalue_666 = 666\nvalue_667 = 667\nvalue_668 = 668\nvalue_669 = 669\nvalue_670 = 670\nvalue_671 = 671\nvalue_672 = 672\nvalue_673 = 673\nvalue_674 = 674\nvalue_675 = 675\nvalue_676 = 676\nvalue_677 = 677\nvalue_678 = 678\nvalue_679 = 679\nvalue_680 = 680\nvalue_681 = 681\nvalue_682 = 682\nvalue_683 = 683\nvalue_684 = 684\nvalue_685 = 685\nvalue_686 = 686\nvalue_687 = 687\nvalue_688 = 688\nvalue_689 = 689\nvalue_690 = 690\nvalue_691 = 691\nvalue_692 = 692\nvalue_693 = 693\nvalue_694 = 694\nvalue_695 = 695\nvalue_696 = 696\nvalue_697 = 697\nvalue_698 = 698\nvalue_699 = 699\nvalue_700 = 700\nvalue_701 = 701\nvalue_702 = 702\nvalue_703 = 703\nvalue_704 = 704\nvalue_705 = 705\nvalue_706 = 706\nvalue_707 = 707\nvalue_708 = 708\nvalue_709 = 709\nvalue_710 = 710\nvalue_711 = 711\nvalue_712 = 712\nvalue_713 = 713\nvalue_714 = 714\nvalue_715 = 715\nvalue_716 = 716\nvalue_717 = 717\nvalue_718 = 718\nvalue_719 = 719\nvalue_720 = 720\nvalue_721 = 721\nvalue_722 = 722\nvalue_723 = 723\nvalue_724 = 724\nvalue_725 = 725\nvalue_726 = 726\nvalue_727 = 727\nvalue_728 = 728\nvalue_729 = 729\nvalue_730 = 730\nvalue_731 = 731\nvalue_732 = 732\nvalue_733 = 733\nvalue_734 = 734\nvalue_735 = 735\nvalue_736 = 736\nvalue_737 = 737\nvalue_738 = 738\nvalue_739 = 739\nvalue_740 = 740\nvalue_741 = 741\nvalue_742 = 742\nvalue_743 = 743\nvalue_744 = 744\nvalue_745 = 745\nvalue_746 = 746\nvalue_747 = 747\nvalue_748 = 748\nvalue_749 = 749\nvalue_750 = 750\nvalue_751 = 751\nvalue_752 = 752\nvalue_753 = 753\nvalue_754 = 754\nvalue_755 = 755\nvalue_756 = 756\nvalue_757 = 757\nvalue_758 = 758\nvalue_759 = 759\nvalue_760 = 760\nvalue_761 = 761\nvalue_762 = 762\nvalue_763 = 763\nvalue_764 = 764\nvalue_765 = 765\nvalue_766 = 766\nvalue_767 = 767\nvalue_768 = 768\nvalue_769 = 769\nvalue_770 = 770\nvalue_771 = 771\nvalue_772 = 772\nvalue_773 = 773\nvalue_774 = 774\nvalue_775 = 775\nvalue_776 = 776\nvalue_777 = 777\nvalue_778 = 778\nvalue_779 = 779\nvalue_780 = 780\nvalue_781 = 781\nvalue_782 = 782\nvalue_783 = 783\nvalue_784 = 784\nvalue_785 = 785\nvalue_786 = 786\nvalue_787 = 787\nvalue_788 = 788\nvalue_789 = 789\nvalue_790 = 790\nvalue_791 = 791\nvalue_792 = 792\nvalue_793 = 793\nvalue_794 = 794\nvalue_795 = 795\nvalue_796 = 796\nvalue_797 = 797\nvalue_798 = 798\nvalue_799 = 799\nvalue_800 = 800\nvalue_801 = 801\nvalue_802 = 802\nvalue_803 = 803\nvalue_804 = 804\nvalue_805 = 805\nvalue_806 = 806\nvalue_807 = 807\nvalue_808 = 808\nvalue_809 = 809\nvalue_810 = 810\nvalue_811 = 811\nvalue_812 = 812\nvalue_813 = 813\nvalue_814 = 814\nvalue_815 = 815\nvalue_816 = 816\nvalue_817 = 817\nvalue_818 = 818\nvalue_819 = 819\nvalue_820 = 820\nvalue_821 = 821\nvalue_822 = 822\nvalue_823 = 823\nvalue_824 = 824\nvalue_825 = 825\nvalue_826 = 826\nvalue_827 = 827\nvalue_828 = 828\nvalue_829 = 829\nvalue_830 = 830\nvalue_831 = 831\nvalue_832 = 832\nvalue_833 = 833\nvalue_834 = 834\nvalue_835 = 835\nvalue_836 = 836\nvalue_837 = 837\nvalue_838 = 838\nvalue_839 = 839\nvalue_840 = 840\nvalue_841 = 841\nvalue_842 = 842\nvalue_843 = 843\nvalue_844 = 844\nvalue_845 = 845\nvalue_846 = 846\nvalue_847 = 847\nvalue_848 = 848\nvalue_849 = 849\nvalue_850 = 850\nvalue_851 = 851\nvalue_852 = 852\nvalue_853 = 853\nvalue_854 = 854\nvalue_855 = 855\nvalue_856 = 856\nvalue_857 = 857\nvalue_858 = 858\nvalue_859 = 859\nvalue_860 = 860\nvalue_861 = 861\nvalue_862 = 862\nvalue_863 = 863\nvalue_864 = 864\nvalue_865 = 865\nvalue_866 = 866\nvalue_867 = 867\nvalue_868 = 868\nvalue_869 = 869\nvalue_870 = 870\nvalue_871 = 871\nvalue_872 = 872\nvalue_873 = 873\nvalue_874 = 874\nvalue_875 = 875\nvalue_876 = 876\nvalue_877 = 877\nvalue_878 = 878\nvalue_879 = 879\nvalue_880 = 880\nvalue_881 = 881\nvalue_882 = 882\nvalue_883 = 883\nvalue_884 = 884\nvalue_885 = 885\nvalue_886 = 886\nvalue_887 = 887\nvalue_888 = 888\nvalue_889 = 889\nvalue_890 = 890\nvalue_891 = 891\nvalue_892 = 892\nvalue_893 = 893\nvalue_894 = 894\nvalue_895 = 895\nvalue_896 = 896\nvalue_897 = 897\nvalue_898 = 898\nvalue_899 = 899\nvalue_900 = 900\nvalue_901 = 901\nvalue_902 = 902\nvalue_903 = 903\nvalue_904 = 904\nvalue_905 = 905\nvalue_906 = 906\nvalue_907 = 907\nvalue_908 = 908\nvalue_909 = 909\nvalue_910 = 910\nvalue_911 = 911\nvalue_912 = 912\nvalue_913 = 913\nvalue_914 = 914\nvalue_915 = 915\nvalue_916 = 916\nvalue_917 = 917\nvalue_918 = 918\nvalue_919 = 919\nvalue_920 = 920\nvalue_921 = 921\nvalue_922 = 922\nvalue_923 = 923\nvalue_924 = 924\nvalue_925 = 925\nvalue_926 = 926\nvalue_927 = 927\nvalue_928 = 928\nvalue_929 = 929\nvalue_930 = 930\nvalue_931 = 931\nvalue_932 = 932\nvalue_933 = 933\nvalue_934 = 934\nvalue_935 = 935\nvalue_936 = 936\nvalue_937 = 937\nvalue_938 = 938\nvalue_939 = 939\nvalue_940 = 940\nvalue_941 = 941\nvalue_942 = 942\nvalue_943 = 943\nvalue_944 = 944\nvalue_945 = 945\nvalue_946 = 946\nvalue_947 = 947\nvalue_948 = 948\nvalue_949 = 949\nvalue_950 = 950\nvalue_951 = 951\nvalue_952 = 952\nvalue_953 = 953\nvalue_954 = 954\nvalue_955 = 955\nvalue_956 = 956\nvalue_957 = 957\nvalue_958 = 958\nvalue_959 = 959\nvalue_960 = 960\nvalue_961 = 961\nvalue_962 = 962\nvalue_963 = 963\nvalue_964 = 964\nvalue_965 = 965\nvalue_966 = 966\nvalue_967 = 967\nvalue_968 = 968\nvalue_969 = 969\nvalue_970 = 970\nvalue_971 = 971\nvalue_972 = 972\nvalue_973 = 973\nvalue_974 = 974\nvalue_975 = 975\nvalue_976 = 976\nvalue_977 = 977\nvalue_978 = 978\nvalue_979 = 979\nvalue_980 = 980\nvalue_981 = 981\nvalue_982 = 982\nvalue_983 = 983\nvalue_984 = 984\nvalue_985 = 985\nvalue_986 = 986\nvalue_987 = 987\nvalue_988 = 988\nvalue_989 = 989\nvalue_990 = 990\nvalue_991 = 991\nvalue_992 = 992\nvalue_993 = 993\nvalue_994 = 994\nvalue_995 = 995\nvalue_996 = 996\nvalue_997 = 997\nvalue_998 = 998\nvalue_999 = 999\nvalue_1000 = 1000\nvalue_1001 = 1001\nvalue_1002 = 1002\nvalue_1003 = 1003\nvalue_1004 = 1004\nvalue_1005 = 1005\nvalue_1006 = 1006\nvalue_1007 = 1007\nvalue_1008 = 1008\nvalue_1009 = 1009\n",
+    "small.py": "x = 1\n"
+   },
+   "checks": [
+    "line"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:5e01375b7f03604ff823390021009de9c87045083f153feadd33dc3c2382e922",
+      "message": "Pure code lines (1010) exceed 1000 lines limit (Refactoring required)",
+      "primary_location": {
+       "path": "huge.py",
+       "start_line": 1
+      },
+      "provider": "ici.line",
+      "rule_id": "line.file-size",
+      "severity": "high"
+     },
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:92c47dd3a44c82cbc41904b78b96d9eea8e7ff16e446f32d97ccde5d37d6bc4f",
+      "message": "Pure code lines (520) exceed 500 lines threshold (Split recommended)",
+      "primary_location": {
+       "path": "long.py",
+       "start_line": 1
+      },
+      "provider": "ici.line",
+      "rule_id": "line.file-size",
+      "severity": "medium"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 1531.0
+     },
+     {
+      "denominator": 1531,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 1531,
+      "unit": "lines",
+      "value": 1531.0
+     },
+     {
+      "denominator": 1531,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1531,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 3,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 3,
+      "unit": "files",
+      "value": 3.0
+     }
+    ],
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "2 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {},
+    "reasons": {}
+   }
+  },
+  {
+   "id": "documentation-only-tree",
+   "files": {
+    "README.md": "# demo\n\ntext\n",
+    "docs/guide.md": "guide\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 3,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.dup",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.security",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.resource",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.exception",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.dead",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.compat",
+      "state": "BLOCKED",
+      "evidence_complete": false
+     }
+    ],
+    "findings": [],
+    "metrics": [],
+    "limitations": [
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "no sources in scope for python",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "project.python.line: no sources in scope for python",
+      "project.python.complexity: no sources in scope for python",
+      "project.python.cognitive: no sources in scope for python",
+      "project.python.cycle: no sources in scope for python",
+      "project.python.dup: no sources in scope for python",
+      "project.python.security: no sources in scope for python",
+      "project.python.resource: no sources in scope for python",
+      "project.python.exception: no sources in scope for python",
+      "project.python.dead: no sources in scope for python",
+      "project.python.compat: no sources in scope for python"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "no sources in scope for python",
+      "component project has no selected source files; this is not evidence of an analysis PASS",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "limitations": "A component with no selected source files states that explicitly; every check stays BLOCKED as before."
+    }
+   }
+  },
+  {
+   "id": "non-ascii-columns",
+   "files": {
+    "main.py": "import pickle\n\n\ndef 읽기(값):\n    결과 = pickle.loads(값)\n    try:\n        return 결과\n    except:\n        pass\n"
+   },
+   "checks": [
+    "security",
+    "exception",
+    "dead",
+    "line"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 1,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.security",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.exception",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [
+     {
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:cfd87745f0e08b85f043dce5df74c11bdf9bed5ae171911c526b702fc916c7c5",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "native_rule_id": "Security:PickleLoad",
+      "primary_location": {
+       "end_column": 30,
+       "end_line": 5,
+       "path": "main.py",
+       "start_column": 14,
+       "start_line": 5
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "security.pickleload",
+      "severity": "high"
+     },
+     {
+      "category": "correctness",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:6104c3bf530493adf1ce4d12c7f47bbdc3be42124b9876ded3a792a36f61cf9b",
+      "message": "Dangerous bare 'except:' clause catches all exceptions",
+      "native_rule_id": "BareExcept",
+      "primary_location": {
+       "end_column": 12,
+       "end_line": 9,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 8
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "exception.bareexcept",
+      "severity": "high"
+     },
+     {
+      "category": "correctness",
+      "component_id": "project",
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:1d4d44a153d3dbcce7c75ce55ac183071ab57aabd9b24e9ecfeedbab185007e1",
+      "message": "Silent exception swallowing: handler only contains pass",
+      "native_rule_id": "ErrorSwallowing",
+      "primary_location": {
+       "end_column": 12,
+       "end_line": 9,
+       "path": "main.py",
+       "start_column": 5,
+       "start_line": 8
+      },
+      "provider": "ici.hygiene",
+      "rule_id": "exception.errorswallowing",
+      "severity": "high"
+     }
+    ],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 9.0
+     },
+     {
+      "denominator": 9,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 7,
+      "unit": "lines",
+      "value": 7.0
+     },
+     {
+      "denominator": 9,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 9,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 2,
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     }
+    ],
+    "limitations": [
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "3 violation(s) found"
+     ],
+     "selected": "FAIL",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "findings": [
+      {
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "Pickle deserialization can execute attacker-controlled code",
+       "native_rule_id": "Security:PickleLoad",
+       "primary_location": {
+        "end_column": 24,
+        "end_line": 5,
+        "path": "main.py",
+        "start_column": 10,
+        "start_line": 5
+       },
+       "provider": "ici.hygiene",
+       "rule_id": "security.pickleload",
+       "severity": "high"
+      },
+      {
+       "category": "correctness",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "Dangerous bare 'except:' clause catches all exceptions",
+       "native_rule_id": "BareExcept",
+       "primary_location": {
+        "end_column": 12,
+        "end_line": 9,
+        "path": "main.py",
+        "start_column": 5,
+        "start_line": 8
+       },
+       "provider": "ici.hygiene",
+       "rule_id": "exception.bareexcept",
+       "severity": "high"
+      },
+      {
+       "category": "correctness",
+       "component_id": "project",
+       "confidence": "high",
+       "evidence": "MEASURED",
+       "message": "Silent exception swallowing: handler only contains pass",
+       "native_rule_id": "ErrorSwallowing",
+       "primary_location": {
+        "end_column": 12,
+        "end_line": 9,
+        "path": "main.py",
+        "start_column": 5,
+        "start_line": 8
+       },
+       "provider": "ici.hygiene",
+       "rule_id": "exception.errorswallowing",
+       "severity": "high"
+      }
+     ],
+     "limitations": [
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "findings": "Domain columns are 1-based Unicode characters, correcting the old UTF-8 byte-column display (README source unit).",
+     "limitations": "Native python.dead states its static-heuristic evidence boundary explicitly; findings stay ESTIMATED as before."
+    }
+   }
+  },
+  {
+   "id": "latin1-cookie-source",
+   "files": {
+    "main.py": "# -*- coding: latin-1 -*-\nNAME = 'café'\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "latin-1",
+   "oracle": {
+    "exit_code": 3,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.security",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.resource",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.exception",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.dead",
+      "state": "FAILED",
+      "evidence_complete": false
+     },
+     {
+      "check_id": "python.compat",
+      "state": "FAILED",
+      "evidence_complete": false
+     }
+    ],
+    "findings": [],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 1,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 1,
+      "unit": "files",
+      "value": 1.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     }
+    ],
+    "limitations": [
+     "main.py: UnicodeDecodeError",
+     "main.py: UnicodeDecodeError",
+     "invalid-utf8: Analysis source is not valid UTF-8",
+     "invalid-utf8: Analysis source is not valid UTF-8",
+     "invalid-utf8: Analysis source is not valid UTF-8",
+     "invalid-utf8: Analysis source is not valid UTF-8",
+     "invalid-utf8: Analysis source is not valid UTF-8",
+     "invalid-utf8: Analysis source is not valid UTF-8",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "project.python.complexity: main.py: UnicodeDecodeError",
+      "project.python.cognitive: main.py: UnicodeDecodeError",
+      "project.python.dup: invalid-utf8: Analysis source is not valid UTF-8",
+      "project.python.security: invalid-utf8: Analysis source is not valid UTF-8",
+      "project.python.resource: invalid-utf8: Analysis source is not valid UTF-8",
+      "project.python.exception: invalid-utf8: Analysis source is not valid UTF-8",
+      "project.python.dead: invalid-utf8: Analysis source is not valid UTF-8",
+      "project.python.compat: invalid-utf8: Analysis source is not valid UTF-8"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "exit_code": 0,
+     "checks": [
+      {
+       "check_id": "python.line",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.complexity",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.cognitive",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.cycle",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.dup",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.security",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.resource",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.exception",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.dead",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      },
+      {
+       "check_id": "python.compat",
+       "state": "SUCCEEDED",
+       "evidence_complete": true
+      }
+     ],
+     "metrics": [
+      {
+       "evidence": "MEASURED",
+       "name": "lines_total",
+       "unit": "lines",
+       "value": 2.0
+      },
+      {
+       "denominator": 2,
+       "evidence": "MEASURED",
+       "name": "lines_code",
+       "numerator": 1,
+       "unit": "lines",
+       "value": 1.0
+      },
+      {
+       "denominator": 2,
+       "evidence": "MEASURED",
+       "name": "lines_comment",
+       "numerator": 1,
+       "unit": "lines",
+       "value": 1.0
+      },
+      {
+       "denominator": 2,
+       "evidence": "MEASURED",
+       "name": "lines_blank",
+       "numerator": 0,
+       "unit": "lines",
+       "value": 0.0
+      },
+      {
+       "denominator": 1,
+       "evidence": "MEASURED",
+       "name": "files_counted",
+       "numerator": 1,
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "functions_measured",
+       "unit": "functions",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "max_complexity",
+       "unit": "complexity",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "functions_measured",
+       "unit": "functions",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "max_cognitive",
+       "unit": "cognitive",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "cycles_found",
+       "unit": "cycles",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "clone_groups",
+       "unit": "groups",
+       "value": 0.0
+      },
+      {
+       "denominator": 1,
+       "evidence": "MEASURED",
+       "name": "duplicated_lines",
+       "numerator": 0,
+       "unit": "lines",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "issues_found",
+       "unit": "issues",
+       "value": 0.0
+      },
+      {
+       "evidence": "MEASURED",
+       "name": "files_checked",
+       "unit": "files",
+       "value": 1.0
+      }
+     ],
+     "limitations": [
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+      "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ],
+     "gate": {
+      "has_violations": false,
+      "reasons": [],
+      "selected": "PASS",
+      "workspace": "NOT_EVALUATED"
+     }
+    },
+    "reasons": {
+     "exit_code": "PEP 263 coding cookies are honored by the strict native decoder (source-encoding.json R0 decoder contract); the original intake rejected every non-UTF-8 source as invalid-utf8/UnicodeDecodeError, leaving the run INCOMPLETE (exit 3). The latin-1 source is now analyzed.",
+     "checks": "PEP 263 coding cookies are honored by the strict native decoder (source-encoding.json R0 decoder contract); the original intake rejected every non-UTF-8 source as invalid-utf8/UnicodeDecodeError, leaving the run INCOMPLETE (exit 3). The latin-1 source is now analyzed.",
+     "metrics": "PEP 263 coding cookies are honored by the strict native decoder (source-encoding.json R0 decoder contract); the original intake rejected every non-UTF-8 source as invalid-utf8/UnicodeDecodeError, leaving the run INCOMPLETE (exit 3). The latin-1 source is now analyzed.",
+     "limitations": "PEP 263 coding cookies are honored by the strict native decoder (source-encoding.json R0 decoder contract); the original intake rejected every non-UTF-8 source as invalid-utf8/UnicodeDecodeError, leaving the run INCOMPLETE (exit 3). The latin-1 source is now analyzed.",
+     "gate": "PEP 263 coding cookies are honored by the strict native decoder (source-encoding.json R0 decoder contract); the original intake rejected every non-UTF-8 source as invalid-utf8/UnicodeDecodeError, leaving the run INCOMPLETE (exit 3). The latin-1 source is now analyzed."
+    }
+   }
+  },
+  {
+   "id": "empty-and-comment-only-files",
+   "files": {
+    "__init__.py": "",
+    "notes.py": "# only a comment\n\n"
+   },
+   "checks": [
+    "line",
+    "complexity",
+    "cognitive",
+    "cycle",
+    "dup",
+    "security",
+    "resource",
+    "exception",
+    "dead",
+    "compat"
+   ],
+   "encoding": "utf-8",
+   "oracle": {
+    "exit_code": 0,
+    "checks": [
+     {
+      "check_id": "python.line",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.complexity",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cognitive",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.cycle",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dup",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.security",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.resource",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.exception",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.dead",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     },
+     {
+      "check_id": "python.compat",
+      "state": "SUCCEEDED",
+      "evidence_complete": true
+     }
+    ],
+    "findings": [],
+    "metrics": [
+     {
+      "evidence": "MEASURED",
+      "name": "lines_total",
+      "unit": "lines",
+      "value": 2.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_code",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_comment",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "lines_blank",
+      "numerator": 1,
+      "unit": "lines",
+      "value": 1.0
+     },
+     {
+      "denominator": 2,
+      "evidence": "MEASURED",
+      "name": "files_counted",
+      "numerator": 2,
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_complexity",
+      "unit": "complexity",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "functions_measured",
+      "unit": "functions",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "max_cognitive",
+      "unit": "cognitive",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "cycles_found",
+      "unit": "cycles",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "clone_groups",
+      "unit": "groups",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "duplicated_lines",
+      "numerator": 0,
+      "unit": "lines",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "issues_found",
+      "unit": "issues",
+      "value": 0.0
+     },
+     {
+      "evidence": "MEASURED",
+      "name": "files_checked",
+      "unit": "files",
+      "value": 2.0
+     }
+    ],
+    "limitations": [
+     "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+     "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+     "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+     "static selection: tests, runtime checks and build artifact checks omitted",
+     "project: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "NOT_EVALUATED"
+    }
+   },
+   "corrections": {
+    "expected": {
+     "limitations": [
+      "Private-symbol references and local unreachable statements are bounded static heuristics; reflective exports and runtime reachability are not proven",
+      "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+      "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+      "static selection: tests, runtime checks and build artifact checks omitted"
+     ]
+    },
+    "reasons": {
+     "limitations": "Native python.dup carries the stable engine's bounded AST-shape clustering (python_semantic=auto, the materialized engines.dup default) that the original modern check stated it did not carry yet; its 'not carried yet' limitation is therefore removed and semantic exclusions are named. Native python.dead states its static-heuristic evidence boundary explicitly; findings stay ESTIMATED as before."
+    }
+   }
+  }
+ ],
+ "out_of_scope_limitations": [
+  "project: TEM N/A — no coverage evidence — the score is not computed"
+ ]
+}

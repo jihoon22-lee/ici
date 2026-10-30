@@ -134,7 +134,8 @@ def name_observations():
 
 
 def source_census(root, aliases):
-    known = set(aliases) | {"charmap", "hz", "hzgb", "hz_gb", "hz_gb_2312"}
+    # idna/punycode: native decoders verified by generate_idna_tables.py.
+    known = set(aliases) | {"charmap", "hz", "hzgb", "hz_gb", "hz_gb_2312", "idna", "punycode"}
     for manifest in ("manifest.json", "stateful-manifest.json"):
         known.update(
             json.loads((root / "crates/ici-analysis/data/python-codecs" / manifest).read_text())[
