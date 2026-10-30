@@ -80,19 +80,12 @@ fn declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_f
         let frozen = &case["frozen"];
         let (exit, document, output) = run(case);
         if name == "root-directory" {
-            // Open config difference: frozen rejects `directory = "."` for a v1 build
-            // (exit 2); Rust accepts it and locates contract findings at the declaration file.
+            // Frozen domain `BuildUnit` refuses `directory = "."` (exit 2); native configuration
+            // now refuses it the same way before any run starts.
             assert_eq!(frozen["exit_code"], 2);
-            assert_eq!(exit, 0, "{output}");
-            let document = document.unwrap();
-            let missing: Vec<_> = document["findings"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .filter(|finding| finding["rule_id"] == "artifact.missing")
-                .collect();
-            assert_eq!(missing.len(), 1);
-            assert_eq!(missing[0]["primary_location"]["path"], "ici.toml");
+            assert_eq!(exit, 2, "{output}");
+            assert!(document.is_none(), "{output}");
+            assert!(output.contains("below the workspace root"), "{output}");
             continue;
         }
         let document = document.unwrap_or_else(|| panic!("{name}: {output}"));
