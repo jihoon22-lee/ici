@@ -38,6 +38,9 @@ const LEGACY_UNUSED_UNAVAILABLE: &str =
 pub struct CppPlans {
     /// Only explicit legacy commands may use the documented c++17 syntax fallback.
     pub legacy_projection: bool,
+    /// A single legacy engine command (`ici lint`, ...): frozen runs it without an analysis
+    /// context, so context-bound tools report the "approved capability inventory" refusal.
+    pub legacy_standalone: bool,
     pub contexts: BTreeMap<String, CompilationContext>,
     pub diagnostics: BTreeMap<String, Vec<ProviderPlan>>,
     pub includes: BTreeMap<String, Vec<IncludeProbe>>,
@@ -733,6 +736,50 @@ impl CppPlans {
             );
             return Ok(Work::Internal);
         }
+        if context.units.is_empty() && self.legacy_projection {
+            // Frozen LintEngine without an exact context: one ClangTidyUnavailable and one
+            // ClazyUnavailable target at "." (WARN, or ERROR when the tool is required).
+            let mut unavailable = vec![];
+            for (field, name, label) in [
+                ("clang_tidy", "clang-tidy", "ClangTidyUnavailable"),
+                ("clazy", "clazy-standalone", "ClazyUnavailable"),
+            ] {
+                if mode(field) == "off" {
+                    continue;
+                }
+                let tool = if name == "clazy-standalone" {
+                    "clazy"
+                } else {
+                    name
+                };
+                let resolvable = ToolRequest {
+                    id: name.into(),
+                    explicit: project
+                        .tools
+                        .get(name)
+                        .and_then(|tool| tool.path.as_deref())
+                        .map(|path| crate::files::under(&project.root, path)),
+                    project_root: project.root.clone(),
+                    pack_root: None,
+                    path_env: environment.get("PATH").cloned(),
+                }
+                .resolve()
+                .is_ok();
+                let message = if self.legacy_standalone {
+                    format!(
+                        "{tool} requires an approved capability inventory and exact compilation context"
+                    )
+                } else if resolvable {
+                    format!("{tool} requires an exact compilation database")
+                } else {
+                    format!("{tool} is unavailable or incompletely probed")
+                };
+                unavailable.push((label, message, mode(field) == "required"));
+            }
+            self.preparation_failures
+                .insert(id.into(), legacy_tooling_unavailable(id, &unavailable));
+            return Ok(Work::Internal);
+        }
         if context.units.is_empty() {
             return Err("clang tooling requires usable recorded compilation units".into());
         }
@@ -1371,6 +1418,163 @@ pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
     Some(count)
 }
 
+/// Frozen `_unavailable` targets of clang-tidy and Clazy in a legacy lint run.
+fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici.cpp.tooling");
+    let errors: Vec<_> = unavailable
+        .iter()
+        .filter(|(_, _, required)| *required)
+        .map(|(_, message, _)| message.clone())
+        .collect();
+    output.status = if !errors.is_empty() {
+        "ERROR"
+    } else if unavailable.is_empty() {
+        "PASS"
+    } else {
+        "WARN"
+    }
+    .into();
+    output.summary = if errors.is_empty() {
+        unavailable
+            .iter()
+            .map(|(_, message, _)| message.as_str())
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        errors.join("; ")
+    };
+    output.extra["legacy_tool_warnings"] = json!(
+        unavailable
+            .iter()
+            .filter(|(_, _, required)| !*required)
+            .map(|(_, message, _)| message)
+            .collect::<Vec<_>>()
+    );
+    for (label, message, required) in unavailable {
+        output.observation.limitations.push(message.clone());
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = (*label).into();
+        target.status = if *required { "ERROR" } else { "WARN" }.into();
+        target.message = message.clone();
+        output.targets.push(target);
+    }
+    output
+}
+
+/// Frozen `_cpp_lint` heuristic fallback projection of the legacy `cpp.diagnostics` output:
+/// `Compiler:<rule>` / `C++Syntax` targets with kind-prefixed messages (errors FAIL, warnings and
+/// notes WARN, notes as their own targets), `C++Syntax:fallback` PASS for clean files, and the
+/// frozen LintEngine summary over these targets, the clang tooling targets and tool warnings.
+pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&AnalysisOutput>) {
+    const FALLBACK: &str = "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback";
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let details = output
+        .extra
+        .get("finding_details")
+        .cloned()
+        .unwrap_or_default();
+    let findings = output.observation.findings.clone();
+    let mut targets = vec![];
+    for target in &output.targets {
+        if target.status == "PASS" && target.target_name.is_empty() {
+            let mut clean = target.clone();
+            clean.target_name = "C++Syntax:fallback".into();
+            clean.message = "Compiler syntax analysis completed without diagnostics.".into();
+            targets.push(clean);
+            continue;
+        }
+        let Some(finding) = findings.iter().find(|finding| {
+            finding.primary_location.path == target.file_path
+                && finding.primary_location.start_line == target.start_line
+                && finding.primary_location.start_column == target.start_column
+                && finding.message == target.message
+                && finding.native_rule_id == target.target_name
+        }) else {
+            targets.push(target.clone());
+            continue;
+        };
+        let Some(legacy) = details
+            .get(&finding.fingerprint)
+            .and_then(|detail| detail.get("legacy_message"))
+            .and_then(Value::as_str)
+        else {
+            return;
+        };
+        let kind = legacy.split(": ").next().unwrap_or_default();
+        let mut primary = target.clone();
+        primary.message = legacy.into();
+        primary.status = if kind.contains("error") || kind == "sorry, unimplemented" {
+            "FAIL"
+        } else {
+            "WARN"
+        }
+        .into();
+        primary.target_name = if finding.native_rule_id.starts_with('-') {
+            format!("Compiler:{}", finding.native_rule_id)
+        } else {
+            "C++Syntax".into()
+        };
+        targets.push(primary);
+        for note in &finding.related_locations {
+            if !note.label.starts_with("note: ") {
+                continue;
+            }
+            let mut related = InspectionTarget::at(&note.path, note.start_line);
+            related.start_column = note.start_column;
+            related.target_name = "C++Syntax".into();
+            related.status = "WARN".into();
+            related.message = note.label.clone();
+            targets.push(related);
+        }
+    }
+    output.targets = targets;
+    let all: Vec<&InspectionTarget> = output
+        .targets
+        .iter()
+        .chain(
+            tooling
+                .into_iter()
+                .flat_map(|tooling| tooling.targets.iter()),
+        )
+        .collect();
+    let fail = all.iter().filter(|target| target.status == "FAIL").count();
+    let mut warnings = vec![FALLBACK.to_string()];
+    warnings.extend(
+        tooling
+            .and_then(|tooling| tooling.extra.get("legacy_tool_warnings"))
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(str::to_owned),
+    );
+    let messages: BTreeSet<&str> = all
+        .iter()
+        .filter(|target| target.status == "WARN")
+        .map(|target| target.message.as_str())
+        .collect();
+    let warn = all.iter().filter(|target| target.status == "WARN").count()
+        + warnings
+            .iter()
+            .filter(|message| !messages.contains(message.as_str()))
+            .count();
+    output.status = if fail > 0 { "FAIL" } else { "WARN" }.into();
+    output.summary = if fail == 0 {
+        warnings
+            .iter()
+            .take(2)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        format!("{fail} Errors, {warn} Warnings Found")
+    };
+}
+
 /// Frozen SanitizeEngine / ThreadSanitizeEngine direct g++ projection. Each instrumented test
 /// group ends with its "Instrumented suite" target: a group with sanitizer diagnostics keeps
 /// only those located targets, a clean run becomes one `<label>` PASS target, and the summary
@@ -1637,7 +1841,9 @@ pub fn legacy_sanitizer_skip(id: &str, check_id: &str) -> AnalysisOutput {
     output.observation.measurements.push(Measurement {
         name: "applicability".into(),
         value: 0.0,
-        evidence: ici_domain::EvidenceLevel::NotApplicable,
+        // Frozen `_mark_scope_skip` counts a skipped scope, so the verdict is ESTIMATED (it keeps
+        // the required legacy suite at ERROR), not NOT_APPLICABLE.
+        evidence: ici_domain::EvidenceLevel::Estimated,
         unit: "checks".into(),
         numerator: None,
         denominator: None,
@@ -1764,6 +1970,14 @@ impl CppPlans {
     /// Record the frozen legacy output for a check decided while planning its preparation.
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
+    }
+    /// Whether this task runs the legacy c++17 heuristic fallback.
+    pub fn is_fallback(&self, id: &str) -> bool {
+        self.fallbacks.contains_key(id)
+    }
+    /// A frozen legacy output decided while planning, if any.
+    pub fn planned(&self, id: &str) -> Option<&AnalysisOutput> {
+        self.preparation_failures.get(id)
     }
     /// Whether a frozen legacy output was already decided for this task while planning.
     pub fn planned_output(&self, id: &str) -> bool {

@@ -58,6 +58,7 @@ def run(fixture: Path, command: str, config: str) -> dict:
         "exit_code": result.returncode,
         "status": report["status"],
         "summary": report["summary"],
+        "evidence": report["evidence"],
         "built": built,
         "targets": [{key: target.get(key) for key in FIELDS} for target in report["targets"]],
     }

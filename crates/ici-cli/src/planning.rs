@@ -251,6 +251,7 @@ fn prepare_resolved_omitting(
     };
     let mut cpp = crate::cpp::CppPlans::default();
     cpp.legacy_projection = crate::legacy::is_legacy(invocation);
+    cpp.legacy_standalone = cpp.legacy_projection && invocation.command() != "verify";
     let mut artifact_builds = BTreeMap::new();
     let mut validations = BTreeMap::new();
     let mut providers = BTreeMap::new();
