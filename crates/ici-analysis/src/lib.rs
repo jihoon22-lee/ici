@@ -10,6 +10,9 @@ mod details;
 pub mod duplicates;
 mod exception;
 mod facts;
+mod idna;
+#[rustfmt::skip]
+mod idna_tables;
 pub use facts::{ClassFact, FunctionFact, SourceFacts};
 mod finding;
 mod lines;

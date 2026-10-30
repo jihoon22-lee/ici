@@ -12,6 +12,8 @@ pub(crate) enum Codec {
     Utf7,
     Utf16(Option<bool>),
     Utf32(Option<bool>),
+    Idna,
+    Punycode,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Kind {
@@ -287,6 +289,11 @@ pub(crate) fn lookup(name: &str) -> Option<Codec> {
         .map(|index| ALIASES[index].1)
         .or_else(|| crate::stateful::lookup(&normalized))
         .or_else(|| crate::unicode_codecs::lookup(&normalized))
+        .or(match normalized.as_str() {
+            "idna" => Some(Codec::Idna),
+            "punycode" => Some(Codec::Punycode),
+            _ => None,
+        })
 }
 fn hangul(bytes: &[u8]) -> Option<u32> {
     if bytes.len() < 8 || bytes[..3] != [0xA4, 0xD4, 0xA4] || bytes[4] != 0xA4 || bytes[6] != 0xA4 {
@@ -328,6 +335,8 @@ pub(crate) fn decode(
         Codec::UnicodeEscape(_) | Codec::Utf7 | Codec::Utf16(_) | Codec::Utf32(_) => {
             return crate::unicode_codecs::decode(codec, bytes, raw_base, cancellation);
         }
+        Codec::Idna => return crate::idna::decode(bytes, raw_base, cancellation),
+        Codec::Punycode => return crate::idna::decode_punycode(bytes, raw_base, cancellation),
         Codec::Utf8 | Codec::Table(_) => {}
     }
     if let Codec::Utf8 = codec {
