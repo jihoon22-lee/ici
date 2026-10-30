@@ -250,13 +250,16 @@ fn frozen_transport_bounds_block_before_any_case_runs() {
         }
         assert!(!root.path().join(".ici").exists());
     }
-    // The shared schema already refuses argv size/placeholder spelling at configuration load;
-    // needle, target-name and inherited-name bounds are enforced by native binding.
+    // The shared schema already refuses argv size/placeholder spelling, the frozen
+    // `[A-Za-z0-9][A-Za-z0-9_.-]{0,63}` target name and environment-name rules at
+    // configuration load; the needle bound is enforced by native binding.
     assert_eq!(
         refused_by_schema,
         vec![
             Some("at most 64"),
             Some("at most 64"),
+            Some("bounded name"),
+            Some("environment name"),
             Some("whole tokens"),
             Some("unknown integration placeholder")
         ]

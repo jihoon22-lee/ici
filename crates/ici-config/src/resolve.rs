@@ -716,7 +716,7 @@ fn validate_legacy_paths(
                     == Some("required")
             {
                 return Err(parsed.error(
-                    "build.make.workdir",
+                    "build.make.out_of_tree",
                     "out_of_tree=required needs a non-root workdir",
                 ));
             }
