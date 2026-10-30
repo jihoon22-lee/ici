@@ -20,7 +20,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Python facet only: the Python dead-code part of engines/dead.py composition. Compiler/linker unused-symbol evidence is the cpp facet (not claimed here).",
    "difference_reason": null
@@ -47,7 +47,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Analysis facet: PEP 440/508, metadata headers, RECORD, tags, entry points and archive bounds match 105 package.json and 39 metadata.json frozen cases. Wheel building/publishing is the validation/distribution facet.",
@@ -75,7 +75,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Import aliases, shadowing, global/nonlocal, comprehension/class scopes and resource lifetimes (_python_resource_scopes.py, _python_dead_code.py) are one native lexical scope graph checked by the hygiene, dead and exception oracles.",
@@ -102,7 +102,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Tokenizer, normalization, region barriers, matching, clustering and semantic shapes (_python_dup_tokenization.py, _python_dup_semantics.py, _dup_*.py) match type2.json, semantic.json and semantic-integration.json.",
@@ -126,7 +126,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Python facet only: _python_security.py `nosec` comment tokens and full-casefold secret-name allowlists prefilter before findings, exactly as the frozen visitor (no raw issue is created). Reasoned selector suppression and preserved raw findings (application/suppressions.py) are the reporting/root facet.",
@@ -154,9 +154,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "Native python.cognitive reproduces the 15 frozen metrics.json formulas (CPython 3.14.7 AST), legacy inclusive and modern strict thresholds, shared one-parse cache, and the modern metrics.<kind> findings (message, severity, line-only location, raw fingerprint) of languages/metrics.py in modern-findings.json. Syntax errors are incomplete with a located error target; cancellation keeps completed targets.",
    "difference_reason": "Metric findings now carry the original line-only location (columns stay on targets) so attributed fingerprints match; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -191,9 +191,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "21 compat-static.json syntax/API floor cases, 25+14 metadata cases and 105 package/wheel contracts match; modern python.compat.<slug> findings and the original 'floor asserted'/'no requires-python floor' and static-inventory limitations (restored in this branch) match modern-findings.json.",
    "difference_reason": "Parser-specific floor locations and Unicode columns are explicit compat-static.json corrections; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -246,9 +246,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "Native python.complexity reproduces the 15 frozen metrics.json formulas (CPython 3.14.7 AST), legacy inclusive and modern strict thresholds, shared one-parse cache, and the modern metrics.<kind> findings (message, severity, line-only location, raw fingerprint) of languages/metrics.py in modern-findings.json. Syntax errors are incomplete with a located error target; cancellation keeps completed targets.",
    "difference_reason": "Metric findings now carry the original line-only location (columns stay on targets) so attributed fingerprints match; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -307,9 +307,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "16 frozen cycle.json graphs match; modern cycle.import findings keep the original first-SCC-member primary location, chain start (fixed in this branch), related locations and cycle-<sha1> fingerprint; legacy Cycle:N targets start at the smallest member as engines/cycle.py did.",
    "difference_reason": "from-dot child-module imports are edges (old collector ignored module=None), ambiguous suffixes are incomplete and chains follow real edges; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -339,9 +339,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "21 frozen dead.json cases (private definitions, __all__, decorators, aliases, relative imports, first unreachable statement) match every target field; modern dead.<name> findings stay ESTIMATED with medium confidence and the measured issues_found count (fixed in this branch) as in modern-findings.json.",
    "difference_reason": "Shadowing and package-attribute precedence corrections in dead.json; unparsable input is incomplete instead of the old estimated dead.syntaxerror finding; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -372,9 +372,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "25 type2.json lexical cases, 50 semantic.json shapes, 10 semantic-integration pipelines and 7 source-scope.json actual DuplicateEngine runs match; modern dup.type2-clone findings and clone_groups/duplicated_lines measurements match modern-findings.json.",
    "difference_reason": "Native modern python.dup applies the stable engine's bounded AST-shape clustering (materialized engines.dup.python_semantic=auto) that the original modern check declared 'not carried yet' (semantic-shape-only-clone case); empty owned scope is SKIP/NOT_APPLICABLE; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -406,9 +406,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "46 frozen exception.json handler cases (BaseException, bare except, swallowing, lost traceback, alias binding, deferred definitions, transient names) match; modern exception.<rule> findings, severities and correctness category match modern-findings.json. C++ exception rules are the cpp facet.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -465,8 +465,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Python facet of the line descriptor. Modern python.line matches the frozen languages/python/lines.py observation end to end (line-file-size findings, fixed 500/1000 thresholds, measurement numerators/denominators, BLOCKED documentation-only component) in modern-findings.json; legacy per-file targets, rankings and extras match engines/line.py counting. OPEN (root/config): the legacy `ici line` command on a tree with no Python/C++ source exits 2 ('no supported source files discovered') where frozen v0.13.0 reports PASS with Markdown/YAML/Shell extras, and with no config an automatically discovered monorepo applies src/include/lib/app per component root instead of the frozen project-root scan (svc_a/src/a.py counted as source, frozen counted it as extra). Both come from ici-config automatic discovery being used for legacy invocations; a legacy line run without config should use the single root legacy component (ici-config/src/resolve.rs legacy_components).",
@@ -525,9 +525,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "Ownership flow (branches, loops, try/finally, aliases, context managers, close/aclose, transfer, ExitStack), mutable defaults, categories/confidence and counters match the frozen _python_resources.py/_python_resource_scopes.py oracle (hygiene.json) and the modern resource.<rule> findings in modern-findings.json.",
    "difference_reason": "hygiene.json keeps explicit corrections for closure/comprehension aliases, defaults evaluated before binding, break skipping loop else and except-star bodies; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -560,9 +560,9 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
    ],
    "comparison": "All frozen _python_security.py rules (hard-coded secret/private key with redaction, MD5/SHA-1 with usedforsecurity, weak random, eval/exec shadowing, pickle, os.system/popen, subprocess shell=True), counters and targets match the hygiene.json oracle; languages/hygiene.py finding projection (security.<rule> ids, high severity, columns, hygiene-<sha1> raw fingerprint) matches modern-findings.json.",
    "difference_reason": "Explicit hygiene.json corrections (alias/closure handling, Unicode inclusive end columns); Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -618,7 +618,7 @@
    },
    "evidence": [
     "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "mypy/ty adapter facets (adapters/providers/mypy.py, ty.py, analysis/_mypy_output.py) with actual pinned tools and the legacy missing-return-annotation projection (annotations.json, 7 frozen cases).",
@@ -740,7 +740,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "BaseException targets (name, status, line, message) match the 46 frozen exception.json cases.",
@@ -765,7 +765,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "BareExcept targets (name, status, line, message) match the 46 frozen exception.json cases.",
@@ -790,7 +790,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "ErrorSwallowing targets (name, status, line, message) match the 46 frozen exception.json cases.",
@@ -815,7 +815,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "LostTraceback targets (name, status, line, message) match the 46 frozen exception.json cases.",
@@ -840,10 +840,46 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "PythonExceptionSafety targets (name, status, line, message) match the 46 frozen exception.json cases.",
+   "difference_reason": null
+  },
+  "finding_site:src/ici/analysis/_exception_rules.py:801:12": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "C++-only analyze_cpp_exceptions DestructorThrow target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
+   "difference_reason": null
+  },
+  "finding_site:src/ici/analysis/_exception_rules.py:811:12": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "C++-only analyze_cpp_exceptions CatchAllSwallowed target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
+   "difference_reason": null
+  },
+  "finding_site:src/ici/analysis/_exception_rules.py:820:8": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "C++-only CppExceptionSafety summary target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
    "difference_reason": null
   },
   "finding_site:src/ici/analysis/_python_compatibility.py:299:11": {
@@ -865,7 +901,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Compatibility:<rule> API floor targets match compat-static.json.",
@@ -890,7 +926,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Compatibility:SyntaxFloor targets match compat-static.json.",
@@ -915,7 +951,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "private <name>() targets match every field of dead.json.",
@@ -940,7 +976,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "unused symbol targets match every field of dead.json.",
@@ -965,7 +1001,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "UnreachableCode match every field of dead.json.",
@@ -990,7 +1026,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "DeadCode error target match every field of dead.json.",
@@ -1015,7 +1051,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Resource:<rule> targets with metrics match hygiene.json.",
@@ -1040,7 +1076,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Security:<rule> targets with metrics match hygiene.json.",
@@ -1064,7 +1100,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Python facet: Cycle:N legacy targets start at min(component) and follow real edges as _find_actual_cycle_path; modules metric preserved.",
@@ -1127,7 +1163,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target PythonCognitiveAnalysisError.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1152,7 +1188,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Python cognitive targets with cognitive/nesting metrics match metrics.json.",
@@ -1178,7 +1214,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Python <name>() targets with complexity/nesting metrics match metrics.json.",
@@ -1205,7 +1241,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target SourceInputError.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1230,7 +1266,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits DeadCode empty-scope target with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1256,7 +1292,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits ici.legacy.dead.target finding with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1283,7 +1319,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target SourceInputError.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1308,7 +1344,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits DuplicateCode empty-scope SKIP with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1335,7 +1371,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target SourceTokenizationError.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1361,7 +1397,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target DuplicateComparisonLimit.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1386,7 +1422,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits DuplicateScan with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1412,7 +1448,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits PythonSemanticShapeError with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1438,7 +1474,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits semantic clone group target with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1464,7 +1500,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits lexical clone group target with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1491,7 +1527,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target <analysis error>.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1516,7 +1552,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits ExceptionSafety with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1542,7 +1578,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits legacy per-file line target with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1640,7 +1676,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits Resource:ASTFlow with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1667,7 +1703,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target Resource:SourceInput.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1693,7 +1729,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target Resource:AnalysisUnavailable.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1718,7 +1754,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits ici.legacy.resource.target finding with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1745,7 +1781,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target Resource:NotApplicable.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1771,7 +1807,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target Security:NotApplicable.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1797,7 +1833,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target Security:SyntaxUnavailable.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1822,7 +1858,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits Security:ASTScan with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1849,7 +1885,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Frozen legacy target Security:SourceInput.",
    "difference_reason": "Native reports the same located incomplete/not-applicable fact with the shared PythonAnalysis:<code> ERROR, ExcludedAnalysisSource/ExcludedAnalysisScope or DuplicateCode SKIP targets instead of this engine-specific legacy target name. Needs root R7 legacy-projection review before closure."
@@ -1910,7 +1946,7 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
    ],
    "comparison": "Native producer emits <name>() missing-annotation target with the frozen name/status/metrics checked by the named oracle fixture.",
@@ -1944,8 +1980,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Modern python.compat.<slug> findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -1975,11 +2011,23 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Modern cycle.import findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
+  },
+  "finding_site:src/ici/languages/cycles.py:98:12": {
+   "status": "not_started",
+   "rust_paths": [],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [],
+   "comparison": "C++-only modern C++ include-cycle (_measure_cpp) finding: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
+   "difference_reason": null
   },
   "finding_site:src/ici/languages/deadcode.py:87:11": {
    "status": "complete",
@@ -2005,8 +2053,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Modern dead.<rule> findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -2035,8 +2083,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Modern dup.type2-clone findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -2068,8 +2116,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Modern <kind>.<rule> findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -2094,8 +2142,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Modern metrics.<kind> findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -2124,8 +2172,8 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 (after IDNA unit 5aeb4c4 on merged d44cf42): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets -D warnings and cargo fmt --check passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
    ],
    "comparison": "Modern line.file-size findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -2207,7 +2255,10 @@
     "finding_site:src/ici/analysis/_exception_rules.py:729:16",
     "finding_site:src/ici/analysis/_exception_rules.py:743:16",
     "finding_site:src/ici/analysis/_exception_rules.py:761:20",
-    "finding_site:src/ici/analysis/_exception_rules.py:776:8"
+    "finding_site:src/ici/analysis/_exception_rules.py:776:8",
+    "finding_site:src/ici/analysis/_exception_rules.py:801:12",
+    "finding_site:src/ici/analysis/_exception_rules.py:811:12",
+    "finding_site:src/ici/analysis/_exception_rules.py:820:8"
    ],
    "reason": "Python handler rules map to ici-analysis exception.rs (exception.json). Compared against the frozen v0.13.0 module with the CPython 3.14.7 oracle scripts in tests/rust-parity/python. analyze_cpp_exceptions (DestructorThrow/CatchAllSwallowed, lines 801-820) is the cpp facet and not claimed here."
   },
@@ -2470,7 +2521,8 @@
    "disposition": "mapped",
    "requirements": [
     "check:python.cycle",
-    "finding_site:src/ici/languages/cycles.py:67:12"
+    "finding_site:src/ici/languages/cycles.py:67:12",
+    "finding_site:src/ici/languages/cycles.py:98:12"
    ],
    "reason": "Modern check projection (observation, measurements, limitations, findings, fingerprints) compared end to end against the frozen module by crates/ici-cli/tests/python_modern_parity.rs (16 frozen projects with explicit corrections)."
   },
