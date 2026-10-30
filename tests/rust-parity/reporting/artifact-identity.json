@@ -60,7 +60,13 @@
      "task_id": "app.cpp.artifact",
      "variant": null
     }
-   ]
+   ],
+   "tem": {
+    "limitations": [
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   }
   },
   "mixed": {
    "checks": [
@@ -152,7 +158,13 @@
      "task_id": "app.cpp.artifact",
      "variant": null
     }
-   ]
+   ],
+   "tem": {
+    "limitations": [
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   }
   }
  },
  "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"

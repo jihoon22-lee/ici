@@ -863,6 +863,7 @@ dependencies = [
  "ici-reporting",
  "ici-validation",
  "percent-encoding",
+ "regex",
  "serde",
  "serde_json",
  "sha1",

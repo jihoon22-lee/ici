@@ -128,6 +128,13 @@ pub fn assemble(
             limitations.push(limitation.clone());
         }
     }
+    // Frozen `build_result`: the run's TEM metrics and limitations follow everything else.
+    let (tem_metrics, tem_limitations) = ici_domain::tem::run_metrics(&verification.observations);
+    for limitation in tem_limitations {
+        if !seen.contains(&limitation) {
+            limitations.push(limitation);
+        }
+    }
     let mut checks = context.checks;
     if !context.inputs_stable {
         for check in &mut checks {
@@ -181,6 +188,7 @@ pub fn assemble(
             .observations
             .iter()
             .flat_map(|o| o.measurements.iter().cloned())
+            .chain(tem_metrics)
             .collect(),
         gate: verification.gate,
         findings: verification.findings,

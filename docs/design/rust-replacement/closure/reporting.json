@@ -59,7 +59,8 @@
     "positive": [
      "crates/ici-reporting/tests/migration_edges.rs::malformed_v2_fields_coerce_exactly_like_the_frozen_reader",
      "crates/ici-reporting/tests/rendering.rs::explicit_v2_migration_matches_frozen_original_without_guessing_schema",
-     "crates/ici-reporting/tests/legacy_pipeline.rs::original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved"
+     "crates/ici-reporting/tests/legacy_pipeline.rs::original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved",
+     "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates"
     ],
     "negative": [
      "crates/ici-reporting/tests/stored.rs::reader_preserves_unknown_legacy_extension_data_but_refuses_unknown_schemas_and_invalid_regions",
@@ -75,9 +76,12 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 7 passed; the saved suite tem_score equals the test engine score (frozen engines/verify.py); /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the same run on the previous projection fails twice with suite tem_score null against 1.17 and 1.78; /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem-before.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log"
    ],
-   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas.",
+   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null).",
    "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
   },
   "capability:execution-cancel-save-redact": {
@@ -171,7 +175,7 @@
    "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "wire_schema:ici-result-v3.schema.json": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/stored.rs",
     "crates/ici-reporting/src/migration.rs",
@@ -180,10 +184,12 @@
    "fixtures": {
     "positive": [
      "crates/ici-reporting/tests/stored.rs::published_modern_and_legacy_envelopes_roundtrip_without_schema_confusion",
-     "crates/ici-reporting/tests/migration_edges.rs::malformed_v2_fields_coerce_exactly_like_the_frozen_reader"
+     "crates/ici-reporting/tests/migration_edges.rs::malformed_v2_fields_coerce_exactly_like_the_frozen_reader",
+     "crates/ici-cli/tests/wire_schemas.rs::native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema"
     ],
     "negative": [
-     "crates/ici-reporting/tests/stored.rs::reader_preserves_unknown_legacy_extension_data_but_refuses_unknown_schemas_and_invalid_regions"
+     "crates/ici-reporting/tests/stored.rs::reader_preserves_unknown_legacy_extension_data_but_refuses_unknown_schemas_and_invalid_regions",
+     "crates/ici-cli/tests/wire_schemas.rs::native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema"
     ],
     "failure": [
      "crates/ici-reporting/tests/migration_edges.rs::paths_outside_or_ambiguous_to_the_root_are_refused_like_the_frozen_reader"
@@ -191,9 +197,14 @@
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 6 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 92 samples (55 valid, 37 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
+    "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
    ],
-   "comparison": "Reader/writer behaviour proven against frozen migration and pipeline captures. The 922-line JSON Schema file itself was not compared constraint by constraint against the native validator in this pass."
+   "comparison": "Reader/writer behaviour proven against frozen migration and pipeline captures. The frozen schema file is now read verbatim by the wire_schemas.rs checker (uniqueItems, anyOf, minItems, maximum included; its two lookahead relative-path patterns are spelled out and cross-checked): native legacy `ici verify --report` suites and `line`/`complexity`/`security --report` engine documents validate, and ten invalid mutations (future version, unknown suite/engine status, unknown evidence, missing results, negative count, parent/drive/backslash/absolute finding paths) are rejected; jsonschema 4.26.0 agrees on every sample. The native reader refuses the version/status/evidence mutations; count and path checks are the schema's and migration_edges.rs's."
   },
   "finding_site:src/ici/reporters/json_rep.py:738:11": {
    "status": "complete",
@@ -267,38 +278,54 @@
    "comparison": "redact_engine_result target fields (file_path, target_name, message, snippet, metrics via redact_data) are redacted before identity; frozen capture secret-in-target-name matches including the fingerprint."
   },
   "finding_site:src/ici/core/redaction.py:360:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-reporting/src/safe.rs"
+    "crates/ici-reporting/src/safe.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::finding_fields_metric_names_and_fixes_redact_like_the_frozen_finding_redactor",
      "crates/ici-reporting/tests/rendering.rs::saved_run_renderers_preserve_axes_baseline_suppression_unicode_and_escape_boundaries"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::secret_free_values_pass_through_redaction_unchanged"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/migration_edges.rs::secret_flag_values_in_argv_are_hidden_at_every_output_boundary"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 57 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-redaction.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-redaction-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "finding metrics/tool_rule_id redaction is covered by recursive output redaction of every string and key; no dedicated frozen capture of a credential inside a metric key or delta rule id was taken."
+   "comparison": "tests/rust-parity/reporting/finding-redaction.json (capture_finding_redaction.py, frozen _redact_finding over a GitHub token, a Bearer value and a password assignment in every string field): the native report redactor gives the frozen redacted finding exactly, including location paths and labels, message/explanation/remediation, tool rule/name/version, snippet, suppression reason, fix description/path/replacement, metric units, and metric names that collide once masked ('metric ***REDACTED***#2'). Native redaction is recursive over every string, so a credential in fields frozen leaves alone (rule_id, fingerprint) would also be masked; none occur in frozen output."
   },
   "finding_site:src/ici/core/redaction.py:447:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-reporting/src/safe.rs"
+    "crates/ici-reporting/src/safe.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
    "fixtures": {
     "positive": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::baseline_delta_rule_message_engine_and_locations_redact_like_the_frozen_delta_redactor",
      "crates/ici-reporting/tests/rendering.rs::saved_run_renderers_preserve_axes_baseline_suppression_unicode_and_escape_boundaries"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/safe.rs::frozen_redaction_tests::secret_free_values_pass_through_redaction_unchanged"
+    ],
+    "failure": [
+     "crates/ici-reporting/tests/migration_edges.rs::secret_flag_values_in_argv_are_hidden_at_every_output_boundary"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 57 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-redaction.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-redaction-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "baseline delta rule_id redaction is covered by recursive output redaction of every string and key; no dedicated frozen capture of a credential inside a metric key or delta rule id was taken."
+   "comparison": "tests/rust-parity/reporting/finding-redaction.json: frozen _redact_delta over credentials in engine_name, rule_id, message and current/baseline locations; the native report redactor gives the frozen redacted delta exactly. Native legacy baseline entries (crates/ici-reporting/src/baseline_delta.rs, root decision under ADR-0008) pass through the same redactor before output."
   },
   "finding_site:src/ici/core/baseline.py:284:11": {
    "status": "complete",
@@ -523,7 +550,7 @@
    "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "finding_site:src/ici/reporters/sarif.py:296:14": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/sarif.rs"
    ],
@@ -534,13 +561,17 @@
     "negative": [
      "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new"
     ],
-    "failure": []
+    "failure": [
+     "crates/ici-reporting/tests/suite_overview.rs::resolved_deltas_without_or_with_escaping_baseline_locations_follow_the_frozen_serializer"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --test suite_overview -- --include-ignored`; EXIT 0, 3 passed; /tmp/ici-rust-replacement-20261028/w-reporting-sarif-absent.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-sarif-absent-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log"
    ],
-   "comparison": "Resolved delta -> SARIF absent result with baseline location, baseline severity level, rule-id message fallback and delta properties; matches frozen serialize_sarif output for the captured case.",
+   "comparison": "Resolved delta -> SARIF absent result with baseline location, baseline severity level, rule-id message fallback and delta properties; matches frozen serialize_sarif output for the captured case. Frozen _resolved_finding returns None without a baseline location (no absent result) and canonicalize_finding raises for an escaping or absolute baseline path (checked against the frozen canonical_project_path: 'path escapes the project root' / 'finding path is outside project_root'); natively the first yields no absent result and the second is refused rather than emitted.",
    "difference_reason": "The absent result keeps the saved delta fingerprint; the frozen serializer recomputed one from rule and location. Root decision accepted under ADR-0008: incompatible (pyz-era) baselines produce no absent or new SARIF results (legacy_baseline_gate.rs pyz test)."
   },
   "finding_site:src/ici/reporting/view_model.py:130:11": {
@@ -562,94 +593,139 @@
    "comparison": "RunView metrics rows (name, value, unit, numerator/denominator) are shown from saved run metrics; native shows raw numerator and denominator columns rather than the formatted 'n of d' string."
   },
   "finding_site:src/ici/reporters/issue_view.py:195:20": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/issue_view.py:305:12": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/python_issue_projection.py:288:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/python_issue_projection.py:313:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/html/utils.py:86:12": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/html/utils.py:110:16": {
    "status": "verified",
@@ -667,62 +743,138 @@
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Frozen adds an HtmlIssue with rule_id 'engine' (badge = status, message = summary) for an ERROR/SKIP engine that produced no issue group. Native HTML shows the same engine name, status and summary in the engine table, not as an issue row with a pseudo rule id; not closed until that presentation difference is accepted or reproduced."
   },
   "finding_site:src/ici/application/report.py:92:11": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-domain/src/tem.rs",
+    "crates/ici-application/src/assemble.rs",
+    "crates/ici-validation/src/tem.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-domain/tests/tem_metrics.rs::scored_components_and_raw_count_workspace_match_the_frozen_run_metrics",
+     "crates/ici-cli/tests/run_tem.rs::analyze_appends_the_frozen_tem_limitation_after_every_other_limitation"
+    ],
+    "negative": [
+     "crates/ici-domain/tests/tem_metrics.rs::missing_coverage_or_function_evidence_is_a_limitation_never_a_score",
+     "crates/ici-cli/tests/artifact_contract.rs::internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/tem_metrics.rs::invalid_percent_only_unmarked_and_unscorable_workspace_inputs_match_frozen"
+    ]
    },
-   "evidence": [],
-   "comparison": "Not closed in this pass: next-run RunResult metrics (observation measurements plus the TEM tuple) were not compared against the native run producer; the dynamic metric keys still need review before closure."
+   "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo test -p ici-cli --locked -j2 --test run_tem -- --include-ignored`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-tem-e2e.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: run_tem.rs and the artifact_contract.rs identity test fail on the previous assembly (no TEM limitation); /tmp/ici-rust-replacement-20261028/w-reporting-tem-before.log",
+    "`cargo clippy -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-tem-clippy.log"
+   ],
+   "comparison": "Defect fixed: the native RunResult carried only observation measurements and never the frozen TEM tuple. assemble now appends ici_domain::tem::run_metrics (a port of frozen tem_metrics/inputs_from/counts_from/aggregate/calculate; ici-validation's calculate delegates to the same formula after its own input guard) after every other metric and limitation. tests/rust-parity/reporting/tem-metrics.json (capture_tem_metrics.py, frozen tem_metrics over 9 synthetic observation sets: scored Line/Branch components, raw-count workspace merge, last-coverage-wins, percent-only exclusion, unscorable workspace, unmarked task ids grouped as 'workspace', zero-denominator cases, invalid counts) matches metric names, values, units and limitation strings exactly. End to end, native `ici analyze` on the capture_cli_oracle fixture gives the frozen analyze-cold.json measurements (name, value, unit, counts, order) and the same final 'project: TEM N/A' limitation, and both cpp.artifact identity cases give the frozen 'app: TEM N/A' line. Evidence levels are not compared end to end: native python.dead `issues_found` is ESTIMATED where frozen is MEASURED (python-analysis area). Native de-duplicates repeated limitation strings where frozen keeps duplicates; TEM lines are never duplicated."
   },
   "wire_schema:ici-compilation-export-v1.schema.json": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/export_context/public_export.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/wire_schemas.rs::native_compilation_export_validates_and_schema_violations_are_detected"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/wire_schemas.rs::native_compilation_export_validates_and_schema_violations_are_detected"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/compilation_commands.rs::explicit_database_failure_and_ambiguous_selection_never_prepare_or_fallback"
+    ]
    },
-   "evidence": [],
-   "comparison": "Not reviewed in this pass: the frozen compilation export envelope (cpp area producer) JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+   "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. The native standalone `ici export-compilation-context` payload and every payload in the frozen compilation-export corpus (tests/rust-parity/cpp/compilation-export-oracle.json) validate against ici-compilation-export-v1; five mutated payloads (future version, unknown evidence, missing project, unknown key, malformed digest) are rejected. Payload field parity with frozen is the cpp area's compilation_commands.rs corpus test; ici has no native reader of this export.",
+   "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 6 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 92 samples (55 valid, 37 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
+    "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
+   ]
   },
   "wire_schema:ici-next-event-v1.schema.json": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-domain/src/event.rs",
+    "crates/ici-cli/src/events.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/wire_schemas.rs::native_runs_and_events_validate_against_the_frozen_next_schemas"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/wire_schemas.rs::schema_invalid_runs_and_events_are_refused_by_the_schema_and_the_native_reader"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/wire.rs::bounded_events_preserve_gaps_and_unknown_optional_events"
+    ]
    },
-   "evidence": [],
-   "comparison": "Not reviewed in this pass: the frozen next event stream JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+   "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. Every line of a native `ici analyze --events` stream validates against ici-next-event-v1; a future schema_version or foreign schema_id is rejected by the schema and refused by read_events; an unknown event_type is rejected by the schema while read_events skips it with a note, like the frozen tolerant reader.",
+   "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 6 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 92 samples (55 valid, 37 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
+    "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
+   ]
   },
   "wire_schema:ici-next-run-v1.schema.json": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-domain/src/result.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/wire_schemas.rs::published_v1_runs_validate_and_roundtrip_through_the_native_reader_as_v1"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/wire_schemas.rs::schema_invalid_runs_and_events_are_refused_by_the_schema_and_the_native_reader"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/wire.rs::published_result_goldens_roundtrip_without_lost_information"
+    ]
    },
-   "evidence": [],
-   "comparison": "Not reviewed in this pass: the frozen next run v1 envelope JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+   "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. The five published v1 goldens validate against ici-next-run-v1 before and after a native read/write (still schema_version 1); a v1 document carrying checks or an unknown key is rejected by the schema and by the native reader. Native writes only v2; v1 is read-compatible.",
+   "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 6 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 92 samples (55 valid, 37 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
+    "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
+   ]
   },
   "wire_schema:ici-next-run-v2.schema.json": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-domain/src/result.rs",
+    "crates/ici-application/src/assemble.rs",
+    "crates/ici-reporting/src/stored.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/wire_schemas.rs::native_runs_and_events_validate_against_the_frozen_next_schemas"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/wire_schemas.rs::schema_invalid_runs_and_events_are_refused_by_the_schema_and_the_native_reader"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/wire.rs::refuse_unknown_or_inconsistent_evidence"
+    ]
    },
-   "evidence": [],
-   "comparison": "Not reviewed in this pass: the frozen next run v2 envelope JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+   "comparison": "The frozen schema file is read verbatim (include_str of src/ici/schemas) by a Rust checker that implements exactly the keywords the four schemas use and panics on any other; every checked sample is cross-checked by the reference jsonschema validator. Native `ici analyze` runs (blocked tasks, findings, checks, TEM limitations, and a --baseline comparison) and the frozen analyze-cold/run-v2 captures validate against ici-next-run-v2; ten schema-invalid mutations (unknown key, future version, missing checks or gate, unknown evidence, absolute and parent locations, uppercase task id and component, non-sha256 digest) are rejected by both the schema and RunResult::from_value. Defect fixed: the native reader accepted non-identifier scope component/language entries and blocked/failed/reused task ids that frozen ScopeSelection/ExecutionSummary refuse.",
+   "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test wire_schemas --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 6 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire.log",
+    "then from /tmp: `uv run --offline --no-project --with jsonschema python -s tests/rust-parity/reporting/validate_wire_schemas.py target/tmp` (jsonschema 4.26.0, Draft202012Validator); EXIT 0, 92 samples (55 valid, 37 invalid), 0 disagreements with the Rust checker; /tmp/ici-rust-replacement-20261028/w-reporting-wire-jsonschema.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the wire test fails on the previous reader (uppercase blocked task id accepted); /tmp/ici-rust-replacement-20261028/w-reporting-wire-before.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 396 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-suites.log; `cargo test -p ici-execution ...`; EXIT 0, 32 passed; /tmp/ici-rust-replacement-20261028/w-reporting-wire-execution.log",
+    "`cargo clippy -p ici-domain -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-wire-clippy.log"
+   ]
   },
   "command:ici verify": {
    "status": "verified",
@@ -812,11 +964,11 @@
    "reason": "Not read in this pass; gate evaluation was not compared with the native gate model."
   },
   "src/ici/application/report.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "finding_site:src/ici/application/report.py:92:11"
    ],
-   "reason": "Partly read; the RunResult metric construction (finding_site report.py:92) is not closed."
+   "reason": "Reviewed all 3 symbols. build_result -> crates/ici-application/src/assemble.rs: run_id, producer, identity (fingerprint_version), scope (selected/required/omitted, full_required_satisfied only for a complete full scope; native also requires every required component selected and none omitted), execution (blocked ids only when incomplete, failed ids, reused ids from cache hits), gate, findings, metrics = observation measurements then the TEM tuple, limitations = observation, run and TEM limitations in frozen order (native drops repeated strings), baseline, checks. tem_metrics -> ici_domain::tem::run_metrics (tests/rust-parity/reporting/tem-metrics.json, 9 frozen cases, exact). digest_of -> ici_domain::sha256 'sha256:<hex>' of UTF-8 text."
   },
   "src/ici/core/baseline.py": {
    "disposition": "unreviewed",
@@ -940,11 +1092,11 @@
    "reason": "Only the finding-site helpers (utils.py:86/110) were checked via issues.rs; the other helpers were not read."
   },
   "src/ici/schemas/ici-result-v3.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-result-v3.schema.json"
    ],
-   "reason": "Reader/writer behaviour verified by captures; the schema constraints were not compared one by one with the native validator."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword implemented; the two lookahead path patterns spelled out) and cross-checked with jsonschema 4.26.0 on all 92 wire samples: native legacy suite and engine reports validate, invalid mutations are rejected."
   },
   "src/ici/reporters/html/__init__.py": {
    "disposition": "unreviewed",
@@ -1080,37 +1232,39 @@
    "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
   },
   "src/ici/schemas/ici-compilation-export-v1.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-compilation-export-v1.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 92 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-next-event-v1.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-next-event-v1.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 92 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-next-run-v1.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-next-run-v1.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 92 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-next-run-v2.schema.json": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "wire_schema:ici-next-run-v2.schema.json"
    ],
-   "reason": "Not read in this pass; see wire_schema row."
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword it uses is implemented; unknown keywords panic) and cross-checked with jsonschema 4.26.0 on 92 samples: native documents validate, schema-invalid mutations are rejected by the schema and, where ici reads the format, by the native reader."
   },
   "src/ici/schemas/ici-auxiliary-v1.schema.json": {
-   "disposition": "unreviewed",
-   "requirements": [],
-   "reason": "Not read in this pass by reporting; its wire_schema row is closed by the common fragment."
+   "disposition": "mapped",
+   "requirements": [
+    "wire_schema:ici-auxiliary-v1.schema.json"
+   ],
+   "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs::native_auxiliary_imports_validate_and_invalid_envelopes_are_refused_by_both: native lcov, junit and sarif import envelopes validate; seven invalid envelopes (foreign schema, future version, a claimed gate, MEASURED evidence, unknown format, missing scope, unknown key) are rejected by the schema and by load_auxiliary; jsonschema 4.26.0 agrees on all 92 wire samples. `format` is an annotation, as in the reference validator. The wire_schema row itself is the common area's."
   }
  }
 }

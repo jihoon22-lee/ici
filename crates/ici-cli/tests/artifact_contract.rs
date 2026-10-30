@@ -223,5 +223,24 @@ fn internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelop
         let mut expected = projected(&frozen["checks"], &check_keys);
         expected.dedup();
         assert_eq!(native, expected, "{name}");
+        // Run TEM (frozen application/report.py:92): no coverage, so only the N/A limitation.
+        let tem_metrics: Vec<&Value> = document["metrics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|metric| metric["name"].as_str().unwrap().starts_with("tem."))
+            .collect();
+        let tem_limitations: Vec<&Value> = document["limitations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|limitation| limitation.as_str().unwrap().contains("TEM"))
+            .collect();
+        assert_eq!(json!(tem_metrics), frozen["tem"]["metrics"], "{name}");
+        assert_eq!(
+            json!(tem_limitations),
+            frozen["tem"]["limitations"],
+            "{name}"
+        );
     }
 }

@@ -276,9 +276,35 @@ fn mappings() -> &'static Vec<Mapping> {
             .expect("frozen reviewed aliases")
     })
 }
+/// Frozen `_normalise`: `casefold()`, then runs outside `[a-z0-9]` become one `-`. Full case
+/// folding differs from lowercasing in the token only for these characters (the same 17 in
+/// Python 3.10's and 3.14's Unicode tables).
+fn casefold(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| match ch {
+            'ß' | 'ẞ' => "ss".into(),
+            'ŉ' => "\u{2bc}n".into(),
+            'ſ' => "s".into(),
+            'ǰ' => "j\u{30c}".into(),
+            'ẖ' => "h\u{331}".into(),
+            'ẗ' => "t\u{308}".into(),
+            'ẘ' => "w\u{30a}".into(),
+            'ẙ' => "y\u{30a}".into(),
+            'ẚ' => "a\u{2be}".into(),
+            'ﬀ' => "ff".into(),
+            'ﬁ' => "fi".into(),
+            'ﬂ' => "fl".into(),
+            'ﬃ' => "ffi".into(),
+            'ﬄ' => "ffl".into(),
+            'ﬅ' | 'ﬆ' => "st".into(),
+            other => other.to_lowercase().collect::<String>(),
+        })
+        .collect()
+}
 fn norm(value: &str) -> String {
     let mut out = String::new();
-    for ch in value.trim().to_lowercase().chars() {
+    for ch in casefold(value.trim()).chars() {
         if ch.is_ascii_alphanumeric() {
             out.push(ch);
         } else if !out.is_empty() && !out.ends_with('-') {
@@ -756,4 +782,105 @@ pub(crate) fn project(view: &View) -> Result<IssueProjection> {
             vec![]
         },
     })
+}
+
+#[cfg(test)]
+mod frozen_rule_identity_tests {
+    use super::{Record, identity};
+    use serde_json::{Value, json};
+
+    /// tests/rust-parity/reporting/capture_python_rule_identity.py: frozen
+    /// `canonical_python_rule_identity`, the source of IssueGroup/HtmlIssue rule ids.
+    fn golden() -> Value {
+        let golden: Value = serde_json::from_str(include_str!(
+            "../../../tests/rust-parity/reporting/python-rule-identity.json"
+        ))
+        .unwrap();
+        assert_eq!(golden["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+        golden
+    }
+
+    /// Every captured case whose input satisfies `select`, as (input, frozen, native) rows that
+    /// disagree.
+    fn disagreements(select: impl Fn(&[Value]) -> bool) -> (usize, Vec<String>) {
+        let golden = golden();
+        let mut checked = 0;
+        let mut wrong = vec![];
+        for case in golden["cases"].as_array().unwrap() {
+            let case = case.as_array().unwrap();
+            if !select(case) {
+                continue;
+            }
+            checked += 1;
+            let record = Record {
+                engine: case[3].as_str().unwrap().to_owned(),
+                finding: json!({"rule_id":case[0],"tool_rule_id":case[1],"primary_location":{"label":case[2]}}),
+                index: 0,
+            };
+            let (id, mergeable) = identity(&record, case[4].as_str().unwrap_or(""));
+            let native = json!([id, if mergeable { json!(id) } else { Value::Null }]);
+            let frozen = json!([case[5], case[6]]);
+            if native != frozen {
+                wrong.push(format!("{case:?}: native {native} frozen {frozen}"));
+            }
+        }
+        (checked, wrong)
+    }
+
+    #[test]
+    fn casefold_tokens_match_python_for_the_full_folding_characters() {
+        for (text, token) in [
+            ("Straße", "strasse"),
+            ("ẞ", "ss"),
+            ("ŉ", "n"),
+            ("ſ", "s"),
+            ("ǰ", "j"),
+            ("ẚ", "a"),
+            ("ﬃx", "ffix"),
+            ("ﬆ", "st"),
+            ("İ", "i"),
+            ("\u{212a}", "k"),
+            ("Ωmega", "mega"),
+        ] {
+            assert_eq!(super::norm(text), token, "{text}");
+        }
+    }
+
+    #[test]
+    fn reviewed_alias_table_is_the_frozen_mapping_registry() {
+        let native: Value =
+            serde_json::from_str(include_str!("../assets/python-rule-aliases.json")).unwrap();
+        assert_eq!(native, golden()["mappings"]);
+    }
+
+    #[test]
+    fn every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group() {
+        let (checked, wrong) = disagreements(|case| {
+            !case[0].as_str().unwrap().starts_with("ici.legacy.")
+                && case[0].as_str().unwrap().starts_with("ici.python.")
+                || !case[0].as_str().unwrap().starts_with("ici.")
+        });
+        assert!(checked > 2000, "{checked}");
+        assert!(
+            wrong.is_empty(),
+            "{} of {checked}:\n{}",
+            wrong.len(),
+            wrong.join("\n")
+        );
+    }
+
+    #[test]
+    fn tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen() {
+        let (checked, wrong) = disagreements(|case| {
+            let rule = case[0].as_str().unwrap();
+            rule.starts_with("ici.legacy.") || rule == "ici.other.rule"
+        });
+        assert!(checked > 150, "{checked}");
+        assert!(
+            wrong.is_empty(),
+            "{} of {checked}:\n{}",
+            wrong.len(),
+            wrong.join("\n")
+        );
+    }
 }
