@@ -58,7 +58,8 @@ impl EventLog {
             event_type: kind.into(),
             timestamp: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
             task_id: task_id.map(str::to_owned),
-            component_id: component.map(str::to_owned),
+            // Workspace-level tasks carry no component; an empty id is absence, not identity.
+            component_id: component.filter(|id| !id.is_empty()).map(str::to_owned),
             message: message.chars().take(4096).collect(),
         };
         match append_events(&sink.path, &[event]) {

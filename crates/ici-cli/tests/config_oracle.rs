@@ -103,6 +103,9 @@ fn run_next_plan(case: &Value) -> (Option<i32>, String) {
         .env("XDG_CONFIG_HOME", temporary.path())
         .output()
         .unwrap();
+    // Frozen stable commands wrote a global default policy on a first run; native never does,
+    // whether the configuration is accepted or refused.
+    assert!(!temporary.path().join("ici").exists());
     (
         output.status.code(),
         String::from_utf8_lossy(&output.stderr).into_owned(),
@@ -135,4 +138,36 @@ fn every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary() 
     }
     assert_eq!(samples, 4);
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// An accepted but not yet honoured preference is visible to the user in the plan, not only in
+/// the library's `ResolvedProject.limitations`.
+#[test]
+fn unapplied_preferences_reach_the_plan_output_of_the_binary() {
+    let project = tempfile::tempdir().unwrap();
+    fs::create_dir(project.path().join(".git")).unwrap();
+    fs::write(project.path().join("app.py"), "x = 1\n").unwrap();
+    fs::write(
+        project.path().join("ici.toml"),
+        "schema_version = 2\noutput = \"results\"\ncache = \"cache\"\n",
+    )
+    .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+        .args(["next", "plan", "--json"])
+        .current_dir(project.path())
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .env("HOME", project.path())
+        .env("XDG_CONFIG_HOME", project.path().join("xdg"))
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    let plan: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let text = plan.to_string();
+    for key in ["output", "cache"] {
+        assert!(
+            text.contains(&format!("{key} preference from ")) && text.contains("not applied"),
+            "{key}: {text}"
+        );
+    }
 }

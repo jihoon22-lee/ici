@@ -320,3 +320,37 @@ fn unapplied_output_cache_and_display_preferences_are_reported_not_silent() {
         "preferences never change inspection policy"
     );
 }
+
+/// The frozen v1 domain-model build rules stay scoped to schema 1: sparse v2 keeps a root CMake
+/// project spelling and shadow builds without a directory. Every family refuses a build id that
+/// could escape the shadow build namespace.
+#[test]
+fn v1_build_model_rules_do_not_narrow_sparse_v2_and_every_build_id_is_path_safe() {
+    let temporary = TempDir::new().unwrap();
+    let root = temporary.path().join("project");
+    fs::create_dir_all(root.join(".git")).unwrap();
+    fs::write(root.join("main.cpp"), "int main(){}\n").unwrap();
+    let environment = BTreeMap::new();
+    let write = |text: &str| fs::write(root.join("ici.toml"), text).unwrap();
+    write(
+        "schema_version = 2\n[builds.Native]\nsystem = 'CMake'\nproject = '.'\nvariant = 'Release'\n",
+    );
+    let project = resolve_with_environment(&root, None, None, &environment).unwrap();
+    assert_eq!(project.builds[0].project.as_deref(), Some("."));
+    assert_eq!(project.builds[0].directory, None);
+    for id in ["'../escape'", "'a/b'", "'..'"] {
+        write(&format!(
+            "schema_version = 2\n[builds.{id}]\nsystem = 'cmake'\n"
+        ));
+        let error = resolve_with_environment(&root, None, None, &environment).unwrap_err();
+        assert!(
+            error.message.contains("without path separators"),
+            "{id}: {error}"
+        );
+    }
+    write(
+        "schema_version = 1\n[workspace]\nname='w'\n[builds.native]\nsystem='cmake'\nproject='.'\ndirectory='out'\n[[components]]\nid='app'\nroot='.'\nlanguages=['cpp']\n",
+    );
+    let error = resolve_with_environment(&root, None, None, &environment).unwrap_err();
+    assert_eq!(error.origin.key, "builds.native.project");
+}

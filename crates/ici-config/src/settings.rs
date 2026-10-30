@@ -58,10 +58,11 @@ pub(crate) fn builds(
     }
     Ok(result)
 }
-/// Frozen `ici.domain.workspace.BuildUnit`/`Workspace` rules for declared builds: stable
-/// lowercase identifiers (they name shadow directories and cache keys), an output directory
-/// below the workspace root, and one build per directory. Schema 1 also requires a system and
-/// a directory (`workspace/model.py`); sparse v2 may omit the directory for a shadow build.
+/// Frozen `ici.domain.workspace.BuildUnit`/`Workspace` rules for schema 1 builds: stable
+/// lowercase identifiers, output directory/definition below the workspace root, one build per
+/// directory, and a declared system and directory (`workspace/model.py`). Sparse v2 keeps its
+/// documented spellings (for example `project = "."` for a root CMake project, shadow builds
+/// without a directory); every family refuses an id that cannot safely name a shadow directory.
 pub(crate) fn validate_builds(
     builds: &[Build],
     family: SchemaFamily,
@@ -70,6 +71,21 @@ pub(crate) fn validate_builds(
     let mut directories: BTreeMap<&str, &str> = BTreeMap::new();
     for build in builds {
         let key = |name: &str| format!("builds.{}.{name}", build.id);
+        if build.id.is_empty()
+            || build.id.len() > 128
+            || build.id == "."
+            || build.id.contains(['/', '\\'])
+            || build.id.contains("..")
+            || build.id.chars().any(char::is_control)
+        {
+            return Err(parsed.error(
+                &format!("builds.{}", build.id),
+                "build id must be a bounded name without path separators",
+            ));
+        }
+        if family != SchemaFamily::NextV1 {
+            continue;
+        }
         let identifiers = [
             (format!("builds.{}", build.id), Some(build.id.as_str())),
             (key("system"), build.system.as_deref()),
@@ -93,17 +109,13 @@ pub(crate) fn validate_builds(
                 ));
             }
         }
-        if family == SchemaFamily::NextV1 {
-            if build.system.is_none() {
-                return Err(parsed.error(&key("system"), "a build must name a system"));
-            }
-            if build.directory.is_none() {
-                return Err(parsed.error(&key("directory"), "a build must name a directory"));
-            }
+        if build.system.is_none() {
+            return Err(parsed.error(&key("system"), "a build must name a system"));
         }
-        if let Some(directory) = build.directory.as_deref()
-            && let Some(owner) = directories.insert(directory, &build.id)
-        {
+        let Some(directory) = build.directory.as_deref() else {
+            return Err(parsed.error(&key("directory"), "a build must name a directory"));
+        };
+        if let Some(owner) = directories.insert(directory, &build.id) {
             return Err(parsed.error(
                 &key("directory"),
                 format!(

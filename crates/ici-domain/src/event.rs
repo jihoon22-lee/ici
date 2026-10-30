@@ -45,6 +45,21 @@ impl Validate for RunEvent {
             !self.event_type.starts_with("task.") || self.task_id.is_some(),
             "task event must identify task",
         )?;
+        // Frozen `require_identifier`: a present id is never empty or padded. Native task and
+        // component ids may name monorepo paths (`svc/api`) and keep case, so only the
+        // non-empty, unpadded, printable and bounded guard applies.
+        for (value, name) in [
+            (&self.task_id, "task_id"),
+            (&self.component_id, "component_id"),
+        ] {
+            if let Some(value) = value {
+                validation::text(value, name)?;
+                validation::require(
+                    value.chars().count() <= 256 && !value.chars().any(char::is_control),
+                    format!("{name} must be printable and at most 256 characters"),
+                )?;
+            }
+        }
         validation::require(
             self.message.chars().count() <= 4096,
             "event message exceeds 4096 characters",

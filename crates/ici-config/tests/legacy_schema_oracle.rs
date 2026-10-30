@@ -220,3 +220,172 @@ fn sparse_v2_gives_legacy_tables_the_same_native_verdicts() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// Frozen `load_config` merged XDG global, project ici.toml, dev.toml and ICI_CONFIG and wrote a
+/// global default policy on a first config-less run (tests/rust-parity/config/
+/// legacy-layers-oracle.json). Native reads only the project file (or ICI_CONFIG as an isolated
+/// explicit file), never writes a global file, and reports the unmerged historical layers;
+/// `legacy_migration_report` explains their winners and losers.
+#[test]
+fn historical_layers_are_reported_not_merged_and_no_global_default_is_written() {
+    let oracle = fixture("legacy-layers-oracle.json")["observations"].clone();
+    assert_eq!(
+        oracle["first_run_global_default"]["global_file_written"],
+        true
+    );
+    let temporary = TempDir::new().unwrap();
+    let base = temporary.path();
+    fs::create_dir_all(base.join("xdg")).unwrap();
+    fs::create_dir_all(base.join("project/.git")).unwrap();
+    fs::write(base.join("project/main.py"), "x = 1\n").unwrap();
+    let mut environment = BTreeMap::from([(
+        "XDG_CONFIG_HOME".to_string(),
+        base.join("xdg").display().to_string(),
+    )]);
+    let project = base.join("project");
+    // First config-less run: frozen wrote xdg/ici/ici.toml; native writes nothing.
+    let first = resolve_with_environment(&project, None, None, &environment).unwrap();
+    assert_eq!(first.schema_family, SchemaFamily::Automatic);
+    assert!(fs::read_dir(base.join("xdg")).unwrap().next().is_none());
+    // get_engine_config: the effective engine table, or nothing for an unknown engine.
+    let legacy = run("");
+    let inspection = legacy.accepted.unwrap();
+    for (key, value) in oracle["get_engine_config"]["line"].as_object().unwrap() {
+        assert_eq!(
+            &inspection.effective["engines"]["line"][key], value,
+            "{key}"
+        );
+    }
+    assert_eq!(
+        oracle["get_engine_config"]["missing"],
+        serde_json::json!({})
+    );
+    assert!(
+        inspection.effective["engines"]
+            .get("no-such-engine")
+            .is_none()
+    );
+    for (name, text) in oracle["layers"]["files"].as_object().unwrap() {
+        let path = base.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text.as_str().unwrap()).unwrap();
+    }
+    // Without ICI_CONFIG frozen merged all layers (dev.toml won); native uses the project file.
+    assert_eq!(oracle["layers"]["without_explicit"]["warn_limit"], 800);
+    let native = resolve_with_environment(&project, None, None, &environment).unwrap();
+    assert_eq!(native.effective["engines"]["line"]["warn_limit"], 700);
+    assert_eq!(native.effective["engines"]["line"]["fail_limit"], 1000);
+    assert_ne!(native.effective["ici"]["policy_name"], "Global policy");
+    for expected in [
+        "legacy global policy is not implicitly merged",
+        "legacy dev.toml is not implicitly merged",
+    ] {
+        assert!(
+            native.limitations.iter().any(|l| l.contains(expected)),
+            "{expected}: {:?}",
+            native.limitations
+        );
+    }
+    // With ICI_CONFIG frozen still merged every layer under it; native reads it in isolation.
+    assert_eq!(oracle["layers"]["with_explicit"]["fail_limit"], 2000);
+    environment.insert(
+        "ICI_CONFIG".into(),
+        base.join("explicit.toml").display().to_string(),
+    );
+    let explicit = resolve_with_environment(&project, None, None, &environment).unwrap();
+    assert_eq!(explicit.effective["engines"]["line"]["warn_limit"], 900);
+    assert_eq!(explicit.effective["engines"]["line"]["fail_limit"], 1000);
+    assert!(explicit.config_source.unwrap().ends_with("explicit.toml"));
+    let report = legacy_migration_report(&project, &environment);
+    let contested = report
+        .contested
+        .iter()
+        .find(|item| item.key == "engines.line.warn_limit")
+        .expect("historical precedence is explained");
+    assert_eq!(contested.winner.label, "ICI_CONFIG");
+    assert_eq!(contested.winner.value, 900);
+    // A missing explicit file is refused in both implementations.
+    assert_eq!(oracle["missing_explicit"]["outcome"], "reject");
+    environment.insert(
+        "ICI_CONFIG".into(),
+        base.join("missing.toml").display().to_string(),
+    );
+    let error = resolve_with_environment(&project, None, None, &environment).unwrap_err();
+    assert!(error.message.contains("does not exist"), "{error}");
+    assert_eq!(
+        fs::read_to_string(base.join("project/ici.toml")).unwrap(),
+        oracle["layers"]["files"]["project/ici.toml"]
+    );
+}
+
+/// Frozen `config/automatic.py` (no ici.toml): one `project` component at the checkout root with
+/// the discovered languages and default exclusions; an existing file is never bypassed and an
+/// unsupported tree is refused. Native matches for single-package trees (monorepo partitioning
+/// is a separate approved rule covered in resolution.rs).
+#[test]
+fn configless_runs_match_frozen_automatic_scope_and_refusals() {
+    let oracle = fixture("legacy-layers-oracle.json")["observations"]["automatic"].clone();
+    for (name, observed) in oracle.as_object().unwrap() {
+        let temporary = TempDir::new().unwrap();
+        let base = temporary.path().join("checkout");
+        for (file, text) in observed["files"].as_object().unwrap() {
+            let path = base.join(file);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text.as_str().unwrap()).unwrap();
+        }
+        fs::create_dir_all(base.join(".git")).unwrap();
+        let start = if name == "subdirectory" {
+            base.join("sub")
+        } else {
+            base.clone()
+        };
+        let result = resolve_with_environment(&start, None, None, &BTreeMap::new());
+        match observed["outcome"].as_str().unwrap() {
+            "accept" => {
+                let project = result.unwrap_or_else(|e| panic!("{name}: {e}"));
+                assert_eq!(project.schema_family, SchemaFamily::Automatic, "{name}");
+                assert_eq!(project.root, base.canonicalize().unwrap(), "{name}");
+                let ids: Vec<_> = project.components.iter().map(|c| c.id.clone()).collect();
+                assert_eq!(serde_json::json!(ids), observed["components"], "{name}");
+                let component = &project.components[0];
+                assert_eq!(component.root, observed["component_root"], "{name}");
+                let mut languages: Vec<_> = observed["languages"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_str().unwrap().to_string())
+                    .collect();
+                languages.sort();
+                assert_eq!(component.languages, languages, "{name}");
+                for pattern in observed["exclude"].as_array().unwrap() {
+                    assert!(
+                        component.exclude.iter().any(|p| p == pattern),
+                        "{name}: {pattern}"
+                    );
+                }
+                assert_eq!(
+                    serde_json::json!(project.profile),
+                    observed["profile"],
+                    "{name}"
+                );
+            }
+            "reject" => {
+                let error = result.unwrap_err();
+                assert!(
+                    error
+                        .message
+                        .contains("no supported source files discovered"),
+                    "{name}: {error}"
+                );
+            }
+            "existing_config" => {
+                assert_eq!(
+                    result.unwrap().schema_family,
+                    SchemaFamily::Legacy,
+                    "{name}"
+                );
+            }
+            other => panic!("{other}"),
+        }
+    }
+}
