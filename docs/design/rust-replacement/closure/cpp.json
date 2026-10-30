@@ -5075,9 +5075,10 @@
       "difference_reason": "Open: (1) an artifacts selection naming an unpublished identity makes Rust drop cpp.binary-compat for the python.binary-compat entry (planning.rs cpp_binary_selected), which stays blocked (SKIP) instead of the frozen 'configured artifact was not published: <id>' ERROR; (2) readelf missing/incomplete evidence is not captured."
     },
     "finding_site:src/ici/engines/build.py:230:16": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/artifact_build/declarations.rs",
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/planning.rs",
         "crates/ici-cli/src/preparation.rs"
@@ -5086,15 +5087,20 @@
         "positive": [
           "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
         ],
-        "negative": [],
-        "failure": []
+        "negative": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 10 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, Make build failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, [build.artifacts]); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
-        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log"
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log",
+        "build-targets-oracle.json now has 12 cases: declared-artifacts-missing and declared-artifacts-external (a [build.artifacts] glob with no match / matching only a symlink outside the workspace) were added and the 10 earlier cases reproduced unchanged. ICI_TEST_MAKE/CXX/CMAKE ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_lint --test legacy_make_build --test legacy_direct_build --test native_preparation --test native_cpp_direct --test native_validation_extra --test legacy_binary_compat --locked -j2 -- --include-ignored: all passed; strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-decisions.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _publish_declared_artifacts records `DeclaredArtifacts` PASS only with a shared analysis context; the frozen `ici build` command creates the BuildEngine without one, so any [build.artifacts] declaration there is a `BuildError` 'declared artifacts require a shared analysis context' (ERROR, exit 1) after the binary and loaders were written. Rust records `DeclaredArtifacts` PASS 'Recorded 1 declared artifact(s)' and exits 0.",
-      "difference_reason": "Open: frozen behavior is a defect of the frozen CLI wiring (the PASS branch is unreachable from `ici build` and the build engine is not part of verify); Rust implements the documented [build.artifacts] intent. Needs a root decision: record as an intended improvement or reproduce the frozen ERROR."
+      "difference_reason": "Intended difference (root decision 2026-10-30): frozen `ici build` runs the BuildEngine without an analysis context, so every [build.artifacts] declaration ends in the blanket BuildError 'declared artifacts require a shared analysis context' (ERROR, exit 1). Rust gives the real verdict: a kept declaration is recorded (`DeclaredArtifacts` PASS 'Recorded 1 declared artifact(s)', exit 0), and a broken one, with no match or only an outside-workspace link, is a BuildError ERROR at '.' 'Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt' with exit 1, the same exit and status as frozen. A broken contract never exits 0 (declared-artifacts-missing/-external cases; previously Rust stopped at INCOMPLETE exit 3)."
     },
     "finding_site:src/ici/engines/build.py:338:16": {
       "status": "verified",
@@ -5141,7 +5147,7 @@
       "difference_reason": "Open: invalid entrypoint / unsafe name / missing module error branches are not captured (Python facet)."
     },
     "finding_site:src/ici/engines/build.py:590:16": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/artifact_build.rs",
         "crates/ici-cli/src/cpp.rs",
@@ -5157,10 +5163,11 @@
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 10 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, Make build failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, [build.artifacts]); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
-        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log"
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log",
+        "build-targets-oracle.json now has 12 cases: declared-artifacts-missing and declared-artifacts-external (a [build.artifacts] glob with no match / matching only a symlink outside the workspace) were added and the 10 earlier cases reproduced unchanged. ICI_TEST_MAKE/CXX/CMAKE ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_lint --test legacy_make_build --test legacy_direct_build --test native_preparation --test native_cpp_direct --test native_validation_extra --test legacy_binary_compat --locked -j2 -- --include-ignored: all passed; strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-decisions.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen direct g++ compile failure: one `CppBinary` FAIL at the package binary path with 'C++ compilation failed: ' + the first 200 characters of g++ stderr (absolute paths), summary 'Build did not produce a complete artifact set', exit 1. Rust now prints the same summary and exit and gate FAIL, but reports the located per-source compiler diagnostic (src/main.cpp) because it compiles objects separately.",
-      "difference_reason": "Open: target shape differs (per-source located diagnostics versus one truncated stderr target at the package path); needs a root decision whether the located diagnostic is an intended improvement."
+      "difference_reason": "Intended difference (root decision 2026-10-30, AGENTS §5.1 location tracking): Rust reports the located per-source compiler diagnostic (src/main.cpp:1, rule and message) instead of frozen's single CppBinary FAIL at the package path carrying the first 200 characters of g++ stderr, whose absolute host paths make the record machine dependent. Frozen's exit code 1, FAIL status and 'Build did not produce a complete artifact set' summary are kept and asserted by the direct-compile-failure case."
     },
     "finding_site:src/ici/engines/build.py:611:12": {
       "status": "verified",

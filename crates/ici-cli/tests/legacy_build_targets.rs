@@ -35,15 +35,22 @@ fn normalized(message: &str) -> String {
 }
 
 fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
-    let root = tempfile::tempdir().unwrap();
+    let work = tempfile::tempdir().unwrap();
+    let project = work.path().join("project");
     copy_tree(
         &Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../parity-fixtures/cpp")
             .join(case["fixture"].as_str().unwrap()),
-        root.path(),
+        project.as_path(),
     );
+    fs::write(work.path().join("outside.txt"), "outside\n").unwrap();
     for (relative, text) in case["changes"].as_object().unwrap() {
-        let path = root.path().join(relative);
+        let path = project.as_path().join(relative);
+        if let Some(target) = text.get("symlink").and_then(Value::as_str) {
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::os::unix::fs::symlink(target, path).unwrap();
+            continue;
+        }
         match text.as_str() {
             None => fs::remove_file(path).unwrap(),
             Some(text) => {
@@ -53,8 +60,8 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
         }
     }
     let invocation = registry::parse(["ici", "build"]).unwrap();
-    let output = commands::dispatch(&invocation, root.path(), environment).unwrap();
-    let runs = root.path().join(".ici/rust-v1/details/result.json");
+    let output = commands::dispatch(&invocation, project.as_path(), environment).unwrap();
+    let runs = project.as_path().join(".ici/rust-v1/details/result.json");
     let run = fs::read_dir(&runs)
         .unwrap_or_else(|_| panic!("no details: {}", output.stdout))
         .next()
@@ -110,13 +117,16 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
         .join(":");
     let environment = BTreeMap::from([("PATH".to_string(), path)]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 10);
+    assert_eq!(cases.len(), 12);
     for (name, case) in cases {
         let frozen = &case["frozen"];
         let actual = run(case, &environment);
         match name.as_str() {
             // Open: frozen `ici build` has no shared analysis context, so any
             // `[build.artifacts]` declaration is a BuildError; Rust records the declared files.
+            // Intended difference (root decision for build.py:230): frozen `ici build` has no
+            // analysis context, so every [build.artifacts] declaration is a blanket BuildError.
+            // Rust records a kept declaration and still refuses a broken one with ERROR exit 1.
             "declared-artifacts" => {
                 assert_eq!(frozen["status"], "ERROR");
                 assert_eq!(actual["exit_code"], 0);
@@ -126,9 +136,22 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
                 );
                 continue;
             }
-            // Open: Rust compiles objects and reports each located compiler diagnostic; frozen
-            // reports one CppBinary FAIL at the package path with the first 200 bytes of
-            // stderr (absolute paths). Exit, status and summary match.
+            "declared-artifacts-missing" | "declared-artifacts-external" => {
+                for key in ["exit_code", "status"] {
+                    assert_eq!(actual[key], frozen[key], "{name} {key}");
+                }
+                assert_eq!(
+                    actual["summary"],
+                    "Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt",
+                    "{name}"
+                );
+                assert_eq!(actual["targets"][0]["target_name"], "BuildError", "{name}");
+                continue;
+            }
+            // Intended difference (root decision for build.py:590, AGENTS §5.1): Rust keeps the
+            // located per-source compiler diagnostic; frozen reports one CppBinary FAIL with the
+            // first 200 characters of stderr (absolute host paths). Exit, status and summary
+            // stay frozen's.
             "direct-compile-failure" => {
                 for key in ["exit_code", "status", "summary"] {
                     assert_eq!(actual[key], frozen[key], "{name} {key}");

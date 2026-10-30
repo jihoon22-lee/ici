@@ -128,6 +128,29 @@ pub fn bind_compiled_artifacts(
                     .artifact_builds
                     .insert(check.task_id.clone(), build);
             }
+            Err(reason)
+                if prepared.legacy_projection
+                    && check.check.id == "cpp.artifact"
+                    && reason.starts_with("declared artifact") =>
+            {
+                // Frozen `_publish_declared_artifacts`: a broken [build.artifacts] declaration is
+                // a BuildError (ERROR, exit 1), never an incomplete or passing build.
+                let message = format!("Declared artifacts could not be recorded: {reason}");
+                prepared.cpp.fail_preparation(
+                    &check.task_id,
+                    crate::cpp::build_failure(
+                        &check.task_id,
+                        ".",
+                        "ici.toml",
+                        true,
+                        &message,
+                        &message,
+                    ),
+                );
+                check.check.needs.clear();
+                check.work = Work::Internal;
+                prepared.artifact_builds.remove(&check.task_id);
+            }
             Err(reason) => {
                 check.work = Work::Blocked {
                     reason: format!("compiled artifact preparation: {reason}"),

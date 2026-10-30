@@ -83,7 +83,7 @@ fn run(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> Valu
 }
 
 #[test]
-#[ignore = "explicit actual g++ legacy lint fallback (ICI_TEST_CXX, the oracle's g++ version)"]
+#[ignore = "explicit actual g++ legacy lint fallback: ICI_TEST_CXX must be g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 (the oracle compiler) and /usr/bin must lack clang-tidy/clazy-standalone"]
 fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/lint-oracle.json"
