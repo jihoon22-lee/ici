@@ -1,6 +1,6 @@
 //! Shared source-located coverage policies, separate from raw coverage decoding.
 use crate::{ValidationError, ValidationPlan, coverage::CoverageReport, python::finding, tem};
-use ici_domain::{AnalysisOutput, InspectionTarget};
+use ici_domain::{AnalysisOutput, InspectionTarget, python_round_one as round1};
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -62,10 +62,6 @@ pub fn evaluate(
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
     evaluate_suite(plan, report, score, false, output)
-}
-/// Python `round(value, 1)`: both sides round the exact binary value half-to-even.
-fn round1(value: f64) -> f64 {
-    format!("{value:.1}").parse().unwrap_or(value)
 }
 /// Frozen `coverage_policy.py` targets plus the frozen `_threshold_breaches` TEM/branch gate.
 /// A suite with a failing case already fails; like the frozen engine it does not add a

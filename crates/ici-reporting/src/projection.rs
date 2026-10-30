@@ -621,10 +621,7 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
         }
         // Frozen totals carry `round(percent, 1)` (both sides round the exact binary value).
         let percent = |covered: u64, total: u64| {
-            (total > 0).then(|| {
-                let value = 100.0 * covered as f64 / total as f64;
-                format!("{value:.1}").parse::<f64>().unwrap_or(value)
-            })
+            (total > 0).then(|| ici_domain::python_round_one(100.0 * covered as f64 / total as f64))
         };
         let line = percent(totals["covered"], totals["stmts"]);
         let branch = percent(totals["cb"], totals["nb"]);

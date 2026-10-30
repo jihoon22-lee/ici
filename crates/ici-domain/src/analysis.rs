@@ -76,3 +76,35 @@ impl AnalysisOutput {
         }
     }
 }
+
+/// Frozen Python `round(value, 1)` for the historical one-decimal percentages: both round the
+/// exact binary value, so ties of the binary value go to even and `99.95` stays `100.0`.
+pub fn python_round_one(value: f64) -> f64 {
+    format!("{value:.1}").parse().unwrap_or(value)
+}
+
+#[cfg(test)]
+mod round_tests {
+    #[test]
+    fn matches_python_round_on_exact_and_inexact_ties() {
+        // Expected values printed by CPython 3 `round(v, 1)`.
+        for (value, expected) in [
+            (0.25, 0.2),
+            (0.75, 0.8),
+            (0.05, 0.1),
+            (0.15, 0.1),
+            (1.25, 1.2),
+            (12.25, 12.2),
+            (99.95, 100.0),
+            (83.333_333_333_333_33, 83.3),
+            (66.666_666_666_666_67, 66.7),
+            (100.0, 100.0),
+            (0.0, 0.0),
+            (1e-9, 0.0),
+            (45.05, 45.0),
+            (26.75, 26.8),
+        ] {
+            assert_eq!(super::python_round_one(value), expected, "{value}");
+        }
+    }
+}
