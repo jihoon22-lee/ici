@@ -137,13 +137,17 @@
     "crates/ici-reporting/src/baseline_delta.rs",
     "crates/ici-cli/src/execute.rs",
     "crates/ici-cli/src/legacy_execute.rs",
-    "crates/ici-reporting/src/overview.rs"
+    "crates/ici-reporting/src/overview.rs",
+    "crates/ici-application/src/verification.rs",
+    "crates/ici-application/src/plan.rs",
+    "crates/ici-cli/src/inputs.rs"
    ],
    "fixtures": {
     "positive": [
      "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
      "crates/ici-reporting/src/baseline_delta.rs::tests::frozen_is_regressed_and_is_actionable",
-     "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not"
+     "crates/ici-application/tests/baseline.rs::complete_matching_check_resolves_but_omitted_incomplete_and_changed_policy_do_not",
+     "crates/ici-cli/tests/artifact_contract.rs::internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint"
     ],
     "negative": [
      "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
@@ -157,9 +161,13 @@
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting -p ici-application --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` then `... cargo test -p ici-cli --locked -j2 --lib --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test coverage_regression --test legacy_line_scope --test legacy_mode_scope --test report_commands --test publish_commands --test legacy_test_parity --test legacy_no_tests --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test integration_legacy --test python_coverage_scope --test legacy_cpp_metrics --test legacy_python_sanitize --test native_validation --test validation_options --test vcs --test plan_commands --test execution --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 176 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-suites.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: legacy_baseline_gate.rs fails on the previous code (both tests); /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-before.log",
-    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log"
+    "`cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-baseline-gate-clippy.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-reporting -p ici-cli -p ici-domain --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 309 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity test fails on the previous attribution (envelope fingerprint sha256:0257d1… with unit app.cpp vs frozen sha256:223305… with no unit); /tmp/ici-rust-replacement-20261028/w-reporting-identity-before.log",
+    "`cargo clippy -p ici-application -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-clippy.log",
+    "manual probe (not a fixture): a python component run through frozen `python -I -m ici next verify --no-cache` and native `target/debug/ici next verify --no-cache` gives identical envelope fingerprints for internal checks with no unit (12 dup.type2-clone, security.evalexec) and for tool findings with unit core.python (3 ruff.SIM102); the remaining differences are outside identity (metrics.complexity carries columns, pytest location and collection-error, python.type uses ty); /tmp/ici-rust-replacement-20261028/w-reporting-identity-python-probe.log"
    ],
-   "comparison": "Baseline facet closed under the root decision (all four conditions proven by legacy_baseline_gate.rs). Identity is covered by the application/domain identity tests; the cache facet was not reviewed by the reporting area, so this row stays verified rather than complete.",
+   "comparison": "Baseline facet closed under the root decision (all four conditions proven by legacy_baseline_gate.rs). Identity: internal-check findings carry no analysis unit or variant (frozen finding_identity.attribute) and their check records name the component unit with its build variant (frozen check_scope), so envelope fingerprints equal frozen's (tests/rust-parity/reporting/artifact-identity.json, captured by capture_artifact_identity.py; the binary-compat per-artifact task expansion is a cpp-area difference outside this contract); the cache facet was not reviewed by the reporting area, so this row stays verified rather than complete.",
    "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "wire_schema:ici-result-v3.schema.json": {

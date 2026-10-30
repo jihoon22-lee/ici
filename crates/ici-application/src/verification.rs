@@ -81,7 +81,9 @@ pub fn evaluate(
             observation.state = TaskState::Blocked;
             observation.limitations.push(reason.into());
         }
-        let units = planned.analysis_units();
+        // Frozen `finding_identity.attribute`: only task-declared units and variants attribute a
+        // finding; an internal check without a task leaves them to the finding itself.
+        let units = planned.task_analysis_units();
         let variants = planned.variants();
         for finding in &mut observation.findings {
             finding.component_id = Some(planned.component_id.clone());
