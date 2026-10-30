@@ -76,6 +76,93 @@
     ]
    }
   },
+  "declared-artifacts-external": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.artifacts]\nreport=['reports/*.txt']\n",
+    "reports/summary.txt": {
+     "symlink": "../../outside.txt"
+    }
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "ERROR",
+    "stdout": "✘ declared artifacts require a shared analysis context",
+    "summary": "declared artifacts require a shared analysis context",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "Compiled C++17 binary (<seconds>s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppBinary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": ".",
+      "message": "declared artifacts require a shared analysis context",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  },
+  "declared-artifacts-missing": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.artifacts]\nreport=['reports/*.txt']\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "ERROR",
+    "stdout": "✘ declared artifacts require a shared analysis context",
+    "summary": "declared artifacts require a shared analysis context",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "Compiled C++17 binary (<seconds>s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppBinary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": ".",
+      "message": "declared artifacts require a shared analysis context",
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "BuildError"
+     }
+    ]
+   }
+  },
   "direct": {
    "changes": {},
    "fixture": "package-direct",

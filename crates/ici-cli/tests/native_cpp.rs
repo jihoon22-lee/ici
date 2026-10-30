@@ -2720,13 +2720,17 @@ fn actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_reco
     );
     fs::write(root.path().join("ici.toml"), explicit).unwrap();
     let explicit_plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
-    assert!(
+    // Frozen standalone `ici lint` has no analysis context: an explicit compilation database does
+    // not replace its package-flag fallback (lint-oracle.json `lint-explicit-database`).
+    assert_eq!(
         explicit_plan
             .plan
             .checks
             .iter()
             .flat_map(|check| check.tasks())
-            .all(|task| task.provider != "pkg-config")
+            .filter(|task| task.provider == "pkg-config")
+            .count(),
+        2
     );
     assert!(!root.path().join("compile_commands.json").exists());
     assert!(!root.path().join("main.o").exists());

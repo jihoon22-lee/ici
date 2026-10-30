@@ -222,7 +222,15 @@ impl CppPlans {
                 context(project, component, environment),
             );
         }
-        let context = self.contexts[&component.id].clone();
+        let context = if self.legacy_standalone
+            && matches!(check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
+        {
+            // Frozen `ici lint` runs without an analysis context: the C++ syntax check always
+            // takes the c++17 heuristic fallback, whatever compilation database exists.
+            CompilationContext::default()
+        } else {
+            self.contexts[&component.id].clone()
+        };
         if self.legacy_projection && check.id == "cpp.compile" {
             match external_build_directories(project, component, environment) {
                 Ok(directories) => {

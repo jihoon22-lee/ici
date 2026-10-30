@@ -43,7 +43,11 @@ cli.main()
 BROKEN_MAKE = "all:\n\texit 5\n"
 PY_TOML = "[project]\ntype='python'\nsource_dirs=['src']\n"
 PYPROJECT = "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\npkg-tool='pkg.cli:main'\n"
-# case: (fixture, {relative path: text or None to delete})
+DECLARED = (
+    "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.artifacts]\nreport=['reports/*.txt']\n"
+)
+# case: (fixture, {relative path: text, None to delete, or {"symlink": target}}); the
+# "outside.txt" next to the project is a regular file outside the workspace.
 CASES = {
     "make": ("package-make", {}),
     "direct": ("package-direct", {}),
@@ -66,6 +70,14 @@ CASES = {
             "src/pkg/cli.py": "def main():\n    return 0\n",
         },
     ),
+    "declared-artifacts-missing": (
+        "package-direct",
+        {"ici.toml": DECLARED},
+    ),
+    "declared-artifacts-external": (
+        "package-direct",
+        {"ici.toml": DECLARED, "reports/summary.txt": {"symlink": "../../outside.txt"}},
+    ),
     "declared-artifacts": (
         "package-direct",
         {
@@ -83,12 +95,16 @@ def run(fixture: str, changes: dict) -> dict:
     try:
         project = WORK / "project"
         shutil.copytree(FIXTURES / fixture, project)
+        (WORK / "outside.txt").write_text("outside\n", encoding="utf-8")
         for relative, text in changes.items():
             path = project / relative
             if text is None:
                 path.unlink()
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(text, dict):
+                path.symlink_to(text["symlink"])
+                continue
             path.write_text(text, encoding="utf-8")
         record = WORK / "result.json"
         result = subprocess.run(

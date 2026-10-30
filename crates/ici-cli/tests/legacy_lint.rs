@@ -39,6 +39,18 @@ fn run(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> Valu
         format!("{base}{}", case["config"].as_str().unwrap()),
     )
     .unwrap();
+    let files = case["files"].as_object().unwrap();
+    for (name, text) in files {
+        let path = root.path().join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(
+            path,
+            text.as_str()
+                .unwrap()
+                .replace("{root}", &root.path().display().to_string()),
+        )
+        .unwrap();
+    }
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
     let output = commands::dispatch(&invocation, root.path(), environment).unwrap();
@@ -79,11 +91,14 @@ fn run(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> Valu
     if command != "verify" {
         captured["exit_code"] = json!(output.exit_code);
     }
+    if !files.is_empty() {
+        captured["built"] = json!(root.path().join("build/ici-make").exists());
+    }
     captured
 }
 
 #[test]
-#[ignore = "explicit actual g++ legacy lint fallback (ICI_TEST_CXX, the oracle's g++ version)"]
+#[ignore = "explicit actual g++ legacy lint fallback: ICI_TEST_CXX must be g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 (the oracle compiler) and /usr/bin must lack clang-tidy/clazy-standalone"]
 fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/lint-oracle.json"
@@ -114,7 +129,7 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
     let environment = BTreeMap::from([("PATH".to_string(), format!("{directory}:/usr/bin:/bin"))]);
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 5);
+    assert_eq!(cases.len(), 8);
     for (name, case) in cases {
         let mut actual = run(case, base, &environment);
         let frozen = &case["frozen"];

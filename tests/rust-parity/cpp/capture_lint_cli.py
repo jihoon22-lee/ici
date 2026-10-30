@@ -25,23 +25,51 @@ assert (
 for tool in ("clang-tidy", "clazy-standalone"):
     assert shutil.which(tool, path="/usr/bin:/bin") is None, f"{tool} must be absent"
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
-# name: (fixture, command, ici.toml tail)
+DATABASE = (
+    '[{"directory":"{root}","file":"src/clean.cpp",'
+    '"arguments":["g++","-std=c++17","-Iinclude","-c","src/clean.cpp"]}]'
+)
+MAKE = "[build.make]\nenabled=true\nbuild_argv=['make','all']\n"
+# name: (fixture, command, ici.toml tail, extra files with {root} = the project directory)
 CASES = {
-    "lint": ("lint-fixture", "lint", ""),
-    "lint-warnings-only": ("lint-warnings", "lint", ""),
-    "lint-tidy-off": ("lint-fixture", "lint", "[engines.lint]\nclang_tidy='off'\n"),
-    "lint-clazy-required": ("lint-warnings", "lint", "[engines.lint]\nclazy='required'\n"),
-    "verify": ("lint-fixture", "verify", ""),
+    "lint": ("lint-fixture", "lint", "", {}),
+    "lint-warnings-only": ("lint-warnings", "lint", "", {}),
+    "lint-tidy-off": ("lint-fixture", "lint", "[engines.lint]\nclang_tidy='off'\n", {}),
+    "lint-clazy-required": ("lint-warnings", "lint", "[engines.lint]\nclazy='required'\n", {}),
+    "verify": ("lint-fixture", "verify", "", {}),
+    # Standalone `ici lint` has no analysis context: a compilation database or a declared Make
+    # build changes nothing and nothing is built (the Makefile would fail on src/broken.cpp).
+    "lint-with-database": (
+        "lint-fixture",
+        "lint",
+        "",
+        {"build/compile_commands.json": DATABASE},
+    ),
+    "lint-explicit-database": (
+        "lint-fixture",
+        "lint",
+        "compile_database='build/compile_commands.json'\n",
+        {"build/compile_commands.json": DATABASE},
+    ),
+    "lint-make": (
+        "lint-fixture",
+        "lint",
+        MAKE,
+        {"Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/*.cpp -o build/ici-make/app\n"},
+    ),
 }
 
 
-def run(fixture: str, command: str, config: str) -> dict:
+def run(fixture: str, command: str, config: str, files: dict) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
         shutil.copytree(FIXTURES / fixture, project)
         (project / "ici.toml").write_text(BASE + config, encoding="utf-8")
+        for name, text in files.items():
+            (project / name).parent.mkdir(parents=True, exist_ok=True)
+            (project / name).write_text(text.replace("{root}", str(project)), encoding="utf-8")
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
             cwd=project,
@@ -52,6 +80,7 @@ def run(fixture: str, command: str, config: str) -> dict:
             check=False,
         )
         report = json.loads((project / f"{command}_report.json").read_text(encoding="utf-8"))
+        built = (project / "build/ici-make").exists()
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
     engine = report
@@ -65,6 +94,8 @@ def run(fixture: str, command: str, config: str) -> dict:
     }
     if command != "verify":
         captured["exit_code"] = result.returncode
+    if files:
+        captured["built"] = built
     return captured
 
 
@@ -73,9 +104,10 @@ cases = {
         "fixture": fixture,
         "command": command,
         "config": config,
-        "frozen": run(fixture, command, config),
+        "files": files,
+        "frozen": run(fixture, command, config, files),
     }
-    for name, (fixture, command, config) in CASES.items()
+    for name, (fixture, command, config, files) in CASES.items()
 }
 (ROOT / "tests/rust-parity/cpp/lint-oracle.json").write_text(
     json.dumps(
