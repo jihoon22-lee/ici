@@ -1,6 +1,6 @@
 //! Native wire documents against the frozen v0.13.0 JSON Schemas (`src/ici/schemas/`):
-//! next run v1/v2, the JSONL event stream v1, the compilation export v1 and the auxiliary import
-//! envelope v1.
+//! next run v1/v2, the JSONL event stream v1, the compilation export v1, the auxiliary import
+//! envelope v1 and the legacy ici.result/v3 suite and engine reports.
 //!
 //! `check` implements exactly the draft 2020-12 keywords these four schemas use and panics on
 //! any other, so a schema change can never be skipped silently. Every document checked here is
@@ -9,7 +9,7 @@
 //! `jsonschema` validator that it agrees on each valid and invalid sample.
 use ici_cli::{commands, registry};
 use ici_domain::{RunResult, read_events};
-use ici_reporting::{ImportOptions, ImportProvenance, import_report, load_auxiliary};
+use ici_reporting::{ImportOptions, ImportProvenance, StoredResult, import_report, load_auxiliary};
 use regex::Regex;
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
@@ -25,6 +25,7 @@ fn schema(name: &str) -> Value {
             include_str!("../../../src/ici/schemas/ici-compilation-export-v1.schema.json")
         }
         "ici-auxiliary-v1" => include_str!("../../../src/ici/schemas/ici-auxiliary-v1.schema.json"),
+        "ici-result-v3" => include_str!("../../../src/ici/schemas/ici-result-v3.schema.json"),
         _ => unreachable!("{name}"),
     };
     serde_json::from_str(text).unwrap()
@@ -41,6 +42,27 @@ fn type_matches(kind: &str, value: &Value) -> bool {
         "integer" => value.as_f64().is_some_and(|number| number.fract() == 0.0),
         _ => panic!("unknown schema type {kind}"),
     }
+}
+
+/// Python `re.search` semantics for the schemas' patterns. The two lookahead path patterns of
+/// result-v3 (which the `regex` crate cannot express) are spelled out; any other pattern the
+/// crate cannot compile panics.
+fn pattern_matches(pattern: &str, text: &str) -> bool {
+    const RELATIVE: &str = r"^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\.\.(?:/|$))(?!.*\\).+$";
+    const RELATIVE_NOT_DOT: &str = r"^(?!\.$)(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\.\.(?:/|$))(?!.*\\).+$";
+    if pattern == RELATIVE || pattern == RELATIVE_NOT_DOT {
+        // `.` stops at a newline and `$` also matches before one final newline.
+        let body = text.strip_suffix('\n').unwrap_or(text);
+        let bytes = body.as_bytes();
+        return !body.is_empty()
+            && !body.contains('\n')
+            && !body.starts_with('/')
+            && !(bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')
+            && !body.split('/').any(|segment| segment == "..")
+            && !body.contains('\\')
+            && !(pattern == RELATIVE_NOT_DOT && body == ".");
+    }
+    Regex::new(pattern).unwrap().is_match(text)
 }
 
 /// Every violation of `node` by `value`, as `path: keyword` strings.
@@ -76,7 +98,7 @@ fn check(root: &Value, node: &Value, value: &Value, path: &str, errors: &mut Vec
             "enum" => violated = !rule.as_array().unwrap().contains(value),
             "pattern" => {
                 if let Some(text) = value.as_str() {
-                    violated = !Regex::new(rule.as_str().unwrap()).unwrap().is_match(text);
+                    violated = !pattern_matches(rule.as_str().unwrap(), text);
                 }
             }
             "maxLength" | "minLength" => {
@@ -94,6 +116,31 @@ fn check(root: &Value, node: &Value, value: &Value, path: &str, errors: &mut Vec
                 if let Some(number) = value.as_f64() {
                     violated = number < rule.as_f64().unwrap();
                 }
+            }
+            "maximum" => {
+                if let Some(number) = value.as_f64() {
+                    violated = number > rule.as_f64().unwrap();
+                }
+            }
+            "minItems" => {
+                if let Some(items) = value.as_array() {
+                    violated = (items.len() as u64) < rule.as_u64().unwrap();
+                }
+            }
+            "uniqueItems" => {
+                if let (Some(items), Some(true)) = (value.as_array(), rule.as_bool()) {
+                    violated = items
+                        .iter()
+                        .enumerate()
+                        .any(|(index, item)| items[..index].contains(item));
+                }
+            }
+            "anyOf" => {
+                violated = !rule.as_array().unwrap().iter().any(|branch| {
+                    let mut inner = vec![];
+                    check(root, branch, value, path, &mut inner);
+                    inner.is_empty()
+                });
             }
             "maxItems" => {
                 if let Some(items) = value.as_array() {
@@ -576,5 +623,87 @@ fn native_auxiliary_imports_validate_and_invalid_envelopes_are_refused_by_both()
             load_auxiliary(&serde_json::to_vec(&value).unwrap()).is_err(),
             "native reader accepted schema-invalid {label}"
         );
+    }
+}
+
+fn legacy(root: &Path, command: &str) -> Value {
+    let invocation = registry::parse(["ici", command, "--report"]).unwrap();
+    commands::dispatch(&invocation, root, &environment()).unwrap();
+    serde_json::from_slice(&fs::read(root.join(format!("{command}_report.json"))).unwrap()).unwrap()
+}
+
+#[test]
+fn native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema() {
+    let work = python_project();
+    fs::write(
+        work.path().join("ici.toml"),
+        "schema_version=1\n[workspace]\nname=\"wire\"\n[[components]]\nid=\"project\"\nroot=\".\"\nlanguages=[\"python\"]\n",
+    )
+    .unwrap();
+    let suite = legacy(work.path(), "verify");
+    assert_eq!(suite["schema_version"], "ici.result/v3");
+    assert!(suite["results"].as_array().unwrap().len() > 3);
+    sample("ici-result-v3", "native-verify-suite", &suite, true);
+    for command in ["line", "complexity", "security"] {
+        let engine = legacy(work.path(), command);
+        assert!(
+            !engine["targets"].as_array().unwrap().is_empty(),
+            "{command}"
+        );
+        sample(
+            "ici-result-v3",
+            &format!("native-{command}-engine"),
+            &engine,
+            true,
+        );
+        if command == "security" {
+            // The relative-path patterns: escaping, drive and backslash paths are refused.
+            for (label, path) in [
+                ("parent-path", "../outside.py"),
+                ("drive-path", "C:/outside.py"),
+                ("backslash-path", "pkg\\main.py"),
+                ("absolute-path", "/etc/passwd"),
+            ] {
+                let value = mutate(
+                    &engine,
+                    "/findings/0/primary_location/path",
+                    Some(json!(path)),
+                );
+                sample("ici-result-v3", label, &value, false);
+            }
+        }
+    }
+    for (label, pointer, replacement) in [
+        (
+            "future-version",
+            "/schema_version",
+            Some(json!("ici.result/v4")),
+        ),
+        (
+            "unknown-suite-status",
+            "/suite_status",
+            Some(json!("MAYBE")),
+        ),
+        (
+            "unknown-engine-status",
+            "/results/0/status",
+            Some(json!("MAYBE")),
+        ),
+        (
+            "unknown-evidence",
+            "/results/0/evidence",
+            Some(json!("GUESSED")),
+        ),
+        ("missing-results", "/results", None),
+        ("negative-count", "/passed_count", Some(json!(-1))),
+    ] {
+        let value = mutate(&suite, pointer, replacement);
+        sample("ici-result-v3", label, &value, false);
+        if label != "negative-count" && label != "missing-results" {
+            assert!(
+                StoredResult::from_value(value).is_err(),
+                "native reader accepted schema-invalid {label}"
+            );
+        }
     }
 }
