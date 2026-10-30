@@ -27,6 +27,14 @@ pub fn command(
     );
     let prepared = crate::planning::prepare(&internal, cwd, environment, false)?;
     let root = prepared.project.root.clone();
+    let legacy_schema = prepared.project.schema_family == ici_config::SchemaFamily::Legacy;
+    let coverage_required = prepared.project.components.iter().any(|component| {
+        component
+            .settings
+            .pointer("/engines/test/coverage_required")
+            .and_then(serde_json::Value::as_bool)
+            == Some(true)
+    });
     let result_path = root.join(crate::DEFAULT_RESULT);
     let report_path = invocation.flag("report").then(|| {
         root.join(engine(&invocation.command()).map_or_else(
@@ -127,6 +135,8 @@ pub fn command(
     let run = crate::execute::execute(&internal, cwd, environment, false, &cancellation)?;
     // Validate comparison before any requested export, especially --write-baseline.
     let mut exit_code = run.result.exit_code();
+    // A --fail-on-new regression is a gate decision; later legacy verdict projections never lower it.
+    let mut regressed = false;
     if invocation.flag("fail_on_new") {
         match &run.result.baseline {
             Some(delta) if delta.state == ici_domain::BaselineState::Comparable => {
@@ -146,6 +156,7 @@ pub fn command(
                             || !finding.tags.iter().any(|tag| tag == "advisory"))
                 }) && run.result.gate.selected != GateVerdict::Incomplete
                 {
+                    regressed = true;
                     exit_code = 1;
                 }
             }
@@ -167,13 +178,47 @@ pub fn command(
             .find(|result| result["engine_name"] == family)
             .cloned()
             .ok_or_else(|| CliError(format!("{family}: no applicable language/check selected")))?;
-        if run.result.gate.selected != GateVerdict::Incomplete {
-            exit_code = exit_code.max(match value["status"].as_str() {
-                Some("FAIL" | "ERROR") => 1,
-                Some("SKIP") => 2,
-                _ => 0,
-            });
+        // Frozen measured verdicts that replace the native one (no test file, refused coverage
+        // policy) carry the frozen exit code; every other legacy view only adds its own class.
+        let mut replaced = false;
+        if family == "test"
+            && legacy_schema
+            && let Some(languages) =
+                no_tests_collected(&root, &value).or_else(|| empty_pytest_suite(&value))
+        {
+            // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
+            ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
+            replaced = true;
+        } else if family == "test"
+            && legacy_schema
+            && let Some(reason) = refused_policy(&value)
+        {
+            ici_reporting::legacy_policy_refused(&mut value, &reason).map_err(error)?;
+            replaced = true;
+        } else if family == "test"
+            && legacy_schema
+            && !coverage_required
+            && let Some(reason) = optional_coverage_missing(&value)
+        {
+            // Frozen optional coverage: a missing coverage module is a WARN beside the measured
+            // test verdict (FAIL still wins). Native never invents the frozen estimate.
+            let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
+            value["status"] = serde_json::json!(status);
+            let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
+            let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
+            value["summary"] = serde_json::json!(format!(
+                "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
+            ));
+            exit_code = exit_code.max(code);
         }
+        let status = value["status"].as_str().unwrap_or_default();
+        exit_code = if replaced {
+            // Both replacements are FAIL/ERROR (exit 1); a regression already means exit 1.
+            ici_reporting::legacy_exit_code(status).max(i32::from(regressed))
+        } else {
+            // A legacy class never lowers the run's own exit (an incomplete run keeps 3).
+            exit_code.max(ici_reporting::legacy_exit_code(status))
+        };
         value["native_run"] = run.result.to_value().map_err(error)?;
         stored = StoredResult::from_value(value).map_err(error)?;
     }
@@ -391,4 +436,177 @@ pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) ->
         mode,
     )
     .map_err(error)
+}
+
+/// The frozen legacy test engine attempts a suite only for `tests/**/test_*.py` or
+/// `tests/**/*.cpp`. When no such file exists and every native test/coverage check was blocked
+/// before running, return the languages the frozen engine would report as having no tests.
+fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    // Only "no runnable suite exists" blocks qualify; any other block (interpreter, config,
+    // tool) stays incomplete evidence.
+    let no_suite = |check: &serde_json::Value| {
+        check["summary"].as_str().is_some_and(|summary| {
+            summary.starts_with("no sources in scope")
+                || summary == "C++ runtime checks require a declared component build"
+        })
+    };
+    if checks.is_empty()
+        || checks
+            .iter()
+            .any(|check| check["state"] != "BLOCKED" || !no_suite(check))
+    {
+        return None;
+    }
+    let mut pending = vec![root.join("tests")];
+    let mut visited = 0usize;
+    while let Some(directory) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            visited += 1;
+            if visited > 100_000 {
+                return None;
+            }
+            let Ok(metadata) = std::fs::symlink_metadata(entry.path()) else {
+                return None;
+            };
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if metadata.is_dir() {
+                pending.push(entry.path());
+            } else if (name.starts_with("test_") && name.ends_with(".py")) || name.ends_with(".cpp")
+            {
+                return None;
+            }
+        }
+    }
+    let mut languages = vec![];
+    for (prefix, label) in [("python.", "Python"), ("cpp.", "C++")] {
+        if checks.iter().any(|check| {
+            check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with(prefix))
+                && !check["summary"]
+                    .as_str()
+                    .is_some_and(|summary| summary.starts_with("no sources in scope"))
+        }) {
+            languages.push(label);
+        }
+    }
+    Some(languages)
+}
+
+/// Frozen `_parse_pytest_result`: pytest exit 5 (or exit 0 without a case) is the same
+/// "No tests collected" FAIL in the legacy view. The modern check stays incomplete.
+fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let empty = |check: &serde_json::Value| {
+        check["check_id"] == "python.test"
+            && check["state"] == "FAILED"
+            && check["summary"].as_str().is_some_and(|summary| {
+                summary == "pytest did not report a completed nonempty suite (exit Some(5))"
+                    || summary == "pytest did not report a completed nonempty suite (exit Some(0))"
+            })
+    };
+    let dependent = |check: &serde_json::Value| {
+        check["check_id"] == "python.coverage"
+            && check["state"] == "BLOCKED"
+            && check["summary"]
+                .as_str()
+                .is_some_and(|summary| summary.ends_with("has no complete evidence"))
+    };
+    let located = engine["targets"].as_array()?.iter().any(|target| {
+        target["target_name"] == "[Python] Tests" && target["message"] == "No tests collected"
+    });
+    (located
+        && checks.iter().any(empty)
+        && checks.iter().all(|check| empty(check) || dependent(check)))
+    .then(|| vec!["Python"])
+}
+
+/// The legacy coverage half failed only because the project interpreter has no coverage module,
+/// while the test half completed.
+fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let test = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.test")?;
+    let coverage = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.coverage")?;
+    let reason = coverage["summary"].as_str()?;
+    (checks.len() == 2
+        && test["state"] == "SUCCEEDED"
+        && coverage["state"] == "FAILED"
+        && (reason.starts_with("coverage module is unavailable")
+            || reason.starts_with("pytest module is unavailable; fallback unittest")))
+    .then(|| reason.to_owned())
+}
+
+/// A changed-line selection the native planner refused (frozen evaluates it at run time and
+/// reports an ERROR policy target).
+fn refused_policy(engine: &serde_json::Value) -> Option<String> {
+    engine["extra"]["native_checks"]
+        .as_array()?
+        .iter()
+        .filter(|check| check["state"] == "BLOCKED")
+        .filter_map(|check| check["summary"].as_str())
+        .find(|summary| summary.starts_with("changed line"))
+        .map(str::to_owned)
+}
+
+/// Frozen optional-coverage verdict: a measured FAIL/ERROR target wins over the coverage WARN,
+/// and a `--fail-on-new` regression keeps exit 1 even when every target passed.
+fn optional_coverage_verdict(targets: &serde_json::Value, regressed: bool) -> (&'static str, i32) {
+    let statuses = targets
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|target| match target["status"].as_str() {
+            Some("ERROR") => Some("ERROR"),
+            Some("FAIL") => Some("FAIL"),
+            _ => None,
+        });
+    let status = ici_reporting::legacy_worst_status(statuses, "WARN");
+    (
+        status,
+        ici_reporting::legacy_exit_code(status).max(i32::from(regressed)),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::optional_coverage_verdict;
+    use serde_json::json;
+
+    #[test]
+    fn optional_coverage_verdict_never_lowers_failures_or_regressions() {
+        let targets = |statuses: &[&str]| {
+            json!(
+                statuses
+                    .iter()
+                    .map(|status| json!({"status": status}))
+                    .collect::<Vec<_>>()
+            )
+        };
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["PASS"]), false),
+            ("WARN", 0)
+        );
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["PASS"]), true),
+            ("WARN", 1)
+        );
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["PASS", "FAIL"]), false),
+            ("FAIL", 1)
+        );
+        assert_eq!(
+            optional_coverage_verdict(&targets(&["FAIL", "ERROR"]), false),
+            ("ERROR", 1)
+        );
+        assert_eq!(optional_coverage_verdict(&json!(null), true), ("WARN", 1));
+    }
 }

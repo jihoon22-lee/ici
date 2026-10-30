@@ -1,6 +1,271 @@
 {
   "config": "[ici]\nprofile = \"standard\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
   "runs": {
+    "changed_invalid": {
+      "engine": {
+        "evidence": "NOT_RUN",
+        "max_score": 5.0,
+        "required": true,
+        "score": 5.0,
+        "status": "ERROR",
+        "summary": "Coverage policy could not be evaluated: changed_lines[1] duplicates or overlaps an earlier entry"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 100.0,
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 5.00/5.0 (Line: 100%, Func: 100%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 1,
+        "quality_enabled": false,
+        "skipped_tests": 0,
+        "tem_score": 5.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 1
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:5d03203ec6e1df2e3ca4e265028a68eff89acf1fa7aa3ef1e83b727c4e10fa20",
+          "message": "Coverage policy could not be evaluated: changed_lines[1] duplicates or overlaps an earlier entry",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Coverage policy could not be evaluated: changed_lines[1] duplicates or overlaps an earlier entry",
+          "metrics": {
+            "gated": true
+          },
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "Coverage:Policy configuration"
+        }
+      ]
+    },
+    "changed_unexecutable": {
+      "engine": {
+        "evidence": "NOT_RUN",
+        "max_score": 5.0,
+        "required": true,
+        "score": 2.34,
+        "status": "ERROR",
+        "summary": "Changed-line coverage has no executable measured lines"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 50.0,
+        "line_coverage": 75.0,
+        "metrics_summary": "TEM: 2.34/5.0 (Line: 75%, Func: 50%, PassRate: 100%)",
+        "pass_rate": 1.0,
+        "passed_tests": 1,
+        "quality_enabled": false,
+        "skipped_tests": 0,
+        "tem_score": 2.34,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 1,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "Test passed successfully",
+                "name": "tests/test_calc.py::test_add",
+                "status": "PASS"
+              }
+            ],
+            "total": 1
+          },
+          {
+            "failed": 1,
+            "file": ".",
+            "passed": 0,
+            "skipped": 0,
+            "tests": [
+              {
+                "message": "TEM score 2.34 is below the configured minimum 4.00",
+                "name": "Threshold: TEM score",
+                "status": "WARN"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 1
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:533429c6e0aa93f59f9641a0557a87dfffaf8ebf54cf20828f00acafe2a59406",
+          "message": "Changed-line coverage has no executable measured lines",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+          "message": "Aggregate function coverage 50.0% is below the configured minimum 90.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:6274c406116baeaacd21f4951c36a802523df357f7eea3a9b1d4af3f8da311af",
+          "message": "Function add was exercised by the aggregate project test suite",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:6c4d6b36ca37b2189204986303c8eae97dbabbdc0250dc63c7f1dfa1e55f6d2e",
+          "message": "Test passed successfully",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:b28e89e3fc66c30d09f79104ee008c7c2aba3eaf600f59d4c85aea96d2ee5a48",
+          "message": "Function sub was not exercised by the aggregate project test suite",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:bcb47e549d62e45d4726f2a89475fa61eab7f2c702a41cb8a5924e4e0e93e0aa",
+          "message": "TEM score 2.34 is below the configured minimum 4.00",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+          "message": "Overall line coverage 75.0% is below the configured minimum 80.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_add"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Overall line coverage 75.0% is below the configured minimum 80.0%",
+          "metrics": {
+            "actual": 75.0,
+            "covered_lines": 3,
+            "executable_lines": 4,
+            "gated": true,
+            "threshold": 80.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:Overall line"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Aggregate function coverage 50.0% is below the configured minimum 90.0%",
+          "metrics": {
+            "actual": 50.0,
+            "covered_functions": 1,
+            "functions": 2,
+            "gated": true,
+            "threshold": 90.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:Functions"
+        },
+        {
+          "end_line": 2,
+          "file_path": "src/calc.py",
+          "message": "Function add was exercised by the aggregate project test suite",
+          "metrics": {
+            "covered": true,
+            "gated": false,
+            "symbol": "add",
+            "test_scope": "aggregate-project-suite"
+          },
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Coverage:Function:add"
+        },
+        {
+          "end_line": 6,
+          "file_path": "src/calc.py",
+          "message": "Function sub was not exercised by the aggregate project test suite",
+          "metrics": {
+            "covered": false,
+            "gated": false,
+            "symbol": "sub",
+            "test_scope": "aggregate-project-suite"
+          },
+          "start_line": 5,
+          "status": "WARN",
+          "target_name": "Coverage:Function:sub"
+        },
+        {
+          "end_line": 4,
+          "file_path": "src/calc.py",
+          "message": "Changed-line coverage has no executable measured lines",
+          "metrics": {
+            "executable_lines": 0,
+            "gated": true,
+            "requested_lines": 2,
+            "threshold": 100.0
+          },
+          "start_line": 3,
+          "status": "ERROR",
+          "target_name": "Coverage:Changed lines"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "TEM score 2.34 is below the configured minimum 4.00",
+          "metrics": {
+            "actual": 2.34,
+            "threshold": 4.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Threshold: TEM score"
+        }
+      ]
+    },
     "empty": {
       "engine": {
         "evidence": "ESTIMATED",
@@ -552,9 +817,136 @@
           "target_name": "Threshold: Branch coverage"
         }
       ]
+    },
+    "unittest": {
+      "engine": {
+        "evidence": "ESTIMATED",
+        "max_score": 5.0,
+        "required": true,
+        "score": 0.7,
+        "status": "FAIL",
+        "summary": "2/4 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.70 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 50.0,
+        "line_coverage": null,
+        "metrics_summary": "TEM: 0.70/5.0 (Line: 45%, Func: 50%, PassRate: 50%)",
+        "pass_rate": 0.5,
+        "passed_tests": 2,
+        "quality_enabled": false,
+        "skipped_tests": 1,
+        "tem_score": 0.7,
+        "test_suites": [
+          {
+            "failed": 1,
+            "file": "tests",
+            "passed": 2,
+            "skipped": 1,
+            "tests": [
+              {
+                "message": "Unittest passed",
+                "name": "test_add (test_calc.CalcTest.test_add)",
+                "status": "PASS"
+              },
+              {
+                "message": "Unittest assertion failure",
+                "name": "test_bad (test_calc.CalcTest.test_bad)",
+                "status": "FAIL"
+              },
+              {
+                "message": "skipped 'x'",
+                "name": "test_skip (test_calc.CalcTest.test_skip)",
+                "status": "SKIP"
+              },
+              {
+                "message": "Expected failure was exercised",
+                "name": "test_xfail (test_calc.CalcTest.test_xfail)",
+                "status": "PASS"
+              }
+            ],
+            "total": 4
+          }
+        ],
+        "total_tests": 4
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:3a5c51cc7e18a80180b543164d95c98e523aa29425a17c1207d895c32c7f8c07",
+          "message": "Unittest passed",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:704846353b70d65cf3468303789ca5a38ead4dc18182d887d75f3023fe3cc29b",
+          "message": "Expected failure was exercised",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:ca270e9155a3ec84a1a2a05adb6437695fe4c86d7d876c8cdea232a03ff1ccb2",
+          "message": "Unittest assertion failure",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:ec46167b575277f9715e3652680dee2ec628158da9633c3b0baa80baa07584e7",
+          "message": "skipped 'x'",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "Unittest passed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "test_add (test_calc.CalcTest.test_add)"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "Unittest assertion failure",
+          "metrics": {},
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "test_bad (test_calc.CalcTest.test_bad)"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "skipped 'x'",
+          "metrics": {},
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "test_skip (test_calc.CalcTest.test_skip)"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests",
+          "message": "Expected failure was exercised",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "test_xfail (test_calc.CalcTest.test_xfail)"
+        }
+      ]
     }
   },
   "scenarios": {
+    "changed_invalid": {
+      "extra_config": "changed_lines = [\"src/calc.py:1-2\", \"src/calc.py:2\"]\n",
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+    },
+    "changed_unexecutable": {
+      "extra_config": "changed_lines = [\"src/calc.py:3-4\"]\n",
+      "src/calc.py": "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n",
+      "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+    },
     "empty": {
       "src/calc.py": "def add(a, b):\n    return a + b\n",
       "tests/helper.py": "VALUE = 1\n"
@@ -572,6 +964,11 @@
       "extra_config": "changed_lines = [\"src/calc.py:2-4\"]\n",
       "src/calc.py": "def classify(value):\n    if value > 0:\n        return 'positive'\n    return 'other'\n\n\ndef unused(value):\n    total = value + 1\n    return total\n",
       "tests/test_calc.py": "from calc import classify\n\n\ndef test_positive():\n    assert classify(1) == 'positive'\n"
+    },
+    "unittest": {
+      "interpreter": "without-pytest",
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "import unittest\nfrom calc import add\n\n\nclass CalcTest(unittest.TestCase):\n    def test_add(self):\n        self.assertEqual(add(1, 2), 3)\n\n    def test_bad(self):\n        self.assertEqual(add(1, 1), 3)\n\n    @unittest.skip(\"x\")\n    def test_skip(self):\n        pass\n\n    @unittest.expectedFailure\n    def test_xfail(self):\n        self.assertTrue(False)\n"
     }
   },
   "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"

@@ -106,6 +106,10 @@ fn unmeasurable_declared_source_keeps_coverage_incomplete_and_the_legacy_line_sa
         .unwrap_or_default()
         .to_owned();
     assert!(line.starts_with("ERROR test:"), "{}", output.stdout);
-    assert!(line.contains("python.coverage:"), "{line}");
+    // Frozen engines print the tool error itself as the ERROR summary (no check-id prefix).
+    assert!(
+        line.contains("coverage JSON command did not complete successfully"),
+        "{line}"
+    );
     assert!(!line.contains("passed"), "{line}");
 }

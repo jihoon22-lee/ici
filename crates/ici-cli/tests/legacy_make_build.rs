@@ -296,10 +296,9 @@ fn legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compili
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
-    // The reporting projection prefixes an ERROR summary with the check id (reporting area);
-    // the frozen message and engine status are asserted here.
+    // Frozen BuildError: ERROR engine whose summary is the tool error itself.
     assert!(
-        text.contains("ERROR build: ")
+        text.contains("ERROR build: Makefile at the project root has no configured adapter")
             && text.contains("Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked")
             && text.contains("Makefile:1"),
         "{}",

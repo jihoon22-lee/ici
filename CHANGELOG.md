@@ -23,6 +23,37 @@
   complexity·cognitive·exception 검사가 헤더까지 분석하던 문제를 고쳤습니다. 레거시 `ici cycle`의
   include cycle 보고는 이전 제품과 같은 형식을 따릅니다.
 - GCC의 "In destructor" 같은 문맥 줄 때문에 C++ lint·진단 검사 전체가 실패하던 문제를 고쳤습니다.
+- Make `build.make.jobs` 값을 이전 제품과 같이 1..64 범위 그대로 적용합니다. pyz 시대의 `build/ici-make`
+  shadow는 내용을 지우지 않고 원인과 해결 방법(디렉터리 제거 또는 `build.make.shadow_dir` 지정)을 안내하며
+  계획 단계에서 거부합니다.
+- 레거시 `ici exception`의 C++ 결과가 이전 제품의 줄 단위 판정과 정확히 일치합니다.
+- 레거시 `ici test`가 이전 제품과 같은 커버리지 대상 이름·메시지·요약 줄·TEM 점수를 보고합니다. 실패한
+  테스트가 있으면 TEM·분기 임계값 경고를 중복으로 추가하지 않습니다.
+- 커버리지 도구가 없거나 테스트가 없을 때 이전 제품처럼 추정 커버리지 값을 만들어 내지 않고, 측정하지
+  못했다는 사실을 그대로 보고합니다.
+- 레거시 `ici test`가 coverage 없이 unittest로 대신 실행될 때와, 테스트 수집 결과가 비었을 때, 변경 줄 정책이
+  거부될 때도 이전 제품과 같은 판정과 exit code를 유지합니다. `--fail-on-new`로 찾은 새 이슈는 이 판정
+  때문에 통과로 바뀌지 않습니다.
+- deep 프로필의 느린 테스트 관찰 순서와, 거부된 integration 설정의 레거시 ERROR 대상(`Integration:ConfigurationError`)이
+  이전 제품과 같습니다. 레거시 `ici sanitize`의 Python ResourceWarning 요약 문구도 이전과 같습니다.
+- 레거시 명령의 엔진 상태(FAIL·ERROR·WARN·SKIP)와 오류 요약 문구가 이전 제품과 같아졌습니다. 이전에는 실패한
+  검사가 ERROR로 표시되거나 요약 앞에 `cpp.artifact:` 같은 내부 검사 ID가 붙었습니다.
+- 레거시 `ici build`·ELF 바이너리 호환성·직접 sanitizer 실행 결과의 대상과 요약이 이전 제품과 같습니다.
+- 선언한 산출물(`[builds.<id>]`) 계약 검사 결과가 이전 제품과 같은 대상·메시지로 보고됩니다.
+- 테스트 파일이 전혀 없는 C++ 프로젝트에서 레거시 `ici test`가 이전처럼 "No tests collected" FAIL(exit 1)을
+  보고합니다. 개별 `ici test` 명령은 deep 프로필의 테스트 품질 검사(반복 실행·느린 테스트)를 자동으로
+  켜지 않습니다.
+- 레거시 cycle·dup·dead 검사가 최상위 `include/` 헤더를 포함합니다. 컴파일 데이터베이스가 없을 때
+  `ici dead`는 이전 제품과 같이 `auto`는 SKIP(exit 2), `required`는 ERROR(exit 1)로 보고합니다.
+- 레거시 Make `ici build`가 성공하면 PASS로 끝납니다. 이전에는 Make가 쓰지 않는 컴파일 데이터베이스를
+  입력으로 기다려 성공한 빌드도 미완료로 표시했습니다. 잘못된 설정이나 실패한 레시피는 Makefile 위치의
+  이유와 함께 exit 1로 실패하고, 그 빌드에 의존하는 검사는 미완료로 표시됩니다. 저장된 결과의 gate도
+  PASS가 아닌 FAIL로 기록됩니다.
+- `ici doctor`와 `ici next plan`이 빌드를 실행하지 않고도 shadow 거부, 잘못된 `workdir`, 없는 빌드 명령 같은
+  빌드 준비 문제를 미리 보여 줍니다.
+- 레거시 `ici build`의 릴리스 패키지 구조(`bin/`, `lib/`, 환경 스크립트)가 이전 제품과 같습니다.
+- 테스트가 없는 C++ 프로젝트에서 레거시 `ici sanitize`는 이전처럼 SKIP(exit 2)을 보고하고, sanitizer 명령이
+  없을 때도 이전과 같은 대상으로 보고합니다.
 - 같은 `--events` 경로로 분석을 반복하면 이전 실행의 이벤트 스트림을 교체합니다. 다른 기존 파일은
   그대로 두고 거부합니다.
 - 산출물 패키징과 ABI 검사를 함께 실행할 때 ici가 방금 만든 패키지를 실행 중 바뀐 사용자 입력으로 오인해
