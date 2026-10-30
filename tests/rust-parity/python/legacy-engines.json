@@ -273,6 +273,35 @@
     ]
    }
   },
+  "complexity/no-python-source": {
+   "command": "complexity",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (0 issues)",
+    "targets": []
+   }
+  },
+  "complexity/no-python-source-configured": {
+   "command": "complexity",
+   "config": "[engines.complexity]\nwarn_cc=7\nfail_cc=9\n",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Max Cyclomatic Complexity: 0 (limit 7) across 0 functions (0 issues)",
+    "targets": []
+   }
+  },
   "cycle/no-python-source": {
    "command": "cycle",
    "files": {
@@ -1889,6 +1918,36 @@
       "start_line": 1,
       "status": "ERROR",
       "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "type/no-python-source": {
+   "command": "type",
+   "files": {
+    "src/README.md": "x\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:c142dc15e7196f701a130fce795d05ae3704f4dd336428f016a8d36bbd124d42",
+      "message": "No applicable Python source files were selected; Mypy was not run",
+      "rule_id": "ici.legacy.type.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable Python source files were selected; Mypy was not run",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "Mypy"
      }
     ]
    }

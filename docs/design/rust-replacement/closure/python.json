@@ -229,12 +229,14 @@
    "status": "complete",
    "rust_paths": [
     "crates/ici-analysis/src/metrics.rs",
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-cli/src/legacy_execute.rs"
    ],
    "fixtures": {
     "positive": [
      "crates/ici-analysis/src/tests.rs::metrics_match_fixed_python_formulas",
-     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
      "crates/ici-analysis/src/tests.rs::unicode_and_legacy_threshold_boundaries_are_preserved"
@@ -248,7 +250,8 @@
    "evidence": [
     "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
-    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log"
+    "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
+    "Legacy `ici complexity --report` with no Python source: frozen PASS/MEASURED \"Max Cyclomatic Complexity: 0 (limit <engines.complexity.warn_cc>) across 0 functions (0 issues)\", no target, exit 0, for the default (15) and a configured limit (warn_cc=7, fail_cc=9: frozen names warn_cc, not fail_cc); captured by tests/rust-parity/python/capture_legacy_engines.py (/tmp/ici-rust-replacement-20261028/w-python2-capture1.log) and replayed by legacy_python_engines (/tmp/ici-rust-replacement-20261028/w-python2-nosource-gates.log)"
    ],
    "comparison": "Native python.complexity reproduces the 15 frozen metrics.json formulas (CPython 3.14.7 AST), legacy inclusive and modern strict thresholds, shared one-parse cache, and the modern metrics.<kind> findings (message, severity, line-only location, raw fingerprint) of languages/metrics.py in modern-findings.json. Syntax errors are incomplete with a located error target; cancellation keeps completed targets.",
    "difference_reason": "Metric findings now carry the original line-only location (columns stay on targets) so attributed fingerprints match; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
@@ -1949,15 +1952,26 @@
    "difference_reason": null
   },
   "finding_site:src/ici/engines/type_check.py:452:12": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-reporting/src/projection.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
+    ]
    },
-   "evidence": [],
-   "comparison": "Frozen legacy Python lint/type target Mypy skipped: no native producer of this target name or rule-provenance registry was found (grep over crates/); legacy `ici lint`/`ici type` Python projections and the python_rule_registry canonical identity remain open.",
+   "evidence": [
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 61 legacy `python -m ici <engine> --report` captures, the 58 earlier ones unchanged, adding type/no-python-source and complexity/no-python-source{,-configured} (/tmp/ici-rust-replacement-20261028/w-python2-capture1.log); cargo test -p ici-cli --test legacy_python_engines --test python_modern_parity --test legacy_commands --locked -j2 -- --test-threads=2: all passed (59 compared), strict cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python2-nosource-gates.log"
+   ],
+   "comparison": "Legacy `ici type --report` on a Python project with no Python source reports frozen's `Mypy` SKIP target at `.`, NOT_APPLICABLE evidence, summary \"Type checking not applicable: no Python sources; C++ is unsupported\", the frozen fingerprint and exit 2 (type/no-python-source). The modern view keeps its plan-time refusal (python_modern_parity unchanged).",
    "difference_reason": null
   },
   "finding_site:src/ici/engines/type_check.py:486:32": {

@@ -35,6 +35,19 @@ pub fn command(
             .and_then(serde_json::Value::as_bool)
             == Some(true)
     });
+    // Frozen complexity summary names `engines.complexity.warn_cc` (legacy default 15).
+    let warn_cc = prepared
+        .project
+        .components
+        .iter()
+        .find_map(|component| {
+            component
+                .settings
+                .pointer("/engines/complexity/warn_cc")
+                .filter(|limit| limit.is_number())
+                .map(serde_json::Value::to_string)
+        })
+        .unwrap_or_else(|| "15".into());
     let result_path = root.join(crate::DEFAULT_RESULT);
     let report_path = invocation.flag("report").then(|| {
         root.join(engine(&invocation.command()).map_or_else(
@@ -192,9 +205,10 @@ pub fn command(
             ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
             replaced = true;
         } else if legacy_schema
-            && let Some((status, evidence, summary, target)) = no_python_sources(family, &value)
+            && let Some((status, evidence, summary, target)) =
+                no_python_sources(family, &value, &warn_cc)
         {
-            ici_reporting::legacy_no_sources(&mut value, status, evidence, summary, target)
+            ici_reporting::legacy_no_sources(&mut value, status, evidence, &summary, target)
                 .map_err(error)?;
             replaced = true;
         } else if family == "test"
@@ -535,12 +549,12 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
 type NoSources = (
     &'static str,
     &'static str,
-    &'static str,
+    String,
     Option<(&'static str, &'static str)>,
 );
 /// Frozen single-engine verdicts when the Python project selected no Python source: every
 /// native check of the engine was refused at planning ("no sources in scope for python").
-fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSources> {
+fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) -> Option<NoSources> {
     let checks = engine["extra"]["native_checks"].as_array()?;
     if checks.is_empty()
         || !checks.iter().all(|check| {
@@ -558,19 +572,19 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "security" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Security analysis skipped: no Python source files",
+            "Security analysis skipped: no Python source files".into(),
             Some(("Security:NotApplicable", none)),
         ),
         "resource" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Resource analysis skipped: no Python source files",
+            "Resource analysis skipped: no Python source files".into(),
             Some(("Resource:NotApplicable", none)),
         ),
         "lint" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Lint analysis skipped: no applicable source files",
+            "Lint analysis skipped: no applicable source files".into(),
             Some((
                 "LintScope",
                 "No applicable source files were selected; lint analysis was not run",
@@ -579,7 +593,7 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "exception" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Exception safety analysis skipped: no applicable source files",
+            "Exception safety analysis skipped: no applicable source files".into(),
             Some((
                 "ExceptionSafety",
                 "No applicable Python or C++ source files were selected; analysis was not run",
@@ -588,7 +602,7 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "dead" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Dead-code analysis skipped: no owned source files",
+            "Dead-code analysis skipped: no owned source files".into(),
             Some((
                 "DeadCode",
                 "No applicable source files were selected; dead-code analysis was not run",
@@ -597,16 +611,38 @@ fn no_python_sources(family: &str, engine: &serde_json::Value) -> Option<NoSourc
         "dup" => (
             "SKIP",
             "NOT_APPLICABLE",
-            "Duplicate analysis skipped: no owned source files",
+            "Duplicate analysis skipped: no owned source files".into(),
             Some(("DuplicateCode", "No applicable source files were selected")),
         ),
         "cognitive" => (
             "PASS",
             "MEASURED",
-            "Max cognitive complexity: 0 across 0 functions",
+            "Max cognitive complexity: 0 across 0 functions".into(),
             None,
         ),
-        "cycle" => ("PASS", "MEASURED", "No cyclic dependencies detected", None),
+        "cycle" => (
+            "PASS",
+            "MEASURED",
+            "No cyclic dependencies detected".into(),
+            None,
+        ),
+        // Frozen `ComplexityEngine` over no function: a measured PASS naming the warning limit.
+        "complexity" => (
+            "PASS",
+            "MEASURED",
+            format!("Max Cyclomatic Complexity: 0 (limit {warn_cc}) across 0 functions (0 issues)"),
+            None,
+        ),
+        // Frozen `_mark_python_type_check_skipped`: Mypy was not run, nothing is type-checkable.
+        "type" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Type checking not applicable: no Python sources; C++ is unsupported".into(),
+            Some((
+                "Mypy",
+                "No applicable Python source files were selected; Mypy was not run",
+            )),
+        ),
         _ => return None,
     })
 }

@@ -53,7 +53,15 @@ PROJECTS = {
 }
 ENGINES = ("security", "resource", "dup", "dead", "cognitive", "exception")
 # Planning refuses an empty Python scope natively; these engines keep a frozen no-source verdict.
-NO_SOURCE_ENGINES = (*ENGINES, "lint", "cycle")
+NO_SOURCE_ENGINES = (*ENGINES, "lint", "cycle", "type", "complexity")
+# Per-case configuration appended to BASE.
+CONFIGURED = {
+    "complexity/no-python-source-configured": (
+        "complexity",
+        "no-python-source",
+        "[engines.complexity]\nwarn_cc=7\nfail_cc=9\n",
+    ),
+}
 # The full decode-error shape set only matters where the CPython message text is embedded.
 DECODE_ONLY = {"truncated", "continuation", "surrogate", "overlong"}
 
@@ -68,12 +76,12 @@ def write(project: Path, files: dict) -> None:
             path.write_text(content, encoding="utf-8")
 
 
-def run(command: str, files: dict) -> dict:
+def run(command: str, files: dict, config: str = "") -> dict:
     work = Path(tempfile.mkdtemp(prefix="ici-legacy-engines-"))
     try:
         project = work / "project"
         project.mkdir()
-        (project / "ici.toml").write_text(BASE, encoding="utf-8")
+        (project / "ici.toml").write_text(BASE + config, encoding="utf-8")
         write(project, files)
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
@@ -117,6 +125,14 @@ def main() -> None:
                 "files": files,
                 "frozen": run(engine, files),
             }
+    for name, (engine, project, config) in CONFIGURED.items():
+        files = PROJECTS[project]
+        cases[name] = {
+            "command": engine,
+            "config": config,
+            "files": files,
+            "frozen": run(engine, files, config),
+        }
     python = subprocess.check_output([PYTHON, "--version"], text=True).strip()
     OUT.write_text(
         json.dumps(
