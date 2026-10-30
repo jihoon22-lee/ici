@@ -589,94 +589,139 @@
    "comparison": "RunView metrics rows (name, value, unit, numerator/denominator) are shown from saved run metrics; native shows raw numerator and denominator columns rather than the formatted 'n of d' string."
   },
   "finding_site:src/ici/reporters/issue_view.py:195:20": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/issue_view.py:305:12": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/python_issue_projection.py:288:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/python_issue_projection.py:313:11": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/html/utils.py:86:12": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/render.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group",
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::reviewed_alias_table_is_the_frozen_mapping_registry"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::frozen_rule_identity_tests::casefold_tokens_match_python_for_the_full_folding_characters"
+    ]
    },
    "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 61 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity matrix and casefold tests fail on the previous lowercase-only normaliser (non-ASCII 'Straße' became ici.python.external.stra-e); /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-before.log",
+    "`cargo clippy -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-matrix-clippy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Dynamic rule family resolved: IssueGroup/HtmlIssue rule ids are the representative's frozen canonical_python_rule_identity. tests/rust-parity/reporting/python-rule-identity.json (capture_python_rule_identity.py) holds the frozen 19-mapping registry, which equals the native alias asset, and 3,121 frozen identities: every alias under 4 engines x 11 semantic contexts, every canonical id under every context, aliases reached through tool_rule_id, bracketed labels and 'Tool: code' suffixes, unknown/foreign/non-ASCII ids under 7 engines, and dead-engine unreachable-code fallbacks. Native canonical rule id and merge group equal frozen for all of them. Defect fixed: the native normaliser lowercased where frozen casefolds, so the 17 full-folding characters (ß, ẞ, ſ, ligatures, ...) produced different external rule ids. Group assembly itself is pinned by the fifteen frozen issue-groups.json cases."
   },
   "finding_site:src/ici/reporters/html/utils.py:110:16": {
    "status": "verified",
@@ -694,7 +739,7 @@
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
    ],
-   "comparison": "Issue-group representative/canonical rule ids are pinned by the fifteen frozen issue-groups.json cases (prior R7 capture); this pass did not re-audit the complete source modules."
+   "comparison": "Frozen adds an HtmlIssue with rule_id 'engine' (badge = status, message = summary) for an ERROR/SKIP engine that produced no issue group. Native HTML shows the same engine name, status and summary in the engine table, not as an issue row with a pseudo rule id; not closed until that presentation difference is accepted or reproduced."
   },
   "finding_site:src/ici/application/report.py:92:11": {
    "status": "complete",
