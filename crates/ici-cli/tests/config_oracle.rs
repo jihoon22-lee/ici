@@ -1,6 +1,6 @@
 //! Frozen configuration refusals through the actual native `ici` binary.
 //! Golden: tests/rust-parity/config/legacy-schema-oracle.json (capture_legacy_schema.py).
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{fs, path::Path, process::Command};
 
 fn fixture(name: &str) -> Value {
@@ -74,4 +74,65 @@ fn every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the
                 .starts_with("Configuration error: ")
         );
     }
+}
+
+fn run_next_plan(case: &Value) -> (Option<i32>, String) {
+    let temporary = tempfile::tempdir().unwrap();
+    let root = temporary.path().join("project");
+    for (name, text) in case["files"].as_object().unwrap() {
+        let path = root.join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, text.as_str().unwrap()).unwrap();
+    }
+    fs::create_dir(root.join(".git")).unwrap();
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ici"));
+    command.args(["next", "plan", "--json"]);
+    if let Some(name) = case["explicit"].as_str() {
+        command.arg("--config").arg(root.join(name));
+    }
+    if let Some(text) = case["local"].as_str() {
+        let path = temporary.path().join("local.toml");
+        fs::write(&path, text).unwrap();
+        command.arg("--local-config").arg(path);
+    }
+    let output = command
+        .current_dir(&root)
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .env("HOME", temporary.path())
+        .env("XDG_CONFIG_HOME", temporary.path())
+        .output()
+        .unwrap();
+    (
+        output.status.code(),
+        String::from_utf8_lossy(&output.stderr).into_owned(),
+    )
+}
+
+#[test]
+fn every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary() {
+    let oracle = fixture("next-schema-oracle.json");
+    let differences = fixture("next-schema-differences.json");
+    let mut failures = vec![];
+    let mut samples = 0;
+    for case in oracle["cases"].as_array().unwrap() {
+        let id = case["id"].as_str().unwrap();
+        let native = differences
+            .get(id)
+            .and_then(|d| d["native"].as_str())
+            .unwrap_or(case["outcome"].as_str().unwrap());
+        let (code, stderr) = run_next_plan(case);
+        let expected = if native == "reject" { 2 } else { 0 };
+        if code != Some(expected) {
+            failures.push(format!("{id}: exit {code:?} expected {expected}: {stderr}"));
+        }
+        if let Some(cli) = case.get("cli") {
+            samples += 1;
+            if differences.get(id).is_none() {
+                assert_eq!(cli["exit_code"], json!(expected), "{id}: frozen CLI sample");
+            }
+        }
+    }
+    assert_eq!(samples, 4);
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }

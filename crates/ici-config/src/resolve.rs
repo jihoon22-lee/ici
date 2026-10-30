@@ -102,7 +102,20 @@ pub fn resolve_with_environment(
                     false,
                 )?;
                 let child_path = root.join(relative);
-                let child = Parsed::read(&child_path, false, "component")?;
+                // Frozen `_children` reports a missing or unreadable child at the reference.
+                let child = Parsed::read(&child_path, false, "component").map_err(|error| {
+                    if child_path.is_file() {
+                        error
+                    } else {
+                        parsed.error(
+                            &format!("{prefix}.config"),
+                            format!(
+                                "registered component file does not exist: {}",
+                                child_path.display()
+                            ),
+                        )
+                    }
+                })?;
                 let child_family = schema::family(&child)?;
                 schema::validate(&child, child_family)?;
                 if child.value.get("component").is_none() || child.value.get("workspace").is_some()
@@ -199,7 +212,11 @@ pub fn resolve_with_environment(
             ));
         }
         for need in &value.needs {
-            if need == &value.id || (!ids.contains(need) && !build_ids.contains(need.as_str())) {
+            // Frozen domain model: a need naming both a component and a build is ambiguous.
+            if need == &value.id
+                || (!ids.contains(need) && !build_ids.contains(need.as_str()))
+                || (ids.contains(need) && build_ids.contains(need.as_str()))
+            {
                 return Err(ConfigError::new(
                     format!("invalid component dependency: {need}"),
                     value.origin.clone(),
@@ -347,6 +364,7 @@ fn load_settings(
         configuration_files.push(path);
     }
     schema::relationships(&parsed, &effective, "")?;
+    unapplied_preferences(&origins, &mut limitations);
     validate_legacy_paths(&root, &effective, &parsed, environment)?;
     // Metadata aliases are explicit precedence, independent of table insertion order.
     let (profile_value, profile_key) = if parsed.value.get("profile").is_some() {
@@ -386,6 +404,7 @@ fn load_settings(
     effective["exclude"] = json!(excludes);
     let checks = checks(effective.get("checks"), &parsed, "checks")?;
     let builds = builds(&effective, &root, &parsed, environment, &origins)?;
+    crate::settings::validate_builds(&builds, family, &parsed)?;
     let tools = tools(&effective, &root, &parsed, environment, &origins)?;
     let suppressions = suppressions(&effective, &parsed)?;
     let publish = publish(&effective);
@@ -554,6 +573,20 @@ fn preferences(
     }
     let _ = root;
     Ok(())
+}
+
+/// Frozen `--local-config` accepted `output`/`cache` without applying them; the plan promises
+/// user preferences. Until a consumer honours them, an accepted value is never silent.
+fn unapplied_preferences(origins: &BTreeMap<String, Origin>, limitations: &mut Vec<String>) {
+    for (key, origin) in origins {
+        let preference = key == "output" || key == "cache" || key.starts_with("display.");
+        if preference && origin.layer != "defaults" {
+            limitations.push(format!(
+                "{key} preference from {}:{} is accepted but not applied by this version; pass the corresponding command option instead",
+                origin.file, origin.line
+            ));
+        }
+    }
 }
 
 fn apply_overlay(

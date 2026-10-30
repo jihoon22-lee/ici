@@ -220,13 +220,25 @@ fn allowed(path: &[String], family: SchemaFamily) -> bool {
             .copied()
             .collect(),
     };
-    keys.iter().any(|pattern| {
-        let parts: Vec<_> = pattern.split('.').collect();
-        path.len() <= parts.len()
-            && path.iter().zip(parts).all(|(actual, declared)| {
-                declared == "*" || actual == declared || actual.trim_end_matches("[]") == declared
-            })
-    })
+    let matches = |path: &[String]| {
+        keys.iter().any(|pattern| {
+            let parts: Vec<_> = pattern.split('.').collect();
+            path.len() <= parts.len()
+                && path.iter().zip(parts).all(|(actual, declared)| {
+                    declared == "*"
+                        || actual == declared
+                        || actual.trim_end_matches("[]") == declared
+                })
+        })
+    };
+    // A `[component]` file body has the same shape as one `[[components]]` entry (frozen
+    // `_component_body` reads both), including nested integration cases.
+    matches(path)
+        || (path.first().is_some_and(|first| first == "component") && path.len() > 1 && {
+            let mut entry = path.to_vec();
+            entry[0] = "components[]".into();
+            matches(&entry)
+        })
 }
 
 fn walk(
@@ -379,6 +391,10 @@ fn validate_type(
             return Err(parsed.error(display, "string must not be empty"));
         }
         validate_text_bounds(parsed, display, last, text)?;
+        // Frozen domain `require_text`: the workspace name is not padded with whitespace.
+        if last == "name" && parent == "workspace" && text.trim() != text {
+            return Err(parsed.error(display, "workspace name must not be padded with whitespace"));
+        }
         let choices: &[&str] = match last {
             "profile" => &["fast", "standard", "deep"],
             "type_provider" => &["mypy", "ty"],
@@ -404,10 +420,19 @@ fn validate_type(
         if matches!(last, "api_url" | "server_url") && !text.starts_with("https://") {
             return Err(parsed.error(display, "publication endpoint must use https://"));
         }
-        if last == "token_env" && !valid_env_name(text) {
+        // Frozen `[A-Z_][A-Z0-9_]*` and `[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+`.
+        if last == "token_env"
+            && (!valid_env_name(text) || text.chars().any(|c| c.is_ascii_lowercase()))
+        {
             return Err(parsed.error(display, "token_env must name an environment variable"));
         }
-        if last == "repo" && (text.split('/').count() != 2 || text.split('/').any(str::is_empty)) {
+        if last == "repo"
+            && (text.split('/').count() != 2
+                || text.split('/').any(str::is_empty)
+                || !text
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "_.-/".contains(c)))
+        {
             return Err(parsed.error(display, "repo must be owner/name"));
         }
         if last == "target_version" && !text.is_empty() {
@@ -620,6 +645,20 @@ fn relationships_here(parsed: &Parsed, value: &Value, prefix: &str) -> Result<()
             {
                 return Err(parsed.error(prefix, "suppression must carry a reason"));
             }
+            if let Some(key) = ["fingerprint", "rule", "path", "component"]
+                .iter()
+                .find(|key| {
+                    table
+                        .get(**key)
+                        .and_then(Value::as_str)
+                        .is_some_and(|value| value.chars().count() > 1024)
+                })
+            {
+                return Err(parsed.error(
+                    &join(prefix, key),
+                    "suppression selector must be a bounded string",
+                ));
+            }
             if !["fingerprint", "rule", "path", "component"]
                 .iter()
                 .any(|key| table.contains_key(*key))
@@ -796,6 +835,18 @@ fn validate_list_items(
         .then_some("dependency names must be unique bounded strings"),
         "inherit_env" => (!unique() || items.iter().any(|item| !valid_env_name(item)))
             .then_some("inherit_env must name unique environment variables"),
+        // Frozen next `_bounded_strings`: at most 32 entries; requires items are 128 characters.
+        "stdout_contains"
+        | "stderr_contains"
+        | "stdout_not_contains"
+        | "stderr_not_contains"
+        | "requires"
+            if display.contains(".integrations[") =>
+        {
+            let limit = if last == "requires" { 128 } else { 1024 };
+            (items.len() > 32 || items.iter().any(|item| item.chars().count() > limit))
+                .then_some("integration assertion lists hold at most 32 bounded strings")
+        }
         // Legacy `_validate_string_list_bounded(unique=True)`; next integrations allow repeats.
         "stdout_contains" | "stderr_contains" | "stdout_not_contains" | "stderr_not_contains"
             if display.starts_with("engines.integration.cases[") =>
