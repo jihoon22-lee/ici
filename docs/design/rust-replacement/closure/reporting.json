@@ -52,7 +52,8 @@
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-reporting/src/projection.rs",
     "crates/ici-reporting/src/stored.rs",
-    "crates/ici-reporting/src/safe.rs"
+    "crates/ici-reporting/src/safe.rs",
+    "crates/ici-cli/src/legacy_execute.rs"
    ],
    "fixtures": {
     "positive": [
@@ -66,16 +67,18 @@
     ],
     "failure": [
      "crates/ici-reporting/tests/migration_edges.rs::paths_outside_or_ambiguous_to_the_root_are_refused_like_the_frozen_reader",
-     "crates/ici-reporting/tests/stored.rs::embedded_modern_facts_cannot_bypass_strict_saved_result_validation"
+     "crates/ici-reporting/tests/stored.rs::embedded_modern_facts_cannot_bypass_strict_saved_result_validation",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
     ]
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log"
    ],
    "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas.",
-   "difference_reason": "Engine-name slugs and metric-unit names use Unicode lowercase rather than Python full casefold; they differ only for code points whose fold is not their lowercase (e.g. 'ß'). Dict-valued text fields render as Python repr in sorted key order (the JSON reader does not keep insertion order)."
+   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
   },
   "capability:execution-cancel-save-redact": {
    "status": "verified",
@@ -608,6 +611,25 @@
    },
    "evidence": [],
    "comparison": "Not reviewed in this pass: the frozen next run v2 envelope JSON Schema was not compared constraint by constraint with the native writer/reader; no reporting fixture claims it."
+  },
+  "command:ici verify": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-domain/src/result.rs"
+   ],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log"
+   ],
+   "comparison": "Exit-code and legacy suite-verdict facet only (reporting area): the legacy verify view keeps the frozen suite ERROR verdict and the frozen integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0). Legacy engine commands use the same rule through legacy_execute.rs: the frozen engine class (ici_reporting::legacy_exit_code) only raises the run exit, except frozen measured verdicts that the view reproduces. Other verify facets belong to the other areas.",
+   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
   }
  },
  "source_files": {
