@@ -78,7 +78,7 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
     for (name, case) in cases {
         let actual = engines(case, base, &environment);
         for (engine, frozen) in case["frozen"].as_object().unwrap() {
-            let mut actual = actual[engine].clone();
+            let actual = actual[engine].clone();
             match (name.as_str(), engine.as_str()) {
                 // Open: the Rust build inventory selects only measured ELF outputs, while the
                 // frozen manifest also lists MZ/Mach-O files from the shadow.
@@ -102,18 +102,6 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
                     continue;
                 }
                 _ => {}
-            }
-            if frozen["status"] == "ERROR" {
-                // Open reporting difference: ERROR summaries carry the check-id prefix.
-                assert_eq!(
-                    actual["summary"],
-                    json!(format!(
-                        "cpp.binary-compat: {}",
-                        frozen["summary"].as_str().unwrap()
-                    )),
-                    "{name}"
-                );
-                actual["summary"] = frozen["summary"].clone();
             }
             assert_eq!(&actual, frozen, "{name} {engine}");
         }

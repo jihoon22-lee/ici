@@ -113,7 +113,7 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
     assert_eq!(cases.len(), 10);
     for (name, case) in cases {
         let frozen = &case["frozen"];
-        let mut actual = run(case, &environment);
+        let actual = run(case, &environment);
         match name.as_str() {
             // Open: frozen `ici build` has no shared analysis context, so any
             // `[build.artifacts]` declaration is a BuildError; Rust records the declared files.
@@ -145,16 +145,6 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
                 continue;
             }
             _ => {}
-        }
-        if frozen["status"] == "ERROR" {
-            // Open reporting difference: ERROR summaries carry the `cpp.artifact: ` prefix.
-            let summary = actual["summary"].as_str().unwrap().to_owned();
-            assert_eq!(
-                summary,
-                format!("cpp.artifact: {}", frozen["summary"].as_str().unwrap()),
-                "{name}"
-            );
-            actual["summary"] = frozen["summary"].clone();
         }
         let mut expected = frozen.clone();
         expected.as_object_mut().unwrap().remove("stdout");
