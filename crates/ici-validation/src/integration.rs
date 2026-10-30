@@ -239,6 +239,14 @@ fn observe_named_case(
     }
     output.extra["integration"] = json!({"state":"MEASURED","cases":[{"name":name,"status":target.status,"returncode":outcome.exit_code,"duration_seconds":outcome.duration_seconds,"stdout_truncated":outcome.truncated,"stderr_truncated":outcome.truncated,"assertions":assertions}]});
     output.extra["assertions"] = json!(checks);
+    // Frozen ToolEvidence: stderr preview only when the exit contract was not met.
+    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    output.extra["tool_evidence"] = json!([{"name":format!("integration case: {name}"),
+        "path":plan.tasks.first().and_then(|task|task.argv.first()),"version":"",
+        "argv":plan.tasks.first().map(|task|task.argv.clone()).unwrap_or_default(),
+        "returncode":outcome.exit_code,"timed_out":outcome.timed_out,"truncated":outcome.truncated,
+        "error":if outcome.exit_code == Some(plan.context.options.expected_exit) {String::new()}
+            else {stderr.chars().take(512).collect()}}]);
     output.summary = format!(
         "Integration contracts: 1 run, {} violation(s)",
         usize::from(!failed.is_empty())
@@ -250,7 +258,7 @@ fn observe_named_case(
     output.observation.measurements.push(metric);
     Ok(())
 }
-fn repr(value: &str) -> String {
+pub(crate) fn repr(value: &str) -> String {
     let quote = if value.contains('\'') && !value.contains('"') {
         '"'
     } else {

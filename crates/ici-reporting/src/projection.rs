@@ -57,6 +57,47 @@ fn rank(status: &str) -> u8 {
         _ => 1,
     }
 }
+/// Frozen `exit_code_for_status`: FAIL and ERROR exit 1, SKIP exits 2, PASS and WARN exit 0.
+pub fn legacy_exit_code(status: &str) -> i32 {
+    match status {
+        "FAIL" | "ERROR" => 1,
+        "SKIP" => 2,
+        _ => 0,
+    }
+}
+/// The most severe legacy status (ERROR > FAIL > WARN > PASS > SKIP), never below `floor`.
+pub fn legacy_worst_status<'a>(
+    statuses: impl IntoIterator<Item = &'a str>,
+    floor: &'a str,
+) -> &'a str {
+    statuses.into_iter().fold(floor, |worst, status| {
+        if rank(status) > rank(worst) {
+            status
+        } else {
+            worst
+        }
+    })
+}
+/// Frozen `EngineResult.required`. Native policy may be unknown (null): it never counts as a
+/// required engine, so the suite status and its gate reason read the same flag.
+pub(crate) fn engine_required(engine: &Value) -> bool {
+    engine["required"] == true
+}
+/// Frozen `EngineStatus` class of one saved check. Each frozen engine chose its own status: ERROR
+/// only when it could not reach a verdict (tool error, setup exception), FAIL/WARN for a measured
+/// verdict after its policy mode, SKIP when it did not apply. Native producers save that class in
+/// `AnalysisOutput.status`, so a failed task keeps a producer FAIL or ERROR; a failed task can
+/// never project as PASS, WARN or SKIP (R05/R10), and one without output is ERROR.
+pub(crate) fn legacy_status(state: TaskState, output: Option<&AnalysisOutput>) -> &str {
+    match state {
+        TaskState::Succeeded => output.map_or("SKIP", |output| output.status.as_str()),
+        TaskState::Failed => match output.map(|output| output.status.as_str()) {
+            Some(status @ ("FAIL" | "ERROR")) => status,
+            _ => "ERROR",
+        },
+        _ => "SKIP",
+    }
+}
 pub(crate) fn legacy_finding(finding: &Finding) -> Result<Value> {
     fn location(span: &ici_domain::SourceSpan) -> Value {
         json!({"path":span.path,"start_line":span.start_line,"end_line":span.end_line,"start_column":span.start_column,"end_column":span.end_column,"label":span.label})
@@ -81,6 +122,7 @@ pub fn legacy_projection(
     }
     let mut engines = BTreeMap::<String, Value>::new();
     let mut attributed = BTreeSet::new();
+    let mut errored = BTreeMap::<String, Vec<String>>::new();
     for check in run.checks.as_deref().unwrap_or_default() {
         let name = context
             .engine_names
@@ -100,17 +142,23 @@ pub fn legacy_projection(
             "targets":[], "findings":[], "extra":{"native_checks":[]}, "tool_evidence":[], "raw_output":""
         }));
         let output = outputs.get(&check.task_id);
-        let status = if check.state != TaskState::Succeeded {
-            if check.state == TaskState::Failed {
-                "ERROR"
-            } else {
-                "SKIP"
+        let status = legacy_status(check.state, output);
+        engine["status"] = json!(legacy_worst_status(
+            [status],
+            engine["status"].as_str().unwrap_or("SKIP")
+        ));
+        // Frozen engines report their tool errors as the summary (`"; ".join(errors[:3])`); a
+        // passing sibling check's count must not stand next to an ERROR verdict.
+        if status == "ERROR" {
+            let reason = output
+                .map(|output| output.summary.as_str())
+                .filter(|summary| !summary.is_empty())
+                .unwrap_or("analysis did not complete");
+            let reasons = errored.entry(name.to_owned()).or_default();
+            if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
+                reasons.push(reason.to_owned());
             }
-        } else {
-            output.map_or("SKIP", |output| output.status.as_str())
-        };
-        if rank(status) > rank(engine["status"].as_str().unwrap_or("SKIP")) {
-            engine["status"] = json!(status);
+            engine["summary"] = json!(reasons.join("; "));
         }
         let evidence = output
             .map(|output| {
@@ -143,6 +191,13 @@ pub fn legacy_projection(
                 }
             })
             .unwrap_or_default();
+        // Frozen engines pair a tool or analysis ERROR with NOT_RUN evidence: no verdict was
+        // measured, whatever the task state (the exit code stays the ERROR class's 1).
+        let evidence = if status == "ERROR" {
+            EvidenceLevel::NotRun
+        } else {
+            evidence
+        };
         // Different checks keep their own evidence; aggregate cannot upgrade an estimate.
         let evidence = serde_json::to_value(evidence)?;
         if engine["extra"]["native_checks"]
@@ -178,6 +233,13 @@ pub fn legacy_projection(
                 .as_array_mut()
                 .expect("array")
                 .extend(scopes);
+            // Historical engines carry their process evidence; adapted targets name its first tool.
+            if let Some(items) = output.extra.get("tool_evidence").and_then(Value::as_array) {
+                engine["tool_evidence"]
+                    .as_array_mut()
+                    .expect("array")
+                    .extend(items.iter().cloned());
+            }
             engine["targets"].as_array_mut().expect("array").extend(
                 output
                     .targets
@@ -263,6 +325,7 @@ pub fn legacy_projection(
             }
         }
         project_extra(engine)?;
+        integration_refusal(engine);
         normalize_findings(engine)?;
     }
     let mut results: Vec<_> = builtin_catalog()
@@ -280,7 +343,7 @@ pub fn legacy_projection(
     let suite_status = if !run.execution.required_complete
         || results.is_empty()
         || results.iter().any(|engine| {
-            engine["required"] == true
+            engine_required(engine)
                 && engine["evidence"] != "NOT_APPLICABLE"
                 && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
                     || engine["evidence"] == "NOT_RUN")
@@ -288,15 +351,13 @@ pub fn legacy_projection(
         "ERROR"
     } else if results
         .iter()
-        .any(|engine| engine["required"] == true && engine["status"] == "FAIL")
+        .any(|engine| engine_required(engine) && engine["status"] == "FAIL")
     {
         "FAIL"
     } else if results.iter().any(|engine| {
         engine["evidence"] != "NOT_APPLICABLE"
             && (engine["status"] == "WARN"
-                || engine["required"]
-                    .as_bool()
-                    .is_none_or(|required| !required)
+                || !engine_required(engine)
                     && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
     }) {
         "WARN"
@@ -323,7 +384,7 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     if checks.len() == 1 {
         if let Some(extra) = check_extra(&checks[0]).as_object() {
             for (key, value) in extra {
-                if key != "native_checks" && key != "target_scopes" {
+                if key != "native_checks" && key != "target_scopes" && key != "tool_evidence" {
                     engine["extra"][key] = value.clone();
                 }
             }
@@ -419,6 +480,7 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
     // Keep its coverage, but count the suite once and prefer the test producer.
     let mut suites = BTreeMap::<String, Value>::new();
     let mut coverage = BTreeMap::<String, Value>::new();
+    let mut phase_parts = BTreeMap::<String, Vec<Value>>::new();
     for check in checks {
         if check["evidence_complete"] != true {
             engine["extra"]["test_aggregation_limitation"] =
@@ -444,6 +506,10 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
                 return Ok(());
             }
             let phase = extra["test_execution"]["phase"].as_str();
+            phase_parts
+                .entry(phase.unwrap_or("").into())
+                .or_default()
+                .push(extra.clone());
             let physical = extra["physical_test_suites"].as_array().cloned().unwrap_or_else(||vec![json!({"canonical_suite_id":aggregate_identity,"complete":true,"passed_tests":extra["passed_tests"],"total_tests":extra["total_tests"],"skipped_tests":extra["skipped_tests"]})]);
             if physical.is_empty() {
                 engine["extra"]["test_aggregation_limitation"] =
@@ -560,16 +626,12 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
         if totals["covered"] > totals["stmts"] || totals["cb"] > totals["nb"] {
             return Err(ReportError("coverage numerator exceeds denominator".into()));
         }
-        let line = if totals["stmts"] > 0 {
-            Some(100.0 * totals["covered"] as f64 / totals["stmts"] as f64)
-        } else {
-            None
+        // Frozen totals carry `round(percent, 1)` (both sides round the exact binary value).
+        let percent = |covered: u64, total: u64| {
+            (total > 0).then(|| ici_domain::python_round_one(100.0 * covered as f64 / total as f64))
         };
-        let branch = if totals["nb"] > 0 {
-            Some(100.0 * totals["cb"] as f64 / totals["nb"] as f64)
-        } else {
-            None
-        };
+        let line = percent(totals["covered"], totals["stmts"]);
+        let branch = percent(totals["cb"], totals["nb"]);
         engine["extra"]["line_coverage"] = json!(line);
         engine["extra"]["branch_coverage"] = json!(branch);
         engine["extra"]["coverage_totals"] = json!({
@@ -580,7 +642,187 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
             "functions":null,"covered_functions":null
         });
     }
+    frozen_test_summary(engine, &phase_parts, passed, total);
     Ok(())
+}
+
+/// One test producer and one coverage producer of the same physical suite carry the frozen
+/// single-engine result: its direct extra keys, TEM score and summary line.
+fn frozen_test_summary(
+    engine: &mut Value,
+    parts: &BTreeMap<String, Vec<Value>>,
+    passed: u64,
+    total: u64,
+) {
+    let (Some([test]), Some([coverage])) = (
+        parts.get("test").map(Vec::as_slice),
+        parts.get("coverage").map(Vec::as_slice),
+    ) else {
+        return;
+    };
+    for key in [
+        "coverage_files",
+        "coverage_policy",
+        "coverage_provenance",
+        "coverage_source",
+        "function_coverage",
+        "function_rows",
+    ] {
+        if let Some(value) = coverage.get(key) {
+            engine["extra"][key] = value.clone();
+        }
+    }
+    for key in [
+        "test_suites",
+        "test_quality",
+        "quality_enabled",
+        "repeat_runs",
+        "repeat_reruns",
+        "repeat_cases",
+        "repeat_unavailable",
+        "repeat_timeouts",
+        "flaky_tests",
+        "flaky_test_inventory",
+        "slow_tests",
+        "slow_tests_observed",
+        "slow_test_inventory",
+        "mutation_probes",
+        "mutation_available",
+        "mutation_unavailable",
+        "mutation_status",
+    ] {
+        if let Some(value) = test.get(key) {
+            engine["extra"][key] = value.clone();
+        }
+    }
+    // The historical line/branch inputs are the rows' one-decimal percentages.
+    let tem = coverage
+        .get("legacy_tem")
+        .filter(|tem| tem.is_object())
+        .unwrap_or(&coverage["tem"]);
+    let (Some(score), Some(label), Some(shown), Some(function), Some(rate)) = (
+        tem["score"].as_f64(),
+        tem["coverage_label"].as_str(),
+        tem["coverage_shown"].as_f64(),
+        coverage["function_coverage"].as_f64(),
+        tem["pass_rate"].as_f64(),
+    ) else {
+        return;
+    };
+    engine["extra"]["tem_score"] = json!(score);
+    engine["extra"]["metrics_summary"] = json!(format!(
+        "TEM: {score:.2}/5.0 ({label}: {shown:.0}%, Func: {function:.0}%, PassRate: {:.0}%)",
+        rate * 100.0
+    ));
+    engine["score"] = json!(score);
+    engine["max_score"] = json!(5.0);
+    if engine["status"] == "ERROR" {
+        return;
+    }
+    let suffix = if tem["estimated"] == true {
+        " (est)"
+    } else {
+        ""
+    };
+    let mut summary = format!(
+        "{passed}/{total} Tests Passed | {label}: {shown:.1}%{suffix}, Func: {function:.1}% -> TEM: {score:.2} / 5.0"
+    );
+    // Frozen shows the branch gate input whenever TEM was not computed from it; an empty
+    // branch denominator is reported as such instead of the frozen vacuous 100.0%.
+    if label != "Branch" {
+        let branch = engine["extra"]["branch_coverage"]
+            .as_f64()
+            .map_or_else(|| "n/a".to_owned(), |branch| format!("{branch:.1}%"));
+        summary = summary.replacen(" -> TEM:", &format!(", Branch: {branch} -> TEM:"), 1);
+    }
+    engine["summary"] = json!(summary);
+}
+
+/// Frozen legacy `TestEngine._mark_zero_tests`: a project without any test file is a located
+/// FAIL verdict ("[<language>] Tests" at `tests`:1), not missing evidence. The caller decides
+/// that no frozen test file exists; this only rewrites the historical engine view. Coverage and
+/// TEM stay absent instead of the frozen fabricated estimates.
+pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Result<()> {
+    let languages = if languages.is_empty() {
+        &["Project"][..]
+    } else {
+        languages
+    };
+    let targets: Vec<_> = languages
+        .iter()
+        .map(|language| {
+            json!({"file_path":"tests","start_line":1,"end_line":null,"start_column":null,
+                "end_column":null,"target_name":format!("[{language}] Tests"),"status":"FAIL",
+                "message":"No tests collected","snippet":"","metrics":{}})
+        })
+        .collect();
+    engine["targets"] = json!(targets);
+    engine["status"] = json!("FAIL");
+    engine["evidence"] = json!("MEASURED");
+    engine["score"] = Value::Null;
+    engine["summary"] = json!("0/0 Tests Passed; No tests collected");
+    engine["extra"]["passed_tests"] = json!(0);
+    engine["extra"]["total_tests"] = json!(0);
+    engine["extra"]["no_tests_collected"] = json!(languages);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
+/// Frozen `TestCoverageMixin`: an unusable coverage policy is a located ERROR target
+/// ("Coverage:Policy configuration" at `.`) and an ERROR engine. Native refuses the same input
+/// before running; the legacy view keeps the frozen verdict class with the native reason.
+pub fn legacy_policy_refused(engine: &mut Value, reason: &str) -> Result<()> {
+    let message = format!("Coverage policy could not be evaluated: {reason}");
+    let target = json!({"file_path":".","start_line":1,"end_line":null,"start_column":null,
+        "end_column":null,"target_name":"Coverage:Policy configuration","status":"ERROR",
+        "message":message,"snippet":"","metrics":{"gated":true}});
+    let mut alone = engine.clone();
+    alone["targets"] = json!([target.clone()]);
+    let adapted = crate::migration::adapted_findings(&alone)?;
+    engine["targets"]
+        .as_array_mut()
+        .ok_or_else(|| ReportError("legacy engine targets must be an array".into()))?
+        .push(target);
+    engine["findings"]
+        .as_array_mut()
+        .ok_or_else(|| ReportError("legacy engine findings must be an array".into()))?
+        .extend(adapted);
+    engine["status"] = json!("ERROR");
+    engine["summary"] = json!(message);
+    Ok(())
+}
+
+/// Frozen `IntegrationEngine`: invalid case configuration is an ERROR engine with one located
+/// `Integration:ConfigurationError` target at `ici.toml`:1. Native refuses it at plan time as a
+/// blocked check; a block caused by a missing prerequisite or by no declared case keeps the
+/// historical SKIP.
+fn integration_refusal(engine: &mut Value) {
+    if engine["engine_name"] != "integration" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let reason = match checks.as_slice() {
+        [check] if check["check_id"] == "integration" && check["state"] == "BLOCKED" => {
+            match check["summary"].as_str() {
+                Some(summary)
+                    if !summary.starts_with("prerequisite ")
+                        && !summary.starts_with("no integration cases") =>
+                {
+                    summary.to_owned()
+                }
+                _ => return,
+            }
+        }
+        _ => return,
+    };
+    engine["status"] = json!("ERROR");
+    engine["evidence"] = json!("NOT_RUN");
+    engine["summary"] = json!(format!("Integration analysis incomplete: {reason}"));
+    engine["targets"] = json!([{"file_path":"ici.toml","start_line":1,"end_line":null,
+        "start_column":null,"end_column":null,"target_name":"Integration:ConfigurationError",
+        "status":"ERROR","message":reason,"snippet":"","metrics":{}}]);
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {
@@ -637,9 +879,13 @@ fn normalize_findings(engine: &mut Value) -> Result<()> {
             .cloned()
             .unwrap_or(Value::Null);
         let matched_message = details.get("legacy_message").unwrap_or(&native["message"]);
+        // A project-wide historical target (`.`) is anchored at a file in the modern finding.
+        let matched_path = details
+            .get("legacy_path")
+            .unwrap_or(&native["primary_location"]["path"]);
         let matched = target_index
             .get(&(
-                text(&native["primary_location"]["path"]),
+                text(matched_path),
                 native["primary_location"]["start_line"]
                     .as_u64()
                     .unwrap_or(1),
@@ -848,10 +1094,8 @@ mod test_aggregation_tests {
             engine["extra"]["coverage_totals"]["cover"],
             engine["extra"]["line_coverage"]
         );
-        assert_eq!(
-            engine["extra"]["line_coverage"].as_f64().unwrap(),
-            100.0 * 10.0 / 12.0
-        );
+        // Raw denominators are summed first; the shown percent is frozen `round(cover, 1)`.
+        assert_eq!(engine["extra"]["line_coverage"].as_f64().unwrap(), 83.3);
         assert!(engine["extra"].get("test_aggregation_limitation").is_none());
     }
 

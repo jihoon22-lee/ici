@@ -4,6 +4,11 @@ mod build;
 mod context;
 mod entry_points;
 mod input;
+mod make;
+pub use make::{
+    MAX_ARGV_CHARS, MAX_ARGV_TOKEN_CHARS, MAX_ARGV_TOKENS, MakeSettings, contained_make_path,
+    make_argv, make_settings, validate_direct_make_argv,
+};
 mod model;
 pub use entry_points::legacy_main_definition_count;
 mod qmake;
@@ -21,12 +26,15 @@ pub use replay::{
     diagnostic_warning_argument, owned_object_command, replay_command, replay_environment,
 };
 
-pub use build::{BuildLease, finalize_qmake_capture, plan_build, prepare_owned_shadow};
+pub use build::{
+    BuildLease, check_shadow_adoptable, finalize_qmake_capture, plan_build, prepare_owned_shadow,
+};
 pub use qmake::{qmake_capture_command, qmake_configure_capture_main};
 pub use recorder::{record_compiler_invocation, recorder_main};
 
 mod analysis;
 mod cycles;
+mod legacy_exceptions;
 mod source;
 mod source_rules;
 pub use analysis::CppAnalysisSession;

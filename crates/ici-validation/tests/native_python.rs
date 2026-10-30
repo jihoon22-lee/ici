@@ -285,7 +285,7 @@ fn runtime_metadata_compilation_and_declared_version_constraints_are_measured_se
             .observation
             .findings
             .iter()
-            .find(|finding| finding.rule_id == "python.compat.runtime-syntax")
+            .find(|finding| finding.rule_id == "python.compat.compile-failure")
             .unwrap()
             .primary_location
             .start_line,

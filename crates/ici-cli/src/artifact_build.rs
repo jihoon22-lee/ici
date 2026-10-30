@@ -66,6 +66,11 @@ pub struct ArtifactBuildPlan {
     manifest_path: String,
     declarations: declarations::Declarations,
     declared: BTreeMap<String, String>,
+    /// Legacy targets reported ahead of the published files once the release tree is written,
+    /// such as the frozen `BuildAdapter[<backend>]` success record of an adapter build.
+    pub lead_targets: Vec<InspectionTarget>,
+    /// Legacy direct g++ release: the frozen `CppBinary` PASS message for the published binary.
+    pub legacy_binary_message: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -108,7 +113,7 @@ pub fn describe_with_environment(
     task_id: &str,
     environment: &BTreeMap<String, String>,
 ) -> Result<ArtifactBuildPlan, String> {
-    describe_internal(project, component, task_id, environment, &[])
+    describe_internal(project, component, task_id, environment, &[], 0)
 }
 
 pub fn describe_compiled(
@@ -118,7 +123,18 @@ pub fn describe_compiled(
     environment: &BTreeMap<String, String>,
     compiled: &[ArtifactSource],
 ) -> Result<ArtifactBuildPlan, String> {
-    describe_internal(project, component, task_id, environment, compiled)
+    describe_internal(project, component, task_id, environment, compiled, 0)
+}
+/// Frozen adapter builds (CMake, qmake, Make) record their linked outputs in the shadow and
+/// publish only the release tree and environment loaders; nothing is copied into `bin/`.
+pub fn describe_adapter(
+    project: &ResolvedProject,
+    component: &Component,
+    task_id: &str,
+    environment: &BTreeMap<String, String>,
+    measured: usize,
+) -> Result<ArtifactBuildPlan, String> {
+    describe_internal(project, component, task_id, environment, &[], measured)
 }
 
 fn artifact_limits() -> InputLimits {
@@ -134,6 +150,7 @@ fn describe_internal(
     task_id: &str,
     environment: &BTreeMap<String, String>,
     compiled: &[ArtifactSource],
+    measured_adapter_artifacts: usize,
 ) -> Result<ArtifactBuildPlan, String> {
     let declarations = declarations::Declarations::collect(project, component)?;
     let base = if component.root == "." {
@@ -359,13 +376,16 @@ fn describe_internal(
             message: format!("Packaged {} {}", record.kind, record.path),
         });
     }
-    if files.is_empty() && declarations.is_empty() {
+    if files.is_empty() && declarations.is_empty() && measured_adapter_artifacts == 0 {
         return Err("No library, launcher, compiled or declared artifact was selected".into());
     }
     for (name, content) in [("env.sh", ENV_SH), ("env.csh", ENV_CSH)] {
         files.push(OutputFile {
             path: format!("{output_root}/{name}"),
-            content: Content::Generated(if compiled.is_empty() { content.as_bytes().to_vec() } else if name == "env.sh" {
+            // Frozen _generate_env_scripts writes these exact loaders. Only a package that
+            // publishes a shared library into lib/ (never produced by the frozen pyz) also
+            // needs that directory on the dynamic loader path.
+            content: Content::Generated(if !compiled.iter().any(|record| record.kind == "shared-library") { content.as_bytes().to_vec() } else if name == "env.sh" {
                 content.replace("export PYTHONPATH=", "export LD_LIBRARY_PATH=\"${SCRIPT_DIR}/lib:${LD_LIBRARY_PATH:-}\"\nexport PYTHONPATH=").into_bytes()
             } else {
                 content.replace("setenv PYTHONPATH", "if (! $?LD_LIBRARY_PATH) setenv LD_LIBRARY_PATH \"\"\nsetenv LD_LIBRARY_PATH \"${FULL_DIR}/lib:${LD_LIBRARY_PATH}\"\nsetenv PYTHONPATH").into_bytes()
@@ -501,6 +521,8 @@ fn describe_internal(
         manifest_path,
         declarations,
         declared,
+        lead_targets: vec![],
+        legacy_binary_message: None,
     })
 }
 
@@ -516,6 +538,9 @@ pub fn execute(
     }
     match execute_inner(plan, snapshot, cancellation, &mut output) {
         Ok(()) => {
+            output
+                .targets
+                .splice(0..0, plan.lead_targets.iter().cloned());
             output.summary = format!(
                 "Build Completed: {} {} into {}",
                 plan.metadata.name, plan.metadata.version, plan.output_root
@@ -665,6 +690,7 @@ fn execute_inner(
             }
         }
     }
+    release_directories(plan)?;
     for (file, bytes, write, existed) in writes {
         if cancellation.is_cancelled() {
             return Err("Python artifact preparation cancelled".into());
@@ -688,11 +714,15 @@ fn execute_inner(
         target.target_name = match file.kind.as_str() {
             "python-library" => "PythonLibrary",
             "python-launcher" => "PythonLauncher",
+            "executable" if plan.legacy_binary_message.is_some() => "CppBinary",
             "executable" | "shared-library" | "static-library" => "CompiledArtifact",
             _ => "EnvironmentScript",
         }
         .into();
-        target.message = file.message.clone();
+        target.message = match (&plan.legacy_binary_message, file.kind.as_str()) {
+            (Some(message), "executable") => message.clone(),
+            _ => file.message.clone(),
+        };
         output.targets.push(target);
     }
     if cancellation.is_cancelled() {
@@ -719,6 +749,41 @@ fn execute_inner(
     declarations::publish(plan, snapshot, output)?;
     output.extra["verified_output_paths"] = json!(verified);
     output.extra["retired_artifacts"] = json!(manifest.retired_files.keys().collect::<Vec<_>>());
+    Ok(())
+}
+
+/// Frozen `_prepare_output_tree`: `<version>/x86_64` with `bin/` and `lib/`, created like
+/// Python `mkdir` (mode 0777 under the process umask). Existing directories are kept as they are;
+/// a symlinked or non-directory component is refused.
+fn release_directories(plan: &ArtifactBuildPlan) -> Result<(), String> {
+    use std::os::unix::fs::DirBuilderExt;
+    let mut targets = vec![];
+    let mut current = PathBuf::new();
+    for part in Path::new(&plan.output_root).components() {
+        current.push(part);
+        targets.push(current.clone());
+    }
+    targets.push(current.join("bin"));
+    targets.push(current.join("lib"));
+    for relative in targets {
+        let path = plan.root.join(&relative);
+        match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_dir() => {}
+            Ok(_) => {
+                return Err(format!(
+                    "release output directory is not a plain directory: {}",
+                    relative.display()
+                ));
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                std::fs::DirBuilder::new()
+                    .mode(0o777)
+                    .create(&path)
+                    .map_err(|error| format!("release output {}: {error}", relative.display()))?;
+            }
+            Err(error) => return Err(error.to_string()),
+        }
+    }
     Ok(())
 }
 

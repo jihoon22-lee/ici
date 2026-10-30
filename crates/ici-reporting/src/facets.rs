@@ -1,7 +1,7 @@
 //! Historical report families retain targets, metrics and producer-specific details.
 use crate::{
     Result,
-    render::rich,
+    render::{lazy, rich},
     safe::{html, plain},
 };
 use serde_json::Value;
@@ -30,7 +30,7 @@ fn title(name: &str) -> &str {
         _ => name,
     }
 }
-pub(crate) fn render(engines: &[Value], out: &mut String) -> Result<()> {
+pub(crate) fn render(engines: &[Value], pointers: &[String], out: &mut String) -> Result<()> {
     if engines.is_empty() {
         return Ok(());
     }
@@ -40,7 +40,7 @@ pub(crate) fn render(engines: &[Value], out: &mut String) -> Result<()> {
         let _ = write!(out, "<a href=\"#family-{index}\">{}</a>", html(title(name)));
     }
     out.push_str("</nav>");
-    for (index, engine) in engines.iter().enumerate() {
+    for (index, (engine, pointer)) in engines.iter().zip(pointers).enumerate() {
         let name = engine["engine_name"].as_str().unwrap_or("unknown");
         let _ = write!(
             out,
@@ -55,7 +55,7 @@ pub(crate) fn render(engines: &[Value], out: &mut String) -> Result<()> {
         );
         let extra = &engine["extra"];
         if let Some(checks) = extra["native_checks"].as_array() {
-            for check in checks {
+            for (position, check) in checks.iter().enumerate() {
                 let _ = write!(
                     out,
                     "<details open><summary>{} · {} · {} · {}</summary>",
@@ -65,21 +65,30 @@ pub(crate) fn render(engines: &[Value], out: &mut String) -> Result<()> {
                     html(&plain(&check["evidence"]))
                 );
                 facet(name, &check["extra"], out)?;
-                rich(check, out)?;
+                // The complete record is built on demand from the embedded saved result.
+                lazy(
+                    out,
+                    &format!("{pointer}/extra/native_checks/{position}"),
+                    None,
+                    "Complete check record",
+                );
                 out.push_str("</details>");
             }
         } else {
             facet(name, extra, out)?;
         }
-        target_groups(&engine["targets"], out)?;
+        target_groups(&engine["targets"], &format!("{pointer}/targets"), out)?;
         for key in ["extra", "tool_evidence", "raw_output"] {
             if engine
                 .get(key)
                 .is_some_and(|value| !value.is_null() && value != "")
             {
-                let _ = write!(out, "<details><summary>Complete {}</summary>", html(key));
-                rich(&engine[key], out)?;
-                out.push_str("</details>");
+                lazy(
+                    out,
+                    &format!("{pointer}/{key}"),
+                    None,
+                    &format!("Complete {key}"),
+                );
             }
         }
         out.push_str("</section>");
@@ -215,12 +224,12 @@ fn lines(extra: &Value, out: &mut String) -> Result<()> {
     out.push_str("</div>");
     Ok(())
 }
-fn target_groups(targets: &Value, out: &mut String) -> Result<()> {
+fn target_groups(targets: &Value, pointer: &str, out: &mut String) -> Result<()> {
     let Some(targets) = targets.as_array() else {
         return Ok(());
     };
-    let mut groups = BTreeMap::<(bool, String), Vec<Value>>::new();
-    for target in targets {
+    let mut groups = BTreeMap::<(bool, String), Vec<(usize, Value)>>::new();
+    for (index, target) in targets.iter().enumerate() {
         let status = target["status"].as_str().unwrap_or("UNKNOWN");
         let collapsed = matches!(status, "PASS" | "SKIP");
         let path = target["file_path"].as_str().unwrap_or("unknown");
@@ -228,17 +237,21 @@ fn target_groups(targets: &Value, out: &mut String) -> Result<()> {
         groups
             .entry((collapsed, format!("{status} · {folder}")))
             .or_default()
-            .push(target.clone());
+            .push((index, target.clone()));
     }
     for ((collapsed, label), targets) in groups {
-        let _ = write!(
+        let summary = format!("{label} ({} inspected targets)", targets.len());
+        if collapsed {
+            // Normal PASS/SKIP inventory stays collapsed and is built from the saved result.
+            let indices: Vec<usize> = targets.iter().map(|(index, _)| *index).collect();
+            lazy(out, pointer, Some(&indices), &summary);
+            continue;
+        }
+        let _ = write!(out, "<details open><summary>{}</summary>", html(&summary));
+        rich(
+            &Value::Array(targets.into_iter().map(|(_, target)| target).collect()),
             out,
-            "<details{}><summary>{} ({} inspected targets)</summary>",
-            if collapsed { "" } else { " open" },
-            html(&label),
-            targets.len()
-        );
-        rich(&Value::Array(targets), out)?;
+        )?;
         out.push_str("</details>");
     }
     Ok(())

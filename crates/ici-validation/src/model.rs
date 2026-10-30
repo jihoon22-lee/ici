@@ -106,6 +106,9 @@ pub struct ValidationOptions {
     /// One explicitly mapped source for a plain executable verdict, including shared GCOV evidence.
     pub executable_test_source: Option<String>,
     pub modules: Vec<String>,
+    /// Declared source directories placed after the project root on the import probe path
+    /// (frozen `sys.path[:0] = [root, *source_dirs]`); never ici's own runtime paths.
+    pub import_roots: Vec<PathBuf>,
     pub requires_python: Option<String>,
     pub compile_sources: bool,
     pub argv: Vec<String>,
@@ -165,6 +168,7 @@ impl Default for ValidationOptions {
             instrumented_artifacts: vec![],
             executable_test_source: None,
             modules: vec![],
+            import_roots: vec![],
             requires_python: None,
             compile_sources: false,
             argv: vec![],

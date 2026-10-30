@@ -811,8 +811,8 @@ dependencies = [
  "base64 0.22.1",
  "crc32fast",
  "csv",
- "idna",
  "ici-domain",
+ "idna",
  "num-bigint",
  "pep440_rs",
  "regex",
@@ -865,6 +865,7 @@ dependencies = [
  "percent-encoding",
  "serde",
  "serde_json",
+ "sha1",
  "signal-hook",
  "tempfile",
  "thiserror",
@@ -963,6 +964,7 @@ name = "ici-reporting"
 version = "0.14.0-dev.0"
 dependencies = [
  "chrono",
+ "flate2",
  "ici-domain",
  "ici-execution",
  "percent-encoding",

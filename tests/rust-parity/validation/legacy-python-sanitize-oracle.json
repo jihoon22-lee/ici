@@ -1,0 +1,68 @@
+{
+  "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
+  "runs": {
+    "clean": {
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)"
+      },
+      "exit_code": 0,
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "line": 1,
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target"
+        }
+      ],
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "pytest completed with ResourceWarning promoted to errors",
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
+    "leak": {
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "findings": [
+        {
+          "fingerprint": "sha256:e9781c796e6c3c2c633044574bbce6ef6ef1f6b51571d886fcf469395b9b703a",
+          "line": 5,
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.sanitize.target"
+        }
+      ],
+      "targets": [
+        {
+          "file_path": "src/calc.py",
+          "message": "ResourceWarning was promoted to an exception by the sanitizer",
+          "start_line": 5,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ]
+    }
+  },
+  "scenarios": {
+    "clean": {
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+    },
+    "leak": {
+      "src/calc.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
+      "tests/test_calc.py": "from calc import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

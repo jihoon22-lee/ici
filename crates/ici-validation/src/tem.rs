@@ -82,6 +82,16 @@ pub fn calculate(input: &TemInputs) -> TemResult {
         .expect("finite rate");
     result
 }
+/// Frozen legacy engines feed TEM the coverage rows' `round(cover, 1)` line and branch
+/// percentages; the next formula uses the raw ratio. Function coverage stays unrounded in both.
+pub fn legacy_inputs(input: &TemInputs) -> TemInputs {
+    let round1 = |value: Option<f64>| value.map(ici_domain::python_round_one);
+    TemInputs {
+        line_coverage: round1(input.line_coverage),
+        branch_coverage: round1(input.branch_coverage),
+        ..input.clone()
+    }
+}
 pub fn percentage(numerator: u64, denominator: u64) -> Option<f64> {
     (denominator > 0).then(|| numerator as f64 / denominator as f64 * 100.0)
 }

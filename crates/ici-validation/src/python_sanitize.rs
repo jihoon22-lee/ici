@@ -96,11 +96,12 @@ pub(crate) fn observe(
         "sanitize.python_tests",
         executed as f64,
     ));
+    // Frozen SanitizeEngine CLEAN_SUMMARY / "<n> Memory / Resource Defect(s) Detected".
     output.summary = if output.observation.findings.is_empty() {
-        "Python ResourceWarning check completed without defects".into()
+        "Memory Safety & Sanitize Clean (0 Defects)".into()
     } else {
         format!(
-            "{} Python ResourceWarning defect(s)",
+            "{} Memory / Resource Defect(s) Detected",
             output.observation.findings.len()
         )
     };

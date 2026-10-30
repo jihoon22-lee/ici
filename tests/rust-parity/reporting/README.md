@@ -48,10 +48,34 @@ execution into `SKIP`; `evidence_complete` remains a separate recorded fact.
 
 Input limits: supporting imports are 32 MiB / one million JSON nodes; stored
 results are 64 MiB / eight million nodes. Nesting is capped at 128 levels and
-finding inventories at 100,000 records. HTML refuses more than 64 MiB of actual
-escaped embedded JSON or 128 MiB of expanded output. Above 2,000 actionable
-findings it renders fifty initial cards and pages/filters the complete saved
-inventory locally. A 100,000-record regression exercises the actual path.
+finding inventories at 100,000 records. HTML refuses more than 64 MiB of
+embedded saved JSON (measured before compression) or 128 MiB of expanded output.
+Above 2,000 actionable findings it renders fifty initial cards and pages/filters
+the complete saved inventory locally. A 100,000-record regression exercises the
+actual path.
+
+HTML embeds the complete saved result once, as raw DEFLATE in base64
+(`<script id=ici-result type=application/octet-stream data-encoding=deflate-raw+base64>`,
+`data-bytes` = inflated JSON length). The page inflates it locally with the
+browser's built-in `DecompressionStream`; no network or external code is used.
+Visible markup keeps the verdict, every axis, a compact selected-check table,
+issues, measurements, family summaries and curated facets. Closed sections
+(complete check records, engine `extra`/`tool_evidence`/`raw_output`, PASS/SKIP
+target groups and informational inventory cards) are built on open with
+`createElement`/`textContent`; the filter first builds every closed section so
+search still covers the complete inventory. `lazy-dom-check.cjs` loads a report
+into a minimal DOM, runs its own script and opens every section; the
+`render::on_demand_tests` unit test requires the rendered text to equal the
+server renderer's text for the same saved values. Integral floats appear as `1`
+rather than `1.0` when built on demand (the JSON number is unchanged). A browser
+without `DecompressionStream` shows a notice in closed sections; the saved JSON
+result remains the archive of record.
+
+`budget-one-file/` freezes the R8 budget fixture (`capture_cli_oracle.py`'s
+one-file Python project): the native `result.json`, its presentation archive
+`details.json`, and the frozen oracle's 7,096-byte HTML. The native report fell
+from 165,113 to 45,900 bytes (43,311 before the engine table was added) against the `max(oracle×2, 64 KiB)` budget while
+every oracle-visible fact stays in visible markup (`tests/html_budget.rs`).
 
 Console output defaults to five groups per engine, four locations, and eighty
 Unicode display cells; verbose mode retains all groups. Markdown has a 900,000

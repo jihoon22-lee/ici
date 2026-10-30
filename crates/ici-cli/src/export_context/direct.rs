@@ -376,6 +376,7 @@ pub fn plan_legacy_direct_preparation(
         compilation_database: format!("{shadow}/compile_commands.json"),
         capture_journal: None,
         generated_roots: vec![shadow.clone()],
+        limitations: vec![],
     };
     let mut inputs =
         crate::files::build_inputs(&project.root, &directory).map_err(|error| error.to_string())?;

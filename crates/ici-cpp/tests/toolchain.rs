@@ -13,7 +13,7 @@ use std::{
 fn fixture(root: &Path) -> ici_cpp::CompilationContext {
     fs::write(
         root.join("main.cpp"),
-        include_bytes!("../../../tests/rust-parity/cpp/clang-boundaries.cpp"),
+        include_bytes!("../../../parity-fixtures/cpp/clang-boundaries.cpp"),
     )
     .unwrap();
     fs::write(root.join("compile_commands.json"),json!([{"directory":root,"file":"main.cpp","arguments":["g++","-std=c++20","-c","main.cpp","-o","must-not-write.o"]}]).to_string()).unwrap();
@@ -86,7 +86,7 @@ fn actual_clang_tidy21_golden_preserves_size_notes_and_rejects_suppressed_or_unr
 {
     let source = SourceInput {
         path: "main.cpp".into(),
-        bytes: include_bytes!("../../../tests/rust-parity/cpp/clang-boundaries.cpp").to_vec(),
+        bytes: include_bytes!("../../../parity-fixtures/cpp/clang-boundaries.cpp").to_vec(),
     };
     let transcript = include_str!("../../../tests/rust-parity/cpp/clang-tidy-boundaries.txt");
     let facts = parse_clang_tidy_boundaries(

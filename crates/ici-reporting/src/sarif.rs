@@ -113,10 +113,17 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
             "message",
             "rule_id",
             "fingerprint",
+            // Emitted as the standard `baselineState` below.
+            "baseline_state",
         ] {
             properties.remove(key);
         }
-        let mut entry = json!({"ruleId":rule,"level":level(finding),"message":{"text":finding["message"].as_str().unwrap_or("")},
+        // Frozen `finding.message or finding.rule_id`: SARIF results always carry text.
+        let text = finding["message"]
+            .as_str()
+            .filter(|text| !text.is_empty())
+            .unwrap_or(rule);
+        let mut entry = json!({"ruleId":rule,"level":level(finding),"message":{"text":text},
             "locations":[{"physicalLocation":physical(&finding["primary_location"])?}],
             "partialFingerprints":{"ici.fingerprint":finding["fingerprint"]},"properties":properties});
         if let Some(related) = finding["related_locations"]
@@ -147,6 +154,9 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
             } else if delta["state"] == "moved" {
                 entry["baselineState"] = json!("updated");
             }
+            entry["properties"]["delta_state"] = delta["state"].clone();
+            entry["properties"]["delta_regressed"] = json!(delta["regressed"] == true);
+            entry["properties"]["delta_gated"] = json!(delta["gated"] == true);
         }
         if suppressed(finding) {
             entry["suppressions"] = json!([{"kind":if finding["suppression"]["kind"]=="inline"{"inSource"}else{"external"},"justification":finding["suppression"]["reason"],"properties":{"origin":finding["suppression"]["origin"]}}]);
@@ -157,6 +167,31 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
         }
         if !limitations.is_empty() {
             entry["properties"]["fixLimitations"] = json!(limitations);
+        }
+        results.push(entry);
+    }
+    // A resolved historical delta is still reported, as SARIF `absent`, at its baseline location.
+    for delta in view.baseline()["entries"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter(|delta| delta["state"] == "resolved" && delta["baseline_location"].is_object())
+    {
+        let finding = json!({"severity":delta["baseline_severity"]});
+        let rule = delta["rule_id"].as_str().unwrap_or("unknown");
+        rules.entry(rule.into()).or_insert_with(|| json!({"id":rule,"defaultConfiguration":{"level":level(&finding)},"properties":{"provider":null,"nativeRuleId":null,"tags":[]}}));
+        let text = delta["message"]
+            .as_str()
+            .filter(|text| !text.is_empty())
+            .unwrap_or(rule);
+        let mut entry = json!({"ruleId":rule,"level":level(&finding),"message":{"text":text},
+            "locations":[{"physicalLocation":physical(&delta["baseline_location"])?}],
+            "partialFingerprints":{"ici.fingerprint":delta["fingerprint"]},"baselineState":"absent",
+            "properties":{"engine":delta["engine_name"],"category":"correctness","confidence":"low","suppressed":delta["suppressed"] == true,"delta_state":"resolved",
+                "delta_regressed":delta["regressed"] == true,"delta_gated":delta["gated"] == true}});
+        if delta["suppressed"] == true {
+            entry["suppressions"] = json!([{"kind":"external"}]);
         }
         results.push(entry);
     }

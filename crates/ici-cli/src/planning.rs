@@ -167,6 +167,30 @@ fn prepare_resolved_omitting(
         })
         .transpose()?
         .or_else(|| crate::legacy::individual_profile(invocation));
+    // A frozen single-engine command selects every check of its descriptor but runs the test
+    // engine without an analysis context, so deep test-quality observations stay off. Only an
+    // explicit v2 `profile = "deep"` keeps them for the individual command.
+    if invocation.value("profile").is_none()
+        && crate::legacy::individual_profile(invocation).is_some()
+        && (project.schema_family == ici_config::SchemaFamily::Legacy
+            || project.profile != Profile::Deep)
+    {
+        for component in &mut project.components {
+            if let Some(settings) = component.settings.as_object_mut() {
+                let engines = settings.entry("engines").or_insert_with(|| json!({}));
+                if let Some(test) = engines
+                    .as_object_mut()
+                    .map(|engines| engines.entry("test").or_insert_with(|| json!({})))
+                    .and_then(Value::as_object_mut)
+                {
+                    let quality = test.entry("quality").or_insert_with(|| json!({}));
+                    if let Some(quality) = quality.as_object_mut() {
+                        quality.insert("enabled".into(), json!(false));
+                    }
+                }
+            }
+        }
+    }
     if let Some(id) = match crate::legacy::engine(&invocation.command()) {
         Some("sanitize") => Some("python.sanitize"),
         Some("build") => Some("python.artifact"),
@@ -227,6 +251,7 @@ fn prepare_resolved_omitting(
     };
     let mut cpp = crate::cpp::CppPlans::default();
     cpp.legacy_projection = crate::legacy::is_legacy(invocation);
+    cpp.legacy_standalone = cpp.legacy_projection && invocation.command() != "verify";
     let mut artifact_builds = BTreeMap::new();
     let mut validations = BTreeMap::new();
     let mut providers = BTreeMap::new();
@@ -275,6 +300,14 @@ fn prepare_resolved_omitting(
                 environment,
                 run_label,
             ) {
+                if crate::legacy::is_legacy(invocation)
+                    && check.id == "cpp.binary-compat"
+                    && let Work::Blocked { reason } = &bound.work
+                    && let Some(output) = legacy_binary_selection(component, task_id, reason)
+                {
+                    cpp.fail_preparation(task_id, output);
+                    return Ok(Work::Internal);
+                }
                 tools.extend(bound.tools);
                 if !bound.plans.is_empty() {
                     validations.insert(task_id.into(), bound.plans);
@@ -449,14 +482,26 @@ fn prepare_resolved_omitting(
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;
     cpp.finalize_plan(&mut plan);
+    for check in &mut plan.checks {
+        // A legacy binary-compat verdict decided while planning consumes no build prerequisite.
+        if check.check.id == "cpp.binary-compat" && cpp.planned_output(&check.task_id) {
+            check.check.needs.clear();
+        }
+        // Standalone legacy lint never consumes compile inputs (see `legacy::select`).
+        if cpp.legacy_standalone
+            && matches!(check.check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
+        {
+            check.check.needs.clear();
+        }
+    }
     let mut context_preparations = vec![];
     if crate::legacy::is_legacy(invocation) && plan.profile != Profile::Fast {
         for component in &project.components {
-            let selected: BTreeSet<_> = plan
+            let selected: BTreeSet<String> = plan
                 .checks
                 .iter()
                 .filter(|check| check.component_id == component.id && check.check.language == "cpp")
-                .map(|check| check.check.id.as_str())
+                .map(|check| check.check.id.clone())
                 .collect();
             let mut variants = BTreeSet::new();
             let primary = crate::cpp::linked_build(&project, component)
@@ -464,14 +509,10 @@ fn prepare_resolved_omitting(
                 .unwrap_or("release");
             if selected.iter().any(|id| {
                 matches!(
-                    *id,
-                    "cpp.compile"
-                        | "cpp.diagnostics"
-                        | "cpp.tidy"
-                        | "cpp.artifact"
-                        | "cpp.binary-compat"
-                        | "python.binary-compat"
-                )
+                    id.as_str(),
+                    "cpp.compile" | "cpp.artifact" | "cpp.binary-compat" | "python.binary-compat"
+                ) || (!cpp.legacy_standalone
+                    && matches!(id.as_str(), "cpp.diagnostics" | "cpp.tidy"))
             }) {
                 variants.insert(primary);
             }
@@ -494,11 +535,34 @@ fn prepare_resolved_omitting(
                     "test"
                 });
             }
-            if selected.contains("cpp.sanitize") {
-                variants.insert("sanitize");
-            }
-            if selected.contains("cpp.tsan") {
-                variants.insert("thread-sanitize");
+            for (check_id, variant) in [
+                ("cpp.sanitize", "sanitize"),
+                ("cpp.tsan", "thread-sanitize"),
+            ] {
+                if !selected.contains(check_id) {
+                    continue;
+                }
+                if !crate::cpp::legacy_sanitizer_tests_absent(&project.root) {
+                    variants.insert(variant);
+                    continue;
+                }
+                // Frozen sanitizer engines skip before choosing a backend when the project has
+                // no `tests/**/*.cpp`: nothing is built, so the variant is not prepared.
+                plan.limitations.push(format!(
+                    "{} {variant}: no tests/**/*.cpp sanitizer test sources; the variant was not prepared or built",
+                    component.id
+                ));
+                for check in plan.checks.iter_mut().filter(|check| {
+                    check.component_id == component.id && check.check.id == check_id
+                }) {
+                    cpp.fail_preparation(
+                        &check.task_id,
+                        crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id),
+                    );
+                    validations.remove(&check.task_id);
+                    check.check.needs.clear();
+                    check.work = Work::Internal;
+                }
             }
             if selected.contains("cpp.dead")
                 && component
@@ -544,7 +608,111 @@ fn prepare_resolved_omitting(
                         }
                         context_preparations.push(preparation);
                     }
-                    Err(reason) => {
+                    Err(crate::export_context::PreparationUnavailable::Misconfigured {
+                        reason,
+                        descriptor,
+                    }) => {
+                        // A declared or explicitly enabled build that cannot be planned blocks
+                        // the variant's dependent checks; it never falls back or passes.
+                        let configuration = reason;
+                        let reason =
+                            format!("declared {variant} build cannot be prepared: {configuration}");
+                        plan.limitations
+                            .push(format!("{} {variant}: {reason}", component.id));
+                        for check in plan.checks.iter_mut().filter(|check| {
+                            check.component_id == component.id
+                                && check.check.language == "cpp"
+                                && crate::cpp::preparation_dependent(
+                                    &check.check.id,
+                                    variant,
+                                    !check.tasks().is_empty(),
+                                )
+                        }) {
+                            // Context preparation is planned only for legacy commands.
+                            if variant == "release" && check.check.id == "cpp.artifact" {
+                                // Frozen BuildEngine: FAIL, "Build did not produce a complete
+                                // artifact set", one adapter target at the descriptor.
+                                cpp.fail_preparation(
+                                    &check.task_id,
+                                    crate::cpp::build_failure(
+                                        &check.task_id,
+                                        descriptor.as_deref().unwrap_or("."),
+                                        descriptor.as_deref().unwrap_or("ici.toml"),
+                                        false,
+                                        &reason,
+                                        &reason,
+                                    ),
+                                );
+                                check.check.needs.clear();
+                                check.work = Work::Internal;
+                            } else if matches!(check.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                            {
+                                // Frozen sanitizer engines: the adapter configure failure is a
+                                // `C++Sanitizer` ERROR at the descriptor; nothing is built.
+                                cpp.fail_preparation(
+                                    &check.task_id,
+                                    crate::cpp::legacy_sanitizer_configuration_error(
+                                        &check.task_id,
+                                        descriptor.as_deref().unwrap_or("."),
+                                        &configuration,
+                                    ),
+                                );
+                                validations.remove(&check.task_id);
+                                check.check.needs.clear();
+                                check.work = Work::Internal;
+                            } else {
+                                check.work = Work::Blocked {
+                                    reason: reason.clone(),
+                                };
+                            }
+                        }
+                    }
+                    Err(crate::export_context::PreparationUnavailable::NothingToPrepare(
+                        reason,
+                    )) if variant == "release"
+                        && selected.contains("cpp.artifact")
+                        && crate::export_context::unadapted_descriptor(&crate::files::under(
+                            &project.root,
+                            &component.root,
+                        ))
+                        .is_some() =>
+                    {
+                        // Frozen BuildEngine refuses generic g++ next to an unadapted descriptor.
+                        let (label, name) = crate::export_context::unadapted_descriptor(
+                            &crate::files::under(&project.root, &component.root),
+                        )
+                        .unwrap_or_default();
+                        let file = if component.root == "." {
+                            name
+                        } else {
+                            format!("{}/{name}", component.root)
+                        };
+                        let message = format!(
+                            "{label} at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked"
+                        );
+                        plan.limitations
+                            .push(format!("{} {variant}: {reason}; {message}", component.id));
+                        for check in plan.checks.iter_mut().filter(|check| {
+                            check.component_id == component.id && check.check.id == "cpp.artifact"
+                        }) {
+                            cpp.fail_preparation(
+                                &check.task_id,
+                                crate::cpp::build_failure(
+                                    &check.task_id,
+                                    ".",
+                                    &file,
+                                    true,
+                                    &message,
+                                    &message,
+                                ),
+                            );
+                            check.check.needs.clear();
+                            check.work = Work::Internal;
+                        }
+                    }
+                    Err(crate::export_context::PreparationUnavailable::NothingToPrepare(
+                        reason,
+                    )) => {
                         let direct = if crate::legacy::is_legacy(invocation)
                             && match variant {
                                 "release" => selected.contains("cpp.artifact"),
@@ -576,6 +744,41 @@ fn prepare_resolved_omitting(
                                 }
                                 context_preparations.push(preparation);
                             }
+                            Err(direct_reason)
+                                if variant == "release"
+                                    && selected.contains("cpp.artifact")
+                                    && direct_reason.starts_with("C++ adapter required:") =>
+                            {
+                                // Frozen BuildEngine `_record_error`: one BuildError at ".".
+                                plan.limitations.push(format!(
+                                    "{} {variant}: {direct_reason}; generic g++ was not invoked",
+                                    component.id
+                                ));
+                                let located = component
+                                    .files
+                                    .iter()
+                                    .find(|path| file_language(path) == Some("cpp"))
+                                    .cloned()
+                                    .unwrap_or_else(|| "ici.toml".into());
+                                for check in plan.checks.iter_mut().filter(|check| {
+                                    check.component_id == component.id
+                                        && check.check.id == "cpp.artifact"
+                                }) {
+                                    cpp.fail_preparation(
+                                        &check.task_id,
+                                        crate::cpp::build_failure(
+                                            &check.task_id,
+                                            ".",
+                                            &located,
+                                            true,
+                                            &direct_reason,
+                                            &direct_reason,
+                                        ),
+                                    );
+                                    check.check.needs.clear();
+                                    check.work = Work::Internal;
+                                }
+                            }
                             Err(direct_reason) => plan.limitations.push(format!(
                                 "{} {variant}: no automatic preparation available: {reason}; {direct_reason}",
                                 component.id
@@ -583,6 +786,35 @@ fn prepare_resolved_omitting(
                         }
                     }
                 }
+            }
+        }
+    }
+    if !crate::legacy::is_legacy(invocation)
+        && (matches!(
+            invocation.command().as_str(),
+            "next plan" | "doctor" | "next doctor"
+        ) || (invocation.command() == "analyze" && invocation.flag("plan")))
+    {
+        // Doctor and plan run nothing, but static preparation refusals (an unowned or symlinked
+        // shadow, a missing or symlinked workdir, an unavailable configured executable) are
+        // plan-time facts users look for here.
+        let binary = std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
+        for component in project
+            .components
+            .iter()
+            .filter(|component| component.languages.iter().any(|language| language == "cpp"))
+        {
+            if let Err(crate::export_context::PreparationUnavailable::Misconfigured {
+                reason,
+                descriptor,
+            }) =
+                crate::export_context::plan_preparation(&project, component, environment, &binary)
+            {
+                plan.limitations.push(format!(
+                    "{} release: declared release build cannot be prepared{}: {reason} (static preparation preflight; nothing was built)",
+                    component.id,
+                    descriptor.map(|path| format!(" ({path})")).unwrap_or_default()
+                ));
             }
         }
     }
@@ -1003,4 +1235,39 @@ fn display_argument(value: &str) -> String {
     } else {
         value.into()
     }
+}
+
+/// Frozen BinaryCompatibilityEngine `_records` outcomes for a legacy run whose selection is empty
+/// or names an unpublished artifact; other blocked reasons stay blocked.
+fn legacy_binary_selection(
+    component: &ici_config::Component,
+    task_id: &str,
+    reason: &str,
+) -> Option<ici_domain::AnalysisOutput> {
+    let required = component
+        .settings
+        .pointer("/engines/binary_compat/required")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if reason.starts_with("no existing executable/shared-library artifact targets")
+        || reason.starts_with("binary compatibility requires existing verified")
+    {
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            required.then_some("no published executable or shared-library artifacts"),
+        ));
+    }
+    let unpublished = [
+        "is not an observed output",
+        "is not in the linked build inventory",
+        "is not an existing verified published or declared artifact",
+    ];
+    if unpublished.iter().any(|marker| reason.contains(marker)) {
+        let value = reason.split('"').nth(1)?;
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            Some(&format!("configured artifact was not published: {value}")),
+        ));
+    }
+    None
 }

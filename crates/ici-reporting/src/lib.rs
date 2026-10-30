@@ -7,7 +7,16 @@ pub use json::{canonical_json, script_json, strict_json};
 pub use stored::{LegacyDocument, LegacyKind, StoredResult};
 mod projection;
 mod safe;
-pub use projection::{ProjectionContext, legacy_engine, legacy_projection};
+pub use projection::{
+    ProjectionContext, legacy_engine, legacy_exit_code, legacy_no_tests_collected,
+    legacy_policy_refused, legacy_projection, legacy_worst_status,
+};
+mod baseline_delta;
+pub use baseline_delta::{
+    baseline_gate_failures, baseline_gated, legacy_baseline_comparison, severity_regressed,
+};
+mod legacy_console;
+pub use legacy_console::legacy_engine_console;
 mod facets;
 mod render;
 mod view;
@@ -22,6 +31,7 @@ pub use migration::migrate_report_payload;
 mod issues;
 pub use issues::{IssueGroup, IssueProjection, project_issue_groups};
 mod navigation;
+mod overview;
 pub use navigation::source_link;
 
 mod auxiliary;

@@ -7,6 +7,83 @@
 
 ## [Unreleased]
 
+### 이전 버전에서 바뀌는 점 (업그레이드 안내)
+
+- **종료 코드**: 필수 검사가 실행되지 못해 결과가 불완전하면, v0.13.0은 1로 끝났지만 이제 `ici verify`와
+  엔진별 명령은 3으로 끝납니다. 여전히 0이 아니며 리포트에는 기존과 같은 ERROR 판정이 표시됩니다. CI
+  스크립트가 종료 코드 1만 실패로 처리한다면 0이 아닌 모든 값을 실패로 처리하도록 바꾸세요. 2는 기존처럼
+  엔진 SKIP을 뜻합니다.
+- **베이스라인 다시 만들기**: 이전 pyz 버전이 만든 베이스라인 파일도 읽고 표시할 수 있지만 비교에는 쓰지
+  않습니다. 화면과 JSON에 "regenerate it with: …" 안내가 나오며, `--fail-on-new`를 함께 쓰면 종료 코드 1로
+  실패하고 요청한 새 베이스라인을 쓰지 않습니다. 기존 코드 상태에서 `ici verify --write-baseline <베이스라인
+  경로>`를 한 번 실행해 다시 만든 뒤 평소처럼 `ici verify --baseline <경로> --fail-on-new`를 사용하세요.
+  새 명령(`ici analyze`)은 `ici analyze --result <새 경로>`로 결과를 저장한 뒤 그 경로를 `--baseline`으로
+  넘기면 됩니다.
+
+### 변경
+
+- 단일 파일 HTML 리포트 크기를 165KB에서 약 46KB로 줄였습니다. 저장된 결과 전체를 압축해 한 번만
+  담고 접힌 섹션은 열 때 브라우저에서 만듭니다. 외부 네트워크 연결이 필요 없고 정보도 빠지지 않습니다.
+- `--result`로 결과 파일을 지정해도 사용자의 `runs/` 디렉터리를 건드리지 않습니다. 실행별 상세 자료는
+  `.ici/rust-v1/details/` 아래에 저장되며, 이전 위치에 저장된 결과도 계속 읽을 수 있습니다.
+- 콘솔·Markdown·HTML 리포트에 엔진별 이슈 수, 점수, 캐시, 소요 시간, 전체 상태 집계, gate 판정 사유,
+  도구 준비 상태, baseline 변경 내역(심각도 변화 포함)이 다시 표시됩니다. SARIF는 해결된 이전 이슈를
+  `absent` 결과로 보고합니다.
+- 이전(v2) 결과를 읽을 때 값 변환과 Windows 경로 처리가 이전 판독기와 같아졌고, 명령줄의 `--token`,
+  `--password` 같은 비밀 값도 가려집니다.
+- 레거시 `[build.make]` 설정이 무시되던 문제를 고쳤습니다. Make 명령은 `workdir`에서 configure → clean →
+  build 순서로 실행됩니다. `build.make.shadow_dir`는 비어 있거나 ici가 만든 디렉터리만 사용하며, 이전
+  빌드 결과가 남은 비어 있지 않은 shadow는 내용을 그대로 두고 거부합니다.
+- C++ complexity·cognitive 검사가 `warn_cc`·`fail_cc`·`warn`·`fail` 설정을 무시하던 문제와, 레거시
+  complexity·cognitive·exception 검사가 헤더까지 분석하던 문제를 고쳤습니다. 레거시 `ici cycle`의
+  include cycle 보고는 이전 제품과 같은 형식을 따릅니다.
+- GCC의 "In destructor" 같은 문맥 줄 때문에 C++ lint·진단 검사 전체가 실패하던 문제를 고쳤습니다.
+- Make `build.make.jobs` 값을 이전 제품과 같이 1..64 범위 그대로 적용합니다. pyz 시대의 `build/ici-make`
+  shadow는 내용을 지우지 않고 원인과 해결 방법(디렉터리 제거 또는 `build.make.shadow_dir` 지정)을 안내하며
+  계획 단계에서 거부합니다.
+- 레거시 `ici exception`의 C++ 결과가 이전 제품의 줄 단위 판정과 정확히 일치합니다.
+- 레거시 `ici test`가 이전 제품과 같은 커버리지 대상 이름·메시지·요약 줄·TEM 점수를 보고합니다. 실패한
+  테스트가 있으면 TEM·분기 임계값 경고를 중복으로 추가하지 않습니다.
+- 커버리지 도구가 없거나 테스트가 없을 때 이전 제품처럼 추정 커버리지 값을 만들어 내지 않고, 측정하지
+  못했다는 사실을 그대로 보고합니다.
+- 레거시 `ici test`가 coverage 없이 unittest로 대신 실행될 때와, 테스트 수집 결과가 비었을 때, 변경 줄 정책이
+  거부될 때도 이전 제품과 같은 판정과 exit code를 유지합니다. `--fail-on-new`로 찾은 새 이슈는 이 판정
+  때문에 통과로 바뀌지 않습니다.
+- deep 프로필의 느린 테스트 관찰 순서와, 거부된 integration 설정의 레거시 ERROR 대상(`Integration:ConfigurationError`)이
+  이전 제품과 같습니다. 레거시 `ici sanitize`의 Python ResourceWarning 요약 문구도 이전과 같습니다.
+- 같은 이슈의 심각도가 높아진 경우(예: low → high)를 베이스라인 비교에서 "변경 없음"으로 처리해
+  `--fail-on-new`가 통과하던 문제를 고쳤습니다. 이제 이전 제품과 같이 회귀로 판정하고, info 심각도 이슈는
+  이전처럼 gate에 영향을 주지 않습니다.
+- 레거시 명령의 엔진 상태(FAIL·ERROR·WARN·SKIP)와 오류 요약 문구가 이전 제품과 같아졌습니다. 이전에는 실패한
+  검사가 ERROR로 표시되거나 요약 앞에 `cpp.artifact:` 같은 내부 검사 ID가 붙었습니다.
+- 레거시 `ici build`·ELF 바이너리 호환성·직접 sanitizer 실행 결과의 대상과 요약이 이전 제품과 같습니다.
+- 레거시 `ici lint`는 컴파일 데이터베이스나 `[build.make]` 설정이 있어도 이전 제품과 같이 c++17 휴리스틱만
+  사용하며 빌드를 실행하지 않습니다.
+- 레거시 `ici build`에서 CMake·qmake configure 실패는 `BuildError`(ERROR), 빌드 실패는 `BuildAdapter` FAIL로
+  exit 1을 반환합니다. 이전에는 미완료(exit 3)로 끝났습니다.
+- 레거시 단일 엔진 명령이 이전 제품과 같은 콘솔 출력을 표시합니다(예: `ici build`의 "✔ Build Completed").
+  필수 도구가 없거나 설정이 잘못된 ERROR는 측정되지 않았음(NOT_RUN)으로 기록하면서 exit 1을 유지합니다.
+- 컴파일 데이터베이스가 없을 때 레거시 C++ lint가 이전 제품과 같은 대상·메시지·요약을 보고하고, 경고만 있으면
+  WARN(exit 0)으로 판정합니다. sanitizer 빌드 명령이 빠진 Make 설정은 Makefile 위치의 ERROR(exit 1)로 보고합니다.
+- 선언한 산출물(`[builds.<id>]`) 계약 검사 결과가 이전 제품과 같은 대상·메시지로 보고됩니다.
+- 테스트 파일이 전혀 없는 C++ 프로젝트에서 레거시 `ici test`가 이전처럼 "No tests collected" FAIL(exit 1)을
+  보고합니다. 개별 `ici test` 명령은 deep 프로필의 테스트 품질 검사(반복 실행·느린 테스트)를 자동으로
+  켜지 않습니다.
+- 레거시 cycle·dup·dead 검사가 최상위 `include/` 헤더를 포함합니다. 컴파일 데이터베이스가 없을 때
+  `ici dead`는 이전 제품과 같이 `auto`는 SKIP(exit 2), `required`는 ERROR(exit 1)로 보고합니다.
+- 레거시 Make `ici build`가 성공하면 PASS로 끝납니다. 이전에는 Make가 쓰지 않는 컴파일 데이터베이스를
+  입력으로 기다려 성공한 빌드도 미완료로 표시했습니다. 잘못된 설정이나 실패한 레시피는 Makefile 위치의
+  이유와 함께 exit 1로 실패하고, 그 빌드에 의존하는 검사는 미완료로 표시됩니다. 저장된 결과의 gate도
+  PASS가 아닌 FAIL로 기록됩니다.
+- `ici doctor`와 `ici next plan`이 빌드를 실행하지 않고도 shadow 거부, 잘못된 `workdir`, 없는 빌드 명령 같은
+  빌드 준비 문제를 미리 보여 줍니다.
+- 레거시 `ici build`의 릴리스 패키지 구조(`bin/`, `lib/`, 환경 스크립트)가 이전 제품과 같습니다.
+- 테스트가 없는 C++ 프로젝트에서 레거시 `ici sanitize`는 이전처럼 SKIP(exit 2)을 보고하고, sanitizer 명령이
+  없을 때도 이전과 같은 대상으로 보고합니다.
+- 같은 `--events` 경로로 분석을 반복하면 이전 실행의 이벤트 스트림을 교체합니다. 다른 기존 파일은
+  그대로 두고 거부합니다.
+- 산출물 패키징과 ABI 검사를 함께 실행할 때 ici가 방금 만든 패키지를 실행 중 바뀐 사용자 입력으로 오인해
+  ABI 검사가 막히던 문제를 고쳤습니다.
 - 검증 단계의 산출물 신선도 판정을 바로잡습니다. 시작 시각은 정밀 시계로, 파일 수정 시각은
   커널의 coarse 시계로 기록되어 단계 시작 직후 쓴 정상 산출물(integration 출력·coverage
   보고서 등)을 오래된 파일로 거부할 수 있었습니다. 이제 파일 시각과 같은 시계를 사용하고, 같은

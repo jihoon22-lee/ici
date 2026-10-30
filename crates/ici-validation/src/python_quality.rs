@@ -35,6 +35,8 @@ pub(crate) fn observe(
     let mut unavailable = 0usize;
     let mut timeouts = 0usize;
     let mut attempted = 1usize;
+    // Frozen order: slow-test targets precede the repeat/flaky observations.
+    let quality_start = output.targets.len();
     for index in 0..plan.context.options.repeat_runs.saturating_sub(1) {
         let id = format!("{}.repeat{}", plan.context.task_id, index + 1);
         let outcome = outcomes.get(&id);
@@ -193,6 +195,7 @@ pub(crate) fn observe(
         rows.sort_by(|a, b| b.1.0.total_cmp(&a.1.0).then_with(|| a.0.cmp(&b.0)));
         let observed = rows.len();
         rows.truncate(plan.context.options.max_slow_tests);
+        let slow_start = output.targets.len();
         for ((node, phase), (seconds, path, line)) in &rows {
             let mut target = InspectionTarget::at(path, *line);
             target.target_name = format!("[test-quality] Slow test: {node} ({phase})");
@@ -214,6 +217,8 @@ pub(crate) fn observe(
             output.targets.push(target);
             output.observation.findings.push(item);
         }
+        let slow: Vec<_> = output.targets.drain(slow_start..).collect();
+        output.targets.splice(quality_start..quality_start, slow);
         output.extra["test_quality"]["slow_tests"] = json!(rows.len());
         output.extra["test_quality"]["slow_tests_observed"] = json!(observed);
         output.extra["slow_tests"]=json!(rows.iter().map(|((node,phase),(duration,path,line))|json!({"nodeid":node,"phase":phase,"duration":duration,"file_path":path,"start_line":line})).collect::<Vec<_>>());

@@ -108,7 +108,11 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         }
         let mut fallback = covered;
         fallback.id = fallback_id(plan);
-        fallback.argv.drain(1..7);
+        let source = fallback
+            .argv
+            .get(7)
+            .is_some_and(|argument| argument.starts_with("--source="));
+        fallback.argv.drain(1..7 + usize::from(source));
         fallback.output_specs.clear();
         fallback.provider = "pytest-uncovered".into();
         let mut query = planning::task(

@@ -311,7 +311,7 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
             .iter()
             .any(|target| target.file_path == "main.cpp")
     );
-    for label in ["TEM score", "Changed executable-line coverage"] {
+    for label in ["Threshold: TEM score", "Coverage:Changed lines"] {
         assert!(
             run.outputs["project.cpp.coverage"]
                 .targets
@@ -2138,8 +2138,16 @@ fn all_excluded_cpp_duplicate_scope_is_not_applicable_through_cli() {
 fn cpp_cycle_report_limit_reaches_actual_cli_counts_and_rejects_zero() {
     let root = tempfile::tempdir().unwrap();
     fs::write(root.path().join("main.cpp"), "int main(){return 0;}\n").unwrap();
-    for path in ["a.h", "b.h", "c.h"] {
-        fs::write(root.path().join(path), format!("#include \"{path}\"\n")).unwrap();
+    // Three two-file cycles: frozen legacy `ici cycle` ignores self-includes.
+    for (path, other) in [
+        ("a.h", "b.h"),
+        ("b.h", "a.h"),
+        ("c.h", "d.h"),
+        ("d.h", "c.h"),
+        ("e.h", "f.h"),
+        ("f.h", "e.h"),
+    ] {
+        fs::write(root.path().join(path), format!("#include \"{other}\"\n")).unwrap();
     }
     let invocation = registry::parse(["ici", "cycle"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
@@ -2712,13 +2720,17 @@ fn actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_reco
     );
     fs::write(root.path().join("ici.toml"), explicit).unwrap();
     let explicit_plan = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
-    assert!(
+    // Frozen standalone `ici lint` has no analysis context: an explicit compilation database does
+    // not replace its package-flag fallback (lint-oracle.json `lint-explicit-database`).
+    assert_eq!(
         explicit_plan
             .plan
             .checks
             .iter()
             .flat_map(|check| check.tasks())
-            .all(|task| task.provider != "pkg-config")
+            .filter(|task| task.provider == "pkg-config")
+            .count(),
+        2
     );
     assert!(!root.path().join("compile_commands.json").exists());
     assert!(!root.path().join("main.o").exists());

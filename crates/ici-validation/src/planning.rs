@@ -15,7 +15,7 @@ _ici_modules = _ici_json.loads(sys.argv[2])
 for _ici_name in set(sys.modules) - _ici_baseline:
     sys.modules.pop(_ici_name, None)
 sys.dont_write_bytecode = True
-sys.path.insert(0, sys.argv[1])
+sys.path[:0] = [sys.argv[1], *(_ici_json.loads(sys.argv[3]) if len(sys.argv) > 3 else [])]
 _ici_results = []
 for _ici_name in _ici_modules:
     try:
@@ -245,6 +245,22 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                     return Err(ValidationError(format!("invalid declared import {module}")));
                 }
             }
+            if request.options.import_roots.len() > 128
+                || request.options.import_roots.iter().any(|root| {
+                    !root.starts_with(&request.root)
+                        || root.components().any(|part| {
+                            !matches!(
+                                part,
+                                std::path::Component::RootDir | std::path::Component::Normal(_)
+                            )
+                        })
+                })
+            {
+                return Err(ValidationError(
+                    "import roots must be at most 128 normalized directories inside the workspace"
+                        .into(),
+                ));
+            }
             let mut imports = task(
                 request,
                 "imports",
@@ -255,6 +271,7 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                     IMPORT_SCRIPT.into(),
                     request.cwd.to_string_lossy().into_owned(),
                     serde_json::to_string(&request.options.modules).expect("strings serialize"),
+                    serde_json::to_string(&request.options.import_roots).expect("paths serialize"),
                 ],
             );
             imports.timeout_seconds = Some(30.0);
@@ -278,6 +295,33 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
     }
     Ok(plan)
 }
+/// Directories of the declared production sources, so coverage.py also reports files that no
+/// test imported (measured 0%) instead of silently omitting them (frozen `--source=` intent).
+fn coverage_source(request: &crate::ValidationRequest) -> Option<String> {
+    let directories = request
+        .source_files
+        .iter()
+        .filter(|path| path.ends_with(".py"))
+        .map(|path| {
+            let parent = std::path::Path::new(path)
+                .parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .map_or_else(|| request.root.clone(), |parent| request.root.join(parent));
+            parent.to_string_lossy().into_owned()
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    // A bounded argv; beyond it omitted files stay explicitly unmeasured (incomplete).
+    if directories.is_empty()
+        || directories.len() > 256
+        || directories.iter().any(|directory| directory.contains(','))
+    {
+        return None;
+    }
+    Some(format!(
+        "--source={}",
+        directories.into_iter().collect::<Vec<_>>().join(",")
+    ))
+}
 fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     let request = &plan.context;
     if request.targets.is_empty() {
@@ -299,6 +343,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         } else {
             vec![]
         };
+        let source = with_coverage.then(|| coverage_source(request)).flatten();
         if with_coverage {
             args.extend([
                 "-m".into(),
@@ -308,6 +353,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 "--data-file".into(),
                 data.to_string_lossy().into_owned(),
             ]);
+            args.extend(source.clone());
         }
         args.extend([
             "-m".into(),
@@ -350,7 +396,7 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             // Quality repeats must not overwrite the primary coverage database.
             let mut repeat_args = args.clone();
             if with_coverage {
-                repeat_args.drain(..6);
+                repeat_args.drain(..6 + usize::from(source.is_some()));
             }
             let mut repeat = task(request, &format!("repeat{}", index + 1), repeat_args);
             repeat.kind = TaskKind::Test;

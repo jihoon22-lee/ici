@@ -357,6 +357,26 @@ fn metric(file: &ParsedSource, body: Node<'_>) -> Result<Metric, CppError> {
     }
     Ok(metric)
 }
+/// Frozen complexity/cognitive/exception engines read `project_cpp_sources()` only:
+/// `.cpp`, `.cc`, `.cxx` and `.c` files. Headers belong to cycle/dup/dead/lint scopes.
+fn legacy_source_scope<'a>(
+    request: &AnalysisRequest,
+    files: &'a [Arc<ParsedSource>],
+) -> Vec<&'a Arc<ParsedSource>> {
+    let legacy = request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false);
+    files
+        .iter()
+        .filter(|file| {
+            !legacy
+                || std::path::Path::new(&file.path)
+                    .extension()
+                    .and_then(|extension| extension.to_str())
+                    .is_some_and(|extension| matches!(extension, "cpp" | "cc" | "cxx" | "c"))
+        })
+        .collect()
+}
 pub(crate) fn metrics(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
@@ -366,21 +386,31 @@ pub(crate) fn metrics(
     let mut peak = 0;
     let mut functions = 0;
     let mut total_lambdas = 0;
-    let warn = option(
-        request,
-        "warn_limit",
-        if kind == "complexity" { 10 } else { 15 },
-    );
-    let fail = option(
-        request,
-        "fail_limit",
-        if kind == "complexity" { 20 } else { 30 },
-    );
+    // Frozen engines.complexity.warn_cc/fail_cc (15/25) and engines.cognitive.warn/fail (30/60)
+    // are the configured C++ thresholds; warn_limit/fail_limit remain explicit API overrides.
+    let complexity = kind == "complexity";
+    let threshold = |frozen: &str, generic: &str, default: u64| {
+        request
+            .options
+            .get(frozen)
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or_else(|| option(request, generic, default))
+    };
+    let warn = if complexity {
+        threshold("warn_cc", "warn_limit", 15)
+    } else {
+        threshold("warn", "warn_limit", 30)
+    };
+    let fail = if complexity {
+        threshold("fail_cc", "fail_limit", 25)
+    } else {
+        threshold("fail", "fail_limit", 60)
+    };
     let nesting_warn = option(request, "warn_nesting", 4);
     let legacy = request.options["legacy_projection"]
         .as_bool()
         .unwrap_or(false);
-    for file in files {
+    for file in legacy_source_scope(request, files) {
         let mut found = false;
         for function in source::nodes(file.tree.root_node())?
             .into_iter()
@@ -401,18 +431,31 @@ pub(crate) fn metrics(
             total_lambdas += metric.lambdas;
             found = true;
             let name = source::function_name(file, function);
-            let mut target = file.target(function, &name);
             let nesting = if kind == "complexity" {
                 metric.nesting
             } else {
                 metric.control_nesting
             };
-            let over_fail = if legacy { value >= fail } else { value > fail };
-            let over_warn = if legacy {
-                value >= warn || nesting >= nesting_warn
+            // Frozen C++ legacy cutoffs: complexity FAIL cc > fail_cc and WARN cc > warn_cc;
+            // cognitive FAIL >= fail and WARN >= warn; both WARN at nesting >= warn_nesting.
+            let over_fail = if legacy && !complexity {
+                value >= fail
             } else {
-                value > warn || nesting > nesting_warn
+                value > fail
             };
+            let over_warn = if !legacy {
+                value > warn || nesting > nesting_warn
+            } else if complexity {
+                value > warn || nesting >= nesting_warn
+            } else {
+                value >= warn || nesting >= nesting_warn
+            };
+            let label = if legacy && complexity && !name.ends_with("()") {
+                format!("{name}()")
+            } else {
+                name.clone()
+            };
+            let mut target = file.target(function, &label);
             target.status = if over_fail {
                 "FAIL"
             } else if over_warn {
@@ -421,8 +464,19 @@ pub(crate) fn metrics(
                 "PASS"
             }
             .into();
-            target.message =
-                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)");
+            target.message = if !legacy {
+                format!("{name}: {kind} {value} (nesting {nesting}, estimated C++ metric)")
+            } else if !complexity {
+                format!("Cognitive {value} (control nesting {nesting}, estimated C++ metric)")
+            } else if over_fail {
+                format!("Critical complexity: {value} > {fail} (Immediate refactoring required)")
+            } else if over_warn {
+                format!(
+                    "High complexity: {value} (limit {warn}), Max Nesting: {nesting} (limit {nesting_warn})"
+                )
+            } else {
+                format!("Complexity: {value}, Nesting: {nesting}")
+            };
             for (key, value) in [
                 (kind, json!(value)),
                 ("complexity", json!(metric.complexity)),
@@ -472,14 +526,63 @@ pub(crate) fn metrics(
     output.extra = json!({"boundary_mode":"heuristic","estimated_boundaries":functions,"exact_boundaries":0,"lambdas_excluded":total_lambdas});
     Ok(())
 }
+fn exception_finding(
+    output: &mut AnalysisOutput,
+    request: &AnalysisRequest,
+    target: InspectionTarget,
+) {
+    let rule = format!("exception.{}", target.target_name.to_ascii_lowercase());
+    finding(output, request, &target, &rule, "high", false);
+    let issue = output.observation.findings.last_mut().unwrap();
+    issue.native_rule_id = target.target_name.clone();
+    issue.confidence = "medium".into();
+    issue.category = "correctness".into();
+    output.targets.push(target);
+}
 pub(crate) fn exceptions(
     request: &AnalysisRequest,
     output: &mut AnalysisOutput,
     files: &[Arc<ParsedSource>],
 ) -> Result<(), CppError> {
-    for file in files {
+    let legacy = request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false);
+    for file in legacy_source_scope(request, files) {
         let mut issues = 0;
-        for node in source::nodes(file.tree.root_node())? {
+        if legacy {
+            // Frozen _exception_rules: one start-line target per masked source line, every
+            // destructor throw line first, then every empty catch-all.
+            let masked = crate::legacy_exceptions::mask_literals(&file.text);
+            for (lines, name, message) in [
+                (
+                    crate::legacy_exceptions::destructor_throw_lines(&masked),
+                    "DestructorThrow",
+                    "C++ destructor throws an exception and may call std::terminate",
+                ),
+                (
+                    crate::legacy_exceptions::empty_catch_all_lines(&masked),
+                    "CatchAllSwallowed",
+                    "Silent catch(...) block without logging or re-throw",
+                ),
+            ] {
+                for line in lines {
+                    let mut target =
+                        InspectionTarget::at(&file.path, u32::try_from(line).unwrap_or(u32::MAX));
+                    target.target_name = name.into();
+                    target.status = "FAIL".into();
+                    target.message = message.into();
+                    exception_finding(output, request, target);
+                    issues += 1;
+                }
+            }
+        }
+        // The modern path inspects syntax nodes; the legacy projection already used the lines.
+        let nodes = if legacy {
+            vec![]
+        } else {
+            source::nodes(file.tree.root_node())?
+        };
+        for node in nodes {
             if node.kind() == "function_definition"
                 && source::function_name(file, node)
                     .rsplit("::")
@@ -498,19 +601,7 @@ pub(crate) fn exceptions(
                         target.status = "FAIL".into();
                         target.message =
                             "C++ destructor throws an exception and may call std::terminate".into();
-                        finding(
-                            output,
-                            request,
-                            &target,
-                            "exception.destructorthrow",
-                            "high",
-                            false,
-                        );
-                        let issue = output.observation.findings.last_mut().unwrap();
-                        issue.native_rule_id = target.target_name.clone();
-                        issue.confidence = "medium".into();
-                        issue.category = "correctness".into();
-                        output.targets.push(target);
+                        exception_finding(output, request, target);
                         issues += 1;
                     }
                     for i in 0..inner.named_child_count() {
@@ -540,19 +631,7 @@ pub(crate) fn exceptions(
                         target.status = "FAIL".into();
                         target.message =
                             "Silent catch(...) block without logging or re-throw".into();
-                        finding(
-                            output,
-                            request,
-                            &target,
-                            "exception.catchallswallowed",
-                            "high",
-                            false,
-                        );
-                        let issue = output.observation.findings.last_mut().unwrap();
-                        issue.native_rule_id = target.target_name.clone();
-                        issue.confidence = "medium".into();
-                        issue.category = "correctness".into();
-                        output.targets.push(target);
+                        exception_finding(output, request, target);
                         issues += 1;
                     }
                 }

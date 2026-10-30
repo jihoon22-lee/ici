@@ -76,15 +76,23 @@ impl PlannedCheck {
             _ => &[],
         }
     }
+    /// The units this check's record covers: its tasks' units, else the component's unit for
+    /// the check language (frozen `check_scope` scope units).
     pub fn analysis_units(&self) -> Vec<String> {
+        let mut units = self.task_analysis_units();
+        if units.is_empty() {
+            units.push(format!("{}.{}", self.component_id, self.check.language));
+        }
+        units
+    }
+    /// Only the units its tasks declare (frozen `finding_identity.attribute`): an internal
+    /// check without a task attributes its findings to no unit.
+    pub fn task_analysis_units(&self) -> Vec<String> {
         let mut units: Vec<_> = self
             .tasks()
             .iter()
             .flat_map(|task| task.analysis_unit_ids.iter().cloned())
             .collect();
-        if units.is_empty() {
-            units.push(format!("{}.{}", self.component_id, self.check.language));
-        }
         units.sort();
         units.dedup();
         units

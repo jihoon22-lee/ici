@@ -61,16 +61,62 @@ pub fn bind_compiled_artifacts(
             });
         let Some(index) = packaging else { continue };
         let check = &mut prepared.plan.checks[index];
+        // Frozen adapter builds (CMake, qmake, Make) publish the release tree and loaders only;
+        // the direct g++ build publishes its binary into bin/. Next-schema projects (which the
+        // frozen pyz rejects) keep publishing their measured binaries.
+        let adapter = contexts
+            .iter()
+            .find(|context| {
+                prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                    && context.plan.component_id == component.id
+                    && matches!(
+                        context.plan.build.system.as_str(),
+                        "cmake" | "qmake" | "make"
+                    )
+            })
+            .map(|context| context.plan.clone());
         let build =
             crate::export_context::compiled_artifacts(&prepared.project, component, contexts)
                 .and_then(|artifacts| {
-                    crate::artifact_build::describe_compiled(
-                        &prepared.project,
-                        component,
-                        &check.task_id,
-                        environment,
-                        &artifacts,
-                    )
+                    if let Some(adapter) = &adapter {
+                        crate::artifact_build::describe_adapter(
+                            &prepared.project,
+                            component,
+                            &check.task_id,
+                            environment,
+                            artifacts.len(),
+                        )
+                        .map(|mut build| {
+                            build.lead_targets.push(crate::cpp::legacy_adapter_success(
+                                &prepared.project.root,
+                                &component.root,
+                                &adapter.build.system,
+                                &adapter.descriptor,
+                                crate::cpp::legacy_shadow_linked_outputs(&crate::files::under(
+                                    &prepared.project.root,
+                                    &adapter.build.shadow,
+                                ))
+                                .unwrap_or(artifacts.len()),
+                            ));
+                            build
+                        })
+                    } else {
+                        crate::artifact_build::describe_compiled(
+                            &prepared.project,
+                            component,
+                            &check.task_id,
+                            environment,
+                            &artifacts,
+                        )
+                        .map(|mut build| {
+                            build.legacy_binary_message = legacy_direct_binary_message(
+                                prepared.project.schema_family,
+                                component,
+                                contexts,
+                            );
+                            build
+                        })
+                    }
                 });
         match build {
             Ok(build) => {
@@ -81,6 +127,29 @@ pub fn bind_compiled_artifacts(
                 prepared
                     .artifact_builds
                     .insert(check.task_id.clone(), build);
+            }
+            Err(reason)
+                if prepared.legacy_projection
+                    && check.check.id == "cpp.artifact"
+                    && reason.starts_with("declared artifact") =>
+            {
+                // Frozen `_publish_declared_artifacts`: a broken [build.artifacts] declaration is
+                // a BuildError (ERROR, exit 1), never an incomplete or passing build.
+                let message = format!("Declared artifacts could not be recorded: {reason}");
+                prepared.cpp.fail_preparation(
+                    &check.task_id,
+                    crate::cpp::build_failure(
+                        &check.task_id,
+                        ".",
+                        "ici.toml",
+                        true,
+                        &message,
+                        &message,
+                    ),
+                );
+                check.check.needs.clear();
+                check.work = Work::Internal;
+                prepared.artifact_builds.remove(&check.task_id);
             }
             Err(reason) => {
                 check.work = Work::Blocked {
@@ -93,6 +162,34 @@ pub fn bind_compiled_artifacts(
     prepared.graph = ici_application::graph::TaskGraph::build(&prepared.plan.checks)
         .map_err(|error| CliError(error.to_string()))?;
     Ok(())
+}
+/// Frozen BuildEngine direct g++ success: "Compiled C++17 binary (<seconds>s)", here the summed
+/// wall time of the observed compile and link tasks.
+fn legacy_direct_binary_message(
+    family: ici_config::SchemaFamily,
+    component: &ici_config::Component,
+    contexts: &[crate::export_context::PreparedContext],
+) -> Option<String> {
+    if family != ici_config::SchemaFamily::Legacy {
+        return None;
+    }
+    let context = contexts.iter().find(|context| {
+        context.plan.component_id == component.id && context.plan.build.system == "direct-gcc"
+    })?;
+    let seconds: f64 = context
+        .evidence
+        .as_ref()
+        .and_then(|evidence| evidence.get("outcomes"))
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|outcome| {
+            outcome
+                .get("duration_seconds")
+                .and_then(serde_json::Value::as_f64)
+        })
+        .sum();
+    Some(format!("Compiled C++17 binary ({seconds:.2}s)"))
 }
 fn rebind(
     runtime: &Runtime<'_>,
@@ -111,10 +208,16 @@ fn rebind(
     )?;
     prepared.cpp.attach_prepared(contexts);
     bind_compiled_artifacts(&mut prepared, contexts, runtime.environment)?;
-    let roots: Vec<_> = contexts
+    let mut roots: Vec<_> = contexts
         .iter()
         .flat_map(|context| context.plan.build.generated_roots.iter().cloned())
         .collect();
+    // Packages ici published during preparation (verified ownership manifest) are
+    // preparation outputs that later checks consume, not user edits made mid-run.
+    // Unverifiable ownership adds nothing, so such files still count as drift.
+    if let Ok(owned) = crate::artifact_build::owned_outputs(&prepared.project.root) {
+        roots.extend(owned);
+    }
     let after = crate::inputs::capture_preserving(&prepared, original, original_limits, &roots)?;
     let mut limits = crate::inputs::binary_limits(&prepared);
     limits.extend(original_limits.clone());
@@ -169,6 +272,14 @@ pub fn execute(
                         check.component_id == plan.component_id && check.check.id == "cpp.artifact"
                     }) && let Some(mut observed) = failure.observed_for(&check.task_id)
                     {
+                        if prepared.legacy_projection
+                            && plan.build.variant == "release"
+                            && plan.build.system == "direct-gcc"
+                        {
+                            // Frozen BuildEngine summary for a failed direct g++ build.
+                            observed.summary =
+                                "Build did not produce a complete artifact set".into();
+                        }
                         if let Err(redaction) = crate::execute::redact(&mut observed) {
                             limitations
                                 .push(format!("direct compiler evidence redaction: {redaction}"));
@@ -298,6 +409,9 @@ pub fn execute(
                     prepared = after;
                     snapshot = captured;
                     intake_ok &= stable;
+                    if !stable {
+                        limitations.push("user inputs changed while ici built artifacts; analysis retains the original captured bytes".into());
+                    }
                 }
                 Err(reason) => {
                     intake_ok = false;
@@ -335,26 +449,11 @@ pub fn execute(
             if check.component_id != component || check.check.language != "cpp" {
                 continue;
             }
-            let affected = match variant.as_str() {
-                "coverage" => check.check.id == "cpp.coverage",
-                "sanitize" => check.check.id == "cpp.sanitize",
-                "thread-sanitize" => check.check.id == "cpp.tsan",
-                "link-reachability" => check.check.id == "cpp.dead",
-                _ => {
-                    matches!(
-                        check.check.id.as_str(),
-                        "cpp.compile"
-                            | "cpp.diagnostics"
-                            | "cpp.tidy"
-                            | "cpp.artifact"
-                            | "cpp.binary-compat"
-                    ) || (!check.tasks().is_empty()
-                        && !matches!(
-                            check.check.id.as_str(),
-                            "cpp.test" | "cpp.coverage" | "cpp.sanitize" | "cpp.tsan"
-                        ))
-                }
-            };
+            let affected = crate::cpp::preparation_dependent(
+                &check.check.id,
+                &variant,
+                !check.tasks().is_empty(),
+            );
             if affected {
                 if observed_failures.contains(&check.task_id) {
                     prepared.graph.blocked.remove(&check.task_id);

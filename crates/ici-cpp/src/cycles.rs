@@ -116,6 +116,13 @@ pub(crate) fn analyze(
     files: &[Arc<ParsedSource>],
 ) -> Result<(), CppError> {
     let limit = report_limit(request)?;
+    if request.options["legacy_projection"]
+        .as_bool()
+        .unwrap_or(false)
+    {
+        legacy(request, output, files, limit);
+        return Ok(());
+    }
     let known: BTreeSet<_> = files.iter().map(|file| file.path.clone()).collect();
     let mut graph: BTreeMap<String, BTreeSet<String>> = known
         .iter()
@@ -223,4 +230,207 @@ pub(crate) fn analyze(
     output.observation.limitations.push("Include resolution is a path-suffix heuristic; compiler search order, conditional preprocessing and generated headers are not established".into());
     output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated","cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit),"include_diagnostics":diagnostics,"include_diagnostics_truncated":diagnostics.saturating_sub(limit)});
     Ok(())
+}
+
+const LEGACY_SOURCES: [&str; 4] = ["cpp", "cc", "cxx", "c"];
+/// Frozen `#include\s*"([^"]+)"` over raw text (comments and inactive branches included).
+fn legacy_includes(text: &str) -> Vec<(usize, &str)> {
+    let mut found = vec![];
+    let mut offset = 0;
+    while let Some(position) = text[offset..].find("#include") {
+        let start = offset + position;
+        let rest = &text[start + "#include".len()..];
+        let trimmed = rest.trim_start();
+        offset = start + "#include".len();
+        if let Some(quoted) = trimmed.strip_prefix('"')
+            && let Some(end) = quoted.find('"')
+            && end > 0
+        {
+            found.push((start, &quoted[..end]));
+            offset = start + "#include".len() + (rest.len() - trimmed.len()) + end + 2;
+        }
+    }
+    found
+}
+fn legacy_include_parts(include: &str) -> Vec<String> {
+    let normalized = include.replace('\\', "/");
+    let parts: Vec<_> = normalized
+        .split('/')
+        .filter(|part| !part.is_empty() && *part != ".")
+        .map(str::to_owned)
+        .collect();
+    if parts.is_empty() || normalized.starts_with('/') || parts.iter().any(|part| part == "..") {
+        return vec![];
+    }
+    parts
+}
+/// Frozen heuristic include cycles: unique full-suffix resolution over every source and
+/// header, CppCycle/CppIncludeAmbiguous/CppIncludeUnresolved targets only.
+fn legacy(
+    request: &AnalysisRequest,
+    output: &mut AnalysisOutput,
+    files: &[Arc<ParsedSource>],
+    limit: usize,
+) {
+    let source = |path: &str| {
+        Path::new(path)
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| LEGACY_SOURCES.contains(&extension))
+    };
+    let mut ordered: Vec<_> = files.iter().collect();
+    ordered.sort_by_key(|file| (!source(&file.path), file.path.clone()));
+    let paths: Vec<Vec<&str>> = ordered
+        .iter()
+        .map(|file| file.path.split('/').collect())
+        .collect();
+    let mut graph: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut diagnostics = vec![];
+    let mut resolved = 0usize;
+    for file in &ordered {
+        graph.entry(file.path.clone()).or_default();
+        for (start, include) in legacy_includes(&file.text) {
+            let wanted = legacy_include_parts(include);
+            let candidates: Vec<usize> = if wanted.is_empty() {
+                vec![]
+            } else {
+                paths
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, parts)| {
+                        parts.len() >= wanted.len()
+                            && parts[parts.len() - wanted.len()..]
+                                .iter()
+                                .zip(&wanted)
+                                .all(|(left, right)| left == right)
+                    })
+                    .map(|(index, _)| index)
+                    .collect()
+            };
+            if candidates.len() == 1 {
+                resolved += 1;
+                let target = &ordered[candidates[0]].path;
+                if target != &file.path {
+                    graph.get_mut(&file.path).unwrap().insert(target.clone());
+                }
+                continue;
+            }
+            let line = file.text[..start].matches('\n').count() + 1;
+            let line_start = file.text[..start].rfind('\n').map_or(0, |index| index + 1);
+            let line_end = file.text[start..]
+                .find('\n')
+                .map_or(file.text.len(), |index| start + index);
+            diagnostics.push((
+                file.path.clone(),
+                line,
+                include.to_owned(),
+                candidates
+                    .iter()
+                    .map(|index| ordered[*index].path.clone())
+                    .collect::<Vec<_>>(),
+                file.text[line_start..line_end].trim().to_owned(),
+            ));
+        }
+    }
+    let cycles = components(&graph);
+    for members in cycles.iter().take(limit) {
+        let start = members[0].clone();
+        let path = actual_cycle_path(&start, members, &graph);
+        let mut names: Vec<_> = path
+            .iter()
+            .map(|path| path.rsplit('/').next().unwrap_or(path))
+            .collect();
+        names.push(names[0]);
+        let mut target = InspectionTarget::at(&path[0], 1);
+        target.target_name = format!("CppCycle:{}", path.len());
+        target.status = "WARN".into();
+        target.message = format!(
+            "C++ include cycle ({} files): {}",
+            path.len(),
+            names.join(" -> ")
+        );
+        target.metrics.insert("files".into(), json!(path));
+        finding(output, request, &target, "cycle.include", "medium", true);
+        output.targets.push(target);
+    }
+    for (path, line, include, candidates, snippet) in diagnostics.iter().take(limit) {
+        let ambiguous = !candidates.is_empty();
+        let mut target = InspectionTarget::at(path, *line as u32);
+        target.target_name = if ambiguous {
+            "CppIncludeAmbiguous"
+        } else {
+            "CppIncludeUnresolved"
+        }
+        .into();
+        target.status = "WARN".into();
+        target.message = if ambiguous {
+            format!(
+                "Quoted include \"{include}\" matches {} project files; no dependency edge was guessed",
+                candidates.len()
+            )
+        } else {
+            format!(
+                "Quoted include \"{include}\" has no project-file match; it may be generated or supplied by compiler include paths"
+            )
+        };
+        target.snippet = snippet.clone();
+        target.metrics.insert("include".into(), json!(include));
+        target
+            .metrics
+            .insert("candidates".into(), json!(candidates));
+        target
+            .metrics
+            .insert("resolution".into(), json!("unique_project_path_suffix"));
+        finding(
+            output,
+            request,
+            &target,
+            "cycle.include-resolution",
+            "medium",
+            true,
+        );
+        output.targets.push(target);
+    }
+    let ambiguous = diagnostics.iter().filter(|item| !item.3.is_empty()).count();
+    measurement(output, "cycles_found", cycles.len() as u64, true);
+    output.observation.limitations.push("Include resolution is a path-suffix heuristic; compiler search order, conditional preprocessing and generated headers are not established".into());
+    output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated","cpp_cycles":cycles.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit),"cpp_include_resolution":"unique_project_path_suffix","resolved_cpp_includes":resolved,"ambiguous_cpp_includes":ambiguous,"unresolved_cpp_includes":diagnostics.len()-ambiguous,"include_diagnostics":diagnostics.len(),"cpp_include_diagnostics_truncated":diagnostics.len().saturating_sub(limit)});
+}
+/// Frozen `_find_actual_cycle_path`: follow real edges inside the component back to start.
+fn actual_cycle_path(
+    start: &str,
+    members: &[String],
+    graph: &BTreeMap<String, BTreeSet<String>>,
+) -> Vec<String> {
+    let inside = |node: &str| -> Vec<String> {
+        graph
+            .get(node)
+            .into_iter()
+            .flatten()
+            .filter(|next| members.contains(next))
+            .cloned()
+            .collect()
+    };
+    let mut path = vec![start.to_owned()];
+    let mut visiting = BTreeSet::from([start.to_owned()]);
+    let mut work = vec![(start.to_owned(), inside(start), 0usize)];
+    while let Some((node, neighbors, index)) = work.last_mut() {
+        if *index >= neighbors.len() {
+            visiting.remove(node.as_str());
+            work.pop();
+            path.pop();
+            continue;
+        }
+        let next = neighbors[*index].clone();
+        *index += 1;
+        if next == start {
+            return path;
+        }
+        if visiting.insert(next.clone()) {
+            path.push(next.clone());
+            let edges = inside(&next);
+            work.push((next, edges, 0));
+        }
+    }
+    members.to_vec()
 }
