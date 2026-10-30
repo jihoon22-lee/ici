@@ -1,0 +1,1691 @@
+{
+ "base": "[project]\ntype='python'\nsource_dirs=['src']\n",
+ "cases": {
+  "cognitive/excluded-only": {
+   "command": "cognitive",
+   "files": {
+    "src/vendor/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:f4f462ccd0d5e5c92671d70d18116de18d2db8d2cfc9d324399dd555f1351bb3",
+      "message": "Cognitive 0 (nesting 0)",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "PASS",
+    "summary": "Max cognitive complexity: 0 across 1 functions",
+    "targets": [
+     {
+      "file_path": "src/vendor/a.py",
+      "message": "Cognitive 0 (nesting 0)",
+      "start_column": 1,
+      "start_line": 4,
+      "status": "PASS",
+      "target_name": "g"
+     }
+    ]
+   }
+  },
+  "cognitive/invalid-start": {
+   "command": "cognitive",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d20310aff0a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:8bc1abc888ce2b192e1be22523c92775f9dfb1e90c2ecaa2258fa564fc3532be",
+      "message": "Cognitive 0 (nesting 0)",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:9d9a17f728c18d888977b7a1dc27f3d34be2adad229704fdc2e58f492d59d511",
+      "message": "Python cognitive analysis failed: UnicodeDecodeError",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Cognitive complexity analysis did not complete",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python cognitive analysis failed: UnicodeDecodeError",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonCognitiveAnalysisError"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Cognitive 0 (nesting 0)",
+      "start_column": 1,
+      "start_line": 4,
+      "status": "PASS",
+      "target_name": "g"
+     }
+    ]
+   }
+  },
+  "cognitive/latin1-cookie": {
+   "command": "cognitive",
+   "files": {
+    "src/a.py": {
+     "hex": "23202d2a2d20636f64696e673a206c6174696e2d31202d2a2d0a73203d2027636166e9270a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:8bc1abc888ce2b192e1be22523c92775f9dfb1e90c2ecaa2258fa564fc3532be",
+      "message": "Cognitive 0 (nesting 0)",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:9d9a17f728c18d888977b7a1dc27f3d34be2adad229704fdc2e58f492d59d511",
+      "message": "Python cognitive analysis failed: UnicodeDecodeError",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Cognitive complexity analysis did not complete",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python cognitive analysis failed: UnicodeDecodeError",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonCognitiveAnalysisError"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Cognitive 0 (nesting 0)",
+      "start_column": 1,
+      "start_line": 4,
+      "status": "PASS",
+      "target_name": "g"
+     }
+    ]
+   }
+  },
+  "cognitive/nul": {
+   "command": "cognitive",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2031000a"
+    }
+   },
+   "frozen": {
+    "crash": "ValueError: source code string cannot contain null bytes",
+    "exit_code": 1
+   }
+  },
+  "cognitive/second-file-invalid": {
+   "command": "cognitive",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": {
+     "hex": "ff0a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:5edd69f55c56fd794ad46a48aaf0f0496933cfe82ed2c7fb95384d9035e42b35",
+      "message": "Python cognitive analysis failed: UnicodeDecodeError",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:7784cf8ff1335a6ec3b2cd4a1b8d5cbb6dc3752f634907f394426e7a0e00ef56",
+      "message": "Cognitive 0 (nesting 0)",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Cognitive complexity analysis did not complete",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Cognitive 0 (nesting 0)",
+      "start_column": 1,
+      "start_line": 4,
+      "status": "PASS",
+      "target_name": "g"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python cognitive analysis failed: UnicodeDecodeError",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonCognitiveAnalysisError"
+     }
+    ]
+   }
+  },
+  "cognitive/syntax-second": {
+   "command": "cognitive",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:5edd69f55c56fd794ad46a48aaf0f0496933cfe82ed2c7fb95384d9035e42b35",
+      "message": "Python cognitive analysis failed: SyntaxError",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:7784cf8ff1335a6ec3b2cd4a1b8d5cbb6dc3752f634907f394426e7a0e00ef56",
+      "message": "Cognitive 0 (nesting 0)",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Cognitive complexity analysis did not complete",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Cognitive 0 (nesting 0)",
+      "start_column": 1,
+      "start_line": 4,
+      "status": "PASS",
+      "target_name": "g"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python cognitive analysis failed: SyntaxError",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonCognitiveAnalysisError"
+     }
+    ]
+   }
+  },
+  "cognitive/syntax-unclosed": {
+   "command": "cognitive",
+   "files": {
+    "src/a.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:9d9a17f728c18d888977b7a1dc27f3d34be2adad229704fdc2e58f492d59d511",
+      "message": "Python cognitive analysis failed: SyntaxError",
+      "rule_id": "ici.legacy.cognitive.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Cognitive complexity analysis did not complete",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python cognitive analysis failed: SyntaxError",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonCognitiveAnalysisError"
+     }
+    ]
+   }
+  },
+  "dead/excluded-only": {
+   "command": "dead",
+   "files": {
+    "src/vendor/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:e37d9d9dddbc355356cb3f205157dac24fa727bbb94aa54c2fa29a2bba53a823",
+      "message": "All selected sources were excluded by the generated/vendor policy; dead-code analysis was not run",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Dead-code analysis skipped: no owned source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "All selected sources were excluded by the generated/vendor policy; dead-code analysis was not run",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "DeadCode"
+     }
+    ]
+   }
+  },
+  "dead/invalid-start": {
+   "command": "dead",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d20310aff0a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:6b833edcdb2b6958255c325799a5447233fcaacfbde71ddef37a248b503a63a2",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dead/latin1-cookie": {
+   "command": "dead",
+   "files": {
+    "src/a.py": {
+     "hex": "23202d2a2d20636f64696e673a206c6174696e2d31202d2a2d0a73203d2027636166e9270a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:6b833edcdb2b6958255c325799a5447233fcaacfbde71ddef37a248b503a63a2",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dead/nul": {
+   "command": "dead",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2031000a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:6b833edcdb2b6958255c325799a5447233fcaacfbde71ddef37a248b503a63a2",
+      "message": "invalid-text: Analysis source contains a NUL character",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source contains a NUL character",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "invalid-text: Analysis source contains a NUL character",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dead/second-file-invalid": {
+   "command": "dead",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": {
+     "hex": "ff0a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:5dc31ce512c016e83ccf2ffb4002a540b696331c4eb738d23e8ae0b8f8827e8c",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dead/syntax-second": {
+   "command": "dead",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:16360fbdf8e014e3f19bce22ce3d8020c32c8e5c107c13051a651413359ac636",
+      "message": "SyntaxError: invalid syntax",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "SyntaxError: invalid syntax",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "SyntaxError: invalid syntax",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SyntaxError"
+     }
+    ]
+   }
+  },
+  "dead/syntax-unclosed": {
+   "command": "dead",
+   "files": {
+    "src/a.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:6486bd096d091d55d17bf31907b8357000abdc4acebe1df98ebf5e47d427f361",
+      "message": "SyntaxError: '(' was never closed",
+      "rule_id": "ici.legacy.dead.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "SyntaxError: '(' was never closed",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "SyntaxError: '(' was never closed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SyntaxError"
+     }
+    ]
+   }
+  },
+  "dup/excluded-only": {
+   "command": "dup",
+   "files": {
+    "src/vendor/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:179be07d185cbd24974ec9844636e1f2c2a866e2dfab46360c910dde4d0dc04e",
+      "message": "All selected sources were excluded by the generated/vendor policy",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Duplicate analysis skipped: no owned source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "All selected sources were excluded by the generated/vendor policy",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "DuplicateCode"
+     }
+    ]
+   }
+  },
+  "dup/invalid-start": {
+   "command": "dup",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d20310aff0a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:535e695c716ea124118b243350149c26d285b09851154db572841b67160d81a9",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dup/latin1-cookie": {
+   "command": "dup",
+   "files": {
+    "src/a.py": {
+     "hex": "23202d2a2d20636f64696e673a206c6174696e2d31202d2a2d0a73203d2027636166e9270a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:535e695c716ea124118b243350149c26d285b09851154db572841b67160d81a9",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dup/nul": {
+   "command": "dup",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2031000a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:535e695c716ea124118b243350149c26d285b09851154db572841b67160d81a9",
+      "message": "invalid-text: Analysis source contains a NUL character",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source contains a NUL character",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "invalid-text: Analysis source contains a NUL character",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dup/second-file-invalid": {
+   "command": "dup",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": {
+     "hex": "ff0a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dfbba19f2386742415431aea491dd4bb45d276c8d01c0776289c1d0dab4130bf",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "invalid-utf8: Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
+  "dup/syntax-second": {
+   "command": "dup",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:32e2e1acb39052bb47613456657e51b0e756bc2967185bfd078569eee56c280b",
+      "message": "Source lexical normalization failed: Python syntax could not be parsed for duplicate-region boundaries",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Duplicate analysis could not normalize src/b.py",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "Source lexical normalization failed: Python syntax could not be parsed for duplicate-region boundaries",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceTokenizationError"
+     }
+    ]
+   }
+  },
+  "dup/syntax-unclosed": {
+   "command": "dup",
+   "files": {
+    "src/a.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:88c80033ebb8db00209b3b16948538cf1dbeb25cf3ea6340c844278c4cdb74cf",
+      "message": "Source lexical normalization failed: Python syntax could not be parsed for duplicate-region boundaries",
+      "rule_id": "ici.legacy.dup.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Duplicate analysis could not normalize src/a.py",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Source lexical normalization failed: Python syntax could not be parsed for duplicate-region boundaries",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceTokenizationError"
+     }
+    ]
+   }
+  },
+  "exception/continuation": {
+   "command": "exception",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027e28241270a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:a01010ab73b73bcea9329f00d29f85e6aaf66da5d8acdcfa6dd7672e380937e1",
+      "message": "Could not read Python source: 'utf-8' codec can't decode bytes in position 5-6: invalid continuation byte",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Could not read Python source: 'utf-8' codec can't decode bytes in position 5-6: invalid continuation byte",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Could not read Python source: 'utf-8' codec can't decode bytes in position 5-6: invalid continuation byte",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "exception/excluded-only": {
+   "command": "exception",
+   "files": {
+    "src/vendor/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:1760bc787fec4117f2d668dad6fe877e5bb587ebc2674610d8a00a8f9cae798b",
+      "message": "Python exception handlers were inspected",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "PASS",
+    "summary": "Exception Handling Safety Clean",
+    "targets": [
+     {
+      "file_path": "src/vendor/a.py",
+      "message": "Python exception handlers were inspected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception/invalid-start": {
+   "command": "exception",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d20310aff0a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:a01010ab73b73bcea9329f00d29f85e6aaf66da5d8acdcfa6dd7672e380937e1",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xff in position 6: invalid start byte",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:dd315369c04147b695cc18510a0eecc78ff8fe7908f02245ea16961cc80b6183",
+      "message": "Python exception handlers were inspected",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Could not read Python source: 'utf-8' codec can't decode byte 0xff in position 6: invalid start byte",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xff in position 6: invalid start byte",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python exception handlers were inspected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception/latin1-cookie": {
+   "command": "exception",
+   "files": {
+    "src/a.py": {
+     "hex": "23202d2a2d20636f64696e673a206c6174696e2d31202d2a2d0a73203d2027636166e9270a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:a01010ab73b73bcea9329f00d29f85e6aaf66da5d8acdcfa6dd7672e380937e1",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xe9 in position 34: invalid continuation byte",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:dd315369c04147b695cc18510a0eecc78ff8fe7908f02245ea16961cc80b6183",
+      "message": "Python exception handlers were inspected",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Could not read Python source: 'utf-8' codec can't decode byte 0xe9 in position 34: invalid continuation byte",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xe9 in position 34: invalid continuation byte",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python exception handlers were inspected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     }
+    ]
+   }
+  },
+  "exception/nul": {
+   "command": "exception",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2031000a"
+    }
+   },
+   "frozen": {
+    "crash": "ValueError: source code string cannot contain null bytes",
+    "exit_code": 1
+   }
+  },
+  "exception/overlong": {
+   "command": "exception",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027c080270a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:a01010ab73b73bcea9329f00d29f85e6aaf66da5d8acdcfa6dd7672e380937e1",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xc0 in position 5: invalid start byte",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Could not read Python source: 'utf-8' codec can't decode byte 0xc0 in position 5: invalid start byte",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xc0 in position 5: invalid start byte",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "exception/second-file-invalid": {
+   "command": "exception",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": {
+     "hex": "ff0a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:0efe583b19c8d09b7e5f9016c471d6f09b3514080e363fa8adfddc5402bf3e6a",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:71b58ce0a95d199c3af2f6d95d7c127e3d9a3c044ae526b94aab2bf831a726ea",
+      "message": "Python exception handlers were inspected",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Could not read Python source: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python exception handlers were inspected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "exception/surrogate": {
+   "command": "exception",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027eda080270a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:a01010ab73b73bcea9329f00d29f85e6aaf66da5d8acdcfa6dd7672e380937e1",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xed in position 5: invalid continuation byte",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Could not read Python source: 'utf-8' codec can't decode byte 0xed in position 5: invalid continuation byte",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Could not read Python source: 'utf-8' codec can't decode byte 0xed in position 5: invalid continuation byte",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "exception/syntax-second": {
+   "command": "exception",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:616e5c52e2c764c01cfa71102071e099a334f3a5cb844a291cc2c1d4ac2dd805",
+      "message": "SyntaxError: invalid syntax",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     },
+     {
+      "fingerprint": "sha256:71b58ce0a95d199c3af2f6d95d7c127e3d9a3c044ae526b94aab2bf831a726ea",
+      "message": "Python exception handlers were inspected",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "SyntaxError: invalid syntax",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python exception handlers were inspected",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "PythonExceptionSafety"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "SyntaxError: invalid syntax",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SyntaxError"
+     }
+    ]
+   }
+  },
+  "exception/syntax-unclosed": {
+   "command": "exception",
+   "files": {
+    "src/a.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:4c3867861dd5123d430bee4d48dbd0899e761787096901d4706a62888bf78d96",
+      "message": "SyntaxError: '(' was never closed",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "SyntaxError: '(' was never closed",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "SyntaxError: '(' was never closed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SyntaxError"
+     }
+    ]
+   }
+  },
+  "exception/truncated": {
+   "command": "exception",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027e282"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:a01010ab73b73bcea9329f00d29f85e6aaf66da5d8acdcfa6dd7672e380937e1",
+      "message": "Could not read Python source: 'utf-8' codec can't decode bytes in position 5-6: unexpected end of data",
+      "rule_id": "ici.legacy.exception.target",
+      "tool_rule_id": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Could not read Python source: 'utf-8' codec can't decode bytes in position 5-6: unexpected end of data",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Could not read Python source: 'utf-8' codec can't decode bytes in position 5-6: unexpected end of data",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ReadError"
+     }
+    ]
+   }
+  },
+  "resource/excluded-only": {
+   "command": "resource",
+   "files": {
+    "src/vendor/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Resource/correctness analysis clean across 0 file(s)",
+    "targets": []
+   }
+  },
+  "resource/invalid-start": {
+   "command": "resource",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d20310aff0a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:1f50c52781fcc81c7b20d8d49e3ae8bd59317738a90452a193a1a3c602b55d74",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:SourceInput"
+     }
+    ]
+   }
+  },
+  "resource/latin1-cookie": {
+   "command": "resource",
+   "files": {
+    "src/a.py": {
+     "hex": "23202d2a2d20636f64696e673a206c6174696e2d31202d2a2d0a73203d2027636166e9270a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:1f50c52781fcc81c7b20d8d49e3ae8bd59317738a90452a193a1a3c602b55d74",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:SourceInput"
+     }
+    ]
+   }
+  },
+  "resource/nul": {
+   "command": "resource",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2031000a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:1f50c52781fcc81c7b20d8d49e3ae8bd59317738a90452a193a1a3c602b55d74",
+      "message": "Analysis source contains a NUL character",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: Analysis source contains a NUL character",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source contains a NUL character",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:SourceInput"
+     }
+    ]
+   }
+  },
+  "resource/second-file-invalid": {
+   "command": "resource",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": {
+     "hex": "ff0a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:71bf713366ad7fbd13309c8aa7dec3e52d68bde344f648a4c8800be80bfd9571",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:SourceInput"
+     }
+    ]
+   }
+  },
+  "resource/syntax-second": {
+   "command": "resource",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:2cdf8aa8ce204c9aabc3c0c84bce4decf8e4d44a9c0f742414bcb20f0b0244b9",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:AnalysisUnavailable"
+     },
+     {
+      "fingerprint": "sha256:4eaf622134dd565fa1b333d55c0393efe33ae82e9959c5e67a56711967b7a7d1",
+      "message": "f from builtins.open may remain open on an exit path",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:OpenWithoutWith"
+     },
+     {
+      "fingerprint": "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:ASTFlow"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: src/b.py:1: Python syntax is invalid; resource-flow analysis was not run",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "start_column": 7,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:AnalysisUnavailable"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "f from builtins.open may remain open on an exit path",
+      "start_column": 9,
+      "start_line": 5,
+      "status": "WARN",
+      "target_name": "Resource:OpenWithoutWith"
+     }
+    ]
+   }
+  },
+  "resource/syntax-unclosed": {
+   "command": "resource",
+   "files": {
+    "src/a.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:c24ab67ca48bfb15d52db12675177531927d36c59477fcb9436ac2ee807075ee",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "rule_id": "ici.legacy.resource.target",
+      "tool_rule_id": "Resource:AnalysisUnavailable"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: src/a.py:1: Python syntax is invalid; resource-flow analysis was not run",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python syntax is invalid; resource-flow analysis was not run",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:AnalysisUnavailable"
+     }
+    ]
+   }
+  },
+  "security/continuation": {
+   "command": "security",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027e28241270a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd583aff2d89408b367b9976d266245aaad2b8dcb7e2919bb6b476e0c8cfb612",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/excluded-only": {
+   "command": "security",
+   "files": {
+    "src/vendor/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "findings": [],
+    "status": "PASS",
+    "summary": "Security hygiene clean across 0 file(s)",
+    "targets": []
+   }
+  },
+  "security/invalid-start": {
+   "command": "security",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d20310aff0a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd583aff2d89408b367b9976d266245aaad2b8dcb7e2919bb6b476e0c8cfb612",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/latin1-cookie": {
+   "command": "security",
+   "files": {
+    "src/a.py": {
+     "hex": "23202d2a2d20636f64696e673a206c6174696e2d31202d2a2d0a73203d2027636166e9270a"
+    },
+    "src/b.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd583aff2d89408b367b9976d266245aaad2b8dcb7e2919bb6b476e0c8cfb612",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/nul": {
+   "command": "security",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2031000a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd583aff2d89408b367b9976d266245aaad2b8dcb7e2919bb6b476e0c8cfb612",
+      "message": "Analysis source contains a NUL character",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source contains a NUL character",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source contains a NUL character",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/overlong": {
+   "command": "security",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027c080270a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd583aff2d89408b367b9976d266245aaad2b8dcb7e2919bb6b476e0c8cfb612",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/second-file-invalid": {
+   "command": "security",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": {
+     "hex": "ff0a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:b0f2689470b6c25c93ef2a76886f2e12a15e5d9e38d21409ef26d1a8c97bad3d",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/surrogate": {
+   "command": "security",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027eda080270a"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd583aff2d89408b367b9976d266245aaad2b8dcb7e2919bb6b476e0c8cfb612",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  },
+  "security/syntax-second": {
+   "command": "security",
+   "files": {
+    "src/a.py": "import pickle\n\n\ndef g(data):\n    f = open('x')\n    return pickle.loads(data)\n",
+    "src/b.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:27e93d3d7969b8c18eefd8b910ed4e7528063a907a39b0fe00ac8782cc19f07e",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SyntaxUnavailable"
+     },
+     {
+      "fingerprint": "sha256:c543404c1451bd93edfb164c20349f7dd52df6e24fff4531bc5797359552d9ea",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:PickleLoad"
+     },
+     {
+      "fingerprint": "sha256:fcfbb0b89f4fb554e12b93ad7143cda91e0edafda594ffbe482c3e94474e07d2",
+      "message": "Bounded Python AST security rules completed",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:ASTScan"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: src/b.py:1: syntax prevents security analysis",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Pickle deserialization can execute attacker-controlled code",
+      "start_column": 12,
+      "start_line": 6,
+      "status": "WARN",
+      "target_name": "Security:PickleLoad"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded Python AST security rules completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Security:ASTScan"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "start_column": 7,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SyntaxUnavailable"
+     }
+    ]
+   }
+  },
+  "security/syntax-unclosed": {
+   "command": "security",
+   "files": {
+    "src/a.py": "x = (1,\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:763dfc35c5062e7cf9043bb3bc9b39da3b15fccc43fdec9228a5915befbb7af2",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SyntaxUnavailable"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: src/a.py:1: syntax prevents security analysis",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python syntax is invalid; AST security analysis was not run",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SyntaxUnavailable"
+     }
+    ]
+   }
+  },
+  "security/truncated": {
+   "command": "security",
+   "files": {
+    "src/a.py": {
+     "hex": "78203d2027e282"
+    }
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:dd583aff2d89408b367b9976d266245aaad2b8dcb7e2919bb6b476e0c8cfb612",
+      "message": "Analysis source is not valid UTF-8",
+      "rule_id": "ici.legacy.security.target",
+      "tool_rule_id": "Security:SourceInput"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Security analysis incomplete: Analysis source is not valid UTF-8",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Analysis source is not valid UTF-8",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Security:SourceInput"
+     }
+    ]
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "Python 3.10.21"
+}

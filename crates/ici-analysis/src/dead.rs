@@ -297,7 +297,8 @@ pub fn analyze(
     output: &mut AnalysisOutput,
     cancellation: Option<&AtomicBool>,
 ) {
-    if output.observation.state == TaskState::Failed {
+    // The frozen legacy engine skipped an unparsable module and correlated the rest.
+    if output.observation.state == TaskState::Failed && !crate::legacy::requested(request) {
         for file in files {
             let mut target = InspectionTarget::at(&file.source.path, 1);
             target.target_name = "DeadCodeIncompleteScope".into();
