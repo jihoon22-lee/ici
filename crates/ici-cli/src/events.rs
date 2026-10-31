@@ -46,7 +46,9 @@ impl EventLog {
         let Some(sink) = &mut state.sink else {
             return;
         };
-        let Some(sequence) = sink.sequence.checked_add(1) else {
+        // Frozen `_EventWriter`: the first event of a run is seq 0 and each emission adds one.
+        let sequence = sink.sequence;
+        let Some(next) = sequence.checked_add(1) else {
             state.failure = Some("event sequence exhausted".into());
             return;
         };
@@ -63,7 +65,7 @@ impl EventLog {
             message: message.chars().take(4096).collect(),
         };
         match append_events(&sink.path, &[event]) {
-            Ok(()) => sink.sequence = sequence,
+            Ok(()) => sink.sequence = next,
             Err(error) => state.failure = Some(format!("event output failed: {error}")),
         }
     }

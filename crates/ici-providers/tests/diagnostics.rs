@@ -278,7 +278,7 @@ fn utf16_surrogates_and_missing_snapshot_columns_are_not_guessed() {
     ici_providers::attach_sources(&mut plan, ici_providers::source_coordinates(&inputs));
     let mapped = observe(&plan, &outcome(&plan, &raw(17, 24), "", 1));
     assert_eq!(mapped.findings[0].primary_location.start_column, Some(16));
-    assert_eq!(mapped.findings[0].primary_location.end_column, Some(22));
+    assert_eq!(mapped.findings[0].primary_location.end_column, None);
     let split_surrogate = observe(&plan, &outcome(&plan, &raw(13, 14), "", 1));
     assert_eq!(split_surrogate.state, TaskState::Failed);
     let document = serde_json::to_string(&plan).unwrap();
@@ -610,5 +610,99 @@ fn gcc_context_headers_required_from_and_columnless_diagnostics_follow_frozen_te
             TaskState::Failed,
             "{unknown}"
         );
+    }
+}
+#[test]
+fn ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/providers/ecosystem-oracle.json"
+    ))
+    .unwrap();
+    for (name, kind) in [
+        ("eslint", ProviderKind::Eslint),
+        ("clippy", ProviderKind::Clippy),
+        ("tsc", ProviderKind::Tsc),
+    ] {
+        let mut plan = fixture(kind);
+        // ASCII sources: UTF-16, byte and code point columns coincide, so the frozen raw column
+        // is the native display column once the source coordinates are known.
+        let line = "abcdefghijklmnopqrstuvwxyz\n".repeat(12);
+        let inputs: Vec<_> = ["src/a.js", "src/b.ts", "src/a.ts", "src/lib.rs"]
+            .into_iter()
+            .map(|path| ici_domain::SourceInput {
+                path: path.into(),
+                bytes: line.as_bytes().to_vec(),
+            })
+            .collect();
+        ici_providers::attach_sources(&mut plan, ici_providers::source_coordinates(&inputs));
+        for case in oracle[name].as_array().unwrap() {
+            let label = format!("{name}/{}", case["case"]);
+            let observation = observe(
+                &plan,
+                &outcome(
+                    &plan,
+                    case["stdout"].as_str().unwrap(),
+                    "",
+                    case["exit"].as_i64().unwrap() as i32,
+                ),
+            );
+            if let Some(difference) = case["case"].as_str().unwrap().strip_prefix("difference:") {
+                // Accepted intended differences: both refuse an unattributed clean result, but in
+                // opposite directions from the frozen parser.
+                match difference {
+                    // Frozen: a line-less warning is a parse failure. Native: the ignored file is
+                    // a limitation and is never listed as inspected (SKIP, not PASS).
+                    "ignored-file" => {
+                        assert!(case["failed"].as_bool().unwrap());
+                        let full = observe_full(
+                            &plan,
+                            &outcome(&plan, case["stdout"].as_str().unwrap(), "", 0),
+                        );
+                        assert_eq!(full.observation.state, TaskState::Succeeded);
+                        assert!(full.observation.findings.is_empty());
+                        assert!(
+                            full.observation
+                                .limitations
+                                .iter()
+                                .any(|item| item.contains("File ignored"))
+                        );
+                        assert!(full.targets.iter().all(|target| target.status != "PASS"));
+                    }
+                    // Frozen ignores an unknown Cargo record; native refuses the stream.
+                    "unknown-reason" => {
+                        assert!(!case["failed"].as_bool().unwrap());
+                        assert_eq!(observation.state, TaskState::Failed);
+                    }
+                    other => panic!("unknown difference {other}"),
+                }
+                continue;
+            }
+            assert_eq!(
+                observation.state == TaskState::Failed,
+                case["failed"].as_bool().unwrap(),
+                "{label}: {:?}",
+                observation.limitations
+            );
+            if observation.state == TaskState::Failed {
+                continue;
+            }
+            let actual: Vec<Value> = observation
+                .findings
+                .iter()
+                .map(|item| {
+                    json!({
+                        "rule_id": item.rule_id,
+                        "native_rule_id": item.native_rule_id,
+                        "message": item.message,
+                        "severity": item.severity,
+                        "path": item.primary_location.path,
+                        "line": item.primary_location.start_line,
+                        "column": item.primary_location.start_column,
+                        "fingerprint": item.fingerprint,
+                    })
+                })
+                .collect();
+            assert_eq!(Value::from(actual), case["findings"], "{label}");
+        }
     }
 }

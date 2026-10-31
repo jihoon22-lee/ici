@@ -1,0 +1,328 @@
+{
+ "requirements": {
+  "capability:native-windows-disposition": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-distribution/src/model.rs",
+    "crates/ici-execution/src/process.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-distribution/tests/distribution.rs::native_windows_targets_are_refused_and_linux_targets_remain_the_supported_scope",
+     "crates/ici-execution/tests/process.rs::timeout_escalates_and_verifies_group_empty"
+    ],
+    "negative": [
+     "crates/ici-distribution/tests/distribution.rs::native_windows_targets_are_refused_and_linux_targets_remain_the_supported_scope"
+    ],
+    "failure": [
+     "crates/ici-distribution/tests/distribution.rs::native_windows_targets_are_refused_and_linux_targets_remain_the_supported_scope"
+    ]
+   },
+   "evidence": [
+    "cargo test -p ici-distribution --test distribution native_windows --locked: passed; Windows MSVC/GNU (and untested macOS) targets are refused with manifest-identity before any archive exists, Linux target passes identity; /tmp/ici-rust-replacement-20261028/w-runtime-windows.log and w-runtime-ecosystem-final.log"
+   ],
+   "comparison": "Frozen core/runner_win.py is the Windows Job Object helper used by core/runner.py only when os.name == 'nt' (suspended spawn, kill-on-close job, resume). The native product is built only for x86_64 Linux/WSL (ADR-0008: native Windows equivalence is not claimed); its process runner uses POSIX process groups (killpg) unconditionally, so no untested Windows runner can ship and a Windows bundle is refused at manifest formation.",
+   "difference_reason": "Explicit unsupported disposition: native Windows execution is out of the approved Linux/WSL support scope; WSL is the supported route on Windows hosts. Not a silent removal: the refusal is tested."
+  },
+  "capability:wire-result-events": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-domain/src/event.rs",
+    "crates/ici-domain/src/result.rs",
+    "crates/ici-cli/src/events.rs",
+    "crates/ici-execution/src/storage.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-domain/tests/wire.rs::published_result_goldens_roundtrip_without_lost_information",
+     "crates/ici-cli/tests/execution.rs::rerun_replaces_its_previous_event_stream_but_never_an_unrelated_file",
+     "crates/ici-cli/tests/wire_schemas.rs::native_runs_and_events_validate_against_the_frozen_next_schemas"
+    ],
+    "negative": [
+     "crates/ici-domain/tests/wire.rs::event_identifiers_and_sequence_notes_match_frozen_oracle",
+     "crates/ici-cli/tests/wire_schemas.rs::published_v1_runs_validate_and_roundtrip_through_the_native_reader_as_v1"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/wire.rs::refuse_unknown_or_inconsistent_evidence",
+     "crates/ici-cli/tests/wire_schemas.rs::schema_invalid_runs_and_events_are_refused_by_the_schema_and_the_native_reader",
+     "crates/ici-execution/tests/storage.rs::event_stream_validates_run_and_sequence_before_appending_and_redacts_message"
+    ]
+   },
+   "evidence": [
+    "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/domain/capture_events.py tests/rust-parity/domain/events-oracle.json (frozen RunEvent id validation and events_from_jsonl notes)",
+    "Oracle vs native `ici analyze --json --events ev.jsonl --result r.json` on the same ESLint/tsc/Clippy project: identical event kinds per task, same run_id in every event, stdout is exactly the saved result, seq numbered from 0; /tmp/ici-rust-replacement-20261028/w-runtime-events-compare.log",
+    "cargo test -p ici-domain; cargo test -p ici-execution --test storage; cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --include-ignored: all passed; strict Clippy ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log"
+   ],
+   "comparison": "Runtime facet: run v2 write/read v1, event v1 envelope, event order, run_id and stdout/stderr split. Reviewed frozen domain/events.py, eventstream.py, _codec.py and cli/next_events.py. Defects fixed: the native writer numbered events from 1 while the frozen writer starts every run at seq 0; the reader reported a repeated seq as a jump instead of the frozen 'duplicate seq N' note. Event id validation itself is the config worker's guard (9d31027) and the oracle fixture now pins it against frozen acceptance.",
+   "difference_reason": "Open (not complete): frozen `ici analyze --json` writes 'root:'/'scope:' context lines to stderr and its text mode prints a findings summary; native writes nothing to stderr under --json and its text mode prints raw JSON blocks. This is the next_render CLI rendering facet, routed to the root as a cross-area item. Timestamps use 'Z' instead of '+00:00' (both RFC 3339 and accepted by the frozen schema)."
+  },
+  "check:javascript.lint": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/ecosystem.rs",
+    "crates/ici-providers/src/diagnostics/mod.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-providers/src/resolver.rs",
+    "crates/ici-application/src/plan.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints",
+     "crates/ici-providers/tests/native.rs::eslint_native_json_rules_and_ignored_files_are_not_silent_passes"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/diagnostics.rs::eslint_enumerates_clean_files_and_native_ignore_is_not_an_inspection_pass",
+     "crates/ici-providers/tests/resolution.rs::ecosystem_project_node_tools_win_over_path_and_clippy_uses_cargo"
+    ],
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints",
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success"
+    ]
+   },
+   "evidence": [
+    "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/providers/capture_ecosystem.py tests/rust-parity/providers/ecosystem-oracle.json (frozen EcosystemProvider.parse for ESLint/Clippy/tsc) and capture_ecosystem_e2e.py <oracle>/src .venv/bin/python target tests/rust-parity/providers/ecosystem-e2e-oracle.json (frozen `ici analyze` on actual ESLint 10.13.0, tsc 7.0.2, cargo clippy 0.1.99)",
+    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored --test-threads=2: 20 + 14 passed (actual ESLint/tsc/Clippy/compilers); /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
+    "cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --locked -- --include-ignored: all passed, actual ESLint/tsc/Clippy CLI findings and fingerprints equal the frozen analyze golden; strict Clippy for ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
+    "cargo test -p ici-providers --test resolution --locked: 7 passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-final.log"
+   ],
+   "comparison": "Reviewed frozen adapters/providers/ecosystem.py, application/ecosystem.py and the JS language pack. Planned argv (--format json --no-fix -- targets), ANALYZE kind, exit contract 0/1, node_modules/.bin precedence, rule id eslint.<rule>|eslint.parse, severity 2=error, 1-based line/column, native fingerprint sha256(eslint|rule|path|line|message) and the attributed v3 fingerprint all equal the frozen oracle for actual ESLint findings, fatal parse errors and the parser failure cases. Fixed during audit: native added ESLint end line/column, which changed every v3 attributed fingerprint; ESLint spans now carry no end position like frozen.",
+   "difference_reason": "Accepted intended differences: an ESLint 'File ignored' line-less warning becomes a limitation with the file not inspected (frozen: parser failure); native never claims complete evidence for ESLint because plugin/configuration closure is not enumerated (frozen claimed it); a present but non-executable node_modules tool is reported instead of falling back to PATH; columns are code points (ASCII-equal to frozen UTF-16 columns); native state lives under .ici/rust-v1."
+  },
+  "check:rust.clippy": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/ecosystem.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-providers/src/resolver.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
+     "crates/ici-providers/tests/native.rs::cargo_clippy_discloses_and_executes_build_script_with_bounded_jobs",
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ],
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::cargo_requires_terminal_record_and_retains_related_spans",
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ]
+   },
+   "evidence": [
+    "Frozen captures tests/rust-parity/providers/ecosystem-oracle.json and ecosystem-e2e-oracle.json (actual cargo clippy 0.1.99: clippy.clippy::needless_return with identical attributed fingerprint); /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
+    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log"
+   ],
+   "comparison": "Frozen clippy provider: cargo clippy --offline --locked --message-format=json --jobs 2 --target-dir <state>/cargo-target, PREPARE kind (build.rs/proc macros), RUSTUP_AUTO_INSTALL=0 and CARGO_NET_OFFLINE=true, exit contract 0/101, rule id clippy.<code>|clippy.diagnostic, primary span location, unattributed first error fails, missing build-finished fails. Plans and findings match the oracle for actual Cargo runs.",
+   "difference_reason": "Accepted intended strictness: an unknown Cargo record reason fails the stream (frozen ignored it) and exactly one build-finished record is required; related spans are retained as related locations (not part of the fingerprint); target directory under .ici/rust-v1."
+  },
+  "check:typescript.lint": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/ecosystem.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-providers/src/resolver.rs",
+    "crates/ici-application/src/plan.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/diagnostics.rs::eslint_enumerates_clean_files_and_native_ignore_is_not_an_inspection_pass",
+     "crates/ici-providers/tests/resolution.rs::ecosystem_project_node_tools_win_over_path_and_clippy_uses_cargo"
+    ],
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints",
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success"
+    ]
+   },
+   "evidence": [
+    "Same frozen captures (tests/rust-parity/providers/ecosystem-oracle.json, ecosystem-e2e-oracle.json): actual ESLint on TypeScript sources yields eslint.no-unused-vars and the eslint.parse fatal finding with identical attributed fingerprints in frozen and native analyze; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
+    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log"
+   ],
+   "comparison": "typescript.lint is the frozen ESLint provider bound to the TypeScript unit (same EcosystemProvider('eslint')); planned targets are the component's .ts files; findings, fatal parse errors, fingerprints and parser failure behaviour match the frozen oracle for actual ESLint runs.",
+   "difference_reason": "Same accepted ESLint differences as javascript.lint (File ignored limitation, incomplete closure evidence, no PATH fallback for broken project tool, code point columns, .ici/rust-v1)."
+  },
+  "check:typescript.type": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/ecosystem.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-providers/src/resolver.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
+     "crates/ici-providers/tests/native.rs::typescript_composite_keeps_metadata_isolated_and_never_emits_javascript",
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ],
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::typescript_global_errors_and_external_diagnostics_are_not_dropped_into_success",
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ]
+   },
+   "evidence": [
+    "Frozen captures tests/rust-parity/providers/ecosystem-oracle.json (chained diagnostic, global TS5058, clean) and ecosystem-e2e-oracle.json (actual tsc 7.0.2: tsc.2741 and tsc.2322 with identical attributed fingerprints); /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
+    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log"
+   ],
+   "comparison": "Frozen tsc provider: --noEmit --pretty false --incremental true with tsBuildInfo under ici state, --project tsconfig.json/jsconfig.json else targets, PREPARE kind with the metadata directory as work dir and resource key, exit contract 0..2, `error TS` global lines fail, unrecognized lines fail. Defect fixed: native appended indented message-chain lines to the message, changing native and v3 fingerprints of every chained diagnostic; continuation lines are now ignored exactly as in the frozen parser and actual tsc fingerprints match.",
+   "difference_reason": "Native never claims complete evidence for TypeScript (project closure not enumerated, same as frozen limitation text); a non-empty tsc stderr is refused; metadata lives under .ici/rust-v1/typescript."
+  },
+  "finding_site:src/ici/domain/legacy.py:133:11": {
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-reporting/src/migration.rs",
+    "crates/ici-application/src/baseline.rs"
+   ],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [
+    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+   ],
+   "comparison": "Frozen site: finding_from_legacy (v3 Finding -> next Finding: rule_id/native_rule_id from tool_rule_id). The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
+   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+  },
+  "finding_site:src/ici/domain/legacy.py:192:11": {
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-reporting/src/migration.rs",
+    "crates/ici-application/src/baseline.rs"
+   ],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [
+    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+   ],
+   "comparison": "Frozen site: finding_to_legacy (next Finding -> v3 LegacyFinding). The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
+   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+  },
+  "finding_site:src/ici/execution/legacy_reader.py:168:11": {
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-reporting/src/migration.rs",
+    "crates/ici-application/src/baseline.rs"
+   ],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [
+    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+   ],
+   "comparison": "Frozen site: v3 document finding reader (rule_id/tool_rule_id as strings). The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
+   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+  },
+  "finding_site:src/ici/execution/legacy_reader.py:325:11": {
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-reporting/src/migration.rs",
+    "crates/ici-application/src/baseline.rs"
+   ],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [
+    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+   ],
+   "comparison": "Frozen site: LegacyReport metrics from a v3 document. The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
+   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+  },
+  "finding_site:src/ici/execution/legacy_reader.py:376:11": {
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-reporting/src/migration.rs",
+    "crates/ici-application/src/baseline.rs"
+   ],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [
+    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+   ],
+   "comparison": "Frozen site: promote(LegacyReport) -> RunResult metrics. The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
+   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+  },
+  "finding_site:src/ici/execution/snapshot.py:263:11": {
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-reporting/src/migration.rs",
+    "crates/ici-application/src/baseline.rs"
+   ],
+   "fixtures": {
+    "positive": [],
+    "negative": [],
+    "failure": []
+   },
+   "evidence": [
+    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+   ],
+   "comparison": "Frozen site: SnapshotDiff metric comparison between two RunResults. The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
+   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+  }
+ },
+ "source_files": {
+  "src/ici/core/runner_win.py": {
+   "disposition": "unsupported",
+   "requirements": [
+    "capability:native-windows-disposition"
+   ],
+   "reason": "Read the complete module: ctypes Job Object structs, kill-on-close job, suspended-thread resume, used by core/runner.py only on os.name == 'nt'. Native Windows execution is outside the approved x86_64 Linux/WSL scope (ADR-0008); native bundles for Windows targets are refused (distribution.rs::native_windows_targets_are_refused_and_linux_targets_remain_the_supported_scope)."
+  },
+  "src/ici/domain/legacy.py": {
+   "disposition": "retired",
+   "requirements": [
+    "finding_site:src/ici/domain/legacy.py:133:11",
+    "finding_site:src/ici/domain/legacy.py:192:11"
+   ],
+   "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  },
+  "src/ici/execution/legacy_reader.py": {
+   "disposition": "retired",
+   "requirements": [
+    "finding_site:src/ici/execution/legacy_reader.py:168:11",
+    "finding_site:src/ici/execution/legacy_reader.py:325:11",
+    "finding_site:src/ici/execution/legacy_reader.py:376:11"
+   ],
+   "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  },
+  "src/ici/execution/production.py": {
+   "disposition": "retired",
+   "requirements": [],
+   "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  },
+  "src/ici/execution/results.py": {
+   "disposition": "retired",
+   "requirements": [],
+   "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  },
+  "src/ici/execution/snapshot.py": {
+   "disposition": "retired",
+   "requirements": [
+    "finding_site:src/ici/execution/snapshot.py:263:11"
+   ],
+   "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  },
+  "src/ici/toolchain/assumptions.py": {
+   "disposition": "retired",
+   "requirements": [],
+   "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  }
+ }
+}

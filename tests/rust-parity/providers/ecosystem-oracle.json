@@ -1,0 +1,178 @@
+{
+ "clippy": [
+  {
+   "case": "warnings",
+   "exit": 101,
+   "failed": false,
+   "findings": [
+    {
+     "column": 5,
+     "fingerprint": "ae43367edf2de4cc5c1407a9956f06ef402c9a8ef08d5270ee020520681bcbe7",
+     "line": 3,
+     "message": "unneeded `return`",
+     "native_rule_id": "clippy::needless_return",
+     "path": "src/lib.rs",
+     "rule_id": "clippy.clippy::needless_return",
+     "severity": "warning"
+    },
+    {
+     "column": 9,
+     "fingerprint": "a6d9c658054317c187c60697dfbdc39934fc74e09c9501f11a8f1d0a3c53fce2",
+     "line": 7,
+     "message": "mismatched types",
+     "native_rule_id": "E0308",
+     "path": "src/lib.rs",
+     "rule_id": "clippy.E0308",
+     "severity": "error"
+    },
+    {
+     "column": 1,
+     "fingerprint": "41764572a4d5bfc2c78d172dbda8fb7722ad3156b09357090ed9687278b78c57",
+     "line": 9,
+     "message": "unused import",
+     "native_rule_id": "diagnostic",
+     "path": "src/lib.rs",
+     "rule_id": "clippy.diagnostic",
+     "severity": "warning"
+    }
+   ],
+   "stdout": "{\"reason\": \"compiler-message\", \"message\": {\"level\": \"warning\", \"message\": \"unneeded `return`\", \"code\": {\"code\": \"clippy::needless_return\"}, \"spans\": [{\"file_name\": \"src/lib.rs\", \"line_start\": 3, \"column_start\": 5, \"is_primary\": true}]}}\n{\"reason\": \"compiler-message\", \"message\": {\"level\": \"error\", \"message\": \"mismatched types\", \"code\": {\"code\": \"E0308\"}, \"spans\": [{\"file_name\": \"src/lib.rs\", \"line_start\": 7, \"column_start\": 9, \"is_primary\": true}]}}\n{\"reason\": \"compiler-message\", \"message\": {\"level\": \"warning\", \"message\": \"unused import\", \"code\": null, \"spans\": [{\"file_name\": \"src/lib.rs\", \"line_start\": 9, \"column_start\": 1, \"is_primary\": true}]}}\n{\"reason\": \"build-finished\", \"success\": true}"
+  },
+  {
+   "case": "no-finish",
+   "exit": 0,
+   "failed": true,
+   "findings": [],
+   "stdout": "{\"reason\": \"compiler-message\", \"message\": {\"level\": \"warning\", \"message\": \"m\", \"code\": {\"code\": \"clippy::x\"}, \"spans\": [{\"file_name\": \"src/lib.rs\", \"line_start\": 1, \"column_start\": 1, \"is_primary\": true}]}}"
+  },
+  {
+   "case": "difference:unknown-reason",
+   "exit": 0,
+   "failed": false,
+   "findings": [],
+   "stdout": "{\"reason\": \"future-record\"}\n{\"reason\": \"build-finished\", \"success\": true}"
+  },
+  {
+   "case": "clean",
+   "exit": 0,
+   "failed": false,
+   "findings": [],
+   "stdout": "{\"reason\": \"build-finished\", \"success\": true}"
+  }
+ ],
+ "eslint": [
+  {
+   "case": "rules",
+   "exit": 1,
+   "failed": false,
+   "findings": [
+    {
+     "column": 7,
+     "fingerprint": "50d8bdb8aabc7d7f654c9260e341930c487f9e292e37a39e3f193662d917024f",
+     "line": 1,
+     "message": "'x' is assigned a value but never used.",
+     "native_rule_id": "no-unused-vars",
+     "path": "src/a.js",
+     "rule_id": "eslint.no-unused-vars",
+     "severity": "error"
+    },
+    {
+     "column": 3,
+     "fingerprint": "6b9afe4977cf690ca7fad3446074e71626215cf48a742167a345b1898f57ddb3",
+     "line": 2,
+     "message": "Expected '===' and instead saw '=='.",
+     "native_rule_id": "eqeqeq",
+     "path": "src/a.js",
+     "rule_id": "eslint.eqeqeq",
+     "severity": "warning"
+    }
+   ],
+   "stdout": "[{\"filePath\": \"/workspace/src/a.js\", \"messages\": [{\"ruleId\": \"no-unused-vars\", \"severity\": 2, \"message\": \"'x' is assigned a value but never used.\", \"line\": 1, \"column\": 7}, {\"ruleId\": \"eqeqeq\", \"severity\": 1, \"message\": \"Expected '===' and instead saw '=='.\", \"line\": 2, \"column\": 3}]}, {\"filePath\": \"/workspace/src/clean.js\", \"messages\": []}]"
+  },
+  {
+   "case": "fatal",
+   "exit": 1,
+   "failed": false,
+   "findings": [
+    {
+     "column": 5,
+     "fingerprint": "dd658b20ae49cf2361576ada10507bc905ce950e19d92d9414d4ef2e347200f3",
+     "line": 3,
+     "message": "Parsing error: ';' expected.",
+     "native_rule_id": "parse",
+     "path": "src/b.ts",
+     "rule_id": "eslint.parse",
+     "severity": "error"
+    }
+   ],
+   "stdout": "[{\"filePath\": \"/workspace/src/b.ts\", \"messages\": [{\"ruleId\": null, \"fatal\": true, \"severity\": 2, \"message\": \"Parsing error: ';' expected.\", \"line\": 3, \"column\": 5}]}]"
+  },
+  {
+   "case": "difference:ignored-file",
+   "exit": 0,
+   "failed": true,
+   "findings": [],
+   "stdout": "[{\"filePath\": \"/workspace/src/a.js\", \"messages\": [{\"ruleId\": null, \"severity\": 1, \"message\": \"File ignored because of a matching ignore pattern. Use --no-ignore to override.\"}]}]"
+  },
+  {
+   "case": "not-json",
+   "exit": 2,
+   "failed": true,
+   "findings": [],
+   "stdout": "Oops! Something went wrong!"
+  },
+  {
+   "case": "exit-without-findings",
+   "exit": 1,
+   "failed": true,
+   "findings": [],
+   "stdout": "[]"
+  }
+ ],
+ "root": "/workspace",
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tsc": [
+  {
+   "case": "chain",
+   "exit": 2,
+   "failed": false,
+   "findings": [
+    {
+     "column": 7,
+     "fingerprint": "bc4f3605a4415067c57f260564339382e8c8e8fa6e250423c85757a309cdcced",
+     "line": 4,
+     "message": "Type 'string' is not assignable to type 'number'.",
+     "native_rule_id": "2322",
+     "path": "src/a.ts",
+     "rule_id": "tsc.2322",
+     "severity": "error"
+    },
+    {
+     "column": 1,
+     "fingerprint": "3b8fdb59a9816148a3777e39bda637abaf1f777ba7f4ac478ba4eabaeb86967f",
+     "line": 1,
+     "message": "Cannot find name 'q'.",
+     "native_rule_id": "2304",
+     "path": "src/b.ts",
+     "rule_id": "tsc.2304",
+     "severity": "error"
+    }
+   ],
+   "stdout": "src/a.ts(4,7): error TS2322: Type 'string' is not assignable to type 'number'.\n  Type 'A' is missing.\nsrc/b.ts(1,1): error TS2304: Cannot find name 'q'.\n"
+  },
+  {
+   "case": "global",
+   "exit": 1,
+   "failed": true,
+   "findings": [],
+   "stdout": "error TS5058: The specified path does not exist.\n"
+  },
+  {
+   "case": "clean",
+   "exit": 0,
+   "failed": false,
+   "findings": [],
+   "stdout": ""
+  }
+ ]
+}

@@ -89,7 +89,8 @@ fn rerun_replaces_its_previous_event_stream_but_never_an_unrelated_file() {
             storage::read_event_stream(&directory.path().join("events.jsonl")).unwrap();
         assert!(notes.is_empty());
         assert!(events.iter().all(|event| event.run_id == run.result.run_id));
-        assert_eq!(events.first().unwrap().seq, 1);
+        // Frozen next_events writer numbers a run's events from 0.
+        assert_eq!(events.first().unwrap().seq, 0);
         run_ids.push(run.result.run_id);
     }
     assert_ne!(run_ids[0], run_ids[1]);
