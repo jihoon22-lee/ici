@@ -1,0 +1,291 @@
+{
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "suites": {
+  "warn-tem": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "WARN",
+   "tem_score": 3.456,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "PASS",
+     "summary": "Total 4 lines"
+    },
+    {
+     "engine_name": "lint",
+     "status": "WARN",
+     "summary": "a | b\nnext line"
+    },
+    {
+     "engine_name": "type",
+     "status": "FAIL",
+     "summary": "2 errors"
+    },
+    {
+     "engine_name": "test",
+     "status": "ERROR",
+     "summary": "did not run"
+    },
+    {
+     "engine_name": "dead",
+     "status": "SKIP",
+     "summary": "no sources"
+    }
+   ],
+   "baseline_comparison": {
+    "source_path": "base.json",
+    "warnings": [
+     "first `warn` | x",
+     "second"
+    ],
+    "baseline_metadata": null,
+    "fail_on_new": true,
+    "gate_failed": true,
+    "new_count": 1,
+    "unchanged_count": 1,
+    "moved_count": 0,
+    "resolved_count": 0,
+    "regressed_count": 1,
+    "gated_count": 2,
+    "entries": [
+     {
+      "state": "new",
+      "regressed": false,
+      "gated": true
+     },
+     {
+      "state": "unchanged",
+      "regressed": true,
+      "gated": true
+     }
+    ]
+   }
+  },
+  "pass-no-tem": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "PASS",
+   "tem_score": null,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "PASS",
+     "summary": "ok"
+    }
+   ],
+   "baseline_comparison": null
+  }
+ },
+ "negative_suites": {
+  "unknown-engine-status": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "PASS",
+   "tem_score": null,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "OK",
+     "summary": "ok"
+    }
+   ],
+   "baseline_comparison": null
+  },
+  "null-engine-status": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "PASS",
+   "tem_score": null,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": null
+    }
+   ],
+   "baseline_comparison": null
+  },
+  "unknown-schema": {
+   "schema_version": "ici.result/v4",
+   "suite_status": "PASS",
+   "tem_score": null,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "PASS",
+     "summary": "ok"
+    }
+   ],
+   "baseline_comparison": null
+  },
+  "bad-duration": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "PASS",
+   "tem_score": null,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "PASS",
+     "duration": "slow"
+    }
+   ],
+   "baseline_comparison": null
+  },
+  "null-summary-bool-tem": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "PASS",
+   "tem_score": true,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "PASS",
+     "summary": null
+    }
+   ],
+   "baseline_comparison": null
+  },
+  "miscounted-baseline": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "WARN",
+   "tem_score": 3.456,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "PASS",
+     "summary": "Total 4 lines"
+    },
+    {
+     "engine_name": "lint",
+     "status": "WARN",
+     "summary": "a | b\nnext line"
+    },
+    {
+     "engine_name": "type",
+     "status": "FAIL",
+     "summary": "2 errors"
+    },
+    {
+     "engine_name": "test",
+     "status": "ERROR",
+     "summary": "did not run"
+    },
+    {
+     "engine_name": "dead",
+     "status": "SKIP",
+     "summary": "no sources"
+    }
+   ],
+   "baseline_comparison": {
+    "source_path": "base.json",
+    "warnings": [
+     "first `warn` | x",
+     "second"
+    ],
+    "baseline_metadata": null,
+    "fail_on_new": true,
+    "gate_failed": true,
+    "new_count": 1,
+    "unchanged_count": 1,
+    "moved_count": 0,
+    "resolved_count": 0,
+    "regressed_count": 1,
+    "gated_count": 1,
+    "entries": [
+     {
+      "state": "new",
+      "regressed": false,
+      "gated": true
+     },
+     {
+      "state": "unchanged",
+      "regressed": true,
+      "gated": true
+     }
+    ]
+   }
+  },
+  "uppercase-baseline-state": {
+   "schema_version": "ici.result/v3",
+   "suite_status": "WARN",
+   "tem_score": 3.456,
+   "max_tem_score": 5.0,
+   "results": [
+    {
+     "engine_name": "line",
+     "status": "PASS",
+     "summary": "Total 4 lines"
+    },
+    {
+     "engine_name": "lint",
+     "status": "WARN",
+     "summary": "a | b\nnext line"
+    },
+    {
+     "engine_name": "type",
+     "status": "FAIL",
+     "summary": "2 errors"
+    },
+    {
+     "engine_name": "test",
+     "status": "ERROR",
+     "summary": "did not run"
+    },
+    {
+     "engine_name": "dead",
+     "status": "SKIP",
+     "summary": "no sources"
+    }
+   ],
+   "baseline_comparison": {
+    "source_path": "base.json",
+    "warnings": [
+     "first `warn` | x",
+     "second"
+    ],
+    "baseline_metadata": null,
+    "fail_on_new": true,
+    "gate_failed": true,
+    "new_count": 1,
+    "unchanged_count": 1,
+    "moved_count": 0,
+    "resolved_count": 0,
+    "regressed_count": 1,
+    "gated_count": 2,
+    "entries": [
+     {
+      "state": "NEW",
+      "regressed": false,
+      "gated": true
+     },
+     {
+      "state": "unchanged",
+      "regressed": true,
+      "gated": true
+     }
+    ]
+   }
+  }
+ },
+ "single": {
+  "viewer": "<!-- ici-report -->\n## ⚠️ ici Quality Gate — **`WARN`** · TEM **`3.46/5.0`**\n\n[![Open Report](https://img.shields.io/badge/%F0%9F%93%8A_HTML_%EB%A6%AC%ED%8F%AC%ED%8A%B8_%EC%97%B4%EA%B8%B0-38bdf8?style=for-the-badge)](https://pages.example/a/index.html)\n\n<sub>뷰어 URL: https://pages.example/a/index.html</sub>\n\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 1 | 1 | 1 | 1 | `3.46/5.0` |\n\n> 🔎 **Baseline delta**: new **1** · regressed **1** · gated **2** · gate **❌ FAILED**\n> ⚠️ **Baseline warnings (2)**: first &#96;warn&#96; &#124; x (+1 more)\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `dead` | ⏭️ `SKIP` | no sources |\n| `lint` | ⚠️ `WARN` | a \\| b next line |\n| `test` | ⛔ `ERROR` | did not run |\n| `line` | ✅ `PASS` | Total 4 lines |\n| `type` | ❌ `FAIL` | 2 errors |\n\n</details>\n\n모드 `self`<br/>경로 `pr/7/index.html`<br/>[⚙️ Workflow Run](https://github.example/team/repo/actions/runs/9)<br/><sub>generated by ici</sub>",
+  "no-pages": "<!-- ici-report -->\n## ✅ ici Quality Gate — **`PASS`**\n\n> 📦 리포트가 `proj/pr/7/index.html`(gh-pages)에 푸시되었습니다. **최초 1회** Settings → Pages → Source에서 `gh-pages`를 선택하면 이 댓글에 뷰어 링크가 표시됩니다.\n\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 0 | 0 | 0 | 0 | — |\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `line` | ✅ `PASS` | ok |\n\n</details>\n\n모드 `hub`<br/>경로 `proj/pr/7/index.html`<br/><sub>generated by ici</sub>",
+  "no-suite": "<!-- ici-report -->\n## 🛡️ ici Quality Gate Report\n\n[![Open Report](https://img.shields.io/badge/%F0%9F%93%8A_HTML_%EB%A6%AC%ED%8F%AC%ED%8A%B8_%EC%97%B4%EA%B8%B0-38bdf8?style=for-the-badge)](https://pages.example/b/index.html)\n\n<sub>뷰어 URL: https://pages.example/b/index.html</sub>\n\n> ⚠️ 스위트 요약 JSON이 제공되지 않아 엔진 상세가 생략되었습니다.\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>"
+ },
+ "negative": {
+  "unknown-engine-status": "<!-- ici-report -->\n## 🛡️ ici Quality Gate Report\n\n📄 리포트가 `index.html`에 게시되었습니다.\n\n> ⚠️ 스위트 요약 JSON이 제공되지 않아 엔진 상세가 생략되었습니다.\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>",
+  "null-engine-status": "<!-- ici-report -->\n## 🛡️ ici Quality Gate Report\n\n📄 리포트가 `index.html`에 게시되었습니다.\n\n> ⚠️ 스위트 요약 JSON이 제공되지 않아 엔진 상세가 생략되었습니다.\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>",
+  "unknown-schema": "<!-- ici-report -->\n## 🛡️ ici Quality Gate Report\n\n📄 리포트가 `index.html`에 게시되었습니다.\n\n> ⚠️ 스위트 요약 JSON이 제공되지 않아 엔진 상세가 생략되었습니다.\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>",
+  "bad-duration": "<!-- ici-report -->\n## 🛡️ ici Quality Gate Report\n\n📄 리포트가 `index.html`에 게시되었습니다.\n\n> ⚠️ 스위트 요약 JSON이 제공되지 않아 엔진 상세가 생략되었습니다.\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>",
+  "null-summary-bool-tem": "<!-- ici-report -->\n## ✅ ici Quality Gate — **`PASS`** · TEM **`1.00/5.0`**\n\n📄 리포트가 `index.html`에 게시되었습니다.\n\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 0 | 0 | 0 | 0 | `1.00/5.0` |\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `line` | ✅ `PASS` | None |\n\n</details>\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>",
+  "miscounted-baseline": "<!-- ici-report -->\n## ⚠️ ici Quality Gate — **`WARN`** · TEM **`3.46/5.0`**\n\n📄 리포트가 `index.html`에 게시되었습니다.\n\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 1 | 1 | 1 | 1 | `3.46/5.0` |\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `dead` | ⏭️ `SKIP` | no sources |\n| `lint` | ⚠️ `WARN` | a \\| b next line |\n| `test` | ⛔ `ERROR` | did not run |\n| `line` | ✅ `PASS` | Total 4 lines |\n| `type` | ❌ `FAIL` | 2 errors |\n\n</details>\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>",
+  "uppercase-baseline-state": "<!-- ici-report -->\n## ⚠️ ici Quality Gate — **`WARN`** · TEM **`3.46/5.0`**\n\n📄 리포트가 `index.html`에 게시되었습니다.\n\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 1 | 1 | 1 | 1 | `3.46/5.0` |\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `dead` | ⏭️ `SKIP` | no sources |\n| `lint` | ⚠️ `WARN` | a \\| b next line |\n| `test` | ⛔ `ERROR` | did not run |\n| `line` | ✅ `PASS` | Total 4 lines |\n| `type` | ❌ `FAIL` | 2 errors |\n\n</details>\n\n모드 `self`<br/>경로 `index.html`<br/><sub>generated by ici</sub>"
+ },
+ "multi": {
+  "pages": "<!-- ici-report -->\n## ⚠️ ici Quality Gate — 3개 프로젝트\n\n| 프로젝트 | 상태 | TEM | 리포트 |\n|---|:---:|:---:|:---:|\n| `api` | ⚠️ `WARN` | `3.46/5.0` | [📊 열기](https://pages.example/api) |\n| `web` | ✅ `PASS` | — | `web/pr/7/index.html` |\n| `docs` | — | — | `docs/pr/7/index.html` |\n\n#### `api`\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 1 | 1 | 1 | 1 | `3.46/5.0` |\n\n> 🔎 **Baseline delta**: new **1** · regressed **1** · gated **2** · gate **❌ FAILED**\n> ⚠️ **Baseline warnings (2)**: first &#96;warn&#96; &#124; x (+1 more)\n\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `dead` | ⏭️ `SKIP` | no sources |\n| `lint` | ⚠️ `WARN` | a \\| b next line |\n| `test` | ⛔ `ERROR` | did not run |\n| `line` | ✅ `PASS` | Total 4 lines |\n| `type` | ❌ `FAIL` | 2 errors |\n\n</details>\n\n#### `web`\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 0 | 0 | 0 | 0 | — |\n\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `line` | ✅ `PASS` | ok |\n\n</details>\n\n---\n모드 `self`<br/>경로 `api/pr/7/index.html, web/pr/7/index.html, docs/pr/7/index.html`<br/>[⚙️ Workflow Run](https://github.example/team/repo/actions/runs/9)<br/><sub>generated by ici</sub>",
+  "no-pages": "<!-- ici-report -->\n## ✅ ici Quality Gate — 2개 프로젝트\n\n| 프로젝트 | 상태 | TEM | 리포트 |\n|---|:---:|:---:|:---:|\n| `web` | ✅ `PASS` | — | `web/pr/7/index.html` |\n| `docs` | — | — | `docs/pr/7/index.html` |\n\n> 📦 리포트가 gh-pages 에 푸시되었습니다. **최초 1회** Settings → Pages → Source 에서 `gh-pages` 를 선택하면 이 표에 뷰어 링크가 표시됩니다.\n\n#### `web`\n| ✅ Pass | ⚠️ Warn | ❌ Fail | ⛔ Error | ⏭️ Skip | 🎯 TEM |\n|:---:|:---:|:---:|:---:|:---:|:---:|\n| 1 | 0 | 0 | 0 | 0 | — |\n\n<details>\n<summary><b>🔍 엔진 상세 결과</b></summary>\n\n| Engine | Status | Summary |\n|---|:---:|---|\n| `line` | ✅ `PASS` | ok |\n\n</details>\n\n---\n모드 `hub`<br/>경로 `web/pr/7/index.html, docs/pr/7/index.html`<br/><sub>generated by ici</sub>"
+ }
+}

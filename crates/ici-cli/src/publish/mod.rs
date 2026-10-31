@@ -1,5 +1,6 @@
 //! Stored publication is a separate outcome; it never rewrites the analysis verdict.
 pub mod api;
+pub mod legacy_comment;
 use crate::{
     commands::{CliError, CommandOutput, Result, under},
     registry::Invocation,
@@ -30,6 +31,14 @@ pub struct Publication {
     pub reference: String,
     pub marker: String,
     pub run_url: Option<String>,
+    /// Historical `ici publish` posts the frozen sticky comment layout instead of the native one.
+    pub legacy: Option<LegacyComment>,
+}
+pub struct LegacyComment {
+    /// The one report came from `--html/--json` (frozen's unlabeled single-report comment).
+    pub unlabeled: bool,
+    /// Frozen `hub` when reports go to a separate publication repository, otherwise `self`.
+    pub mode: String,
 }
 pub fn publish_with_transport<
     F: FnMut(&Request) -> std::result::Result<Response, TransportError>,
@@ -109,6 +118,7 @@ fn perform<F: FnMut(&Request) -> std::result::Result<Response, TransportError>>(
     client.ensure_branch(base)?;
     let site = client.pages()?;
     let mut summaries = vec![];
+    let mut legacy_reports = vec![];
     let mut errors = vec![];
     for page in &publication.pages {
         let label = slug(&page.label);
@@ -129,6 +139,20 @@ fn perform<F: FnMut(&Request) -> std::result::Result<Response, TransportError>>(
         record["reports"].as_array_mut().expect("report array").push(json!({"label":page.label,"remote_path":path,"viewer_url":viewer,"uploaded":uploaded.is_ok(),"detail":detail,"artifact":{"sha256":ici_domain::sha256(&page.bytes),"bytes":page.bytes.len()},"result_sha256":page.result_digest}));
         if let Err(reason) = uploaded {
             errors.push(format!("{label}: {reason}"));
+        }
+        if publication.legacy.is_some() {
+            legacy_reports.push(legacy_comment::Report {
+                label: &page.label,
+                suite: match &page.result {
+                    Some(StoredResult::Legacy(document)) => {
+                        legacy_comment::suite(document.as_value())
+                    }
+                    _ => None,
+                },
+                remote_path: path,
+                viewer,
+            });
+            continue;
         }
         let summary = page
             .result
@@ -192,14 +216,19 @@ fn perform<F: FnMut(&Request) -> std::result::Result<Response, TransportError>>(
                 "reports uploaded; comment retained because a newer run already reported".into(),
             );
         }
-        let mut body = format!(
-            "{}\n## ici verification report\n\n{}",
-            publication.marker,
-            summaries.join("\n\n")
-        );
-        if let Some(url) = &publication.run_url {
-            body.push_str(&format!("\n\n[Workflow run]({url})"));
-        }
+        let mut body = if let Some(legacy) = &publication.legacy {
+            legacy_body(legacy, &legacy_reports, site.is_some(), publication)
+        } else {
+            let mut body = format!(
+                "{}\n## ici verification report\n\n{}",
+                publication.marker,
+                summaries.join("\n\n")
+            );
+            if let Some(url) = &publication.run_url {
+                body.push_str(&format!("\n\n[Workflow run]({url})"));
+            }
+            body
+        };
         body = ici_reporting::bounded_summary(&body, 60_000).map_err(|error| error.to_string())?;
         body.push_str(&format!(
             "\n<!-- head:{} run:{}.{} -->",
@@ -221,6 +250,25 @@ fn perform<F: FnMut(&Request) -> std::result::Result<Response, TransportError>>(
         "published (Pages is not enabled)"
     }
     .into())
+}
+fn legacy_body(
+    legacy: &LegacyComment,
+    reports: &[legacy_comment::Report<'_>],
+    pages_enabled: bool,
+    publication: &Publication,
+) -> String {
+    let run_url = publication.run_url.as_deref();
+    match reports {
+        [report] if legacy.unlabeled => legacy_comment::single(
+            report.suite.as_ref(),
+            report.viewer.as_deref(),
+            pages_enabled,
+            &legacy.mode,
+            &report.remote_path,
+            run_url,
+        ),
+        _ => legacy_comment::multi(reports, &legacy.mode, run_url, pages_enabled),
+    }
 }
 fn newer_run(body: &str, run: u64, attempt: u64) -> bool {
     body.split(" run:")
@@ -466,9 +514,19 @@ pub fn command_with_transport(
         marker: if modern {
             format!("<!-- ici-next:{} -->", slug(&config.workspace_name))
         } else {
-            "<!-- ici-report -->".into()
+            legacy_comment::MARKER.into()
         },
         run_url,
+        legacy: (!modern).then(|| LegacyComment {
+            unlabeled: invocation.values("report_dir").is_empty(),
+            mode: if !get("ICI_PUBLISH_REPO").trim().is_empty()
+                || !own_repo.is_empty() && repo != own_repo
+            {
+                "hub".into()
+            } else {
+                "self".into()
+            },
+        }),
     };
     let record = publish_with_transport(&publication, send);
     save_record(&record_path, &record)?;
