@@ -14,6 +14,8 @@ use std::{fs::File, io::Read, os::fd::AsRawFd, path::PathBuf};
 
 const SCHEMA_ID: &str = "ici.native.observation";
 const MAX_CACHE_BYTES: usize = 16 * 1024 * 1024;
+/// Frozen `ObservationCache._MAX_ENTRIES`: oldest entries beyond this bound are evicted.
+pub const MAX_CACHE_ENTRIES: usize = 512;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CacheIdentity {
@@ -28,7 +30,12 @@ pub struct CacheIdentity {
 }
 impl CacheIdentity {
     pub fn key(&self, task: &TaskSpec) -> Result<Option<String>> {
-        if !self.inputs_complete || !task.cacheable || task.mutating() || task.tool_digest.is_none()
+        // Frozen #209 item 6: test evidence is per-run and never persisted, whatever the flag says.
+        if !self.inputs_complete
+            || !task.cacheable
+            || task.mutating()
+            || task.kind == ici_domain::TaskKind::Test
+            || task.tool_digest.is_none()
         {
             return Ok(None);
         }
@@ -232,7 +239,49 @@ impl ObservationCache {
             WriteMode::ReplaceRegular,
         )
         .map_err(|e| ApplicationError(format!("cache write: {e}")))?;
+        self.evict(MAX_CACHE_ENTRIES)?;
         Ok(true)
+    }
+    /// Bound the entry count, oldest modification first, like the frozen LRU-by-mtime eviction.
+    /// Only exact native entry names that are regular files are candidates; anything else in
+    /// the directory is neither counted nor followed nor removed.
+    pub fn evict(&self, limit: usize) -> Result<usize> {
+        let directory = match crate::snapshot::directory(&self.directory) {
+            Ok(directory) => directory,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(0),
+            Err(error) => return Err(ApplicationError(format!("cache directory: {error}"))),
+        };
+        let listing = std::fs::read_dir(format!("/proc/self/fd/{}", directory.as_raw_fd()))
+            .map_err(|e| ApplicationError(e.to_string()))?;
+        let mut candidates = vec![];
+        for entry in listing {
+            let entry = entry.map_err(|e| ApplicationError(e.to_string()))?;
+            let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
+            let Some(stem) = name.strip_suffix(".json") else {
+                continue;
+            };
+            if validation::digest(&format!("sha256:{stem}"), "cache key").is_err() {
+                continue;
+            }
+            let Ok(metadata) = fstatat(&directory, name.as_str(), AtFlags::AT_SYMLINK_NOFOLLOW)
+            else {
+                continue;
+            };
+            if metadata.st_mode & SFlag::S_IFMT.bits() == SFlag::S_IFREG.bits() {
+                candidates.push(((metadata.st_mtime, metadata.st_mtime_nsec), name));
+            }
+        }
+        let excess = candidates.len().saturating_sub(limit.max(1));
+        candidates.sort();
+        for (_, name) in candidates.iter().take(excess) {
+            match unlinkat(&directory, name.as_str(), UnlinkatFlags::NoRemoveDir) {
+                Ok(()) | Err(nix::errno::Errno::ENOENT) => {}
+                Err(error) => return Err(ApplicationError(format!("cache eviction: {error}"))),
+            }
+        }
+        Ok(excess)
     }
     /// Inspect/unlink exact entry names through a stable no-follow directory descriptor. Unknown
     /// files and subdirectories are never removed by a native cache clear.
