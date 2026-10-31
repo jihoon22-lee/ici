@@ -436,7 +436,7 @@ pub fn execute(
                         "task.completed",
                         Some(id),
                         Some(&planned.component_id),
-                        &format!("{:?}", output.observation.state),
+                        &state_label(output.observation.state),
                     );
                     outputs.insert(id.clone(), output);
                 }
@@ -514,7 +514,7 @@ pub fn execute(
                         "task.completed",
                         Some(id),
                         Some(&planned.component_id),
-                        &format!("{:?}", output.observation.state),
+                        &state_label(output.observation.state),
                     );
                     outputs.insert(id.clone(), output);
                 }
@@ -624,7 +624,7 @@ pub fn execute(
                 "task.completed",
                 Some(&outcome.task_id),
                 None,
-                &format!("{:?}", outcome.state),
+                &state_label(outcome.state),
             );
             if let Some(id) = outcome.task_id.strip_suffix(".files") {
                 let provider = prepared
@@ -698,7 +698,7 @@ pub fn execute(
                 "task.completed",
                 Some(&id),
                 None,
-                &format!("{:?}", output.observation.state),
+                &state_label(output.observation.state),
             );
             outputs.insert(id, output);
         }
@@ -943,11 +943,29 @@ pub fn execute(
     ))
     .map_err(error)?;
     storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
+    // Frozen next_path: a cancelled run first names why, then the completion carries the verdict.
+    if cancellation.is_cancelled() {
+        events.emit(
+            "diagnostic",
+            None,
+            None,
+            &format!(
+                "cancelled: {}",
+                cancellation
+                    .reason()
+                    .unwrap_or_else(|| "user request".into())
+            ),
+        );
+    }
     events.emit(
         "run.completed",
         None,
         None,
-        &format!("{:?}", result.gate.selected),
+        &format!(
+            "{}: {} finding(s)",
+            wire_label(&result.gate.selected),
+            result.findings.len()
+        ),
     );
     if let Some(failure) = events.failure()
         && !result.limitations.contains(&failure)
@@ -1012,7 +1030,7 @@ pub(crate) fn execute_artifact_prepare(
                 "task.completed",
                 Some(&outcome.task_id),
                 Some(&initial.component_id),
-                &format!("{:?}", outcome.state),
+                &state_label(outcome.state),
             );
             if build
                 .version_probe
@@ -1280,7 +1298,7 @@ fn execute_validation(
                             "task.completed",
                             Some(&outcome.task_id),
                             Some(&plan.context.component_id),
-                            &format!("{:?}", outcome.state),
+                            &state_label(outcome.state),
                         );
                         outcomes.insert(outcome.task_id.clone(), outcome);
                     }
@@ -1439,4 +1457,15 @@ fn engine_names(prepared: &crate::planning::PreparedPlan) -> BTreeMap<String, St
                 .map(|name| (planned.task_id.clone(), name.into()))
         })
         .collect()
+}
+
+/// The wire spelling of an enum value (`SUCCEEDED`, `INCOMPLETE`), as the frozen event messages use.
+fn wire_label<T: serde::Serialize>(value: &T) -> String {
+    serde_json::to_value(value)
+        .ok()
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .unwrap_or_default()
+}
+fn state_label(state: ici_domain::TaskState) -> String {
+    wire_label(&state)
 }

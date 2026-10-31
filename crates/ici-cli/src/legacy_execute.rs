@@ -184,6 +184,45 @@ pub fn command(
         }
     }
     let mut stored = crate::report::load(&run.result_path)?;
+    let shaping = Shaping {
+        prepared: &prepared,
+        root: &root,
+        legacy_schema,
+        coverage_required,
+        warn_cc: &warn_cc,
+        regressed,
+    };
+    // `verify` shapes every engine of the suite with the same helper as the family commands, so a
+    // missing Ruff/mypy reads the same in both (frozen verify runs the same engine bodies).
+    if engine(&invocation.command()).is_none()
+        && legacy_schema
+        && let StoredResult::Legacy(legacy) = &stored
+    {
+        let mut document = legacy.as_value().clone();
+        let mut replaced_any = false;
+        let mut floor = 0;
+        if let Some(results) = document["results"].as_array_mut() {
+            for value in results {
+                let family = value["engine_name"].as_str().unwrap_or_default().to_owned();
+                let (replaced, engine_floor) = shape_engine(&family, value, &shaping)?;
+                replaced_any |= replaced;
+                floor = floor.max(engine_floor);
+            }
+        }
+        if replaced_any {
+            // The native run was incomplete only through checks these engines replaced when the
+            // recomputed suite has no remaining required NOT_RUN/ERROR engine.
+            let status = ici_reporting::legacy_refresh_suite(&mut document).map_err(error)?;
+            exit_code = if status == "ERROR" {
+                exit_code.max(1)
+            } else {
+                ici_reporting::legacy_exit_code(&status)
+                    .max(floor)
+                    .max(i32::from(regressed))
+            };
+            stored = StoredResult::from_value(document).map_err(error)?;
+        }
+    }
     if let Some(family) = engine(&invocation.command())
         && let StoredResult::Legacy(legacy) = &stored
     {
@@ -195,146 +234,8 @@ pub fn command(
             .ok_or_else(|| CliError(format!("{family}: no applicable language/check selected")))?;
         // Frozen measured verdicts that replace the native one (no test file, refused coverage
         // policy) carry the frozen exit code; every other legacy view only adds its own class.
-        let mut replaced = false;
-        if family == "test"
-            && legacy_schema
-            && let Some(languages) =
-                no_tests_collected(&root, &value).or_else(|| empty_pytest_suite(&value))
-        {
-            // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
-            ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
-            replaced = true;
-        } else if legacy_schema
-            && let Some((status, evidence, summary, target)) =
-                no_python_sources(family, &value, &warn_cc)
-        {
-            ici_reporting::legacy_no_sources(&mut value, status, evidence, &summary, target)
-                .map_err(error)?;
-            replaced = true;
-        } else if family == "lint" && legacy_schema && ruff_unavailable(&value) {
-            // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
-            // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under
-            // `ruff_required`, a tool error (NOT_RUN).
-            let setting = |key: &str| {
-                prepared.project.components.iter().find_map(|component| {
-                    component
-                        .settings
-                        .pointer(&format!("/engines/lint/{key}"))
-                        .cloned()
-                })
-            };
-            let mut targets = vec![];
-            let mut parsed = 0;
-            for component in &prepared.project.components {
-                parsed += component
-                    .files
-                    .iter()
-                    .filter(|path| path.ends_with(".py"))
-                    .count();
-                targets.extend(crate::legacy::python_syntax_targets(
-                    &root,
-                    &component.files,
-                ));
-            }
-            let fail = targets.len();
-            let mut targets: Vec<_> = targets
-                .into_iter()
-                .map(|target| serde_json::to_value(target).map_err(error))
-                .collect::<Result<_>>()?;
-            targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
-                "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
-                "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
-                "snippet":"","metrics":{"files_parsed":parsed}}));
-            if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
-                ici_reporting::legacy_verdict(
-                    &mut value,
-                    "ERROR",
-                    "NOT_RUN",
-                    "Ruff is required but was not found",
-                    targets,
-                )
-                .map_err(error)?;
-            } else {
-                let mode = setting("mode")
-                    .and_then(|value| value.as_str().map(str::to_owned))
-                    .unwrap_or_else(|| "pass_warn_fail".into());
-                let status = match mode.as_str() {
-                    "pass_warn" => "WARN",
-                    "pass_fail" => "FAIL",
-                    _ if fail > 0 => "FAIL",
-                    _ => "WARN",
-                };
-                let summary = if fail == 0 {
-                    "Ruff is unavailable; AST syntax fallback is ESTIMATED".to_owned()
-                } else {
-                    format!("{fail} Errors, 1 Warnings Found")
-                };
-                ici_reporting::legacy_verdict(&mut value, status, "ESTIMATED", &summary, targets)
-                    .map_err(error)?;
-                replaced = true;
-            }
-        } else if family == "type" && legacy_schema && mypy_unavailable(&value) {
-            // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
-            // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
-            let setting = |key: &str| {
-                prepared.project.components.iter().find_map(|component| {
-                    component
-                        .settings
-                        .pointer(&format!("/engines/type/{key}"))
-                        .cloned()
-                })
-            };
-            if setting("mypy_required").and_then(|value| value.as_bool()) == Some(true) {
-                value["status"] = serde_json::json!("ERROR");
-                value["evidence"] = serde_json::json!("NOT_RUN");
-                value["summary"] = serde_json::json!("Mypy is required but was not found");
-            } else {
-                let mode = setting("mode")
-                    .and_then(|value| value.as_str().map(str::to_owned))
-                    .unwrap_or_else(|| "pass_warn".into());
-                let targets = value["targets"].as_array().cloned().unwrap_or_default();
-                let count = |status: &str| {
-                    targets
-                        .iter()
-                        .filter(|target| target["status"] == status)
-                        .count()
-                };
-                let (fail, warn) = (count("FAIL"), count("WARN") + 1);
-                let status = match mode.as_str() {
-                    "pass_warn" => "WARN",
-                    "pass_fail" => "FAIL",
-                    _ if fail > 0 => "FAIL",
-                    _ => "WARN",
-                };
-                value["status"] = serde_json::json!(status);
-                value["evidence"] = serde_json::json!("ESTIMATED");
-                value["summary"] = serde_json::json!(format!(
-                    "{fail} Type Findings, {warn} Warnings; Mypy is unavailable; AST fallback is ESTIMATED"
-                ));
-                replaced = true;
-            }
-        } else if family == "test"
-            && legacy_schema
-            && let Some(reason) = refused_policy(&value)
-        {
-            ici_reporting::legacy_policy_refused(&mut value, &reason).map_err(error)?;
-            replaced = true;
-        } else if family == "test"
-            && legacy_schema
-            && !coverage_required
-            && let Some(reason) = optional_coverage_missing(&value)
-        {
-            // Frozen optional coverage: a missing coverage module is a WARN beside the measured
-            // test verdict (FAIL still wins). Native never invents the frozen estimate.
-            let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
-            value["status"] = serde_json::json!(status);
-            let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
-            let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
-            value["summary"] = serde_json::json!(format!(
-                "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
-            ));
-            exit_code = exit_code.max(code);
-        }
+        let (replaced, floor) = shape_engine(family, &mut value, &shaping)?;
+        exit_code = exit_code.max(floor);
         let status = value["status"].as_str().unwrap_or_default();
         exit_code = if replaced {
             // Both replacements are FAIL/ERROR (exit 1); a regression already means exit 1.
@@ -496,6 +397,177 @@ pub fn command(
         exit_code,
     })
 }
+#[derive(Clone, Copy)]
+struct Shaping<'a> {
+    prepared: &'a crate::planning::PreparedPlan,
+    root: &'a Path,
+    legacy_schema: bool,
+    coverage_required: bool,
+    warn_cc: &'a str,
+    regressed: bool,
+}
+/// Frozen engine verdicts the native result cannot express by itself (missing Ruff/mypy
+/// fallbacks, no sources, no tests, refused or optional coverage). Returns whether the native
+/// verdict was replaced and the exit floor the legacy view adds.
+fn shape_engine(
+    family: &str,
+    value: &mut serde_json::Value,
+    shaping: &Shaping<'_>,
+) -> Result<(bool, i32)> {
+    let Shaping {
+        prepared,
+        root,
+        legacy_schema,
+        coverage_required,
+        warn_cc,
+        regressed,
+    } = *shaping;
+    let root = root.to_path_buf();
+    let warn_cc = warn_cc.to_owned();
+    let mut replaced = false;
+    let mut exit_code = 0;
+    if family == "test"
+        && legacy_schema
+        && let Some(languages) =
+            no_tests_collected(&root, value).or_else(|| empty_pytest_suite(value))
+    {
+        // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
+        ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
+        replaced = true;
+    } else if legacy_schema
+        && let Some((status, evidence, summary, target)) =
+            no_python_sources(family, value, &warn_cc)
+    {
+        ici_reporting::legacy_no_sources(value, status, evidence, &summary, target)
+            .map_err(error)?;
+        replaced = true;
+    } else if family == "lint" && legacy_schema && ruff_unavailable(value) {
+        // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
+        // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under
+        // `ruff_required`, a tool error (NOT_RUN).
+        let setting = |key: &str| {
+            prepared.project.components.iter().find_map(|component| {
+                component
+                    .settings
+                    .pointer(&format!("/engines/lint/{key}"))
+                    .cloned()
+            })
+        };
+        let mut targets = vec![];
+        let mut parsed = 0;
+        for component in &prepared.project.components {
+            parsed += component
+                .files
+                .iter()
+                .filter(|path| path.ends_with(".py"))
+                .count();
+            targets.extend(crate::legacy::python_syntax_targets(
+                &root,
+                &component.files,
+            ));
+        }
+        let fail = targets.len();
+        let mut targets: Vec<_> = targets
+            .into_iter()
+            .map(|target| serde_json::to_value(target).map_err(error))
+            .collect::<Result<_>>()?;
+        targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
+                "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
+                "snippet":"","metrics":{"files_parsed":parsed}}));
+        if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
+            ici_reporting::legacy_verdict(
+                value,
+                "ERROR",
+                "NOT_RUN",
+                "Ruff is required but was not found",
+                targets,
+            )
+            .map_err(error)?;
+        } else {
+            let mode = setting("mode")
+                .and_then(|value| value.as_str().map(str::to_owned))
+                .unwrap_or_else(|| "pass_warn_fail".into());
+            let status = match mode.as_str() {
+                "pass_warn" => "WARN",
+                "pass_fail" => "FAIL",
+                _ if fail > 0 => "FAIL",
+                _ => "WARN",
+            };
+            let summary = if fail == 0 {
+                "Ruff is unavailable; AST syntax fallback is ESTIMATED".to_owned()
+            } else {
+                format!("{fail} Errors, 1 Warnings Found")
+            };
+            ici_reporting::legacy_verdict(value, status, "ESTIMATED", &summary, targets)
+                .map_err(error)?;
+            replaced = true;
+        }
+    } else if family == "type" && legacy_schema && mypy_unavailable(value) {
+        // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
+        // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
+        let setting = |key: &str| {
+            prepared.project.components.iter().find_map(|component| {
+                component
+                    .settings
+                    .pointer(&format!("/engines/type/{key}"))
+                    .cloned()
+            })
+        };
+        if setting("mypy_required").and_then(|value| value.as_bool()) == Some(true) {
+            value["status"] = serde_json::json!("ERROR");
+            value["evidence"] = serde_json::json!("NOT_RUN");
+            value["summary"] = serde_json::json!("Mypy is required but was not found");
+        } else {
+            let mode = setting("mode")
+                .and_then(|value| value.as_str().map(str::to_owned))
+                .unwrap_or_else(|| "pass_warn".into());
+            let targets = value["targets"].as_array().cloned().unwrap_or_default();
+            let count = |status: &str| {
+                targets
+                    .iter()
+                    .filter(|target| target["status"] == status)
+                    .count()
+            };
+            let (fail, warn) = (count("FAIL"), count("WARN") + 1);
+            let status = match mode.as_str() {
+                "pass_warn" => "WARN",
+                "pass_fail" => "FAIL",
+                _ if fail > 0 => "FAIL",
+                _ => "WARN",
+            };
+            value["status"] = serde_json::json!(status);
+            value["evidence"] = serde_json::json!("ESTIMATED");
+            value["summary"] = serde_json::json!(format!(
+                "{fail} Type Findings, {warn} Warnings; Mypy is unavailable; AST fallback is ESTIMATED"
+            ));
+            replaced = true;
+        }
+    } else if family == "test"
+        && legacy_schema
+        && let Some(reason) = refused_policy(value)
+    {
+        ici_reporting::legacy_policy_refused(value, &reason).map_err(error)?;
+        replaced = true;
+    } else if family == "test"
+        && legacy_schema
+        && !coverage_required
+        && let Some(reason) = optional_coverage_missing(value)
+    {
+        // Frozen optional coverage: a missing coverage module is a WARN beside the measured
+        // test verdict (FAIL still wins). Native never invents the frozen estimate.
+        let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
+        value["status"] = serde_json::json!(status);
+        let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
+        let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
+        value["summary"] = serde_json::json!(format!(
+            "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
+        ));
+        exit_code = exit_code.max(code);
+    }
+    Ok((replaced, exit_code))
+}
+
 fn open_page(path: &Path, root: &Path, environment: &BTreeMap<String, String>) -> Result<()> {
     let tool = ici_providers::resolver::ToolRequest {
         id: "xdg-open".into(),

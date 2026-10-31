@@ -549,7 +549,8 @@ fn native_unicode_and_bom_columns_use_codepoints_across_utf16_and_byte_tools() {
                 "{kind:?}, BOM={bom}: {finding:?}"
             );
             if kind == ProviderKind::Eslint {
-                assert_eq!(finding.primary_location.end_column, Some(22));
+                // Frozen ESLint spans have no end position (fingerprint v3 parity).
+                assert_eq!(finding.primary_location.end_column, None);
             }
         }
     }

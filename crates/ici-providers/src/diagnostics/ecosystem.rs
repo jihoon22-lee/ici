@@ -46,18 +46,10 @@ pub(super) fn eslint(stdout: &str, plan: &ProviderPlan) -> Result<Parsed, Provid
                 _ => return Err(ProviderError("invalid ESLint severity".into())),
             };
             let rule = item["ruleId"].as_str().unwrap_or("parse");
-            let mut result = finding(plan, path, row, column, rule, message, severity)?;
-            if !item["endLine"].is_null() {
-                result.primary_location.end_line =
-                    Some(positive(&item["endLine"], "ESLint end line")?);
-            }
-            if !item["endColumn"].is_null() {
-                result.primary_location.end_column = Some(
-                    positive(&item["endColumn"], "ESLint end column")?
-                        .saturating_sub(1)
-                        .max(1),
-                );
-            }
+            // Frozen parity: ESLint spans carry no end position. Fingerprint v3 hashes the end
+            // line/column, so adding ESLint's range would change every attributed identity and
+            // make existing baselines incomparable.
+            let result = finding(plan, path, row, column, rule, message, severity)?;
             parsed.findings.push(result);
         }
         if !ignored {
@@ -173,11 +165,10 @@ pub(super) fn tsc(
             return Err(ProviderError(format!(
                 "TypeScript configuration/global diagnostic: {line}"
             )));
-        } else if line.starts_with(char::is_whitespace) && !parsed.findings.is_empty() {
-            if let Some(last) = parsed.findings.last_mut() {
-                last.message.push('\n');
-                last.message.push_str(line);
-            }
+        } else if line.starts_with(' ') {
+            // Frozen parity: indented message-chain lines are not part of the headline. Keeping
+            // them out of the message keeps native and v3 attributed fingerprints comparable.
+            continue;
         } else {
             return Err(ProviderError(format!(
                 "unrecognized TypeScript output: {line}"

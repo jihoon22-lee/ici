@@ -31,17 +31,35 @@ use std::{
 pub const DEFAULT_OUTPUT_LIMIT: usize = 8 * 1024 * 1024;
 pub const MAX_OUTPUT_LIMIT: usize = 64 * 1024 * 1024;
 
+/// A stop request that stays requested. The signal slot records which signal asked for it (frozen
+/// `signal_cancels`: "received SIGINT"); a signal handler may only store into an atomic.
 #[derive(Clone, Debug, Default)]
-pub struct Cancellation(Arc<AtomicBool>);
+pub struct Cancellation {
+    flag: Arc<AtomicBool>,
+    signal: Arc<std::sync::atomic::AtomicUsize>,
+}
 impl Cancellation {
     pub fn cancel(&self) {
-        self.0.store(true, Ordering::SeqCst);
+        self.flag.store(true, Ordering::SeqCst);
     }
     pub fn is_cancelled(&self) -> bool {
-        self.0.load(Ordering::SeqCst)
+        self.flag.load(Ordering::SeqCst)
     }
     pub fn flag(&self) -> Arc<AtomicBool> {
-        Arc::clone(&self.0)
+        Arc::clone(&self.flag)
+    }
+    /// Slot a signal handler stores its number into before setting the flag.
+    pub fn signal_slot(&self) -> Arc<std::sync::atomic::AtomicUsize> {
+        Arc::clone(&self.signal)
+    }
+    /// Frozen cancellation reason text, when a recorded signal caused the request.
+    pub fn reason(&self) -> Option<String> {
+        if !self.is_cancelled() {
+            return None;
+        }
+        let number = i32::try_from(self.signal.load(Ordering::SeqCst)).ok()?;
+        let name = Signal::try_from(number).ok()?;
+        Some(format!("received {}", name.as_str()))
     }
 }
 

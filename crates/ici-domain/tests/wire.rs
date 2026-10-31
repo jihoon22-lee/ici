@@ -149,3 +149,68 @@ fn unknown_modern_evidence_is_rejected_at_every_wire_boundary_instead_of_dropped
         );
     }
 }
+fn task_event(task_id: Option<&str>, component_id: Option<&str>) -> RunEvent {
+    RunEvent {
+        schema_id: EVENT_SCHEMA_ID.into(),
+        schema_version: 1,
+        run_id: "r".into(),
+        seq: 1,
+        event_type: "task.started".into(),
+        timestamp: "t".into(),
+        task_id: task_id.map(str::to_owned),
+        component_id: component_id.map(str::to_owned),
+        message: String::new(),
+    }
+}
+#[test]
+fn event_identifiers_and_sequence_notes_match_frozen_oracle() {
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/domain/events-oracle.json"
+    ))
+    .unwrap();
+    for (field, cases) in oracle["ids"].as_object().unwrap() {
+        for (value, accepted) in cases.as_object().unwrap() {
+            let event = if field == "task_id" {
+                task_event(Some(value), None)
+            } else {
+                task_event(Some("t"), Some(value))
+            };
+            assert_eq!(
+                event.to_json().is_ok(),
+                accepted.as_bool().unwrap(),
+                "{field}={value:?}"
+            );
+        }
+    }
+    assert_eq!(
+        task_event(None, None).to_json().is_ok(),
+        oracle["task_event_without_task"].as_bool().unwrap()
+    );
+    // Intended difference: native monorepo component ids and task ids derived from them keep
+    // their declared spelling; the frozen lowercase-identifier regex would refuse them.
+    assert!(
+        task_event(Some("packages/api.python.lint"), Some("packages/api"))
+            .to_json()
+            .is_ok()
+    );
+    assert!(task_event(Some(&"x".repeat(256)), None).to_json().is_ok());
+    assert!(task_event(Some(&"x".repeat(257)), None).to_json().is_err());
+    let line = |seq: u64| {
+        format!(
+            "{{\"schema_id\":\"ici.next.event\",\"schema_version\":1,\"run_id\":\"r\",\"seq\":{seq},\"event_type\":\"diagnostic\",\"timestamp\":\"t\"}}\n"
+        )
+    };
+    let text = format!("{}{}{}{}{{", line(1), line(1), line(5), line(3));
+    let (events, notes) = read_events(&text).unwrap();
+    assert_eq!(events.len(), 4);
+    assert_eq!(
+        serde_json::to_value(notes).unwrap(),
+        oracle["notes"],
+        "reader notes"
+    );
+    let empty_task = "{\"schema_id\":\"ici.next.event\",\"schema_version\":1,\"run_id\":\"r\",\"seq\":1,\"event_type\":\"task.started\",\"timestamp\":\"t\",\"task_id\":\"\"}";
+    assert_eq!(
+        read_events(empty_task).is_err(),
+        oracle["reader_refuses_empty_task"].as_bool().unwrap()
+    );
+}
