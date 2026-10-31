@@ -57,6 +57,47 @@ fn rank(status: &str) -> u8 {
         _ => 1,
     }
 }
+/// Frozen `exit_code_for_status`: FAIL and ERROR exit 1, SKIP exits 2, PASS and WARN exit 0.
+pub fn legacy_exit_code(status: &str) -> i32 {
+    match status {
+        "FAIL" | "ERROR" => 1,
+        "SKIP" => 2,
+        _ => 0,
+    }
+}
+/// The most severe legacy status (ERROR > FAIL > WARN > PASS > SKIP), never below `floor`.
+pub fn legacy_worst_status<'a>(
+    statuses: impl IntoIterator<Item = &'a str>,
+    floor: &'a str,
+) -> &'a str {
+    statuses.into_iter().fold(floor, |worst, status| {
+        if rank(status) > rank(worst) {
+            status
+        } else {
+            worst
+        }
+    })
+}
+/// Frozen `EngineResult.required`. Native policy may be unknown (null): it never counts as a
+/// required engine, so the suite status and its gate reason read the same flag.
+pub(crate) fn engine_required(engine: &Value) -> bool {
+    engine["required"] == true
+}
+/// Frozen `EngineStatus` class of one saved check. Each frozen engine chose its own status: ERROR
+/// only when it could not reach a verdict (tool error, setup exception), FAIL/WARN for a measured
+/// verdict after its policy mode, SKIP when it did not apply. Native producers save that class in
+/// `AnalysisOutput.status`, so a failed task keeps a producer FAIL or ERROR; a failed task can
+/// never project as PASS, WARN or SKIP (R05/R10), and one without output is ERROR.
+pub(crate) fn legacy_status(state: TaskState, output: Option<&AnalysisOutput>) -> &str {
+    match state {
+        TaskState::Succeeded => output.map_or("SKIP", |output| output.status.as_str()),
+        TaskState::Failed => match output.map(|output| output.status.as_str()) {
+            Some(status @ ("FAIL" | "ERROR")) => status,
+            _ => "ERROR",
+        },
+        _ => "SKIP",
+    }
+}
 pub(crate) fn legacy_finding(finding: &Finding) -> Result<Value> {
     fn location(span: &ici_domain::SourceSpan) -> Value {
         json!({"path":span.path,"start_line":span.start_line,"end_line":span.end_line,"start_column":span.start_column,"end_column":span.end_column,"label":span.label})
@@ -81,7 +122,7 @@ pub fn legacy_projection(
     }
     let mut engines = BTreeMap::<String, Value>::new();
     let mut attributed = BTreeSet::new();
-    let mut errored = BTreeSet::new();
+    let mut errored = BTreeMap::<String, Vec<String>>::new();
     for check in run.checks.as_deref().unwrap_or_default() {
         let name = context
             .engine_names
@@ -101,29 +142,23 @@ pub fn legacy_projection(
             "targets":[], "findings":[], "extra":{"native_checks":[]}, "tool_evidence":[], "raw_output":""
         }));
         let output = outputs.get(&check.task_id);
-        let status = if check.state != TaskState::Succeeded {
-            if check.state == TaskState::Failed {
-                "ERROR"
-            } else {
-                "SKIP"
+        let status = legacy_status(check.state, output);
+        engine["status"] = json!(legacy_worst_status(
+            [status],
+            engine["status"].as_str().unwrap_or("SKIP")
+        ));
+        // Frozen engines report their tool errors as the summary (`"; ".join(errors[:3])`); a
+        // passing sibling check's count must not stand next to an ERROR verdict.
+        if status == "ERROR" {
+            let reason = output
+                .map(|output| output.summary.as_str())
+                .filter(|summary| !summary.is_empty())
+                .unwrap_or("analysis did not complete");
+            let reasons = errored.entry(name.to_owned()).or_default();
+            if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
+                reasons.push(reason.to_owned());
             }
-        } else {
-            output.map_or("SKIP", |output| output.status.as_str())
-        };
-        if rank(status) > rank(engine["status"].as_str().unwrap_or("SKIP")) {
-            engine["status"] = json!(status);
-        }
-        // Frozen engines report their tool error as the summary; a passing sibling check's
-        // count must not stand next to an ERROR verdict.
-        if status == "ERROR" && errored.insert(name.to_owned()) {
-            engine["summary"] = json!(format!(
-                "{}: {}",
-                check.check_id,
-                output
-                    .map(|output| output.summary.as_str())
-                    .filter(|summary| !summary.is_empty())
-                    .unwrap_or("analysis did not complete")
-            ));
+            engine["summary"] = json!(reasons.join("; "));
         }
         let evidence = output
             .map(|output| {
@@ -156,6 +191,13 @@ pub fn legacy_projection(
                 }
             })
             .unwrap_or_default();
+        // Frozen engines pair a tool or analysis ERROR with NOT_RUN evidence: no verdict was
+        // measured, whatever the task state (the exit code stays the ERROR class's 1).
+        let evidence = if status == "ERROR" {
+            EvidenceLevel::NotRun
+        } else {
+            evidence
+        };
         // Different checks keep their own evidence; aggregate cannot upgrade an estimate.
         let evidence = serde_json::to_value(evidence)?;
         if engine["extra"]["native_checks"]
@@ -284,6 +326,8 @@ pub fn legacy_projection(
         }
         project_extra(engine)?;
         integration_refusal(engine);
+        legacy_type_summary(engine);
+        legacy_lint_summary(engine);
         normalize_findings(engine)?;
     }
     let mut results: Vec<_> = builtin_catalog()
@@ -298,36 +342,21 @@ pub fn legacy_projection(
             .filter(|result| result["status"] == status)
             .count()
     };
-    let suite_status = if !run.execution.required_complete
-        || results.is_empty()
-        || results.iter().any(|engine| {
-            engine["required"] == true
-                && engine["evidence"] != "NOT_APPLICABLE"
-                && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
-                    || engine["evidence"] == "NOT_RUN")
-        }) {
+    let suite_status = if !run.execution.required_complete {
         "ERROR"
-    } else if results
-        .iter()
-        .any(|engine| engine["required"] == true && engine["status"] == "FAIL")
-    {
-        "FAIL"
-    } else if results.iter().any(|engine| {
-        engine["evidence"] != "NOT_APPLICABLE"
-            && (engine["status"] == "WARN"
-                || engine["required"]
-                    .as_bool()
-                    .is_none_or(|required| !required)
-                    && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
-    }) {
-        "WARN"
     } else {
-        "PASS"
+        aggregate_suite_status(&results)
     };
+    // Frozen `engines/verify.py`: the suite TEM is the legacy `test` engine's own score; the
+    // next run's `tem.*` metrics use the unrounded next formula and are not this value.
+    let tem_score = results
+        .iter()
+        .find(|engine| engine["engine_name"] == "test" && engine["score"].is_number())
+        .map(|engine| engine["score"].clone());
     let value = json!({"schema_version":"ici.result/v3","suite_status":suite_status,"project_name":context.project_name,
         "duration":context.duration_seconds,"passed_count":count("PASS"),"warned_count":count("WARN"),
         "failed_count":count("FAIL")+count("ERROR"),"error_count":count("ERROR"),"skipped_count":count("SKIP"),
-        "total_count":results.len(),"tem_score":run.metrics.iter().find(|m|m.name=="tem.workspace").map(|m|m.value),"max_tem_score":5.0,
+        "total_count":results.len(),"tem_score":tem_score,"max_tem_score":5.0,
         "results":results,"analysis_context":context.analysis_context,"support_matrix":context.support_matrix,
         "capability_inventory":context.capability_inventory,"baseline_comparison":context.legacy_baseline,
         "native_run":run.to_value()?,"analysis_metadata":context.analysis_metadata});
@@ -588,10 +617,7 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
         }
         // Frozen totals carry `round(percent, 1)` (both sides round the exact binary value).
         let percent = |covered: u64, total: u64| {
-            (total > 0).then(|| {
-                let value = 100.0 * covered as f64 / total as f64;
-                format!("{value:.1}").parse::<f64>().unwrap_or(value)
-            })
+            (total > 0).then(|| ici_domain::python_round_one(100.0 * covered as f64 / total as f64))
         };
         let line = percent(totals["covered"], totals["stmts"]);
         let branch = percent(totals["cb"], totals["nb"]);
@@ -731,6 +757,49 @@ pub fn legacy_no_tests_collected(engine: &mut Value, languages: &[&str]) -> Resu
     Ok(())
 }
 
+/// Frozen engines with no selected source: a fixed verdict (SKIP/NOT_APPLICABLE with one `.`
+/// scope target, or a measured clean PASS without targets). Native refuses the same plan before
+/// running; the legacy view keeps the frozen shape.
+pub fn legacy_no_sources(
+    engine: &mut Value,
+    status: &str,
+    evidence: &str,
+    summary: &str,
+    target: Option<(&str, &str)>,
+) -> Result<()> {
+    let targets: Vec<_> = target
+        .into_iter()
+        .map(|(name, message)| {
+            json!({"file_path":".","start_line":1,"end_line":null,"start_column":null,
+                "end_column":null,"target_name":name,"status":"SKIP","message":message,
+                "snippet":"","metrics":{}})
+        })
+        .collect();
+    engine["targets"] = json!(targets);
+    engine["status"] = json!(status);
+    engine["evidence"] = json!(evidence);
+    engine["summary"] = json!(summary);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
+/// A frozen engine verdict with its own target list (native refused the tool at planning): the
+/// legacy findings are recomputed from those targets exactly as for every other legacy target.
+pub fn legacy_verdict(
+    engine: &mut Value,
+    status: &str,
+    evidence: &str,
+    summary: &str,
+    targets: Vec<Value>,
+) -> Result<()> {
+    engine["targets"] = json!(targets);
+    engine["status"] = json!(status);
+    engine["evidence"] = json!(evidence);
+    engine["summary"] = json!(summary);
+    engine["findings"] = json!(crate::migration::adapted_findings(engine)?);
+    Ok(())
+}
+
 /// Frozen `TestCoverageMixin`: an unusable coverage policy is a located ERROR target
 /// ("Coverage:Policy configuration" at `.`) and an ERROR engine. Native refuses the same input
 /// before running; the legacy view keeps the frozen verdict class with the native reason.
@@ -786,6 +855,101 @@ fn integration_refusal(engine: &mut Value) {
     engine["targets"] = json!([{"file_path":"ici.toml","start_line":1,"end_line":null,
         "start_column":null,"end_column":null,"target_name":"Integration:ConfigurationError",
         "status":"ERROR","message":reason,"snippet":"","metrics":{}}]);
+}
+
+/// Frozen `TypeCheckEngine` summary over the whole engine: mypy targets and the annotation
+/// fallback targets are counted together. Only a historical mypy run (`legacy_mypy`) has it.
+fn legacy_type_summary(engine: &mut Value) {
+    let historical = engine["engine_name"] == "type"
+        && engine["extra"]["native_checks"]
+            .as_array()
+            .is_some_and(|checks| {
+                checks
+                    .iter()
+                    .any(|check| check["extra"].get("legacy_mypy").is_some())
+            });
+    if !historical || matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")) {
+        return;
+    }
+    let targets = engine["targets"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let count = |status: &str| {
+        targets
+            .iter()
+            .filter(|target| target["status"] == status)
+            .count()
+    };
+    engine["summary"] = json!(if engine["status"] == "PASS" {
+        "Static Type Check Passed".to_owned()
+    } else {
+        format!(
+            "{} Type Findings, {} Warnings",
+            count("FAIL"),
+            count("WARN")
+        )
+    });
+}
+
+/// Frozen `LintEngine` summary and evidence over the whole engine: Ruff stderr warnings count
+/// as warnings (unless a WARN target already says the same) and make the evidence ESTIMATED.
+/// Only a historical Ruff run (`legacy_ruff`) has it.
+fn legacy_lint_summary(engine: &mut Value) {
+    if engine["engine_name"] != "lint" {
+        return;
+    }
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return;
+    };
+    let warnings: Vec<String> = checks
+        .iter()
+        .filter_map(|check| check["extra"].get("legacy_ruff"))
+        .flat_map(|marker| marker["warnings"].as_array().cloned().unwrap_or_default())
+        .filter_map(|warning| warning.as_str().map(str::to_owned))
+        .collect();
+    if !checks
+        .iter()
+        .any(|check| check["extra"].get("legacy_ruff").is_some())
+        || matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
+    {
+        return;
+    }
+    let targets = engine["targets"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let count = |status: &str| {
+        targets
+            .iter()
+            .filter(|target| target["status"] == status)
+            .count()
+    };
+    let fail = count("FAIL");
+    let warn = count("WARN")
+        + warnings
+            .iter()
+            .filter(|warning| {
+                !targets
+                    .iter()
+                    .any(|target| target["status"] == "WARN" && target["message"] == **warning)
+            })
+            .count();
+    engine["summary"] = json!(if engine["status"] == "PASS" {
+        "0 Violations Found".to_owned()
+    } else if !warnings.is_empty() && fail == 0 {
+        warnings
+            .iter()
+            .take(2)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        format!("{fail} Errors, {warn} Warnings Found")
+    });
+    if !warnings.is_empty() {
+        engine["evidence"] = json!("ESTIMATED");
+    }
 }
 
 fn normalize_findings(engine: &mut Value) -> Result<()> {
@@ -1019,6 +1183,58 @@ fn strip_fix_markers(finding: &mut Value) {
             }
         }
     }
+}
+
+/// Frozen `aggregate_suite_status` over legacy engine results.
+fn aggregate_suite_status(results: &[Value]) -> &'static str {
+    if results.is_empty()
+        || results.iter().any(|engine| {
+            engine_required(engine)
+                && engine["evidence"] != "NOT_APPLICABLE"
+                && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
+                    || engine["evidence"] == "NOT_RUN")
+        })
+    {
+        "ERROR"
+    } else if results
+        .iter()
+        .any(|engine| engine_required(engine) && engine["status"] == "FAIL")
+    {
+        "FAIL"
+    } else if results.iter().any(|engine| {
+        engine["evidence"] != "NOT_APPLICABLE"
+            && (engine["status"] == "WARN"
+                || !engine_required(engine)
+                    && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
+    }) {
+        "WARN"
+    } else {
+        "PASS"
+    }
+}
+
+/// Recompute a legacy suite's status and counts after its engine verdicts were reshaped (frozen
+/// `aggregate_suite_status` and the VerificationSuiteResult counters). Returns the new status.
+pub fn legacy_refresh_suite(document: &mut Value) -> Result<String> {
+    let results = document["results"]
+        .as_array()
+        .cloned()
+        .ok_or_else(|| ReportError("legacy suite results must be an array".into()))?;
+    let count = |status: &str| {
+        results
+            .iter()
+            .filter(|result| result["status"] == status)
+            .count()
+    };
+    let status = aggregate_suite_status(&results);
+    document["suite_status"] = json!(status);
+    document["passed_count"] = json!(count("PASS"));
+    document["warned_count"] = json!(count("WARN"));
+    document["failed_count"] = json!(count("FAIL") + count("ERROR"));
+    document["error_count"] = json!(count("ERROR"));
+    document["skipped_count"] = json!(count("SKIP"));
+    document["total_count"] = json!(results.len());
+    Ok(status.into())
 }
 
 #[cfg(test)]

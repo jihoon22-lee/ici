@@ -167,3 +167,115 @@ fn resolved_historical_deltas_stay_visible_as_sarif_absent_results() {
         );
     }
 }
+
+/// Frozen `_resolved_finding`: a resolved delta without a baseline location yields no absent
+/// result, and one whose baseline path escapes the project fails the serializer
+/// (`canonical_project_path` raises "path escapes the project root") instead of being emitted.
+#[test]
+fn resolved_deltas_without_or_with_escaping_baseline_locations_follow_the_frozen_serializer() {
+    let corpus = corpus();
+    let case = corpus["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|case| case["name"] == "baseline-gate")
+        .unwrap();
+    let pointer = "/baseline_comparison/entries/1";
+    assert_eq!(
+        case["document"].pointer(pointer).unwrap()["state"],
+        "resolved"
+    );
+    let absent = |document: Value| -> Option<usize> {
+        let stored = StoredResult::from_value(document).ok()?;
+        let sarif = ici_reporting::sarif_document(&stored, &RenderOptions::default()).ok()?;
+        Some(
+            sarif["runs"][0]["results"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|result| result["baselineState"] == "absent")
+                .count(),
+        )
+    };
+    let mut unlocated = case["document"].clone();
+    unlocated.pointer_mut(pointer).unwrap()["baseline_location"] = Value::Null;
+    assert_eq!(absent(unlocated), Some(0));
+    for path in ["../outside.py", "/abs/outside.py"] {
+        let mut escaping = case["document"].clone();
+        escaping.pointer_mut(pointer).unwrap()["baseline_location"]["path"] = Value::from(path);
+        assert_eq!(absent(escaping), None, "{path}");
+    }
+}
+
+/// Frozen html/utils.py:110 (`engine_issues` in suite-overview.json): an ERROR or SKIP engine that
+/// produced no issue group gets an issues-first row with rule id `engine`, its status as badge
+/// and its summary as message; an ERROR engine whose own findings are listed gets none.
+#[test]
+fn error_and_skip_engines_without_issue_groups_get_the_frozen_engine_issue_row() {
+    let corpus = corpus();
+    let mut rows_seen = 0;
+    for case in corpus["cases"].as_array().unwrap() {
+        let stored = StoredResult::from_value(case["document"].clone()).unwrap();
+        let html = render_html(&stored, &RenderOptions::default()).unwrap();
+        let native: Vec<Value> = html
+            .split("<article class=finding data-search-row data-engine-issue><h3>engine · ")
+            .skip(1)
+            .map(|row| {
+                let (status, rest) = row.split_once("</h3><p>[").unwrap();
+                let (engine, rest) = rest.split_once("] ").unwrap();
+                let summary = rest.split_once("</p><p>").unwrap().1;
+                let summary = summary.split_once("</p></article>").unwrap().0;
+                serde_json::json!([engine, status, summary])
+            })
+            .collect();
+        assert_eq!(
+            Value::from(native.clone()),
+            case["engine_issues"],
+            "{}",
+            case["name"]
+        );
+        rows_seen += native.len();
+    }
+    assert_eq!(rows_seen, 3);
+}
+
+/// Frozen reporting/view_model.py:130 and offline_html `_metrics` (run-measurements.json from
+/// capture_run_measurements.py): integral values as integers, others as Python `%g`, the unit
+/// after the value and "n of d" only when the denominator is known and non-zero.
+#[test]
+fn run_measurements_render_the_frozen_value_unit_and_n_of_d_rows() {
+    let golden: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/reporting/run-measurements.json"
+    ))
+    .unwrap();
+    assert_eq!(golden["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let stored = StoredResult::from_value(golden["document"].clone()).unwrap();
+    // Native rows also carry the report filter's `data-search-row` marker.
+    let html = render_html(&stored, &RenderOptions::default())
+        .unwrap()
+        .replace("<tr data-search-row>", "<tr>");
+    let frozen = golden["html"].as_str().unwrap();
+    assert!(
+        html.contains(frozen),
+        "{}",
+        html.split("<h2>Measurements</h2>")
+            .nth(1)
+            .unwrap_or("no measurements")
+            .chars()
+            .take(1500)
+            .collect::<String>()
+    );
+}
+
+#[test]
+fn a_run_without_measurements_has_no_measurements_table() {
+    let golden: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/reporting/run-measurements.json"
+    ))
+    .unwrap();
+    let mut document = golden["document"].clone();
+    document["metrics"] = Value::Array(vec![]);
+    let stored = StoredResult::from_value(document).unwrap();
+    let html = render_html(&stored, &RenderOptions::default()).unwrap();
+    assert!(!html.contains("<h2>Measurements</h2>"));
+}

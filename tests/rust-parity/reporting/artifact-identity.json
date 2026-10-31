@@ -1,0 +1,171 @@
+{
+ "cases": {
+  "absent-directory": {
+   "checks": [
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.artifact",
+     "task_id": "app.cpp.artifact",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.binary-compat",
+     "task_id": "app.cpp.binary-compat",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.cognitive",
+     "task_id": "app.cpp.cognitive",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.complexity",
+     "task_id": "app.cpp.complexity",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.cycle",
+     "task_id": "app.cpp.cycle",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.dup",
+     "task_id": "app.cpp.dup",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.exception",
+     "task_id": "app.cpp.exception",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.line",
+     "task_id": "app.cpp.line",
+     "variant": "release"
+    }
+   ],
+   "findings": [
+    {
+     "analysis_unit_id": null,
+     "component_id": "app",
+     "fingerprint": "sha256:223305de8638bb33ecd7caf61fa5eeee4b7815e138b98af650306418bca45c2a",
+     "rule_id": "artifact.missing",
+     "task_id": "app.cpp.artifact",
+     "variant": null
+    }
+   ],
+   "tem": {
+    "limitations": [
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   }
+  },
+  "mixed": {
+   "checks": [
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.artifact",
+     "task_id": "app.cpp.artifact",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.binary-compat",
+     "task_id": "app.cpp.binary-compat.release-1",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.binary-compat",
+     "task_id": "app.cpp.binary-compat.release-2",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.cognitive",
+     "task_id": "app.cpp.cognitive",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.complexity",
+     "task_id": "app.cpp.complexity",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.cycle",
+     "task_id": "app.cpp.cycle",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.dup",
+     "task_id": "app.cpp.dup",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.exception",
+     "task_id": "app.cpp.exception",
+     "variant": "release"
+    },
+    {
+     "analysis_unit_id": "app.cpp",
+     "check_id": "cpp.line",
+     "task_id": "app.cpp.line",
+     "variant": "release"
+    }
+   ],
+   "findings": [
+    {
+     "analysis_unit_id": null,
+     "component_id": "app",
+     "fingerprint": "sha256:33ec8fd117d00bea615770ffe8d4b21c13e5ae9c327fa5e68c4231a2d69ec4fa",
+     "rule_id": "artifact.invalid",
+     "task_id": "app.cpp.artifact",
+     "variant": null
+    },
+    {
+     "analysis_unit_id": null,
+     "component_id": "app",
+     "fingerprint": "sha256:0bfeb1570b1eba217fb0deec723307fdf0e9a6af77395f299e4d2ba5dfd05c6b",
+     "rule_id": "artifact.missing",
+     "task_id": "app.cpp.artifact",
+     "variant": null
+    },
+    {
+     "analysis_unit_id": null,
+     "component_id": "app",
+     "fingerprint": "sha256:8b41cc9dbf917d625e15b5aff5a6b12b44f750eca2309d079f168b2110ee03dc",
+     "rule_id": "artifact.missing",
+     "task_id": "app.cpp.artifact",
+     "variant": null
+    },
+    {
+     "analysis_unit_id": null,
+     "component_id": "app",
+     "fingerprint": "sha256:b3348cd33c0e78d1a1ebae21ed54e1b4ef7417426bb367be54fedec91434e6bd",
+     "rule_id": "artifact.missing",
+     "task_id": "app.cpp.artifact",
+     "variant": null
+    }
+   ],
+   "tem": {
+    "limitations": [
+     "app: TEM N/A — no coverage evidence — the score is not computed"
+    ],
+    "metrics": []
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

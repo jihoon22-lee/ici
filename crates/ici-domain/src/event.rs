@@ -45,6 +45,21 @@ impl Validate for RunEvent {
             !self.event_type.starts_with("task.") || self.task_id.is_some(),
             "task event must identify task",
         )?;
+        // Frozen `require_identifier`: a present id is never empty or padded. Native task and
+        // component ids may name monorepo paths (`svc/api`) and keep case, so only the
+        // non-empty, unpadded, printable and bounded guard applies.
+        for (value, name) in [
+            (&self.task_id, "task_id"),
+            (&self.component_id, "component_id"),
+        ] {
+            if let Some(value) = value {
+                validation::text(value, name)?;
+                validation::require(
+                    value.chars().count() <= 256 && !value.chars().any(char::is_control),
+                    format!("{name} must be printable and at most 256 characters"),
+                )?;
+            }
+        }
         validation::require(
             self.message.chars().count() <= 4096,
             "event message exceeds 4096 characters",
@@ -92,11 +107,16 @@ pub fn read_events(text: &str) -> Result<(Vec<RunEvent>, Vec<String>)> {
         if let Some(last) = previous
             && Some(event.seq) != last.checked_add(1)
         {
-            notes.push(format!(
-                "line {}: seq jumped from {last} to {}",
-                number + 1,
-                event.seq
-            ));
+            // Frozen `_seq_note`: a repeat is a broken producer, a gap is lost data.
+            notes.push(if event.seq == last {
+                format!("line {}: duplicate seq {last}", number + 1)
+            } else {
+                format!(
+                    "line {}: seq jumped from {last} to {}",
+                    number + 1,
+                    event.seq
+                )
+            });
         }
         previous = Some(event.seq);
         events.push(event);

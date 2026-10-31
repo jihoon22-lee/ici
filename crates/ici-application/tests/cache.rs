@@ -198,3 +198,64 @@ fn rich_cache_retains_inspected_targets_and_never_invents_them_from_old_observat
     output.targets[0].start_line = 0;
     assert!(cache.put_output(&key, &output).is_err());
 }
+#[test]
+fn scope_level_root_targets_are_cached_but_escaping_target_paths_are_refused() {
+    use ici_domain::{AnalysisOutput, InspectionTarget};
+    let directory = tempfile::tempdir().unwrap();
+    let cache = ObservationCache {
+        directory: directory.path().join("cache"),
+        core_digest: identity().core_digest,
+    };
+    let key = identity().key(&task()).unwrap().unwrap();
+    let mut output = AnalysisOutput::new("original", "ici.duplicates");
+    let mut target = InspectionTarget::at(".", 1);
+    target.target_name = "DuplicateCode".into();
+    target.status = "SKIP".into();
+    output.targets.push(target);
+    output.status = "SKIP".into();
+    assert!(cache.put_output(&key, &output).unwrap());
+    let stored = cache.get_output(&key, "logical").unwrap().unwrap();
+    assert_eq!(stored.targets[0].file_path, ".");
+    for path in ["./a.py", "../a.py", "/a.py", "a/../b.py", ""] {
+        output.targets[0].file_path = path.into();
+        assert!(cache.put_output(&key, &output).is_err(), "{path}");
+    }
+}
+
+/// Frozen identity.task_identity + ObservationCache: argv and environment overlay are part of the
+/// share key, test evidence is never persisted, and the store keeps at most 512 entries (oldest
+/// first) without touching anything that is not an exact native entry.
+#[test]
+fn argv_environment_test_kind_and_entry_bound_follow_the_frozen_cache() {
+    let task = task();
+    let first = identity().key(&task).unwrap().unwrap();
+    let mut argv = task.clone();
+    argv.argv.push("--select=E".into());
+    assert_ne!(identity().key(&argv).unwrap().unwrap(), first);
+    let mut overlay = task.clone();
+    overlay.env_overlay.insert("RUFF_X".into(), "1".into());
+    assert_ne!(identity().key(&overlay).unwrap().unwrap(), first);
+    let mut test = task.clone();
+    test.kind = TaskKind::Test;
+    assert!(identity().key(&test).unwrap().is_none());
+
+    let directory = tempfile::tempdir().unwrap();
+    let cache = ObservationCache {
+        directory: directory.path().join("observations"),
+        core_digest: identity().core_digest,
+    };
+    let keys: Vec<_> = (0..4)
+        .map(|index| sha256(format!("entry {index}")))
+        .collect();
+    for key in &keys {
+        assert!(cache.put(key, &Observation::new("t", "ruff")).unwrap());
+        std::thread::sleep(std::time::Duration::from_millis(15));
+    }
+    fs::write(cache.directory.join("notes.txt"), "user file").unwrap();
+    assert_eq!(cache.evict(2).unwrap(), 2);
+    assert!(cache.get(&keys[0], "t").unwrap().is_none());
+    assert!(cache.get(&keys[1], "t").unwrap().is_none());
+    assert!(cache.get(&keys[3], "t").unwrap().is_some());
+    assert!(cache.directory.join("notes.txt").is_file());
+    assert_eq!(ici_application::cache::MAX_CACHE_ENTRIES, 512);
+}

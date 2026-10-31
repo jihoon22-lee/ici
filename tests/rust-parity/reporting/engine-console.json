@@ -1,0 +1,126 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "rich": "15.0.0",
+ "cases": [
+  {
+   "engine": {
+    "engine_name": "build",
+    "status": "PASS",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64\n"
+  },
+  {
+   "engine": {
+    "engine_name": "build",
+    "status": "ERROR",
+    "summary": "Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "✘ Makefile at the project root has no configured adapter; CMake, qmake, and \nexplicitly enabled Make are supported, and generic g++ was not invoked\n"
+  },
+  {
+   "engine": {
+    "engine_name": "lint",
+    "status": "WARN",
+    "summary": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx tail",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "⚠ \nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nxxxxxxxxxxxxxxx tail\n"
+  },
+  {
+   "engine": {
+    "engine_name": "dup",
+    "status": "FAIL",
+    "summary": "short yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+    "extra": {}
+   },
+   "report": "dup_report.json",
+   "stdout": "✘ short \nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\nyyyyyyyyyy\nReport saved to: dup_report.json\n"
+  },
+  {
+   "engine": {
+    "engine_name": "type",
+    "status": "SKIP",
+    "summary": "spaced   words    with  runs of   spaces that go past the eighty col",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "↷ spaced   words    with  runs of   spaces that go past the eighty col\n"
+  },
+  {
+   "engine": {
+    "engine_name": "test",
+    "status": "PASS",
+    "summary": "trailing spaces at the end of a long line that should be cut here     ",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "✔ trailing spaces at the end of a long line that should be cut here     \n"
+  },
+  {
+   "engine": {
+    "engine_name": "security",
+    "status": "ERROR",
+    "summary": "한국어 요약은 두 칸 너비 문자로 줄을 나눕니다 한국어 요약은 두 칸 너비 문자로 줄을 나눕니다 한국어 요약은 두 칸 너비 문자로 줄을 나눕니다 ",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "✘ 한국어 요약은 두 칸 너비 문자로 줄을 나눕니다 한국어 요약은 두 칸 너비 문자로 \n줄을 나눕니다 한국어 요약은 두 칸 너비 문자로 줄을 나눕니다 \n"
+  },
+  {
+   "engine": {
+    "engine_name": "cycle",
+    "status": "PASS",
+    "summary": "a [bracket] b",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "✔ a [bracket] b\n"
+  },
+  {
+   "engine": {
+    "engine_name": "line",
+    "status": "PASS",
+    "summary": "3 code / 1 files",
+    "extra": {
+     "code": 2,
+     "comment": 0,
+     "blank": 1,
+     "total": 3
+    }
+   },
+   "report": null,
+   "stdout": "✔ 3 code / 1 files\n Code Lines    [█████████████████████████████████                 ]      2 \n(66.7%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒                                  ]      1 \n(33.3%)\n\n Total Volume: 3 Lines\n"
+  },
+  {
+   "engine": {
+    "engine_name": "line",
+    "status": "PASS",
+    "summary": "12345 code / 9 files",
+    "extra": {
+     "code": 12345,
+     "comment": 2345,
+     "blank": 678,
+     "total": 15368
+    }
+   },
+   "report": "line_report.json",
+   "stdout": "✔ 12345 code / 9 files\n Code Lines    [████████████████████████████████████████          ]  12345 \n(80.3%)\n Comment Lines [░░░░░░░                                           ]   2345 \n(15.3%)\n Blank Lines   [▒▒                                                ]    678 \n(4.4%)\n\n Total Volume: 15,368 Lines\nReport saved to: line_report.json\n"
+  },
+  {
+   "engine": {
+    "engine_name": "line",
+    "status": "SKIP",
+    "summary": "No files",
+    "extra": {}
+   },
+   "report": null,
+   "stdout": "↷ No files\n Code Lines    [                                                  ]      0 \n(0.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 0 Lines\n"
+  }
+ ]
+}

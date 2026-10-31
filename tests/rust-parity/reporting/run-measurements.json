@@ -1,0 +1,192 @@
+{
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "document": {
+  "checks": [
+   {
+    "analysis_unit_id": null,
+    "check_id": "python.line",
+    "component_id": "project",
+    "evidence_complete": true,
+    "language": "python",
+    "scope_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+    "state": "SUCCEEDED",
+    "task_id": "project.python.line",
+    "variant": null
+   }
+  ],
+  "execution": {
+   "blocked_task_ids": [],
+   "cancelled": false,
+   "failed_task_ids": [],
+   "required_complete": true,
+   "reused_task_ids": []
+  },
+  "findings": [],
+  "gate": {
+   "has_violations": false,
+   "reasons": [],
+   "selected": "PASS",
+   "workspace": "PASS"
+  },
+  "identity": {
+   "fingerprint_version": "ici.next.fingerprint.v3",
+   "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+   "source": {
+    "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+    "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "dirty": false,
+    "files": [
+     "apps/gui/widget.cpp",
+     "python/tool-a/demo.py"
+    ],
+    "generated": [
+     "build/ici-default/moc_widget.cpp"
+    ]
+   },
+   "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "limitations": [],
+  "metrics": [
+   {
+    "evidence": "MEASURED",
+    "name": "lines_total",
+    "value": 4.0,
+    "unit": "lines"
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "coverage.lines",
+    "value": 70.0,
+    "unit": "%",
+    "numerator": 7,
+    "denominator": 10
+   },
+   {
+    "evidence": "ESTIMATED",
+    "name": "ratio",
+    "value": 0.1234567
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "big",
+    "value": 1234567.5,
+    "unit": "ms"
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "tiny",
+    "value": 1.234e-05
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "huge",
+    "value": 1e+21
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "negative",
+    "value": -2.5,
+    "numerator": 0,
+    "denominator": 4
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "empty.cases",
+    "value": 0.0,
+    "denominator": 0
+   },
+   {
+    "evidence": "MEASURED",
+    "name": "third",
+    "value": 0.3333333333333333,
+    "numerator": 1,
+    "denominator": 3
+   }
+  ],
+  "producer": {
+   "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+   "ici_version": "0.11.0"
+  },
+  "publication": {
+   "detail": "",
+   "state": "NOT_CONFIGURED"
+  },
+  "run_id": "run-20260913-000001",
+  "schema_id": "ici.next.run",
+  "schema_version": 2,
+  "scope": {
+   "full_required_satisfied": true,
+   "kind": "full",
+   "omitted_components": [],
+   "required_components": [
+    "gui",
+    "tool-a"
+   ],
+   "selected_components": [
+    "gui",
+    "tool-a"
+   ],
+   "selected_languages": [
+    "cpp",
+    "python"
+   ]
+  }
+ },
+ "rows": [
+  [
+   "lines_total",
+   "4",
+   "lines",
+   ""
+  ],
+  [
+   "coverage.lines",
+   "70",
+   "%",
+   "7 of 10"
+  ],
+  [
+   "ratio",
+   "0.123457",
+   "",
+   ""
+  ],
+  [
+   "big",
+   "1.23457e+06",
+   "ms",
+   ""
+  ],
+  [
+   "tiny",
+   "1.234e-05",
+   "",
+   ""
+  ],
+  [
+   "huge",
+   "1000000000000000000000",
+   "",
+   ""
+  ],
+  [
+   "negative",
+   "-2.5",
+   "",
+   "0 of 4"
+  ],
+  [
+   "empty.cases",
+   "0",
+   "",
+   ""
+  ],
+  [
+   "third",
+   "0.333333",
+   "",
+   "1 of 3"
+  ]
+ ],
+ "html": "<h2>Measurements</h2>\n<div class=\"scroll\"><table><tr><th>lines_total</th><td><code>4 lines</code></td><td class=\"muted\"></td></tr><tr><th>coverage.lines</th><td><code>70 %</code></td><td class=\"muted\">7 of 10</td></tr><tr><th>ratio</th><td><code>0.123457</code></td><td class=\"muted\"></td></tr><tr><th>big</th><td><code>1.23457e+06 ms</code></td><td class=\"muted\"></td></tr><tr><th>tiny</th><td><code>1.234e-05</code></td><td class=\"muted\"></td></tr><tr><th>huge</th><td><code>1000000000000000000000</code></td><td class=\"muted\"></td></tr><tr><th>negative</th><td><code>-2.5</code></td><td class=\"muted\">0 of 4</td></tr><tr><th>empty.cases</th><td><code>0</code></td><td class=\"muted\"></td></tr><tr><th>third</th><td><code>0.333333</code></td><td class=\"muted\">1 of 3</td></tr></table></div>\n"
+}

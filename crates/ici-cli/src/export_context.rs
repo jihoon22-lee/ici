@@ -431,6 +431,37 @@ fn execute_native_preparation(
                     output: Box::new(output),
                 });
             }
+            if matches!(plan.build.system.as_str(), "cmake" | "qmake") {
+                // Frozen CMake/qmake adapter (core/cmake.py `_fail`): '<backend> <step> failed:'
+                // plus the first 200 characters of stderr; a failed configure is a configuration
+                // error, a failed build means no complete artifact set.
+                let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
+                let configuration = step == "configure";
+                let message = format!(
+                    "{} {} failed: {}",
+                    plan.build.system,
+                    if configuration { "configure" } else { "build" },
+                    String::from_utf8_lossy(&outcome.stderr)
+                        .chars()
+                        .take(200)
+                        .collect::<String>()
+                );
+                let mut output = crate::cpp::build_failure(
+                    &outcome.task_id,
+                    &plan.descriptor,
+                    &plan.descriptor,
+                    configuration,
+                    &message,
+                    &detail,
+                );
+                output.observation.exit_code = outcome.exit_code;
+                output.observation.timed_out = outcome.timed_out;
+                output.observation.truncated = outcome.truncated;
+                return Err(PreparationFailure::Observed {
+                    phase: format!("{} {step}", plan.build.system),
+                    output: Box::new(output),
+                });
+            }
             return Err(PreparationFailure::Incomplete(detail));
         }
     }

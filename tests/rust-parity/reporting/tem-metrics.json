@@ -1,0 +1,492 @@
+{
+ "cases": {
+  "branch-and-last-wins": {
+   "limitations": [],
+   "metrics": [
+    {
+     "name": "tem.app",
+     "unit": "tem/1 Branch",
+     "value": 2.92
+    }
+   ],
+   "observations": [
+    [
+     "app.cpp.coverage",
+     [
+      {
+       "denominator": 100,
+       "name": "coverage.cpp.branches",
+       "numerator": 30,
+       "value": 30.0
+      }
+     ]
+    ],
+    [
+     "app.cpp.test",
+     [
+      {
+       "denominator": 8,
+       "name": "ctest.cases",
+       "numerator": 7,
+       "value": 87.5
+      }
+     ]
+    ],
+    [
+     "app.cpp.coverage.extra",
+     [
+      {
+       "denominator": 100,
+       "name": "coverage.cpp.branches",
+       "numerator": 90,
+       "value": 90.0
+      },
+      {
+       "denominator": 3,
+       "name": "coverage.cpp.functions",
+       "numerator": 2,
+       "value": 66.66666666666666
+      }
+     ]
+    ]
+   ]
+  },
+  "invalid-counts": {
+   "limitations": [
+    "app: TEM N/A \u2014 invalid test counts (passed=5, total=3)"
+   ],
+   "metrics": [],
+   "observations": [
+    [
+     "app.python.test",
+     [
+      {
+       "denominator": 3,
+       "name": "pytest.cases",
+       "numerator": 5,
+       "value": 166.66666666666669
+      }
+     ]
+    ],
+    [
+     "app.python.coverage",
+     [
+      {
+       "denominator": 2,
+       "name": "coverage.lines",
+       "numerator": 1,
+       "value": 50.0
+      },
+      {
+       "denominator": 2,
+       "name": "coverage.functions",
+       "numerator": 1,
+       "value": 50.0
+      }
+     ]
+    ]
+   ]
+  },
+  "no-coverage": {
+   "limitations": [
+    "project: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+   ],
+   "metrics": [],
+   "observations": [
+    [
+     "project.python.lint",
+     []
+    ],
+    [
+     "project.python.line",
+     [
+      {
+       "name": "lines_total",
+       "value": 4.0
+      }
+     ]
+    ]
+   ]
+  },
+  "percent-only-excluded": {
+   "limitations": [
+    "b: excluded from workspace TEM \u2014 no raw coverage counts"
+   ],
+   "metrics": [
+    {
+     "name": "tem.a",
+     "unit": "tem/1 Line",
+     "value": 5.0
+    },
+    {
+     "name": "tem.b",
+     "unit": "tem/1 Line",
+     "value": 1.3
+    },
+    {
+     "name": "tem.workspace",
+     "unit": "tem/1",
+     "value": 5.0
+    }
+   ],
+   "observations": [
+    [
+     "a.python.test",
+     [
+      {
+       "denominator": 1,
+       "name": "pytest.cases",
+       "numerator": 1,
+       "value": 100.0
+      }
+     ]
+    ],
+    [
+     "a.python.coverage",
+     [
+      {
+       "denominator": 10,
+       "name": "coverage.lines",
+       "numerator": 9,
+       "value": 90.0
+      },
+      {
+       "denominator": 1,
+       "name": "coverage.functions",
+       "numerator": 1,
+       "value": 100.0
+      }
+     ]
+    ],
+    [
+     "b.python.test",
+     [
+      {
+       "denominator": 4,
+       "name": "pytest.cases",
+       "numerator": 2,
+       "value": 50.0
+      }
+     ]
+    ],
+    [
+     "b.python.coverage",
+     [
+      {
+       "name": "coverage.lines",
+       "value": 55.5
+      },
+      {
+       "name": "coverage.functions",
+       "value": 75.0
+      }
+     ]
+    ]
+   ]
+  },
+  "python-lines-and-functions": {
+   "limitations": [],
+   "metrics": [
+    {
+     "name": "tem.app",
+     "unit": "tem/1 Line",
+     "value": 3.15
+    }
+   ],
+   "observations": [
+    [
+     "app.python.test",
+     [
+      {
+       "denominator": 10,
+       "name": "pytest.cases",
+       "numerator": 9,
+       "value": 90.0
+      }
+     ]
+    ],
+    [
+     "app.python.coverage",
+     [
+      {
+       "denominator": 100,
+       "name": "coverage.lines",
+       "numerator": 70,
+       "value": 70.0
+      },
+      {
+       "denominator": 10,
+       "name": "coverage.functions",
+       "numerator": 8,
+       "value": 80.0
+      }
+     ]
+    ],
+    [
+     "app.python.line",
+     [
+      {
+       "name": "lines_total",
+       "value": 120.0
+      }
+     ]
+    ]
+   ]
+  },
+  "python-no-functions": {
+   "limitations": [
+    "app: TEM N/A \u2014 function coverage was not measured \u2014 the score is not computed"
+   ],
+   "metrics": [],
+   "observations": [
+    [
+     "app.python.test",
+     [
+      {
+       "denominator": 3,
+       "name": "pytest.cases",
+       "numerator": 3,
+       "value": 100.0
+      }
+     ]
+    ],
+    [
+     "app.python.coverage",
+     [
+      {
+       "denominator": 100,
+       "name": "coverage.lines",
+       "numerator": 50,
+       "value": 50.0
+      }
+     ]
+    ]
+   ]
+  },
+  "two-components-merge": {
+   "limitations": [],
+   "metrics": [
+    {
+     "name": "tem.a",
+     "unit": "tem/1 Line",
+     "value": 2.81
+    },
+    {
+     "name": "tem.b",
+     "unit": "tem/1 Branch",
+     "value": 0.98
+    },
+    {
+     "name": "tem.workspace",
+     "unit": "tem/1",
+     "value": 2.68
+    }
+   ],
+   "observations": [
+    [
+     "a.python.test",
+     [
+      {
+       "denominator": 5,
+       "name": "pytest.cases",
+       "numerator": 4,
+       "value": 80.0
+      }
+     ]
+    ],
+    [
+     "a.python.coverage",
+     [
+      {
+       "denominator": 40,
+       "name": "coverage.lines",
+       "numerator": 30,
+       "value": 75.0
+      },
+      {
+       "denominator": 10,
+       "name": "coverage.branches",
+       "numerator": 5,
+       "value": 50.0
+      },
+      {
+       "denominator": 4,
+       "name": "coverage.functions",
+       "numerator": 3,
+       "value": 75.0
+      }
+     ]
+    ],
+    [
+     "b.cpp.test.suite",
+     [
+      {
+       "denominator": 2,
+       "name": "ctest.cases",
+       "numerator": 2,
+       "value": 100.0
+      }
+     ]
+    ],
+    [
+     "b.cpp.coverage",
+     [
+      {
+       "denominator": 4,
+       "name": "coverage.cpp.branches",
+       "numerator": 1,
+       "value": 25.0
+      },
+      {
+       "denominator": 2,
+       "name": "coverage.cpp.functions",
+       "numerator": 1,
+       "value": 50.0
+      }
+     ]
+    ]
+   ]
+  },
+  "unmarked-and-zero-cases": {
+   "limitations": [
+    "workspace: TEM N/A \u2014 no coverage evidence \u2014 the score is not computed"
+   ],
+   "metrics": [
+    {
+     "name": "tem.app",
+     "unit": "tem/1 Line",
+     "value": 0.0
+    }
+   ],
+   "observations": [
+    [
+     "vcs.status",
+     []
+    ],
+    [
+     "build.release",
+     [
+      {
+       "denominator": 0,
+       "name": "make.cases",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     "app.python.test",
+     [
+      {
+       "denominator": 0,
+       "name": "pytest.cases",
+       "value": 0.0
+      }
+     ]
+    ],
+    [
+     "app.python.coverage",
+     [
+      {
+       "denominator": 2,
+       "name": "coverage.lines",
+       "numerator": 1,
+       "value": 50.0
+      },
+      {
+       "denominator": 2,
+       "name": "coverage.functions",
+       "numerator": 1,
+       "value": 50.0
+      }
+     ]
+    ]
+   ]
+  },
+  "workspace-not-scored": {
+   "limitations": [
+    "b: TEM N/A \u2014 function coverage was not measured \u2014 the score is not computed",
+    "workspace: TEM N/A \u2014 function coverage was not measured \u2014 the score is not computed"
+   ],
+   "metrics": [
+    {
+     "name": "tem.a",
+     "unit": "tem/1 Line",
+     "value": 5.0
+    },
+    {
+     "name": "tem.c",
+     "unit": "tem/1 Line",
+     "value": 0.0
+    }
+   ],
+   "observations": [
+    [
+     "a.python.test",
+     [
+      {
+       "denominator": 1,
+       "name": "pytest.cases",
+       "numerator": 1,
+       "value": 100.0
+      }
+     ]
+    ],
+    [
+     "a.python.coverage",
+     [
+      {
+       "denominator": 10,
+       "name": "coverage.lines",
+       "numerator": 9,
+       "value": 90.0
+      },
+      {
+       "denominator": 1,
+       "name": "coverage.functions",
+       "numerator": 1,
+       "value": 100.0
+      }
+     ]
+    ],
+    [
+     "b.cpp.test",
+     [
+      {
+       "denominator": 2,
+       "name": "ctest.cases",
+       "numerator": 1,
+       "value": 50.0
+      }
+     ]
+    ],
+    [
+     "b.cpp.coverage",
+     [
+      {
+       "denominator": 4,
+       "name": "coverage.cpp.lines",
+       "numerator": 3,
+       "value": 75.0
+      }
+     ]
+    ],
+    [
+     "c.cpp.coverage",
+     [
+      {
+       "denominator": 4,
+       "name": "coverage.cpp.lines",
+       "numerator": 1,
+       "value": 25.0
+      },
+      {
+       "name": "coverage.cpp.functions",
+       "value": 50.0
+      }
+     ]
+    ]
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

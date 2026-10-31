@@ -8,9 +8,16 @@ pub use stored::{LegacyDocument, LegacyKind, StoredResult};
 mod projection;
 mod safe;
 pub use projection::{
-    ProjectionContext, legacy_engine, legacy_no_tests_collected, legacy_policy_refused,
-    legacy_projection,
+    ProjectionContext, legacy_engine, legacy_exit_code, legacy_no_sources,
+    legacy_no_tests_collected, legacy_policy_refused, legacy_projection, legacy_refresh_suite,
+    legacy_verdict, legacy_worst_status,
 };
+mod baseline_delta;
+pub use baseline_delta::{
+    baseline_gate_failures, baseline_gated, legacy_baseline_comparison, severity_regressed,
+};
+mod legacy_console;
+pub use legacy_console::legacy_engine_console;
 mod facets;
 mod render;
 mod view;

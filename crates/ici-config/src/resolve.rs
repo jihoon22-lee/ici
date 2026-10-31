@@ -29,11 +29,34 @@ pub fn resolve_with_environment(
     local: Option<&Path>,
     environment: &BTreeMap<String, String>,
 ) -> Result<ResolvedProject, ConfigError> {
+    resolve_inner(cwd, explicit, local, environment, false)
+}
+
+/// Historical `ici <engine>`/`verify` resolution. Without any configuration file the frozen CLI
+/// ran its built-in legacy defaults over one project component at the root (`source_dirs`
+/// defaults, every other file an extra), never the automatic v2 discovery; with a
+/// configuration file this is exactly [`resolve_with_environment`].
+pub fn resolve_legacy_command_with_environment(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+) -> Result<ResolvedProject, ConfigError> {
+    resolve_inner(cwd, explicit, local, environment, true)
+}
+
+fn resolve_inner(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+    legacy_command: bool,
+) -> Result<ResolvedProject, ConfigError> {
     let LoadedSettings {
         parsed,
         inspection,
         excludes,
-    } = load_settings(cwd, explicit, local, environment)?;
+    } = load_settings(cwd, explicit, local, environment, legacy_command)?;
     let ConfigurationInspection {
         root,
         config_source,
@@ -102,7 +125,20 @@ pub fn resolve_with_environment(
                     false,
                 )?;
                 let child_path = root.join(relative);
-                let child = Parsed::read(&child_path, false, "component")?;
+                // Frozen `_children` reports a missing or unreadable child at the reference.
+                let child = Parsed::read(&child_path, false, "component").map_err(|error| {
+                    if child_path.is_file() {
+                        error
+                    } else {
+                        parsed.error(
+                            &format!("{prefix}.config"),
+                            format!(
+                                "registered component file does not exist: {}",
+                                child_path.display()
+                            ),
+                        )
+                    }
+                })?;
                 let child_family = schema::family(&child)?;
                 schema::validate(&child, child_family)?;
                 if child.value.get("component").is_none() || child.value.get("workspace").is_some()
@@ -199,7 +235,11 @@ pub fn resolve_with_environment(
             ));
         }
         for need in &value.needs {
-            if need == &value.id || (!ids.contains(need) && !build_ids.contains(need.as_str())) {
+            // Frozen domain model: a need naming both a component and a build is ambiguous.
+            if need == &value.id
+                || (!ids.contains(need) && !build_ids.contains(need.as_str()))
+                || (ids.contains(need) && build_ids.contains(need.as_str()))
+            {
                 return Err(ConfigError::new(
                     format!("invalid component dependency: {need}"),
                     value.origin.clone(),
@@ -279,7 +319,7 @@ pub fn inspect_configuration_with_environment(
     local: Option<&Path>,
     environment: &BTreeMap<String, String>,
 ) -> Result<ConfigurationInspection, ConfigError> {
-    Ok(load_settings(cwd, explicit, local, environment)?.inspection)
+    Ok(load_settings(cwd, explicit, local, environment, false)?.inspection)
 }
 struct LoadedSettings {
     parsed: Parsed,
@@ -291,6 +331,7 @@ fn load_settings(
     explicit: Option<&Path>,
     local: Option<&Path>,
     environment: &BTreeMap<String, String>,
+    legacy_command: bool,
 ) -> Result<LoadedSettings, ConfigError> {
     let env_config = environment
         .get("ICI_CONFIG")
@@ -301,6 +342,10 @@ fn load_settings(
     let config_source = selected.document.as_ref().map(|p| p.path.clone());
     let parsed = match selected.document {
         Some(parsed) => parsed,
+        // The frozen CLI's built-in defaults: an empty legacy document.
+        None if legacy_command => {
+            Parsed::parse(&root.join("<automatic>"), String::new(), false, "defaults")?
+        }
         None => Parsed::parse(
             &root.join("<automatic>"),
             "schema_version = 2\n".into(),
@@ -308,7 +353,7 @@ fn load_settings(
             "defaults",
         )?,
     };
-    let family = if config_source.is_none() {
+    let family = if config_source.is_none() && !legacy_command {
         SchemaFamily::Automatic
     } else {
         schema::family(&parsed)?
@@ -347,6 +392,7 @@ fn load_settings(
         configuration_files.push(path);
     }
     schema::relationships(&parsed, &effective, "")?;
+    unapplied_preferences(&origins, &mut limitations);
     validate_legacy_paths(&root, &effective, &parsed, environment)?;
     // Metadata aliases are explicit precedence, independent of table insertion order.
     let (profile_value, profile_key) = if parsed.value.get("profile").is_some() {
@@ -386,6 +432,7 @@ fn load_settings(
     effective["exclude"] = json!(excludes);
     let checks = checks(effective.get("checks"), &parsed, "checks")?;
     let builds = builds(&effective, &root, &parsed, environment, &origins)?;
+    crate::settings::validate_builds(&builds, family, &parsed)?;
     let tools = tools(&effective, &root, &parsed, environment, &origins)?;
     let suppressions = suppressions(&effective, &parsed)?;
     let publish = publish(&effective);
@@ -556,6 +603,20 @@ fn preferences(
     Ok(())
 }
 
+/// Frozen `--local-config` accepted `output`/`cache` without applying them; the plan promises
+/// user preferences. Until a consumer honours them, an accepted value is never silent.
+fn unapplied_preferences(origins: &BTreeMap<String, Origin>, limitations: &mut Vec<String>) {
+    for (key, origin) in origins {
+        let preference = key == "output" || key == "cache" || key.starts_with("display.");
+        if preference && origin.layer != "defaults" {
+            limitations.push(format!(
+                "{key} preference from {}:{} is accepted but not applied by this version; pass the corresponding command option instead",
+                origin.file, origin.line
+            ));
+        }
+    }
+}
+
 fn apply_overlay(
     parsed: &Parsed,
     effective: &mut Value,
@@ -716,7 +777,7 @@ fn validate_legacy_paths(
                     == Some("required")
             {
                 return Err(parsed.error(
-                    "build.make.workdir",
+                    "build.make.out_of_tree",
                     "out_of_tree=required needs a non-root workdir",
                 ));
             }

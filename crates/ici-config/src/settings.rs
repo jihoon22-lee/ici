@@ -20,17 +20,28 @@ pub(crate) fn builds(
                             .get(&format!("builds.{id}.{name}"))
                             .cloned()
                             .unwrap_or_else(|| parsed.origin(&format!("builds.{id}.{name}")));
-                        let base = Path::new(&origin.file)
-                            .parent()
-                            .filter(|p| p.is_absolute())
-                            .unwrap_or_else(|| parsed.path.parent().unwrap());
+                        // Frozen `_build` anchors declared and local-overlay build paths at the
+                        // file that declared the build, not at the overlay file.
+                        let base = parsed.path.parent().unwrap();
                         paths::anchor(&raw, base, root, environment, &origin, false)
                     })
                     .transpose()
             };
             let artifacts = strings(settings, "artifacts");
             for pattern in &artifacts {
-                paths::check_glob(pattern, &parsed.origin(&format!("builds.{id}.artifacts")))?;
+                let origin = parsed.origin(&format!("builds.{id}.artifacts"));
+                paths::check_glob(pattern, &origin)?;
+                // Frozen `_artifacts`: a canonical relative pattern inside the build directory.
+                if pattern.contains('\\')
+                    || pattern
+                        .split('/')
+                        .any(|part| part.is_empty() || part == ".")
+                {
+                    return Err(ConfigError::new(
+                        "artifact glob must be a canonical relative pattern inside the build directory",
+                        origin,
+                    ));
+                }
             }
             result.push(Build {
                 id: id.clone(),
@@ -46,6 +57,82 @@ pub(crate) fn builds(
         }
     }
     Ok(result)
+}
+/// Frozen `ici.domain.workspace.BuildUnit`/`Workspace` rules for schema 1 builds: stable
+/// lowercase identifiers, output directory/definition below the workspace root, one build per
+/// directory, and a declared system and directory (`workspace/model.py`). Sparse v2 keeps its
+/// documented spellings (for example `project = "."` for a root CMake project, shadow builds
+/// without a directory); every family refuses an id that cannot safely name a shadow directory.
+pub(crate) fn validate_builds(
+    builds: &[Build],
+    family: SchemaFamily,
+    parsed: &Parsed,
+) -> Result<(), ConfigError> {
+    let mut directories: BTreeMap<&str, &str> = BTreeMap::new();
+    for build in builds {
+        let key = |name: &str| format!("builds.{}.{name}", build.id);
+        if build.id.is_empty()
+            || build.id.len() > 128
+            || build.id == "."
+            || build.id.contains(['/', '\\'])
+            || build.id.contains("..")
+            || build.id.chars().any(char::is_control)
+        {
+            return Err(parsed.error(
+                &format!("builds.{}", build.id),
+                "build id must be a bounded name without path separators",
+            ));
+        }
+        if family != SchemaFamily::NextV1 {
+            continue;
+        }
+        let identifiers = [
+            (format!("builds.{}", build.id), Some(build.id.as_str())),
+            (key("system"), build.system.as_deref()),
+            (key("variant"), Some(build.variant.as_str())),
+        ];
+        for (at, value) in identifiers {
+            if let Some(value) = value
+                && !identifier(value)
+            {
+                return Err(parsed.error(
+                    &at,
+                    format!("build identifiers must be lowercase alphanumeric with . _ - separators: {value:?}"),
+                ));
+            }
+        }
+        for (name, value) in [("directory", &build.directory), ("project", &build.project)] {
+            if value.as_deref() == Some(".") {
+                return Err(parsed.error(
+                    &key(name),
+                    "a build path must name a path below the workspace root",
+                ));
+            }
+        }
+        if build.system.is_none() {
+            return Err(parsed.error(&key("system"), "a build must name a system"));
+        }
+        let Some(directory) = build.directory.as_deref() else {
+            return Err(parsed.error(&key("directory"), "a build must name a directory"));
+        };
+        if let Some(owner) = directories.insert(directory, &build.id) {
+            return Err(parsed.error(
+                &key("directory"),
+                format!(
+                    "builds {owner} and {} share directory {directory}",
+                    build.id
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+/// Frozen `_IDENTIFIER_RE = [a-z0-9](?:[a-z0-9._-]*[a-z0-9])?`.
+fn identifier(value: &str) -> bool {
+    let allowed = |c: char| c.is_ascii_lowercase() || c.is_ascii_digit();
+    value.starts_with(allowed)
+        && value.ends_with(allowed)
+        && value.chars().all(|c| allowed(c) || "._-".contains(c))
 }
 pub(crate) fn tools(
     value: &Value,
@@ -98,7 +185,13 @@ pub(crate) fn suppressions(
     let mut result = vec![];
     if let Some(entries) = value.get("suppressions").and_then(Value::as_array) {
         for (index, value) in entries.iter().enumerate() {
-            let path = text(value, "path").unwrap_or_default();
+            // Frozen `_suppressions` normalises the spelling (`./src/**` selects `src/**`).
+            let path = text(value, "path")
+                .unwrap_or_default()
+                .split('/')
+                .filter(|part| *part != ".")
+                .collect::<Vec<_>>()
+                .join("/");
             if !path.is_empty() {
                 paths::check_glob(
                     &path,
@@ -120,8 +213,15 @@ pub(crate) fn suppressions(
 pub(crate) fn publish(value: &Value) -> Option<Publish> {
     value.get("publish").map(|p| Publish {
         repo: text(p, "repo").unwrap_or_default(),
-        api_url: text(p, "api_url").unwrap_or_default(),
-        server_url: text(p, "server_url").unwrap_or_default(),
+        // Frozen `_publish` strips trailing slashes from both endpoints.
+        api_url: text(p, "api_url")
+            .unwrap_or_default()
+            .trim_end_matches('/')
+            .into(),
+        server_url: text(p, "server_url")
+            .unwrap_or_default()
+            .trim_end_matches('/')
+            .into(),
         branch: text(p, "branch").unwrap_or_else(|| "gh-pages".into()),
         token_env: text(p, "token_env").unwrap_or_else(|| "GITHUB_TOKEN".into()),
         settings: p.clone(),

@@ -173,10 +173,15 @@ fn unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests() 
     let (directory, environment) = fixture(false);
     let source = directory.path().join("src/app.py");
     let old = fs::read_to_string(&source).unwrap();
-    // IDNA is the remaining standard codec the native decoder refuses while CPython
-    // still runs the file; utf-7 became natively decodable. Replace this trigger
-    // when IDNA is implemented so the independence property stays exercised.
-    fs::write(source, format!("# coding: idna\n{old}")).unwrap();
+    // Every standard text codec now decodes natively, so the trigger is a UTF-7
+    // source whose `(` `)` tokens split one base64 group: CPython imports it, but
+    // the core decoder cannot prove an original byte boundary between the tokens
+    // and refuses the geometry (unmapped-source-boundary) instead of guessing.
+    fs::write(
+        source,
+        format!("# coding: utf-7\n{old}UNSUPPORTED = +ACgAKQ-\n"),
+    )
+    .unwrap();
     let config = directory.path().join("ici.toml");
     let text = fs::read_to_string(&config).unwrap().replace(
         "[checks.\"python.coverage\"]\nenabled=true",

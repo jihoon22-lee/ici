@@ -66,6 +66,11 @@ pub struct ArtifactBuildPlan {
     manifest_path: String,
     declarations: declarations::Declarations,
     declared: BTreeMap<String, String>,
+    /// Legacy targets reported ahead of the published files once the release tree is written,
+    /// such as the frozen `BuildAdapter[<backend>]` success record of an adapter build.
+    pub lead_targets: Vec<InspectionTarget>,
+    /// Legacy direct g++ release: the frozen `CppBinary` PASS message for the published binary.
+    pub legacy_binary_message: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -516,6 +521,8 @@ fn describe_internal(
         manifest_path,
         declarations,
         declared,
+        lead_targets: vec![],
+        legacy_binary_message: None,
     })
 }
 
@@ -531,6 +538,9 @@ pub fn execute(
     }
     match execute_inner(plan, snapshot, cancellation, &mut output) {
         Ok(()) => {
+            output
+                .targets
+                .splice(0..0, plan.lead_targets.iter().cloned());
             output.summary = format!(
                 "Build Completed: {} {} into {}",
                 plan.metadata.name, plan.metadata.version, plan.output_root
@@ -704,11 +714,15 @@ fn execute_inner(
         target.target_name = match file.kind.as_str() {
             "python-library" => "PythonLibrary",
             "python-launcher" => "PythonLauncher",
+            "executable" if plan.legacy_binary_message.is_some() => "CppBinary",
             "executable" | "shared-library" | "static-library" => "CompiledArtifact",
             _ => "EnvironmentScript",
         }
         .into();
-        target.message = file.message.clone();
+        target.message = match (&plan.legacy_binary_message, file.kind.as_str()) {
+            (Some(message), "executable") => message.clone(),
+            _ => file.message.clone(),
+        };
         output.targets.push(target);
     }
     if cancellation.is_cancelled() {

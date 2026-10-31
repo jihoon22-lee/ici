@@ -208,6 +208,20 @@ impl Validate for RunResult {
             (&self.scope.selected_languages, "selected language"),
         ] {
             validation::unique(items, name)?;
+            // Frozen `ScopeSelection`: every entry is an identifier.
+            for item in items {
+                validation::identifier(item, name)?;
+            }
+        }
+        // Frozen `ExecutionSummary`: blocked, failed and reused task ids are identifiers.
+        for (items, name) in [
+            (&self.execution.blocked_task_ids, "blocked task id"),
+            (&self.execution.failed_task_ids, "failed task id"),
+            (&self.execution.reused_task_ids, "reused task id"),
+        ] {
+            for item in items {
+                validation::identifier(item, name)?;
+            }
         }
         validation::require(
             !self.scope.full_required_satisfied

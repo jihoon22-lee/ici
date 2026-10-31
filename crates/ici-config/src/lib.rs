@@ -17,7 +17,8 @@ pub use migration_report::{
 };
 pub use model::*;
 pub use resolve::{
-    inspect_configuration_with_environment, merge, resolve, resolve_with_environment,
+    inspect_configuration_with_environment, merge, resolve,
+    resolve_legacy_command_with_environment, resolve_with_environment,
 };
 
 pub use schema_keys::{LEGACY_KEYS, LOCAL_KEYS, NEXT_KEYS};

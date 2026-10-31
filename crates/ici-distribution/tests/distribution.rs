@@ -485,3 +485,37 @@ fn malformed_archives_cannot_escape_or_activate_and_all_payloads_are_hashed() {
         "archive-trailing"
     );
 }
+/// Frozen `core/runner_win.py` (Windows Job Object runner) has no native counterpart: the native
+/// product is built and verified only for x86_64 Linux/WSL. A Windows target is refused when the
+/// bundle manifest is formed, before any archive exists, instead of shipping an untested runner.
+#[test]
+fn native_windows_targets_are_refused_and_linux_targets_remain_the_supported_scope() {
+    let root = tempfile::tempdir().unwrap();
+    let readme = root.path().join("README.txt");
+    fs::write(&readme, b"fixture").unwrap();
+    let sources = [BundleInput {
+        path: "README.txt".into(),
+        source: readme,
+        executable: false,
+    }];
+    for target in [
+        "x86_64-pc-windows-msvc",
+        "x86_64-pc-windows-gnu",
+        "aarch64-apple-darwin",
+    ] {
+        let mut windows = inputs();
+        windows.target = target.into();
+        let output = root.path().join(format!("{target}.tar.gz"));
+        let refused =
+            distribution::create_bundle("0.14.0", windows, &sources, &output).unwrap_err();
+        assert_eq!(refused.code, "manifest-identity", "{target}: {refused}");
+        assert!(!output.exists());
+    }
+    // The supported Linux target passes the identity check; this README-only input is then
+    // refused for a different, later reason, so the refusal above is the target itself.
+    let output = root.path().join("linux.tar.gz");
+    match distribution::create_bundle("0.14.0", inputs(), &sources, &output) {
+        Err(error) => assert_ne!(error.code, "manifest-identity", "{error}"),
+        Ok(_) => assert!(output.exists()),
+    }
+}

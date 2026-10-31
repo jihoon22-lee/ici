@@ -153,7 +153,7 @@ fn incompatible_historical_baseline_never_writes_requested_replacement() {
         include_bytes!("../../../tests/fixtures/ici-next/legacy-v3-suite.json"),
     )
     .unwrap();
-    let error = call(
+    let output = call(
         root.path(),
         &[
             "ici",
@@ -165,12 +165,19 @@ fn incompatible_historical_baseline_never_writes_requested_replacement() {
             "replacement.json",
         ],
     )
-    .unwrap_err();
-    assert!(error.to_string().contains("incompatible"), "{error}");
+    .unwrap();
+    // Frozen gate failure path: exit 1 with the incompatibility and the regenerate command.
+    assert_eq!(output.exit_code, 1, "{}", output.stdout);
+    assert!(
+        output.stdout.contains("incompatible") || output.stdout.contains("regenerate it with"),
+        "{}",
+        output.stdout
+    );
     assert!(!root.path().join("replacement.json").exists());
     assert!(
         root.path().join(ici_cli::DEFAULT_RESULT).exists(),
-        "{error}"
+        "{}",
+        output.stdout
     );
 }
 
@@ -206,4 +213,81 @@ fn legacy_annotation_evidence_survives_missing_type_tool_without_claiming_type_c
             .iter()
             .any(|check| check.check_id == "python.type" && !check.evidence_complete)
     );
+}
+
+fn legacy_project(extra: &str) -> tempfile::TempDir {
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::write(
+        root.path().join("src/main.py"),
+        "def f(x):\n    return x + 1\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        format!("[project]\ntype='python'\nsource_dirs=['src']\n{extra}"),
+    )
+    .unwrap();
+    root
+}
+fn engine<'a>(report: &'a Value, name: &str) -> Option<&'a Value> {
+    report["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|engine| engine["engine_name"] == name)
+}
+
+/// Frozen `verify` runs the same engine bodies as `ici lint`/`ici type`: without Ruff and mypy
+/// both fall back to their estimated AST passes, and `--profile fast` disables the descriptors
+/// outside the fast profile (test, cognitive). The suite and exit follow those engine verdicts.
+#[test]
+fn verify_shapes_missing_ruff_and_mypy_like_the_family_commands_and_honors_profiles() {
+    let root = legacy_project("");
+    let output = call(root.path(), &["ici", "verify", "-r", "--profile", "fast"]).unwrap();
+    assert_eq!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.path().join("verify_report.json")).unwrap()).unwrap();
+    assert_eq!(report["suite_status"], "WARN");
+    let lint = engine(&report, "lint").unwrap();
+    assert_eq!(
+        (&lint["status"], &lint["evidence"], &lint["summary"]),
+        (
+            &Value::from("WARN"),
+            &Value::from("ESTIMATED"),
+            &Value::from("Ruff is unavailable; AST syntax fallback is ESTIMATED")
+        )
+    );
+    let typed = engine(&report, "type").unwrap();
+    assert_eq!(typed["evidence"], "ESTIMATED");
+    assert!(
+        typed["summary"]
+            .as_str()
+            .unwrap()
+            .ends_with("Mypy is unavailable; AST fallback is ESTIMATED")
+    );
+    for excluded in ["test", "cognitive", "sanitize", "build"] {
+        assert!(engine(&report, excluded).is_none(), "{excluded}");
+    }
+    assert_eq!(report["warned_count"], 2);
+    // The family command gives the identical engine verdict.
+    let single = call(root.path(), &["ici", "lint", "-r"]).unwrap();
+    assert_eq!(single.exit_code, 0);
+    let family: Value =
+        serde_json::from_slice(&fs::read(root.path().join("lint_report.json")).unwrap()).unwrap();
+    assert_eq!(family["summary"], lint["summary"]);
+}
+
+/// `ruff_required` keeps the frozen tool error in verify too: the suite is ERROR, never a pass.
+#[test]
+fn verify_required_missing_ruff_is_a_suite_error() {
+    let root = legacy_project("[engines.lint]\nruff_required=true\n");
+    let output = call(root.path(), &["ici", "verify", "-r", "--profile", "fast"]).unwrap();
+    assert_ne!(output.exit_code, 0);
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.path().join("verify_report.json")).unwrap()).unwrap();
+    assert_eq!(report["suite_status"], "ERROR");
+    let lint = engine(&report, "lint").unwrap();
+    assert_eq!(lint["status"], "ERROR");
+    assert_eq!(lint["evidence"], "NOT_RUN");
 }

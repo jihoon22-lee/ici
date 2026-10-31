@@ -2,6 +2,8 @@ mod cpp;
 mod cpp_details;
 mod ecosystem;
 mod fixits;
+mod legacy;
+mod legacy_ruff;
 mod python;
 use crate::{
     ProviderError,
@@ -27,6 +29,13 @@ pub fn observe(plan: &ProviderPlan, outcome: &TaskOutcome) -> Observation {
     observe_full(plan, outcome).observation
 }
 pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutput {
+    if plan.context.legacy && plan.kind == ProviderKind::Mypy {
+        return legacy::mypy(plan, outcome);
+    }
+    if plan.context.legacy && matches!(plan.kind, ProviderKind::RuffLint | ProviderKind::RuffFormat)
+    {
+        return legacy_ruff::ruff(plan, outcome);
+    }
     let mut result = AnalysisOutput::new(&plan.task.id, plan.kind.name());
     let observation = &mut result.observation;
     observation.exit_code = outcome.exit_code;

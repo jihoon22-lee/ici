@@ -36,6 +36,38 @@ pub struct ExecutedRun {
     pub engine_names: BTreeMap<String, String>,
     pub project_name: String,
     pub duration_seconds: f64,
+    /// Frozen-shaped legacy `baseline_comparison` of a comparable baseline (severity regressions
+    /// and fail-on-new gate entries); `None` without a comparable baseline.
+    pub legacy_baseline: Option<serde_json::Value>,
+    /// Gated new findings and gated severity regressions against a comparable baseline.
+    pub baseline_gate_failures: Vec<String>,
+}
+/// The exact command that writes a baseline this command can compare against.
+pub fn regenerate_baseline_command(command: &str, baseline: &str) -> String {
+    let quote = |path: &str| {
+        if !path.is_empty()
+            && path
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"._/-+@%=:,".contains(&b))
+        {
+            path.to_owned()
+        } else {
+            format!("'{}'", path.replace('\'', "'\\''"))
+        }
+    };
+    if command == "verify" {
+        format!("ici verify --write-baseline {}", quote(baseline))
+    } else {
+        let fresh = baseline.strip_suffix(".json").map_or_else(
+            || format!("{baseline}.next.json"),
+            |stem| format!("{stem}.next.json"),
+        );
+        format!(
+            "ici analyze --result {} (then pass --baseline {})",
+            quote(&fresh),
+            quote(&fresh)
+        )
+    }
 }
 fn error(error: impl std::fmt::Display) -> CliError {
     CliError(error.to_string())
@@ -404,7 +436,7 @@ pub fn execute(
                         "task.completed",
                         Some(id),
                         Some(&planned.component_id),
-                        &format!("{:?}", output.observation.state),
+                        &state_label(output.observation.state),
                     );
                     outputs.insert(id.clone(), output);
                 }
@@ -482,7 +514,7 @@ pub fn execute(
                         "task.completed",
                         Some(id),
                         Some(&planned.component_id),
-                        &format!("{:?}", output.observation.state),
+                        &state_label(output.observation.state),
                     );
                     outputs.insert(id.clone(), output);
                 }
@@ -497,16 +529,32 @@ pub fn execute(
                             prepared.legacy_projection,
                         );
                         let component = inputs::component(&prepared, planned).clone();
-                        prepared.cpp.run(
+                        let mut output = prepared.cpp.run(
                             &prepared.project,
                             &component,
                             &request,
                             &scheduler,
                             cancellation,
                             &events,
-                        )
+                        );
+                        if prepared.legacy_projection
+                            && planned.check.id == "cpp.diagnostics"
+                            && prepared.cpp.is_fallback(id)
+                        {
+                            let tooling = prepared
+                                .plan
+                                .checks
+                                .iter()
+                                .find(|check| {
+                                    check.component_id == planned.component_id
+                                        && check.check.id == "cpp.tidy"
+                                })
+                                .and_then(|check| prepared.cpp.planned(&check.task_id));
+                            crate::cpp::legacy_fallback_lint(&mut output, tooling);
+                        }
+                        output
                     } else if let Some(plans) = prepared.validations.get(id) {
-                        execute_validation(
+                        let mut output = execute_validation(
                             id,
                             plans,
                             &scheduler,
@@ -514,7 +562,33 @@ pub fn execute(
                             &events,
                             &mut step_outcomes,
                             &mut owned_runs,
-                        )
+                        );
+                        if prepared.legacy_projection && planned.check.id == "cpp.binary-compat" {
+                            let shadow = plans
+                                .first()
+                                .and_then(|plan| plan.context.options.build_roots.get(1))
+                                .and_then(|directory| {
+                                    directory.strip_prefix(&prepared.project.root).ok()
+                                })
+                                .map(|directory| directory.to_string_lossy().into_owned())
+                                .unwrap_or_default();
+                            crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
+                        }
+                        if prepared.legacy_projection
+                            && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
+                            && prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == planned.component_id)
+                                .and_then(|component| {
+                                    crate::cpp::linked_build(&prepared.project, component)
+                                })
+                                .is_some_and(|build| build.system.as_deref() == Some("direct-gcc"))
+                        {
+                            crate::cpp::legacy_direct_sanitizer(&mut output, &planned.check.id);
+                        }
+                        output
                     } else {
                         unavailable(
                             id,
@@ -550,7 +624,7 @@ pub fn execute(
                 "task.completed",
                 Some(&outcome.task_id),
                 None,
-                &format!("{:?}", outcome.state),
+                &state_label(outcome.state),
             );
             if let Some(id) = outcome.task_id.strip_suffix(".files") {
                 let provider = prepared
@@ -624,7 +698,7 @@ pub fn execute(
                 "task.completed",
                 Some(&id),
                 None,
-                &format!("{:?}", output.observation.state),
+                &state_label(output.observation.state),
             );
             outputs.insert(id, output);
         }
@@ -724,6 +798,8 @@ pub fn execute(
             }
         }
     }
+    crate::legacy::annotation_fallback(&prepared, &mut outputs);
+    crate::legacy::lint_syntax(&prepared, &mut outputs);
     crate::legacy::apply_gate_policy(&prepared, &mut outputs);
     let suppressions = SuppressionPolicy::new(&prepared.project.suppressions).map_err(error)?;
     let observations: Vec<Observation> = prepared
@@ -792,6 +868,10 @@ pub fn execute(
         },
     )
     .map_err(error)?;
+    let given_baseline = invocation.value("baseline").unwrap_or_default().to_owned();
+    let regenerate = regenerate_baseline_command(&invocation.command(), &given_baseline);
+    let mut legacy_baseline = None;
+    let mut baseline_gate_failures = vec![];
     if let Some(baseline) = baseline {
         let comparison = ici_application::baseline::compare(
             &result.findings,
@@ -800,7 +880,9 @@ pub fn execute(
             &baseline,
             baseline_path.expect("baseline path").to_string_lossy(),
         );
+        let mut comparison = comparison;
         if comparison.state == ici_domain::BaselineState::Incompatible {
+            comparison.reason = format!("{}; regenerate it with: {regenerate}", comparison.reason);
             result.gate.reasons.push(format!(
                 "baseline comparison unavailable: {}",
                 comparison.reason
@@ -818,6 +900,18 @@ pub fn execute(
                 &crate::coverage_regression::configured_checks(&prepared),
             ));
         }
+        // After coverage-regression findings joined the comparison: one delta for every view.
+        if let Some(comparison) = &result.baseline {
+            legacy_baseline = ici_reporting::legacy_baseline_comparison(
+                &result,
+                &baseline,
+                comparison,
+                &engine_names(&prepared),
+                invocation.flag("fail_on_new"),
+            );
+            baseline_gate_failures =
+                ici_reporting::baseline_gate_failures(&result, &baseline, comparison);
+        }
     } else if let Some(ici_reporting::StoredResult::Legacy(legacy)) = baseline_document {
         let previous = legacy
             .engines()
@@ -833,7 +927,7 @@ pub fn execute(
                 .to_string_lossy()
                 .into_owned(),
             reason: format!(
-                "historical inventory of {previous} findings is readable, but native provider policy and completed check scope were not recorded; no finding delta is inferred and the original baseline is preserved; save an explicit new baseline"
+                "historical inventory of {previous} findings is readable, but native provider policy and completed check scope were not recorded; no finding delta is inferred and the original baseline is preserved; regenerate it with: {regenerate}"
             ),
             ..Default::default()
         });
@@ -849,11 +943,29 @@ pub fn execute(
     ))
     .map_err(error)?;
     storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
+    // Frozen next_path: a cancelled run first names why, then the completion carries the verdict.
+    if cancellation.is_cancelled() {
+        events.emit(
+            "diagnostic",
+            None,
+            None,
+            &format!(
+                "cancelled: {}",
+                cancellation
+                    .reason()
+                    .unwrap_or_else(|| "user request".into())
+            ),
+        );
+    }
     events.emit(
         "run.completed",
         None,
         None,
-        &format!("{:?}", result.gate.selected),
+        &format!(
+            "{}: {} finding(s)",
+            wire_label(&result.gate.selected),
+            result.findings.len()
+        ),
     );
     if let Some(failure) = events.failure()
         && !result.limitations.contains(&failure)
@@ -872,17 +984,11 @@ pub fn execute(
             .iter()
             .map(|planned| (planned.task_id.clone(), planned.check.required))
             .collect(),
-        engine_names: prepared
-            .plan
-            .checks
-            .iter()
-            .filter_map(|planned| {
-                ici_application::plan::engine_name(&planned.check.id)
-                    .map(|name| (planned.task_id.clone(), name.into()))
-            })
-            .collect(),
+        engine_names: engine_names(&prepared),
         project_name: prepared.project.workspace_name.clone(),
         duration_seconds: started.elapsed().as_secs_f64(),
+        legacy_baseline,
+        baseline_gate_failures,
     };
     crate::report::save_details(&executed)?;
     Ok(executed)
@@ -924,7 +1030,7 @@ pub(crate) fn execute_artifact_prepare(
                 "task.completed",
                 Some(&outcome.task_id),
                 Some(&initial.component_id),
-                &format!("{:?}", outcome.state),
+                &state_label(outcome.state),
             );
             if build
                 .version_probe
@@ -1192,7 +1298,7 @@ fn execute_validation(
                             "task.completed",
                             Some(&outcome.task_id),
                             Some(&plan.context.component_id),
-                            &format!("{:?}", outcome.state),
+                            &state_label(outcome.state),
                         );
                         outcomes.insert(outcome.task_id.clone(), outcome);
                     }
@@ -1339,4 +1445,27 @@ fn aggregate_integration_cases(
             })
             .collect::<Vec<_>>()
     );
+}
+
+fn engine_names(prepared: &crate::planning::PreparedPlan) -> BTreeMap<String, String> {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .filter_map(|planned| {
+            ici_application::plan::engine_name(&planned.check.id)
+                .map(|name| (planned.task_id.clone(), name.into()))
+        })
+        .collect()
+}
+
+/// The wire spelling of an enum value (`SUCCEEDED`, `INCOMPLETE`), as the frozen event messages use.
+fn wire_label<T: serde::Serialize>(value: &T) -> String {
+    serde_json::to_value(value)
+        .ok()
+        .and_then(|value| value.as_str().map(str::to_owned))
+        .unwrap_or_default()
+}
+fn state_label(state: ici_domain::TaskState) -> String {
+    wire_label(&state)
 }

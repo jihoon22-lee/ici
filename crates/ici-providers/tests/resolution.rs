@@ -113,3 +113,37 @@ fn symlink_invocation_name_is_preserved_for_multicall_dispatch() {
         alias.to_string_lossy()
     );
 }
+/// Frozen `application/ecosystem.locator`: an executable `node_modules/.bin/{eslint,tsc}` wins
+/// over PATH; Cargo Clippy has no project-local candidate and runs `cargo` from PATH.
+#[test]
+fn ecosystem_project_node_tools_win_over_path_and_clippy_uses_cargo() {
+    let dir = tempfile::tempdir().unwrap();
+    let global = dir.path().join("global");
+    for id in ["eslint", "tsc", "cargo"] {
+        executable(&global.join(id), "global");
+    }
+    let path_env = Some(global.to_string_lossy().into_owned());
+    for id in ["eslint", "tsc"] {
+        let mut req = request(dir.path());
+        req.id = id.into();
+        req.path_env = path_env.clone();
+        assert_eq!(req.resolve().unwrap().source, ToolSource::Path);
+        executable(&dir.path().join("node_modules/.bin").join(id), "local");
+        let local = req.resolve().unwrap();
+        assert_eq!(local.source, ToolSource::Project);
+        assert!(local.path.starts_with(dir.path().join("node_modules/.bin")));
+    }
+    let mut req = request(dir.path());
+    req.id = "clippy".into();
+    req.path_env = path_env;
+    let cargo = req.resolve().unwrap();
+    assert_eq!(cargo.path, global.join("cargo"));
+    // Intended strictness: a present but non-executable project tool is reported instead of
+    // silently falling back to a different PATH tool (frozen fell back to PATH).
+    let broken = dir.path().join("node_modules/.bin/eslint");
+    fs::set_permissions(&broken, fs::Permissions::from_mode(0o644)).unwrap();
+    let mut req = request(dir.path());
+    req.id = "eslint".into();
+    req.path_env = Some(global.to_string_lossy().into_owned());
+    assert!(req.resolve().is_err());
+}

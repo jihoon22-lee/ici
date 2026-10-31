@@ -341,8 +341,13 @@ pub fn analyze(
             break;
         }
         let member_set: BTreeSet<_> = members.iter().copied().collect();
+        // The legacy target starts at the smallest member like the original
+        // engine; the modern finding starts at its first SCC member (also its
+        // primary location), as the original observation did. Both follow real
+        // import edges instead of joining SCC member order.
         let start = *member_set.first().unwrap();
         let path = actual_path(start, &member_set, &graph);
+        let modern_path = actual_path(members[0], &member_set, &graph);
         if path.is_empty() {
             failure(
                 output,
@@ -354,10 +359,18 @@ pub fn analyze(
             );
             continue;
         }
+        let closed_chain = |path: &[usize]| {
+            let mut closed: Vec<_> = path.iter().map(|member| names[*member].clone()).collect();
+            closed.push(names[path[0]].clone());
+            closed.join(" -> ")
+        };
         let path_names: Vec<_> = path.iter().map(|member| names[*member].clone()).collect();
-        let mut closed = path_names.clone();
-        closed.push(path_names[0].clone());
-        let chain = closed.join(" -> ");
+        let chain = closed_chain(&path);
+        let modern_chain = if modern_path.is_empty() {
+            chain.clone()
+        } else {
+            closed_chain(&modern_path)
+        };
         let heuristic = heuristic_edges
             .iter()
             .any(|(from, to)| member_set.contains(from) && member_set.contains(to));
@@ -371,7 +384,7 @@ pub fn analyze(
             .collect();
         let mut finding = Finding::new(
             "cycle.import",
-            format!("import cycle: {chain}"),
+            format!("import cycle: {modern_chain}"),
             spans[0].clone(),
             "ici.cycles",
         );

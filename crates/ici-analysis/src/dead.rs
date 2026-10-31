@@ -297,7 +297,8 @@ pub fn analyze(
     output: &mut AnalysisOutput,
     cancellation: Option<&AtomicBool>,
 ) {
-    if output.observation.state == TaskState::Failed {
+    // The frozen legacy engine skipped an unparsable module and correlated the rest.
+    if output.observation.state == TaskState::Failed && !crate::legacy::requested(request) {
         for file in files {
             let mut target = InspectionTarget::at(&file.source.path, 1);
             target.target_name = "DeadCodeIncompleteScope".into();
@@ -442,9 +443,9 @@ pub fn analyze(
             unit: "files".into(),
             ..Measurement::measured("files_checked", checked as f64)
         },
+        // The count of emitted findings is exact; each finding stays ESTIMATED.
         Measurement {
             unit: "issues".into(),
-            evidence: EvidenceLevel::Estimated,
             ..Measurement::measured("issues_found", issues as f64)
         },
     ]);

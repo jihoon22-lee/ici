@@ -126,17 +126,18 @@ pub fn analyze(
         .or_else(|| request.options.get("target"))
         .and_then(serde_json::Value::as_str)
         .filter(|value| !value.is_empty());
+    let requires_python = request
+        .options
+        .get("requires_python")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_else(|| {
+            metadata
+                .as_ref()
+                .map_or("", |metadata| metadata.requires_python.as_str())
+        })
+        .to_owned();
     let inferred = if floor.is_none() {
-        let requires_python = request
-            .options
-            .get("requires_python")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or_else(|| {
-                metadata
-                    .as_ref()
-                    .map_or("", |metadata| metadata.requires_python.as_str())
-            });
-        match crate::metadata::infer_floor(requires_python) {
+        match crate::metadata::infer_floor(&requires_python) {
             Ok(target) => target,
             Err(error) => {
                 failure(output, "pyproject.toml", &error);
@@ -261,10 +262,20 @@ pub fn analyze(
         output.targets.push(target);
         checked += 1;
     }
-    if target.is_none() {
-        output.observation.limitations.push("No declared Python floor was supplied; syntax and standard-library floors were not asserted".into());
-    }
-    output.observation.limitations.push("Static API rules cover the documented standard-library inventory; absence of findings is not proof of runtime compatibility".into());
+    // The modern observation keeps the original limitation wording; these are
+    // displayed evidence boundaries, not new messages for the same facts.
+    output.observation.limitations.push(match (target, floor) {
+        (Some(target), Some(floor)) => format!(
+            "floor asserted: Python {target} (from configured target {})",
+            python_repr(floor)
+        ),
+        (Some(target), None) => format!(
+            "floor asserted: Python {target} (from requires-python {})",
+            python_repr(&requires_python)
+        ),
+        (None, _) => "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted".into(),
+    });
+    output.observation.limitations.push("static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility".into());
     output.observation.measurements.push(Measurement {
         unit: "files".into(),
         ..Measurement::measured("files_checked", checked as f64)
@@ -310,4 +321,33 @@ pub fn analyze(
     }
     output.summary = format!("Inspected static Python compatibility in {checked} file(s)");
     finish_status(output, request);
+}
+
+/// Python `repr(str)` for the printable ASCII/Unicode text a specifier holds.
+fn python_repr(text: &str) -> String {
+    let quote = if text.contains('\'') && !text.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
+    let mut out = String::with_capacity(text.len() + 2);
+    out.push(quote);
+    for ch in text.chars() {
+        match ch {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            ch if ch == quote => {
+                out.push('\\');
+                out.push(ch);
+            }
+            ch if (ch as u32) < 0x20 || ch as u32 == 0x7f => {
+                out.push_str(&format!("\\x{:02x}", ch as u32));
+            }
+            ch => out.push(ch),
+        }
+    }
+    out.push(quote);
+    out
 }

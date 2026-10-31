@@ -94,13 +94,13 @@ pub fn prepare_with_contexts(
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|path| under(cwd, path));
-    let project = ici_config::resolve_with_environment(
-        cwd,
-        explicit.as_deref(),
-        local.as_deref(),
-        environment,
-    )
-    .map_err(|e| CliError(e.to_string()))?;
+    let resolve = if crate::legacy::is_legacy(invocation) {
+        ici_config::resolve_legacy_command_with_environment
+    } else {
+        ici_config::resolve_with_environment
+    };
+    let project = resolve(cwd, explicit.as_deref(), local.as_deref(), environment)
+        .map_err(|e| CliError(e.to_string()))?;
     let project = crate::export_context::overlay(&project, contexts);
     let mut prepared = prepare_resolved_omitting(
         invocation,
@@ -240,6 +240,7 @@ fn prepare_resolved_omitting(
     }
     definitions.extend(supplemental.iter().cloned());
     crate::validation::apply_legacy_coverage_defaults(invocation, &mut project);
+    crate::legacy::apply_descriptor_profile(invocation, &mut project, profile);
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
     let request = RunRequest {
         components: invocation.values("component").to_vec(),
@@ -251,6 +252,7 @@ fn prepare_resolved_omitting(
     };
     let mut cpp = crate::cpp::CppPlans::default();
     cpp.legacy_projection = crate::legacy::is_legacy(invocation);
+    cpp.legacy_standalone = cpp.legacy_projection && invocation.command() != "verify";
     let mut artifact_builds = BTreeMap::new();
     let mut validations = BTreeMap::new();
     let mut providers = BTreeMap::new();
@@ -299,6 +301,14 @@ fn prepare_resolved_omitting(
                 environment,
                 run_label,
             ) {
+                if crate::legacy::is_legacy(invocation)
+                    && check.id == "cpp.binary-compat"
+                    && let Work::Blocked { reason } = &bound.work
+                    && let Some(output) = legacy_binary_selection(component, task_id, reason)
+                {
+                    cpp.fail_preparation(task_id, output);
+                    return Ok(Work::Internal);
+                }
                 tools.extend(bound.tools);
                 if !bound.plans.is_empty() {
                     validations.insert(task_id.into(), bound.plans);
@@ -324,6 +334,9 @@ fn prepare_resolved_omitting(
             }
             let tool_id = match check.id.as_str() {
                 "python.lint" | "python.format" => "ruff",
+                // Frozen legacy `ici type`/`verify` always ran the project's mypy
+                // (`engines/type_check.py`); the modern view keeps its own selection.
+                "python.type" if crate::legacy::is_legacy(invocation) => "mypy",
                 "python.type" => match component.python_type_provider.as_deref() {
                     None | Some("ty") => "ty",
                     Some("mypy") => "mypy",
@@ -397,6 +410,24 @@ fn prepare_resolved_omitting(
                 .filter(|p| file_language(p) == Some(check.language.as_str()))
                 .cloned()
                 .collect();
+            let legacy_mypy = kind == ProviderKind::Mypy && crate::legacy::is_legacy(invocation);
+            // Frozen `_mypy_targets`: the source directories holding the selected sources (else
+            // the files themselves), relative to the project and sorted. Inputs stay the files.
+            let mut legacy_targets: Vec<_> = component
+                .source_dirs
+                .iter()
+                .filter(|directory| {
+                    legacy_mypy
+                        && targets.iter().any(|file| {
+                            directory.as_str() == "."
+                                || file == *directory
+                                || file.starts_with(&format!("{directory}/"))
+                        })
+                })
+                .cloned()
+                .collect();
+            legacy_targets.sort();
+            legacy_targets.dedup();
             let evidence = ici_providers::native_config::discover_native_configuration(
                 kind,
                 &project.root,
@@ -421,6 +452,33 @@ fn prepare_resolved_omitting(
                 .map(|p| p.to_string_lossy().into_owned())
                 .collect();
             provider_request.options.jobs = 2;
+            if matches!(kind, ProviderKind::RuffLint | ProviderKind::RuffFormat)
+                && crate::legacy::is_legacy(invocation)
+            {
+                provider_request.options.legacy = true;
+            }
+            if legacy_mypy {
+                provider_request.options.legacy = true;
+                provider_request.options.legacy_targets = legacy_targets;
+                let settings = component
+                    .checks
+                    .get(&check.id)
+                    .map(|setting| &setting.settings);
+                let profile = component
+                    .settings
+                    .pointer("/engines/type/mypy_profile")
+                    .or_else(|| settings.and_then(|settings| settings.get("mypy_profile")))
+                    .and_then(Value::as_str);
+                if profile == Some("ici") {
+                    provider_request.options.legacy_args = [
+                        "--check-untyped-defs",
+                        "--warn-redundant-casts",
+                        "--warn-unused-ignores",
+                    ]
+                    .map(String::from)
+                    .to_vec();
+                }
+            }
             provider_request.options.python_version = component
                 .settings
                 .pointer("/python/target_version")
@@ -473,6 +531,18 @@ fn prepare_resolved_omitting(
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;
     cpp.finalize_plan(&mut plan);
+    for check in &mut plan.checks {
+        // A legacy binary-compat verdict decided while planning consumes no build prerequisite.
+        if check.check.id == "cpp.binary-compat" && cpp.planned_output(&check.task_id) {
+            check.check.needs.clear();
+        }
+        // Standalone legacy lint never consumes compile inputs (see `legacy::select`).
+        if cpp.legacy_standalone
+            && matches!(check.check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
+        {
+            check.check.needs.clear();
+        }
+    }
     let mut context_preparations = vec![];
     if crate::legacy::is_legacy(invocation) && plan.profile != Profile::Fast {
         for component in &project.components {
@@ -489,13 +559,9 @@ fn prepare_resolved_omitting(
             if selected.iter().any(|id| {
                 matches!(
                     id.as_str(),
-                    "cpp.compile"
-                        | "cpp.diagnostics"
-                        | "cpp.tidy"
-                        | "cpp.artifact"
-                        | "cpp.binary-compat"
-                        | "python.binary-compat"
-                )
+                    "cpp.compile" | "cpp.artifact" | "cpp.binary-compat" | "python.binary-compat"
+                ) || (!cpp.legacy_standalone
+                    && matches!(id.as_str(), "cpp.diagnostics" | "cpp.tidy"))
             }) {
                 variants.insert(primary);
             }
@@ -727,6 +793,41 @@ fn prepare_resolved_omitting(
                                 }
                                 context_preparations.push(preparation);
                             }
+                            Err(direct_reason)
+                                if variant == "release"
+                                    && selected.contains("cpp.artifact")
+                                    && direct_reason.starts_with("C++ adapter required:") =>
+                            {
+                                // Frozen BuildEngine `_record_error`: one BuildError at ".".
+                                plan.limitations.push(format!(
+                                    "{} {variant}: {direct_reason}; generic g++ was not invoked",
+                                    component.id
+                                ));
+                                let located = component
+                                    .files
+                                    .iter()
+                                    .find(|path| file_language(path) == Some("cpp"))
+                                    .cloned()
+                                    .unwrap_or_else(|| "ici.toml".into());
+                                for check in plan.checks.iter_mut().filter(|check| {
+                                    check.component_id == component.id
+                                        && check.check.id == "cpp.artifact"
+                                }) {
+                                    cpp.fail_preparation(
+                                        &check.task_id,
+                                        crate::cpp::build_failure(
+                                            &check.task_id,
+                                            ".",
+                                            &located,
+                                            true,
+                                            &direct_reason,
+                                            &direct_reason,
+                                        ),
+                                    );
+                                    check.check.needs.clear();
+                                    check.work = Work::Internal;
+                                }
+                            }
                             Err(direct_reason) => plan.limitations.push(format!(
                                 "{} {variant}: no automatic preparation available: {reason}; {direct_reason}",
                                 component.id
@@ -804,10 +905,22 @@ fn prepare_resolved_omitting(
             plan.limitations.push(format!("{} uses verified published or typed artifact bytes without a linked build producer", check.task_id));
         }
     }
-    let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
-    let source_identity = crate::vcs::plan(&project, environment);
     let legacy_lines =
         crate::legacy_lines::collect(&project, &plan, invocation, generated_outputs)?;
+    // Frozen `LineEngine` counted a tree with no in-scope source (documentation only, sources
+    // outside `source_dirs`) as a measured empty scope with its repository extras.
+    for check in &mut plan.checks {
+        if matches!(check.check.id.as_str(), "python.line" | "cpp.line")
+            && matches!(&check.work, Work::Blocked { reason } if reason.starts_with("no sources in scope"))
+            && legacy_lines
+                .get(&check.task_id)
+                .is_some_and(|scope| !scope.inputs.is_empty())
+        {
+            check.work = Work::Internal;
+        }
+    }
+    let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
+    let source_identity = crate::vcs::plan(&project, environment);
     Ok(PreparedPlan {
         project,
         cpp,
@@ -1183,4 +1296,39 @@ fn display_argument(value: &str) -> String {
     } else {
         value.into()
     }
+}
+
+/// Frozen BinaryCompatibilityEngine `_records` outcomes for a legacy run whose selection is empty
+/// or names an unpublished artifact; other blocked reasons stay blocked.
+fn legacy_binary_selection(
+    component: &ici_config::Component,
+    task_id: &str,
+    reason: &str,
+) -> Option<ici_domain::AnalysisOutput> {
+    let required = component
+        .settings
+        .pointer("/engines/binary_compat/required")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if reason.starts_with("no existing executable/shared-library artifact targets")
+        || reason.starts_with("binary compatibility requires existing verified")
+    {
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            required.then_some("no published executable or shared-library artifacts"),
+        ));
+    }
+    let unpublished = [
+        "is not an observed output",
+        "is not in the linked build inventory",
+        "is not an existing verified published or declared artifact",
+    ];
+    if unpublished.iter().any(|marker| reason.contains(marker)) {
+        let value = reason.split('"').nth(1)?;
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            Some(&format!("configured artifact was not published: {value}")),
+        ));
+    }
+    None
 }

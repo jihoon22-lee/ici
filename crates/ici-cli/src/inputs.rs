@@ -238,6 +238,16 @@ pub fn component<'a>(prepared: &'a PreparedPlan, planned: &PlannedCheck) -> &'a 
         .find(|component| component.id == planned.component_id)
         .expect("plan component belongs to resolved project")
 }
+/// Frozen `AnalysisUnit.variant`: the variant of the component's build, if it declares one.
+fn unit_variant(prepared: &PreparedPlan, planned: &PlannedCheck) -> Option<String> {
+    let build = component(prepared, planned).build.as_deref()?;
+    prepared
+        .project
+        .builds
+        .iter()
+        .find(|candidate| candidate.id == build)
+        .map(|candidate| candidate.variant.clone())
+}
 pub fn source_roots(component: &Component, workspace: &Path) -> Vec<String> {
     let mut roots = vec![];
     for directory in &component.source_dirs {
@@ -340,6 +350,9 @@ pub fn analysis_options(prepared: &PreparedPlan, planned: &PlannedCheck, legacy:
     if legacy && let Some(scope) = prepared.legacy_lines.get(&planned.task_id) {
         options["source_paths"] = json!(scope.source_paths);
         options["gated_paths"] = json!(scope.gated_paths);
+        if prepared.project.schema_family == ici_config::SchemaFamily::Legacy {
+            options["extra_targets"] = json!(false);
+        }
     }
     options["legacy_projection"] = json!(legacy);
     options
@@ -532,7 +545,14 @@ pub fn check_records(
             state: observation.state,
             evidence_complete: complete,
             analysis_unit_id: (units.len() == 1).then(|| units[0].clone()),
-            variant: (variants.len() == 1).then(|| variants[0].clone()),
+            // Frozen `check_scope`: the task's variant, else the single unit's build variant.
+            variant: (variants.len() == 1)
+                .then(|| variants[0].clone())
+                .or_else(|| {
+                    (units.len() == 1)
+                        .then(|| unit_variant(prepared, planned))
+                        .flatten()
+                }),
         });
     }
     Ok(records)

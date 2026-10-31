@@ -67,6 +67,7 @@ pub fn save_details(run: &crate::execute::ExecutedRun) -> Result<PathBuf> {
             raw_fingerprints: run.raw_fingerprints.clone(),
             required_checks: run.required_checks.clone(),
             engine_names: run.engine_names.clone(),
+            legacy_baseline: run.legacy_baseline.clone(),
             ..Default::default()
         },
     )

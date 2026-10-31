@@ -244,7 +244,7 @@ fn suites(evidence: &AnalysisOutput) -> Value {
     json!(groups.into_values().collect::<Vec<_>>())
 }
 fn round_one(value: Option<f64>) -> Option<f64> {
-    value.map(|value| format!("{value:.1}").parse().expect("finite percentage"))
+    value.map(ici_domain::python_round_one)
 }
 pub(crate) fn coverage(
     plan: &ValidationPlan,

@@ -159,7 +159,7 @@ pub fn apply(
                         for mut finding in delta.findings.drain(..) {
                             finding.task_id = Some(planned.task_id.clone());
                             finding.component_id = Some(planned.component_id.clone());
-                            let units = planned.analysis_units();
+                            let units = planned.task_analysis_units();
                             finding.analysis_unit_id = (units.len() == 1).then(|| units[0].clone());
                             let variants = planned.variants();
                             finding.variant = (variants.len() == 1).then(|| variants[0].clone());

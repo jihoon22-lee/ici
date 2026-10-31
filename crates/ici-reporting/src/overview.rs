@@ -1,7 +1,7 @@
 //! Historical suite facts every frozen renderer printed beside the engine table: per-engine
 //! score/cache/duration/issue counts, the status tally, the gate reason, the capability
 //! snapshot and the issues-first baseline delta (frozen `baseline_view` selection).
-use crate::{safe::plain, view::View};
+use crate::{projection::engine_required, safe::plain, view::View};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
 
@@ -40,7 +40,7 @@ fn delta_count(baseline: &Value, state: &str) -> usize {
 /// Frozen `gate_reason`: why the historical suite landed on its status.
 pub(crate) fn gate_reason(document: &Value, engines: &[Value]) -> String {
     for engine in engines {
-        if engine["required"] == false || engine["evidence"] == "NOT_APPLICABLE" {
+        if !engine_required(engine) || engine["evidence"] == "NOT_APPLICABLE" {
             continue;
         }
         let name = plain(&engine["engine_name"]);
@@ -53,7 +53,7 @@ pub(crate) fn gate_reason(document: &Value, engines: &[Value]) -> String {
     }
     if let Some(engine) = engines
         .iter()
-        .find(|engine| engine["required"] != false && engine["status"] == "FAIL")
+        .find(|engine| engine_required(engine) && engine["status"] == "FAIL")
     {
         return format!("required engine '{}' failed", plain(&engine["engine_name"]));
     }
@@ -194,10 +194,15 @@ pub(crate) fn baseline_summary(baseline: &Value) -> Value {
         } else {
             "NOT ENFORCED"
         };
-        json!({"new":delta_count(baseline,"new"),"unchanged":delta_count(baseline,"unchanged"),
+        let mut summary = json!({"new":delta_count(baseline,"new"),"unchanged":delta_count(baseline,"unchanged"),
             "moved":delta_count(baseline,"moved"),"resolved":delta_count(baseline,"resolved"),
             "regressed":baseline["regressed_count"],"gated":baseline["gated_count"],
-            "fail_on_new_gate":label,"total_entries":baseline["entries"].as_array().map_or(0, Vec::len)})
+            "fail_on_new_gate":label,"total_entries":baseline["entries"].as_array().map_or(0, Vec::len)});
+        // A native-derived delta also keeps the fingerprints it could not prove resolved.
+        if baseline.get("carried_count").is_some() {
+            summary["carried"] = json!(delta_count(baseline, "carried"));
+        }
+        summary
     } else {
         let size = |key: &str| baseline[key].as_array().map_or(0, Vec::len);
         json!({"new":size("new"),"unchanged":size("unchanged"),"resolved":size("resolved"),

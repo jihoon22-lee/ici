@@ -34,6 +34,7 @@ fn publication() -> Publication {
         reference: "main".into(),
         marker: "<!-- ici-next:core -->".into(),
         run_url: None,
+        legacy: None,
     }
 }
 fn response(status: u16, value: Value) -> std::result::Result<Response, TransportError> {

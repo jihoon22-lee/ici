@@ -166,8 +166,12 @@ impl View {
             json!({"historical_status":self.verdict(),"scope":"Historical archive; full native scope was not recorded", "analysis_context":self.document["analysis_context"]})
         }
     }
+    /// The legacy view's frozen delta (severity transitions, regressed/gated, fail-on-new gate)
+    /// when it carries one; otherwise the native comparison lists.
     pub fn baseline(&self) -> &Value {
-        if let Some(run) = &self.run {
+        if self.document["baseline_comparison"]["entries"].is_array() {
+            &self.document["baseline_comparison"]
+        } else if let Some(run) = &self.run {
             &run["baseline"]
         } else {
             &self.document["baseline_comparison"]

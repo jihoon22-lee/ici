@@ -35,6 +35,19 @@ pub fn command(
             .and_then(serde_json::Value::as_bool)
             == Some(true)
     });
+    // Frozen complexity summary names `engines.complexity.warn_cc` (legacy default 15).
+    let warn_cc = prepared
+        .project
+        .components
+        .iter()
+        .find_map(|component| {
+            component
+                .settings
+                .pointer("/engines/complexity/warn_cc")
+                .filter(|limit| limit.is_number())
+                .map(serde_json::Value::to_string)
+        })
+        .unwrap_or_else(|| "15".into());
     let result_path = root.join(crate::DEFAULT_RESULT);
     let report_path = invocation.flag("report").then(|| {
         root.join(engine(&invocation.command()).map_or_else(
@@ -135,8 +148,12 @@ pub fn command(
     let run = crate::execute::execute(&internal, cwd, environment, false, &cancellation)?;
     // Validate comparison before any requested export, especially --write-baseline.
     let mut exit_code = run.result.exit_code();
-    // A --fail-on-new regression is a gate decision; later legacy verdict projections never lower it.
+    // A --fail-on-new failure (regression or incompatible baseline) is a gate decision; later
+    // legacy verdict projections never lower it.
     let mut regressed = false;
+    // An incompatible baseline under --fail-on-new fails like the frozen gate (exit 1, never a
+    // silent pass) with the exact command that regenerates it; nothing is reported as new.
+    let mut incompatible_baseline = None;
     if invocation.flag("fail_on_new") {
         match &run.result.baseline {
             Some(delta) if delta.state == ici_domain::BaselineState::Comparable => {
@@ -146,29 +163,66 @@ pub fn command(
                         run.result_path.display()
                     )));
                 }
-                if run.result.findings.iter().any(|finding| {
-                    delta.new.contains(&finding.fingerprint)
-                        && finding.counts_against_gate()
-                        && (finding
-                            .tags
-                            .iter()
-                            .any(|tag| tag == "baseline-only" || tag == "legacy-policy-advisory")
-                            || !finding.tags.iter().any(|tag| tag == "advisory"))
-                }) && run.result.gate.selected != GateVerdict::Incomplete
+                // Gated new findings and gated severity regressions (frozen FindingDelta.gated).
+                if !run.baseline_gate_failures.is_empty()
+                    && run.result.gate.selected != GateVerdict::Incomplete
                 {
                     regressed = true;
                     exit_code = 1;
                 }
             }
-            _ => {
-                return Err(CliError(format!(
-                    "baseline comparison is incompatible; result saved at {}; create a new baseline explicitly",
-                    run.result_path.display()
-                )));
+            Some(delta) => {
+                incompatible_baseline = Some(delta.reason.clone());
+                regressed = true;
+                exit_code = exit_code.max(1);
+            }
+            None => {
+                incompatible_baseline = Some("no baseline comparison was recorded".into());
+                regressed = true;
+                exit_code = exit_code.max(1);
             }
         }
     }
     let mut stored = crate::report::load(&run.result_path)?;
+    let shaping = Shaping {
+        prepared: &prepared,
+        root: &root,
+        legacy_schema,
+        coverage_required,
+        warn_cc: &warn_cc,
+        regressed,
+    };
+    // `verify` shapes every engine of the suite with the same helper as the family commands, so a
+    // missing Ruff/mypy reads the same in both (frozen verify runs the same engine bodies).
+    if engine(&invocation.command()).is_none()
+        && legacy_schema
+        && let StoredResult::Legacy(legacy) = &stored
+    {
+        let mut document = legacy.as_value().clone();
+        let mut replaced_any = false;
+        let mut floor = 0;
+        if let Some(results) = document["results"].as_array_mut() {
+            for value in results {
+                let family = value["engine_name"].as_str().unwrap_or_default().to_owned();
+                let (replaced, engine_floor) = shape_engine(&family, value, &shaping)?;
+                replaced_any |= replaced;
+                floor = floor.max(engine_floor);
+            }
+        }
+        if replaced_any {
+            // The native run was incomplete only through checks these engines replaced when the
+            // recomputed suite has no remaining required NOT_RUN/ERROR engine.
+            let status = ici_reporting::legacy_refresh_suite(&mut document).map_err(error)?;
+            exit_code = if status == "ERROR" {
+                exit_code.max(1)
+            } else {
+                ici_reporting::legacy_exit_code(&status)
+                    .max(floor)
+                    .max(i32::from(regressed))
+            };
+            stored = StoredResult::from_value(document).map_err(error)?;
+        }
+    }
     if let Some(family) = engine(&invocation.command())
         && let StoredResult::Legacy(legacy) = &stored
     {
@@ -178,42 +232,18 @@ pub fn command(
             .find(|result| result["engine_name"] == family)
             .cloned()
             .ok_or_else(|| CliError(format!("{family}: no applicable language/check selected")))?;
-        if family == "test"
-            && legacy_schema
-            && let Some(languages) =
-                no_tests_collected(&root, &value).or_else(|| empty_pytest_suite(&value))
-        {
-            // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
-            ici_reporting::legacy_no_tests_collected(&mut value, &languages).map_err(error)?;
-            exit_code = 1;
-        } else if family == "test"
-            && legacy_schema
-            && let Some(reason) = refused_policy(&value)
-        {
-            ici_reporting::legacy_policy_refused(&mut value, &reason).map_err(error)?;
-            exit_code = 1;
-        } else if family == "test"
-            && legacy_schema
-            && !coverage_required
-            && let Some(reason) = optional_coverage_missing(&value)
-        {
-            // Frozen optional coverage: a missing coverage module is a WARN beside the measured
-            // test verdict (FAIL still wins). Native never invents the frozen estimate.
-            let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
-            value["status"] = serde_json::json!(status);
-            let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
-            let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
-            value["summary"] = serde_json::json!(format!(
-                "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
-            ));
-            exit_code = code;
-        } else if run.result.gate.selected != GateVerdict::Incomplete {
-            exit_code = exit_code.max(match value["status"].as_str() {
-                Some("FAIL" | "ERROR") => 1,
-                Some("SKIP") => 2,
-                _ => 0,
-            });
-        }
+        // Frozen measured verdicts that replace the native one (no test file, refused coverage
+        // policy) carry the frozen exit code; every other legacy view only adds its own class.
+        let (replaced, floor) = shape_engine(family, &mut value, &shaping)?;
+        exit_code = exit_code.max(floor);
+        let status = value["status"].as_str().unwrap_or_default();
+        exit_code = if replaced {
+            // Both replacements are FAIL/ERROR (exit 1); a regression already means exit 1.
+            ici_reporting::legacy_exit_code(status).max(i32::from(regressed))
+        } else {
+            // A legacy class never lowers the run's own exit (an incomplete run keeps 3).
+            exit_code.max(ici_reporting::legacy_exit_code(status))
+        };
         value["native_run"] = run.result.to_value().map_err(error)?;
         stored = StoredResult::from_value(value).map_err(error)?;
     }
@@ -231,9 +261,28 @@ pub fn command(
         source_root: Some(root.to_string_lossy().into_owned()),
         ..Default::default()
     };
-    let mut stdout = ici_reporting::render_console(&stored, &options).map_err(error)?;
-    if let Some(path) = report_path {
-        write_result_export(&path, &stored, &run.result_path)?;
+    // Frozen single-engine commands print only the engine line (plus the line chart and the
+    // report notice); the saved result stays complete. `verify` keeps the full console.
+    let single = match (engine(&invocation.command()), &stored) {
+        (Some(family), StoredResult::Legacy(legacy)) => Some((family, legacy.as_value().clone())),
+        _ => None,
+    };
+    let mut stdout = match &single {
+        Some(_) => String::new(),
+        None => ici_reporting::render_console(&stored, &options).map_err(error)?,
+    };
+    if let Some(path) = &report_path {
+        write_result_export(path, &stored, &run.result_path)?;
+    }
+    if let Some((family, engine)) = &single {
+        let report = report_path
+            .as_ref()
+            .map(|_| format!("{family}_report.json"));
+        stdout.push_str(&ici_reporting::legacy_engine_console(
+            engine,
+            report.as_deref(),
+        ));
+    } else if let Some(path) = &report_path {
         stdout.push_str(&format!("wrote {}\n", path.display()));
     }
     if let Some(path) = sarif_path {
@@ -258,7 +307,13 @@ pub fn command(
         )?;
         stdout.push_str(&format!("wrote {}\n", path.display()));
     }
-    if let Some(path) = baseline_output {
+    if let Some(reason) = &incompatible_baseline {
+        // Validated before any requested export: the requested replacement is not written.
+        stdout.push_str(&format!(
+            "Baseline gate: FAILED — --fail-on-new cannot compare against {}: {reason}\n",
+            invocation.value("baseline").unwrap_or_default()
+        ));
+    } else if let Some(path) = baseline_output {
         write_result_export(&path, &stored, &run.result_path)?;
         stdout.push_str(&format!("wrote baseline {}\n", path.display()));
     }
@@ -333,13 +388,186 @@ pub fn command(
             }
         }
     }
-    stdout.push_str(&format!("Result: {}\n", run.result_path.display()));
+    if single.is_none() {
+        stdout.push_str(&format!("Result: {}\n", run.result_path.display()));
+    }
     Ok(CommandOutput {
         stdout,
         stderr,
         exit_code,
     })
 }
+#[derive(Clone, Copy)]
+struct Shaping<'a> {
+    prepared: &'a crate::planning::PreparedPlan,
+    root: &'a Path,
+    legacy_schema: bool,
+    coverage_required: bool,
+    warn_cc: &'a str,
+    regressed: bool,
+}
+/// Frozen engine verdicts the native result cannot express by itself (missing Ruff/mypy
+/// fallbacks, no sources, no tests, refused or optional coverage). Returns whether the native
+/// verdict was replaced and the exit floor the legacy view adds.
+fn shape_engine(
+    family: &str,
+    value: &mut serde_json::Value,
+    shaping: &Shaping<'_>,
+) -> Result<(bool, i32)> {
+    let Shaping {
+        prepared,
+        root,
+        legacy_schema,
+        coverage_required,
+        warn_cc,
+        regressed,
+    } = *shaping;
+    let root = root.to_path_buf();
+    let warn_cc = warn_cc.to_owned();
+    let mut replaced = false;
+    let mut exit_code = 0;
+    if family == "test"
+        && legacy_schema
+        && let Some(languages) =
+            no_tests_collected(&root, value).or_else(|| empty_pytest_suite(value))
+    {
+        // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
+        ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
+        replaced = true;
+    } else if legacy_schema
+        && let Some((status, evidence, summary, target)) =
+            no_python_sources(family, value, &warn_cc)
+    {
+        ici_reporting::legacy_no_sources(value, status, evidence, &summary, target)
+            .map_err(error)?;
+        replaced = true;
+    } else if family == "lint" && legacy_schema && ruff_unavailable(value) {
+        // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
+        // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under
+        // `ruff_required`, a tool error (NOT_RUN).
+        let setting = |key: &str| {
+            prepared.project.components.iter().find_map(|component| {
+                component
+                    .settings
+                    .pointer(&format!("/engines/lint/{key}"))
+                    .cloned()
+            })
+        };
+        let mut targets = vec![];
+        let mut parsed = 0;
+        for component in &prepared.project.components {
+            parsed += component
+                .files
+                .iter()
+                .filter(|path| path.ends_with(".py"))
+                .count();
+            targets.extend(crate::legacy::python_syntax_targets(
+                &root,
+                &component.files,
+            ));
+        }
+        let fail = targets.len();
+        let mut targets: Vec<_> = targets
+            .into_iter()
+            .map(|target| serde_json::to_value(target).map_err(error))
+            .collect::<Result<_>>()?;
+        targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
+                "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
+                "snippet":"","metrics":{"files_parsed":parsed}}));
+        if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
+            ici_reporting::legacy_verdict(
+                value,
+                "ERROR",
+                "NOT_RUN",
+                "Ruff is required but was not found",
+                targets,
+            )
+            .map_err(error)?;
+        } else {
+            let mode = setting("mode")
+                .and_then(|value| value.as_str().map(str::to_owned))
+                .unwrap_or_else(|| "pass_warn_fail".into());
+            let status = match mode.as_str() {
+                "pass_warn" => "WARN",
+                "pass_fail" => "FAIL",
+                _ if fail > 0 => "FAIL",
+                _ => "WARN",
+            };
+            let summary = if fail == 0 {
+                "Ruff is unavailable; AST syntax fallback is ESTIMATED".to_owned()
+            } else {
+                format!("{fail} Errors, 1 Warnings Found")
+            };
+            ici_reporting::legacy_verdict(value, status, "ESTIMATED", &summary, targets)
+                .map_err(error)?;
+            replaced = true;
+        }
+    } else if family == "type" && legacy_schema && mypy_unavailable(value) {
+        // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
+        // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
+        let setting = |key: &str| {
+            prepared.project.components.iter().find_map(|component| {
+                component
+                    .settings
+                    .pointer(&format!("/engines/type/{key}"))
+                    .cloned()
+            })
+        };
+        if setting("mypy_required").and_then(|value| value.as_bool()) == Some(true) {
+            value["status"] = serde_json::json!("ERROR");
+            value["evidence"] = serde_json::json!("NOT_RUN");
+            value["summary"] = serde_json::json!("Mypy is required but was not found");
+        } else {
+            let mode = setting("mode")
+                .and_then(|value| value.as_str().map(str::to_owned))
+                .unwrap_or_else(|| "pass_warn".into());
+            let targets = value["targets"].as_array().cloned().unwrap_or_default();
+            let count = |status: &str| {
+                targets
+                    .iter()
+                    .filter(|target| target["status"] == status)
+                    .count()
+            };
+            let (fail, warn) = (count("FAIL"), count("WARN") + 1);
+            let status = match mode.as_str() {
+                "pass_warn" => "WARN",
+                "pass_fail" => "FAIL",
+                _ if fail > 0 => "FAIL",
+                _ => "WARN",
+            };
+            value["status"] = serde_json::json!(status);
+            value["evidence"] = serde_json::json!("ESTIMATED");
+            value["summary"] = serde_json::json!(format!(
+                "{fail} Type Findings, {warn} Warnings; Mypy is unavailable; AST fallback is ESTIMATED"
+            ));
+            replaced = true;
+        }
+    } else if family == "test"
+        && legacy_schema
+        && let Some(reason) = refused_policy(value)
+    {
+        ici_reporting::legacy_policy_refused(value, &reason).map_err(error)?;
+        replaced = true;
+    } else if family == "test"
+        && legacy_schema
+        && !coverage_required
+        && let Some(reason) = optional_coverage_missing(value)
+    {
+        // Frozen optional coverage: a missing coverage module is a WARN beside the measured
+        // test verdict (FAIL still wins). Native never invents the frozen estimate.
+        let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
+        value["status"] = serde_json::json!(status);
+        let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
+        let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
+        value["summary"] = serde_json::json!(format!(
+            "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
+        ));
+        exit_code = exit_code.max(code);
+    }
+    Ok((replaced, exit_code))
+}
+
 fn open_page(path: &Path, root: &Path, environment: &BTreeMap<String, String>) -> Result<()> {
     let tool = ici_providers::resolver::ToolRequest {
         id: "xdg-open".into(),
@@ -492,6 +720,141 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
     Some(languages)
 }
 
+/// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
+/// refused at planning (a mixed C++ lint view keeps its native shape).
+fn ruff_unavailable(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            !checks.is_empty()
+                && checks.iter().all(|check| {
+                    matches!(
+                        check["check_id"].as_str(),
+                        Some("python.lint" | "python.format")
+                    ) && check["state"] == "BLOCKED"
+                        && check["summary"]
+                            .as_str()
+                            .is_some_and(|summary| summary.starts_with("ruff: "))
+                })
+        })
+}
+
+/// The historical mypy could not be resolved: the type check was refused at planning.
+fn mypy_unavailable(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            checks.iter().any(|check| {
+                check["check_id"] == "python.type"
+                    && check["state"] == "BLOCKED"
+                    && check["summary"]
+                        .as_str()
+                        .is_some_and(|summary| summary.starts_with("mypy: "))
+            })
+        })
+}
+
+type NoSources = (
+    &'static str,
+    &'static str,
+    String,
+    Option<(&'static str, &'static str)>,
+);
+/// Frozen single-engine verdicts when the Python project selected no Python source: every
+/// native check of the engine was refused at planning ("no sources in scope for python").
+fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) -> Option<NoSources> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    if checks.is_empty()
+        || !checks.iter().all(|check| {
+            check["state"] == "BLOCKED"
+                && check["check_id"]
+                    .as_str()
+                    .is_some_and(|id| id.starts_with("python."))
+                && check["summary"] == "no sources in scope for python"
+        })
+    {
+        return None;
+    }
+    let none = "No applicable Python source files were selected";
+    Some(match family {
+        "security" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Security analysis skipped: no Python source files".into(),
+            Some(("Security:NotApplicable", none)),
+        ),
+        "resource" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Resource analysis skipped: no Python source files".into(),
+            Some(("Resource:NotApplicable", none)),
+        ),
+        "lint" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Lint analysis skipped: no applicable source files".into(),
+            Some((
+                "LintScope",
+                "No applicable source files were selected; lint analysis was not run",
+            )),
+        ),
+        "exception" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Exception safety analysis skipped: no applicable source files".into(),
+            Some((
+                "ExceptionSafety",
+                "No applicable Python or C++ source files were selected; analysis was not run",
+            )),
+        ),
+        "dead" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Dead-code analysis skipped: no owned source files".into(),
+            Some((
+                "DeadCode",
+                "No applicable source files were selected; dead-code analysis was not run",
+            )),
+        ),
+        "dup" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Duplicate analysis skipped: no owned source files".into(),
+            Some(("DuplicateCode", "No applicable source files were selected")),
+        ),
+        "cognitive" => (
+            "PASS",
+            "MEASURED",
+            "Max cognitive complexity: 0 across 0 functions".into(),
+            None,
+        ),
+        "cycle" => (
+            "PASS",
+            "MEASURED",
+            "No cyclic dependencies detected".into(),
+            None,
+        ),
+        // Frozen `ComplexityEngine` over no function: a measured PASS naming the warning limit.
+        "complexity" => (
+            "PASS",
+            "MEASURED",
+            format!("Max Cyclomatic Complexity: 0 (limit {warn_cc}) across 0 functions (0 issues)"),
+            None,
+        ),
+        // Frozen `_mark_python_type_check_skipped`: Mypy was not run, nothing is type-checkable.
+        "type" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Type checking not applicable: no Python sources; C++ is unsupported".into(),
+            Some((
+                "Mypy",
+                "No applicable Python source files were selected; Mypy was not run",
+            )),
+        ),
+        _ => return None,
+    })
+}
+
 /// Frozen `_parse_pytest_result`: pytest exit 5 (or exit 0 without a case) is the same
 /// "No tests collected" FAIL in the legacy view. The modern check stays incomplete.
 fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
@@ -554,19 +917,21 @@ fn refused_policy(engine: &serde_json::Value) -> Option<String> {
 /// Frozen optional-coverage verdict: a measured FAIL/ERROR target wins over the coverage WARN,
 /// and a `--fail-on-new` regression keeps exit 1 even when every target passed.
 fn optional_coverage_verdict(targets: &serde_json::Value, regressed: bool) -> (&'static str, i32) {
-    let any = |status: &str| {
-        targets
-            .as_array()
-            .is_some_and(|targets| targets.iter().any(|target| target["status"] == status))
-    };
-    let status = if any("ERROR") {
-        "ERROR"
-    } else if any("FAIL") {
-        "FAIL"
-    } else {
-        "WARN"
-    };
-    (status, i32::from(status != "WARN" || regressed))
+    let statuses = targets
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|target| match target["status"].as_str() {
+            Some("ERROR") => Some("ERROR"),
+            Some("FAIL") => Some("FAIL"),
+            _ => None,
+        });
+    let status = ici_reporting::legacy_worst_status(statuses, "WARN");
+    (
+        status,
+        ici_reporting::legacy_exit_code(status).max(i32::from(regressed)),
+    )
 }
 
 #[cfg(test)]

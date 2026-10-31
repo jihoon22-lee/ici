@@ -38,6 +38,9 @@ const LEGACY_UNUSED_UNAVAILABLE: &str =
 pub struct CppPlans {
     /// Only explicit legacy commands may use the documented c++17 syntax fallback.
     pub legacy_projection: bool,
+    /// A single legacy engine command (`ici lint`, ...): frozen runs it without an analysis
+    /// context, so context-bound tools report the "approved capability inventory" refusal.
+    pub legacy_standalone: bool,
     pub contexts: BTreeMap<String, CompilationContext>,
     pub diagnostics: BTreeMap<String, Vec<ProviderPlan>>,
     pub includes: BTreeMap<String, Vec<IncludeProbe>>,
@@ -219,7 +222,15 @@ impl CppPlans {
                 context(project, component, environment),
             );
         }
-        let context = self.contexts[&component.id].clone();
+        let context = if self.legacy_standalone
+            && matches!(check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
+        {
+            // Frozen `ici lint` runs without an analysis context: the C++ syntax check always
+            // takes the c++17 heuristic fallback, whatever compilation database exists.
+            CompilationContext::default()
+        } else {
+            self.contexts[&component.id].clone()
+        };
         if self.legacy_projection && check.id == "cpp.compile" {
             match external_build_directories(project, component, environment) {
                 Ok(directories) => {
@@ -733,6 +744,50 @@ impl CppPlans {
             );
             return Ok(Work::Internal);
         }
+        if context.units.is_empty() && self.legacy_projection {
+            // Frozen LintEngine without an exact context: one ClangTidyUnavailable and one
+            // ClazyUnavailable target at "." (WARN, or ERROR when the tool is required).
+            let mut unavailable = vec![];
+            for (field, name, label) in [
+                ("clang_tidy", "clang-tidy", "ClangTidyUnavailable"),
+                ("clazy", "clazy-standalone", "ClazyUnavailable"),
+            ] {
+                if mode(field) == "off" {
+                    continue;
+                }
+                let tool = if name == "clazy-standalone" {
+                    "clazy"
+                } else {
+                    name
+                };
+                let resolvable = ToolRequest {
+                    id: name.into(),
+                    explicit: project
+                        .tools
+                        .get(name)
+                        .and_then(|tool| tool.path.as_deref())
+                        .map(|path| crate::files::under(&project.root, path)),
+                    project_root: project.root.clone(),
+                    pack_root: None,
+                    path_env: environment.get("PATH").cloned(),
+                }
+                .resolve()
+                .is_ok();
+                let message = if self.legacy_standalone {
+                    format!(
+                        "{tool} requires an approved capability inventory and exact compilation context"
+                    )
+                } else if resolvable {
+                    format!("{tool} requires an exact compilation database")
+                } else {
+                    format!("{tool} is unavailable or incompletely probed")
+                };
+                unavailable.push((label, message, mode(field) == "required"));
+            }
+            self.preparation_failures
+                .insert(id.into(), legacy_tooling_unavailable(id, &unavailable));
+            return Ok(Work::Internal);
+        }
         if context.units.is_empty() {
             return Err("clang tooling requires usable recorded compilation units".into());
         }
@@ -1123,7 +1178,8 @@ pub fn analyze_contract(
     };
     let directory = build.directory.as_deref().unwrap_or(".");
     let base = crate::files::under(&project.root, directory);
-    let entries = if !base.exists() {
+    let present = base.is_dir();
+    let entries = if !present {
         vec![]
     } else {
         match crate::files::tree(&project.root, &base) {
@@ -1135,36 +1191,58 @@ pub fn analyze_contract(
         root: directory.into(),
         ..component.clone()
     };
+    // Frozen `ici.artifacts` locates contract findings at the build directory; "." is not a
+    // project-relative finding path here, so a root build keeps its declaration file instead.
+    let location = if directory == "." {
+        build
+            .origin
+            .file
+            .strip_prefix(&format!("{}/", project.root.display()))
+            .unwrap_or("ici.toml")
+    } else {
+        directory
+    };
     let candidates: Vec<_> = entries.iter().map(|entry| entry.relative.clone()).collect();
     let mut satisfied = 0u64;
     let mut produced = 0u64;
     for pattern in &build.artifacts {
-        let matches = match ici_config::matching_source_paths(
-            &view,
-            &candidates,
-            std::slice::from_ref(pattern),
-        ) {
-            Ok(matches) => matches,
-            Err(error) => return failed(output, &error.to_string()),
+        let matches = if present {
+            match ici_config::matching_source_paths(
+                &view,
+                &candidates,
+                std::slice::from_ref(pattern),
+            ) {
+                Ok(matches) => matches,
+                Err(error) => return failed(output, &error.to_string()),
+            }
+        } else {
+            vec![]
         };
         let mut count = 0u64;
+        let mut directories = 0u64;
         for path in matches {
             let entry = entries
                 .iter()
                 .find(|entry| entry.relative == path)
                 .expect("matched bounded inventory");
+            // Frozen resolves each match strictly: a dangling link vanished, so it is no match.
+            if project.root.join(&path).canonicalize().is_err() {
+                continue;
+            }
             let mut target = InspectionTarget::at(&path, 1);
             target.target_name = "DeclaredArtifact".into();
             target.metrics.insert("build".into(), json!(build.id));
             if !entry.contained {
                 target.status = "FAIL".into();
                 target.message = format!(
-                    "declared artifact {path} of build '{}' resolves outside the workspace",
+                    "declared artifact {path} of build '{}' resolves outside the workspace — it is not an artifact this run produced",
                     build.id
                 );
-                add_finding(
+                let mut located = target.clone();
+                located.file_path = location.into();
+                add_artifact_finding(
                     &mut output,
-                    &target,
+                    &located,
                     "artifact.invalid",
                     &format!("invalid:{}:{path}", build.id),
                 );
@@ -1172,6 +1250,7 @@ pub fn analyze_contract(
                 count += 1;
                 target.message = "Declared regular artifact exists inside the workspace".into();
             } else {
+                directories += 1;
                 continue;
             }
             output.targets.push(target);
@@ -1180,23 +1259,22 @@ pub fn analyze_contract(
             satisfied += 1;
             produced += count;
         } else {
-            let location = if directory == "." {
-                build
-                    .origin
-                    .file
-                    .strip_prefix(&format!("{}/", project.root.display()))
-                    .unwrap_or("ici.toml")
+            let detail = if !present {
+                "the build directory is absent".to_string()
+            } else if directories > 0 {
+                format!("only {directories} non-file match(es)")
             } else {
-                directory
+                "no match under the build directory".to_string()
             };
             let mut target = InspectionTarget::at(location, 1);
             target.status = "FAIL".into();
             target.target_name = "MissingDeclaredArtifact".into();
             target.message = format!(
-                "declared artifact {pattern:?} of build '{}' produced nothing: no regular match under the build directory",
+                "declared artifact {} of build '{}' produced nothing: {detail}",
+                ici_analysis::unicode::python_repr(pattern),
                 build.id
             );
-            add_finding(
+            add_artifact_finding(
                 &mut output,
                 &target,
                 "artifact.missing",
@@ -1235,6 +1313,22 @@ pub fn analyze_contract(
     );
     output.extra = json!({"build":build.id,"directory":directory,"patterns":build.artifacts,"satisfied":satisfied,"produced":produced});
     output
+}
+/// Frozen `ici.artifacts` raw fingerprint: `artifact-` + the first 16 hex digits of
+/// sha1("<kind>:<build>:<pattern or path>"); run attribution then derives the envelope id.
+fn add_artifact_finding(
+    output: &mut AnalysisOutput,
+    target: &InspectionTarget,
+    rule: &str,
+    identity: &str,
+) {
+    use sha1::Digest;
+    add_finding(output, target, rule, identity);
+    let digest = format!("{:x}", sha1::Sha1::digest(identity.as_bytes()));
+    if let Some(finding) = output.observation.findings.last_mut() {
+        finding.fingerprint = format!("artifact-{}", &digest[..16]);
+        finding.evidence = ici_domain::EvidenceLevel::Measured;
+    }
 }
 fn add_finding(output: &mut AnalysisOutput, target: &InspectionTarget, rule: &str, identity: &str) {
     let mut finding = Finding::new(
@@ -1284,6 +1378,405 @@ pub fn preparation_dependent(check_id: &str, variant: &str, has_tasks: bool) -> 
                 ))
         }
     }
+}
+
+/// Frozen `_count_adapter_artifacts` (no shared analysis context under `ici build`): regular,
+/// non-symlink files in the shadow tree that are linked binaries or `!<arch>` static archives,
+/// objects and coverage notes excluded. `None` when the walk cannot be completed.
+pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
+    const MAGICS: [&[u8]; 6] = [
+        b"\x7fELF",
+        b"MZ",
+        b"\xfe\xed\xfa\xce",
+        b"\xfe\xed\xfa\xcf",
+        b"\xce\xfa\xed\xfe",
+        b"\xcf\xfa\xed\xfe",
+    ];
+    let mut pending = vec![shadow.to_path_buf()];
+    let (mut visited, mut count) = (0usize, 0usize);
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(&directory).ok()? {
+            let entry = entry.ok()?;
+            visited += 1;
+            if visited > 100_000 {
+                return None;
+            }
+            let kind = entry.file_type().ok()?;
+            let path = entry.path();
+            if kind.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            let extension = path.extension().and_then(|value| value.to_str());
+            if !kind.is_file() || matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
+                continue;
+            }
+            let mut prefix = [0u8; 8];
+            let read = std::fs::File::open(&path)
+                .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
+                .unwrap_or(0);
+            let prefix = &prefix[..read];
+            let archive =
+                matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
+            if archive || MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
+                count += 1;
+            }
+        }
+    }
+    Some(count)
+}
+
+/// Frozen `_unavailable` targets of clang-tidy and Clazy in a legacy lint run.
+fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici.cpp.tooling");
+    let errors: Vec<_> = unavailable
+        .iter()
+        .filter(|(_, _, required)| *required)
+        .map(|(_, message, _)| message.clone())
+        .collect();
+    output.status = if !errors.is_empty() {
+        "ERROR"
+    } else if unavailable.is_empty() {
+        "PASS"
+    } else {
+        "WARN"
+    }
+    .into();
+    output.summary = if errors.is_empty() {
+        unavailable
+            .iter()
+            .map(|(_, message, _)| message.as_str())
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        errors.join("; ")
+    };
+    output.extra["legacy_tool_warnings"] = json!(
+        unavailable
+            .iter()
+            .filter(|(_, _, required)| !*required)
+            .map(|(_, message, _)| message)
+            .collect::<Vec<_>>()
+    );
+    for (label, message, required) in unavailable {
+        output.observation.limitations.push(message.clone());
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = (*label).into();
+        target.status = if *required { "ERROR" } else { "WARN" }.into();
+        target.message = message.clone();
+        output.targets.push(target);
+    }
+    output
+}
+
+/// Frozen `_cpp_lint` heuristic fallback projection of the legacy `cpp.diagnostics` output:
+/// `Compiler:<rule>` / `C++Syntax` targets with kind-prefixed messages (errors FAIL, warnings and
+/// notes WARN, notes as their own targets), `C++Syntax:fallback` PASS for clean files, and the
+/// frozen LintEngine summary over these targets, the clang tooling targets and tool warnings.
+pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&AnalysisOutput>) {
+    const FALLBACK: &str = "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback";
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let details = output
+        .extra
+        .get("finding_details")
+        .cloned()
+        .unwrap_or_default();
+    let findings = output.observation.findings.clone();
+    let mut targets = vec![];
+    for target in &output.targets {
+        if target.status == "PASS" && target.target_name.is_empty() {
+            let mut clean = target.clone();
+            clean.target_name = "C++Syntax:fallback".into();
+            clean.message = "Compiler syntax analysis completed without diagnostics.".into();
+            targets.push(clean);
+            continue;
+        }
+        let Some(finding) = findings.iter().find(|finding| {
+            finding.primary_location.path == target.file_path
+                && finding.primary_location.start_line == target.start_line
+                && finding.primary_location.start_column == target.start_column
+                && finding.message == target.message
+                && finding.native_rule_id == target.target_name
+        }) else {
+            targets.push(target.clone());
+            continue;
+        };
+        let Some(legacy) = details
+            .get(&finding.fingerprint)
+            .and_then(|detail| detail.get("legacy_message"))
+            .and_then(Value::as_str)
+        else {
+            return;
+        };
+        let kind = legacy.split(": ").next().unwrap_or_default();
+        let mut primary = target.clone();
+        primary.message = legacy.into();
+        primary.status = if kind.contains("error") || kind == "sorry, unimplemented" {
+            "FAIL"
+        } else {
+            "WARN"
+        }
+        .into();
+        primary.target_name = if finding.native_rule_id.starts_with('-') {
+            format!("Compiler:{}", finding.native_rule_id)
+        } else {
+            "C++Syntax".into()
+        };
+        targets.push(primary);
+        for note in &finding.related_locations {
+            if !note.label.starts_with("note: ") {
+                continue;
+            }
+            let mut related = InspectionTarget::at(&note.path, note.start_line);
+            related.start_column = note.start_column;
+            related.target_name = "C++Syntax".into();
+            related.status = "WARN".into();
+            related.message = note.label.clone();
+            targets.push(related);
+        }
+    }
+    output.targets = targets;
+    let all: Vec<&InspectionTarget> = output
+        .targets
+        .iter()
+        .chain(
+            tooling
+                .into_iter()
+                .flat_map(|tooling| tooling.targets.iter()),
+        )
+        .collect();
+    let fail = all.iter().filter(|target| target.status == "FAIL").count();
+    let mut warnings = vec![FALLBACK.to_string()];
+    warnings.extend(
+        tooling
+            .and_then(|tooling| tooling.extra.get("legacy_tool_warnings"))
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(str::to_owned),
+    );
+    let messages: BTreeSet<&str> = all
+        .iter()
+        .filter(|target| target.status == "WARN")
+        .map(|target| target.message.as_str())
+        .collect();
+    let warn = all.iter().filter(|target| target.status == "WARN").count()
+        + warnings
+            .iter()
+            .filter(|message| !messages.contains(message.as_str()))
+            .count();
+    output.status = if fail > 0 { "FAIL" } else { "WARN" }.into();
+    output.summary = if fail == 0 {
+        warnings
+            .iter()
+            .take(2)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else {
+        format!("{fail} Errors, {warn} Warnings Found")
+    };
+}
+
+/// Frozen SanitizeEngine / ThreadSanitizeEngine direct g++ projection. Each instrumented test
+/// group ends with its "Instrumented suite" target: a group with sanitizer diagnostics keeps
+/// only those located targets, a clean run becomes one `<label>` PASS target, and the summary
+/// is the frozen clean or "<n> <noun> Defect(s) Detected" text. Any other outcome (an executable
+/// failing without a diagnostic) is left untouched rather than guessed.
+pub fn legacy_direct_sanitizer(output: &mut AnalysisOutput, check_id: &str) {
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let (label, clean, summary, noun) = if check_id == "cpp.tsan" {
+        (
+            "TSan",
+            "ThreadSanitizer completed without diagnostics",
+            "Thread Safety & TSan Clean (0 Defects)",
+            "Thread Safety",
+        )
+    } else {
+        (
+            "ASan/UBSan",
+            "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+            "Memory Safety & Sanitize Clean (0 Defects)",
+            "Memory / Resource",
+        )
+    };
+    let mut reshaped = vec![];
+    let mut group: Vec<InspectionTarget> = vec![];
+    for target in &output.targets {
+        if target.target_name != "Instrumented suite" {
+            group.push(target.clone());
+            continue;
+        }
+        let (executables, diagnostics): (Vec<_>, Vec<_>) = group.drain(..).partition(|item| {
+            item.target_name == item.file_path && item.message.starts_with("executable exited")
+        });
+        if !diagnostics.is_empty() {
+            reshaped.extend(diagnostics);
+        } else if executables.len() == 1 && executables[0].status == "PASS" {
+            let mut target = InspectionTarget::at(&executables[0].file_path, 1);
+            target.target_name = label.into();
+            target.message = clean.into();
+            reshaped.push(target);
+        } else {
+            return;
+        }
+    }
+    if !group.is_empty() || reshaped.is_empty() {
+        return;
+    }
+    let issues = reshaped
+        .iter()
+        .filter(|target| matches!(target.status.as_str(), "WARN" | "FAIL"))
+        .count();
+    output.targets = reshaped;
+    output.summary = if output.status == "PASS" {
+        summary.into()
+    } else {
+        format!("{issues} {noun} Defect(s) Detected")
+    };
+}
+
+/// Frozen BinaryCompatibilityEngine verdict when it cannot select or inspect artifacts: the
+/// not-applicable SKIP, or `BinaryCompatibility:AnalysisUnavailable` ERROR at ".".
+pub fn legacy_binary_compat_unavailable(id: &str, error: Option<&str>) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "binarycompat");
+    let mut target = InspectionTarget::at(".", 1);
+    if let Some(error) = error {
+        output.status = "ERROR".into();
+        output.summary = format!("Binary compatibility analysis incomplete: {error}");
+        output.observation.limitations.push(error.into());
+        target.target_name = "BinaryCompatibility:AnalysisUnavailable".into();
+        target.status = "ERROR".into();
+        target.message = error.into();
+    } else {
+        output.status = "SKIP".into();
+        output.summary =
+            "Binary compatibility not applicable: no selected manifest artifacts".into();
+        output.observation.measurements.push(Measurement {
+            name: "applicability".into(),
+            value: 0.0,
+            evidence: ici_domain::EvidenceLevel::NotApplicable,
+            unit: "checks".into(),
+            numerator: None,
+            denominator: None,
+        });
+        output.extra["elf"] = json!({"state":"NOT_APPLICABLE","artifacts_checked":0,"facts":[]});
+        target.target_name = "BinaryCompatibility:NotApplicable".into();
+        target.status = "SKIP".into();
+        target.message = "No executable or shared-library manifest artifacts were selected".into();
+    }
+    output.targets.push(target);
+    output
+}
+
+/// Frozen BinaryCompatibilityEngine targets and summary for measured ELF evidence: one
+/// `BinaryCompatibility:<variant>:shadow:<path>` target per inspected artifact at its shadow
+/// path, `BinaryCompatibility:NonElf` SKIP for allowed non-ELF files, and the
+/// "ELF compatibility: N checked, V violation(s), S skipped" summary.
+pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: &str) {
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let prefix = if shadow.is_empty() || shadow == "." {
+        String::new()
+    } else {
+        format!("{}/", shadow.trim_end_matches('/'))
+    };
+    let (mut checked, mut skipped) = (0usize, 0usize);
+    let findings = output.observation.findings.clone();
+    for target in &mut output.targets {
+        if target.target_name != "ELF/ABI artifact" {
+            continue;
+        }
+        let path = target.file_path.clone();
+        let relative = path.strip_prefix(&prefix).unwrap_or(&path).to_owned();
+        let identity = format!("{variant}:shadow:{relative}");
+        target.file_path = relative;
+        if target.message == "selected artifact is not ELF" {
+            if target.status == "SKIP" {
+                skipped += 1;
+                target.target_name = "BinaryCompatibility:NonElf".into();
+                target.message = "Manifest artifact is not ELF and policy allows it".into();
+            } else {
+                target.target_name = format!("BinaryCompatibility:{identity}");
+                target.message = "Selected binary manifest artifact is not an ELF object".into();
+            }
+            continue;
+        }
+        checked += 1;
+        let violations = findings
+            .iter()
+            .filter(|finding| finding.primary_location.path == path)
+            .count();
+        target.target_name = format!("BinaryCompatibility:{identity}");
+        target.message = if violations > 0 {
+            format!("{violations} binary compatibility violation(s)")
+        } else {
+            "ELF dependency, loader path, and ABI evidence verified".into()
+        };
+    }
+    output.summary = format!(
+        "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
+        findings.len()
+    );
+}
+
+/// Frozen `_build_with_adapter` success target: `BuildAdapter[<backend>]` PASS at the descriptor,
+/// "<select_backend reason>; produced N artifact(s)".
+pub fn legacy_adapter_success(
+    root: &Path,
+    component_root: &str,
+    system: &str,
+    descriptor: &str,
+    produced: usize,
+) -> InspectionTarget {
+    let base = crate::files::under(root, component_root);
+    let name = Path::new(descriptor)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(descriptor)
+        .to_owned();
+    let reason = match system {
+        "cmake" => {
+            let mut reason =
+                "CMakeLists.txt at the project root selected the CMake backend".to_string();
+            let mut projects: Vec<String> = std::fs::read_dir(&base)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_file()))
+                .filter_map(|entry| entry.file_name().into_string().ok())
+                .filter(|name| name.ends_with(".pro"))
+                .collect();
+            projects.sort();
+            if let Some(first) = projects.first() {
+                reason.push_str(&format!("; {first} was present and passed over"));
+            }
+            reason
+        }
+        "qmake" => format!("{name} at the project root selected the qmake backend"),
+        _ => format!("{name} at the project root selected the configured Make backend"),
+    };
+    let backend = match system {
+        "cmake" => "cmake",
+        "qmake" => "qmake",
+        _ => "make",
+    };
+    let mut target = InspectionTarget::at(&name, 1);
+    target.target_name = format!("BuildAdapter[{backend}]");
+    target.message = format!("{reason}; produced {produced} artifact(s)");
+    target
 }
 
 /// Frozen sanitizer engines compile only `tests/**/*.cpp` under the project root. `true` means
@@ -1356,7 +1849,9 @@ pub fn legacy_sanitizer_skip(id: &str, check_id: &str) -> AnalysisOutput {
     output.observation.measurements.push(Measurement {
         name: "applicability".into(),
         value: 0.0,
-        evidence: ici_domain::EvidenceLevel::NotApplicable,
+        // Frozen `_mark_scope_skip` counts a skipped scope, so the verdict is ESTIMATED (it keeps
+        // the required legacy suite at ERROR), not NOT_APPLICABLE.
+        evidence: ici_domain::EvidenceLevel::Estimated,
         unit: "checks".into(),
         numerator: None,
         denominator: None,
@@ -1423,6 +1918,8 @@ pub fn build_failure(
     // The frozen target may sit at "."; the blocking finding needs a project file location.
     let mut located = target.clone();
     located.file_path = finding_path.into();
+    // A frozen message may end inside stderr whitespace; finding text must be trimmed.
+    located.message = message.trim().into();
     add_finding(
         &mut output,
         &located,
@@ -1483,6 +1980,18 @@ impl CppPlans {
     /// Record the frozen legacy output for a check decided while planning its preparation.
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
+    }
+    /// Whether this task runs the legacy c++17 heuristic fallback.
+    pub fn is_fallback(&self, id: &str) -> bool {
+        self.fallbacks.contains_key(id)
+    }
+    /// A frozen legacy output decided while planning, if any.
+    pub fn planned(&self, id: &str) -> Option<&AnalysisOutput> {
+        self.preparation_failures.get(id)
+    }
+    /// Whether a frozen legacy output was already decided for this task while planning.
+    pub fn planned_output(&self, id: &str) -> bool {
+        self.preparation_failures.contains_key(id)
     }
     pub fn handles(&self, id: &str) -> bool {
         self.diagnostics.contains_key(id)

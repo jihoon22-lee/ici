@@ -220,13 +220,25 @@ fn allowed(path: &[String], family: SchemaFamily) -> bool {
             .copied()
             .collect(),
     };
-    keys.iter().any(|pattern| {
-        let parts: Vec<_> = pattern.split('.').collect();
-        path.len() <= parts.len()
-            && path.iter().zip(parts).all(|(actual, declared)| {
-                declared == "*" || actual == declared || actual.trim_end_matches("[]") == declared
-            })
-    })
+    let matches = |path: &[String]| {
+        keys.iter().any(|pattern| {
+            let parts: Vec<_> = pattern.split('.').collect();
+            path.len() <= parts.len()
+                && path.iter().zip(parts).all(|(actual, declared)| {
+                    declared == "*"
+                        || actual == declared
+                        || actual.trim_end_matches("[]") == declared
+                })
+        })
+    };
+    // A `[component]` file body has the same shape as one `[[components]]` entry (frozen
+    // `_component_body` reads both), including nested integration cases.
+    matches(path)
+        || (path.first().is_some_and(|first| first == "component") && path.len() > 1 && {
+            let mut entry = path.to_vec();
+            entry[0] = "components[]".into();
+            matches(&entry)
+        })
 }
 
 fn walk(
@@ -365,18 +377,23 @@ fn validate_type(
         if text.len() > 8192 || text.contains('\0') {
             return Err(parsed.error(display, "string must be bounded and contain no NUL"));
         }
+        // Frozen non-empty strings use `str.strip()`; whitespace-only values are empty.
         if !matches!(
             last,
-            "version"
-                | "target_version"
+            "target_version"
                 | "expected_class"
                 | "expected_machine"
                 | "max_glibc"
                 | "max_glibcxx"
                 | "max_cxxabi"
-        ) && text.is_empty()
+        ) && text.trim().is_empty()
         {
             return Err(parsed.error(display, "string must not be empty"));
+        }
+        validate_text_bounds(parsed, display, last, text)?;
+        // Frozen domain `require_text`: the workspace name is not padded with whitespace.
+        if last == "name" && parent == "workspace" && text.trim() != text {
+            return Err(parsed.error(display, "workspace name must not be padded with whitespace"));
         }
         let choices: &[&str] = match last {
             "profile" => &["fast", "standard", "deep"],
@@ -403,10 +420,19 @@ fn validate_type(
         if matches!(last, "api_url" | "server_url") && !text.starts_with("https://") {
             return Err(parsed.error(display, "publication endpoint must use https://"));
         }
-        if last == "token_env" && !valid_env_name(text) {
+        // Frozen `[A-Z_][A-Z0-9_]*` and `[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+`.
+        if last == "token_env"
+            && (!valid_env_name(text) || text.chars().any(|c| c.is_ascii_lowercase()))
+        {
             return Err(parsed.error(display, "token_env must name an environment variable"));
         }
-        if last == "repo" && (text.split('/').count() != 2 || text.split('/').any(str::is_empty)) {
+        if last == "repo"
+            && (text.split('/').count() != 2
+                || text.split('/').any(str::is_empty)
+                || !text
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "_.-/".contains(c)))
+        {
             return Err(parsed.error(display, "repo must be owner/name"));
         }
         if last == "target_version" && !text.is_empty() {
@@ -487,6 +513,7 @@ fn validate_type(
         if last == "argv" || last == "command" || last.ends_with("_argv") {
             validate_argv(parsed, array, display, last)?;
         }
+        validate_list_items(parsed, display, last, parent, array)?;
         if last == "languages"
             && (array.is_empty()
                 || array.iter().any(|v| {
@@ -514,16 +541,23 @@ fn validate_string_map(
         let valid_key = if kind == "env" {
             valid_env_name(key) && (family == SchemaFamily::Legacy || !key.starts_with("ICI_"))
         } else {
-            !key.is_empty()
-                && key.len() <= 64
+            // Frozen `[A-Za-z0-9][A-Za-z0-9_.-]{0,63}`.
+            key.len() <= 64
+                && key
+                    .chars()
+                    .next()
+                    .is_some_and(|c| c.is_ascii_alphanumeric())
                 && key
                     .chars()
                     .all(|c| c.is_ascii_alphanumeric() || "_.-".contains(c))
         };
+        let limit = if kind == "env" { 4096 } else { 1024 };
         if !valid_key
-            || value
-                .as_str()
-                .is_none_or(|s| s.len() > 4096 || s.chars().any(|c| c < ' '))
+            || value.as_str().is_none_or(|s| {
+                s.chars().count() > limit
+                    || s.chars().any(|c| c < ' ')
+                    || (kind == "python_targets" && s.is_empty())
+            })
         {
             return Err(parsed.error(&join(display, key), "invalid environment/target mapping"));
         }
@@ -611,6 +645,20 @@ fn relationships_here(parsed: &Parsed, value: &Value, prefix: &str) -> Result<()
             {
                 return Err(parsed.error(prefix, "suppression must carry a reason"));
             }
+            if let Some(key) = ["fingerprint", "rule", "path", "component"]
+                .iter()
+                .find(|key| {
+                    table
+                        .get(**key)
+                        .and_then(Value::as_str)
+                        .is_some_and(|value| value.chars().count() > 1024)
+                })
+            {
+                return Err(parsed.error(
+                    &join(prefix, key),
+                    "suppression selector must be a bounded string",
+                ));
+            }
             if !["fingerprint", "rule", "path", "component"]
                 .iter()
                 .any(|key| table.contains_key(*key))
@@ -683,6 +731,135 @@ fn relationships_here(parsed: &Parsed, value: &Value, prefix: &str) -> Result<()
         }
     }
     Ok(())
+}
+
+/// Frozen per-key string bounds (`config_schema.py`, `_analysis_config.py`).
+fn validate_text_bounds(
+    parsed: &Parsed,
+    display: &str,
+    last: &str,
+    text: &str,
+) -> Result<(), ConfigError> {
+    let characters = text.chars().count();
+    let printable = !text.chars().any(|c| c < ' ');
+    let valid = match last {
+        "clang_tidy_config" => characters <= 4096,
+        "expected_class" | "expected_machine" | "kind" => characters <= 128 && printable,
+        "max_glibc" | "max_glibcxx" | "max_cxxabi" => text.is_empty() || abi_version(text),
+        _ => true,
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(parsed.error(
+            display,
+            "string exceeds the frozen bound or format for this key",
+        ))
+    }
+}
+fn abi_version(text: &str) -> bool {
+    let mut parts = text.split('.');
+    text.len() <= 32
+        && parts.next().is_some_and(all_digits)
+        && text.contains('.')
+        && parts.all(all_digits)
+}
+fn all_digits(part: &str) -> bool {
+    !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit())
+}
+/// Python `str.isidentifier()` for configuration names: ASCII is exact; non-ASCII uses the
+/// Rust Unicode alphabetic/numeric properties (XID tables live in ici-analysis, above config).
+fn python_identifier(text: &str) -> bool {
+    let mut characters = text.chars();
+    characters
+        .next()
+        .is_some_and(|c| c == '_' || c.is_alphabetic())
+        && characters.all(|c| c == '_' || c.is_alphanumeric())
+}
+fn contained_glob(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let drive = bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':';
+    text.chars().count() <= 256
+        && !text.contains('\\')
+        && !text.starts_with('/')
+        && !drive
+        && !text.split('/').any(|part| part == "..")
+}
+/// Frozen list-member rules that depend on the key, after generic type/bound checks.
+fn validate_list_items(
+    parsed: &Parsed,
+    display: &str,
+    last: &str,
+    parent: &str,
+    array: &[Value],
+) -> Result<(), ConfigError> {
+    let items: Vec<&str> = array.iter().filter_map(Value::as_str).collect();
+    let unique = || items.iter().collect::<BTreeSet<_>>().len() == items.len();
+    let problem = match last {
+        "clang_tidy_checks" | "clazy_checks" => (items.is_empty()
+            || items.len() > 128
+            || items.iter().any(|item| {
+                item.chars().count() > 128
+                    || !item
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || "_.*-".contains(c))
+            })
+            || items.join(",").len() > 8192)
+            .then_some("tool checks must be 1 to 128 unique names using letters, digits, _ . * -"),
+        "imports" => items
+            .iter()
+            .any(|item| !item.split('.').all(python_identifier))
+            .then_some("imports must be dotted Python module names"),
+        "secret_name_allowlist" => {
+            let folded: BTreeSet<_> = items.iter().map(|item| item.to_lowercase()).collect();
+            (items
+                .iter()
+                .any(|item| item.chars().count() > 128 || !python_identifier(item))
+                || folded.len() != items.len())
+            .then_some(
+                "names must be unique (ignoring case) Python identifiers of at most 128 characters",
+            )
+        }
+        "wheel_globs" | "python_wheel" | "report" => (items
+            .iter()
+            .any(|item| !contained_glob(item))
+            || !unique()
+            || (last != "wheel_globs" && items.len() > 32))
+            .then_some("globs must be unique contained POSIX patterns of at most 256 characters"),
+        "artifacts" if parent == "binary_compat" => {
+            (items.len() > 64 || !unique() || items.iter().any(|item| item.chars().count() > 1024))
+                .then_some("artifacts must contain at most 64 unique bounded strings")
+        }
+        "forbidden_needed" | "allowed_needed" => (!unique()
+            || items.iter().any(|item| item.chars().count() > 1024))
+        .then_some("dependency names must be unique bounded strings"),
+        "inherit_env" => (!unique() || items.iter().any(|item| !valid_env_name(item)))
+            .then_some("inherit_env must name unique environment variables"),
+        // Frozen next `_bounded_strings`: at most 32 entries; requires items are 128 characters.
+        "stdout_contains"
+        | "stderr_contains"
+        | "stdout_not_contains"
+        | "stderr_not_contains"
+        | "requires"
+            if display.contains(".integrations[") =>
+        {
+            let limit = if last == "requires" { 128 } else { 1024 };
+            (items.len() > 32 || items.iter().any(|item| item.chars().count() > limit))
+                .then_some("integration assertion lists hold at most 32 bounded strings")
+        }
+        // Legacy `_validate_string_list_bounded(unique=True)`; next integrations allow repeats.
+        "stdout_contains" | "stderr_contains" | "stdout_not_contains" | "stderr_not_contains"
+            if display.starts_with("engines.integration.cases[") =>
+        {
+            (!unique() || items.iter().any(|item| item.chars().count() > 1024))
+                .then_some("legacy integration assertions must be unique bounded strings")
+        }
+        _ => None,
+    };
+    match problem {
+        Some(message) => Err(parsed.error(display, message)),
+        None => Ok(()),
+    }
 }
 
 pub(crate) fn valid_env_name(value: &str) -> bool {

@@ -46,7 +46,9 @@ impl EventLog {
         let Some(sink) = &mut state.sink else {
             return;
         };
-        let Some(sequence) = sink.sequence.checked_add(1) else {
+        // Frozen `_EventWriter`: the first event of a run is seq 0 and each emission adds one.
+        let sequence = sink.sequence;
+        let Some(next) = sequence.checked_add(1) else {
             state.failure = Some("event sequence exhausted".into());
             return;
         };
@@ -58,11 +60,12 @@ impl EventLog {
             event_type: kind.into(),
             timestamp: Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true),
             task_id: task_id.map(str::to_owned),
-            component_id: component.map(str::to_owned),
+            // Workspace-level tasks carry no component; an empty id is absence, not identity.
+            component_id: component.filter(|id| !id.is_empty()).map(str::to_owned),
             message: message.chars().take(4096).collect(),
         };
         match append_events(&sink.path, &[event]) {
-            Ok(()) => sink.sequence = sequence,
+            Ok(()) => sink.sequence = next,
             Err(error) => state.failure = Some(format!("event output failed: {error}")),
         }
     }
@@ -77,6 +80,12 @@ impl SignalGuard {
     pub fn install(cancellation: &ici_execution::Cancellation) -> std::io::Result<Self> {
         let mut guard = Self { ids: vec![] };
         for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+            // Registered first so the reason is recorded before the flag becomes visible.
+            guard.ids.push(signal_hook::flag::register_usize(
+                signal,
+                cancellation.signal_slot(),
+                signal as usize,
+            )?);
             guard
                 .ids
                 .push(signal_hook::flag::register(signal, cancellation.flag())?);

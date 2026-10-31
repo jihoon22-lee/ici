@@ -1,0 +1,155 @@
+{
+ "observations": {
+  "automatic": {
+   "configured": {
+    "files": {
+     "app.py": "x = 1\n",
+     "ici.toml": "[engines.line]\nwarn_limit = 600\n"
+    },
+    "outcome": "existing_config"
+   },
+   "empty": {
+    "files": {
+     "README.md": "docs\n"
+    },
+    "message": "no supported sources discovered in <tmp>/checkout",
+    "outcome": "reject"
+   },
+   "hybrid": {
+    "component_root": ".",
+    "components": [
+     "project"
+    ],
+    "exclude": [
+     "**/.git/**",
+     "**/.hg/**",
+     "**/.svn/**",
+     "**/.venv/**",
+     "**/venv/**",
+     "**/node_modules/**",
+     "**/__pycache__/**",
+     "**/build/**",
+     "**/dist/**",
+     "**/target/**",
+     "**/.ici/**"
+    ],
+    "files": {
+     "app.py": "x = 1\n",
+     "src/main.cpp": "int main() {}\n"
+    },
+    "languages": [
+     "python",
+     "cpp"
+    ],
+    "outcome": "accept",
+    "profile": "standard",
+    "root_is_checkout": true
+   },
+   "python": {
+    "component_root": ".",
+    "components": [
+     "project"
+    ],
+    "exclude": [
+     "**/.git/**",
+     "**/.hg/**",
+     "**/.svn/**",
+     "**/.venv/**",
+     "**/venv/**",
+     "**/node_modules/**",
+     "**/__pycache__/**",
+     "**/build/**",
+     "**/dist/**",
+     "**/target/**",
+     "**/.ici/**"
+    ],
+    "files": {
+     "app.py": "x = 1\n",
+     "pkg/mod.py": "y = 2\n"
+    },
+    "languages": [
+     "python"
+    ],
+    "outcome": "accept",
+    "profile": "standard",
+    "root_is_checkout": true
+   },
+   "subdirectory": {
+    "component_root": ".",
+    "components": [
+     "project"
+    ],
+    "exclude": [
+     "**/.git/**",
+     "**/.hg/**",
+     "**/.svn/**",
+     "**/.venv/**",
+     "**/venv/**",
+     "**/node_modules/**",
+     "**/__pycache__/**",
+     "**/build/**",
+     "**/dist/**",
+     "**/target/**",
+     "**/.ici/**"
+    ],
+    "files": {
+     "app.py": "x = 1\n",
+     "sub/inner.py": "z = 3\n"
+    },
+    "languages": [
+     "python"
+    ],
+    "outcome": "accept",
+    "profile": "standard",
+    "root_is_checkout": true
+   }
+  },
+  "first_run_global_default": {
+   "global_file_has_default_policy": true,
+   "global_file_written": true,
+   "warn_limit": 500
+  },
+  "get_engine_config": {
+   "line": {
+    "enabled": true,
+    "exclude_dirs": [],
+    "fail_limit": 1000,
+    "gate_dirs": [
+     "src",
+     "include",
+     "lib",
+     "app"
+    ],
+    "include_dirs": [],
+    "mode": "pass_warn_fail",
+    "warn_limit": 500
+   },
+   "missing": {}
+  },
+  "layers": {
+   "files": {
+    "explicit.toml": "[engines.line]\nwarn_limit = 900\n",
+    "project/dev.toml": "[engines.line]\nwarn_limit = 800\nfail_limit = 2000\n",
+    "project/ici.toml": "[engines.line]\nwarn_limit = 700\n",
+    "xdg/ici/ici.toml": "[ici]\npolicy_name = \"Global policy\"\n[engines.line]\nwarn_limit = 600\n"
+   },
+   "with_explicit": {
+    "fail_limit": 2000,
+    "policy_name": "Global policy",
+    "warn_limit": 900
+   },
+   "without_explicit": {
+    "fail_limit": 2000,
+    "policy_name": "Global policy",
+    "warn_limit": 800
+   }
+  },
+  "missing_explicit": {
+   "message": "explicit configuration file does not exist: <tmp>/missing.toml",
+   "outcome": "reject"
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "reader": "ici.config.load_config / get_engine_config"
+}

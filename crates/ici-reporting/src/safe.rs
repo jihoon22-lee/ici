@@ -126,3 +126,47 @@ pub(crate) fn terminal(text: &str) -> String {
         .filter(|ch| *ch == '\n' || *ch == '\t' || !ch.is_control())
         .collect()
 }
+
+#[cfg(test)]
+mod frozen_redaction_tests {
+    use serde_json::Value;
+
+    /// tests/rust-parity/reporting/capture_finding_redaction.py: frozen `_redact_finding`
+    /// (core/redaction.py:360) and `_redact_delta` (core/redaction.py:447) over credentials in
+    /// every string field, metric names that collide once masked, fixes and locations.
+    fn frozen() -> Value {
+        let golden: Value = serde_json::from_str(include_str!(
+            "../../../tests/rust-parity/reporting/finding-redaction.json"
+        ))
+        .unwrap();
+        assert_eq!(golden["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+        golden
+    }
+
+    #[test]
+    fn finding_fields_metric_names_and_fixes_redact_like_the_frozen_finding_redactor() {
+        let golden = frozen();
+        assert_eq!(
+            super::redact(&golden["finding"]["input"]),
+            golden["finding"]["redacted"]
+        );
+    }
+
+    #[test]
+    fn baseline_delta_rule_message_engine_and_locations_redact_like_the_frozen_delta_redactor() {
+        let golden = frozen();
+        assert_eq!(
+            super::redact(&golden["delta"]["input"]),
+            golden["delta"]["redacted"]
+        );
+    }
+
+    #[test]
+    fn secret_free_values_pass_through_redaction_unchanged() {
+        let golden = frozen();
+        for record in ["finding", "delta"] {
+            let redacted = super::redact(&golden[record]["redacted"]);
+            assert_eq!(redacted, golden[record]["redacted"], "{record}");
+        }
+    }
+}

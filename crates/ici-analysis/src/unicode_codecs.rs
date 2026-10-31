@@ -638,10 +638,16 @@ mod tests {
             }
         }
         assert!(differences.is_empty(), "{}", differences.join("\n"));
-        assert_eq!(
-            gaps,
-            vec!["idna"],
-            "Remaining accepted standard codec families stay explicit"
+        assert!(
+            gaps.is_empty(),
+            "Every accepted standard codec family is native: {gaps:?}"
+        );
+        assert!(
+            evidence["source_codec_census"]
+                .as_object()
+                .unwrap()
+                .values()
+                .all(|record| record["disposition"] != "pending_source_audit")
         );
     }
     #[test]
