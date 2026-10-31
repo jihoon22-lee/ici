@@ -116,7 +116,7 @@
    "difference_reason": null,
    "evidence": [
     ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
-    "cargo test -p ici-cli --test config_oracle --locked (5 passed incl. plan selection and next init replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
+    "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
     "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
@@ -469,7 +469,7 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "implemented"
   },
   "command:ici next doctor": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: config_path, cpp, local_config, profile, python.",
@@ -497,7 +497,7 @@
    "difference_reason": "Native writes the sparse schema_version=2 scaffold (unrestricted preview names no languages; discovery supplies them); --force keeps the existing scope and a .before-init backup and refuses --force with --python/--cpp; an unparseable existing ici.toml is refused with its location instead of being overwritten (frozen exit 0) so user data is never replaced blindly.",
    "evidence": [
     ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
-    "cargo test -p ici-cli --test config_oracle --locked (5 passed incl. plan selection and next init replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
+    "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
     "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
@@ -525,7 +525,7 @@
    "difference_reason": "Native adds limitations for unapplied output/cache/display preferences (frozen ignored them silently) and, with --require-full on a partial selection, a coverage_gaps entry naming the unselected component (frozen only set scope.require_full). A bare local interpreter name (python3) is a PATH lookup natively, as frozen Executable.searches_path/SPEC-01 section 3 document; the frozen plan reported it as \"no such file\" (defect not reproduced).",
    "evidence": [
     ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
-    "cargo test -p ici-cli --test config_oracle --locked (5 passed incl. plan selection and next init replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
+    "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
     "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
     "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
@@ -541,7 +541,8 @@
     ],
     "positive": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
-     "crates/ici-cli/tests/config_oracle.rs::unapplied_preferences_reach_the_plan_output_of_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::unapplied_preferences_reach_the_plan_output_of_the_binary",
+     "crates/ici-cli/tests/config_oracle.rs::recorded_plan_differences_are_native_behaviour_not_silent_drift"
     ]
    },
    "rust_paths": [

@@ -348,3 +348,95 @@ fn next_init_keeps_the_frozen_preview_refusal_and_force_contract() {
         }
     }
 }
+
+#[test]
+fn recorded_plan_differences_are_native_behaviour_not_silent_drift() {
+    // cli-selection-differences.json next_plan:* — asserted natively, since frozen behaves
+    // differently by design (the replay above compares only the shared projection).
+    let golden = fixture("cli-selection-oracle.json");
+    let differences = fixture("cli-selection-differences.json");
+    let run = |tree: &Value, argv: &[&str]| -> Value {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().join("project");
+        for (name, text) in tree.as_object().unwrap() {
+            let path = root.join(name);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text.as_str().unwrap()).unwrap();
+        }
+        fs::create_dir(root.join(".git")).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(argv)
+            .current_dir(&root)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", temporary.path())
+            .env("XDG_CONFIG_HOME", temporary.path())
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{argv:?}");
+        serde_json::from_slice(&output.stdout).unwrap()
+    };
+    assert!(differences.get("next_plan:require_full_partial").is_some());
+    let partial = run(
+        &golden["workspace"],
+        &[
+            "next",
+            "plan",
+            "--json",
+            "--component",
+            "app",
+            "--require-full",
+        ],
+    );
+    assert_eq!(partial["scope"]["require_full"], json!(true));
+    let gaps = partial["coverage_gaps"].as_array().unwrap();
+    assert!(
+        gaps.iter()
+            .any(|gap| gap.as_str().is_some_and(|text| text.contains("core"))),
+        "the unselected required component is named: {gaps:?}"
+    );
+    let full = run(
+        &golden["workspace"],
+        &["next", "plan", "--json", "--require-full"],
+    );
+    assert!(
+        full["coverage_gaps"]
+            .as_array()
+            .is_none_or(|gaps| !gaps.iter().any(|gap| gap
+                .as_str()
+                .is_some_and(|text| text.contains("was not selected")))),
+        "a full selection reports no unselected component"
+    );
+
+    assert!(
+        differences
+            .get("next_plan:bare_local_interpreter")
+            .is_some()
+    );
+    let mut tree = golden["workspace"].clone();
+    tree["local.toml"] =
+        json!("components.app.python.executable = \"ici-parity-missing-python\"\n");
+    let plan = run(
+        &tree,
+        &["next", "plan", "--json", "--local-config", "local.toml"],
+    );
+    let reasons: Vec<&str> = plan["plans"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|item| item["checks"].as_array().unwrap())
+        .filter_map(|check| check["blocked"].as_str())
+        .filter(|reason| reason.contains("ici-parity-missing-python"))
+        .collect();
+    assert!(
+        !reasons.is_empty(),
+        "the overlay interpreter reaches the plan"
+    );
+    for reason in reasons {
+        assert!(reason.contains("not found"), "{reason}");
+        assert!(
+            !reason.contains("no such file"),
+            "a bare name is a PATH lookup: {reason}"
+        );
+    }
+}
