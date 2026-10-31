@@ -868,6 +868,69 @@
    "comparison": "Runtime facet only: frozen core/pipeline.py:109 descriptor `type` (factory TypeCheckEngine): name, factory name, dependencies, produces, consumes, profiles, execution class and build variant equal the native registry metadata field-for-field, the per-profile selection and order match, and malformed descriptor graphs are refused with the frozen messages. Defect fixed: historical commands ignored descriptor profiles, so `verify --profile fast` ran test/cognitive; frozen apply_analysis_profile now disables profile-excluded engines. The engine's own analysis behaviour (rules, findings, thresholds, tool execution) is the python/cpp/validation areas' facet and is not claimed here.",
    "difference_reason": "Verified, not complete: engine analysis parity is owned by the language/validation areas. Native runs no in-process PipelineExecutor; checks map onto descriptors via ici-application plan::engine_name and the shared scheduler orders their tasks (read-only/build serialization is expressed by resource keys and mutating tasks)."
   },
+  "finding_site:src/ici/adapters/providers/ecosystem.py:127:15": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-providers/src/diagnostics/ecosystem.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/native.rs::eslint_native_json_rules_and_ignored_files_are_not_silent_passes"
+    ],
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
+    ]
+   },
+   "evidence": [
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+   ],
+   "comparison": "Dynamic rule family '<tool>.<native rule>' (eslint.*, tsc.TS*, clippy.*) resolved against the frozen parse oracle (tests/rust-parity/providers/ecosystem-oracle.json) and frozen `ici analyze` on real ESLint 10.13.0, tsc 7.0.2, clippy 0.1.99: same rule ids, native_rule_id, locations and fingerprints; frozen-refused outputs are refused natively."
+  },
+  "finding_site:src/ici/core/cache_codec.py:182:11": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-application/src/cache.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-application/tests/cache.rs::rich_cache_retains_inspected_targets_and_never_invents_them_from_old_observations"
+    ],
+    "negative": [
+     "crates/ici-application/tests/cache.rs::cached_completion_is_validated_and_corruption_or_unknown_identity_is_not_a_hit"
+    ],
+    "failure": [
+     "crates/ici-application/tests/cache.rs::scope_level_root_targets_are_cached_but_escaping_target_paths_are_refused"
+    ]
+   },
+   "evidence": [
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+   ],
+   "comparison": "Cached InspectionTarget target_name/metrics are pass-through of what the producing check stored (no fixed family); native keeps them byte-for-byte (unicode name, metric map), refuses malformed or escaping entries as misses."
+  },
+  "finding_site:src/ici/core/cache_codec.py:255:11": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-application/src/cache.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-application/tests/cache.rs::rich_cache_retains_inspected_targets_and_never_invents_them_from_old_observations"
+    ],
+    "negative": [
+     "crates/ici-application/tests/cache.rs::cached_completion_is_validated_and_corruption_or_unknown_identity_is_not_a_hit"
+    ],
+    "failure": [
+     "crates/ici-application/tests/cache.rs::cache_symlink_ancestor_and_fifo_are_refused_without_following_or_blocking"
+    ]
+   },
+   "evidence": [
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+   ],
+   "comparison": "Cached Finding rule_id/tool_rule_id/metrics are pass-through of the stored observation; native strict decode rejects malformed entries as corrupt misses instead of a wrong hit."
+  },
   "finding_site:src/ici/domain/legacy.py:133:11": {
    "status": "difference_review",
    "rust_paths": [
@@ -901,6 +964,49 @@
    ],
    "comparison": "Frozen site: finding_to_legacy (next Finding -> v3 LegacyFinding). The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
    "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+  },
+  "finding_site:src/ici/domain/serialization.py:301:11": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-domain/src/result.rs",
+    "crates/ici-domain/src/finding.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-domain/tests/wire.rs::published_result_goldens_roundtrip_without_lost_information"
+    ],
+    "negative": [
+     "crates/ici-domain/tests/wire.rs::refuse_unknown_or_inconsistent_evidence"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/wire.rs::unknown_modern_evidence_is_rejected_at_every_wire_boundary_instead_of_dropped"
+    ]
+   },
+   "evidence": [
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+   ],
+   "comparison": "rule_id/native_rule_id read from the stored run (e.g. ICI-LINT-001/F401 in tests/fixtures/ici-next/run-code-fail.json, published by the frozen product) round-trip without loss; unknown or inconsistent fields are refused."
+  },
+  "finding_site:src/ici/domain/serialization.py:454:15": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-domain/src/result.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-domain/tests/wire.rs::published_result_goldens_roundtrip_without_lost_information"
+    ],
+    "negative": [
+     "crates/ici-domain/tests/wire.rs::refuse_unknown_or_inconsistent_evidence"
+    ],
+    "failure": [
+     "crates/ici-domain/tests/wire.rs::unknown_modern_evidence_is_rejected_at_every_wire_boundary_instead_of_dropped"
+    ]
+   },
+   "evidence": [
+    "focused cargo tests passed; /tmp/ici-rust-replacement-20261028/w-runtime-finding-sites.log"
+   ],
+   "comparison": "Run metrics (name/unit/value/numerator/denominator/evidence, e.g. line-coverage 446/500) are pass-through measurements; the frozen-published goldens and tests/rust-parity/domain/run-v2.json round-trip exactly."
   },
   "finding_site:src/ici/execution/legacy_reader.py:168:11": {
    "status": "difference_review",
@@ -972,12 +1078,316 @@
   }
  },
  "source_files": {
+  "src/ici/adapters/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "Package marker/re-export only (read in full): no behaviour of its own; the provider adapters it names map to crates/ici-providers (src/lib.rs, src/diagnostics/)."
+  },
+  "src/ici/adapters/providers/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type",
+    "command:ici analyze"
+   ],
+   "reason": "builtin_providers(): the fixed provider set keyed by ProviderKind; native fixed set is crates/ici-providers/src/plan.rs ProviderKind + diagnostics/mod.rs observe dispatch. Ecosystem members verified against frozen parse and actual tools (ecosystem_oracle.rs, diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints)."
+  },
+  "src/ici/adapters/providers/base.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events",
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "ProviderPlan/ParsedOutput/observe/unavailable: a provider never decides the gate; malformed, truncated or mismatched output is Failed/incomplete, never empty success. Native: crates/ici-providers/src/diagnostics/mod.rs observe(); diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success."
+  },
+  "src/ici/adapters/providers/ecosystem.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type",
+    "finding_site:src/ici/adapters/providers/ecosystem.py:127:15"
+   ],
+   "reason": "ESLint/tsc/Clippy parsers, rule id '<tool>.<rule>', fingerprint name|rule|path|line|message. Native crates/ici-providers/src/diagnostics/ecosystem.rs; frozen parse oracle tests/rust-parity/providers/ecosystem-oracle.json and actual-tool e2e ecosystem-e2e-oracle.json match (tsc continuation lines and ESLint end range fixed to frozen). Intended differences: ESLint 'File ignored' and unknown Clippy reasons are not silent passes."
+  },
+  "src/ici/adapters/providers/identity.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:identity-cache-baseline",
+    "capability:wire-result-events"
+   ],
+   "reason": "process_fingerprint/invocation_identity: native identities independent of execution labels. Native crates/ici-domain/src/identity.rs + crates/ici-application/src/identity.rs; cache.rs::executable_core_options_environment_and_every_input_participate_in_reuse."
+  },
+  "src/ici/analysis/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "descriptor:complexity",
+    "descriptor:line"
+   ],
+   "reason": "Package marker/re-export only (read in full): no behaviour of its own; analysis cores are mapped per check by the python/cpp workers (crates/ici-analysis)."
+  },
+  "src/ici/application/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "command:ici analyze",
+    "command:ici next verify"
+   ],
+   "reason": "Package marker/re-export only (read in full): no behaviour of its own; flows map to crates/ici-application and crates/ici-cli/src/execute.rs."
+  },
+  "src/ici/application/check_scope.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:identity-cache-baseline",
+    "capability:wire-result-events"
+   ],
+   "reason": "records(): per-check selection/completion scope used by baseline comparison (v2 'checks'; null = unknown scope). Native crates/ici-application/src/baseline.rs + ici-domain result.rs checks; wire.rs::refuse_unknown_or_inconsistent_evidence (/checks/0/state)."
+  },
+  "src/ici/application/ecosystem.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "configs_under/planner/locator: native ecosystem config binding and project-local node tools first. Native crates/ici-providers/src/native_config.rs + resolver.rs; resolution.rs::ecosystem_project_node_tools_win_over_path_and_clippy_uses_cargo; planning.rs::eslint_relative_plugin_and_lockfile_changes_are_captured_without_executing_config."
+  },
+  "src/ici/application/graph.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-dag-resource-lock"
+   ],
+   "reason": "build_graph/TaskGraph: ordering, dedup by share key, honest blocking of dependents. Native crates/ici-application/src/graph.rs + ici-execution scheduler.rs; capability row evidence w-runtime-dag-plan.log."
+  },
+  "src/ici/application/identity.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "task_identity(): cache key parts (core digest, policy, env, interpretation, inputs). Native crates/ici-application/src/identity.rs/cache.rs key; Test tasks never keyed (cache.rs::argv_environment_test_kind_and_entry_bound_follow_the_frozen_cache)."
+  },
+  "src/ici/application/internal_checks.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "command:ici analyze",
+    "descriptor:complexity",
+    "descriptor:cycle",
+    "descriptor:dup",
+    "descriptor:line"
+   ],
+   "reason": "internal_analysis(): in-process bodies behind internal next checks. Native crates/ici-cli/src/execute.rs internal tasks over crates/ici-analysis; per-check parity owned by python/cpp workers."
+  },
+  "src/ici/application/plan.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-dag-resource-lock",
+    "command:ici analyze",
+    "command:ici next plan"
+   ],
+   "reason": "Plan/PlannedCheck/NothingSelected. Native crates/ici-application/src/plan.rs; plan replays owned by config worker; DAG facet verified here."
+  },
+  "src/ici/application/planning.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-dag-resource-lock",
+    "command:ici analyze",
+    "command:ici next plan"
+   ],
+   "reason": "plans/planner/tool_configs/units_of/graph_of: check-to-task bridge. Native crates/ici-application/src/plan.rs + crates/ici-providers/src/plan.rs."
+  },
+  "src/ici/application/request.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "command:ici analyze",
+    "command:ici next plan"
+   ],
+   "reason": "RunRequest/scope_of/profile_for/apply_require_full. Native crates/ici-application/src/request.rs (config worker owns selection replays)."
+  },
+  "src/ici/application/schedule.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact",
+    "capability:execution-dag-resource-lock"
+   ],
+   "reason": "run_graph: bounded parallelism, resource locks, sharing, cancellation. Native crates/ici-execution/src/scheduler.rs (Scheduler, ResourceLocks) + ici-cli execute.rs; cancel exit 130 and event tail match frozen (w-runtime-cancel-oracle.log)."
+  },
+  "src/ici/application/selection.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "command:ici analyze",
+    "command:ici next plan"
+   ],
+   "reason": "selected_checks/select_effective: component checks into a run plan, Omitted reasons. Native crates/ici-application/src/plan.rs selection."
+  },
+  "src/ici/application/tooling.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "live_resolver/resolve_tool/locate_tool/resolve_python: shared resolver seam. Native crates/ici-providers/src/resolver.rs. Known cross-area gap: deep-profile project interpreter selection (frozen requires the component .venv/declared executable) is reported to validation/config."
+  },
+  "src/ici/application/verify.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events",
+    "command:ici analyze",
+    "command:ici next verify"
+   ],
+   "reason": "verify(): judge a completed graph; partial execution never shown as full gate success. Native crates/ici-application/src/verification.rs; execution.rs tests."
+  },
+  "src/ici/core/cache.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "AnalysisCache get/put/inventory/clear for legacy engine results. Native crates/ici-application/src/cache.rs ObservationCache (.ici/rust-v1/observations, MAX_CACHE_ENTRIES eviction); frozen vs native `ici cache` / `--clear` compared (w-runtime-cachecmd.log)."
+  },
+  "src/ici/core/cache_codec.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:identity-cache-baseline",
+    "finding_site:src/ici/core/cache_codec.py:182:11",
+    "finding_site:src/ici/core/cache_codec.py:255:11"
+   ],
+   "reason": "Strict cached-result codec; malformed entries are corrupt misses. Native ObservationCache strict decode (cache.rs::cached_completion_is_validated_and_corruption_or_unknown_identity_is_not_a_hit, rich_cache_retains_inspected_targets_and_never_invents_them_from_old_observations). Frozen cache files are not read (new namespace): a miss, never a wrong hit."
+  },
+  "src/ici/core/cache_identity.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "Source digests and identity inputs for the result cache. Native crates/ici-application/src/identity.rs + cache.rs key (binary/core digest, tool bytes, argv/env, policy, input closure)."
+  },
+  "src/ici/core/context.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:compile-context-export",
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "Project model, AnalysisIdentity and CompilationContext contracts. Native crates/ici-cli/src/export_context.rs + ici-domain identity.rs; compile-context facet owned by the cpp worker (row not claimed here)."
+  },
+  "src/ici/core/models.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:legacy-command-config-result-projection",
+    "wire_schema:ici-result-v3.schema.json"
+   ],
+   "reason": "Legacy EngineStatus/EngineResult/VerificationSuiteResult models and counts. Native crates/ici-reporting/src/projection.rs (aggregate_suite_status, legacy_refresh_suite) and stored.rs LegacyDocument; legacy_commands.rs verify tests."
+  },
+  "src/ici/core/pipeline.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:legacy-command-config-result-projection",
+    "descriptor:binary_compat",
+    "descriptor:build",
+    "descriptor:cognitive",
+    "descriptor:compile_db",
+    "descriptor:complexity",
+    "descriptor:cycle",
+    "descriptor:dead",
+    "descriptor:dup",
+    "descriptor:exception",
+    "descriptor:integration",
+    "descriptor:line",
+    "descriptor:lint",
+    "descriptor:python_compat",
+    "descriptor:resource",
+    "descriptor:sanitize",
+    "descriptor:security",
+    "descriptor:test",
+    "descriptor:thread_sanitize",
+    "descriptor:type"
+   ],
+   "reason": "EngineDescriptor/validate_engine_descriptors/descriptors_for_profile/apply_analysis_profile. Native crates/ici-domain/src/catalog.rs (validate_legacy_descriptors) + ici-cli legacy.rs apply_descriptor_profile; descriptors.rs against tests/rust-parity/oracle/descriptors-oracle.json."
+  },
+  "src/ici/core/runner.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "run_process: process group, timeout, bounded output, kill. Native crates/ici-execution/src/process.rs; execution.rs::sigint_to_the_cli_exits_130_and_names_the_signal. Windows branch is runner_win (unsupported)."
+  },
   "src/ici/core/runner_win.py": {
    "disposition": "unsupported",
    "requirements": [
     "capability:native-windows-disposition"
    ],
    "reason": "Read the complete module: ctypes Job Object structs, kill-on-close job, suspended-thread resume, used by core/runner.py only on os.name == 'nt'. Native Windows execution is outside the approved x86_64 Linux/WSL scope (ADR-0008); native bundles for Windows targets are refused (distribution.rs::native_windows_targets_are_refused_and_linux_targets_remain_the_supported_scope)."
+  },
+  "src/ici/domain/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events"
+   ],
+   "reason": "Package marker/re-export only (read in full): no behaviour of its own; domain vocabulary maps to crates/ici-domain/src/lib.rs."
+  },
+  "src/ici/domain/_codec.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events"
+   ],
+   "reason": "Shared strict JSON primitives for result/event codecs. Native crates/ici-domain/src/validation.rs; wire.rs::unknown_modern_evidence_is_rejected_at_every_wire_boundary_instead_of_dropped."
+  },
+  "src/ici/domain/_validation.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events"
+   ],
+   "reason": "Identifier/digest/span validators. Native crates/ici-domain/src/validation.rs; wire.rs::event_identifiers_and_sequence_notes_match_frozen_oracle (256 bound), inclusive_display_spans_validate_single_and_multiple_lines."
+  },
+  "src/ici/domain/check_record.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:identity-cache-baseline",
+    "capability:wire-result-events"
+   ],
+   "reason": "Per-check evidence scope record. Native ici-domain result.rs checks; wire.rs v2 goldens."
+  },
+  "src/ici/domain/enums.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events"
+   ],
+   "reason": "Independent status axes. Native crates/ici-domain/src/enums.rs (wire_label); wire.rs goldens round-trip."
+  },
+  "src/ici/domain/events.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events",
+    "wire_schema:ici-next-event-v1.schema.json"
+   ],
+   "reason": "RunEvent kinds. Native crates/ici-domain/src/event.rs; seq starts at 0 like frozen."
+  },
+  "src/ici/domain/eventstream.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events",
+    "wire_schema:ici-next-event-v1.schema.json"
+   ],
+   "reason": "JSONL event codec with gap/duplicate notes. Native ici-domain event.rs reader ('line N: duplicate seq K'); wire.rs::bounded_events_preserve_gaps_and_unknown_optional_events, events-oracle.json."
+  },
+  "src/ici/domain/finding.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events"
+   ],
+   "reason": "Canonical finding and span; fingerprint v3. Native crates/ici-domain/src/finding.rs; wire.rs::fingerprint_unicode_matches_frozen_python_oracle."
   },
   "src/ici/domain/legacy.py": {
    "disposition": "retired",
@@ -987,6 +1397,131 @@
    ],
    "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
   },
+  "src/ici/domain/observation.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events",
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "Provider observation before policy. Native crates/ici-domain/src/analysis.rs/task.rs Observation; process completion is not complete evidence (wire.rs::process_completion_does_not_imply_complete_evidence)."
+  },
+  "src/ici/domain/result.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events",
+    "wire_schema:ici-next-run-v1.schema.json",
+    "wire_schema:ici-next-run-v2.schema.json"
+   ],
+   "reason": "Run envelope axes kept apart. Native crates/ici-domain/src/result.rs; wire.rs goldens + refusals."
+  },
+  "src/ici/domain/serialization.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:wire-result-events",
+    "finding_site:src/ici/domain/serialization.py:301:11",
+    "finding_site:src/ici/domain/serialization.py:454:15"
+   ],
+   "reason": "External JSON contract (v1/v2 rules, checks required in v2). Native crates/ici-domain/src/result.rs from_json/to_value; wire.rs::published_result_goldens_roundtrip_without_lost_information."
+  },
+  "src/ici/domain/tasks.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-dag-resource-lock",
+    "capability:wire-result-events"
+   ],
+   "reason": "TaskSpec fully described before it runs. Native crates/ici-domain/src/task.rs."
+  },
+  "src/ici/domain/toolchain.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "ToolIdentity of a resolved tool. Native ici-domain identity.rs + ici-providers resolver.rs."
+  },
+  "src/ici/domain/workspace.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "command:ici analyze",
+    "command:ici next plan"
+   ],
+   "reason": "Workspace/component/build unit/analysis unit (slash monorepo ids valid). Native crates/ici-domain/src/analysis.rs + ici-config component model (config worker)."
+  },
+  "src/ici/engines/base.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:legacy-command-config-result-projection",
+    "descriptor:binary_compat",
+    "descriptor:build",
+    "descriptor:cognitive",
+    "descriptor:compile_db",
+    "descriptor:complexity",
+    "descriptor:cycle",
+    "descriptor:dead",
+    "descriptor:dup",
+    "descriptor:exception",
+    "descriptor:integration",
+    "descriptor:line",
+    "descriptor:lint",
+    "descriptor:python_compat",
+    "descriptor:resource",
+    "descriptor:sanitize",
+    "descriptor:security",
+    "descriptor:test",
+    "descriptor:thread_sanitize",
+    "descriptor:type"
+   ],
+   "reason": "BaseEngine contract: every engine returns located targets and an EngineResult. Native legacy shaping in crates/ici-cli/src/legacy_execute.rs (shape_engine) over ici-analysis outputs."
+  },
+  "src/ici/engines/registry.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "descriptor:binary_compat",
+    "descriptor:build",
+    "descriptor:cognitive",
+    "descriptor:compile_db",
+    "descriptor:complexity",
+    "descriptor:cycle",
+    "descriptor:dead",
+    "descriptor:dup",
+    "descriptor:exception",
+    "descriptor:integration",
+    "descriptor:line",
+    "descriptor:lint",
+    "descriptor:python_compat",
+    "descriptor:resource",
+    "descriptor:sanitize",
+    "descriptor:security",
+    "descriptor:test",
+    "descriptor:thread_sanitize",
+    "descriptor:type"
+   ],
+   "reason": "factory_name -> engine class map. Native fixed descriptor catalog crates/ici-domain/src/catalog.rs; descriptors.rs::every_native_check_family_maps_to_a_frozen_descriptor."
+  },
+  "src/ici/execution/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "Package marker/re-export only (read in full): no behaviour of its own; maps to crates/ici-execution/src/lib.rs."
+  },
+  "src/ici/execution/cache.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "ObservationCache with receipt. Native crates/ici-application/src/cache.rs (same native namespace, strict validation, bounded entries)."
+  },
+  "src/ici/execution/cancellation.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "Cancellation as a fact with reason. Native ici-execution process.rs Cancellation{flag,signal} reason() 'received SIGINT'; execution.rs::sigint_to_the_cli_exits_130_and_names_the_signal."
+  },
   "src/ici/execution/legacy_reader.py": {
    "disposition": "retired",
    "requirements": [
@@ -995,6 +1530,34 @@
     "finding_site:src/ici/execution/legacy_reader.py:376:11"
    ],
    "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  },
+  "src/ici/execution/locks.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-dag-resource-lock"
+   ],
+   "reason": "Exclusive resource holds that cannot outlive the holder. Native ici-execution scheduler.rs ResourceLocks."
+  },
+  "src/ici/execution/manifest.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "Complete-or-absent task output publication and file digests. Native ici-execution storage.rs atomic_write/atomic_write_with + ici-domain sha256."
+  },
+  "src/ici/execution/outputs.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "Write confinement for task outputs. Native ici-cli execute.rs validate_destination + storage.rs prepare_directory (no symlink following)."
+  },
+  "src/ici/execution/process.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "run_task: failure never an empty pass, bounded output, timeout. Native ici-execution process.rs; execution.rs tests."
   },
   "src/ici/execution/production.py": {
    "disposition": "retired",
@@ -1013,10 +1576,112 @@
    ],
    "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
   },
+  "src/ici/execution/tree.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "Process-tree stop and whether it stopped. Native process.rs process-group kill; cancel test asserts no survivor (w-runtime-cancel-final.log)."
+  },
+  "src/ici/execution/watchdog.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "Watchdog stops a run that will not stop. Native process.rs deadline polling loop with kill on timeout."
+  },
+  "src/ici/languages/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "check:cpp.tidy",
+    "check:javascript.lint",
+    "check:python.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "Package marker/re-export only (read in full): no behaviour of its own; language packs map to the native check catalog crates/ici-domain/src/catalog.rs."
+  },
+  "src/ici/languages/checks.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "check:cpp.tidy",
+    "check:javascript.lint",
+    "check:python.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "Check definition shared by packs. Native ici-domain catalog.rs check entries."
+  },
+  "src/ici/languages/registry.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "check:cpp.tidy",
+    "check:javascript.lint",
+    "check:python.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "Built-in packs declared without touching the machine. Native static catalog.rs; descriptors.rs::every_native_check_family_maps_to_a_frozen_descriptor."
+  },
+  "src/ici/toolchain/__init__.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache"
+   ],
+   "reason": "Package marker/re-export only (read in full): no behaviour of its own; maps to crates/ici-providers/src/resolver.rs."
+  },
   "src/ici/toolchain/assumptions.py": {
    "disposition": "retired",
    "requirements": [],
    "reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs. Closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files> -> /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log (AST imports including function-local ones; no importlib/__import__ reference to the module in the frozen tree)."
+  },
+  "src/ici/toolchain/candidates.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "Configuration into tool candidates, nothing assumed. Native ici-providers resolver.rs candidate order; resolution.rs tests."
+  },
+  "src/ici/toolchain/environment.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "capability:identity-cache-baseline"
+   ],
+   "reason": "Launch environment as a value. Native ici-providers resolver.rs + ici-execution process.rs explicit env (env participates in cache key)."
+  },
+  "src/ici/toolchain/launch.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "capability:execution-cancel-save-redact"
+   ],
+   "reason": "Launch in a chosen environment. Native ici-execution process.rs spawn with explicit env/cwd."
+  },
+  "src/ici/toolchain/resolution.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache"
+   ],
+   "reason": "Resolution record and what it must say. Native ici-providers resolver.rs Resolution; doctor/env facets owned by config worker."
+  },
+  "src/ici/toolchain/resolver.py": {
+   "disposition": "mapped",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "check:javascript.lint",
+    "check:rust.clippy",
+    "check:typescript.lint",
+    "check:typescript.type"
+   ],
+   "reason": "Selection rules without starting processes. Native ici-providers resolver.rs; resolution.rs::ecosystem_project_node_tools_win_over_path_and_clippy_uses_cargo."
   }
  }
 }
