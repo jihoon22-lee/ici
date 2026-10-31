@@ -80,6 +80,12 @@ impl SignalGuard {
     pub fn install(cancellation: &ici_execution::Cancellation) -> std::io::Result<Self> {
         let mut guard = Self { ids: vec![] };
         for signal in [signal_hook::consts::SIGINT, signal_hook::consts::SIGTERM] {
+            // Registered first so the reason is recorded before the flag becomes visible.
+            guard.ids.push(signal_hook::flag::register_usize(
+                signal,
+                cancellation.signal_slot(),
+                signal as usize,
+            )?);
             guard
                 .ids
                 .push(signal_hook::flag::register(signal, cancellation.flag())?);

@@ -1,5 +1,74 @@
 {
  "requirements": {
+  "capability:execution-cancel-save-redact": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-execution/src/process.rs",
+    "crates/ici-execution/src/storage.rs",
+    "crates/ici-execution/src/redaction.rs",
+    "crates/ici-cli/src/events.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-application/src/assemble.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/execution.rs::sigint_to_the_cli_exits_130_and_names_the_signal",
+     "crates/ici-cli/tests/execution.rs::cancellation_during_tool_execution_reaps_process_and_saves_partial_evidence",
+     "crates/ici-execution/tests/storage.rs::atomic_replace_keeps_existing_bytes_on_write_failure_and_removes_stage"
+    ],
+    "negative": [
+     "crates/ici-execution/tests/process.rs::cancellation_before_spawn_and_during_execution_stays_cancelled",
+     "crates/ici-cli/tests/execution.rs::cancelled_run_preserves_partial_artifact_without_claiming_unstarted_tasks",
+     "crates/ici-execution/tests/redaction.rs::structured_environment_and_headers_hide_values_even_without_secret_prefixes"
+    ],
+    "failure": [
+     "crates/ici-execution/tests/process.rs::timeout_escalates_and_verifies_group_empty",
+     "crates/ici-execution/tests/process.rs::output_flood_is_bounded_and_never_complete",
+     "crates/ici-execution/tests/process.rs::descendant_holding_pipes_is_stopped_after_leader_exits",
+     "crates/ici-execution/tests/process.rs::signal_and_start_errors_are_not_empty_success",
+     "crates/ici-execution/tests/storage.rs::valid_result_roundtrip_and_invalid_result_do_not_replace_existing_file"
+    ]
+   },
+   "evidence": [
+    "Actual SIGINT 4 s into a run whose fake ruff spawns a sleeping grandchild, frozen `python -m ici analyze --json --events --result` vs native: both exit 130, no survivor, partial result saved with execution.cancelled=true and gate INCOMPLETE, line check SUCCEEDED and lint/format CANCELLED, event tail `diagnostic: cancelled: received SIGINT` then `run.completed: INCOMPLETE: 0 finding(s)`; /tmp/ici-rust-replacement-20261028/w-runtime-cancel-oracle.log (script w-runtime-scripts/cancel.sh)",
+    "cargo test -p ici-execution; cargo test -p ici-cli --test execution; cargo test -p ici-application --test planning --test assemble; strict Clippy ici-execution/ici-application/ici-cli: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-cancel-final.log"
+   ],
+   "comparison": "Runtime facet: reviewed frozen execution/cancellation.py, process.py, tree.py, watchdog.py, outputs.py, results.py and core/runner.py. Cancellation is a persistent value checked before spawn and carried into the running group; a cancelled or timed-out run is never an answer; process-group stop is verified (survivors none/unknown are distinct); output is bounded and a truncated stream is never parsed as complete; results/events are written atomically and a failed write keeps the previous bytes. Defects fixed: native cancellation had no reason, so the frozen `cancelled: received SIGINT` diagnostic event was missing; native event messages used Rust Debug labels (`Cancelled`, `Incomplete`) instead of the frozen wire states and `<VERDICT>: N finding(s)`.",
+   "difference_reason": "Shared with reporting (redaction facet). Native gate reasons for cancelled tool tasks name the incomplete scope inventory (`Ruff inventory did not complete for this task`) and add `run cancelled`, where frozen repeats `<task> cancelled: received SIGINT`; same verdict/exit/state. Frozen per-task `task.completed` message suffixes (`CANCELLED — <detail>`) are not reproduced; native sends the wire state only. Native runs a scope-inventory probe step (`<task>.files`) visible as its own task events. Output bound is bytes (8 MiB default), frozen counts characters (1,000,000)."
+  },
+  "capability:execution-dag-resource-lock": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-application/src/graph.rs",
+    "crates/ici-execution/src/scheduler.rs",
+    "crates/ici-application/src/snapshot.rs",
+    "crates/ici-execution/src/process.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-application/tests/planning.rs::capabilities_order_work_and_missing_or_blocked_producer_propagates",
+     "crates/ici-execution/tests/scheduler.rs::resource_keys_serialize_and_jobs_bound_parallel_work",
+     "crates/ici-execution/tests/scheduler.rs::duplicate_execution_has_original_consumer_ids_and_strict_bounds_identity"
+    ],
+    "negative": [
+     "crates/ici-execution/tests/scheduler.rs::missing_or_failed_prerequisites_block_without_running_and_cycle_fails_closed",
+     "crates/ici-execution/tests/scheduler.rs::absent_tool_identity_is_never_shared",
+     "crates/ici-application/tests/snapshot.rs::declared_generated_effects_never_hide_changed_or_new_user_inputs"
+    ],
+    "failure": [
+     "crates/ici-application/tests/planning.rs::invalid_graph_is_rejected_before_execution_even_when_blocked",
+     "crates/ici-execution/tests/scheduler.rs::kernel_releases_resource_lock_when_holder_is_terminated",
+     "crates/ici-execution/tests/scheduler.rs::os_locks_are_bounded_cancellable_and_released_on_drop",
+     "crates/ici-application/tests/snapshot.rs::oversized_aggregate_symlink_parent_and_fifo_are_refused"
+    ]
+   },
+   "evidence": [
+    "Frozen vs native `ici analyze --plan --json` on the ESLint/tsc/Clippy project: identical task ids, kinds, empty edges and the same mutating set {web.rust.clippy, web.typescript.type}; /tmp/ici-rust-replacement-20261028/w-runtime-dag-plan.log",
+    "cargo test -p ici-execution (scheduler 9, process 12, storage 10) and -p ici-application --test planning --test assemble: passed; /tmp/ici-rust-replacement-20261028/w-runtime-cancel-final.log"
+   ],
+   "comparison": "Reviewed frozen application/graph.py, schedule.py and execution/locks.py, snapshot.py, process.py. Producer uniqueness ('input X is produced by both'), output ownership ('claimed by both'), 'needs X, which no selected check produces', transitive 'prerequisite X did not run' blocking, cycle refusal before execution, share-key deduplication with consumer ids, sorted resource-key locks, kernel-held OS locks released when the holder dies, bounded parallelism and cancellation of waiting work all have native fixtures.",
+   "difference_reason": "Not complete: the deep-profile oracle plan diverged on interpreter selection (frozen requires a component .venv/bin/python or declared [python] executable and blocks python.test/coverage/compat-runtime; native resolves `python` from PATH and plans test->coverage edges); interpreter policy belongs to the validation/config areas and is routed to the root (w-runtime-dag-plan.log). Frozen distinguishes 'needs X, which <check> was not selected to produce' via a catalog argument that no frozen caller passes, so the observable message is the same 'no selected check produces'. Native graph also validates per-check native steps and refuses forward/self step edges (stricter)."
+  },
   "capability:native-windows-disposition": {
    "status": "complete",
    "rust_paths": [

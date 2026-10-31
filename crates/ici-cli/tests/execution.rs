@@ -306,6 +306,86 @@ fn cancellation_during_tool_execution_reaps_process_and_saves_partial_evidence()
         run.outputs["project.python.lint"].observation.state,
         TaskState::Cancelled
     );
+    // Frozen next_events/next_path messages: wire task states, a cancellation diagnostic that
+    // names the reason, then the verdict with its finding count.
+    let (events, _) = storage::read_event_stream(&directory.path().join("events.jsonl")).unwrap();
+    let tail: Vec<_> = events
+        .iter()
+        .rev()
+        .take(2)
+        .map(|event| (event.event_type.as_str(), event.message.as_str()))
+        .collect();
+    assert_eq!(
+        tail,
+        [
+            ("run.completed", "INCOMPLETE: 0 finding(s)"),
+            ("diagnostic", "cancelled: user request")
+        ]
+    );
+    assert!(
+        events
+            .iter()
+            .any(|event| event.event_type == "task.completed"
+                && event.task_id.as_deref() == Some("project.python.lint")
+                && event.message == "CANCELLED")
+    );
+}
+
+/// An actual SIGINT to the CLI: exit 130, partial result saved, the leader's process group
+/// reaped, and the frozen `cancelled: received SIGINT` diagnostic.
+#[test]
+fn sigint_to_the_cli_exits_130_and_names_the_signal() {
+    let directory = fixture(&["python.lint"]);
+    let pid_file = directory.path().join("child.pid");
+    fake_ruff(
+        directory.path(),
+        &format!("/bin/sleep 30 &\necho $! > {}\nwait", pid_file.display()),
+    );
+    let mut child = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+        .args([
+            "analyze",
+            "--json",
+            "--events",
+            "events.jsonl",
+            "--result",
+            "r.json",
+        ])
+        .current_dir(directory.path())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(25);
+    while !pid_file.is_file() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    let grandchild = fs::read_to_string(&pid_file).unwrap().trim().to_owned();
+    assert!(
+        std::process::Command::new("kill")
+            .args(["-INT", &child.id().to_string()])
+            .status()
+            .unwrap()
+            .success()
+    );
+    let status = child.wait().unwrap();
+    assert_eq!(status.code(), Some(130));
+    let alive = std::process::Command::new("kill")
+        .args(["-0", &grandchild])
+        .stderr(std::process::Stdio::null())
+        .status()
+        .unwrap()
+        .success();
+    assert!(!alive, "tool descendant survived cancellation");
+    let saved: serde_json::Value =
+        serde_json::from_slice(&fs::read(directory.path().join("r.json")).unwrap()).unwrap();
+    assert_eq!(saved["execution"]["cancelled"], true);
+    assert_eq!(saved["gate"]["selected"], "INCOMPLETE");
+    let (events, _) = storage::read_event_stream(&directory.path().join("events.jsonl")).unwrap();
+    assert!(
+        events.iter().any(|event| event.event_type == "diagnostic"
+            && event.message == "cancelled: received SIGINT")
+    );
+    assert_eq!(events.last().unwrap().event_type, "run.completed");
 }
 
 #[test]
