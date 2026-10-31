@@ -172,7 +172,10 @@ fn unapplied_preferences_reach_the_plan_output_of_the_binary() {
     }
 }
 
-fn planned_tasks(tree: &Value, argv: &[String]) -> (Option<i32>, Option<Vec<String>>) {
+/// Exit code plus, for an accepted plan, the projection the frozen capture recorded: sorted
+/// task ids, scope.require_full, scope.profile and the tasks whose blocked reason names the
+/// local-overlay interpreter (host-independent proof that --local-config reached the plan).
+fn planned(tree: &Value, argv: &[String], executable: &str) -> Value {
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("project");
     for (name, text) in tree.as_object().unwrap() {
@@ -194,27 +197,48 @@ fn planned_tasks(tree: &Value, argv: &[String]) -> (Option<i32>, Option<Vec<Stri
         !temporary.path().join("ici").exists(),
         "a plan writes no user configuration"
     );
-    let tasks = (output.status.success()).then(|| {
-        let plan: Value = serde_json::from_slice(&output.stdout).unwrap();
-        let mut tasks: Vec<String> = plan["plans"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .flat_map(|item| item["checks"].as_array().unwrap())
-            .map(|check| check["task_id"].as_str().unwrap().to_owned())
-            .collect();
-        tasks.sort();
-        tasks
-    });
-    (output.status.code(), tasks)
+    if !output.status.success() {
+        return json!({"exit_code": output.status.code(), "tasks": null});
+    }
+    let plan: Value = serde_json::from_slice(&output.stdout).unwrap();
+    let checks: Vec<&Value> = plan["plans"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|item| item["checks"].as_array().unwrap())
+        .collect();
+    let mut tasks: Vec<&str> = checks
+        .iter()
+        .map(|check| check["task_id"].as_str().unwrap())
+        .collect();
+    tasks.sort();
+    let mut named: Vec<&str> = checks
+        .iter()
+        .filter(|check| {
+            check["blocked"]
+                .as_str()
+                .is_some_and(|reason| reason.contains(executable))
+        })
+        .map(|check| check["task_id"].as_str().unwrap())
+        .collect();
+    named.sort();
+    json!({
+        "exit_code": 0,
+        "tasks": tasks,
+        "require_full": plan["scope"]["require_full"],
+        "profile": plan["scope"]["profile"],
+        "names_local_executable": named,
+    })
 }
 
 #[test]
 fn plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs() {
     // Golden: cli-selection-oracle.json (capture_cli_selection.py) — --component (single,
     // repeated, unknown), --python/--cpp/--language, --profile (fast, deep, invalid),
-    // --require-full, --config (present, missing) and --local-config (accepted, policy refused).
+    // --require-full, --config (same, alternate, missing) and --local-config (interpreter
+    // override, policy refused). Every accepted option changes a compared field.
     let golden = fixture("cli-selection-oracle.json");
+    let executable = golden["local_executable"].as_str().unwrap();
     let mut seen = 0;
     for (group, tree) in [
         ("next_plan", "workspace"),
@@ -223,30 +247,28 @@ fn plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inpu
     ] {
         for (name, case) in golden["results"][group].as_object().unwrap() {
             let argv: Vec<String> = serde_json::from_value(case["argv"].clone()).unwrap();
-            let expected: Option<Vec<String>> =
-                serde_json::from_value(case["tasks"].clone()).unwrap();
-            let (code, tasks) = planned_tasks(&golden[tree], &argv);
-            assert_eq!(
-                code,
-                case["exit_code"].as_i64().map(|code| code as i32),
-                "{group}:{name}"
-            );
-            assert_eq!(tasks, expected, "{group}:{name}");
+            let mut expected = case.clone();
+            expected.as_object_mut().unwrap().remove("argv");
+            let observed = planned(&golden[tree], &argv, executable);
+            assert_eq!(observed, expected, "{group}:{name}");
             seen += 1;
         }
     }
-    assert_eq!(seen, 32);
+    assert_eq!(seen, 35);
 }
 
 #[test]
 fn next_init_keeps_the_frozen_preview_refusal_and_force_contract() {
-    // Golden: cli-selection-oracle.json results.next_init. Intended differences, asserted:
+    // Golden: cli-selection-oracle.json results.next_init; differences:
+    // cli-selection-differences.json. Intended differences, asserted:
     // native writes the sparse schema_version=2 scaffold (an unrestricted preview names no
     // languages; discovery supplies them), `--force` keeps the existing scope with a
     // `.before-init` backup, and an unparseable existing file is refused with its location
     // instead of being overwritten (frozen exit 0).
     let golden = fixture("cli-selection-oracle.json");
     let cases = golden["results"]["next_init"].as_object().unwrap();
+    let differences = fixture("cli-selection-differences.json");
+    let differences = differences.as_object().unwrap();
     assert_eq!(cases.len(), 8);
     for (name, case) in cases {
         let temporary = tempfile::tempdir().unwrap();
@@ -279,10 +301,14 @@ fn next_init_keeps_the_frozen_preview_refusal_and_force_contract() {
         let unchanged = after.as_deref() == existing;
         let stdout = String::from_utf8_lossy(&output.stdout);
         let languages = stdout.lines().find(|line| line.starts_with("languages"));
-        if name == "broken_force" {
-            assert_eq!(output.status.code(), Some(2), "{name}");
-            assert!(
+        if let Some(difference) = differences.get(&format!("next_init:{name}")) {
+            let native = difference["native_exit_code"]
+                .as_i64()
+                .map(|code| code as i32);
+            assert_eq!(output.status.code(), native, "{name}");
+            assert_eq!(
                 unchanged,
+                difference["native_file_unchanged"].as_bool().unwrap(),
                 "{name}: an unparseable file is preserved, not overwritten"
             );
             assert!(
@@ -320,5 +346,97 @@ fn next_init_keeps_the_frozen_preview_refusal_and_force_contract() {
         if name == "fresh" {
             assert!(after.unwrap().contains("schema_version = 2"), "{name}");
         }
+    }
+}
+
+#[test]
+fn recorded_plan_differences_are_native_behaviour_not_silent_drift() {
+    // cli-selection-differences.json next_plan:* — asserted natively, since frozen behaves
+    // differently by design (the replay above compares only the shared projection).
+    let golden = fixture("cli-selection-oracle.json");
+    let differences = fixture("cli-selection-differences.json");
+    let run = |tree: &Value, argv: &[&str]| -> Value {
+        let temporary = tempfile::tempdir().unwrap();
+        let root = temporary.path().join("project");
+        for (name, text) in tree.as_object().unwrap() {
+            let path = root.join(name);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text.as_str().unwrap()).unwrap();
+        }
+        fs::create_dir(root.join(".git")).unwrap();
+        let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(argv)
+            .current_dir(&root)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", temporary.path())
+            .env("XDG_CONFIG_HOME", temporary.path())
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{argv:?}");
+        serde_json::from_slice(&output.stdout).unwrap()
+    };
+    assert!(differences.get("next_plan:require_full_partial").is_some());
+    let partial = run(
+        &golden["workspace"],
+        &[
+            "next",
+            "plan",
+            "--json",
+            "--component",
+            "app",
+            "--require-full",
+        ],
+    );
+    assert_eq!(partial["scope"]["require_full"], json!(true));
+    let gaps = partial["coverage_gaps"].as_array().unwrap();
+    assert!(
+        gaps.iter()
+            .any(|gap| gap.as_str().is_some_and(|text| text.contains("core"))),
+        "the unselected required component is named: {gaps:?}"
+    );
+    let full = run(
+        &golden["workspace"],
+        &["next", "plan", "--json", "--require-full"],
+    );
+    assert!(
+        full["coverage_gaps"]
+            .as_array()
+            .is_none_or(|gaps| !gaps.iter().any(|gap| gap
+                .as_str()
+                .is_some_and(|text| text.contains("was not selected")))),
+        "a full selection reports no unselected component"
+    );
+
+    assert!(
+        differences
+            .get("next_plan:bare_local_interpreter")
+            .is_some()
+    );
+    let mut tree = golden["workspace"].clone();
+    tree["local.toml"] =
+        json!("components.app.python.executable = \"ici-parity-missing-python\"\n");
+    let plan = run(
+        &tree,
+        &["next", "plan", "--json", "--local-config", "local.toml"],
+    );
+    let reasons: Vec<&str> = plan["plans"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|item| item["checks"].as_array().unwrap())
+        .filter_map(|check| check["blocked"].as_str())
+        .filter(|reason| reason.contains("ici-parity-missing-python"))
+        .collect();
+    assert!(
+        !reasons.is_empty(),
+        "the overlay interpreter reaches the plan"
+    );
+    for reason in reasons {
+        assert!(reason.contains("not found"), "{reason}");
+        assert!(
+            !reason.contains("no such file"),
+            "a bare name is a PATH lookup: {reason}"
+        );
     }
 }

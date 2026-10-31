@@ -1,0 +1,16 @@
+{
+ "next_init:broken_force": {
+  "native_exit_code": 2,
+  "native_file_unchanged": true,
+  "reason": "An unparseable existing ici.toml is refused with its file:line location instead of being overwritten by --force (frozen exit 0); --force otherwise keeps the existing scope and a .before-init backup, so user configuration is never replaced blindly."
+ },
+ "next_init:scaffold_text": {
+  "reason": "Native writes the sparse schema_version=2 scaffold; an unrestricted preview names no languages line because discovery supplies them. --python/--cpp produce the same languages line as frozen."
+ },
+ "next_plan:require_full_partial": {
+  "reason": "Native additionally lists the unselected component in coverage_gaps; scope.require_full, exit code and task ids are equal to frozen."
+ },
+ "next_plan:bare_local_interpreter": {
+  "reason": "A bare --local-config interpreter name (python3) is a PATH lookup natively, as frozen Executable.searches_path and SPEC-01 section 3 document; the frozen plan reported it as 'no such file'. The replay therefore uses an absolute nonexistent interpreter, which both name in the blocked reason of the same tasks."
+ }
+}

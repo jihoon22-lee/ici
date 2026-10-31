@@ -15,6 +15,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+LOCAL_EXECUTABLE = "/nonexistent/ici-parity/bin/python"
 WORKSPACE = {
     "ici.toml": (
         'schema_version = 1\n[workspace]\nname = "demo"\n'
@@ -23,7 +24,11 @@ WORKSPACE = {
     ),
     "app/main.py": "def main():\n    return 1\n",
     "core/lib.cpp": "int answer() { return 42; }\n",
-    "local.toml": 'components.app.python.executable = "python3"\n',
+    "alt.toml": (
+        'schema_version = 1\n[workspace]\nname = "alt"\n'
+        '[[components]]\nid = "app"\nroot = "app"\nlanguages = ["python"]\n'
+    ),
+    "local.toml": f'components.app.python.executable = "{LOCAL_EXECUTABLE}"\n',
     "policy.toml": "checks.line.enabled = false\n",
 }
 CONFIGLESS = {
@@ -44,6 +49,7 @@ NEXT = [
     ("require_full", ["--require-full"]),
     ("require_full_partial", ["--component", "app", "--require-full"]),
     ("config", ["--config", "ici.toml"]),
+    ("config_alternate", ["--config", "alt.toml"]),
     ("config_missing", ["--config", "missing.toml"]),
     ("local_config", ["--local-config", "local.toml"]),
     ("local_config_policy", ["--local-config", "policy.toml"]),
@@ -64,9 +70,11 @@ ANALYZE_CONFIGURED = [
     ("base", []),
     ("component", ["--component", "core"]),
     ("config", ["--config", "ici.toml"]),
+    ("config_alternate", ["--config", "alt.toml"]),
     ("config_missing", ["--config", "missing.toml"]),
     ("local_config", ["--local-config", "local.toml"]),
     ("local_config_policy", ["--local-config", "policy.toml"]),
+    ("require_full", ["--require-full"]),
 ]
 VALID = (
     'schema_version = 1\n[workspace]\nname = "keep"\n'
@@ -109,12 +117,22 @@ def run(oracle, tree, argv, home):
         base = Path(temporary) / "project"
         materialize(base, tree)
         completed = invoke(oracle, base, argv, home)
-        tasks = None
+        observed = {"exit_code": completed.returncode, "tasks": None}
         if completed.returncode == 0 and completed.stdout.strip().startswith("{"):
             plan = json.loads(completed.stdout)
-            tasks = sorted(check["task_id"] for item in plan["plans"] for check in item["checks"])
+            checks = [check for item in plan["plans"] for check in item["checks"]]
+            observed["tasks"] = sorted(check["task_id"] for check in checks)
+            observed["require_full"] = plan["scope"]["require_full"]
+            observed["profile"] = plan["scope"]["profile"]
+            # Tasks whose blocked reason names the local-overlay interpreter: proves the
+            # overlay reached the plan without depending on which tools the host has.
+            observed["names_local_executable"] = sorted(
+                check["task_id"]
+                for check in checks
+                if LOCAL_EXECUTABLE in (check.get("blocked") or "")
+            )
         shutil.rmtree(base / ".ici", ignore_errors=True)
-        return {"exit_code": completed.returncode, "tasks": tasks}
+        return observed
 
 
 def run_init(oracle, options, existing, home):
@@ -159,6 +177,7 @@ def main():
         "python": sys.version.split()[0],
         "workspace": WORKSPACE,
         "configless": CONFIGLESS,
+        "local_executable": LOCAL_EXECUTABLE,
         "results": results,
     }
     with output.open("w", encoding="utf-8") as stream:

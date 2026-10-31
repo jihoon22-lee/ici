@@ -39,7 +39,7 @@
    "comparison": "Native doctor/env/cache behaviour is exercised through the actual binary (runtime description without private environment, probe scope, shell loaders, cache inventory/clear preservation). Not compared field-for-field with frozen doctor.py/core/env.py output in this facet.",
    "difference_reason": "Native doctor describes the native runtime and tool pack instead of a Python interpreter search (no ICI_PYTHON/PYTHON_CANDIDATES in the Rust product, ADR-0008).",
    "evidence": [
-    "cargo test -p ici-cli --test doctor_commands/native_env/config_commands --locked (owning-area gate logs)"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test doctor_commands --test native_env --test config_commands ... -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [
@@ -92,17 +92,16 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
-    "negative": [
-     "crates/ici-cli/tests/registry.rs::native_help_and_version_need_no_project_or_external_tool"
-    ],
+    "negative": [],
     "positive": [
      "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
      "crates/ici-cli/tests/native_validation_extra.rs::skipped_pytest_case_carries_its_baseline_failure_until_it_completes",
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states"
+     "crates/ici-cli/tests/registry.rs::native_help_and_version_need_no_project_or_external_tool"
     ]
    },
    "rust_paths": [
@@ -113,17 +112,17 @@
    "status": "verified"
   },
   "command:ici analyze": {
-   "comparison": "Selection/config options (--language python/cpp/invalid, --python, --cpp, --component, --profile, --require-full, --config present/missing, --local-config accepted/policy-refused) are replayed against frozen `ici analyze --plan --json` on configless and configured trees (tests/rust-parity/config/cli-selection-oracle.json): exit codes and task-id sets equal. Run/output options are exercised by the named native execution tests only, without a frozen run differential in this facet.",
+   "comparison": "Selection/config options (--language python/cpp/invalid, --python, --cpp, --component, --profile, --require-full, --config same/alternate/missing, --local-config accepted/policy-refused) are replayed against frozen `ici analyze --plan --json` on configless and configured trees (tests/rust-parity/config/cli-selection-oracle.json): exit code, task-id set, scope.require_full and scope.profile equal. Run/output options are exercised by the named native execution tests only, without a frozen run differential in this facet.",
    "difference_reason": null,
    "evidence": [
-    ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 16 next plan, 16 analyze --plan, 8 next init variants)",
-    "cargo test -p ici-cli --test config_oracle --locked (5 passed incl. plan selection and next init replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
+    "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
+    "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
-     "crates/ici-cli/tests/execution.rs::rerun_replaces_its_previous_event_stream_but_never_an_unrelated_file"
+     "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs"
     ],
     "negative": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs"
@@ -131,7 +130,37 @@
     "positive": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
      "crates/ici-cli/tests/config_commands.rs::native_default_artifacts_do_not_replace_previous_python_results",
-     "crates/ici-cli/tests/execution.rs::native_analysis_saves_valid_result_and_actual_targets_without_python_on_path"
+     "crates/ici-cli/tests/execution.rs::cancellation_during_tool_execution_reaps_process_and_saves_partial_evidence",
+     "crates/ici-cli/tests/execution.rs::cancelled_run_preserves_partial_artifact_without_claiming_unstarted_tasks",
+     "crates/ici-cli/tests/execution.rs::external_source_drift_keeps_findings_but_revokes_complete_scope",
+     "crates/ici-cli/tests/execution.rs::native_analysis_saves_valid_result_and_actual_targets_without_python_on_path",
+     "crates/ici-cli/tests/execution.rs::rerun_replaces_its_previous_event_stream_but_never_an_unrelated_file",
+     "crates/ici-cli/tests/execution.rs::source_baseline_and_old_result_destinations_are_protected_before_work",
+     "crates/ici-cli/tests/execution.rs::symlink_state_directory_is_refused_before_running_analysis",
+     "crates/ici-cli/tests/execution.rs::warm_native_cache_preserves_targets_and_corruption_or_no_cache_recomputes",
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets",
+     "crates/ici-cli/tests/native_cpp.rs::actual_clazy_keeps_qt_check_and_recorded_configuration_locations",
+     "crates/ici-cli/tests/native_cpp.rs::actual_compiler_facets_keep_estimated_scores_exact_geometry_and_all_variant_unused_consensus",
+     "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context",
+     "crates/ici-cli/tests/native_cpp.rs::actual_recorded_variants_keep_diagnostic_unit_ownership_without_python",
+     "crates/ici-cli/tests/native_cpp.rs::actual_tidy_keeps_each_recorded_configuration_and_observes_selected_gcc_standard_library",
+     "crates/ici-cli/tests/native_cpp.rs::explicitly_disabled_clang_tools_preserve_located_not_applicable_scope_without_a_database",
+     "crates/ici-cli/tests/native_cpp.rs::linker_analysis_requires_explicit_preparation_and_disabled_dead_checks_spawn_nothing",
+     "crates/ici-cli/tests/native_validation_extra.rs::broad_python_artifact_scope_excludes_verified_releases_and_preserves_retired_sources",
+     "crates/ici-cli/tests/plan_commands.rs::broken_explicit_tool_is_blocked_and_never_falls_back_to_an_available_tool",
+     "crates/ici-cli/tests/plan_commands.rs::native_plan_names_real_argv_without_spawning_installing_or_writing_state",
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections",
+     "crates/ici-cli/tests/registry.rs::repeatable_selection_aliases_enum_and_integer_bounds_are_enforced",
+     "crates/ici-cli/tests/report_commands.rs::custom_result_details_stay_in_ici_namespace_and_previous_placement_stays_readable",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate",
+     "crates/ici-cli/tests/report_commands.rs::ordinary_analyze_points_to_complete_offline_html_and_json_keeps_machine_output",
+     "crates/ici-cli/tests/report_commands.rs::report_rejects_mismatched_details_input_aliases_and_user_files",
+     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools",
+     "crates/ici-cli/tests/run_tem.rs::analyze_appends_the_frozen_tem_limitation_after_every_other_limitation",
+     "crates/ici-cli/tests/vcs.rs::actual_git_clean_dirty_untracked_states_are_observed_without_plan_execution",
+     "crates/ici-cli/tests/vcs.rs::failed_status_invalid_head_timeout_and_missing_git_cannot_claim_clean"
     ]
    },
    "rust_paths": [
@@ -145,21 +174,20 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
-    "failure": [
-     "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling",
-     "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_package_trees_match_the_frozen_tree_and_loader_digests"
-    ],
-    "negative": [
-     "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
-     "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
-    ],
+    "failure": [],
+    "negative": [],
     "positive": [
      "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_legacy_build_compiles_owned_sources_and_publishes_actual_binary",
      "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_legacy_compile_failure_is_located_and_keeps_source_bytes",
-     "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+     "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
+     "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
+     "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make",
+     "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling",
+     "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_package_trees_match_the_frozen_tree_and_loader_digests",
+     "crates/ici-cli/tests/native_preparation.rs::actual_build_prepares_context_then_publishes_measured_binaries_without_source_drift"
     ]
    },
    "rust_paths": [
@@ -173,7 +201,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -193,7 +221,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -213,7 +241,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -235,7 +263,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -255,7 +283,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: baseline.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -276,7 +304,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -297,7 +325,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -317,7 +345,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -337,7 +365,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: database, output, pretty.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -359,17 +387,16 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: cpp, python.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
-    "negative": [
-     "crates/ici-cli/tests/vcs.rs::actual_git_clean_dirty_untracked_states_are_observed_without_plan_execution"
-    ],
+    "negative": [],
     "positive": [
      "crates/ici-cli/tests/config_commands.rs::init_preview_is_read_only_and_written_defaults_keep_discovered_scope",
      "crates/ici-cli/tests/config_commands.rs::native_binary_can_init_with_python_and_tools_absent_from_path",
-     "crates/ici-cli/tests/native_validation_extra.rs::native_git_version_is_visible_and_resolved_before_any_release_write"
+     "crates/ici-cli/tests/native_validation_extra.rs::native_git_version_is_visible_and_resolved_before_any_release_write",
+     "crates/ici-cli/tests/vcs.rs::actual_git_clean_dirty_untracked_states_are_observed_without_plan_execution"
     ]
    },
    "rust_paths": [
@@ -383,18 +410,17 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
-    "negative": [
-     "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract",
-     "crates/ici-cli/tests/wire_schemas.rs::native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema"
-    ],
+    "negative": [],
     "positive": [
      "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
+     "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds",
      "crates/ici-cli/tests/legacy_line_scope.rs::legacy_scope_keeps_source_gate_and_extra_inputs_distinct_without_double_counting",
-     "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds"
+     "crates/ici-cli/tests/legacy_line_scope.rs::legacy_warn_and_fail_modes_keep_measured_findings_and_their_exit_contract",
+     "crates/ici-cli/tests/wire_schemas.rs::native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema"
     ]
    },
    "rust_paths": [
@@ -408,7 +434,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -428,7 +454,7 @@
    "comparison": "Same native dispatch as `ici diff` (commands.rs \"diff\" | \"next diff\"); exercised through the `ici diff` tests. No test invokes the `next diff` spelling or --current/baseline result comparison against frozen output.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -443,13 +469,13 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "implemented"
   },
   "command:ici next doctor": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: config_path, cpp, local_config, profile, python.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -470,8 +496,9 @@
    "comparison": "All four options (--python, --cpp, --preview, --force) and the fresh/existing/existing-preview/existing-force/unparseable-force cases are replayed against frozen `ici next init` (tests/rust-parity/config/cli-selection-oracle.json): exit codes, whether an existing ici.toml is left unchanged and the restricted languages line are equal.",
    "difference_reason": "Native writes the sparse schema_version=2 scaffold (unrestricted preview names no languages; discovery supplies them); --force keeps the existing scope and a .before-init backup and refuses --force with --python/--cpp; an unparseable existing ici.toml is refused with its location instead of being overwritten (frozen exit 0) so user data is never replaced blindly.",
    "evidence": [
-    ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 16 next plan, 16 analyze --plan, 8 next init variants)",
-    "cargo test -p ici-cli --test config_oracle --locked (5 passed incl. plan selection and next init replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log"
+    ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
+    "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
+    "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [
@@ -494,11 +521,12 @@
    "status": "complete"
   },
   "command:ici next plan": {
-   "comparison": "Every option (--component single/repeated/unknown, --python, --cpp, --profile fast/deep/invalid, --require-full, --config present/missing, --local-config accepted/policy-refused, --json) is replayed through the binary against frozen `ici next plan --json` (tests/rust-parity/config/cli-selection-oracle.json): exit codes and the sorted plans[].checks[].task_id sets are equal; the 332 next-v1 configuration cases keep the frozen exit code.",
-   "difference_reason": "Native adds limitations for unapplied output/cache/display preferences (frozen ignored them silently).",
+   "comparison": "Every option is replayed through the binary against frozen `ici next plan --json` (tests/rust-parity/config/cli-selection-oracle.json) with a projection each option changes: exit code, sorted plans[].checks[].task_id, scope.require_full, scope.profile and the tasks whose blocked reason names the --local-config interpreter. Cases: --component single/repeated/unknown, --python, --cpp, --profile fast/deep/invalid, --require-full full/partial, --config same/alternate (fewer components)/missing, --local-config interpreter override/policy refused. The 332 next-v1 configuration cases keep the frozen exit code.",
+   "difference_reason": "Native adds limitations for unapplied output/cache/display preferences (frozen ignored them silently) and, with --require-full on a partial selection, a coverage_gaps entry naming the unselected component (frozen only set scope.require_full). A bare local interpreter name (python3) is a PATH lookup natively, as frozen Executable.searches_path/SPEC-01 section 3 document; the frozen plan reported it as \"no such file\" (defect not reproduced).",
    "evidence": [
-    ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 16 next plan, 16 analyze --plan, 8 next init variants)",
-    "cargo test -p ici-cli --test config_oracle --locked (5 passed incl. plan selection and next init replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
+    ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
+    "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
+    "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
     "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
    ],
@@ -513,7 +541,8 @@
     ],
     "positive": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
-     "crates/ici-cli/tests/config_oracle.rs::unapplied_preferences_reach_the_plan_output_of_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::unapplied_preferences_reach_the_plan_output_of_the_binary",
+     "crates/ici-cli/tests/config_oracle.rs::recorded_plan_differences_are_native_behaviour_not_silent_drift"
     ]
    },
    "rust_paths": [
@@ -529,14 +558,14 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: config_path, local_path.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
     "negative": [],
     "positive": [
-     "crates/ici-cli/tests/publish_commands.rs::saved_publish_can_inspect_configuration_after_sources_are_deleted_and_preserves_result_bytes",
-     "crates/ici-cli/tests/publish_commands.rs::caller_preserves_historical_destination_and_credential_precedence"
+     "crates/ici-cli/tests/publish_commands.rs::caller_preserves_historical_destination_and_credential_precedence",
+     "crates/ici-cli/tests/publish_commands.rs::saved_publish_can_inspect_configuration_after_sources_are_deleted_and_preserves_result_bytes"
     ]
    },
    "rust_paths": [
@@ -550,7 +579,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: auxiliary, page, result.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -571,21 +600,42 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: component, config_path, cpp, json_mode, local_config, require_full, result.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
-    "failure": [
-     "crates/ici-cli/tests/native_cpp.rs::actual_cmake_sanitizer_proves_test_executables_and_keeps_runtime_defect_locations",
-     "crates/ici-cli/tests/native_cpp.rs::static_only_abi_is_located_not_applicable_without_readelf_or_implicit_build"
-    ],
-    "negative": [
-     "crates/ici-cli/tests/native_cpp.rs::missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creation",
-     "crates/ici-cli/tests/native_cpp.rs::actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi"
-    ],
+    "failure": [],
+    "negative": [],
     "positive": [
      "crates/ici-cli/tests/input_scope.rs::binary_code_changes_keep_scope_but_removed_selection_and_changed_bytes_remain_visible",
      "crates/ici-cli/tests/legacy_gcov_cli.rs::old_gcov_plan_names_the_text_condition_and_the_run_reads_text_evidence",
-     "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default"
+     "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default",
+     "crates/ici-cli/tests/native_cpp.rs::actual_abi_default_scope_ignores_archives_objects_reports_and_deduplicates_soname_aliases",
+     "crates/ici-cli/tests/native_cpp.rs::actual_cmake_sanitizer_proves_test_executables_and_keeps_runtime_defect_locations",
+     "crates/ici-cli/tests/native_cpp.rs::actual_diagnostics_preserve_missing_scope_and_accept_only_observed_unity_coverage",
+     "crates/ici-cli/tests/native_cpp.rs::actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi",
+     "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
+     "crates/ici-cli/tests/native_cpp.rs::all_excluded_cpp_duplicate_scope_is_not_applicable_through_cli",
+     "crates/ici-cli/tests/native_cpp.rs::compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gate",
+     "crates/ici-cli/tests/native_cpp.rs::explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins",
+     "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy",
+     "crates/ici-cli/tests/native_cpp.rs::missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creation",
+     "crates/ici-cli/tests/native_cpp.rs::recorded_compilation_scope_hashes_response_configuration_but_not_source_code_bytes",
+     "crates/ici-cli/tests/native_cpp.rs::static_only_abi_is_located_not_applicable_without_readelf_or_implicit_build",
+     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
+     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests",
+     "crates/ici-cli/tests/native_validation_extra.rs::expected_pytest_failure_counts_as_tool_pass_and_carries_a_prior_normal_failure",
+     "crates/ici-cli/tests/native_validation_extra.rs::generated_python_launcher_invokes_the_packaged_callable_using_project_runtime",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::rust_python_artifacts_preflight_unknown_data_and_reject_symlink_writes",
+     "crates/ici-cli/tests/native_validation_extra.rs::skipped_pytest_case_carries_its_baseline_failure_until_it_completes",
+     "crates/ici-cli/tests/published_abi.rs::actual_python_only_declared_elf_and_non_elf_need_no_cpp_build_or_project_python",
+     "crates/ici-cli/tests/published_abi.rs::cpp_explicit_report_without_build_executes_header_policy_instead_of_missing_contract",
+     "crates/ici-cli/tests/python_binary_scope.rs::hybrid_verified_artifact_has_one_binary_owner_and_no_phantom_build_dependency",
+     "crates/ici-cli/tests/python_binary_scope.rs::python_only_binary_descriptor_is_located_not_applicable_without_artifacts_or_readelf",
+     "crates/ici-cli/tests/python_binary_scope.rs::python_published_report_is_pinned_as_binary_input_and_uses_abi_header_policy",
+     "crates/ici-cli/tests/python_compat_cli.rs::runtime_version_and_compile_failure_keep_frozen_rule_ids_messages_and_locations",
+     "crates/ici-cli/tests/python_coverage_scope.rs::never_imported_declared_source_is_measured_zero_instead_of_omitted",
+     "crates/ici-cli/tests/validation_options.rs::modern_explicit_coverage_policy_is_never_replaced_by_absent_defaults"
     ]
    },
    "rust_paths": [
@@ -599,7 +649,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: html, json_report, report_dir.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -619,7 +669,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -639,17 +689,16 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
-    "negative": [
-     "crates/ici-cli/tests/report_commands.rs::historical_v2_reports_render_without_overwriting_or_inventing_native_evidence"
-    ],
+    "negative": [],
     "positive": [
-     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools",
+     "crates/ici-cli/tests/report_commands.rs::historical_v2_reports_render_without_overwriting_or_inventing_native_evidence",
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate",
      "crates/ici-cli/tests/report_commands.rs::report_rejects_mismatched_details_input_aliases_and_user_files",
-     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools"
     ]
    },
    "rust_paths": [
@@ -663,7 +712,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -683,7 +732,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -703,7 +752,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -723,21 +772,17 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
-    "failure": [
-     "crates/ici-cli/tests/native_cpp_direct.rs::actual_legacy_test_command_runs_owned_plain_suites_without_a_build_descriptor",
-     "crates/ici-cli/tests/python_coverage_scope.rs::unmeasurable_declared_source_keeps_coverage_incomplete_and_the_legacy_line_says_why"
-    ],
-    "negative": [
-     "crates/ici-cli/tests/legacy_test_metrics.rs::report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command",
-     "crates/ici-cli/tests/native_cpp_direct.rs::actual_direct_tests_use_separate_executables_shared_production_and_collective_coverage"
-    ],
+    "failure": [],
+    "negative": [],
     "positive": [
      "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_cpp_test_report_counts_each_executable_once_with_shared_coverage",
      "crates/ici-cli/tests/legacy_no_tests.rs::a_v2_project_with_blocked_test_checks_stays_incomplete_instead_of_no_tests",
-     "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once"
+     "crates/ici-cli/tests/native_cpp_direct.rs::actual_direct_tests_use_separate_executables_shared_production_and_collective_coverage",
+     "crates/ici-cli/tests/native_cpp_direct.rs::actual_legacy_test_command_runs_owned_plain_suites_without_a_build_descriptor",
+     "crates/ici-cli/tests/python_coverage_scope.rs::unmeasurable_declared_source_keeps_coverage_incomplete_and_the_legacy_line_says_why"
     ]
    },
    "rust_paths": [
@@ -751,7 +796,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -771,7 +816,7 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
     "failure": [],
@@ -792,21 +837,28 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: group_by, publish, verbose.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
-    "failure": [
-     "crates/ici-cli/tests/legacy_commands.rs::explicit_browser_and_github_summary_use_saved_outputs_and_preserve_existing_summary",
-     "crates/ici-cli/tests/legacy_commands.rs::output_aliases_and_unowned_destinations_are_refused_before_native_state"
-    ],
-    "negative": [
-     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
-     "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python"
-    ],
+    "failure": [],
+    "negative": [],
     "positive": [
      "crates/ici-cli/tests/coverage_regression.rs::actual_coverage_drop_gates_fail_on_new_without_changing_selected_gate_or_baseline",
      "crates/ici-cli/tests/integration_legacy.rs::schema_refused_placeholder_keeps_the_frozen_configuration_exit_code",
-     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions"
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::native_baseline_compares_new_unchanged_resolved_and_frozen_severity_regressions",
+     "crates/ici-cli/tests/legacy_baseline_gate.rs::pyz_era_baseline_is_readable_but_refused_with_the_regenerate_command_and_never_mass_new",
+     "crates/ici-cli/tests/legacy_commands.rs::explicit_browser_and_github_summary_use_saved_outputs_and_preserve_existing_summary",
+     "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
+     "crates/ici-cli/tests/legacy_commands.rs::output_aliases_and_unowned_destinations_are_refused_before_native_state",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict",
+     "crates/ici-cli/tests/legacy_line_scope.rs::explicit_fail_on_new_keeps_warning_actionable_without_failing_ordinary_gate",
+     "crates/ici-cli/tests/legacy_test_parity.rs::deep_verify_keeps_frozen_slow_and_flaky_targets_order_and_identities",
+     "crates/ici-cli/tests/native_cpp.rs::actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch",
+     "crates/ici-cli/tests/native_cpp.rs::compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gate",
+     "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/registry.rs::repeatable_selection_aliases_enum_and_integer_bounds_are_enforced"
     ]
    },
    "rust_paths": [
@@ -820,21 +872,54 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
    "difference_reason": null,
    "evidence": [
-    "Native CLI tests named in fixtures run the actual ici binary (ici-cli integration tests); gate logs of the owning areas."
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
    ],
    "fixtures": {
-    "failure": [
-     "crates/ici-cli/tests/doctor_commands.rs::empty_workspace_and_cancelled_version_probes_remain_inspectable_without_writes",
-     "crates/ici-cli/tests/doctor_commands.rs::invalid_scope_is_an_actionable_error_and_does_not_run_probes"
-    ],
-    "negative": [
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key",
-     "crates/ici-cli/tests/config_oracle.rs::unapplied_preferences_reach_the_plan_output_of_the_binary"
-    ],
+    "failure": [],
+    "negative": [],
     "positive": [
-     "crates/ici-cli/tests/config_commands.rs::migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup",
      "crates/ici-cli/tests/config_commands.rs::migration_explains_legacy_overrides_without_applying_them",
-     "crates/ici-cli/tests/config_commands.rs::native_default_artifacts_do_not_replace_previous_python_results"
+     "crates/ici-cli/tests/config_commands.rs::migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup",
+     "crates/ici-cli/tests/config_commands.rs::native_default_artifacts_do_not_replace_previous_python_results",
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key",
+     "crates/ici-cli/tests/config_oracle.rs::unapplied_preferences_reach_the_plan_output_of_the_binary",
+     "crates/ici-cli/tests/doctor_commands.rs::empty_workspace_and_cancelled_version_probes_remain_inspectable_without_writes",
+     "crates/ici-cli/tests/doctor_commands.rs::invalid_scope_is_an_actionable_error_and_does_not_run_probes",
+     "crates/ici-cli/tests/input_scope.rs::binary_code_changes_keep_scope_but_removed_selection_and_changed_bytes_remain_visible",
+     "crates/ici-cli/tests/legacy_gcov_cli.rs::old_gcov_plan_names_the_text_condition_and_the_run_reads_text_evidence",
+     "crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building",
+     "crates/ici-cli/tests/legacy_mode_scope.rs::explicit_migrated_mode_applies_per_check_without_changing_modern_default",
+     "crates/ici-cli/tests/native_cpp.rs::actual_abi_default_scope_ignores_archives_objects_reports_and_deduplicates_soname_aliases",
+     "crates/ici-cli/tests/native_cpp.rs::actual_cmake_sanitizer_proves_test_executables_and_keeps_runtime_defect_locations",
+     "crates/ici-cli/tests/native_cpp.rs::actual_diagnostics_preserve_missing_scope_and_accept_only_observed_unity_coverage",
+     "crates/ici-cli/tests/native_cpp.rs::actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi",
+     "crates/ici-cli/tests/native_cpp.rs::actual_gcc_dead_options_apply_each_generated_and_vendor_dimension",
+     "crates/ici-cli/tests/native_cpp.rs::all_excluded_cpp_duplicate_scope_is_not_applicable_through_cli",
+     "crates/ici-cli/tests/native_cpp.rs::compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gate",
+     "crates/ici-cli/tests/native_cpp.rs::explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins",
+     "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy",
+     "crates/ici-cli/tests/native_cpp.rs::missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creation",
+     "crates/ici-cli/tests/native_cpp.rs::recorded_compilation_scope_hashes_response_configuration_but_not_source_code_bytes",
+     "crates/ici-cli/tests/native_cpp.rs::static_only_abi_is_located_not_applicable_without_readelf_or_implicit_build",
+     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
+     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests",
+     "crates/ici-cli/tests/native_validation_extra.rs::expected_pytest_failure_counts_as_tool_pass_and_carries_a_prior_normal_failure",
+     "crates/ici-cli/tests/native_validation_extra.rs::generated_python_launcher_invokes_the_packaged_callable_using_project_runtime",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::rust_python_artifacts_preflight_unknown_data_and_reject_symlink_writes",
+     "crates/ici-cli/tests/native_validation_extra.rs::skipped_pytest_case_carries_its_baseline_failure_until_it_completes",
+     "crates/ici-cli/tests/publish_commands.rs::caller_preserves_historical_destination_and_credential_precedence",
+     "crates/ici-cli/tests/publish_commands.rs::saved_publish_can_inspect_configuration_after_sources_are_deleted_and_preserves_result_bytes",
+     "crates/ici-cli/tests/published_abi.rs::actual_python_only_declared_elf_and_non_elf_need_no_cpp_build_or_project_python",
+     "crates/ici-cli/tests/published_abi.rs::cpp_explicit_report_without_build_executes_header_policy_instead_of_missing_contract",
+     "crates/ici-cli/tests/python_binary_scope.rs::hybrid_verified_artifact_has_one_binary_owner_and_no_phantom_build_dependency",
+     "crates/ici-cli/tests/python_binary_scope.rs::python_only_binary_descriptor_is_located_not_applicable_without_artifacts_or_readelf",
+     "crates/ici-cli/tests/python_binary_scope.rs::python_published_report_is_pinned_as_binary_input_and_uses_abi_header_policy",
+     "crates/ici-cli/tests/python_compat_cli.rs::runtime_version_and_compile_failure_keep_frozen_rule_ids_messages_and_locations",
+     "crates/ici-cli/tests/python_coverage_scope.rs::never_imported_declared_source_is_measured_zero_instead_of_omitted",
+     "crates/ici-cli/tests/registry.rs::repeatable_selection_aliases_enum_and_integer_bounds_are_enforced",
+     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools",
+     "crates/ici-cli/tests/validation_options.rs::modern_explicit_coverage_policy_is_never_replaced_by_absent_defaults"
     ]
    },
    "rust_paths": [
