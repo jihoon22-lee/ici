@@ -2,15 +2,25 @@ use ici_cli::{commands, planning, registry};
 use serde_json::Value;
 use std::{collections::BTreeMap, fs};
 
+/// The explicit project interpreter (worktrees have no `.venv`); CI falls back to the repo `.venv`.
+fn project_python() -> std::path::PathBuf {
+    std::env::var_os("ICI_TEST_PYTHON").map_or_else(
+        || {
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../..")
+                .join(".venv/bin/python")
+        },
+        std::path::PathBuf::from,
+    )
+}
+
 #[test]
 fn legacy_test_report_counts_shared_pytest_coverage_suite_once() {
     let root = tempfile::tempdir().unwrap();
     fs::create_dir(root.path().join("tests")).unwrap();
     fs::write(root.path().join("app.py"), "VALUE = 1\n").unwrap();
     fs::write(root.path().join("tests/test_app.py"), "from app import VALUE\ndef test_one(): assert VALUE == 1\ndef test_two(): assert VALUE > 0\n").unwrap();
-    let interpreter = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .join(".venv/bin/python");
+    let interpreter = project_python();
     let interpreter = serde_json::to_string(&interpreter.to_string_lossy().to_string()).unwrap();
     let mut config = "schema_version=2\nprofile='deep'\n".to_owned();
     for check in ici_domain::builtin_catalog().checks {
@@ -89,9 +99,7 @@ fn report_mode_quality_keeps_finding_but_does_not_fail_legacy_test_command() {
         "import time\nfrom app import VALUE\ndef test_slow():\n    time.sleep(0.02)\n    assert VALUE == 1\n",
     )
     .unwrap();
-    let interpreter = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .join(".venv/bin/python");
+    let interpreter = project_python();
     let interpreter = serde_json::to_string(&interpreter.to_string_lossy().to_string()).unwrap();
     let mut config = "schema_version=2\nprofile='deep'\n".to_owned();
     for check in ici_domain::builtin_catalog().checks {
