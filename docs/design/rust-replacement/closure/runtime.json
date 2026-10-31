@@ -54,7 +54,7 @@
     "cargo test -p ici-domain; cargo test -p ici-execution --test storage; cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --include-ignored: all passed; strict Clippy ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log"
    ],
    "comparison": "Runtime facet: run v2 write/read v1, event v1 envelope, event order, run_id and stdout/stderr split. Reviewed frozen domain/events.py, eventstream.py, _codec.py and cli/next_events.py. Defects fixed: the native writer numbered events from 1 while the frozen writer starts every run at seq 0; the reader reported a repeated seq as a jump instead of the frozen 'duplicate seq N' note. Event id validation itself is the config worker's guard (9d31027) and the oracle fixture now pins it against frozen acceptance.",
-   "difference_reason": "Open (not complete): frozen `ici analyze --json` writes 'root:'/'scope:' context lines to stderr and its text mode prints a findings summary; native writes nothing to stderr under --json and its text mode prints raw JSON blocks. This is the next_render CLI rendering facet, routed to the root as a cross-area item. Timestamps use 'Z' instead of '+00:00' (both RFC 3339 and accepted by the frozen schema)."
+   "difference_reason": "Open (not complete): frozen `ici analyze --json` writes 'root:'/'scope:' context lines (next_common.py) to stderr and its text mode prints the verdict summary (next_render.verify_text); native writes nothing to stderr under --json and its text mode prints ici-reporting render.rs JSON blocks. stdout under --json is the saved result in both. Reported to the root (SendMessage, w-runtime-events-compare.log) as a user-visible rendering gap. Timestamps use 'Z' instead of '+00:00' (both RFC 3339 and accepted by the frozen schema)."
   },
   "check:javascript.lint": {
    "status": "complete",
@@ -72,6 +72,7 @@
      "crates/ici-providers/tests/native.rs::eslint_native_json_rules_and_ignored_files_are_not_silent_passes"
     ],
     "negative": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
      "crates/ici-providers/tests/diagnostics.rs::eslint_enumerates_clean_files_and_native_ignore_is_not_an_inspection_pass",
      "crates/ici-providers/tests/resolution.rs::ecosystem_project_node_tools_win_over_path_and_clippy_uses_cargo"
     ],
@@ -84,7 +85,8 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/providers/capture_ecosystem.py tests/rust-parity/providers/ecosystem-oracle.json (frozen EcosystemProvider.parse for ESLint/Clippy/tsc) and capture_ecosystem_e2e.py <oracle>/src .venv/bin/python target tests/rust-parity/providers/ecosystem-e2e-oracle.json (frozen `ici analyze` on actual ESLint 10.13.0, tsc 7.0.2, cargo clippy 0.1.99)",
     "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored --test-threads=2: 20 + 14 passed (actual ESLint/tsc/Clippy/compilers); /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
     "cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --locked -- --include-ignored: all passed, actual ESLint/tsc/Clippy CLI findings and fingerprints equal the frozen analyze golden; strict Clippy for ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
-    "cargo test -p ici-providers --test resolution --locked: 7 passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-final.log"
+    "cargo test -p ici-providers --test resolution --locked: 7 passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-final.log",
+    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log"
    ],
    "comparison": "Reviewed frozen adapters/providers/ecosystem.py, application/ecosystem.py and the JS language pack. Planned argv (--format json --no-fix -- targets), ANALYZE kind, exit contract 0/1, node_modules/.bin precedence, rule id eslint.<rule>|eslint.parse, severity 2=error, 1-based line/column, native fingerprint sha256(eslint|rule|path|line|message) and the attributed v3 fingerprint all equal the frozen oracle for actual ESLint findings, fatal parse errors and the parser failure cases. Fixed during audit: native added ESLint end line/column, which changed every v3 attributed fingerprint; ESLint spans now carry no end position like frozen.",
    "difference_reason": "Accepted intended differences: an ESLint 'File ignored' line-less warning becomes a limitation with the file not inspected (frozen: parser failure); native never claims complete evidence for ESLint because plugin/configuration closure is not enumerated (frozen claimed it); a present but non-executable node_modules tool is reported instead of falling back to PATH; columns are code points (ASCII-equal to frozen UTF-16 columns); native state lives under .ici/rust-v1."
@@ -103,6 +105,7 @@
      "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
     ],
     "negative": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
      "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
     ],
     "failure": [
@@ -112,7 +115,8 @@
    },
    "evidence": [
     "Frozen captures tests/rust-parity/providers/ecosystem-oracle.json and ecosystem-e2e-oracle.json (actual cargo clippy 0.1.99: clippy.clippy::needless_return with identical attributed fingerprint); /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
-    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log"
+    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
+    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log"
    ],
    "comparison": "Frozen clippy provider: cargo clippy --offline --locked --message-format=json --jobs 2 --target-dir <state>/cargo-target, PREPARE kind (build.rs/proc macros), RUSTUP_AUTO_INSTALL=0 and CARGO_NET_OFFLINE=true, exit contract 0/101, rule id clippy.<code>|clippy.diagnostic, primary span location, unattributed first error fails, missing build-finished fails. Plans and findings match the oracle for actual Cargo runs.",
    "difference_reason": "Accepted intended strictness: an unknown Cargo record reason fails the stream (frozen ignored it) and exactly one build-finished record is required; related spans are retained as related locations (not part of the fingerprint); target directory under .ici/rust-v1."
@@ -131,6 +135,7 @@
      "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
     ],
     "negative": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
      "crates/ici-providers/tests/diagnostics.rs::eslint_enumerates_clean_files_and_native_ignore_is_not_an_inspection_pass",
      "crates/ici-providers/tests/resolution.rs::ecosystem_project_node_tools_win_over_path_and_clippy_uses_cargo"
     ],
@@ -141,7 +146,8 @@
    },
    "evidence": [
     "Same frozen captures (tests/rust-parity/providers/ecosystem-oracle.json, ecosystem-e2e-oracle.json): actual ESLint on TypeScript sources yields eslint.no-unused-vars and the eslint.parse fatal finding with identical attributed fingerprints in frozen and native analyze; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
-    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log"
+    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
+    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log"
    ],
    "comparison": "typescript.lint is the frozen ESLint provider bound to the TypeScript unit (same EcosystemProvider('eslint')); planned targets are the component's .ts files; findings, fatal parse errors, fingerprints and parser failure behaviour match the frozen oracle for actual ESLint runs.",
    "difference_reason": "Same accepted ESLint differences as javascript.lint (File ignored limitation, incomplete closure evidence, no PATH fallback for broken project tool, code point columns, .ici/rust-v1)."
@@ -160,6 +166,7 @@
      "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
     ],
     "negative": [
+     "crates/ici-cli/tests/ecosystem_oracle.rs::actual_ecosystem_findings_and_fingerprints_match_frozen_analyze",
      "crates/ici-providers/tests/diagnostics.rs::ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints"
     ],
     "failure": [
@@ -169,7 +176,8 @@
    },
    "evidence": [
     "Frozen captures tests/rust-parity/providers/ecosystem-oracle.json (chained diagnostic, global TS5058, clean) and ecosystem-e2e-oracle.json (actual tsc 7.0.2: tsc.2741 and tsc.2322 with identical attributed fingerprints); /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
-    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log"
+    "cargo test -p ici-providers --test native --test diagnostics --locked -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem.log",
+    "Clean-project replay added to ecosystem-e2e-oracle.json: frozen and native both PASS/exit 0 with identical check states and no findings; native evidence_complete=false limits cache reuse/resolution only, not the gate; cargo test -p ici-cli --test ecosystem_oracle --include-ignored passed and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-runtime-ecosystem-clean.log"
    ],
    "comparison": "Frozen tsc provider: --noEmit --pretty false --incremental true with tsBuildInfo under ici state, --project tsconfig.json/jsconfig.json else targets, PREPARE kind with the metadata directory as work dir and resource key, exit contract 0..2, `error TS` global lines fail, unrecognized lines fail. Defect fixed: native appended indented message-chain lines to the message, changing native and v3 fingerprints of every chained diagnostic; continuation lines are now ignored exactly as in the frozen parser and actual tsc fingerprints match.",
    "difference_reason": "Native never claims complete evidence for TypeScript (project closure not enumerated, same as frozen limitation text); a non-empty tsc stderr is refused; metadata lives under .ici/rust-v1/typescript."

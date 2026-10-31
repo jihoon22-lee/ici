@@ -31,13 +31,19 @@ FILES = {
     '[[package]]\nname = "eco"\nversion = "0.1.0"\n',
     "src/lib.rs": "pub fn f(a: i32) -> i32 {\n    return a + 1;\n}\n",
 }
+# The same project with every diagnostic removed: the gate must still pass.
+CLEAN = {
+    **FILES,
+    "src/a.js": "export const x = 1;\n",
+    "src/b.ts": "export const n = 1;\n",
+    "src/c.ts": "export const z = 1;\n",
+    "src/lib.rs": "pub fn f(a: i32) -> i32 {\n    a + 1\n}\n",
+}
 
 
-def main() -> None:
-    oracle, python, work, out = (Path(item) for item in sys.argv[1:5])
-    project = work / "ecosystem-oracle"
+def analyze(oracle: Path, python: Path, project: Path, files: dict[str, str]) -> dict:
     shutil.rmtree(project, ignore_errors=True)
-    for name, text in FILES.items():
+    for name, text in files.items():
         (project / name).parent.mkdir(parents=True, exist_ok=True)
         (project / name).write_text(text, encoding="utf-8")
     env = dict(os.environ, PYTHONPATH=str(oracle))
@@ -50,10 +56,11 @@ def main() -> None:
         check=False,
     )
     result = json.loads((project / "result.json").read_text(encoding="utf-8"))
-    document = {
-        "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
-        "files": FILES,
+    shutil.rmtree(project)
+    return {
+        "files": files,
         "exit": completed.returncode,
+        "gate": {key: result["gate"][key] for key in ("selected", "workspace", "has_violations")},
         "checks": {item["check_id"]: item["state"] for item in result["checks"]},
         "findings": sorted(
             (
@@ -70,8 +77,18 @@ def main() -> None:
             key=lambda item: (item["path"], item["line"], item["rule_id"]),
         ),
     }
+
+
+def main() -> None:
+    oracle, python, work, out = (Path(item) for item in sys.argv[1:5])
+    document = {
+        "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+        "projects": {
+            "findings": analyze(oracle, python, work / "ecosystem-oracle", FILES),
+            "clean": analyze(oracle, python, work / "ecosystem-oracle-clean", CLEAN),
+        },
+    }
     out.write_text(json.dumps(document, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    shutil.rmtree(project)
 
 
 if __name__ == "__main__":
