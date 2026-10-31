@@ -443,36 +443,44 @@
    "difference_reason": "OPEN: no end-to-end replay of the frozen modern python.lint/python.format check against the same ruff binary (only adapter-level frozen fingerprint parity); the legacy `ici lint` Python target projection (LintScope, Ruff:<code>, Format:Style, ASTSyntaxFallback, SyntaxError targets of engines/lint.py) has no native producer."
   },
   "check:python.line": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-analysis/src/lines.rs",
     "crates/ici-cli/src/legacy_lines.rs",
-    "crates/ici-cli/src/inputs.rs"
+    "crates/ici-cli/src/inputs.rs",
+    "crates/ici-config/src/resolve.rs",
+    "crates/ici-config/src/components.rs",
+    "crates/ici-cli/src/planning.rs"
    ],
    "fixtures": {
     "positive": [
      "crates/ici-analysis/src/tests.rs::line_counts_and_explicit_legacy_scopes_keep_all_inspected_targets",
      "crates/ici-analysis/src/tests.rs::legacy_line_rankings_keep_source_scope_and_actual_extra_languages",
-     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "negative": [
      "crates/ici-analysis/src/tests.rs::accepted_large_integer_policies_keep_their_configured_meaning",
-     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections"
+     "crates/ici-cli/tests/python_modern_parity.rs::modern_python_checks_match_frozen_projects_and_reviewed_corrections",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
+     "crates/ici-cli/tests/legacy_line_scope.rs::legacy_scope_keeps_source_gate_and_extra_inputs_distinct_without_double_counting"
     ],
     "failure": [
      "crates/ici-analysis/src/tests.rs::decoder_maps_original_bytes_and_universal_newlines",
      "crates/ici-analysis/src/tests.rs::active_multibyte_decode_cancellation_retains_finished_line_evidence",
      "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
      "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused"
+     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ]
    },
    "evidence": [
     "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
     "cargo test -p ici-analysis -p ici-application --locked and cargo test -p ici-cli --test python_modern_parity --test execution --test legacy_commands --test doctor_commands --locked after merging feat/rust-application: all passed (16 frozen modern projects, attributed fingerprints recomputed); /tmp/ici-rust-replacement-20261028/w-python-merge-tests.log; rerun at committed HEAD 1c88c60 (after the IDNA codec dispatch change): cargo test -p ici-cli --test python_modern_parity --locked -j2 -- --test-threads=2, 1 passed; /tmp/ici-rust-replacement-20261028/w-python-modern-head.log",
-    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
+    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 4 new legacy `python -m ici line --report` captures (line/docs-only, docs-only-no-config, monorepo, monorepo-no-config), the 61 other scaffolding and 27 tool cases unchanged (/tmp/ici-rust-replacement-20261028/w-python2-capture4.log); cargo test -p ici-cli -p ici-config -p ici-analysis --locked -j2 --no-fail-fast (temporary .venv symlink, removed after): all passed (/tmp/ici-rust-replacement-20261028/w-python2-line-cli2.log); cargo test -p ici-cli --test legacy_python_engines --test legacy_line_scope -- --include-ignored (63 scaffolding cases compared, 27 tool cases) and strict clippy -p ici-config -p ici-analysis -p ici-cli passed (/tmp/ici-rust-replacement-20261028/w-python2-line-gates2.log)"
    ],
-   "comparison": "Python facet of the line descriptor. Modern python.line matches the frozen languages/python/lines.py observation end to end (line-file-size findings, fixed 500/1000 thresholds, measurement numerators/denominators, BLOCKED documentation-only component) in modern-findings.json; legacy per-file targets, rankings and extras match engines/line.py counting. OPEN (root/config): the legacy `ici line` command on a tree with no Python/C++ source exits 2 ('no supported source files discovered') where frozen v0.13.0 reports PASS with Markdown/YAML/Shell extras, and with no config an automatically discovered monorepo applies src/include/lib/app per component root instead of the frozen project-root scan (svc_a/src/a.py counted as source, frozen counted it as extra). Both come from ici-config automatic discovery being used for legacy invocations; a legacy line run without config should use the single root legacy component (ici-config/src/resolve.rs legacy_components).",
+   "comparison": "Python facet of the line descriptor. Modern python.line matches the frozen languages/python/lines.py observation end to end (line-file-size findings, fixed 500/1000 thresholds, measurement numerators/denominators, BLOCKED documentation-only component) in modern-findings.json; legacy per-file targets, rankings and extras match engines/line.py counting. Legacy `ici line --report` over a tree without in-scope source now matches the frozen CLI: a documentation-only tree and an auto-discovered `svc_a/src`, `svc_b/src` monorepo, each with and without an ici.toml, report PASS/MEASURED \"Total 0 lines ... across 0 files\", exit 0, no target, and every file (Markdown/YAML/Shell/Python, plus ici.toml when present) as an `extra` row in files_data/top_files_all/all (line/docs-only{,-no-config}, line/monorepo{,-no-config}). A legacy invocation without configuration resolves frozen's single-root legacy component (built-in source_dirs, python when no source is recognized) instead of automatic v2 discovery; `analyze` discovery is unchanged; extras are rows, never targets, only for frozen-schema requests (next-schema projections keep their targets).",
    "difference_reason": null
   },
   "check:python.lint": {
@@ -1567,30 +1575,38 @@
    "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
   },
   "finding_site:src/ici/engines/line.py:185:16": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-analysis/src/lib.rs",
-    "crates/ici-analysis/src/details.rs"
+    "crates/ici-analysis/src/details.rs",
+    "crates/ici-analysis/src/lines.rs",
+    "crates/ici-cli/src/inputs.rs",
+    "crates/ici-cli/src/legacy_lines.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::line_counts_and_explicit_legacy_scopes_keep_all_inspected_targets"
+     "crates/ici-analysis/src/tests.rs::line_counts_and_explicit_legacy_scopes_keep_all_inspected_targets",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes",
+     "crates/ici-cli/tests/legacy_line_scope.rs::legacy_scope_keeps_source_gate_and_extra_inputs_distinct_without_double_counting"
     ],
     "negative": [
-     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
+     "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ],
     "failure": [
      "crates/ici-analysis/src/tests.rs::syntax_semantics_and_bounds_cannot_be_clean",
      "crates/ici-analysis/src/tests.rs::cancellation_is_explicit_before_intake_and_does_not_populate_cache",
-     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused"
+     "crates/ici-analysis/src/tests.rs::repeated_request_paths_are_one_input_and_conflicting_bytes_are_refused",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes"
     ]
    },
    "evidence": [
     "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
-    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
+    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
+    "python3 tests/rust-parity/python/capture_legacy_engines.py against the frozen 6fe3e405 checkout (venv CPython 3.10.21): 4 new legacy `python -m ici line --report` captures (line/docs-only, docs-only-no-config, monorepo, monorepo-no-config), the 61 other scaffolding and 27 tool cases unchanged (/tmp/ici-rust-replacement-20261028/w-python2-capture4.log); cargo test -p ici-cli -p ici-config -p ici-analysis --locked -j2 --no-fail-fast (temporary .venv symlink, removed after): all passed (/tmp/ici-rust-replacement-20261028/w-python2-line-cli2.log); cargo test -p ici-cli --test legacy_python_engines --test legacy_line_scope -- --include-ignored (63 scaffolding cases compared, 27 tool cases) and strict clippy -p ici-config -p ici-analysis -p ici-cli passed (/tmp/ici-rust-replacement-20261028/w-python2-line-gates2.log)"
    ],
-   "comparison": "Native producer emits legacy per-file line target with the frozen name/status/metrics checked by the named oracle fixture.",
-   "difference_reason": "Legacy CLI end-to-end target projection for this engine was not replayed against the frozen `ici <engine>` command."
+   "comparison": "Legacy per-file line targets are emitted for in-scope source only, with the frozen name/status/message/metrics; extras appear only as files_data rows (frozen `_record_file`). Replayed end to end against the frozen `ici line --report` CLI for documentation-only and monorepo trees with and without configuration (legacy_python_engines), and source/gate/extra separation by legacy_line_scope.",
+   "difference_reason": null
   },
   "finding_site:src/ici/engines/lint.py:389:16": {
    "status": "complete",

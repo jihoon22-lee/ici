@@ -60,6 +60,26 @@ PROJECTS = {
 ENGINES = ("security", "resource", "dup", "dead", "cognitive", "exception")
 # Planning refuses an empty Python scope natively; these engines keep a frozen no-source verdict.
 NO_SOURCE_ENGINES = (*ENGINES, "lint", "cycle", "type", "complexity")
+DOCS = {
+    "README.md": "# x\n\ntext\n",
+    "docs/guide.md": "a\nb\n",
+    "conf.yaml": "a: 1\n",
+    "run.sh": "#!/bin/sh\necho hi\n",
+}
+MONOREPO = {
+    "svc_a/src/a.py": "x = 1\n",
+    "svc_b/src/b.py": "y = 2\nz = 3\n",
+    "README.md": "# m\n",
+    "svc_a/run.sh": "echo\n",
+}
+# Legacy `ici line` over trees without in-scope source; None means no configuration file at all.
+LINE_CASES = {
+    "line/docs-only-no-config": (DOCS, None),
+    "line/monorepo-no-config": (MONOREPO, None),
+    "line/docs-only": (DOCS, ""),
+    "line/monorepo": (MONOREPO, ""),
+}
+LINE_EXTRA = ("all", "files_data", "top_files", "top_files_all", "code", "total")
 # Per-case configuration appended to BASE.
 CONFIGURED = {
     "complexity/no-python-source-configured": (
@@ -191,7 +211,7 @@ def write(project: Path, files: dict) -> None:
             path.write_text(content, encoding="utf-8")
 
 
-def run(command: str, files: dict, config: str = "", tools: bool = False) -> dict:
+def run(command: str, files: dict, config: str | None = "", tools: bool = False) -> dict:
     work = Path(tempfile.mkdtemp(prefix="ici-legacy-engines-"))
     path = "/usr/bin:/bin"
     try:
@@ -203,7 +223,8 @@ def run(command: str, files: dict, config: str = "", tools: bool = False) -> dic
             path = f"{bin_dir}:{path}"
         project = work / "project"
         project.mkdir()
-        (project / "ici.toml").write_text(BASE + config, encoding="utf-8")
+        if config is not None:
+            (project / "ici.toml").write_text(BASE + config, encoding="utf-8")
         write(project, files)
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
@@ -223,7 +244,13 @@ def run(command: str, files: dict, config: str = "", tools: bool = False) -> dic
     if report is None:
         # The frozen engine crashed before writing a report: record the uncaught exception.
         return {"exit_code": result.returncode, "crash": result.stderr.strip().splitlines()[-1]}
+    extra = (
+        {"extra": {key: report["extra"].get(key) for key in LINE_EXTRA}}
+        if command == "line"
+        else {}
+    )
     return {
+        **extra,
         "exit_code": result.returncode,
         "status": report["status"],
         "summary": report["summary"],
@@ -254,6 +281,13 @@ def main() -> None:
             "config": config,
             "files": files,
             "frozen": run(engine, files, config),
+        }
+    for name, (files, config) in LINE_CASES.items():
+        cases[name] = {
+            "command": "line",
+            "config": config,
+            "files": files,
+            "frozen": run("line", files, config),
         }
     tool_cases = {
         name: {

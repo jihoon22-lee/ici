@@ -48,8 +48,11 @@ fn run(case: &Value, base: &str) -> Option<Value> {
 
 fn run_with_path(case: &Value, base: &str, path: &str) -> Option<Value> {
     let root = tempfile::tempdir().unwrap();
-    let config = format!("{base}{}", case["config"].as_str().unwrap_or(""));
-    fs::write(root.path().join("ici.toml"), config).unwrap();
+    // A null configuration means the project has no ici.toml at all.
+    if !case["config"].is_null() || case.get("config").is_none() {
+        let config = format!("{base}{}", case["config"].as_str().unwrap_or(""));
+        fs::write(root.path().join("ici.toml"), config).unwrap();
+    }
     for (name, content) in case["files"].as_object().unwrap() {
         let path = root.path().join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -89,14 +92,31 @@ fn run_with_path(case: &Value, base: &str, path: &str) -> Option<Value> {
             })
             .collect()
     };
-    Some(json!({
+    let mut extra = json!({});
+    if command == "line" {
+        for key in [
+            "all",
+            "files_data",
+            "top_files",
+            "top_files_all",
+            "code",
+            "total",
+        ] {
+            extra[key] = report["extra"][key].clone();
+        }
+    }
+    let mut actual = json!({
         "exit_code": output.exit_code,
         "status": report["status"],
         "summary": report["summary"],
         "evidence": report["evidence"],
         "targets": pick(&report["targets"], &FIELDS),
         "findings": pick(&report["findings"], &["rule_id", "fingerprint", "message", "tool_rule_id"]),
-    }))
+    });
+    if command == "line" {
+        actual["extra"] = extra;
+    }
+    Some(actual)
 }
 
 #[test]
@@ -108,7 +128,7 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 61);
+    assert_eq!(cases.len(), 65);
     let mut compared = 0;
     for (name, case) in cases {
         let frozen = &case["frozen"];
@@ -122,7 +142,7 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
         assert_eq!(actual.unwrap(), corrected(frozen), "{name}");
         compared += 1;
     }
-    assert_eq!(compared, 59);
+    assert_eq!(compared, 63);
 }
 
 fn required(name: &str) -> String {
