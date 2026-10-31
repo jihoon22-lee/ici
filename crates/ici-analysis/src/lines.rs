@@ -26,6 +26,11 @@ pub fn analyze(
         .get("legacy_projection")
         .and_then(serde_json::Value::as_bool)
         .unwrap_or(false);
+    let extra_targets = request
+        .options
+        .get("extra_targets")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(true);
     let source_paths = request
         .options
         .get("source_paths")
@@ -152,7 +157,11 @@ pub fn analyze(
             output.observation.findings.push(finding);
         }
         rows.push(json!({"path":source.path,"lang":language,"code":file_code,"comment":file_comment,"blank":file_blank,"total":total,"status":target.status,"scope":if in_scope { "source" } else { "extra" }}));
-        output.targets.push(target);
+        // Frozen `LineEngine._record_file`: repository extras are rows, never targets. Only a
+        // frozen-schema request asks for that (`extra_targets: false`); others keep every target.
+        if in_scope || extra_targets {
+            output.targets.push(target);
+        }
     }
     let total = code + comment + blank;
     for (name, value, denominator, unit) in [

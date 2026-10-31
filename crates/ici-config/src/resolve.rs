@@ -29,11 +29,34 @@ pub fn resolve_with_environment(
     local: Option<&Path>,
     environment: &BTreeMap<String, String>,
 ) -> Result<ResolvedProject, ConfigError> {
+    resolve_inner(cwd, explicit, local, environment, false)
+}
+
+/// Historical `ici <engine>`/`verify` resolution. Without any configuration file the frozen CLI
+/// ran its built-in legacy defaults over one project component at the root (`source_dirs`
+/// defaults, every other file an extra), never the automatic v2 discovery; with a
+/// configuration file this is exactly [`resolve_with_environment`].
+pub fn resolve_legacy_command_with_environment(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+) -> Result<ResolvedProject, ConfigError> {
+    resolve_inner(cwd, explicit, local, environment, true)
+}
+
+fn resolve_inner(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+    legacy_command: bool,
+) -> Result<ResolvedProject, ConfigError> {
     let LoadedSettings {
         parsed,
         inspection,
         excludes,
-    } = load_settings(cwd, explicit, local, environment)?;
+    } = load_settings(cwd, explicit, local, environment, legacy_command)?;
     let ConfigurationInspection {
         root,
         config_source,
@@ -279,7 +302,7 @@ pub fn inspect_configuration_with_environment(
     local: Option<&Path>,
     environment: &BTreeMap<String, String>,
 ) -> Result<ConfigurationInspection, ConfigError> {
-    Ok(load_settings(cwd, explicit, local, environment)?.inspection)
+    Ok(load_settings(cwd, explicit, local, environment, false)?.inspection)
 }
 struct LoadedSettings {
     parsed: Parsed,
@@ -291,6 +314,7 @@ fn load_settings(
     explicit: Option<&Path>,
     local: Option<&Path>,
     environment: &BTreeMap<String, String>,
+    legacy_command: bool,
 ) -> Result<LoadedSettings, ConfigError> {
     let env_config = environment
         .get("ICI_CONFIG")
@@ -301,6 +325,10 @@ fn load_settings(
     let config_source = selected.document.as_ref().map(|p| p.path.clone());
     let parsed = match selected.document {
         Some(parsed) => parsed,
+        // The frozen CLI's built-in defaults: an empty legacy document.
+        None if legacy_command => {
+            Parsed::parse(&root.join("<automatic>"), String::new(), false, "defaults")?
+        }
         None => Parsed::parse(
             &root.join("<automatic>"),
             "schema_version = 2\n".into(),
@@ -308,7 +336,7 @@ fn load_settings(
             "defaults",
         )?,
     };
-    let family = if config_source.is_none() {
+    let family = if config_source.is_none() && !legacy_command {
         SchemaFamily::Automatic
     } else {
         schema::family(&parsed)?

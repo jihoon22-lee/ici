@@ -94,13 +94,13 @@ pub fn prepare_with_contexts(
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|path| under(cwd, path));
-    let project = ici_config::resolve_with_environment(
-        cwd,
-        explicit.as_deref(),
-        local.as_deref(),
-        environment,
-    )
-    .map_err(|e| CliError(e.to_string()))?;
+    let resolve = if crate::legacy::is_legacy(invocation) {
+        ici_config::resolve_legacy_command_with_environment
+    } else {
+        ici_config::resolve_with_environment
+    };
+    let project = resolve(cwd, explicit.as_deref(), local.as_deref(), environment)
+        .map_err(|e| CliError(e.to_string()))?;
     let project = crate::export_context::overlay(&project, contexts);
     let mut prepared = prepare_resolved_omitting(
         invocation,
@@ -904,10 +904,22 @@ fn prepare_resolved_omitting(
             plan.limitations.push(format!("{} uses verified published or typed artifact bytes without a linked build producer", check.task_id));
         }
     }
-    let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
-    let source_identity = crate::vcs::plan(&project, environment);
     let legacy_lines =
         crate::legacy_lines::collect(&project, &plan, invocation, generated_outputs)?;
+    // Frozen `LineEngine` counted a tree with no in-scope source (documentation only, sources
+    // outside `source_dirs`) as a measured empty scope with its repository extras.
+    for check in &mut plan.checks {
+        if matches!(check.check.id.as_str(), "python.line" | "cpp.line")
+            && matches!(&check.work, Work::Blocked { reason } if reason.starts_with("no sources in scope"))
+            && legacy_lines
+                .get(&check.task_id)
+                .is_some_and(|scope| !scope.inputs.is_empty())
+        {
+            check.work = Work::Internal;
+        }
+    }
+    let graph = TaskGraph::build(&plan.checks).map_err(|e| CliError(e.to_string()))?;
+    let source_identity = crate::vcs::plan(&project, environment);
     Ok(PreparedPlan {
         project,
         cpp,

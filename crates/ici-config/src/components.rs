@@ -73,6 +73,7 @@ fn component_checks(
     Ok(result)
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct ComponentContext<'a> {
     pub(crate) root: &'a Path,
     pub(crate) effective: &'a Value,
@@ -383,19 +384,21 @@ pub(crate) fn legacy_components(
     if let Some(runtime) = effective.pointer("/engines/test/python") {
         body["python"] = json!({"executable":runtime});
     }
-    let mut value = component(
-        ComponentContext {
-            root,
-            effective,
-            parsed,
-            family: SchemaFamily::Legacy,
-            root_checks: checks,
-            environment,
-        },
-        &body,
-        "project",
-        limitations,
-    )?;
+    let context = ComponentContext {
+        root,
+        effective,
+        parsed,
+        family: SchemaFamily::Legacy,
+        root_checks: checks,
+        environment,
+    };
+    let mut value = component(context, &body, "project", limitations)?;
+    if value.languages.is_empty() {
+        // Frozen `detect_project_type` falls back to "python" when no source is recognized
+        // (a documentation-only tree), so the historical engines still apply.
+        body["languages"] = json!(["python"]);
+        value = component(context, &body, "project", limitations)?;
+    }
     value.settings["legacy"] = effective.clone();
     limitations.push("legacy source_dirs and engine options are preserved; use migrate preview before adopting automatic v2 scope".into());
     Ok(vec![value])
