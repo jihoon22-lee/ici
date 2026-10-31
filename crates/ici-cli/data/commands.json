@@ -1,0 +1,2073 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "commands": [
+    {
+      "route": [],
+      "about": null,
+      "options": [
+        {
+          "id": "version",
+          "flags": [
+            "--version",
+            "-v"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Show version and exit",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "analyze"
+      ],
+      "about": "Analyze source without running tests; ici.toml is optional.",
+      "options": [
+        {
+          "id": "component",
+          "flags": [
+            "--component"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Which component to act on; repeatable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "language",
+          "flags": [
+            "--language"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Select python, cpp, rust, javascript or typescript; repeatable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "plan",
+          "flags": [
+            "--plan"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Show selected tasks and execution effects without running",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "python",
+          "flags": [
+            "--python"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select Python checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "cpp",
+          "flags": [
+            "--cpp"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select C++ checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "profile",
+          "flags": [
+            "--profile"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Cost profile for this run (does not rewrite the root's)",
+          "default": null,
+          "choices": [
+            "fast",
+            "standard",
+            "deep"
+          ],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "require_full",
+          "flags": [
+            "--require-full"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Fail unless the run covers the workspace's full required scope",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "result",
+          "flags": [
+            "--result",
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The saved result",
+          "default": ".ici/rust-v1/result.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "no_cache",
+          "flags": [
+            "--no-cache"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Run without reusing stored observations",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "json_mode",
+          "flags": [
+            "--json"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Machine output on stdout; diagnostics stay on stderr",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "events",
+          "flags": [
+            "--events"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Write the event stream here",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "baseline",
+          "flags": [
+            "--baseline"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Compare this run against a stored ici.next.run result",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "config_path",
+          "flags": [
+            "--config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Read this config file",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "local_config",
+          "flags": [
+            "--local-config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Personal overlay, path-allowlisted",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "build"
+      ],
+      "about": "Compiles and packages release artifacts and env loaders into vX.Y.Z/x86_64/.",
+      "options": []
+    },
+    {
+      "route": [
+        "cache"
+      ],
+      "about": "Shows local cache inventory and the inputs that invalidate cached analysis.",
+      "options": [
+        {
+          "id": "clear",
+          "flags": [
+            "--clear"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Remove analysis cache entry files from the exact local cache directory",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "cognitive"
+      ],
+      "about": "Measures cognitive complexity with nesting penalty.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "complexity"
+      ],
+      "about": "Analyzes Cyclomatic Complexity and maximum block nesting depth per function.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "cycle"
+      ],
+      "about": "Detects cyclic dependencies in Python imports and C++ includes.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "dead"
+      ],
+      "about": "Detects unused functions, unreachable statements, and orphaned symbols.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "diff"
+      ],
+      "about": "Compare two stored results — the same machinery ``--baseline`` uses.\n\n``baseline`` is the older saved result, ``current`` defaults to the last\nrun's. The report separates what the newer run actually resolved from\nwhat it simply never looked at, so a narrower scope cannot read as fixed\ncode (#221 item 7).",
+      "options": [
+        {
+          "id": "baseline",
+          "flags": [],
+          "positional": true,
+          "boolean": false,
+          "repeatable": false,
+          "required": true,
+          "help": "The earlier stored result",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "current",
+          "flags": [
+            "--result",
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The saved result",
+          "default": ".ici/rust-v1/result.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "doctor"
+      ],
+      "about": "Diagnoses toolchains, Python candidates, compilers, and shared paths.",
+      "options": [
+        {
+          "id": "brief",
+          "flags": [
+            "--brief"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Concise single-screen brief for closed-network survey",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "as_json",
+          "flags": [
+            "--json"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Output machine-readable JSON",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "dup"
+      ],
+      "about": "Detects copy-pasted duplicate code blocks and calculates codebase duplication rate.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "env"
+      ],
+      "about": "Generates shell environment setup lines to paste into .cshrc or .bashrc.",
+      "options": [
+        {
+          "id": "csh",
+          "flags": [
+            "--csh"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Generate tcsh / csh environment loader syntax",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "sh",
+          "flags": [
+            "--sh"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Generate bash / zsh / sh environment loader syntax",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "exception"
+      ],
+      "about": "Detects exception swallowing (except: pass), lost tracebacks, and destructor throws.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "export-compilation-context"
+      ],
+      "about": "Export a minimal, redacted compilation context without running verification.",
+      "options": [
+        {
+          "id": "database",
+          "flags": [
+            "--database"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Use this project-relative compile_commands.json instead of discovery",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "prepare",
+          "flags": [
+            "--prepare"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Generate a canonical CMake/qmake database only when none is selected",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "output",
+          "flags": [
+            "--output",
+            "-o"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Write JSON to this path, or - for stdout",
+          "default": "-",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "pretty",
+          "flags": [
+            "--pretty"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Indent the deterministic JSON output",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "import-report"
+      ],
+      "about": "Import supporting evidence without rerunning tools or changing a gate.",
+      "options": [
+        {
+          "id": "source",
+          "flags": [],
+          "positional": true,
+          "boolean": false,
+          "repeatable": false,
+          "required": true,
+          "help": "Existing SARIF/JUnit/LCOV report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "format",
+          "flags": [
+            "--format"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": true,
+          "help": "sarif, junit or lcov",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "scope",
+          "flags": [
+            "--scope"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": true,
+          "help": "Describe the producing run's source/suite scope",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "observed_at",
+          "flags": [
+            "--observed-at"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Producer timestamp with timezone; otherwise unknown",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "output",
+          "flags": [
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": null,
+          "default": ".ici/rust-v1/auxiliary/report.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "init"
+      ],
+      "about": "Write a root ``ici.toml`` for this directory. Installs nothing.\n\nCandidates are read off the tree — a directory holding sources of a known\nlanguage becomes a component — and that is the whole of it: no tool is\nprobed, nothing is built, and an existing ``ici.toml`` is not overwritten\nunless ``--force`` says so. ``--preview`` prints the file instead.",
+      "options": [
+        {
+          "id": "python",
+          "flags": [
+            "--python"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select Python checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "cpp",
+          "flags": [
+            "--cpp"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select C++ checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "preview",
+          "flags": [
+            "--preview"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Print the file instead of writing it",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "force",
+          "flags": [
+            "--force"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Overwrite an existing ici.toml",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "line"
+      ],
+      "about": "Analyzes code/comment/blank line distribution and verifies 500/1000 lines threshold.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "lint"
+      ],
+      "about": "Runs Ruff/AST Python checks and g++ syntax diagnostics for C/C++ sources.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "diff"
+      ],
+      "about": "Compare two stored results — the same machinery ``--baseline`` uses.\n\n``baseline`` is the older saved result, ``current`` defaults to the last\nrun's. The report separates what the newer run actually resolved from\nwhat it simply never looked at, so a narrower scope cannot read as fixed\ncode (#221 item 7).",
+      "options": [
+        {
+          "id": "baseline",
+          "flags": [],
+          "positional": true,
+          "boolean": false,
+          "repeatable": false,
+          "required": true,
+          "help": "The earlier stored result",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "current",
+          "flags": [
+            "--result",
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The saved result",
+          "default": ".ici/rust-v1/result.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "doctor"
+      ],
+      "about": "What the scope's checks need, and how each need stands.\n\nFor every selected check this reports the tool it wants, where the tool\nwas found (bundle or PATH) and its probed version, or the reason it was\nblocked. For every omitted check it reports who omitted it. Guidance is\nwritten as cause → affected scope → the config key that resolves it → the\ncommand that rechecks, because \"install something\" is not the only fix a\nmissing tool has.",
+      "options": [
+        {
+          "id": "component",
+          "flags": [
+            "--component"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Which component to act on; repeatable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "python",
+          "flags": [
+            "--python"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select Python checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "cpp",
+          "flags": [
+            "--cpp"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select C++ checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "profile",
+          "flags": [
+            "--profile"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Cost profile for this run (does not rewrite the root's)",
+          "default": null,
+          "choices": [
+            "fast",
+            "standard",
+            "deep"
+          ],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "json_mode",
+          "flags": [
+            "--json"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Machine output on stdout; diagnostics stay on stderr",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "config_path",
+          "flags": [
+            "--config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Read this config file",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "local_config",
+          "flags": [
+            "--local-config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Personal overlay, path-allowlisted",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "init"
+      ],
+      "about": "Write a root ``ici.toml`` for this directory. Installs nothing.\n\nCandidates are read off the tree — a directory holding sources of a known\nlanguage becomes a component — and that is the whole of it: no tool is\nprobed, nothing is built, and an existing ``ici.toml`` is not overwritten\nunless ``--force`` says so. ``--preview`` prints the file instead.",
+      "options": [
+        {
+          "id": "python",
+          "flags": [
+            "--python"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select Python checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "cpp",
+          "flags": [
+            "--cpp"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select C++ checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "preview",
+          "flags": [
+            "--preview"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Print the file instead of writing it",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "force",
+          "flags": [
+            "--force"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Overwrite an existing ici.toml",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "migrate"
+      ],
+      "about": "Preview a stable config as a next-schema document. Writes nothing unless asked.\n\nDefault is a dry run: the converted TOML and the per-key notes go to\nstdout, and no file changes. ``--output`` writes to a new file — an\nexisting one is refused rather than clobbered. ``--write`` replaces the\nsource and first copies it aside, because overwriting the file the stable\ntool still reads is a decision with a rollback path, not a default.",
+      "options": [
+        {
+          "id": "source",
+          "flags": [],
+          "positional": true,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The stable config to convert (project ici.toml)",
+          "default": "ici.toml",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "output",
+          "flags": [
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Write the converted document here instead of printing it",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "write",
+          "flags": [
+            "--write"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Replace the source ici.toml — the original is kept as ici.toml.stable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "plan"
+      ],
+      "about": "Say what a run would do. Runs nothing, builds nothing, installs nothing.\n\nThe output is the request answered, not the run started: the selected and\nblocked checks with their argv or their reason, the dependency edges the\ngraph wired from declared inputs, the executions several checks will\nshare, the mutating steps and the directories they hold, and the cost\nprofile the plan was cut to.",
+      "options": [
+        {
+          "id": "component",
+          "flags": [
+            "--component"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Which component to act on; repeatable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "python",
+          "flags": [
+            "--python"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select Python checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "cpp",
+          "flags": [
+            "--cpp"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select C++ checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "profile",
+          "flags": [
+            "--profile"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Cost profile for this run (does not rewrite the root's)",
+          "default": null,
+          "choices": [
+            "fast",
+            "standard",
+            "deep"
+          ],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "require_full",
+          "flags": [
+            "--require-full"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Fail unless the run covers the workspace's full required scope",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "json_mode",
+          "flags": [
+            "--json"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Machine output on stdout; diagnostics stay on stderr",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "config_path",
+          "flags": [
+            "--config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Read this config file",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "local_config",
+          "flags": [
+            "--local-config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Personal overlay, path-allowlisted",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "publish"
+      ],
+      "about": "Push the saved result's page to the configured backend (#223).\n\nReads stored artifacts only — nothing is re-analysed, and the result\nfile is not modified; the outcome lands in ``publish.json`` beside it,\non its own axis, so a failed upload can be retried without re-running.\nExit codes are publish's own: 0 published, 1 the upload/comment failed,\n2 the request could not be formed (bad inputs, no destination).",
+      "options": [
+        {
+          "id": "config_path",
+          "flags": [
+            "--config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Read this config file",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "local_path",
+          "flags": [
+            "--local-config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Personal overlay, path-allowlisted",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "result",
+          "flags": [
+            "--result",
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The saved result",
+          "default": ".ici/rust-v1/result.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "page",
+          "flags": [
+            "--out"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Where to write the page",
+          "default": ".ici/rust-v1/result.html",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "report"
+      ],
+      "about": "Render a saved result. Analyses nothing and runs no tool.",
+      "options": [
+        {
+          "id": "result",
+          "flags": [
+            "--result",
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The saved result",
+          "default": ".ici/rust-v1/result.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "page",
+          "flags": [
+            "--out"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Where to write the page",
+          "default": ".ici/rust-v1/result.html",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "sarif",
+          "flags": [
+            "--sarif"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Also write the result as SARIF here",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "auxiliary",
+          "flags": [
+            "--auxiliary"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Attach imported supporting evidence; repeatable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next",
+        "verify"
+      ],
+      "about": "Run the selected checks and save the result.",
+      "options": [
+        {
+          "id": "component",
+          "flags": [
+            "--component"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Which component to act on; repeatable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "python",
+          "flags": [
+            "--python"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select Python checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "cpp",
+          "flags": [
+            "--cpp"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Select C++ checks only",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "profile",
+          "flags": [
+            "--profile"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Cost profile for this run (does not rewrite the root's)",
+          "default": null,
+          "choices": [
+            "fast",
+            "standard",
+            "deep"
+          ],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "require_full",
+          "flags": [
+            "--require-full"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Fail unless the run covers the workspace's full required scope",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "result",
+          "flags": [
+            "--result",
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The saved result",
+          "default": ".ici/rust-v1/result.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "no_cache",
+          "flags": [
+            "--no-cache"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Run without reusing stored observations",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "json_mode",
+          "flags": [
+            "--json"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Machine output on stdout; diagnostics stay on stderr",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "events",
+          "flags": [
+            "--events"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Write the event stream here",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "baseline",
+          "flags": [
+            "--baseline"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Compare this run against a stored ici.next.run result",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "config_path",
+          "flags": [
+            "--config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Read this config file",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "local_config",
+          "flags": [
+            "--local-config"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Personal overlay, path-allowlisted",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "publish"
+      ],
+      "about": "Publishes existing HTML report(s) to gh-pages and updates the sticky PR comment.",
+      "options": [
+        {
+          "id": "html",
+          "flags": [
+            "--html"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Published HTML report path",
+          "default": "verify_report.html",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "json_report",
+          "flags": [
+            "--json"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "verify_report.json used to enrich the comment",
+          "default": "verify_report.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "report_dir",
+          "flags": [
+            "--report-dir"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Directory holding verify_report.html/json, optionally as label=path. Repeatable; each becomes one row of a single sticky comment and is published under its own gh-pages path. Use label=path for the repository root, whose directory name would otherwise be '.'. Overrides --html/--json.",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "python-compat"
+      ],
+      "about": "Checks configured Python runtimes, syntax floors, compileall, and import smoke.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "report"
+      ],
+      "about": "Render a saved result. Analyses nothing and runs no tool.",
+      "options": [
+        {
+          "id": "result",
+          "flags": [
+            "--result",
+            "--output"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "The saved result",
+          "default": ".ici/rust-v1/result.json",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "page",
+          "flags": [
+            "--out"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Where to write the page",
+          "default": ".ici/rust-v1/result.html",
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "sarif",
+          "flags": [
+            "--sarif"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Also write the result as SARIF here",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "auxiliary",
+          "flags": [
+            "--auxiliary"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": true,
+          "required": false,
+          "help": "Attach imported supporting evidence; repeatable",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "resource"
+      ],
+      "about": "Detects resource leaks and mutable defaults via AST.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "sanitize"
+      ],
+      "about": "Runs AddressSanitizer/UBSan for C++ and resource leak checks for Python.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "security"
+      ],
+      "about": "Detects hardcoded secrets and weak crypto via offline regex.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "test"
+      ],
+      "about": "Runs unit tests, measures branch/function coverage, and calculates TEM 5.0 score.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "thread-sanitize"
+      ],
+      "about": "Runs C++ tests under ThreadSanitizer using an isolated build variant.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "type"
+      ],
+      "about": "Runs Mypy or the labeled AST fallback; C++ type checking is explicitly skipped.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "verify"
+      ],
+      "about": "Runs the full verification engine suite and outputs a unified quality gate dashboard.",
+      "options": [
+        {
+          "id": "report",
+          "flags": [
+            "--report",
+            "-r"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Save JSON report (verify_report.json)",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "html",
+          "flags": [
+            "--html"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Save standalone HTML report to specified path",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "sarif",
+          "flags": [
+            "--sarif"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Save a SARIF 2.1.0 report to the specified path",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "open_browser",
+          "flags": [
+            "--open"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Open generated HTML report in default browser",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "github_summary",
+          "flags": [
+            "--github-summary"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Emit GitHub Actions step summary & annotations",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "publish",
+          "flags": [
+            "--publish"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Publish HTML report to GitHub (gh-pages/hub) and post sticky PR comment",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "baseline",
+          "flags": [
+            "--baseline"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Compare findings with a project-contained ici.result/v3 report",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "fail_on_new",
+          "flags": [
+            "--fail-on-new"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Fail when the baseline comparison finds new or regressed actionable findings",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "write_baseline",
+          "flags": [
+            "--write-baseline"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Write the current inventory as a project-contained v3 baseline",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "verbose",
+          "flags": [
+            "--verbose"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Show every console finding instead of the issues-first cap",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "max_findings",
+          "flags": [
+            "--max-findings"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Maximum console issue groups per engine (0 shows summaries only)",
+          "default": "5",
+          "choices": [],
+          "integer": true,
+          "minimum": 0
+        },
+        {
+          "id": "group_by",
+          "flags": [
+            "--group-by"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Group console findings by engine, severity, category, file, or rule",
+          "default": "engine",
+          "choices": [
+            "engine",
+            "severity",
+            "category",
+            "file",
+            "rule"
+          ],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "profile",
+          "flags": [
+            "--profile"
+          ],
+          "positional": false,
+          "boolean": false,
+          "repeatable": false,
+          "required": false,
+          "help": "Analysis cost profile: fast, standard, or deep (defaults to ici.profile)",
+          "default": null,
+          "choices": [
+            "fast",
+            "standard",
+            "deep"
+          ],
+          "integer": false,
+          "minimum": null
+        },
+        {
+          "id": "no_cache",
+          "flags": [
+            "--no-cache"
+          ],
+          "positional": false,
+          "boolean": true,
+          "repeatable": false,
+          "required": false,
+          "help": "Disable analysis cache reads and writes for this verification run",
+          "default": null,
+          "choices": [],
+          "integer": false,
+          "minimum": null
+        }
+      ]
+    },
+    {
+      "route": [
+        "next"
+      ],
+      "about": "The ici-next path. `ici verify` dispatches here when the root config declares [workspace].",
+      "options": []
+    }
+  ]
+}

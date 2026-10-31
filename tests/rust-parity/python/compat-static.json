@@ -1,0 +1,476 @@
+{
+  "oracle_file": "src/ici/analysis/_python_compatibility.py",
+  "oracle_file_sha256": "9d3660cfd105b757786c717fe1f864596774953d3eb00f6247a7c13370109b8f",
+  "cases": [
+    {
+      "id": "all-introduced-imports",
+      "source": "import tomllib\nfrom datetime import UTC\nfrom enum import StrEnum\nfrom itertools import batched\nfrom pathlib import Path\nfrom sys import monitoring\nfrom typing import Never, NotRequired, Required, Self, TypeAliasType\nPath.walk\n",
+      "target": "3.10",
+      "original_targets": [
+        {
+          "start_line": 1,
+          "end_line": 1,
+          "start_column": 1,
+          "end_column": 14,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "tomllib requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 2,
+          "end_line": 2,
+          "start_column": 1,
+          "end_column": 24,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "datetime.UTC requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 3,
+          "end_line": 3,
+          "start_column": 1,
+          "end_column": 24,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "enum.StrEnum requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 4,
+          "end_line": 4,
+          "start_column": 1,
+          "end_column": 29,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "itertools.batched requires Python 3.12 or newer"
+        },
+        {
+          "start_line": 6,
+          "end_line": 6,
+          "start_column": 1,
+          "end_column": 26,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "sys.monitoring requires Python 3.12 or newer"
+        },
+        {
+          "start_line": 7,
+          "end_line": 7,
+          "start_column": 1,
+          "end_column": 68,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.Never requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 7,
+          "end_line": 7,
+          "start_column": 1,
+          "end_column": 68,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.NotRequired requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 7,
+          "end_line": 7,
+          "start_column": 1,
+          "end_column": 68,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.Required requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 7,
+          "end_line": 7,
+          "start_column": 1,
+          "end_column": 68,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.Self requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 7,
+          "end_line": 7,
+          "start_column": 1,
+          "end_column": 68,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.TypeAliasType requires Python 3.12 or newer"
+        },
+        {
+          "start_line": 8,
+          "end_line": 8,
+          "start_column": 1,
+          "end_column": 9,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "pathlib.Path.walk requires Python 3.12 or newer"
+        }
+      ],
+      "ast_nodes": 24
+    },
+    {
+      "id": "import-deduplicated",
+      "source": "import tomllib\ntomllib.loads(\"x\")\ntomllib.loads(\"y\")\n",
+      "target": "3.10",
+      "original_targets": [
+        {
+          "start_line": 1,
+          "end_line": 1,
+          "start_column": 1,
+          "end_column": 14,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "tomllib requires Python 3.11 or newer"
+        }
+      ],
+      "ast_nodes": 17
+    },
+    {
+      "id": "qualified-api",
+      "source": "import typing as t\nimport datetime as d\nimport itertools as it\nimport pathlib as p\nx: t.Self\ny = d.UTC\nz = it.batched([],2)\np.Path.walk\n",
+      "target": "3.10",
+      "original_targets": [
+        {
+          "start_line": 5,
+          "end_line": 5,
+          "start_column": 4,
+          "end_column": 9,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.Self requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 6,
+          "end_line": 6,
+          "start_column": 5,
+          "end_column": 9,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "datetime.UTC requires Python 3.11 or newer"
+        },
+        {
+          "start_line": 7,
+          "end_line": 7,
+          "start_column": 5,
+          "end_column": 14,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "itertools.batched requires Python 3.12 or newer"
+        },
+        {
+          "start_line": 8,
+          "end_line": 8,
+          "start_column": 1,
+          "end_column": 11,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "pathlib.Path.walk requires Python 3.12 or newer"
+        }
+      ],
+      "ast_nodes": 41
+    },
+    {
+      "id": "bound-parameters",
+      "source": "import typing\ndef f(typing):\n    return typing.Self\n",
+      "target": "3.10",
+      "original_targets": [],
+      "ast_nodes": 11
+    },
+    {
+      "id": "comprehension-shadow",
+      "source": "import typing\nitems = [typing.Self for typing in values]\n",
+      "target": "3.10",
+      "original_targets": [],
+      "ast_nodes": 16
+    },
+    {
+      "id": "class-scope",
+      "source": "import typing\nclass C:\n    typing = shadow\n    def f(self):\n        return typing.Self\n",
+      "target": "3.10",
+      "original_targets": [
+        {
+          "start_line": 5,
+          "end_line": 5,
+          "start_column": 16,
+          "end_column": 26,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.Self requires Python 3.11 or newer"
+        }
+      ],
+      "ast_nodes": 17
+    },
+    {
+      "id": "assignment-shadow",
+      "source": "import typing\ntyping = custom\nvalue = typing.Self\n",
+      "target": "3.10",
+      "original_targets": [],
+      "ast_nodes": 15
+    },
+    {
+      "id": "future-module-binding",
+      "source": "import typing\nvalue = typing.Self\ntyping = custom\n",
+      "target": "3.10",
+      "original_targets": [],
+      "ast_nodes": 15
+    },
+    {
+      "id": "local-future-binding",
+      "source": "import typing\ndef f():\n    value = typing.Self\n    typing = custom\n    return value\n",
+      "target": "3.10",
+      "original_targets": [],
+      "ast_nodes": 20
+    },
+    {
+      "id": "nested-shadow",
+      "source": "import typing\ndef outer(typing):\n    def inner():\n        return typing.Self\n    return inner\n",
+      "target": "3.10",
+      "original_targets": [],
+      "ast_nodes": 16
+    },
+    {
+      "id": "api-suppressed-at-introduction",
+      "source": "from datetime import UTC\nfrom itertools import batched\n",
+      "target": "3.12",
+      "original_targets": [],
+      "ast_nodes": 5
+    },
+    {
+      "id": "none-floor",
+      "source": "import tomllib\n",
+      "target": "",
+      "original_targets": [],
+      "ast_nodes": 3
+    },
+    {
+      "id": "above-parser-floor",
+      "source": "import tomllib\n",
+      "target": "4.0",
+      "original_targets": [],
+      "ast_nodes": 3
+    },
+    {
+      "id": "match-syntax",
+      "source": "match value:\n    case 1:\n        pass\n",
+      "target": "3.9",
+      "original_targets": [
+        {
+          "start_line": 3,
+          "end_line": null,
+          "start_column": 13,
+          "end_column": null,
+          "target_name": "Compatibility:SyntaxFloor",
+          "status": "WARN",
+          "message": "Syntax is not accepted by configured Python 3.9 floor"
+        }
+      ],
+      "ast_nodes": 8,
+      "expected_targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "message": "Syntax is not accepted by configured Python 3.9 floor",
+          "start_column": 1,
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Compatibility:SyntaxFloor"
+        }
+      ],
+      "correction": "Report the native unsupported syntax location rather than CPython feature-version parser failure position"
+    },
+    {
+      "id": "except-star-syntax",
+      "source": "try:\n    f()\nexcept* ValueError:\n    pass\n",
+      "target": "3.10",
+      "original_targets": [
+        {
+          "start_line": 4,
+          "end_line": null,
+          "start_column": 9,
+          "end_column": null,
+          "target_name": "Compatibility:SyntaxFloor",
+          "status": "WARN",
+          "message": "Syntax is not accepted by configured Python 3.10 floor"
+        }
+      ],
+      "ast_nodes": 10,
+      "expected_targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "message": "Syntax is not accepted by configured Python 3.10 floor",
+          "start_column": 7,
+          "start_line": 3,
+          "status": "WARN",
+          "target_name": "Compatibility:SyntaxFloor"
+        }
+      ],
+      "correction": "Report the native unsupported syntax location rather than CPython feature-version parser failure position"
+    },
+    {
+      "id": "type-alias-syntax",
+      "source": "type Alias[T] = list[T]\n",
+      "target": "3.11",
+      "original_targets": [
+        {
+          "start_line": 1,
+          "end_line": null,
+          "start_column": 13,
+          "end_column": null,
+          "target_name": "Compatibility:SyntaxFloor",
+          "status": "WARN",
+          "message": "Syntax is not accepted by configured Python 3.11 floor"
+        }
+      ],
+      "ast_nodes": 11,
+      "expected_targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "message": "Syntax is not accepted by configured Python 3.11 floor",
+          "start_column": 1,
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Compatibility:SyntaxFloor"
+        }
+      ],
+      "correction": "Report the native unsupported syntax location rather than CPython feature-version parser failure position"
+    },
+    {
+      "id": "type-parameter-default",
+      "source": "type Alias[T = int] = list[T]\n",
+      "target": "3.12",
+      "original_targets": [
+        {
+          "start_line": 1,
+          "end_line": null,
+          "start_column": 19,
+          "end_column": null,
+          "target_name": "Compatibility:SyntaxFloor",
+          "status": "WARN",
+          "message": "Syntax is not accepted by configured Python 3.12 floor"
+        }
+      ],
+      "ast_nodes": 13,
+      "expected_targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "message": "Syntax is not accepted by configured Python 3.12 floor",
+          "start_column": 14,
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Compatibility:SyntaxFloor"
+        }
+      ],
+      "correction": "Report the native unsupported syntax location rather than CPython feature-version parser failure position"
+    },
+    {
+      "id": "walrus-syntax",
+      "source": "if (x := f()):\n    pass\n",
+      "target": "3.7",
+      "original_targets": [
+        {
+          "start_line": 1,
+          "end_line": null,
+          "start_column": 13,
+          "end_column": null,
+          "target_name": "Compatibility:SyntaxFloor",
+          "status": "WARN",
+          "message": "Syntax is not accepted by configured Python 3.7 floor"
+        }
+      ],
+      "ast_nodes": 9,
+      "expected_targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "message": "Syntax is not accepted by configured Python 3.7 floor",
+          "start_column": 5,
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Compatibility:SyntaxFloor"
+        }
+      ],
+      "correction": "Report the native unsupported syntax location rather than CPython feature-version parser failure position"
+    },
+    {
+      "id": "positional-only-syntax",
+      "source": "def f(x, /):\n    pass\n",
+      "target": "3.7",
+      "original_targets": [
+        {
+          "start_line": 1,
+          "end_line": null,
+          "start_column": 11,
+          "end_column": null,
+          "target_name": "Compatibility:SyntaxFloor",
+          "status": "WARN",
+          "message": "Syntax is not accepted by configured Python 3.7 floor"
+        }
+      ],
+      "ast_nodes": 5,
+      "expected_targets": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "message": "Syntax is not accepted by configured Python 3.7 floor",
+          "start_column": 10,
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Compatibility:SyntaxFloor"
+        }
+      ],
+      "correction": "Report the native unsupported syntax location rather than CPython feature-version parser failure position"
+    },
+    {
+      "id": "unicode-columns",
+      "source": "import typing\n이름 = typing.Self\n",
+      "target": "3.10",
+      "original_targets": [
+        {
+          "start_line": 2,
+          "end_line": 2,
+          "start_column": 10,
+          "end_column": 20,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.Self requires Python 3.11 or newer"
+        }
+      ],
+      "ast_nodes": 10,
+      "expected_targets": [
+        {
+          "end_column": 16,
+          "end_line": 2,
+          "message": "typing.Self requires Python 3.11 or newer",
+          "start_column": 6,
+          "start_line": 2,
+          "status": "WARN",
+          "target_name": "Compatibility:StandardLibraryFloor"
+        }
+      ],
+      "correction": "Unicode columns count characters rather than UTF-8 bytes"
+    },
+    {
+      "id": "relative-import-is-local",
+      "source": "from .typing import Self\nx = Self\n",
+      "target": "3.10",
+      "original_targets": [
+        {
+          "start_line": 1,
+          "end_line": 1,
+          "start_column": 1,
+          "end_column": 24,
+          "target_name": "Compatibility:StandardLibraryFloor",
+          "status": "WARN",
+          "message": "typing.Self requires Python 3.11 or newer"
+        }
+      ],
+      "ast_nodes": 8,
+      "expected_targets": [],
+      "correction": "A package-relative typing import is local code, not the standard library"
+    }
+  ]
+}

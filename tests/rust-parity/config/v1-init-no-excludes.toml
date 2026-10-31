@@ -1,0 +1,9 @@
+# Shape produced by the former init: omitted exclude must not lose defaults.
+schema_version = 1
+[workspace]
+name = "project"
+profile = "standard"
+[[components]]
+id = "project"
+root = "."
+languages = ["python"]

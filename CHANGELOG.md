@@ -7,6 +7,286 @@
 
 ## [Unreleased]
 
+### 이전 버전에서 바뀌는 점 (업그레이드 안내)
+
+- **종료 코드**: 필수 검사가 실행되지 못해 결과가 불완전하면, v0.13.0은 1로 끝났지만 이제 `ici verify`와
+  엔진별 명령은 3으로 끝납니다. 여전히 0이 아니며 리포트에는 기존과 같은 ERROR 판정이 표시됩니다. CI
+  스크립트가 종료 코드 1만 실패로 처리한다면 0이 아닌 모든 값을 실패로 처리하도록 바꾸세요. 2는 기존처럼
+  엔진 SKIP을 뜻합니다.
+- **베이스라인 다시 만들기**: 이전 pyz 버전이 만든 베이스라인 파일도 읽고 표시할 수 있지만 비교에는 쓰지
+  않습니다. 화면과 JSON에 "regenerate it with: …" 안내가 나오며, `--fail-on-new`를 함께 쓰면 종료 코드 1로
+  실패하고 요청한 새 베이스라인을 쓰지 않습니다. 기존 코드 상태에서 `ici verify --write-baseline <베이스라인
+  경로>`를 한 번 실행해 다시 만든 뒤 평소처럼 `ici verify --baseline <경로> --fail-on-new`를 사용하세요.
+  새 명령(`ici analyze`)은 `ici analyze --result <새 경로>`로 결과를 저장한 뒤 그 경로를 `--baseline`으로
+  넘기면 됩니다.
+
+### 변경
+
+- 단일 파일 HTML 리포트 크기를 165KB에서 약 46KB로 줄였습니다. 저장된 결과 전체를 압축해 한 번만
+  담고 접힌 섹션은 열 때 브라우저에서 만듭니다. 외부 네트워크 연결이 필요 없고 정보도 빠지지 않습니다.
+- `--result`로 결과 파일을 지정해도 사용자의 `runs/` 디렉터리를 건드리지 않습니다. 실행별 상세 자료는
+  `.ici/rust-v1/details/` 아래에 저장되며, 이전 위치에 저장된 결과도 계속 읽을 수 있습니다.
+- 콘솔·Markdown·HTML 리포트에 엔진별 이슈 수, 점수, 캐시, 소요 시간, 전체 상태 집계, gate 판정 사유,
+  도구 준비 상태, baseline 변경 내역(심각도 변화 포함)이 다시 표시됩니다. SARIF는 해결된 이전 이슈를
+  `absent` 결과로 보고합니다.
+- 이전(v2) 결과를 읽을 때 값 변환과 Windows 경로 처리가 이전 판독기와 같아졌고, 명령줄의 `--token`,
+  `--password` 같은 비밀 값도 가려집니다.
+- 레거시 `[build.make]` 설정이 무시되던 문제를 고쳤습니다. Make 명령은 `workdir`에서 configure → clean →
+  build 순서로 실행됩니다. `build.make.shadow_dir`는 비어 있거나 ici가 만든 디렉터리만 사용하며, 이전
+  빌드 결과가 남은 비어 있지 않은 shadow는 내용을 그대로 두고 거부합니다.
+- C++ complexity·cognitive 검사가 `warn_cc`·`fail_cc`·`warn`·`fail` 설정을 무시하던 문제와, 레거시
+  complexity·cognitive·exception 검사가 헤더까지 분석하던 문제를 고쳤습니다. 레거시 `ici cycle`의
+  include cycle 보고는 이전 제품과 같은 형식을 따릅니다.
+- GCC의 "In destructor" 같은 문맥 줄 때문에 C++ lint·진단 검사 전체가 실패하던 문제를 고쳤습니다.
+- Make `build.make.jobs` 값을 이전 제품과 같이 1..64 범위 그대로 적용합니다. pyz 시대의 `build/ici-make`
+  shadow는 내용을 지우지 않고 원인과 해결 방법(디렉터리 제거 또는 `build.make.shadow_dir` 지정)을 안내하며
+  계획 단계에서 거부합니다.
+- 레거시 `ici exception`의 C++ 결과가 이전 제품의 줄 단위 판정과 정확히 일치합니다.
+- 레거시 `ici test`가 이전 제품과 같은 커버리지 대상 이름·메시지·요약 줄·TEM 점수를 보고합니다. 실패한
+  테스트가 있으면 TEM·분기 임계값 경고를 중복으로 추가하지 않습니다.
+- 커버리지 도구가 없거나 테스트가 없을 때 이전 제품처럼 추정 커버리지 값을 만들어 내지 않고, 측정하지
+  못했다는 사실을 그대로 보고합니다.
+- 레거시 `ici test`가 coverage 없이 unittest로 대신 실행될 때와, 테스트 수집 결과가 비었을 때, 변경 줄 정책이
+  거부될 때도 이전 제품과 같은 판정과 exit code를 유지합니다. `--fail-on-new`로 찾은 새 이슈는 이 판정
+  때문에 통과로 바뀌지 않습니다.
+- deep 프로필의 느린 테스트 관찰 순서와, 거부된 integration 설정의 레거시 ERROR 대상(`Integration:ConfigurationError`)이
+  이전 제품과 같습니다. 레거시 `ici sanitize`의 Python ResourceWarning 요약 문구도 이전과 같습니다.
+- Python 소스의 `idna`·`punycode` 인코딩 선언을 Python 없이 처리합니다. `idna`는 CPython 3.14와 같은 결과로
+  디코딩하고, `punycode`는 CPython과 마찬가지로 항상 디코딩 오류로 보고합니다.
+- 한 요청에 같은 경로가 서로 다른 내용으로 두 번 들어오면 하나를 임의로 고르지 않고 분석 오류로 보고합니다.
+  모든 파일이 제외된 범위는 "검사 0건"이 아니라 "해당 없음"으로 표시합니다.
+- 최신 Python 검사 결과(메시지·위치·지문·제한 사항)가 v0.13.0과 일치합니다.
+- 레거시 `ici type`이 이전 제품과 같이 프로젝트의 mypy를 실행합니다. 이전에는 ty를 선택해 ty가 없으면
+  오류가 났습니다. 레거시 `ici lint`는 이전과 같은 `Ruff:<code>`·`Format:Style`·SyntaxError 대상과
+  "N Errors, M Warnings Found" 요약을 보고합니다.
+- 레거시 `ici type`은 mypy가 없거나 필수일 때도 이전과 같은 판정을 보고하고, 반복되는 note를 `(xN)`으로 접습니다.
+  Python 소스가 없으면 `ici type`은 SKIP, `ici complexity`는 설정된 한도를 표시한 PASS를 보고합니다. 설정 파일이 없는
+  레거시 `ici line`은 이전과 같이 단일 루트 범위를 사용합니다(문서 전용 트리는 PASS, 하위 `svc_*/src`는 부가 파일).
+- v1 빌드 모델 오류(빌드 디렉터리 `.` 등)와 경로를 벗어나는 빌드 ID를 실행 전에 거부합니다. `ici next init --force`는
+  기존 범위를 보존하고 원본을 `.before-init`로 백업하며, 해석할 수 없는 기존 설정은 덮어쓰지 않고 위치와 함께
+  거부합니다.
+- 레거시·v1 설정 파일 검증 결과(오류 위치·메시지·exit code)와 `ici next plan` 선택 옵션, `ici next init`이 이전
+  제품과 같습니다. 적용되지 않은 개인 설정과 병합되지 않은 과거 설정 계층은 숨기지 않고 표시합니다.
+- 레거시 `ici security|resource|dup|dead|cognitive|exception` 명령이 잘못된 인코딩·구문 오류·제외 전용 범위·
+  Python 소스가 없는 프로젝트에서 v0.13.0과 같은 대상 이름·메시지·지문·판정을 보고합니다. 구문 오류 메시지의
+  본문은 내장 파서 문구를 사용하며(이전에는 사용자 Python 버전에 따라 문구가 달랐습니다) 대상·위치·지문은
+  같습니다.
+- 실행 결과에 이전 제품과 같은 TEM 지표(`tem.<component>`, `tem.workspace`)와 "TEM N/A" 제한 사항을 다시
+  기록합니다. 레거시 `verify` 요약의 TEM 점수가 항상 비어 있던 문제도 고쳤습니다.
+- 규칙 ID를 이전 제품과 같이 casefold로 정규화합니다(ß·합자 등 17개 문자에서 외부 규칙 ID가 달라지던 문제).
+  식별자 형식이 아닌 task·component 값을 가진 결과 파일은 읽지 않습니다.
+- HTML 리포트에서 ERROR·SKIP 엔진도 이슈 목록에 표시되고, 측정값 표가 이전 제품과 같은 형식으로 나옵니다.
+- 같은 이슈의 심각도가 높아진 경우(예: low → high)를 베이스라인 비교에서 "변경 없음"으로 처리해
+  `--fail-on-new`가 통과하던 문제를 고쳤습니다. 이제 이전 제품과 같이 회귀로 판정하고, info 심각도 이슈는
+  이전처럼 gate에 영향을 주지 않습니다.
+- 레거시 명령의 엔진 상태(FAIL·ERROR·WARN·SKIP)와 오류 요약 문구가 이전 제품과 같아졌습니다. 이전에는 실패한
+  검사가 ERROR로 표시되거나 요약 앞에 `cpp.artifact:` 같은 내부 검사 ID가 붙었습니다.
+- 레거시 `ici build`·ELF 바이너리 호환성·직접 sanitizer 실행 결과의 대상과 요약이 이전 제품과 같습니다.
+- 레거시 `ici lint`는 컴파일 데이터베이스나 `[build.make]` 설정이 있어도 이전 제품과 같이 c++17 휴리스틱만
+  사용하며 빌드를 실행하지 않습니다.
+- 레거시 `ici build`에서 CMake·qmake configure 실패는 `BuildError`(ERROR), 빌드 실패는 `BuildAdapter` FAIL로
+  exit 1을 반환합니다. 이전에는 미완료(exit 3)로 끝났습니다.
+- 레거시 단일 엔진 명령이 이전 제품과 같은 콘솔 출력을 표시합니다(예: `ici build`의 "✔ Build Completed").
+  필수 도구가 없거나 설정이 잘못된 ERROR는 측정되지 않았음(NOT_RUN)으로 기록하면서 exit 1을 유지합니다.
+- 컴파일 데이터베이스가 없을 때 레거시 C++ lint가 이전 제품과 같은 대상·메시지·요약을 보고하고, 경고만 있으면
+  WARN(exit 0)으로 판정합니다. sanitizer 빌드 명령이 빠진 Make 설정은 Makefile 위치의 ERROR(exit 1)로 보고합니다.
+- 선언한 산출물(`[builds.<id>]`) 계약 검사 결과가 이전 제품과 같은 대상·메시지로 보고됩니다.
+- 테스트 파일이 전혀 없는 C++ 프로젝트에서 레거시 `ici test`가 이전처럼 "No tests collected" FAIL(exit 1)을
+  보고합니다. 개별 `ici test` 명령은 deep 프로필의 테스트 품질 검사(반복 실행·느린 테스트)를 자동으로
+  켜지 않습니다.
+- 레거시 cycle·dup·dead 검사가 최상위 `include/` 헤더를 포함합니다. 컴파일 데이터베이스가 없을 때
+  `ici dead`는 이전 제품과 같이 `auto`는 SKIP(exit 2), `required`는 ERROR(exit 1)로 보고합니다.
+- 레거시 Make `ici build`가 성공하면 PASS로 끝납니다. 이전에는 Make가 쓰지 않는 컴파일 데이터베이스를
+  입력으로 기다려 성공한 빌드도 미완료로 표시했습니다. 잘못된 설정이나 실패한 레시피는 Makefile 위치의
+  이유와 함께 exit 1로 실패하고, 그 빌드에 의존하는 검사는 미완료로 표시됩니다. 저장된 결과의 gate도
+  PASS가 아닌 FAIL로 기록됩니다.
+- `ici doctor`와 `ici next plan`이 빌드를 실행하지 않고도 shadow 거부, 잘못된 `workdir`, 없는 빌드 명령 같은
+  빌드 준비 문제를 미리 보여 줍니다.
+- 레거시 `ici build`의 릴리스 패키지 구조(`bin/`, `lib/`, 환경 스크립트)가 이전 제품과 같습니다.
+- 테스트가 없는 C++ 프로젝트에서 레거시 `ici sanitize`는 이전처럼 SKIP(exit 2)을 보고하고, sanitizer 명령이
+  없을 때도 이전과 같은 대상으로 보고합니다.
+- 같은 `--events` 경로로 분석을 반복하면 이전 실행의 이벤트 스트림을 교체합니다. 다른 기존 파일은
+  그대로 두고 거부합니다.
+- 산출물 패키징과 ABI 검사를 함께 실행할 때 ici가 방금 만든 패키지를 실행 중 바뀐 사용자 입력으로 오인해
+  ABI 검사가 막히던 문제를 고쳤습니다.
+- 검증 단계의 산출물 신선도 판정을 바로잡습니다. 시작 시각은 정밀 시계로, 파일 수정 시각은
+  커널의 coarse 시계로 기록되어 단계 시작 직후 쓴 정상 산출물(integration 출력·coverage
+  보고서 등)을 오래된 파일로 거부할 수 있었습니다. 이제 파일 시각과 같은 시계를 사용하고, 같은
+  tick 안에 이미 있던 파일은 시작 전 목록으로 구별해 계속 거부합니다. 1–2초 단위 시각만 기록하는
+  파일 시스템에서는 실제 신선한 산출물도 보수적으로 거부될 수 있습니다.
+- GCC/gcov 7처럼 JSON 출력이 없는 gcov는 도움말·버전 확인으로 텍스트 형식을 선택하고, 실제
+  gcov 7.4.0 텍스트와 15.2.0 JSON에서 같은 줄·분기·함수 원시 수치를 얻습니다. 확인에 실패하면
+  다른 형식으로 조용히 바꾸지 않습니다.
+- descriptor 없는 C++ test·coverage·sanitize·thread-sanitize 변형은 각 실행 파일을 한 번씩
+  실행하고 하나의 coverage 묶음으로 집계합니다. 실제 `ici test --report`에서 실행 파일별 통과
+  수와 공유 coverage가 한 번만 보고됩니다.
+- integration 대상은 선언한 Python 별칭과 PATH의 이름 있는 실행 파일을 공통 resolver로 찾고,
+  산출물 기반 사례는 해당 component에 연결된 build만 사용합니다.
+- `ici next diff`는 비교한 baseline·현재 결과 파일 이름과 gate 상태 이름을 표시하고, carried
+  항목이 고쳐진 코드가 아니라 생략되거나 불완전한 증거임을 설명합니다.
+- Python 소스의 ISO-2022·HZ 상태형 인코딩을 고정된 CPython 검증표로 읽고 원본 byte 위치를
+  추적합니다. 큰 수치 임계값은 `u64` 범위에서 보존하고, 제외된 파일만 있는 중복 검사는 적용
+  불가로 표시합니다. 소스 캐시 한도에는 위치·줄·토큰 저장 비용을 포함합니다.
+- 외부 C++ 빌드의 실제 컴파일 대상과 소스 목록을 구분하고, 일부 파일의 컴파일 실패를 해당
+  파일에 표시합니다. 모든 중복 검사 대상이 제외되면 가짜 0% 측정 대신 적용 불가로 표시합니다.
+- root build descriptor가 없는 기존 C++ `build` 경로는 실제 GCC 객체·링크 작업으로 소유한
+  바이너리를 만들고 공통 패키징에 전달합니다. 컴파일 실패는 원본 파일 위치와 개별 명령 실패
+  종료 코드를 보존하며, 재계획 시 사용한 도구의 bytes를 다시 확인합니다.
+- 게시하거나 타입을 선언한 산출물은 C++ 빌드 선언이 없어도 ABI 검사 대상으로 선택할 수
+  있습니다. Python 전용 프로젝트도 해당 검사를 사용하며, 혼합 언어에서 같은 게시 산출물은
+  한 검사만 소유합니다. 산출물의 bytes는 변경 감지에 포함합니다.
+- 실제 pytest·CTest·gcov 결과에 물리 test suite 식별자와 원시 분자·분모를 붙이고, 기대된
+  실패와 누락된 coverage 축을 구별해 평면 보고 지표로 보존합니다.
+
+- legacy 줄 수 보고서에 셸·설정·문서 등 기존 파일 집계를 복원하고, 소스 집계·임계값 적용·
+  추가 파일 범위를 구분합니다. 혼합 언어 파일은 한 번만 집계하며 현재 결과와 baseline은 제외합니다.
+- legacy의 `WARN` 성공 종료와 `pass_fail`·`pass_warn` 정책을 보존합니다. 실제 측정 finding은
+  유지하고 gate 역할만 표시하며, `--fail-on-new`는 새 경고도 별도로 실패시킬 수 있습니다.
+- legacy JSON은 단일 검사 extra 필드를 원래 위치에 보존하고, 완료된 줄 수 검사들의 물리 파일
+  집계를 합칩니다. 적용 불가 증거가 같은 descriptor의 실제 측정·추정 증거를 가리지 않습니다.
+- 여러 test·coverage 검사가 한 descriptor로 합쳐질 때 동일한 물리 test suite를 한 번만 세고,
+  coverage 비율은 실제 분자·분모로 합산합니다. C++의 여러 독립 실행 파일도 각각 한 번씩
+  계산하며, 물리 suite 합계가 생산자 합계와 다르면 집계하지 않고 사유를 남깁니다.
+- `next plan --json`은 test 결과를 coverage가 소비하는 것처럼 검사 간 공유 의존 관계를
+  표시합니다. 계획 조회는 결과 디렉터리를 만들지 않습니다.
+- baseline의 콘솔·Markdown·HTML 표시에서는 변경 항목을 먼저 최대 20개, 동일 항목을 최대
+  3개만 보여 주고 생략 수를 표시합니다. 저장된 JSON의 전체 비교 항목은 그대로 보존합니다.
+- 실행 결과가 task ID 아래 보관한 지표도 legacy 리포트의 평면 필드로 복원합니다. 명시적으로
+  설정한 이전 engine mode는 `next verify`에서도 적용하고, test 품질의 report 관측은 finding을
+  유지하면서 통과 상태로 표시합니다. coverage 임계값 경고와 실제 test 실패는 구별합니다.
+- 사례 없는 선택형 integration은 위치가 있는 적용 불가 결과를 남기며 필수 빈 범위는 미완료입니다.
+- legacy C++ 문맥이 없으면 명시된 pkg-config 순서와 프로젝트 include를 사용한 C++17 syntax
+  fallback을 실행 계획에 드러냅니다. 추정 진단은 유지하되 명시적으로 잘못된 DB를 대체하지 않습니다.
+  root의 compilation database·환경 경로와 component override를 올바르게 선택합니다.
+- cycle 보고 개수 제한을 적용하면서 전체 발견 개수와 생략 개수를 보존합니다.
+
+- 설정 파일의 독립적인 키·타입·관계 오류를 각 파일·행·키와 함께 한 번에 표시합니다.
+  진단 출력은 64개로 제한하며 잘못된 설정으로 검사나 파일 변경을 시작하지 않습니다.
+- C++ compilation database의 필수·금지 flag 정책을 실제 translation unit에 적용합니다.
+  legacy의 선택형 database 부재와 modern 필수 compilation 증거 부재를 구별합니다.
+  Python 전용 개별 검사는 C++ 프로젝트에서 위치를 갖는 적용 불가 결과를 반환합니다.
+- C++ generated/vendor 포함 정책을 중복·compiler unused·linker 관점에 각각 적용하고,
+  gcov에 변경 줄 coverage와 TEM 임계값을 전달합니다.
+- 반복 pytest 실행의 실패·시간 초과는 실제 기본 suite 결과를 지우지 않습니다.
+  sanitizer의 위치 없는 진단은 원문과 미완료 사유로 보존하고 임의의 코드 위치를 부여하지 않습니다.
+
+- 설정 migration은 과거 XDG·project·dev·ICI_CONFIG의 충돌 값과 출처를 읽기 전용으로
+  설명하며, 이전 후에도 선택형 coverage 정책을 유지합니다. 주석·원본·기존 backup은 보존합니다.
+- `env --csh`는 설치 경로의 `!`를 이력 확장으로 실행하지 않고 그대로 보존합니다.
+  sh/tcsh에서 따옴표·공백·역슬래시·달러·백틱이 포함된 실제 설치 경로를 검증했습니다.
+- coverage 부재가 허용된 legacy 실행은 실제 pytest를 계속 실행하고 coverage만 미측정으로
+  기록합니다. 필수 coverage는 실패를 유지하며 계획에 capability probe와 조건별 실행을 표시합니다.
+
+- `import-report`는 기존 auxiliary 문서도 덮어쓰지 않고 새 출력 파일만 생성합니다.
+  `cache`는 정상·손상 항목 수와 무효화 조건을 표시하며, clear는 사용자 파일·링크·이전 cache를 보존합니다.
+
+- baseline coverage 비교에 실제 분자·분모와 같은 완료 검사 범위를 사용합니다. 허용 하락치를
+  넘으면 `--fail-on-new`가 실패하며 일반 검사 gate와 기준선 원본은 유지합니다. 필요한 현재/이전
+  coverage 근거가 없으면 비교 불가를 알리고 새 baseline 쓰기를 거부합니다.
+- C++ 산출물·소스 bytes는 변경 감지에 포함하되 비교 범위를 바꾸는 설정으로 취급하지 않습니다.
+  빌드 준비가 새 소유 산출물로 전환되어도 원래 사용자 입력을 끝까지 다시 읽고 검증합니다.
+  ABI 실행은 파일 헤더를 먼저 확인해 정적 archive를 ELF 호환성 PASS로 오인하지 않습니다.
+- 실행 계획에 읽기 전용 Git 조회를 표시하고 결과에 commit·작업 트리 상태를 보존합니다.
+  Git 부재·실패·잘못된 응답·시간 초과는 깨끗한 소스라는 근거로 사용하지 않습니다.
+
+- 게시 명령의 기존 목적지·인증 선택 순서를 복원합니다. legacy 자체 저장소 게시에는 GitHub
+  기본 API와 자체 토큰을 사용하며, next의 명시 token_env가 비었을 때 관련 없는 GITHUB_TOKEN으로 바꾸지 않습니다.
+
+- 저장된 `ici.result/v2` 보고서는 명시적인 호환 reader로 읽어 render/publish에 사용합니다.
+  원본을 변경하거나 native 비교 증거를 만들지 않으며 잘못된 상태·중복 JSON 키·알 수 없는 schema를 거부합니다.
+
+- `doctor`/`next doctor`는 선택·생략된 검사와 실제 도구 요구를 공통 계획에서 읽고,
+  실행 파일별 제한된 version probe만 수행합니다. core Python·NAS 추정 없이 누락·실패·
+  timeout·출력 제한과 해결할 설정을 표시하며 검사·빌드·설치를 시작하지 않습니다.
+
+- 기존 `verify`·개별 검사 명령을 공통 native 실행에 연결하고 JSON/HTML/SARIF·baseline·
+  GitHub summary·명시 browser 열기를 지원합니다. 출력 alias와 사용자 파일은 실행 전에 거부하고,
+  비교 불가능한 과거 baseline은 원본을 보존하며 새 baseline을 쓰지 않습니다.
+- 기존 반환형 주석 검사는 별도 `ESTIMATED` 관측으로 보존합니다. 외부 타입 도구가 없으면
+  실제 타입 검사는 미완료이며, 개별 보고서도 원래 실행 범위·상태를 보존합니다.
+- `publish`/`next publish`는 저장된 결과와 HTML을 읽어 게시 상태를 별도 기록합니다.
+  사설 CA·GHES·hub·복수 보고서, blob 충돌 재시도, PR head/실행 순서 보호를 지원하고,
+  큰 진단은 댓글 요약만 UTF-8 한도에서 줄여 전체 결과·HTML을 유지합니다.
+- `export-compilation-context`에 읽기 전용 설정 조회·v1 payload 호환·경로/비밀값 보호와
+  명시 `--prepare`를 연결합니다. GNU linker dead 분석은 별도 소유 variant와 실제 객체·
+  relink·section 증거를 사용하며 일반 분석 중 빌드를 암묵적으로 시작하지 않습니다.
+
+- native 반환형 주석 finding에 안정적인 identity를 부여해 공통 결과 검증과 cache가 빈
+  fingerprint 때문에 관측 결과를 거부하던 결함을 수정합니다. 추정 증거 표시는 유지합니다.
+
+- native `setup`의 기본 설치 경로를 bootstrap과 동일하게 `XDG_DATA_HOME/ici/native` 우선으로
+  맞춥니다. XDG만 있거나 HOME과 동시에 있어도 install·inspect·update·rollback이 같은 경로를 사용합니다.
+- native 정적 archive builder에 고정 SDK·source·컴파일 도구 identity 검증과 Rust/musl/LLVM
+  runtime notices를 포함합니다. 표준 설치·rollback·사설 CA·폐쇄망 실행의 실제 후보 검증은
+  진행 중이며 최종 exact-source 인수와 공개 릴리스는 별도입니다.
+
+- 명시한 C++ 준비 작업을 먼저 실행하고 소유 shadow의 생성 입력을 공통 검증 계획에
+  연결합니다. 측정한 실행 파일·라이브러리와 Python 배포 파일은 공통 release writer를 사용합니다.
+  준비 중 바뀐 사용자 입력·도구는 완료 증거에서 제외하며 원래 source snapshot을 보존합니다.
+- 빌드 바이너리에만 파일당 256 MiB 한도를 허용하고 일반 소스 16 MiB·전체 입력 512 MiB
+  한도와 symlink 거부를 유지합니다. 계획 출력의 환경 비밀값도 구조적으로 마스킹합니다.
+
+- test quality의 명시 `repeat`/`slow_threshold` 설정이 기본값의 별칭과 충돌하던 문제를
+  수정합니다. 같은 설정에서 두 별칭을 동시에 지정한 오류는 계속 거부합니다.
+
+- Rust 준비 작업도 입력·출력·영향 디렉터리와 resource lock을 계획에 표시합니다. Python
+  배포물 생성은 snapshot bytes를 사용하며, 검증된 소유 출력만 다음 분석 입력에서 제외합니다.
+- C++ context·tooling·CTest/QTest/gcov·ELF 경로와 runtime matrix/integration를 CLI 공통
+  실행기에 연결합니다. compiler 의존 closure가 불명확한 검사는 resolved/cache 근거를 제한합니다.
+- `setup`에 검증된 offline archive/명시 HTTPS 다운로드, 기존 버전 선택·rollback·상태 조회를
+  연결합니다. 기본 도구 pack은 설치된 core의 인접 `tools/manifest.json`에서 찾으며 프로젝트
+  PATH를 바꾸지 않습니다. 실제 전체 배포 인수와 공개 전환은 아직 후속입니다.
+
+- 필수 검사 안의 선택 integration/runtime case와 보고 전용 진단도 명시 advisory 정책을
+  존중합니다. 측정 증거와 finding은 보존하며 해당 case만 gate 위반에서 제외합니다.
+
+- native 실행 결과에 PASS 위치·원시 metric·상세 진단을 가진 보고서 archive를 함께 보존하고,
+  기본 `analyze` 출력에 JSON과 오프라인 HTML 경로를 제공합니다. JSON 모드는 기계용 결과만 출력합니다.
+- `report`/`next report`는 저장 결과만 읽고 HTML/SARIF를 만들며, source나 설정이 없어도
+  재분석하지 않습니다. 다른 run의 상세 archive·입력 alias·기존 사용자 출력 파일을 거부합니다.
+- `import-report`의 SARIF/JUnit/LCOV는 별도 supporting evidence로 저장합니다. HTML 첨부는
+  gate를 바꾸지 않고 SARIF와의 암묵적 병합을 거부합니다.
+
+- 개별 분석 선택과 기존 36개 검사 밖의 추가 동작도 같은 application 계획·검증 경로를
+  사용합니다. 검사 일부만 선택한 결과는 workspace 전체 완료로 표시하지 않습니다.
+- legacy 전역 integration case는 한 component가 소유하며 필수 case가 비어 있으면
+  조용히 생략하지 않습니다. component integration에도 명시 환경 상속 목록을 허용합니다.
+
+- 명시 integration 환경 allowlist를 실제 자식 프로세스에 적용합니다. 빈 목록은 주변 환경을
+  상속하지 않고 명시 overlay만 전달하며, 일반 도구 실행의 기존 기본 환경 정책은 유지합니다.
+
+- native C++ CLI가 기록된 각 compilation unit과 variant를 실제 컴파일러로 검사하고,
+  진단의 원래 소유권·Unicode 위치를 보존합니다. unity include 증거와 선언된 artifact를
+  별도로 확인하며 미확인 header closure는 cache/resolved 근거로 쓰지 않습니다.
+- 저장 run의 중첩 필드까지 알 수 없는 키를 거부해 새 계약을 기존 v2로 오인하지 않게 합니다.
+
+- native 저장 reader는 기존 run v1/v2와 legacy v3를 구분하고 알 수 없는 schema·중복 JSON
+  key·과도한 입력을 거부합니다. legacy 확장 데이터는 읽는 과정에서 버리지 않습니다.
+- wheel 검증에 필요한 ZIP codec·CRC 의존성을 고정하고 쓰지 않는 PEP 508 의존성을 제거합니다.
+  이 준비는 모든 압축 형식의 제품 지원 인수나 전체 report 전환 완료를 의미하지 않습니다.
+
+- native `analyze`/`next verify` 실행을 immutable 입력·실제 도구·필수 검사 판정·원자 결과
+  저장에 연결합니다. 실행 중 취소는 부분 증거와 130을 남기고, 입력 변경은 완료 판정을
+  취소하며 소스·설정·baseline/이전 형식 결과의 덮어쓰기를 거부합니다.
+- 명시 프로젝트 Python의 실제 pytest 한 번을 test/coverage가 공유하고, 같은 검사 범위에서
+  수정된 실패를 baseline resolved로 판정합니다. 실제 수집한 test node도 비교 범위에 포함하고
+  pytest의 디렉터리·native 파일 이름 설정을 보존합니다.
+- native cache에 실제 PASS 대상과 descriptor 확장 데이터를 함께 저장합니다. 오래된
+  observation-only cache에서 PASS 위치를 만들지 않고 재계산하며 손상·미확인 closure·
+  바뀐 입력/core/tool bytes는 재사용하지 않습니다. 분석 시작 이벤트는 cache hit에 발생하지 않습니다.
+
+- 프로젝트 interpreter/tool의 symlink 경로를 실제 실행 전 보존합니다. 가상환경 Python을
+  canonical system Python으로 바꾸어 pytest·coverage를 찾지 못하던 native 설정 결함을 고칩니다.
+  실행 bytes의 digest 검증과 설정 파일 기준 상대경로 의미는 계속 유지합니다.
+
+- native application의 policy·check scope·실제 argv/environment identity를 분리하고, source
+  내용이 바뀌어 수정된 finding도 동일 검사 범위에서 resolved로 판단할 수 있게 합니다.
+  suppression glob은 CPython fnmatchcase 고정 corpus로 검증하며 선언 순서와 provenance를 보존합니다.
+- 여러 native 단계를 하나의 논리 검사로 계획하고 cross-check 의존성과 output 충돌을
+  검증합니다. task 시작 이벤트는 resource lock 획득 뒤 실제 실행 시도에만 발생합니다.
+- native Python/C++ source·도구 diagnostic·프로젝트 test/coverage 기반을 확장합니다.
+  source 위치와 PASS 대상·원시 분모를 공통 결과에 유지하며 전체 제품 인수와 공개는 후속입니다.
+
 - 전환 원장 수집기에서 사용자 설정의 `path`와 문서 메타데이터의 `path`를 구분해
   도구·suppression·integration 출력 경로 세 키가 누락되지 않도록 고칩니다.
 
@@ -15,6 +295,30 @@
   cutover 인수 전까지 유지합니다. 현재 내부 개발은 새 stable 배포 완료를 의미하지 않습니다.
 - 고정 공개 source에서 전체 기능·명령·설정 원장을 기계적으로 수집하고 native parser/도구/TLS
   실측 및 CLI oracle을 기록합니다. 미완료 항목은 closure gate가 거부하며 테스트 개수로 parity를 대신하지 않습니다.
+
+- Rust 내부 개발 workspace와 공통 domain 계약을 추가합니다. 공개 v1/v2 결과와 Unicode
+  fingerprint 호환 fixture를 보존하며 새 제품 명령·전체 분석은 아직 인수 전입니다.
+
+- Rust 도구 선택 계층에서 프로젝트 도구 우선순위·명시 경로 실패·native pack checksum과
+  실행 파일 identity를 검증합니다. mypy/ty의 설정 충돌은 명시 선택으로 해결합니다.
+
+- Rust 실행 계층에 bounded stdout/stderr, timeout·취소·process-group cleanup, 도구 bytes
+  재검증, DAG·resource lock과 원자 저장을 추가합니다. 실행 완료와 provider 판정은 분리합니다.
+- Rust application에 언어·component 선택, 필수 범위 누락, 검사 의존 관계, immutable source
+  snapshot과 입력 drift, finding 소유권·advisory/완결성 구분, 보수적 baseline 비교를 추가합니다.
+  자체 Python 분석의 파서·scope·줄 수·복잡도 기반도 구현 중이며, 전체 CLI/규칙 parity와
+  native 단일 제품 인수·공개는 아직 완료되지 않았습니다.
+- native domain의 위치를 기존 계약과 같은 1-based Unicode inclusive 범위로 명시하고,
+  같은 줄에서 종료 열이 시작 열보다 앞선 증거를 거부합니다.
+- native observation cache를 기존 cache와 분리합니다. core/tool bytes·실제 환경·정책·
+  provider 옵션·입력 closure가 확인된 완료 증거만 재사용하고, clear는 정확한 native
+  entry 이름만 다루며 symlink·FIFO·사용자 파일을 따르거나 삭제하지 않습니다.
+- native CLI에 기존 37개 진입점·115개 인자의 파서와 실행 없는 plan을 연결합니다.
+  init·migration preview·새 출력·명시 백업, 저장 결과 diff와 cache 정리를 Rust로 수행합니다.
+  이 내부 명령 기반은 전체 실행·report·publish·legacy projection 인수 완료를 의미하지 않습니다.
+- native C++ 구문·Python packaging 분석 입력으로 Tree-sitter grammar, PEP 440/508,
+  bounded ZIP/CSV/base64와 Unicode 16 normalization 의존성을 고정합니다. 프로젝트 도구와
+  ici core는 계속 분리하며 설치·실행 중 Python backend로 돌아가지 않습니다.
 
 ## [0.13.0] - 2026-10-28
 

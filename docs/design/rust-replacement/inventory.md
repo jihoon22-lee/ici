@@ -1,7 +1,9 @@
 # Rust 교체 기능·계약 원장
 
 이 원장은 고정 공개판 소스의 정적 수집 결과다. 항목 수나 추출 성공은 Rust 동등성 인수가 아니다.
-구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json에서 개별 관리한다.
+구현·검증·차이 검토·완료 상태 및 양성/음성/실패 fixture는 inventory.json과 closure/*.json에서
+개별 관리한다. 아래 표는 inventory.json 자체의 상태다. fragment를 결합한 상태는 스크립트 실행
+결과의 `closure` 값이며, 여러 출처가 같은 행을 다루면 가장 덜 닫힌 상태가 적용된다.
 현재 status가 not_started인 행은 미구현·미검증이다. 전환 승인은 전체 원장과 source audit를 닫아야 한다.
 
 - 고정 oracle: `v0.13.0`, source `6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188`.
@@ -119,7 +121,7 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `ici <global>` | 1 | not_started |
 | `ici analyze` | 14 | not_started |
 | `ici build` | 0 | not_started |
-| `ici cache` | 1 | not_started |
+| `ici cache` | 1 | complete |
 | `ici cognitive` | 1 | not_started |
 | `ici complexity` | 1 | not_started |
 | `ici cycle` | 1 | not_started |
@@ -127,22 +129,22 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `ici diff` | 2 | not_started |
 | `ici doctor` | 2 | not_started |
 | `ici dup` | 1 | not_started |
-| `ici env` | 2 | not_started |
+| `ici env` | 2 | complete |
 | `ici exception` | 1 | not_started |
 | `ici export-compilation-context` | 4 | not_started |
-| `ici import-report` | 5 | not_started |
+| `ici import-report` | 5 | complete |
 | `ici init` | 4 | not_started |
-| `ici line` | 1 | not_started |
+| `ici line` | 1 | verified |
 | `ici lint` | 1 | not_started |
 | `ici next diff` | 2 | not_started |
 | `ici next doctor` | 7 | not_started |
 | `ici next init` | 4 | not_started |
-| `ici next migrate` | 3 | not_started |
+| `ici next migrate` | 3 | complete |
 | `ici next plan` | 8 | not_started |
-| `ici next publish` | 4 | not_started |
+| `ici next publish` | 4 | difference_review |
 | `ici next report` | 4 | not_started |
 | `ici next verify` | 12 | not_started |
-| `ici publish` | 3 | not_started |
+| `ici publish` | 3 | difference_review |
 | `ici python-compat` | 1 | not_started |
 | `ici report` | 4 | not_started |
 | `ici resource` | 1 | not_started |
@@ -157,10 +159,10 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 
 | 요구 | 보존할 의미 | 상태 |
 |---|---|---|
-| `capability:auxiliary-import` | SARIF uriBaseId mapping/refusal, JUnit native line, LCOV subset; NOT_EVALUATED | not_started |
+| `capability:auxiliary-import` | SARIF uriBaseId mapping/refusal, JUnit native line, LCOV subset; NOT_EVALUATED | complete |
 | `capability:build-artifact-abi` | Declared artifact ownership, ELF/linker/ABI, Make/CMake/qmake build effects | not_started |
 | `capability:compile-context-export` | compile argv/cwd/response files, build variants, export schema and source closure | not_started |
-| `capability:config-migration-preservation` | Preview, refusal of unknown schemas and preservation of user originals/comments | not_started |
+| `capability:config-migration-preservation` | Preview, refusal of unknown schemas and preservation of user originals/comments | complete |
 | `capability:cpp-parser-heuristic-confidence` | Bounded tokens, function boundaries, cognitive/CC limits and confidence labels | not_started |
 | `capability:cpp-qt-generated-input` | moc/uic/rcc, clazy/tidy/compiler inputs and generated include attribution | not_started |
 | `capability:discovery-config-origin` | Root/child boundaries, sparse config/init equivalence, origin and local overlays | not_started |
@@ -172,7 +174,7 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `capability:legacy-cpp-linker-dead` | Compiler/linker unused and dead-symbol evidence, generated/vendor scope | not_started |
 | `capability:legacy-python-sanitize` | Python sanitizer/resource execution must not disappear behind cpp.sanitize | not_started |
 | `capability:native-windows-disposition` | Record unsupported/limited Windows runner disposition; do not silently drop behavior | not_started |
-| `capability:publish-ca-proxy-ghes` | Private/system CA, proxy, GHES, publication failure independent of analysis | not_started |
+| `capability:publish-ca-proxy-ghes` | Private/system CA, proxy, GHES, publication failure independent of analysis | complete |
 | `capability:python-packaging-wheel` | PEP 440/508, metadata, RECORD, tags, import distribution, entrypoints and bounds | not_started |
 | `capability:python-scope-binding` | Import alias, shadowing, scope and resource lifetime semantics | not_started |
 | `capability:python-semantic-duplicates` | Tokenizer, semantic normalization, clustering, matches and region attribution | not_started |

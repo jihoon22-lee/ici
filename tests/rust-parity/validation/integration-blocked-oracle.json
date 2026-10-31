@@ -1,0 +1,73 @@
+{
+  "runs": {
+    "no_build": {
+      "config": "[ici]\nprofile = \"deep\"\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[[engines.integration.cases]]\nname = \"one\"\nargv = [\"{python:py}\", \"x.py\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = false\n",
+      "exit_code": 1,
+      "reason": "PipelineDefinitionError: engine integration has disabled dependencies in deep: build",
+      "report": null
+    },
+    "unknown_placeholder": {
+      "config": "[ici]\nprofile = \"deep\"\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[[engines.integration.cases]]\nname = \"one\"\nargv = [\"{nope}\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "exit_code": 2,
+      "reason": "Configuration error: engines.integration.cases[0].argv[0] must be a typed Python or artifact placeholder",
+      "report": null
+    },
+    "unknown_python_target": {
+      "config": "[ici]\nprofile = \"deep\"\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[[engines.integration.cases]]\nname = \"one\"\nargv = [\"{python:missing}\", \"x.py\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "exit_code": 1,
+      "integration": {
+        "evidence": "NOT_RUN",
+        "findings": [
+          {
+            "category": "correctness",
+            "confidence": "low",
+            "explanation": "Adapted from the legacy integration InspectionTarget contract.",
+            "fingerprint": "sha256:1f78bb84277d051db1a7d8b5c91e332ad533c9723ead70753437e8b5c4803e77",
+            "fixes": [],
+            "message": "case 'one' references unknown python placeholder 'missing'",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "Integration:ConfigurationError",
+              "path": "ici.toml",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.integration.target",
+            "severity": "critical",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "Integration:ConfigurationError",
+            "tool_version": ""
+          }
+        ],
+        "status": "ERROR",
+        "summary": "Integration analysis incomplete: case 'one' references unknown python placeholder 'missing'",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": "ici.toml",
+            "message": "case 'one' references unknown python placeholder 'missing'",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "ERROR",
+            "target_name": "Integration:ConfigurationError"
+          }
+        ]
+      },
+      "suite_status": "ERROR"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

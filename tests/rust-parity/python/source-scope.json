@@ -1,0 +1,178 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "oracle_files": {
+    "src/ici/engines/dup.py": "1e14b85153e3313b0521e8713c3e6dbe7118c087714839497f757ad14f942c50",
+    "src/ici/analysis/_source_inputs.py": "bdd55b8882e40e63c58381e7d82331407baf432c4140ca6399901a9ab3d103ea"
+  },
+  "cases": [
+    {
+      "id": "empty",
+      "sources": {},
+      "options": {
+        "python_semantic": "off"
+      },
+      "original": {
+        "status": "SKIP",
+        "evidence": "NOT_APPLICABLE",
+        "summary": "Duplicate analysis skipped: no owned source files",
+        "extra": {
+          "analysis_provenance": "language-lexical-region-heuristic",
+          "source_files_analyzed": 0,
+          "source_bytes_analyzed": 0,
+          "source_files_excluded": 0,
+          "source_exclusion_counts": {}
+        }
+      },
+      "difference_reason": "Native retains a located SKIP target for every excluded path; original engine exposes exclusion counts only. Empty owned scope stays SKIP/NOT_APPLICABLE without a fabricated zero duplication measurement."
+    },
+    {
+      "id": "dual-excluded",
+      "sources": {
+        "vendor/moc_widget.py": "def owned(value):\n    return value\n"
+      },
+      "options": {
+        "python_semantic": "off"
+      },
+      "original": {
+        "status": "SKIP",
+        "evidence": "NOT_APPLICABLE",
+        "summary": "Duplicate analysis skipped: no owned source files",
+        "extra": {
+          "analysis_provenance": "language-lexical-region-heuristic",
+          "source_files_analyzed": 0,
+          "source_bytes_analyzed": 0,
+          "source_files_excluded": 1,
+          "source_exclusion_counts": {
+            "generated": 1,
+            "vendor": 1
+          }
+        }
+      },
+      "difference_reason": "Native retains a located SKIP target for every excluded path; original engine exposes exclusion counts only. Empty owned scope stays SKIP/NOT_APPLICABLE without a fabricated zero duplication measurement."
+    },
+    {
+      "id": "generated-only-enabled",
+      "sources": {
+        "vendor/moc_widget.py": "def owned(value):\n    return value\n"
+      },
+      "options": {
+        "python_semantic": "off",
+        "include_generated": true
+      },
+      "original": {
+        "status": "SKIP",
+        "evidence": "NOT_APPLICABLE",
+        "summary": "Duplicate analysis skipped: no owned source files",
+        "extra": {
+          "analysis_provenance": "language-lexical-region-heuristic",
+          "source_files_analyzed": 0,
+          "source_bytes_analyzed": 0,
+          "source_files_excluded": 1,
+          "source_exclusion_counts": {
+            "vendor": 1
+          }
+        }
+      },
+      "difference_reason": "Native retains a located SKIP target for every excluded path; original engine exposes exclusion counts only. Empty owned scope stays SKIP/NOT_APPLICABLE without a fabricated zero duplication measurement."
+    },
+    {
+      "id": "vendor-only-enabled",
+      "sources": {
+        "vendor/moc_widget.py": "def owned(value):\n    return value\n"
+      },
+      "options": {
+        "python_semantic": "off",
+        "include_vendor": true
+      },
+      "original": {
+        "status": "SKIP",
+        "evidence": "NOT_APPLICABLE",
+        "summary": "Duplicate analysis skipped: no owned source files",
+        "extra": {
+          "analysis_provenance": "language-lexical-region-heuristic",
+          "source_files_analyzed": 0,
+          "source_bytes_analyzed": 0,
+          "source_files_excluded": 1,
+          "source_exclusion_counts": {
+            "generated": 1
+          }
+        }
+      },
+      "difference_reason": "Native retains a located SKIP target for every excluded path; original engine exposes exclusion counts only. Empty owned scope stays SKIP/NOT_APPLICABLE without a fabricated zero duplication measurement."
+    },
+    {
+      "id": "both-enabled",
+      "sources": {
+        "vendor/moc_widget.py": "def owned(value):\n    return value\n"
+      },
+      "options": {
+        "python_semantic": "off",
+        "include_vendor": true,
+        "include_generated": true
+      },
+      "original": {
+        "status": "PASS",
+        "evidence": "ESTIMATED",
+        "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+        "extra": {
+          "analysis_provenance": "language-lexical-region-heuristic",
+          "source_files_analyzed": 1,
+          "source_bytes_analyzed": 35,
+          "source_files_excluded": 0,
+          "source_exclusion_counts": {}
+        }
+      },
+      "difference_reason": "Native retains a located SKIP target for every excluded path; original engine exposes exclusion counts only. Empty owned scope stays SKIP/NOT_APPLICABLE without a fabricated zero duplication measurement."
+    },
+    {
+      "id": "mixed-owned-excluded",
+      "sources": {
+        "main.py": "def owned(value):\n    return value\n",
+        "vendor/moc_widget.py": "def owned(value):\n    return value\n"
+      },
+      "options": {
+        "python_semantic": "off"
+      },
+      "original": {
+        "status": "PASS",
+        "evidence": "ESTIMATED",
+        "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+        "extra": {
+          "analysis_provenance": "language-lexical-region-heuristic",
+          "source_files_analyzed": 1,
+          "source_bytes_analyzed": 35,
+          "source_files_excluded": 1,
+          "source_exclusion_counts": {
+            "generated": 1,
+            "vendor": 1
+          }
+        }
+      },
+      "difference_reason": "Native retains a located SKIP target for every excluded path; original engine exposes exclusion counts only. Empty owned scope stays SKIP/NOT_APPLICABLE without a fabricated zero duplication measurement."
+    },
+    {
+      "id": "invalid-included-source",
+      "sources": {
+        "vendor/moc_widget.py": "def invalid(:\n"
+      },
+      "options": {
+        "python_semantic": "off",
+        "include_vendor": true,
+        "include_generated": true
+      },
+      "original": {
+        "status": "ERROR",
+        "evidence": "NOT_RUN",
+        "summary": "Duplicate analysis could not normalize vendor/moc_widget.py",
+        "extra": {
+          "analysis_provenance": "language-lexical-region-heuristic",
+          "source_files_analyzed": 1,
+          "source_bytes_analyzed": 14,
+          "source_files_excluded": 0,
+          "source_exclusion_counts": {}
+        }
+      },
+      "difference_reason": "Native retains a located SKIP target for every excluded path and a separate explicit NOT_APPLICABLE measurement. A selected invalid Python source is an error before clone metrics; the old source_files_analyzed counter counts the read inventory even when tokenization failed, while native counts successfully parsed inputs."
+    }
+  ]
+}

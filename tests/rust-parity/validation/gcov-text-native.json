@@ -1,0 +1,99 @@
+{
+  "counts": {
+    "branch_cover": 50.0,
+    "cb": 1,
+    "cover": 66.7,
+    "covered": 2,
+    "covered_functions": 2,
+    "functions": 3,
+    "miss": 1,
+    "nb": 2,
+    "stmts": 3
+  },
+  "format": "gcov-text",
+  "gcov_version": "7.4.0",
+  "help": "Usage: gcov [OPTION...] SOURCE|OBJ...\n\nPrint code coverage information.\n\n  -a, --all-blocks                Show information for every basic block\n  -b, --branch-probabilities      Include branch probabilities in output\n  -c, --branch-counts             Output counts of branches taken\n                                    rather than percentages\n  -d, --display-progress          Display progress information\n  -f, --function-summaries        Output summaries for each function\n  -h, --help                      Print this help, then exit\n  -i, --intermediate-format       Output .gcov file in intermediate text format\n  -l, --long-file-names           Use long output file names for included\n                                    source files\n  -m, --demangled-names           Output demangled function names\n  -n, --no-output                 Do not create an output file\n  -o, --object-directory DIR|FILE Search for object files in DIR or called FILE\n  -p, --preserve-paths            Preserve all pathname components\n  -r, --relative-only             Only show data for relative sources\n  -s, --source-prefix DIR         Source prefix to elide\n  -u, --unconditional-branches    Show unconditional branch counts too\n  -v, --version                   Print version number, then exit\n  -x, --hash-filenames            Hash long pathnames\n\nFor bug reporting instructions, please see:\n<file:///usr/share/doc/gcc-7/README.Bugs>.\n",
+  "report": "        -:    0:Source:<ROOT>/main.c\n        -:    0:Graph:<ROOT>/main.gcno\n        -:    0:Data:<ROOT>/main.gcda\n        -:    0:Runs:1\n        -:    0:Programs:1\nfunction never called 0 returned 0% blocks executed 0%\n    #####:    1:int never(){return 4;}\nfunction branch called 1 returned 100% blocks executed 75%\n        1:    2:int branch(int value){if(value)return 1;return 0;}\nbranch  0 taken 1 (fallthrough)\nbranch  1 taken 0\nfunction main called 1 returned 100% blocks executed 100%\n        1:    3:int main(){return branch(1)==1?0:1;}\ncall    0 returned 1\n",
+  "source": "int never(){return 4;}\nint branch(int value){if(value)return 1;return 0;}\nint main(){return branch(1)==1?0:1;}\n",
+  "version": "gcov (Debian 7.4.0-6) 7.4.0\nCopyright (C) 2017 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.\nThere is NO warranty; not even for MERCHANTABILITY or \nFITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "oracle": {
+    "source_sha": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+    "file_sha256": {
+      "src/ici/analysis/coverage_support.py": "c15905adac794156d8932e8ee69a360a4f7e4c61d48b167c4a1dd889abd85f79",
+      "src/ici/application/tem.py": "37c51ffbe9d433bef9dadfb7c65c2e7a351144f606e5f73b8fa9c355b65dfcd6"
+    },
+    "coverage_rows": [
+      {
+        "file": "main.c",
+        "stmts": 3,
+        "covered": 2,
+        "miss": 1,
+        "cover": 66.7,
+        "branch_cover": 50.0,
+        "nb": 2,
+        "cb": 1,
+        "missing_lines": [
+          1
+        ],
+        "executable_lines": [
+          1,
+          2,
+          3
+        ],
+        "covered_lines": [
+          2,
+          3
+        ]
+      }
+    ],
+    "function_rows": [
+      {
+        "file": "main.c",
+        "name": "never",
+        "start_line": 1,
+        "end_line": 1,
+        "covered": false,
+        "missing_lines": []
+      },
+      {
+        "file": "main.c",
+        "name": "branch",
+        "start_line": 1,
+        "end_line": 1,
+        "covered": true,
+        "missing_lines": []
+      },
+      {
+        "file": "main.c",
+        "name": "main",
+        "start_line": 1,
+        "end_line": 1,
+        "covered": true,
+        "missing_lines": []
+      }
+    ]
+  },
+  "tool_sources": [
+    {
+      "url": "https://archive.debian.org/debian/pool/main/g/gcc-7/gcc-7_7.4.0-6_amd64.deb",
+      "sha256": "d8299c1954ac0e22a9d3010111ce945aac7bd903758937ddf1aee03dcddf7767",
+      "size": 9058424
+    },
+    {
+      "url": "https://archive.debian.org/debian/pool/main/g/gcc-7/cpp-7_7.4.0-6_amd64.deb",
+      "sha256": "e1bb3ad33109beb789eb4b3c5f645ab2b8fc69104f47403995d9190d81b7bf28",
+      "size": 8593764
+    },
+    {
+      "url": "https://archive.debian.org/debian/pool/main/g/gcc-7/libgcc-7-dev_7.4.0-6_amd64.deb",
+      "sha256": "f6bbde58c13beadb91a9f61c234d710fe50576c7e1bc236a8c817e2f084e2f19",
+      "size": 2368624
+    },
+    {
+      "url": "https://archive.debian.org/debian/pool/main/i/isl/libisl19_0.20-2_amd64.deb",
+      "sha256": "d51e27d3fcba9bd0fe5f3303b61d08ebbd1a3bc57c40d467338b34f5d4ee762f",
+      "size": 586648
+    }
+  ],
+  "capture_command": "cargo test -p ici-validation --test native_gcov_text --locked -- --include-ignored --test-threads=1; explicit GCC/gcov7.4.0 and15.2.0 paths"
+}

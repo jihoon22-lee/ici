@@ -1,0 +1,941 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "oracle_python": "3.14.7",
+  "oracle_hashes": {
+    "src/ici/analysis/_python_security.py": "9d602b6151b3aba123e11e044c31eb23a6fed0b168c4b7b7b624e3a8bc2f7626",
+    "src/ici/analysis/_python_resources.py": "42a54e256b85597edf23b768d2d679e45deedba3c93f140dd661322d29e4aa5c",
+    "src/ici/analysis/_python_resource_scopes.py": "74fb5c6b80b3d2c57297f37aec5e0d01975b0b20c1bf9e69d07dce84d10c3c46"
+  },
+  "cases": [
+    {
+      "id": "clean",
+      "kind": "security",
+      "source": "answer = 42\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "secrets",
+      "kind": "security",
+      "source": "password = \"secret-12345\"\nAPI_KEY=\"sk-test-fixture-012345\"\n",
+      "oracle_targets": [
+        {
+          "name": "Security:HardcodedSecret",
+          "line": 1,
+          "end_line": 1,
+          "message": "Secret-like literal assigned to password; value REDACTED",
+          "snippet": "password = \"***REDACTED***\"",
+          "metrics": {
+            "detector": "name-context-and-entropy",
+            "length": 12,
+            "entropy": 3.42
+          },
+          "status": "WARN"
+        },
+        {
+          "name": "Security:HardcodedSecret",
+          "line": 2,
+          "end_line": 2,
+          "message": "Secret-like literal assigned to API_KEY; value REDACTED",
+          "snippet": "API_KEY = \"***REDACTED***\"",
+          "metrics": {
+            "detector": "name-context-and-entropy",
+            "length": 22,
+            "entropy": 3.85
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 2
+      }
+    },
+    {
+      "id": "private_key",
+      "kind": "security",
+      "source": "KEY=\"-----BEGIN RSA PRIVATE KEY-----\\nfixture-data\\n\"\n",
+      "oracle_targets": [
+        {
+          "name": "Security:PrivateKey",
+          "line": 1,
+          "end_line": 1,
+          "message": "Private-key material is embedded in a source literal",
+          "snippet": "KEY = \"***REDACTED***\"",
+          "metrics": {
+            "detector": "private-key-marker"
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 1
+      }
+    },
+    {
+      "id": "dictionary",
+      "kind": "security",
+      "source": "settings = {\"auth_token\": \"ghp_fixture-0123456789\"}\n",
+      "oracle_targets": [
+        {
+          "name": "Security:HardcodedSecret",
+          "line": 1,
+          "end_line": 1,
+          "message": "Secret-like literal assigned to auth_token; value REDACTED",
+          "snippet": "auth_token = \"***REDACTED***\"",
+          "metrics": {
+            "detector": "name-context-and-entropy",
+            "length": 22,
+            "entropy": 4.46
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 1
+      }
+    },
+    {
+      "id": "subscript",
+      "kind": "security",
+      "source": "settings[\"token\"] = \"abcdefghijk\"\n",
+      "oracle_targets": [
+        {
+          "name": "Security:HardcodedSecret",
+          "line": 1,
+          "end_line": 1,
+          "message": "Secret-like literal assigned to token; value REDACTED",
+          "snippet": "token = \"***REDACTED***\"",
+          "metrics": {
+            "detector": "name-context-and-entropy",
+            "length": 11,
+            "entropy": 3.46
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 1
+      }
+    },
+    {
+      "id": "placeholder",
+      "kind": "security",
+      "source": "password=\"example-password\"\ntoken=\"xxxxabcd\"\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 2
+      }
+    },
+    {
+      "id": "suppressed",
+      "kind": "security",
+      "source": "password=\"actual1234\" # nosec\neval(input) # nosec\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 1,
+        "secret_literals_checked": 1
+      }
+    },
+    {
+      "id": "not_suppressed",
+      "kind": "security",
+      "source": "note=\"# nosec\"\neval(input)\n",
+      "oracle_targets": [
+        {
+          "name": "Security:EvalExec",
+          "line": 2,
+          "end_line": 2,
+          "message": "Dynamic code execution accepts untrusted input",
+          "snippet": "eval(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 1,
+        "secret_literals_checked": 1
+      }
+    },
+    {
+      "id": "crypto",
+      "kind": "security",
+      "source": "import hashlib\nimport Crypto.Hash.MD5 as md5\nfrom hashlib import sha1 as digest\nhashlib.md5(b\"x\")\ndigest(b\"x\")\nmd5.new(b\"x\")\n",
+      "oracle_targets": [
+        {
+          "name": "Security:WeakCryptoMD5",
+          "line": 4,
+          "end_line": 4,
+          "message": "MD5 is not collision resistant",
+          "snippet": "md5(...)",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Security:WeakCryptoSHA1",
+          "line": 5,
+          "end_line": 5,
+          "message": "SHA-1 is not collision resistant",
+          "snippet": "sha1(...)",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Security:WeakCryptoMD5",
+          "line": 6,
+          "end_line": 6,
+          "message": "MD5 is not collision resistant",
+          "snippet": "md5(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 3,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "identity_hash",
+      "kind": "security",
+      "source": "import hashlib\nhashlib.sha1(b\"x\",usedforsecurity=False)\nhashlib.md5(b\"x\",usedforsecurity=False)\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 2,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "random",
+      "kind": "security",
+      "source": "from random import choice as choose\nimport random\nchoose(items)\nrandom.randint(0,9)\nrandom.randbytes(3)\n",
+      "oracle_targets": [
+        {
+          "name": "Security:WeakRandom",
+          "line": 3,
+          "end_line": 3,
+          "message": "The random module is not suitable for security-sensitive randomness",
+          "snippet": "random.choice(...)",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Security:WeakRandom",
+          "line": 4,
+          "end_line": 4,
+          "message": "The random module is not suitable for security-sensitive randomness",
+          "snippet": "random.randint(...)",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Security:WeakRandom",
+          "line": 5,
+          "end_line": 5,
+          "message": "The random module is not suitable for security-sensitive randomness",
+          "snippet": "random.randbytes(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 3,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "pickle",
+      "kind": "security",
+      "source": "from pickle import loads as restore\nimport _pickle\nrestore(data)\n_pickle.load(file)\n",
+      "oracle_targets": [
+        {
+          "name": "Security:PickleLoad",
+          "line": 3,
+          "end_line": 3,
+          "message": "Pickle deserialization can execute attacker-controlled code",
+          "snippet": "pickle.loads(...)",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Security:PickleLoad",
+          "line": 4,
+          "end_line": 4,
+          "message": "Pickle deserialization can execute attacker-controlled code",
+          "snippet": "_pickle.load(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 2,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "shell",
+      "kind": "security",
+      "source": "import subprocess as process\nimport os\nprocess.run(command,shell=True)\nprocess.run(command,shell=False)\nos.system(command)\nos.popen(command)\n",
+      "oracle_targets": [
+        {
+          "name": "Security:ShellTrue",
+          "line": 3,
+          "end_line": 3,
+          "message": "subprocess shell=True expands input through a command processor",
+          "snippet": "subprocess.run(..., shell=True)",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Security:CommandProcessor",
+          "line": 5,
+          "end_line": 5,
+          "message": "Command text is executed through a system shell",
+          "snippet": "os.system(...)",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Security:CommandProcessor",
+          "line": 6,
+          "end_line": 6,
+          "message": "Command text is executed through a system shell",
+          "snippet": "os.popen(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 4,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "shadow",
+      "kind": "security",
+      "source": "import hashlib as hashes\nclass Fake: pass\nhashes=Fake()\neval=lambda x:x\nhashes.md5(data)\neval(data)\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 3,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "function_alias",
+      "kind": "security",
+      "source": "def unsafe(items):\n    import random as chooser\n    return chooser.choice(items)\ndef safe(chooser,items):\n    return chooser.choice(items)\n",
+      "oracle_targets": [
+        {
+          "name": "Security:WeakRandom",
+          "line": 3,
+          "end_line": 3,
+          "message": "The random module is not suitable for security-sensitive randomness",
+          "snippet": "random.choice(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 2,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "closure_shadow",
+      "kind": "security",
+      "source": "import hashlib\ndef outer(hashlib):\n    def inner():\n        return hashlib.md5(data)\n    return inner\n",
+      "oracle_targets": [
+        {
+          "name": "Security:WeakCryptoMD5",
+          "line": 4,
+          "end_line": 4,
+          "message": "MD5 is not collision resistant",
+          "snippet": "md5(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 1,
+        "secret_literals_checked": 0
+      },
+      "correction": "Shared lexical bindings prevent imported-name false positives in nested closures/comprehensions.",
+      "expected_targets": []
+    },
+    {
+      "id": "comprehension_shadow",
+      "kind": "security",
+      "source": "import os\nvalues=[os.system(command) for os in values]\n",
+      "oracle_targets": [
+        {
+          "name": "Security:CommandProcessor",
+          "line": 2,
+          "end_line": 2,
+          "message": "Command text is executed through a system shell",
+          "snippet": "os.system(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 1,
+        "secret_literals_checked": 0
+      },
+      "correction": "Shared lexical bindings prevent imported-name false positives in nested closures/comprehensions.",
+      "expected_targets": []
+    },
+    {
+      "id": "global_alias",
+      "kind": "security",
+      "source": "import subprocess as process\ndef run():\n    global process\n    return process.run(command,shell=True)\n",
+      "oracle_targets": [
+        {
+          "name": "Security:ShellTrue",
+          "line": 4,
+          "end_line": 4,
+          "message": "subprocess shell=True expands input through a command processor",
+          "snippet": "subprocess.run(..., shell=True)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 1,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "nonlocal_alias",
+      "kind": "security",
+      "source": "def outer():\n    import subprocess as process\n    def inner():\n        nonlocal process\n        return process.run(command,shell=True)\n    return inner\n",
+      "oracle_targets": [
+        {
+          "name": "Security:ShellTrue",
+          "line": 5,
+          "end_line": 5,
+          "message": "subprocess shell=True expands input through a command processor",
+          "snippet": "subprocess.run(..., shell=True)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 1,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "signature_scope",
+      "kind": "security",
+      "source": "def run(eval=eval(payload)):\n    return eval(payload)\n",
+      "oracle_targets": [
+        {
+          "name": "Security:EvalExec",
+          "line": 1,
+          "end_line": 1,
+          "message": "Dynamic code execution accepts untrusted input",
+          "snippet": "eval(...)",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 2,
+        "secret_literals_checked": 0
+      }
+    },
+    {
+      "id": "unicode_secret",
+      "kind": "security",
+      "source": "\uc554\ud638 = \"x\"; password=\"abcdefghijk\"\n",
+      "oracle_targets": [
+        {
+          "name": "Security:HardcodedSecret",
+          "line": 1,
+          "end_line": 1,
+          "message": "Secret-like literal assigned to password; value REDACTED",
+          "snippet": "password = \"***REDACTED***\"",
+          "metrics": {
+            "detector": "name-context-and-entropy",
+            "length": 11,
+            "entropy": 3.46
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 2
+      }
+    },
+    {
+      "id": "clean",
+      "kind": "resource",
+      "source": "with open(\"x\") as handle:\n    consume(handle)\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 0,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 15
+      }
+    },
+    {
+      "id": "open",
+      "kind": "resource",
+      "source": "handle=open(\"x\")\n",
+      "oracle_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 1,
+          "end_line": 1,
+          "message": "handle from builtins.open may remain open on an exit path",
+          "snippet": "handle = builtins.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 8
+      }
+    },
+    {
+      "id": "alias_close",
+      "kind": "resource",
+      "source": "handle=open(\"x\")\nother=handle\nother.close()\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 19
+      }
+    },
+    {
+      "id": "conditional_close",
+      "kind": "resource",
+      "source": "def use(close):\n    handle=open(\"x\")\n    if close:\n        handle.close()\n",
+      "oracle_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 2,
+          "end_line": 2,
+          "message": "handle from builtins.open may remain open on an exit path",
+          "snippet": "handle = builtins.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 1,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 20
+      }
+    },
+    {
+      "id": "close_transfer",
+      "kind": "resource",
+      "source": "def use(transfer):\n    handle=open(\"x\")\n    if transfer:\n        return handle\n    handle.close()\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 23
+      }
+    },
+    {
+      "id": "attribute_transfer",
+      "kind": "resource",
+      "source": "def use(self):\n    handle=open(\"x\")\n    self.handle=handle\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 18
+      }
+    },
+    {
+      "id": "existing_manager",
+      "kind": "resource",
+      "source": "handle=open(\"x\")\nwith handle:\n    consume(handle)\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 18
+      }
+    },
+    {
+      "id": "finally",
+      "kind": "resource",
+      "source": "def use():\n    handle=open(\"x\")\n    try:\n        consume(handle)\n    finally:\n        handle.close()\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 23
+      }
+    },
+    {
+      "id": "finally_return",
+      "kind": "resource",
+      "source": "def use():\n    handle=open(\"x\")\n    try:\n        return 1\n    finally:\n        handle.close()\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 19
+      }
+    },
+    {
+      "id": "exit_stack",
+      "kind": "resource",
+      "source": "from contextlib import ExitStack as Stack\ndef use():\n    handle=open(\"x\")\n    with Stack() as stack:\n        stack.enter_context(handle)\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 27
+      }
+    },
+    {
+      "id": "aliases",
+      "kind": "resource",
+      "source": "from tempfile import TemporaryFile as scratch\nfrom pathlib import Path as P\nimport socket as network\nfirst=scratch()\nsecond=P(\"x\").open()\nthird=network.socket()\n",
+      "oracle_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 4,
+          "end_line": 4,
+          "message": "first from tempfile.TemporaryFile may remain open on an exit path",
+          "snippet": "first = tempfile.TemporaryFile(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        },
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 5,
+          "end_line": 5,
+          "message": "second from pathlib.Path.open may remain open on an exit path",
+          "snippet": "second = pathlib.Path.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        },
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 6,
+          "end_line": 6,
+          "message": "third from socket.socket may remain open on an exit path",
+          "snippet": "third = socket.socket(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "acquisitions_checked": 3,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 31
+      }
+    },
+    {
+      "id": "shadow",
+      "kind": "resource",
+      "source": "def use(open):\n    handle=open(\"x\")\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 0,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 11
+      }
+    },
+    {
+      "id": "nested_shadow",
+      "kind": "resource",
+      "source": "def outer():\n    handle=open(\"x\")\n    def inner(open):\n        return open(\"x\")\n    return inner\n",
+      "oracle_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 2,
+          "end_line": 2,
+          "message": "handle from builtins.open may remain open on an exit path",
+          "snippet": "handle = builtins.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 21
+      }
+    },
+    {
+      "id": "mutable",
+      "kind": "resource",
+      "source": "from collections import deque\ndef use(a=[],b={},c=set(),d=bytearray(),e=deque()):\n    return a\n",
+      "oracle_targets": [
+        {
+          "name": "Correctness:MutableDefault",
+          "line": 2,
+          "end_line": 2,
+          "message": "Mutable default argument in use() is shared across calls",
+          "snippet": "parameter=<mutable value>",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Correctness:MutableDefault",
+          "line": 2,
+          "end_line": 2,
+          "message": "Mutable default argument in use() is shared across calls",
+          "snippet": "parameter=<mutable value>",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Correctness:MutableDefault",
+          "line": 2,
+          "end_line": 2,
+          "message": "Mutable default argument in use() is shared across calls",
+          "snippet": "parameter=<mutable value>",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Correctness:MutableDefault",
+          "line": 2,
+          "end_line": 2,
+          "message": "Mutable default argument in use() is shared across calls",
+          "snippet": "parameter=<mutable value>",
+          "metrics": {},
+          "status": "WARN"
+        },
+        {
+          "name": "Correctness:MutableDefault",
+          "line": 2,
+          "end_line": 2,
+          "message": "Mutable default argument in use() is shared across calls",
+          "snippet": "parameter=<mutable value>",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "acquisitions_checked": 0,
+        "mutable_defaults_checked": 5,
+        "ast_nodes": 25
+      }
+    },
+    {
+      "id": "mutable_signature_shadow",
+      "kind": "resource",
+      "source": "def use(list, value=list()):\n    return value\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 0,
+        "mutable_defaults_checked": 1,
+        "ast_nodes": 11
+      },
+      "correction": "Function default is evaluated in outer scope before parameter binding; builtin list default must be reported.",
+      "expected_targets": [
+        {
+          "name": "Correctness:MutableDefault",
+          "line": 1,
+          "end_line": 1,
+          "message": "Mutable default argument in use() is shared across calls",
+          "snippet": "parameter=<mutable value>",
+          "metrics": {},
+          "status": "WARN"
+        }
+      ]
+    },
+    {
+      "id": "loop_break_else",
+      "kind": "resource",
+      "source": "def use(values):\n    handle=open(\"x\")\n    for value in values:\n        if value:\n            break\n    else:\n        handle.close()\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 26
+      },
+      "correction": "Loop else does not execute on break: keep the open exit path.",
+      "expected_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 2,
+          "end_line": 2,
+          "message": "handle from builtins.open may remain open on an exit path",
+          "snippet": "handle = builtins.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 1,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ]
+    },
+    {
+      "id": "loop_continue_else",
+      "kind": "resource",
+      "source": "def use(values):\n    handle=open(\"x\")\n    for value in values:\n        if value:\n            continue\n    else:\n        handle.close()\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 26
+      }
+    },
+    {
+      "id": "async_close",
+      "kind": "resource",
+      "source": "async def use():\n    handle=open(\"x\")\n    await handle.aclose()\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 17
+      }
+    },
+    {
+      "id": "bare_call",
+      "kind": "resource",
+      "source": "open(\"x\")\n",
+      "oracle_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 1,
+          "end_line": 1,
+          "message": "<unbound> from builtins.open may remain open on an exit path",
+          "snippet": "builtins.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 6
+      }
+    },
+    {
+      "id": "overwrite",
+      "kind": "resource",
+      "source": "handle=open(\"x\")\nhandle=open(\"y\")\nhandle.close()\n",
+      "oracle_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 1,
+          "end_line": 1,
+          "message": "handle from builtins.open may remain open on an exit path",
+          "snippet": "handle = builtins.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ],
+      "oracle_counters": {
+        "acquisitions_checked": 2,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 21
+      }
+    },
+    {
+      "id": "except_star",
+      "kind": "resource",
+      "source": "def use():\n    try:\n        action()\n    except* ValueError:\n        handle=open(\"x\")\n",
+      "oracle_targets": [],
+      "oracle_counters": {
+        "acquisitions_checked": 0,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 18
+      },
+      "correction": "Resource flow must inspect supported except-star handler bodies rather than skip TryStar.",
+      "expected_targets": [
+        {
+          "name": "Resource:OpenWithoutWith",
+          "line": 5,
+          "end_line": 5,
+          "message": "handle from builtins.open may remain open on an exit path",
+          "snippet": "handle = builtins.open(...)",
+          "metrics": {
+            "open_path": 1,
+            "closed_path": 0,
+            "transferred_path": 0
+          },
+          "status": "WARN"
+        }
+      ],
+      "expected_counters": {
+        "acquisitions_checked": 1,
+        "mutable_defaults_checked": 0,
+        "ast_nodes": 18
+      }
+    },
+    {
+      "id": "unicode-casefold-allowlist",
+      "kind": "security",
+      "source": "ss = 'ghp_0123456789abcdefghijkABCDEF'\n",
+      "options": {
+        "secret_name_allowlist": [
+          "\u00df"
+        ]
+      },
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 1
+      }
+    },
+    {
+      "id": "unicode-casefold-nosec",
+      "kind": "security",
+      "source": "password = 'ghp_0123456789abcdefghijkABCDEF' # no\u017fec\n",
+      "options": {},
+      "oracle_targets": [],
+      "oracle_counters": {
+        "calls_checked": 0,
+        "secret_literals_checked": 1
+      }
+    }
+  ]
+}

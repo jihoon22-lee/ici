@@ -1,0 +1,913 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "checks": [
+    {
+      "id": "python.line",
+      "title": "Line counts",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.lint",
+      "title": "Ruff lint",
+      "language": "python",
+      "tool": "ruff",
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.format",
+      "title": "Ruff format check",
+      "language": "python",
+      "tool": "ruff",
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.type",
+      "title": "Static type check",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.test",
+      "title": "pytest suite",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [
+        "python-test-evidence"
+      ],
+      "static": false
+    },
+    {
+      "id": "python.coverage",
+      "title": "coverage.py collection",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [
+        "python-test-evidence"
+      ],
+      "provides": [],
+      "static": false
+    },
+    {
+      "id": "python.complexity",
+      "title": "Cyclomatic complexity",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.cognitive",
+      "title": "Cognitive complexity",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.cycle",
+      "title": "Import cycles",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.dup",
+      "title": "Duplicate code",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.security",
+      "title": "Security hygiene",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.resource",
+      "title": "Resource hygiene",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.exception",
+      "title": "Exception safety",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.dead",
+      "title": "Dead code",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.compat",
+      "title": "Compatibility floor",
+      "language": "python",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "python.compat-runtime",
+      "title": "Declared-runtime compatibility",
+      "language": "python",
+      "tool": null,
+      "required": false,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": false
+    },
+    {
+      "id": "cpp.line",
+      "title": "Line counts",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.compile",
+      "title": "Compilation coverage",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [
+        "compile-inputs"
+      ],
+      "static": true
+    },
+    {
+      "id": "cpp.diagnostics",
+      "title": "Compiler diagnostics",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [
+        "compile-inputs"
+      ],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.tidy",
+      "title": "clang-tidy analysis",
+      "language": "cpp",
+      "tool": "clang-tidy",
+      "required": false,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [
+        "compile-inputs"
+      ],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.test",
+      "title": "C++ test suites",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [
+        "cpp-test-evidence"
+      ],
+      "static": false
+    },
+    {
+      "id": "cpp.coverage",
+      "title": "gcov coverage",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [
+        "cpp-test-evidence"
+      ],
+      "provides": [],
+      "static": false
+    },
+    {
+      "id": "cpp.complexity",
+      "title": "Cyclomatic complexity",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.cognitive",
+      "title": "Cognitive complexity",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.cycle",
+      "title": "Include cycles",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.dup",
+      "title": "Duplicate code",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.exception",
+      "title": "Exception safety",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "cpp.artifact",
+      "title": "Declared build artifacts",
+      "language": "cpp",
+      "tool": null,
+      "required": false,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [
+        "artifact-contract"
+      ],
+      "static": false
+    },
+    {
+      "id": "cpp.sanitize",
+      "title": "ASan/UBSan/LSan suite run",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": false
+    },
+    {
+      "id": "cpp.tsan",
+      "title": "ThreadSanitizer suite run",
+      "language": "cpp",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": false
+    },
+    {
+      "id": "cpp.binary-compat",
+      "title": "Binary ABI compatibility",
+      "language": "cpp",
+      "tool": null,
+      "required": false,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [
+        "artifact-contract"
+      ],
+      "provides": [],
+      "static": false
+    },
+    {
+      "id": "rust.clippy",
+      "title": "Cargo Clippy",
+      "language": "rust",
+      "tool": "cargo",
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "javascript.lint",
+      "title": "ESLint",
+      "language": "javascript",
+      "tool": "eslint",
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "typescript.lint",
+      "title": "ESLint",
+      "language": "typescript",
+      "tool": "eslint",
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "typescript.type",
+      "title": "TypeScript",
+      "language": "typescript",
+      "tool": "tsc",
+      "required": true,
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": true
+    },
+    {
+      "id": "integration",
+      "title": "Integration cases",
+      "language": "integration",
+      "tool": null,
+      "required": true,
+      "profiles": [
+        "deep"
+      ],
+      "needs": [],
+      "provides": [],
+      "static": false
+    }
+  ],
+  "legacy": [
+    {
+      "name": "line",
+      "factory_name": "LineCountEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:line"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "lint",
+      "factory_name": "LintEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:lint"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "compile_db",
+      "factory_name": "CompileDatabaseEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:compile-db",
+        "compilation-coverage"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "test",
+      "factory_name": "TestEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:test",
+        "test-results",
+        "coverage-report",
+        "build:coverage"
+      ],
+      "consumes": [
+        "analysis-context",
+        "capability-inventory"
+      ],
+      "profiles": [
+        "deep",
+        "standard"
+      ],
+      "execution": "build",
+      "build_variant": "coverage"
+    },
+    {
+      "name": "type",
+      "factory_name": "TypeCheckEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:type"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "python_compat",
+      "factory_name": "PythonCompatibilityEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:python-compat",
+        "python-runtime-evidence"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "cognitive",
+      "factory_name": "CognitiveEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:cognitive"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "resource",
+      "factory_name": "ResourceEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:resource"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "security",
+      "factory_name": "SecurityEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:security"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "cycle",
+      "factory_name": "CycleEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:cycle"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "complexity",
+      "factory_name": "ComplexityEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:complexity"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "sanitize",
+      "factory_name": "SanitizeEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:sanitize",
+        "sanitizer-results",
+        "build:sanitize"
+      ],
+      "consumes": [
+        "analysis-context",
+        "capability-inventory"
+      ],
+      "profiles": [
+        "deep",
+        "standard"
+      ],
+      "execution": "build",
+      "build_variant": "sanitize"
+    },
+    {
+      "name": "thread_sanitize",
+      "factory_name": "ThreadSanitizeEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:thread-sanitize",
+        "thread-sanitizer-results",
+        "build:thread-sanitize"
+      ],
+      "consumes": [
+        "analysis-context",
+        "capability-inventory"
+      ],
+      "profiles": [
+        "deep"
+      ],
+      "execution": "build",
+      "build_variant": "thread-sanitize"
+    },
+    {
+      "name": "dead",
+      "factory_name": "DeadCodeEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:dead"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "dup",
+      "factory_name": "DuplicateEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:dup"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "exception",
+      "factory_name": "ExceptionSafetyEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:exception"
+      ],
+      "consumes": [
+        "analysis-context"
+      ],
+      "profiles": [
+        "deep",
+        "fast",
+        "standard"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "build",
+      "factory_name": "BuildEngine",
+      "dependencies": [],
+      "produces": [
+        "findings:build",
+        "artifact-manifests",
+        "build:release"
+      ],
+      "consumes": [
+        "analysis-context",
+        "capability-inventory"
+      ],
+      "profiles": [
+        "deep"
+      ],
+      "execution": "build",
+      "build_variant": "release"
+    },
+    {
+      "name": "binary_compat",
+      "factory_name": "BinaryCompatibilityEngine",
+      "dependencies": [
+        "build"
+      ],
+      "produces": [
+        "findings:binary-compat",
+        "elf-facts"
+      ],
+      "consumes": [
+        "analysis-context",
+        "capability-inventory",
+        "artifact-manifests"
+      ],
+      "profiles": [
+        "deep"
+      ],
+      "execution": "read-only",
+      "build_variant": null
+    },
+    {
+      "name": "integration",
+      "factory_name": "IntegrationEngine",
+      "dependencies": [
+        "build"
+      ],
+      "produces": [
+        "findings:integration",
+        "integration-results"
+      ],
+      "consumes": [
+        "analysis-context",
+        "artifact-manifests"
+      ],
+      "profiles": [
+        "deep"
+      ],
+      "execution": "build",
+      "build_variant": "release"
+    }
+  ]
+}

@@ -1,5 +1,195 @@
 # ici Rust 전면 교체 실행 계획
 
+### Ownership transfer and closure fan-out (2026-10-29)
+
+- Ownership moved to a new root at `2c43027`. The inherited uncommitted work became behavior-scoped
+  commits, and `origin/main` (#298) was merged with an identical tree. The closure fragments
+  `closure/*.json` are now merged conjunctively by `scripts/rust_migration_inventory.py`: the
+  least-closed claim wins, unknown rows are rejected and `complete` requires every claim's evidence.
+  `inventory.md` stays generated from `inventory.json` only. The combined counts are printed as
+  `closure` and drive `--require-closed`.
+- Six frozen-source review areas (validation, python, cpp, config, reporting, runtime) cover all
+  291 source files disjointly and run in separate worktrees with one fragment each.
+- Defects found during the transfer gates: validation freshness compared a precise start clock with
+  coarse file timestamps and rejected fresh outputs; reruns refused their own previous event stream;
+  ici-built packages consumed by the ABI check were treated as mid-run user edits. All three are
+  fixed with actual-tool regressions. An `ici resource|security|python-compat` exit expectation was
+  corrected to the frozen SKIP (2), confirmed by running the frozen source.
+- R8 budget harness (`tests/rust-parity/perf/measure_budget.py`) on a release build of the
+  development branch, same host as the frozen oracle: cold 0.23 s vs 1.20 s, warm 0.22 s vs 0.55 s,
+  peak RSS 16.7 MiB vs 86 MiB, SIGINT exit 130 with descendants gone in 0.21 s. The 165 KB HTML
+  report exceeded the 64 KiB budget; the reporting unit now embeds the result once (compressed) and
+  renders closed sections on demand — 46 KB for the same fixture, all sections DOM-equivalent.
+  These are development measurements; the R8 candidate repeats them on the exact-source archive.
+- Known frozen-behaviour differences recorded for review: coverage silently omitted never-imported
+  declared sources (oracle 100%); native refuses that as complete. Pyz-era v3 baselines are readable
+  but not comparable per ADR-0008; regeneration guidance is required.
+
+### Legacy line scope and gate policy follow-up (2026-10-29)
+
+- Historical line input collection now includes shell/configuration/document files, with separate
+  source and gated path lists and single ownership in hybrid components. It captures those bytes
+  for drift/reuse and excludes current command artifacts and comparison baselines. Actual C++ and
+  hybrid commands verify strict thresholds, source/extra labels, repeated exports, source-only top
+  rankings and direct legacy extra fields. Four CLI regressions passed in 37.18 s, including all
+  three legacy modes and new warning baseline gating (`root-line-integration-final.log`).
+- Completed legacy WARN remains a successful ordinary gate while retaining measured findings.
+  Their advisory role is independent of evidence, and explicit fail-on-new still gates a newly
+  actionable warning. Modern fail-on-violation policy and incomplete checks remain unchanged.
+- Empty optional integration produces located applicability evidence (actual command 13.25 s);
+  required empty scope remains incomplete. Eleven planning tests and the reporting facet/pipeline/
+  rendering suites passed, followed by strict CLI/reporting/application Clippy in the same log.
+  The final NA/Measured/Estimated sibling projection regression and strict reporting Clippy passed
+  separately (`root-na-projection-final.log`).
+- Full line-descriptor closure remains open: documentation-only trees without a Python/C++
+  component and ownership of root extras in automatic monorepos still require explicit acceptance.
+  Typed multi-check test metrics and other family aggregation are audited separately; preserving
+  nested raw evidence alone is not treated as proof of the historical flat consumer contract.
+
+### Configuration diagnostic audit (2026-10-29)
+
+- Frozen `config/reader.py` and `config/errors.py` aggregate independent problems. Native schema
+  validation now retains independent key/type/section failures with each file/line/key, bounded to
+  64 diagnostics. Related diagnostics remain structured, and the error representation was reduced
+  without disabling `result_large_err`. All 35 configuration resolution tests, two migration-layer
+  tests and strict configuration Clippy passed (`root-config-diagnostics-boxed-final.log`).
+  Configuration/plan CLI tests also passed before strict Clippy exposed the subsequently corrected
+  error-size issue (`root-config-diagnostics-cli-final.log`); the final integration gate is recorded
+  with the line-scope follow-up, rather than calling the earlier combined command a pass.
+- C++ legacy applicability and compilation-policy, source ownership switches, actual CTest/gcov
+  policy binding and optional pytest-repeat evidence have separate worker commits and actual
+  fixtures. Their full per-rule/configuration audit remains in progress; these units alone do not
+  close the shared descriptors or R8 acceptance.
+
+### Migration and shell acceptance follow-up (2026-10-29)
+
+- The complete frozen migration converter, precedence diagnostic and CLI have been reviewed.
+  Native sparse-v2 retains legacy engine tables, comments and source scope; it now also reports
+  historical XDG/project/dev/ICI_CONFIG winners and differing overridden values without merging
+  those layers. Migration freezes the legacy optional/required coverage policy explicitly.
+  Config and configuration CLI suites plus strict transitive Clippy passed in
+  `root-migration-layer-final.log`.
+- Actual sh and tcsh 6.24.13 execution found and corrected tcsh history expansion in installation
+  paths containing `!`. Quotes, spaces, backslashes, dollar/backtick text and existing PATH survive
+  unchanged; unrepresentable path entries and conflicting shell flags fail explicitly.
+  `root-optional-env-final.log` records both ordinary shell cases and the actual tcsh acceptance.
+- Optional coverage uses an explicit capability probe and conditional covered/plain pytest steps.
+  The worker's four real coverage-absent cases passed; the root's two pure and one actual baseline
+  regression passed again in 39.80 s after integration, with strict Clippy passing. The command
+  plan exposes the conditional steps. Global parity/candidate/cutover acceptance remains open.
+
+### Common command inventory audit (2026-10-29)
+
+- The frozen importer requires a new output even if the existing file is a recognized auxiliary
+  artifact. Native intake now retains that ownership contract; the actual repeat-import regression
+  passed in 6.74 s (`root-import-preservation.log`). Cache inventory again distinguishes valid and
+  corrupt entries and explains invalidation inputs; five cache regressions plus the actual command
+  corruption/clear case passed. Final transitive strict Clippy passed in
+  `root-import-cache-lint-final.log` after an unrelated in-progress lifetime warning was corrected.
+- The common reporting/domain/execution/application/config suites and corresponding strict Clippy
+  passed (`root-common-audit-gates.log`). The 100,000-finding HTML/SARIF debug regression took
+  81.04 s; this is a completeness stress test, not final candidate performance acceptance.
+- `closure/common.json` links four named requirement rows and three complete source-module audits
+  to behavior-specific fixtures. Other command/configuration and whole-cache capability rows remain
+  open; the global inventory is not blanket-closed by this fragment.
+
+### Native evidence preservation follow-up (2026-10-29)
+
+- Coverage regression policy consumes typed raw ratios only after native baseline compatibility
+  and completed matching check scope. Synthetic findings are baseline-only; ordinary gates do
+  not change. Missing current or saved metric evidence refuses explicit `--fail-on-new` before
+  any replacement baseline is written. `root-coverage-baseline-native.log` records three real
+  pytest/coverage CLI runs in 33.49 s: original baseline, measured drop, missing rich snapshot.
+- C++ execution captures ABI headers before scheduling readelf. Physical inputs retained before
+  preparation are recaptured after provider rebinding and during final validation, including
+  their binary limits and code/configuration roles. Configuration scope uses parsed normalized
+  metadata identities while raw metadata and code bytes remain drift inputs. The actual legacy
+  ABI preparation regression passed in 10.51 s (`cpp-abi-scope-final2.log`).
+- Git queries appear in the plan and run before ici creates output files. Commit and clean/dirty
+  status are descriptive; captured bytes still supply the source/cache digest. Failed status,
+  invalid commit, timeout, or missing Git cannot claim clean. `root-vcs-scope-final.log` records
+  two Git cases, two coverage composition cases and one binary scope/preservation regression,
+  followed by strict transitive CLI/application Clippy.
+- These are bounded evidence corrections. Full frozen inventory, optional-coverage composition,
+  final candidate and public cutover remain open.
+
+### Historical report intake follow-up (2026-10-29)
+
+- Caller-level publication audit restored the historical GitHub API default for legacy commands,
+  own-repository versus hub credentials, and next's named-token then ICI-token precedence.
+  `root-evidence-composition-final.log` records six publication cases including five actual
+  caller/configuration paths (v1 and v2) through the injected transport, preserving v2 bytes,
+  plus strict transitive CLI/application Clippy. HTTPS transport acceptance remains separate.
+
+- The saved-report boundary explicitly accepts v2 through the frozen migration adapter while
+  the strict native/archive reader remains schema-specific. Unknown statuses, malformed engine
+  entries, duplicate keys and forged native evidence fail intake. Source bytes remain unchanged.
+- `report-v2-scope-gates.log` records five CLI report cases (21.75 s) and strict transitive
+  CLI/application/reporting Clippy. This closes the discovered v2 caller omission, not the
+  remaining inventory or final artifact acceptance.
+
+### Historical commands and publication composition (2026-10-29)
+
+- `5e83831` connects both doctor routes and legacy brief/JSON to shared configuration/planning,
+  deduplicated bounded version probes, explicit required tool policy and actual scope guidance.
+  Eleven command cases passed in 1.09 s, including no-project-Python, disabled checks, runtime
+  matrix, recorded C++ context without replay, timeout/truncation/cancellation and no state writes;
+  transitive strict Clippy also passed (`doctor-gates-final.log`).
+
+- Historical verify/family commands use the shared native runner and stored projections. Output
+  alias/unowned-file checks precede execution; incompatible historical baselines preserve both
+  original baseline and native result, without writing the requested replacement. Native-rich
+  baselines and diff retain completed-check scope. Browser opening is an explicit detached user
+  action; GitHub summaries append safely and annotations come from the stored result.
+- Legacy return annotation inspection is a distinct optional estimated check beside the actual
+  type provider. Missing type tools stay incomplete. The first CLI test exposed an empty raw
+  finding identity in the annotation analyzer; `91d74d1` fixes it and validates the frozen
+  annotation corpus through the shared Observation contract.
+- Publication uploads stored bytes only, uses explicit HTTPS destinations/system roots, separates
+  upload status from code verdict, and guards sticky comments using current PR head and run order.
+  Hub branch creation uses the hub's own default commit; large diagnostics use bounded summaries
+  while preserving saved artifacts. `native-command-composition-final.log` records five legacy,
+  five publication and three setup command regressions, followed by strict transitive Clippy.
+- `24a12f3` preserves ten frozen compilation-export v1 payloads (producer version excluded),
+  including MSVC/wrapper/digest/privacy contracts. Eight ordinary export cases and actual
+  CMake/Qt5/Qt6 preparation passed; default export does not recursively discover project sources.
+- `0b0bd68` adds held-lease linker probes and a separate link-reachability variant. Actual GCC
+  multi-target execution preserves only the intersection of discarded hidden owned functions,
+  keeps full input integrity, and rejects forged overlays without a matching held lease.
+  Full inventory closure, final candidate acceptance and public cutover remain open.
+
+### Native distribution acceptance checkpoint (2026-10-29)
+
+- `485b93e` adds the static musl build wrapper, verified isolated SDK/source inputs, full
+  Rust/musl/LLVM notices, ELF dependency rejection, and permanent transport/archive harnesses.
+  Eight distribution tests, strict Clippy/fmt, shellcheck and harness Ruff passed.
+- Internal static archive SHA-256 `023bda385c0321aacb0c819d9830b31817ea121c7895900c37e9ee29bb825ed5`
+  passed 28 actual bootstrap/update/rollback/failure/private-CA/no-Python offline cases, then
+  stopped at the candidate's unimplemented doctor. This historical candidate is not final source
+  acceptance. Expanded transport's 14 cases also passed.
+- `c44e4f5` records six actual loopback HTTPS publication cases: trusted/untrusted private CA,
+  GHES prefix/GitHub-style endpoints, verified request credentials/base64 payload, 403, malformed
+  response and post-upload comment failure. Analysis result and HTML bytes remain unchanged.
+- Current debug core SHA-256 `8466942511522a1724aa11aee6ff610c2dca914685293b6ed1a9bc887a193769`
+  passed 12 setup calls across XDG-only and conflicting-HOME environments. Default install,
+  inspect, update and rollback select the same XDG root without touching HOME's default tree;
+  `distribution/current-setup-defaults.log` records the actual run. Final candidate/public bytes
+  and the complete migration inventory remain separate open gates.
+
+### Explicit preparation integration evidence (2026-10-29)
+
+- The common run lifecycle prepares leased native build contexts, then measures compiler outputs
+  and publishes them through the shared artifact writer. Frozen user inputs remain immutable;
+  only declared generated roots may change during preparation. Tool replacements invalidate
+  completion evidence. A binary-specific 256 MiB allowance retains ordinary 16 MiB source and
+  512 MiB aggregate limits, with no-follow binary intake.
+- `cli-preparation-e2e.log`: actual CMake/GCC build through `execute(build)` passed, including
+  `v1.2.3/x86_64/bin/suite`, unchanged user source and complete artifact check evidence (9.52 s).
+  `binary-snapshot-gates.log`: six snapshot regressions and CLI check passed.
+- `preparation-composition-gates.log`: ordinary application/CLI/execution suites and strict
+  transitive Clippy passed. Explicit external-tool cases remain separate ignored acceptance
+  targets; this does not close the full inventory or authorize a partial stable release.
+
 2026-10-28 사용자는 ici를 Rust로 전면 교체하고, 세 제품을 간편한 사용성 → 독립 제품 완성도 → 상호 연계 순으로 개선하기로 결정했다. 일반 프로젝트는 좋은 기본값으로 동작하고 설정 파일 하나에서 필요한 예외만 선언한다. 기존의 다양한 분석 기능과 증거 수준을 유지한다.
 
 2026-10-28 사용자가 이 계획 R0–R9의 실제 구현·검증·문서·PR 병합·버전/태그·공개·공개 bytes 검증·소유 자원 정리를 승인했다. 기준 소스는 main 77554433209ceaecd0782fc4d3cb6c2ed9b0b1c2, 공개판은 v0.13.0이다. clean 준비 branch c39f37e에서 계획 commit을 포함한 feat/rust-native-core를 생성해 실행을 시작했다. 부분 완료를 전체 전환 완료로 표시하지 않는다.
@@ -224,3 +414,268 @@ ici 책임자는 전체 parity 원장과 R0–R9를 소유한다. 하위 구현�
   R1 PR에서 코드와 함께 재검증한다. 전체 domain/제품 parity 완료가 아니다.
 - config/discovery, 공통 process/DAG/storage, native Python 분석은 공유 타입·파일 경계를 정해
   병렬 구현한다. R3+ 통합과 R8/R9 release closure는 남아 있다.
+
+
+### R1 공통 모델 구현 — 후속 branch
+
+- R0 evidence PR: https://github.com/jihoon22-lee/ici/pull/298 (`34f11e0`),
+  CI `40692022861` 진행. 제품 개발은 `feat/rust-application`에서 이어간다.
+- Rust 1.99.1 Cargo workspace와 순수 `ici-domain`을 구현했다. result/event status 축,
+  check evidence, finite metric, all inspected targets, task/observation, snapshot identity를
+  공통 타입으로 고정했다. frozen 19/36 catalog는 도구 probe 없이 읽는다.
+- `cargo test -p ici-domain --locked` (registry 1 + wire 5),
+  `cargo clippy -p ici-domain --all-targets --locked -- -D warnings`, domain fmt 통과.
+  v1/v2 정보 보존, malformed/inconsistent evidence 거부, Unicode/astral fingerprint,
+  event gap/unknown/truncation 및 task completion/evidence 차이를 확인했다.
+- config/discovery, execution/DAG/storage, native Python 분석 crate는 별도 범위에서 구현 중.
+  전체 workspace test/CLI E2E는 아직 수행 전이며 R1/R2/R4 전체 완료로 기록하지 않는다.
+
+### 재개 체크포인트 — 도구 선택 기반
+
+- 첫 R0 CI `40692022861`은 새 ADR-0008의 문서 분류 목록 누락 1건으로 실패했다
+  (4302 passed / 8 skipped). 목록/ADR index를 갱신한 `5ae4a9c`의 focused 57개 검사는 통과했고
+  수정 CI `40693618746`을 확인 중이다. 기존 문서 gate는 유지했다.
+- `ici-providers`의 실행 없는 resolver를 구현했다. 명시 경로 → 프로젝트 동일 도구 →
+  manifest/digest가 검증된 native pack → PATH 순서이며 깨진 명시 경로는 오류다.
+  native executable bytes를 streaming SHA-256으로 식별하며 plan에서 version probe를 실행하지 않는다.
+- mypy/ty native 설정을 존중하고 둘 다 선언된 경우 명시 선택을 요구한다.
+  `cargo test -p ici-providers --locked`의 선택·도구 교체·pack 변조·부재·타입 설정 5개와
+  해당 crate Clippy `-D warnings`, fmt가 통과했다. 진단 parser/실제 도구 실행을 포함한
+  R3 전체와 CLI 통합은 계속 미완료다.
+
+### 실행·분석·application 라이브러리 checkpoint
+
+- `7c2c336`: Rust 실행·scheduler·storage library의 process 11 / scheduler 8 / storage 9개
+  실제 검증, crate Clippy `-D warnings`, fmt 및 Python 동작 fixture Ruff가 통과했다.
+  digest가 알려진 실행만 공유하며 계획 후 executable 교체도 spawn 전에 거부한다.
+  [실제 명령·범위](../../tests/rust-parity/execution/README.md)는 process-group 증거와
+  의도적으로 새 session으로 이탈하는 프로그램의 sandbox 보장을 구분한다.
+- `26c3b17`: native Python decoder·Unicode/raw-byte 위치·lexical scope와 line 및
+  cyclomatic/cognitive 공통 계산 기반을 추가했다. 고정 공개 source의 CPython 3.14.7
+  oracle metrics 15개와 비교했다. 보안/resource/exception/dead/cycle/dup/compat 규칙의
+  전체 이식은 후속 작업이며, 아직 구현되지 않은 check를 PASS로 반환하지 않는다.
+- `ici-application`은 pure request/selection/graph/verification/baseline과 bounded immutable
+  입력 snapshot을 담당한다. 비활성화·미선택·blocked, optional·advisory·required completion,
+  부분 scope·위반·취소를 구분한다. provider/CLI·signal/event lifecycle 및 실제 report와
+  묶인 제품 E2E는 별도 통합 단계다.
+  shared heavy lock 아래 `RUST_TEST_THREADS=2 cargo test -p ici-application --locked`의
+  planning 7 / baseline 4 / snapshot 3 / verification 5개가 통과했고,
+  `cargo clippy -p ici-application --all-targets --locked -- -D warnings`와
+  `cargo fmt -p ici-application --check`도 통과했다. configuration/native tool bytes가 실제
+  어떤 dependency closure로 수집되는지에 대한 시험과 이 순수 비교 함수 시험은 구분한다.
+- baseline 비교는 구 result의 읽기와 해결 증명을 구분한다. 일치하는 완료 check scope만
+  resolved를 만들고, 변경된 scope는 carried, 알 수 없는 v1 scope나 바뀐 fingerprint/
+  policy/toolchain은 incompatible로 남긴다. scope digest 생성 시 실제 plugin/설정 의존성의
+  완전한 closure를 측정하는 provider 통합은 아직 남아 있다.
+- 새 snapshot은 기본 파일당 16 MiB / 총 512 MiB를 제한하고 project source/config를
+  읽을 때 symlink ancestor·leaf 및 FIFO를 거부한다. 자체 분석은 captured bytes를 쓰고
+  외부 도구는 프로젝트를 읽으므로 실행 전후 새 inventory 비교가 필요하다. 순간적인 변경
+  후 원상 복구까지 검출하는 filesystem transaction 보장을 주장하지 않는다.
+- 각 library 시험은 전체 R1/R2/R4/R7 또는 원장 1138행의 완료 근거를 대신하지 않는다.
+  R0 PR 수정 CI `40693618746`은 기존 unit/build/smoke 이후 dogfood gate를 진행 중이다.
+
+### Native cache 분리
+
+- `.ici/native/v1/observations`는 이전 Python cache와 분리한다. key에는 native core의
+  실제 binary digest·tool bytes·허용된 실제 환경·정책·provider 해석 옵션·모든 입력 digest를
+  포함한다. 의존 closure가 미확인·mutating·도구 identity 부재이면 cache key를 만들지 않는다.
+- cache read/write는 schema/key/core/완료 증거를 검증하고 16 MiB로 제한한다. corrupt entry는
+  재사용하지 않으며, application 통합에서는 원인을 알린 뒤 실제 실행으로 돌아가야 한다.
+  clear는 no-follow directory descriptor에서 64자 lowercase hex `.json` regular entry만
+  unlink하고 사용자 파일·하위 폴더·symlink/FIFO를 보존한다.
+- shared lock 아래 `cargo test -p ici-application --locked`의 기존 19개와 새 cache 4개,
+  scoped Clippy `-D warnings`, fmt가 통과했다. 실제 CLI warm-cache/취소/event lifecycle과
+  provider별 closure를 통합한 R2/R7 전체 인수는 후속 단계다.
+- R0의 path 설정 키 세 개 누락은 `c0ad365`로 교정했다 (322 keys / 1138 open rows).
+  inventory check/self-test는 Python 3.10과 현재 interpreter에서 통과했고 closure는 여전히
+  미완료를 거부한다. 새 PR head CI `40696941442`를 확인 중이며 앞선 실행과 구분한다.
+
+### Native CLI·결과 조립 기반
+
+- `ici-cli`는 고정 37개 command/group·115개 parameter의 flag/alias/repeatable 인자를
+  native Clap 4.6.7로 파싱한다. root 및 모든 하위 `--help`/version, enum/range/필수 인자를
+  원장과 비교한다. 이 registry는 명령 구현 parity를 대신하지 않는다.
+- `analyze --plan`/`next plan`은 resolved config와 provider argv를 읽기만 하며, 가짜 실행 파일의
+  side-effect marker와 state 폴더가 만들어지지 않는 시험을 통과했다. 명시한 깨진 도구는
+  PATH의 다른 도구로 fallback하지 않는다. Python 없는 PATH에서 native init preview도 통과했다.
+- init/minimal config의 source scope 동등, 기존 설정 거부와 명시 force 백업, migration의
+  preview/new-output/명시 write 백업, cache symlink ancestor 거부를 실제 native CLI로 검증했다.
+  `cargo test -p ici-cli --locked` 9개와 crate Clippy `-D warnings`, fmt 통과.
+- application 결과 조립은 모든 선택 check record와 실제 observation의 ID·상태·완결성을
+  확인한다. static pass는 partial로 남고, 실제 전체 범위와 필수 완료가 충족돼야 workspace
+  verdict를 만들 수 있다. 입력 drift/cancelled 결과도 얻은 finding을 유지한다.
+  `cargo test -p ici-application --locked` 기존 23개 + assembly 3개, scoped Clippy/fmt 통과.
+- config `80c8df9`/`d239b23`은 최소 설정·소스 발견·origins·comment 보존 migration과
+  nested legacy scope, workspace 안의 native mypy/ty 선택을 검증했다 (28 tests + Clippy/fmt).
+  [config 근거](../../tests/rust-parity/config/README.md)의 frozen source fixture와 실제
+  Mypy 2.3.1 marker 결과를 일반 설정 동등성과 구분한다.
+- runtime/build/compile adapter·실제 analyze/verify lifecycle·전체 report/publish·legacy rich
+  projection은 아직 통합 전이다. 해당 개발 경로를 동작한 것처럼 alias만 붙여 완료 처리하지
+  않으며 R1/R2/R7 전체와 원장 closure는 열린 상태다.
+
+
+### Native 정책·단계 계획과 진행 근거
+
+- R0 PR [#298](https://github.com/jihoon22-lee/ici/pull/298)은 `8c5db5b`로 병합됐다.
+  최종 PR CI `40696941442`는 기존 Python 4304 passed / 8 skipped, build/smoke,
+  Qt5/Qt6, PR Pages와 Merge Gate를 통과했다. Pages `40701907199`의 실제 HTML도 받았다.
+  main CI·최종 제품 전환은 이 PR 근거와 구분한다.
+- 상태 namespace의 규범은 R0/ADR-0008의 `.ici/rust-v1`이다. 앞선 cache checkpoint의
+  `.ici/native/v1` 표기는 내부 중간 구현이며 새 CLI 기본값은 규범으로 바로잡는다.
+- policy는 요청 범위나 개인 출력 경로와 분리하고, check scope는 선택 파일/설정/실제 argv·
+  환경을 기록하되 소스 내용 hash를 넣지 않는다. suppression은 CPython 3.10 fnmatchcase
+  oracle 400개와 비교해 slash·backslash·Unicode·잘못된 range 의미를 고정했다.
+- logical check의 ordered native steps는 빈 목록/다른 owner/중복/자기·forward 의존성을
+  거부하고, check 사이 capability/step edge와 output 충돌을 함께 검사한다. 준비 단계가
+  포함된 fast 검사도 계속 차단한다. scheduler 시작 hook은 실제 resource lease 뒤에 호출한다.
+- `driver-gates.log`의 application 34개 / execution 30개 시험이 통과했다. 해당 library의
+  scoped Clippy와 fmt도 통과했다. CLI 실제 lifecycle은 통합 중이며 별도 인수한다.
+- R3 `9ea68a8`은 actual native diagnostic 좌표/구성/inspected scope를 다룬다.
+  R4는 cycle/dead/annotation/static compatibility/Type2 lexical milestone을 진행했고,
+  R5 `6980216`/`6e5e8f5`는 source/compiler/ELF/GNU linker 증거를 추가했다.
+  R6 `9fd538f`는 명시 프로젝트 Python의 suite/shared coverage/runtime/import-only와
+  새 소유 directory artifact를 다룬다. 각 tests/rust-parity 하위 README의 실측 범위를
+  전체 기능 closure와 혼동하지 않는다. semantic/package 분석과 나머지 R6·R7–R9는 열린다.
+
+- R0 main CI `40703311431`도 `8c5db5b`에서 success로 완료됐다. 기존 gate·Qt·main
+  publication을 유지했으며 아직 native replacement release를 만들지 않았다.
+- 실제 CLI의 프로젝트 Python 실행에서 symlink canonicalization이 가상환경을 벗어나
+  coverage를 잃는 결함을 발견했다. config executable은 선언 파일 기준 lexical invocation
+  경로를 보존하고, tool resolver가 실제 bytes identity를 따로 검증하도록 교정했다.
+  config 29개 시험과 nested symlink 회귀 fixture로 확인한다.
+
+
+### 실제 native CLI lifecycle checkpoint
+
+- `analyze`/`next verify`는 실제 내부 source session과 R3 tool provider, R6 프로젝트 Python
+  test/shared coverage/runtime/import-only를 연결한다. `.ici/rust-v1` 결과와 선택 event stream을
+  원자 저장한다. 계획은 모든 probe/단계/argv/work directory를 실행 없이 표시한다.
+- 입력 capture 실패·선택 범위 누락·지원하지 않는 adapter는 incomplete로 남고, 취소는
+  부분 결과와 130을 보존한다. 실행 중 원본 파일/설정/tool bytes가 바뀌면 전체 완료·resolved
+  증거를 철회한다. 결과/event/baseline alias와 기존 v3 결과·source/config를 보호한다.
+- 논리 test와 coverage는 명시 프로젝트 Python 한 suite를 공유한다. 실제 pytest 실패 exit 1도
+  완료된 비어 있지 않은 증거이면 coverage report를 만들고, collection/timeout/cancel은 막는다.
+  source와 test 지원 입력을 같은 bounded scanner로 캡처하고 함수 위치는 공통 parser에서 얻는다.
+  실제 test node 집합과 run 디렉터리를 정규화한 모든 단계 identity를 scope에 기록한다.
+- native cache는 rich AnalysisOutput을 보존한다. observation-only entry는 rich 결과 hit가
+  아니며 오류가 있으면 원인을 기록하고 재계산한다. 순수 Python source 분석과 실제 closure가
+  확인된 tool만 재사용하며 dynamic test/build/미확정 native closure는 재사용하지 않는다.
+  실행된 core의 `/proc/self/exe` bytes를 identity로 사용한다.
+- `cache-lifecycle-gates.log`: application 36 / CLI 17개 통과, scoped Clippy `--no-deps
+  -D warnings` 통과. 전체 fmt는 당시 작성 중이던 Unicode 파일을 감지했으므로 통과로 적지 않는다.
+  `lifecycle-milestone-gates.log`: 앞선 CLI 실제 Python acceptance는 CPython 3.10.21,
+  pytest 9.1.1, coverage 7.15.4에서 실패→coverage→수정 후 baseline resolved까지 통과했다
+  (한 fixture 안 두 실행, 22.84초). 최종 exact-source 재검증과 전체 native/stable gate는 별도다.
+- R4 semantic `6827477`과 Unicode `8c44b7e`는 frozen CPython projection과 Unicode 16 전체
+  scalar oracle을 고정한다. R5 library/corpus는 `9f3cb78`까지 44개 실제/frozen 시험을 통과했다.
+  R6 `f821b19`의 C++/gcov/integration 실제 도구 근거도 library 범위이며 CLI C++ orchestration은
+  후속이다. R7 저장 reader/render/import, TLS/publish, R8 원장 closure·배포와 R9 cutover는 열린다.
+
+- Root 변경을 base `9f3cb78`에서 분리한 검증 tree `c0878bdf5bf33ca4a80e720184aae0a25951b4f0`
+  에 그대로 적용했다. 이 tree에서 `--locked` application 36 / CLI 17, 명시 native Python
+  acceptance(실패·coverage·수정 후 baseline, 22.69초), transitive strict Clippy와 scoped fmt가
+  모두 통과했다. `root-proof/gates.log`의 library 경로도 해당 source를 가리킨다.
+  이 근거는 후속 변경이나 전체 R8 exact-main 인수를 대신하지 않는다.
+
+- `1a5bcb3`의 pure stored reader를 workspace에 등록했다. published next v1/v2·legacy v3
+  fixture와 unknown/duplicate/depth/byte bound, 안전한 script JSON 3개 시험 및 strict
+  Clippy/scoped fmt/locked offline metadata가 통과했다. HTML/legacy projection/import/publish는 후속이다.
+- ZIP codec은 실제 wheel 비교를 위한 준비이며 CRC32 직접 의존성을 고정했다. 기존 Python
+  compatibility 표면에서 사용하지 않는 PEP 508을 제거해 해당 transitive dependency를 줄였다.
+
+### C++ CLI compilation evidence checkpoint
+
+- Native CLI now reads recorded compilation units/response inputs and replays diagnostics for
+  every configuration. Logical aggregation keeps the original unit/variant owner; an aggregate
+  check does not pretend to belong to just its first unit. Missing header closure prevents
+  reuse/resolved proof without suppressing measured diagnostics.
+- `cpp.compile` uses actual include probes for unity membership where needed. Declared artifact
+  contracts inspect existing outputs without implicitly building during `analyze`.
+- `cpp-cli-final.log` passed application and CLI ordinary tests; the first Clippy pass found one
+  cloned-reference warning, corrected and confirmed by `cpp-cli-lint-final.log` (strict transitive
+  Clippy and scoped fmt). `cpp-cli-native.log` separately passed the explicit two-configuration
+  GCC fixture with Python absent from PATH, including precise failing-unit ownership and events.
+- `domain-reader-strict.log` passed domain tests, strict Clippy and fmt after rejecting unknown
+  nested saved-run fields. Full C++ validation/tidy/compiler facets and full R8 acceptance remain
+  separate work; this checkpoint does not close the inventory.
+
+- `cli-independent-runtime-final.log`: both explicit CLI Python acceptance cases passed in
+  24.62 seconds using project CPython 3.10.21/pytest 9.1.1/coverage 7.15.4. A source encoding
+  unsupported by the core decoder limits source geometry but does not suppress independently
+  completed runtime/import/test evidence. The test also retains failing-suite/shared-coverage
+  then fixed-baseline behavior; Python remains an external project tool.
+
+### Declared child environment boundary
+
+- TaskSpec can explicitly select inherited environment keys (`None` retains the ordinary bounded
+  default; an empty list inherits none). Filtering occurs before explicit overlays and bundle
+  environment isolation. Custom keys are available only when explicitly requested. Runner Debug
+  omits environment values. Effective environment and the task sharing identity both change with
+  this selection.
+- `environment-isolation-gates.log` passed domain/execution tests, strict Clippy and scoped fmt.
+  The actual `/usr/bin/env` child verifies an allowed custom key, overlay, omitted private key,
+  and empty inheritance. The first regression exposed constructor filtering of custom keys;
+  retaining a private environment snapshot for explicit allowlists corrected that failure.
+
+### Shared selection boundary
+
+- Explicit check subsets and additional historical behaviors use the same application planner;
+  duplicate/unknown check identities are rejected and subset results retain partial scope. The
+  frozen 36-check catalog remains an inventory input, not a limit that deletes other behaviors.
+- Legacy global integration cases have one owner (root component, otherwise the first declared
+  component). A required empty case list remains selected for an incomplete explanation.
+  `components[].integrations[].inherit_env` is an accepted sparse configuration key.
+- `cli-report-final.log` passed all 11 application planning cases, including supplemental and
+  owner/empty-case regressions, followed by strict transitive CLI/application Clippy. This
+  selection boundary is not evidence that every supplemental execution adapter is complete.
+
+### Stored CLI reports and supporting evidence
+
+- Every native execution keeps the unchanged run-v2 envelope and a separate redacted rich legacy
+  projection under `.ici/rust-v1/details/<result file>/<run-id>/details.json` in the selected
+  result's directory (earlier `runs/<run-id>/details.json` archives stay readable; the move keeps a
+  custom `--result` from adding a generic `runs/` directory to the project). The projection retains
+  PASS targets, producer details and raw metric denominators. Report intake requires its embedded
+  run to equal the selected envelope, preventing a stale details archive from being attached.
+- `report`/`next report` only read stored artifacts; they can render after source deletion and
+  invalidated configuration. Writes use no-follow atomic storage, reject input inode aliases,
+  and replace only recognized generated artifacts. Native `analyze` prints JSON/HTML locations;
+  `--json` remains pure machine JSON. Artifact write errors identify the saved analysis result.
+- `import-report` stores external SARIF/JUnit/LCOV separately with `NOT_EVALUATED` gate; attaching
+  supporting HTML evidence leaves the result bytes intact and never silently merges into SARIF.
+- `cli-report-boundary-final.log`: all four actual CLI/report storage regressions passed (14.10s),
+  strict transitive CLI Clippy and changed-file fmt passed. `cli-report-lifecycle-gates.log` earlier
+  passed all CLI/application ordinary tests, then found two in-progress validation-binding lint
+  warnings; both were fixed by their owner and the final strict check passed. R7's 28 pure reader,
+  projection/render/import/navigation cases are documented in its corpus README; publication,
+  historical baseline enforcement and full inventory acceptance remain separate work.
+
+- Actual optional integration acceptance exposed a required-check aggregation bug: producer-level
+  advisory findings were still added to the required fingerprint set. The application now honors
+  explicit advisory tags per finding while preserving measured evidence. `advisory-case-gates.log`
+  passed six verification regressions and strict application Clippy; removing the tag in the new
+  regression still fails the required gate. This does not turn missing required executions into PASS.
+
+### Common native preparation and explicit setup CLI
+
+- Rust-owned preparation is declared as `NativePrepare`, with ordinary task inputs/outputs,
+  mutation directories and resource leases. The CLI invokes its native handler after the lease,
+  using immutable captured inputs, and bypasses analysis cache. Verified generated outputs are
+  excluded individually; unknown or modified ownership records keep files as inspected inputs.
+- Native C++ facade/tooling/runtime bindings and Python runtime matrices/integration/sanitize
+  share the execution lifecycle. Compiler-managed diagnostics/boundaries/include scope do not
+  claim reusable or resolved proof while dependency closure remains unproven. Explicitly inactive
+  tooling consumes no compiler evidence and retains located NOT_APPLICABLE output.
+- `setup` is a native command extension, preserving the frozen 37-command inventory. Offline
+  archive/explicit HTTPS plus digest, selection, rollback and inspection are separate from
+  analysis. Installed tool discovery checks the version root's `tools/manifest.json`, without
+  prepending pack directories to the project's PATH.
+- `cli-native-plumbing-final.log` passed all ordinary application and CLI tests (native tool
+  fixtures remain separately explicit), then found an obsolete exact key-count assertion in
+  config. The test now checks the exact frozen key union plus five named native additions and
+  rejects duplicates. `cli-native-plumbing-lint-final.log` passed all 29 config tests, transitive
+  strict CLI/application/config Clippy and scoped fmt. `cli-setup-gates.log` separately passed
+  three setup argument/no-write/no-HTTP cases and three frozen registry cases.
+- These are internal composition milestones. Git-version preparation, explicit C++ preparation
+  and export, historical command outputs/publishing, actual full archive bootstrap/reproducibility
+  and the complete R8 inventory/cutover acceptance remain open.

@@ -1,0 +1,424 @@
+{
+  "aliases": {
+    "csiso2022jp": 0,
+    "csiso2022kr": 6,
+    "iso2022_jp": 0,
+    "iso2022_jp_1": 1,
+    "iso2022_jp_2": 2,
+    "iso2022_jp_2004": 3,
+    "iso2022_jp_3": 4,
+    "iso2022_jp_ext": 5,
+    "iso2022_kr": 6,
+    "iso2022jp": 0,
+    "iso2022jp_1": 1,
+    "iso2022jp_2": 2,
+    "iso2022jp_2004": 3,
+    "iso2022jp_3": 4,
+    "iso2022jp_ext": 5,
+    "iso2022kr": 6,
+    "iso_2022_jp": 0,
+    "iso_2022_jp_1": 1,
+    "iso_2022_jp_2": 2,
+    "iso_2022_jp_2004": 3,
+    "iso_2022_jp_3": 4,
+    "iso_2022_jp_ext": 5,
+    "iso_2022_kr": 6
+  },
+  "codecs": {
+    "hz": {
+      "ascii_pair_sha256": "cfb54bef9e315325e31b71536fd8ed01432b120c239162baf901f26cf04ca936",
+      "ascii_single_sha256": "280a43928713930bafa3263aa5e8280acb2a96048bfb46197fdd860baa563b71",
+      "shifted_pair_sha256": "d0a4b1469041d551c88ef7a874fc89a3a7ad15072f48ae79cedd68d02d05cc69",
+      "transition_observations": {
+        "accepted": 1485,
+        "sha256": "f6b321793b4be788154472ff7e9145c04e868eebd98ccbe4413ceb6e6ccc9864"
+      }
+    },
+    "iso2022_jp": {
+      "ascii_pair_sha256": "338c79aae2366644f7a106730e3a8598649ee08c070f87e2b828d49f6a713d21",
+      "ascii_single_sha256": "d283a73e6180071867ef9f9315bab2a6399826384e6e946cd10e811256096fac",
+      "designations": [
+        {
+          "all_input_sha256": "c180a4d161e633203b0645d35196e243335996c9fe181c1f3ca0e29d980bf5f3",
+          "file": "iso2022-82aa42796bf13b9b.bin",
+          "mark": 74,
+          "prefix_base64": "GyhK",
+          "width": 1
+        },
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 192,
+          "prefix_base64": "GyQoQA==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 194,
+          "prefix_base64": "GyQoQg==",
+          "width": 2
+        }
+      ],
+      "g2": [],
+      "observations_sha256": "bfe2734e5a89360f1dc7b77d143f959f99e4acd0615cbff97469082f725164ac",
+      "transition_observations": {
+        "accepted": 905,
+        "sha256": "4d86d1e80a7f5194d8fd98d5bcb3d0b06ec86764eb47de8e79ba14cc8ed4bd33"
+      }
+    },
+    "iso2022_jp_1": {
+      "ascii_pair_sha256": "338c79aae2366644f7a106730e3a8598649ee08c070f87e2b828d49f6a713d21",
+      "ascii_single_sha256": "d283a73e6180071867ef9f9315bab2a6399826384e6e946cd10e811256096fac",
+      "designations": [
+        {
+          "all_input_sha256": "c180a4d161e633203b0645d35196e243335996c9fe181c1f3ca0e29d980bf5f3",
+          "file": "iso2022-82aa42796bf13b9b.bin",
+          "mark": 74,
+          "prefix_base64": "GyhK",
+          "width": 1
+        },
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 192,
+          "prefix_base64": "GyQoQA==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 194,
+          "prefix_base64": "GyQoQg==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "8407b9e4549705c5a19a911bafb8986c0927162d77de0bc1b9e8fdfa06e8f349",
+          "file": "iso2022-cfa640abad6e3f84.bin",
+          "mark": 196,
+          "prefix_base64": "GyQoRA==",
+          "width": 2
+        }
+      ],
+      "g2": [],
+      "observations_sha256": "e35c1aae2ce5c6f4ff35fafc45fe9cd26a358d9629de1ae84951abeae8d5f1e9",
+      "transition_observations": {
+        "accepted": 930,
+        "sha256": "a4d89a8df40d86bf6704e94a47f2f89d5e569f8160afa56ccb4c486789596803"
+      }
+    },
+    "iso2022_jp_2": {
+      "ascii_pair_sha256": "f2efd7eb8d14ab980f0cd565a7871b69577b1bea2ad4218997ea6e13f3811213",
+      "ascii_single_sha256": "d283a73e6180071867ef9f9315bab2a6399826384e6e946cd10e811256096fac",
+      "designations": [
+        {
+          "all_input_sha256": "b69af14879996070c89cf989360c03ca8206273bc61143451c2915bbbd7f1161",
+          "file": "iso2022-5f4ecdb7b71c3e40.bin",
+          "mark": 65,
+          "prefix_base64": "GyhB",
+          "width": 1
+        },
+        {
+          "all_input_sha256": "b69af14879996070c89cf989360c03ca8206273bc61143451c2915bbbd7f1161",
+          "file": "iso2022-5f4ecdb7b71c3e40.bin",
+          "mark": 70,
+          "prefix_base64": "GyhG",
+          "width": 1
+        },
+        {
+          "all_input_sha256": "c180a4d161e633203b0645d35196e243335996c9fe181c1f3ca0e29d980bf5f3",
+          "file": "iso2022-82aa42796bf13b9b.bin",
+          "mark": 74,
+          "prefix_base64": "GyhK",
+          "width": 1
+        },
+        {
+          "all_input_sha256": "2235ed4da786456146c072b03a5c523fa7708aaee2ab4b748bf2e2560645a5f4",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 192,
+          "prefix_base64": "GyQoQA==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "297303807d6e99cd1fb8ed0bc45f16bfc0b5143b3ca52c6a18d297a1fb0e132a",
+          "file": "iso2022-4fa8377481733ef3.bin",
+          "mark": 193,
+          "prefix_base64": "GyQoQQ==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "2235ed4da786456146c072b03a5c523fa7708aaee2ab4b748bf2e2560645a5f4",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 194,
+          "prefix_base64": "GyQoQg==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "0daf5b15bd8116083e84f66b0d264b92a038ab7819416272229c07709c116c43",
+          "file": "iso2022-fad0bd5e53d84d38.bin",
+          "mark": 195,
+          "prefix_base64": "GyQoQw==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "41872c84491ad40bb874d12e8910e21f9369c6c94e0b7801f194a0598ef9dcc2",
+          "file": "iso2022-cfa640abad6e3f84.bin",
+          "mark": 196,
+          "prefix_base64": "GyQoRA==",
+          "width": 2
+        }
+      ],
+      "g2": [
+        {
+          "file": "iso2022-f6993e8ada1c11de.bin",
+          "mark": 66
+        },
+        {
+          "file": "iso2022-9a13d95535bef69a.bin",
+          "mark": 65
+        },
+        {
+          "file": "iso2022-85809019db09db91.bin",
+          "mark": 70
+        }
+      ],
+      "observations_sha256": "28cd11f4261885e008c5d2548e06ed22f063db54170adeacf5be02ada0e6a00d",
+      "transition_observations": {
+        "accepted": 1110,
+        "sha256": "26b7562c8f2ce2f976ca63e526cdfa86cf8d45682967b07c7f312c56dcbe1396"
+      }
+    },
+    "iso2022_jp_2004": {
+      "ascii_pair_sha256": "338c79aae2366644f7a106730e3a8598649ee08c070f87e2b828d49f6a713d21",
+      "ascii_single_sha256": "d283a73e6180071867ef9f9315bab2a6399826384e6e946cd10e811256096fac",
+      "designations": [
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 194,
+          "prefix_base64": "GyQoQg==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "7c3f06cce4e2e1fe14ee12b6c9aa2698aadd324efd1159184c69af6c341c3d4e",
+          "file": "iso2022-90b048be4cda592e.bin",
+          "mark": 208,
+          "prefix_base64": "GyQoUA==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "2451ac01518a20e187af0df31dcdb6152adbc13b99a30f5b1e30872894020b17",
+          "file": "iso2022-a69923d05c17c9e6.bin",
+          "mark": 209,
+          "prefix_base64": "GyQoUQ==",
+          "width": 2
+        }
+      ],
+      "g2": [],
+      "observations_sha256": "88900df99c9ed1f7662956da85db2bc81e2695fab148c4607ed9981998cc2b52",
+      "transition_observations": {
+        "accepted": 881,
+        "sha256": "87172b4639142810602c45af3cf85c1ac986587fc52c0a2fb4fc1f3a57b9d2e0"
+      }
+    },
+    "iso2022_jp_3": {
+      "ascii_pair_sha256": "338c79aae2366644f7a106730e3a8598649ee08c070f87e2b828d49f6a713d21",
+      "ascii_single_sha256": "d283a73e6180071867ef9f9315bab2a6399826384e6e946cd10e811256096fac",
+      "designations": [
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 194,
+          "prefix_base64": "GyQoQg==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "f26a75229da856ce7c51cfe5c204525ff5219abd30a9bd1fde2fbb0001875846",
+          "file": "iso2022-8bd10cf2666843d5.bin",
+          "mark": 207,
+          "prefix_base64": "GyQoTw==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "7c3f06cce4e2e1fe14ee12b6c9aa2698aadd324efd1159184c69af6c341c3d4e",
+          "file": "iso2022-90b048be4cda592e.bin",
+          "mark": 208,
+          "prefix_base64": "GyQoUA==",
+          "width": 2
+        }
+      ],
+      "g2": [],
+      "observations_sha256": "f8e8f79ee8b950b14dbf23f01bfec26b63a6125a3b1d72613e3765b2e8076a5a",
+      "transition_observations": {
+        "accepted": 876,
+        "sha256": "c3d1c10507d73d0a5b6e26775fb613024bd6d3672bfd79094c852097173f61d6"
+      }
+    },
+    "iso2022_jp_ext": {
+      "ascii_pair_sha256": "338c79aae2366644f7a106730e3a8598649ee08c070f87e2b828d49f6a713d21",
+      "ascii_single_sha256": "d283a73e6180071867ef9f9315bab2a6399826384e6e946cd10e811256096fac",
+      "designations": [
+        {
+          "all_input_sha256": "35c8063eda3291940d7241aefea5534acf4c6068c14948de1f211a73171b5e45",
+          "file": "iso2022-ea597a7db537ac5f.bin",
+          "mark": 73,
+          "prefix_base64": "GyhJ",
+          "width": 1
+        },
+        {
+          "all_input_sha256": "c180a4d161e633203b0645d35196e243335996c9fe181c1f3ca0e29d980bf5f3",
+          "file": "iso2022-82aa42796bf13b9b.bin",
+          "mark": 74,
+          "prefix_base64": "GyhK",
+          "width": 1
+        },
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 192,
+          "prefix_base64": "GyQoQA==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "3f88c1e48657c6e04c705294c6d8bd6544764d5270de1851c18aa1277302ede6",
+          "file": "iso2022-241a84e1ca5dee1d.bin",
+          "mark": 194,
+          "prefix_base64": "GyQoQg==",
+          "width": 2
+        },
+        {
+          "all_input_sha256": "8407b9e4549705c5a19a911bafb8986c0927162d77de0bc1b9e8fdfa06e8f349",
+          "file": "iso2022-cfa640abad6e3f84.bin",
+          "mark": 196,
+          "prefix_base64": "GyQoRA==",
+          "width": 2
+        }
+      ],
+      "g2": [],
+      "observations_sha256": "b1d6e20e4f5dff1c6abc6d2c1f847cd3b3a90462f2585f2079e3bd95a34f27d6",
+      "transition_observations": {
+        "accepted": 963,
+        "sha256": "6f98f8d2f6fe475e0c2d4dc66f7138606b655cda7c96b732804ae2392eefb344"
+      }
+    },
+    "iso2022_kr": {
+      "ascii_pair_sha256": "6ffd63445d7e7c4a3fb30bae120bba90530c27f87157f68ecede76160f6dd008",
+      "ascii_single_sha256": "6f5d74d12c46816f9385540f50cb28d1e90f18324e59de405417c154f6e36900",
+      "designations": [
+        {
+          "all_input_sha256": "837e7abe24937bd3fb2c60d2aba1bbb7f945786a5189e66dcbd2170320936a07",
+          "file": "iso2022-fad0bd5e53d84d38.bin",
+          "mark": 195,
+          "prefix_base64": "GyQoQw==",
+          "width": 2
+        }
+      ],
+      "g2": [],
+      "observations_sha256": "65a998d63c58d00dec5d6fd9f0097f4284aeb779db1f6d52f57c60a5f55f0b93",
+      "transition_observations": {
+        "accepted": 840,
+        "sha256": "f58995905681c1121476080b04ef1126971fa5e6e99634c7e3a6a1700131be36"
+      }
+    }
+  },
+  "files": {
+    "iso2022-241a84e1ca5dee1d.bin": {
+      "sha256": "241a84e1ca5dee1d539107291776edaa54b5d0c78b287f7d16ff312a729170a3",
+      "size": 262144
+    },
+    "iso2022-4fa8377481733ef3.bin": {
+      "sha256": "4fa8377481733ef325467adf5f37bee36b106193dca54299fa682c99bc9f05bc",
+      "size": 262144
+    },
+    "iso2022-5f4ecdb7b71c3e40.bin": {
+      "sha256": "5f4ecdb7b71c3e403983fe405cddcdc2f2576b655fdb3e80d94a6f7c32e58bc2",
+      "size": 1024
+    },
+    "iso2022-82aa42796bf13b9b.bin": {
+      "sha256": "82aa42796bf13b9bd2c1bd00d6e046b18b8cdf514f98d9e6f2c13df14412eb6d",
+      "size": 1024
+    },
+    "iso2022-85809019db09db91.bin": {
+      "sha256": "85809019db09db91e520fbe64698a17655dd332f432097a1a06db5490b811c91",
+      "size": 1024
+    },
+    "iso2022-8bd10cf2666843d5.bin": {
+      "sha256": "8bd10cf2666843d590dffaea522188ad810ea716264bb6e372891a7e563224ca",
+      "size": 262144
+    },
+    "iso2022-90b048be4cda592e.bin": {
+      "sha256": "90b048be4cda592e203960620c3f328bf87f98d98126b884198f6f1ce4c44c9f",
+      "size": 262144
+    },
+    "iso2022-9a13d95535bef69a.bin": {
+      "sha256": "9a13d95535bef69a892153ede436d906893a4da474e446015124f4054aec3cc6",
+      "size": 1024
+    },
+    "iso2022-a69923d05c17c9e6.bin": {
+      "sha256": "a69923d05c17c9e647f68e151ef79fbfe326da13c74a623429d7ba7bff311717",
+      "size": 262144
+    },
+    "iso2022-cfa640abad6e3f84.bin": {
+      "sha256": "cfa640abad6e3f8495372ebdc3a1df5701f72fbd95a4b4fc13bdd656385009d4",
+      "size": 262144
+    },
+    "iso2022-ea597a7db537ac5f.bin": {
+      "sha256": "ea597a7db537ac5fbb986dcb2c7ac1b86de07f19644eb70eb10490e9c1149adf",
+      "size": 1024
+    },
+    "iso2022-f6993e8ada1c11de.bin": {
+      "sha256": "f6993e8ada1c11de47566854111ca603198a980f317d7c31601a0d1af131d5a8",
+      "size": 1024
+    },
+    "iso2022-fad0bd5e53d84d38.bin": {
+      "sha256": "fad0bd5e53d84d38efd31feee54a37883366a0ae2405d8a151b8ba6d3e78c9bc",
+      "size": 262144
+    }
+  },
+  "format": "ici.python-stateful-codec-observations/v1",
+  "generated_rust_sha256": "780c0eb23dd0bbb593b8b10cf44138e85b847c46a7e9e09c8a814c7cecf20532",
+  "reference_python": "3.14.7",
+  "source_url": "https://github.com/python/cpython/blob/v3.14.7/Modules/cjkcodecs/_codecs_iso2022.c",
+  "transition_count": 4096,
+  "transition_fragments_base64": [
+    "cGxhaW4=",
+    "Cg==",
+    "DQ==",
+    "Dg==",
+    "Dw==",
+    "Gw==",
+    "GyQ=",
+    "GyhC",
+    "GyRC",
+    "GyQpQw==",
+    "GyQoRA==",
+    "GyQoTw==",
+    "GyQoUA==",
+    "GyQoUQ==",
+    "GyhK",
+    "GyhJ",
+    "Gy5B",
+    "Gy5G",
+    "G05C",
+    "G05p",
+    "G05h",
+    "GyZAGyRC",
+    "GyZAGyRB",
+    "G1s=",
+    "G07/",
+    "GyhCG04=",
+    "GyAgICAgICAgICAgICAgICA=",
+    "fns=",
+    "fn0=",
+    "fn4=",
+    "fgo=",
+    "RnxLXA==",
+    "ISE=",
+    "JHc=",
+    "MCE=",
+    "GylK",
+    "GyQoQQ==",
+    "Gy5D"
+  ],
+  "transition_seed": 3235826430
+}

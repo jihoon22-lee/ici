@@ -1,0 +1,812 @@
+{
+  "oracle": "6fe3e405",
+  "cases": [
+    {
+      "name": "single-defaults",
+      "input": {
+        "schema_version": "ici.result/v2",
+        "engine_name": "lint",
+        "status": "PASS",
+        "producer_extension": {
+          "retain": [
+            1,
+            2
+          ]
+        }
+      },
+      "project_root": null,
+      "expected": {
+        "schema_version": "ici.result/v3",
+        "engine_name": "lint",
+        "status": "PASS",
+        "producer_extension": {
+          "retain": [
+            1,
+            2
+          ]
+        },
+        "summary": "",
+        "score": null,
+        "max_score": null,
+        "duration": 0.0,
+        "raw_output": "",
+        "extra": {},
+        "required": true,
+        "evidence": "NOT_RUN",
+        "cache_hit": false,
+        "cache_key": null,
+        "tool_evidence": [],
+        "targets": [],
+        "findings": [],
+        "support_matrix": null,
+        "artifact_manifests": []
+      }
+    },
+    {
+      "name": "unicode-overloads-regions",
+      "input": {
+        "schema_version": "ici.result/v2",
+        "engine_name": "complexity",
+        "status": "WARN",
+        "evidence": "ESTIMATED",
+        "targets": [
+          {
+            "file_path": "src/café.py",
+            "start_line": 2,
+            "end_line": 5,
+            "start_column": 2,
+            "end_column": 8,
+            "target_name": "f",
+            "status": "WARN",
+            "metrics": {
+              "complexity": 12,
+              "nesting": 3,
+              "ignored": "x"
+            }
+          },
+          {
+            "file_path": "src/café.py",
+            "start_line": 9,
+            "target_name": "f",
+            "status": "PASS"
+          },
+          {
+            "file_path": "src/café.py",
+            "start_line": 13,
+            "target_name": "unique",
+            "status": "FAIL",
+            "snippet": "return 1"
+          }
+        ]
+      },
+      "project_root": null,
+      "expected": {
+        "schema_version": "ici.result/v3",
+        "engine_name": "complexity",
+        "status": "WARN",
+        "evidence": "ESTIMATED",
+        "targets": [
+          {
+            "file_path": "src/café.py",
+            "start_line": 2,
+            "end_line": 5,
+            "start_column": 2,
+            "end_column": 8,
+            "target_name": "f",
+            "status": "WARN",
+            "message": "",
+            "snippet": "",
+            "metrics": {
+              "complexity": 12,
+              "nesting": 3,
+              "ignored": "x"
+            }
+          },
+          {
+            "file_path": "src/café.py",
+            "start_line": 9,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "target_name": "f",
+            "status": "PASS",
+            "message": "",
+            "snippet": "",
+            "metrics": {}
+          },
+          {
+            "file_path": "src/café.py",
+            "start_line": 13,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "target_name": "unique",
+            "status": "FAIL",
+            "message": "",
+            "snippet": "return 1",
+            "metrics": {}
+          }
+        ],
+        "summary": "",
+        "score": null,
+        "max_score": null,
+        "duration": 0.0,
+        "raw_output": "",
+        "extra": {},
+        "required": true,
+        "cache_hit": false,
+        "cache_key": null,
+        "tool_evidence": [],
+        "findings": [
+          {
+            "rule_id": "ici.legacy.complexity.target",
+            "category": "maintainability",
+            "severity": "info",
+            "confidence": "medium",
+            "fingerprint": "sha256:5ce23174a22ef5fc2bf1252d469c0d288d8d92f8a3b2a3629dfcfe9594901934",
+            "primary_location": {
+              "path": "src/café.py",
+              "start_line": 9,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "f"
+            },
+            "related_locations": [],
+            "message": "",
+            "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+            "remediation": "",
+            "tool_rule_id": "",
+            "tool_name": "",
+            "tool_version": "",
+            "suppression": {
+              "suppressed": false,
+              "kind": "none",
+              "reason": ""
+            },
+            "metrics": {},
+            "snippet": "",
+            "fixes": []
+          },
+          {
+            "rule_id": "ici.legacy.complexity.target",
+            "category": "maintainability",
+            "severity": "medium",
+            "confidence": "medium",
+            "fingerprint": "sha256:8a799a800e56eda3febfeb3904594de1669ddcf37250e54351576f15aad0ebd4",
+            "primary_location": {
+              "path": "src/café.py",
+              "start_line": 2,
+              "end_line": 5,
+              "start_column": 2,
+              "end_column": 8,
+              "label": "f"
+            },
+            "related_locations": [],
+            "message": "",
+            "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+            "remediation": "",
+            "tool_rule_id": "",
+            "tool_name": "",
+            "tool_version": "",
+            "suppression": {
+              "suppressed": false,
+              "kind": "none",
+              "reason": ""
+            },
+            "metrics": {
+              "complexity": {
+                "value": 12,
+                "unit": ""
+              },
+              "nesting": {
+                "value": 3,
+                "unit": "levels"
+              }
+            },
+            "snippet": "",
+            "fixes": []
+          },
+          {
+            "rule_id": "ici.legacy.complexity.target",
+            "category": "maintainability",
+            "severity": "high",
+            "confidence": "medium",
+            "fingerprint": "sha256:ce47a067f02428ad17340058d793c080c94061b8eea74e6823f159aec66efbdf",
+            "primary_location": {
+              "path": "src/café.py",
+              "start_line": 13,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "unique"
+            },
+            "related_locations": [],
+            "message": "",
+            "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+            "remediation": "",
+            "tool_rule_id": "",
+            "tool_name": "",
+            "tool_version": "",
+            "suppression": {
+              "suppressed": false,
+              "kind": "none",
+              "reason": ""
+            },
+            "metrics": {},
+            "snippet": "return 1",
+            "fixes": []
+          }
+        ],
+        "support_matrix": null,
+        "artifact_manifests": []
+      }
+    },
+    {
+      "name": "suite-counts-and-passtargets",
+      "input": {
+        "schema_version": "ici.result/v2",
+        "suite_status": "FAIL",
+        "duration": 1.25,
+        "tem_score": 3.5,
+        "results": [
+          {
+            "engine_name": "lint",
+            "status": "FAIL",
+            "evidence": "MEASURED",
+            "targets": [
+              {
+                "file_path": "src/x.py",
+                "start_line": 3,
+                "target_name": "F401",
+                "status": "FAIL",
+                "message": "unused"
+              }
+            ]
+          },
+          {
+            "engine_name": "line",
+            "status": "PASS",
+            "targets": [
+              {
+                "file_path": "src/x.py",
+                "start_line": 1,
+                "status": "PASS",
+                "metrics": {
+                  "lines": 3
+                }
+              }
+            ]
+          },
+          {
+            "engine_name": "test",
+            "status": "SKIP"
+          },
+          {
+            "engine_name": "type",
+            "status": "ERROR"
+          }
+        ]
+      },
+      "project_root": null,
+      "expected": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "FAIL",
+        "duration": 1.25,
+        "tem_score": 3.5,
+        "results": [
+          {
+            "engine_name": "lint",
+            "status": "FAIL",
+            "evidence": "MEASURED",
+            "targets": [
+              {
+                "file_path": "src/x.py",
+                "start_line": 3,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "target_name": "F401",
+                "status": "FAIL",
+                "message": "unused",
+                "snippet": "",
+                "metrics": {}
+              }
+            ],
+            "schema_version": "ici.result/v3",
+            "summary": "",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "maintainability",
+                "severity": "high",
+                "confidence": "high",
+                "fingerprint": "sha256:f4e2ac62e7bd47758ee652cf95e319e0e3e67ab0561fbf7d25364082c10bc80c",
+                "primary_location": {
+                  "path": "src/x.py",
+                  "start_line": 3,
+                  "end_line": null,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": "F401"
+                },
+                "related_locations": [],
+                "message": "unused",
+                "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "engine_name": "line",
+            "status": "PASS",
+            "targets": [
+              {
+                "file_path": "src/x.py",
+                "start_line": 1,
+                "end_line": null,
+                "start_column": null,
+                "end_column": null,
+                "target_name": "",
+                "status": "PASS",
+                "message": "",
+                "snippet": "",
+                "metrics": {
+                  "lines": 3
+                }
+              }
+            ],
+            "schema_version": "ici.result/v3",
+            "summary": "",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "NOT_RUN",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.line.target",
+                "category": "maintainability",
+                "severity": "info",
+                "confidence": "low",
+                "fingerprint": "sha256:ed5bf6201a25b3ad652a156cff9b7951520adebc12329ade45f6df95900edc7c",
+                "primary_location": {
+                  "path": "src/x.py",
+                  "start_line": 1,
+                  "end_line": null,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "",
+                "explanation": "Adapted from the legacy line InspectionTarget contract.",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {
+                  "lines": {
+                    "value": 3,
+                    "unit": "lines"
+                  }
+                },
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "engine_name": "test",
+            "status": "SKIP",
+            "schema_version": "ici.result/v3",
+            "summary": "",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "NOT_RUN",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "engine_name": "type",
+            "status": "ERROR",
+            "schema_version": "ici.result/v3",
+            "summary": "",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "NOT_RUN",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "passed_count": 1,
+        "warned_count": 0,
+        "failed_count": 2,
+        "error_count": 1,
+        "skipped_count": 1,
+        "total_count": 4,
+        "max_tem_score": 5.0,
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      }
+    },
+    {
+      "name": "invalid-positions-normalized",
+      "input": {
+        "schema_version": "ici.result/v2",
+        "engine_name": "resource",
+        "status": "invalid",
+        "duration": -1,
+        "score": true,
+        "targets": [
+          {
+            "file_path": "src/x.py",
+            "start_line": -2,
+            "end_line": -4,
+            "start_column": -1,
+            "end_column": 0,
+            "status": "invalid"
+          },
+          {
+            "file_path": "src/x.py",
+            "start_line": "4",
+            "end_line": 3,
+            "start_column": 10,
+            "end_column": 2
+          }
+        ]
+      },
+      "project_root": null,
+      "expected": {
+        "schema_version": "ici.result/v3",
+        "engine_name": "resource",
+        "status": "ERROR",
+        "duration": 0.0,
+        "score": null,
+        "targets": [
+          {
+            "file_path": "src/x.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "target_name": "",
+            "status": "WARN",
+            "message": "",
+            "snippet": "",
+            "metrics": {}
+          },
+          {
+            "file_path": "src/x.py",
+            "start_line": 4,
+            "end_line": null,
+            "start_column": 10,
+            "end_column": null,
+            "target_name": "",
+            "status": "PASS",
+            "message": "",
+            "snippet": "",
+            "metrics": {}
+          }
+        ],
+        "summary": "",
+        "max_score": null,
+        "raw_output": "",
+        "extra": {},
+        "required": true,
+        "evidence": "NOT_RUN",
+        "cache_hit": false,
+        "cache_key": null,
+        "tool_evidence": [],
+        "findings": [
+          {
+            "rule_id": "ici.legacy.resource.target",
+            "category": "resource",
+            "severity": "info",
+            "confidence": "low",
+            "fingerprint": "sha256:aefa836f6fef12f3339b6b91e925ce7855ce6a6df8021a6da0e723f49a93e529",
+            "primary_location": {
+              "path": "src/x.py",
+              "start_line": 4,
+              "end_line": null,
+              "start_column": 10,
+              "end_column": null,
+              "label": ""
+            },
+            "related_locations": [],
+            "message": "",
+            "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+            "remediation": "",
+            "tool_rule_id": "",
+            "tool_name": "",
+            "tool_version": "",
+            "suppression": {
+              "suppressed": false,
+              "kind": "none",
+              "reason": ""
+            },
+            "metrics": {},
+            "snippet": "",
+            "fixes": []
+          },
+          {
+            "rule_id": "ici.legacy.resource.target",
+            "category": "resource",
+            "severity": "medium",
+            "confidence": "low",
+            "fingerprint": "sha256:b1252e2f4ea6e03837d6c58252942d098b95360a7097eafc32c22c46219f4341",
+            "primary_location": {
+              "path": "src/x.py",
+              "start_line": 1,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": ""
+            },
+            "related_locations": [],
+            "message": "",
+            "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+            "remediation": "",
+            "tool_rule_id": "",
+            "tool_name": "",
+            "tool_version": "",
+            "suppression": {
+              "suppressed": false,
+              "kind": "none",
+              "reason": ""
+            },
+            "metrics": {},
+            "snippet": "",
+            "fixes": []
+          }
+        ],
+        "support_matrix": null,
+        "artifact_manifests": []
+      }
+    },
+    {
+      "name": "absolute-explicit-root",
+      "input": {
+        "schema_version": "ici.result/v2",
+        "engine_name": "security",
+        "status": "WARN",
+        "targets": [
+          {
+            "file_path": "/checkout/src/../app/x.py",
+            "start_line": 2,
+            "target_name": "call:eval",
+            "status": "WARN"
+          }
+        ]
+      },
+      "project_root": "/checkout",
+      "expected": {
+        "schema_version": "ici.result/v3",
+        "engine_name": "security",
+        "status": "WARN",
+        "targets": [
+          {
+            "file_path": "/checkout/src/../app/x.py",
+            "start_line": 2,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "target_name": "call:eval",
+            "status": "WARN",
+            "message": "",
+            "snippet": "",
+            "metrics": {}
+          }
+        ],
+        "summary": "",
+        "score": null,
+        "max_score": null,
+        "duration": 0.0,
+        "raw_output": "",
+        "extra": {},
+        "required": true,
+        "evidence": "NOT_RUN",
+        "cache_hit": false,
+        "cache_key": null,
+        "tool_evidence": [],
+        "findings": [
+          {
+            "rule_id": "ici.legacy.security.target",
+            "category": "security",
+            "severity": "medium",
+            "confidence": "low",
+            "fingerprint": "sha256:2bcef8ea0c6613caf0a00ab41c35f6ee85afcb33285bbfdea222deacce07f956",
+            "primary_location": {
+              "path": "app/x.py",
+              "start_line": 2,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "call:eval"
+            },
+            "related_locations": [],
+            "message": "",
+            "explanation": "Adapted from the legacy security InspectionTarget contract.",
+            "remediation": "",
+            "tool_rule_id": "call:eval",
+            "tool_name": "",
+            "tool_version": "",
+            "suppression": {
+              "suppressed": false,
+              "kind": "none",
+              "reason": ""
+            },
+            "metrics": {},
+            "snippet": "",
+            "fixes": []
+          }
+        ],
+        "support_matrix": null,
+        "artifact_manifests": []
+      }
+    },
+    {
+      "name": "tool-evidence",
+      "input": {
+        "schema_version": "ici.result/v2",
+        "engine_name": "lint",
+        "status": "FAIL",
+        "tool_evidence": [
+          {
+            "name": "gcc",
+            "version": "12",
+            "argv": [
+              "gcc",
+              "-c",
+              "x.cpp"
+            ],
+            "returncode": 1
+          }
+        ],
+        "targets": [
+          {
+            "file_path": "x.cpp",
+            "start_line": 1,
+            "status": "FAIL",
+            "target_name": "gcc:unused"
+          }
+        ]
+      },
+      "project_root": null,
+      "expected": {
+        "schema_version": "ici.result/v3",
+        "engine_name": "lint",
+        "status": "FAIL",
+        "tool_evidence": [
+          {
+            "name": "gcc",
+            "path": "",
+            "version": "12",
+            "argv": [
+              "gcc",
+              "-c",
+              "x.cpp"
+            ],
+            "returncode": 1,
+            "timed_out": false,
+            "truncated": false,
+            "error": ""
+          }
+        ],
+        "targets": [
+          {
+            "file_path": "x.cpp",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "target_name": "gcc:unused",
+            "status": "FAIL",
+            "message": "",
+            "snippet": "",
+            "metrics": {}
+          }
+        ],
+        "summary": "",
+        "score": null,
+        "max_score": null,
+        "duration": 0.0,
+        "raw_output": "",
+        "extra": {},
+        "required": true,
+        "evidence": "NOT_RUN",
+        "cache_hit": false,
+        "cache_key": null,
+        "findings": [
+          {
+            "rule_id": "ici.legacy.lint.target",
+            "category": "maintainability",
+            "severity": "high",
+            "confidence": "low",
+            "fingerprint": "sha256:dab62c91651f566814cce475e13a39e7e3cfe1dceafd9d2827f81be463b34a3c",
+            "primary_location": {
+              "path": "x.cpp",
+              "start_line": 1,
+              "end_line": null,
+              "start_column": null,
+              "end_column": null,
+              "label": "gcc:unused"
+            },
+            "related_locations": [],
+            "message": "",
+            "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+            "remediation": "",
+            "tool_rule_id": "gcc:unused",
+            "tool_name": "gcc",
+            "tool_version": "12",
+            "suppression": {
+              "suppressed": false,
+              "kind": "none",
+              "reason": ""
+            },
+            "metrics": {},
+            "snippet": "",
+            "fixes": []
+          }
+        ],
+        "support_matrix": null,
+        "artifact_manifests": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema_id": "ici.rust.migration.native-tool-inputs",
+  "schema_version": 1,
+  "observed_date": "2026-10-28",
+  "tools": [
+    {
+      "tool": "ruff",
+      "version": "0.16.4",
+      "target": "x86_64-unknown-linux-musl",
+      "url": "https://github.com/astral-sh/ruff/releases/download/0.16.4/ruff-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "0c2a1616b0782dbf7ee04239576887c4c894277189e04ba94ff3160eba9c1863",
+      "archive_size": 10313237,
+      "license_url": "https://raw.githubusercontent.com/astral-sh/ruff/0.16.4/LICENSE",
+      "license_sha256": "2597d854122b77ddc71971564ca2350a37608575ce324adc5650a2b2051c8f18",
+      "license": "MIT",
+      "upstream_api_digest_verified": true,
+      "upstream_manifest_verified": true,
+      "binary_sha256": "7e400fc9f00bb64f0cf90824c3a17364530f0455a5d3295eb8eb9003cdc4a225",
+      "binary_size": 25294400,
+      "observed_format": "ELF64 x86-64 static PIE; no PT_INTERP or DT_NEEDED",
+      "support_status": "tested on WSL2 x86_64 only; R8 distribution acceptance pending"
+    },
+    {
+      "tool": "ty",
+      "version": "0.0.93",
+      "target": "x86_64-unknown-linux-musl",
+      "url": "https://github.com/astral-sh/ty/releases/download/0.0.93/ty-x86_64-unknown-linux-musl.tar.gz",
+      "archive_sha256": "7b5818953dc37b90bb032298702538ad5cc971024ba3c1bebe3a2795e6761272",
+      "archive_size": 14516854,
+      "license_url": "https://raw.githubusercontent.com/astral-sh/ty/0.0.93/LICENSE",
+      "license_sha256": "860e3d7a86b84e6a7012c7a635fc64df475cebc6cce34dfeb73a5982ec58176c",
+      "license": "MIT",
+      "upstream_api_digest_verified": true,
+      "upstream_manifest_verified": true,
+      "binary_sha256": "b7884067495f28d7595ef68e9becf447880d46df7edd1b47d5faf5c485a0096a",
+      "binary_size": 33174208,
+      "observed_format": "ELF64 x86-64 static PIE; no PT_INTERP or DT_NEEDED",
+      "support_status": "tested on WSL2 x86_64 only; R8 distribution acceptance pending"
+    }
+  ]
+}

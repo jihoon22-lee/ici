@@ -1,0 +1,1518 @@
+{
+  "oracle_file": "src/ici/analysis/_python_dup_semantics.py",
+  "oracle_file_sha256": "47fae4f1e3aa6f571a51e1f564339c5389d77bce80d82ceafe2aa09c4922ebc9",
+  "cases": [
+    {
+      "id": "binders-contexts",
+      "sources": {
+        "main.py": "def f(value):\n    total = value + 1\n    total += 2\n    del total\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 4,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Add\",[]]],[\"right\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]],[\"type_comment\",null]]],[\"AugAssign\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]],[\"op\",[\"Add\",[]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",2]]]]]]],[\"Delete\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Del\",[]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "fae8a33b0707a334db66c8d2e2290e0640f25bad3ec938ea875a3d71ca79944a",
+            "node_count": 19,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 20,
+        "serialized_chars": 756
+      }
+    },
+    {
+      "id": "control-flow",
+      "sources": {
+        "main.py": "def f(value):\n    if value > 0:\n        return value + 1\n    elif value < 0:\n        return -value\n    else:\n        return 0\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 7,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"If\",[[\"test\",[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"Gt\",[]]]],[\"comparators\",[[\"Constant\",[[\"value\",[\"int\",0]]]]]]]]],[\"body\",[[\"Return\",[[\"value\",[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Add\",[]]],[\"right\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]]]]],[\"orelse\",[[\"If\",[[\"test\",[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"Lt\",[]]]],[\"comparators\",[[\"Constant\",[[\"value\",[\"int\",0]]]]]]]]],[\"body\",[[\"Return\",[[\"value\",[\"UnaryOp\",[[\"op\",[\"USub\",[]]],[\"operand\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]]]]],[\"orelse\",[[\"Return\",[[\"value\",[\"Constant\",[[\"value\",[\"int\",0]]]]]]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "a66b4e0145134a208acdca2c0cd7c0931749023df5e32dd3dd996eeafaa9a914",
+            "node_count": 28,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 29,
+        "serialized_chars": 1004
+      }
+    },
+    {
+      "id": "loop-else",
+      "sources": {
+        "main.py": "def f(values):\n    result = 0\n    for item in values:\n        if item:\n            continue\n        break\n    else:\n        result += 1\n    while result < 3:\n        result += 1\n    else:\n        return result\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 12,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",0]]]]],[\"type_comment\",null]]],[\"For\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]]],[\"iter\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"body\",[[\"If\",[[\"test\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]],[\"body\",[[\"Continue\",[]]]],[\"orelse\",[]]]],[\"Break\",[]]]],[\"orelse\",[[\"AugAssign\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]],[\"op\",[\"Add\",[]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]],[\"type_comment\",null]]],[\"While\",[[\"test\",[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"Lt\",[]]]],[\"comparators\",[[\"Constant\",[[\"value\",[\"int\",3]]]]]]]]],[\"body\",[[\"AugAssign\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]],[\"op\",[\"Add\",[]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]],[\"orelse\",[[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "e6e125800802600c9888abd2002ddcc09673c7f11d5cc455f18f56abd858e799",
+            "node_count": 36,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 37,
+        "serialized_chars": 1277
+      }
+    },
+    {
+      "id": "api-anchors",
+      "sources": {
+        "main.py": "from toolkit import formatter\ndef f(items):\n    output = formatter(items)\n    return len(output), output.service.render()\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 2,
+            "end_line": 4,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"formatter\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]]],[\"type_comment\",null]]],[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"len\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]],[\"Call\",[[\"func\",[\"Attribute\",[[\"value\",[\"Attribute\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]],[\"attr\",\"service\"],[\"ctx\",[\"Load\",[]]]]]],[\"attr\",\"render\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[]],[\"keywords\",[]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "c5a69a1807147b994e0a3badcab27a0c7445cc2817c723c2d5d0e713a9f5c1b4",
+            "node_count": 26,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 29,
+        "serialized_chars": 986
+      }
+    },
+    {
+      "id": "signature-scopes",
+      "sources": {
+        "main.py": "@value\ndef first(value: value = value) -> value:\n    return value\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "first",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",[\"Name\",[[\"id\",\"value\"],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[[\"Name\",[[\"id\",\"value\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[[\"Name\",[[\"id\",\"value\"],[\"ctx\",[\"Load\",[]]]]]]],[\"returns\",[\"Name\",[[\"id\",\"value\"],[\"ctx\",[\"Load\",[]]]]]]]]",
+            "fingerprint": "4f196fe692a8ea2f6f62d1d4d0407674ea6e8be2dcf8730b2e2e6a401d58f971",
+            "node_count": 14,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 15,
+        "serialized_chars": 546
+      }
+    },
+    {
+      "id": "all-arguments",
+      "sources": {
+        "main.py": "def f(a, b=2, /, c: int=3, *args: tuple, flag: bool=True, missing, **kw: dict) -> str:\n    return str((a,b,c,args,flag,missing,kw))\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_2\"],[\"annotation\",[\"Name\",[[\"id\",\"int\"],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]]]],[\"vararg\",[\"arg\",[[\"arg\",\"LOCAL_3\"],[\"annotation\",[\"Name\",[[\"id\",\"tuple\"],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]]],[\"kwonlyargs\",[[\"arg\",[[\"arg\",\"LOCAL_4\"],[\"annotation\",[\"Name\",[[\"id\",\"bool\"],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_5\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"kw_defaults\",[[\"Constant\",[[\"value\",[\"bool\",true]]]],null]],[\"kwarg\",[\"arg\",[[\"arg\",\"LOCAL_6\"],[\"annotation\",[\"Name\",[[\"id\",\"dict\"],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]]],[\"defaults\",[[\"Constant\",[[\"value\",[\"int\",2]]]],[\"Constant\",[[\"value\",[\"int\",3]]]]]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"str\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Tuple\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_3\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_4\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_5\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_6\"],[\"ctx\",[\"Load\",[]]]]]]],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]]]]]]],[\"decorator_list\",[]],[\"returns\",[\"Name\",[[\"id\",\"str\"],[\"ctx\",[\"Load\",[]]]]]]]]",
+            "fingerprint": "f59ed3eb39173e9a1b323a03e5fc1692f4a8fecae5184dbf958675b874962c51",
+            "node_count": 42,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 43,
+        "serialized_chars": 1515
+      }
+    },
+    {
+      "id": "class-shapes",
+      "sources": {
+        "main.py": "@decorator\nclass C(Base, metaclass=Meta):\n    attribute = 3\n    def method(self, value):\n        return value\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "C",
+            "kind": "class",
+            "start_line": 1,
+            "end_line": 5,
+            "canonical_shape": "[\"ClassDef\",[[\"name\",\"<class-name>\"],[\"bases\",[[\"Name\",[[\"id\",\"Base\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[[\"keyword\",[[\"arg\",\"metaclass\"],[\"value\",[\"Name\",[[\"id\",\"Meta\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",3]]]]],[\"type_comment\",null]]]]],[\"decorator_list\",[[\"Name\",[[\"id\",\"decorator\"],[\"ctx\",[\"Load\",[]]]]]]]]]",
+            "fingerprint": "6b58a2c56e89ded96f39b54b2b223807a321352d879f7c541772730e78c50b50",
+            "node_count": 12,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          },
+          {
+            "file_path": "main.py",
+            "name": "C.method",
+            "kind": "method",
+            "start_line": 4,
+            "end_line": 5,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "55ce7c4c41cb653e21776c070f95ca0b71240232fd928df72238c50d08713fa0",
+            "node_count": 7,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 20,
+        "serialized_chars": 868
+      }
+    },
+    {
+      "id": "recursive",
+      "sources": {
+        "main.py": "def calculate(value):\n    return calculate(value-1) if value else 0\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "calculate",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"IfExp\",[[\"test\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"body\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"<self-name>\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Sub\",[]]],[\"right\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]],[\"keywords\",[]]]]],[\"orelse\",[\"Constant\",[[\"value\",[\"int\",0]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "f744f2f59ffc6f485334741afad0543a7a0cecc2faa08ab9c272793855fef7df",
+            "node_count": 16,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 17,
+        "serialized_chars": 681
+      }
+    },
+    {
+      "id": "self-name-shadow",
+      "sources": {
+        "main.py": "def calculate():\n    calculate = 1\n    return calculate\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "calculate",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",1]]]]],[\"type_comment\",null]]],[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "5298f172bca8c997313437047efd9c16c33525c3e699255134b3b7d93c8b1f2c",
+            "node_count": 9,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 10,
+        "serialized_chars": 448
+      }
+    },
+    {
+      "id": "nested-named-pruning",
+      "sources": {
+        "main.py": "def outer(value):\n    def inner(first):\n        return first + 99\n    class Nested:\n        def method(self,item):\n            return item + 100\n    return value + 1\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "outer",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 7,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Add\",[]]],[\"right\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "9eed90feb2db3a1d686f2081b43ffae7e26c30f71e4452879c8034bb201949b7",
+            "node_count": 9,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          },
+          {
+            "file_path": "main.py",
+            "name": "outer.inner",
+            "kind": "function",
+            "start_line": 2,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Add\",[]]],[\"right\",[\"Constant\",[[\"value\",[\"int\",99]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "334ee54b144bbb80560b6c80f73dab641f332d447b16c2dcad7e2687f7dcb30a",
+            "node_count": 9,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          },
+          {
+            "file_path": "main.py",
+            "name": "outer.Nested",
+            "kind": "class",
+            "start_line": 4,
+            "end_line": 6,
+            "canonical_shape": "[\"ClassDef\",[[\"name\",\"<class-name>\"],[\"bases\",[]],[\"keywords\",[]],[\"body\",[]],[\"decorator_list\",[]]]]",
+            "fingerprint": "6ba314fa7bdd027b0df53ecf65b941f2e6132a2f971acfd43dfd622fbd2a5784",
+            "node_count": 1,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          },
+          {
+            "file_path": "main.py",
+            "name": "outer.Nested.method",
+            "kind": "method",
+            "start_line": 5,
+            "end_line": 6,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Add\",[]]],[\"right\",[\"Constant\",[[\"value\",[\"int\",100]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "35756c7cd24473a9f6b0a6c59665a8d1f32ee424e398eaabeef0a601b4dc2d61",
+            "node_count": 10,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 30,
+        "serialized_chars": 1548
+      }
+    },
+    {
+      "id": "async-constructs",
+      "sources": {
+        "main.py": "async def f(values):\n    async with acquire() as handle:\n        async for item in values:\n            yield await use(item)\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 4,
+            "canonical_shape": "[\"AsyncFunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"AsyncWith\",[[\"items\",[[\"withitem\",[[\"context_expr\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"acquire\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[]],[\"keywords\",[]]]]],[\"optional_vars\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]]]]]],[\"body\",[[\"AsyncFor\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]]],[\"iter\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"body\",[[\"Expr\",[[\"value\",[\"Yield\",[[\"value\",[\"Await\",[[\"value\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"use\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]]]]]]]]]]]]],[\"orelse\",[]],[\"type_comment\",null]]]]],[\"type_comment\",null]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "1f97e6ee63ce1c7d0c6de822a912d7f158f30ec180e6a099c2232ce4b8f69dc8",
+            "node_count": 23,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 24,
+        "serialized_chars": 947
+      }
+    },
+    {
+      "id": "try-raise-assert",
+      "sources": {
+        "main.py": "def f(x):\n    try:\n        assert x, \"message\"\n        raise ValueError(x) from error\n    except ValueError as caught:\n        raise\n    else:\n        return x\n    finally:\n        cleanup()\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 10,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Try\",[[\"body\",[[\"Assert\",[[\"test\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"msg\",[\"Constant\",[[\"value\",[\"str\",\"message\"]]]]]]],[\"Raise\",[[\"exc\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"ValueError\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]]],[\"cause\",[\"Name\",[[\"id\",\"error\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"handlers\",[[\"ExceptHandler\",[[\"type\",[\"Name\",[[\"id\",\"ValueError\"],[\"ctx\",[\"Load\",[]]]]]],[\"name\",\"LOCAL_1\"],[\"body\",[[\"Raise\",[[\"exc\",null],[\"cause\",null]]]]]]]]],[\"orelse\",[[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"finalbody\",[[\"Expr\",[[\"value\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"cleanup\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[]],[\"keywords\",[]]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "816190582a2170d09e1bb9ad67710c25feef3dcab8ce7ae064bc004c88b62c0c",
+            "node_count": 27,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 28,
+        "serialized_chars": 1049
+      }
+    },
+    {
+      "id": "with-and-delete",
+      "sources": {
+        "main.py": "def f(path):\n    with open(path) as handle, manager() as other:\n        del other.value, handle[1]\n    return None\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 4,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"With\",[[\"items\",[[\"withitem\",[[\"context_expr\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"open\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]]],[\"optional_vars\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]]]],[\"withitem\",[[\"context_expr\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"manager\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[]],[\"keywords\",[]]]]],[\"optional_vars\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]]]]]]],[\"body\",[[\"Delete\",[[\"targets\",[[\"Attribute\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]],[\"attr\",\"value\"],[\"ctx\",[\"Del\",[]]]]],[\"Subscript\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]],[\"slice\",[\"Constant\",[[\"value\",[\"int\",1]]]]],[\"ctx\",[\"Del\",[]]]]]]]]]]],[\"type_comment\",null]]],[\"Return\",[[\"value\",[\"Constant\",[[\"value\",[\"none\",null]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "55c97552d9ab696570cfc95d0fcb0b0b68a2d04557958ba6097bac92eaf8ee5a",
+            "node_count": 30,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 31,
+        "serialized_chars": 1130
+      }
+    },
+    {
+      "id": "imports-and-assignments",
+      "sources": {
+        "main.py": "def f():\n    import os.path as osp\n    from .tool import call as invoke\n    osp = custom\n    value: int = 1\n    a,b = (2,3)\n    return osp.join(invoke(value))\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 7,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Import\",[[\"names\",[[\"alias\",[[\"name\",\"os.path\"],[\"asname\",\"osp\"]]]]]]],[\"ImportFrom\",[[\"module\",\"tool\"],[\"names\",[[\"alias\",[[\"name\",\"call\"],[\"asname\",\"invoke\"]]]]],[\"level\",1]]],[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"osp\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Name\",[[\"id\",\"custom\"],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]],[\"AnnAssign\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]],[\"annotation\",[\"Name\",[[\"id\",\"int\"],[\"ctx\",[\"Load\",[]]]]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",1]]]]],[\"simple\",1]]],[\"Assign\",[[\"targets\",[[\"Tuple\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_3\"],[\"ctx\",[\"Store\",[]]]]]]],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Tuple\",[[\"elts\",[[\"Constant\",[[\"value\",[\"int\",2]]]],[\"Constant\",[[\"value\",[\"int\",3]]]]]],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]],[\"Return\",[[\"value\",[\"Call\",[[\"func\",[\"Attribute\",[[\"value\",[\"Name\",[[\"id\",\"osp\"],[\"ctx\",[\"Load\",[]]]]]],[\"attr\",\"join\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"invoke\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]]]],[\"keywords\",[]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "216cc7a5b146e6ecd18a209a533d8b4d3d00c21ed7731ac3e3178326651ba9f2",
+            "node_count": 39,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 40,
+        "serialized_chars": 1390
+      }
+    },
+    {
+      "id": "named-boolean-unary-compare",
+      "sources": {
+        "main.py": "def f(a,b):\n    if (value := a or b) and not a:\n        return ~value, +value, value is not None, a in b, a not in b, a != b, a <= b >= value\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"If\",[[\"test\",[\"BoolOp\",[[\"op\",[\"And\",[]]],[\"values\",[[\"NamedExpr\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]]],[\"value\",[\"BoolOp\",[[\"op\",[\"Or\",[]]],[\"values\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]]]]],[\"UnaryOp\",[[\"op\",[\"Not\",[]]],[\"operand\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"UnaryOp\",[[\"op\",[\"Invert\",[]]],[\"operand\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]]]],[\"UnaryOp\",[[\"op\",[\"UAdd\",[]]],[\"operand\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]]]],[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"IsNot\",[]]]],[\"comparators\",[[\"Constant\",[[\"value\",[\"none\",null]]]]]]]],[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"In\",[]]]],[\"comparators\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]],[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"NotIn\",[]]]],[\"comparators\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]],[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"NotEq\",[]]]],[\"comparators\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]],[\"Compare\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"ops\",[[\"LtE\",[]],[\"GtE\",[]]]],[\"comparators\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"orelse\",[]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "5517d6f85a1bc5328d123b0e43459b66168dd4d9df0fd442ec79a57bb669110d",
+            "node_count": 63,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 64,
+        "serialized_chars": 1876
+      }
+    },
+    {
+      "id": "containers-slices-keywords",
+      "sources": {
+        "main.py": "def f(a,b):\n    return call(*a, **b, key={**b, \"name\": a}), [a,*b], {a,b}, a[1:5:2], a[...,1]\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"call\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Starred\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[[\"keyword\",[[\"arg\",null],[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]],[\"keyword\",[[\"arg\",\"key\"],[\"value\",[\"Dict\",[[\"keys\",[null,[\"Constant\",[[\"value\",[\"str\",\"name\"]]]]]],[\"values\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]]]]]]]],[\"List\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]],[\"Starred\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]],[\"ctx\",[\"Load\",[]]]]]]],[\"ctx\",[\"Load\",[]]]]],[\"Set\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]],[\"Subscript\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"slice\",[\"Slice\",[[\"lower\",[\"Constant\",[[\"value\",[\"int\",1]]]]],[\"upper\",[\"Constant\",[[\"value\",[\"int\",5]]]]],[\"step\",[\"Constant\",[[\"value\",[\"int\",2]]]]]]]],[\"ctx\",[\"Load\",[]]]]],[\"Subscript\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"slice\",[\"Tuple\",[[\"elts\",[[\"Constant\",[[\"value\",[\"ellipsis\",\"...\"]]]],[\"Constant\",[[\"value\",[\"int\",1]]]]]],[\"ctx\",[\"Load\",[]]]]]],[\"ctx\",[\"Load\",[]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "d2eea9879cc64eae66184105d493ec9941877ac53f7b1269459c1a1cd3addb50",
+            "node_count": 53,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 54,
+        "serialized_chars": 1696
+      }
+    },
+    {
+      "id": "literal-kinds",
+      "sources": {
+        "main.py": "def f():\n    return None, True, False, ..., 1, 1.0, 1e-7, 1e20, 1e16, 1e-5, 2j, 2.5j, 1e-7j, b\"\\xff\", u\"text\", U\"upper\", \"\ud55c\uae00\ud83d\ude00\"\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Constant\",[[\"value\",[\"none\",null]]]],[\"Constant\",[[\"value\",[\"bool\",true]]]],[\"Constant\",[[\"value\",[\"bool\",false]]]],[\"Constant\",[[\"value\",[\"ellipsis\",\"...\"]]]],[\"Constant\",[[\"value\",[\"int\",1]]]],[\"Constant\",[[\"value\",[\"float\",\"1.0\"]]]],[\"Constant\",[[\"value\",[\"float\",\"1e-07\"]]]],[\"Constant\",[[\"value\",[\"float\",\"1e+20\"]]]],[\"Constant\",[[\"value\",[\"float\",\"1e+16\"]]]],[\"Constant\",[[\"value\",[\"float\",\"1e-05\"]]]],[\"Constant\",[[\"value\",[\"complex\",\"2j\"]]]],[\"Constant\",[[\"value\",[\"complex\",\"2.5j\"]]]],[\"Constant\",[[\"value\",[\"complex\",\"1e-07j\"]]]],[\"Constant\",[[\"value\",[\"bytes\",\"ff\"]]]],[\"Constant\",[[\"value\",[\"str\",\"text\"]],[\"kind\",\"u\"]]],[\"Constant\",[[\"value\",[\"str\",\"upper\"]]]],[\"Constant\",[[\"value\",[\"str\",\"\\ud55c\\uae00\\ud83d\\ude00\"]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "126240a03d5b28517521fdbc33e78698deee90441d71a5169a98767e2a945820",
+            "node_count": 22,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 23,
+        "serialized_chars": 1036
+      }
+    },
+    {
+      "id": "large-radix-integers",
+      "sources": {
+        "main.py": "def f():\n    return 0xffffffffffffffffffffffffffffffff, 99999999999999999999999999999999, 0o777777777777777777777777, 0b111111111111111111111111111111111111111111111111111111111111111111111111\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Constant\",[[\"value\",[\"int\",340282366920938463463374607431768211455]]]],[\"Constant\",[[\"value\",[\"int\",99999999999999999999999999999999]]]],[\"Constant\",[[\"value\",[\"int\",4722366482869645213695]]]],[\"Constant\",[[\"value\",[\"int\",4722366482869645213695]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "2c055ac71c1addf7bd9fd9fa35580d87013ab63356184f69f3b5c340368a9eec",
+            "node_count": 9,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 10,
+        "serialized_chars": 551
+      }
+    },
+    {
+      "id": "fstrings",
+      "sources": {
+        "main.py": "def f(value,width):\n    return f\"before {value!r:>{width}} after\", f\"{value = }\", \"start\" f\"{value}\" \"end\"\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"JoinedStr\",[[\"values\",[[\"Constant\",[[\"value\",[\"str\",\"before \"]]]],[\"FormattedValue\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"conversion\",114],[\"format_spec\",[\"JoinedStr\",[[\"values\",[[\"Constant\",[[\"value\",[\"str\",\">\"]]]],[\"FormattedValue\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]],[\"conversion\",-1],[\"format_spec\",null]]]]]]]]]],[\"Constant\",[[\"value\",[\"str\",\" after\"]]]]]]]],[\"JoinedStr\",[[\"values\",[[\"Constant\",[[\"value\",[\"str\",\"value = \"]]]],[\"FormattedValue\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"conversion\",114],[\"format_spec\",null]]]]]]],[\"JoinedStr\",[[\"values\",[[\"Constant\",[[\"value\",[\"str\",\"start\"]]]],[\"FormattedValue\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"conversion\",-1],[\"format_spec\",null]]],[\"Constant\",[[\"value\",[\"str\",\"end\"]]]]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "c350dbf6b0ae0603c124fa08fc2204a2bda0d216f40b1ef705b7998b6ea836cf",
+            "node_count": 29,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 30,
+        "serialized_chars": 1270
+      }
+    },
+    {
+      "id": "match-patterns",
+      "sources": {
+        "main.py": "def f(value):\n    match value:\n        case None:\n            return 0\n        case True | False:\n            return 1\n        case [first,*rest] as whole:\n            return first,rest,whole\n        case {\"key\": found, **other}:\n            return found,other\n        case Point(x,y=second) if x:\n            return x,second\n        case 3:\n            return 3\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 14,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Match\",[[\"subject\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"cases\",[[\"match_case\",[[\"pattern\",[\"MatchSingleton\",[[\"value\",null]]]],[\"guard\",null],[\"body\",[[\"Return\",[[\"value\",[\"Constant\",[[\"value\",[\"int\",0]]]]]]]]]]],[\"match_case\",[[\"pattern\",[\"MatchOr\",[[\"patterns\",[[\"MatchSingleton\",[[\"value\",true]]],[\"MatchSingleton\",[[\"value\",false]]]]]]]],[\"guard\",null],[\"body\",[[\"Return\",[[\"value\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]]]],[\"match_case\",[[\"pattern\",[\"MatchAs\",[[\"pattern\",[\"MatchSequence\",[[\"patterns\",[[\"MatchAs\",[[\"pattern\",null],[\"name\",\"LOCAL_2\"]]],[\"MatchStar\",[[\"name\",\"LOCAL_3\"]]]]]]]],[\"name\",\"LOCAL_1\"]]]],[\"guard\",null],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_3\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]]]],[\"match_case\",[[\"pattern\",[\"MatchMapping\",[[\"keys\",[[\"Constant\",[[\"value\",[\"str\",\"key\"]]]]]],[\"patterns\",[[\"MatchAs\",[[\"pattern\",null],[\"name\",\"LOCAL_5\"]]]]],[\"rest\",\"LOCAL_4\"]]]],[\"guard\",null],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_5\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_4\"],[\"ctx\",[\"Load\",[]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]]]],[\"match_case\",[[\"pattern\",[\"MatchClass\",[[\"cls\",[\"Name\",[[\"id\",\"Point\"],[\"ctx\",[\"Load\",[]]]]]],[\"patterns\",[[\"MatchAs\",[[\"pattern\",null],[\"name\",\"LOCAL_6\"]]]]],[\"kwd_attrs\",[\"y\"]],[\"kwd_patterns\",[[\"MatchAs\",[[\"pattern\",null],[\"name\",\"LOCAL_7\"]]]]]]]],[\"guard\",[\"Name\",[[\"id\",\"LOCAL_6\"],[\"ctx\",[\"Load\",[]]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_6\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_7\"],[\"ctx\",[\"Load\",[]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]]]],[\"match_case\",[[\"pattern\",[\"MatchValue\",[[\"value\",[\"Constant\",[[\"value\",[\"int\",3]]]]]]]],[\"guard\",null],[\"body\",[[\"Return\",[[\"value\",[\"Constant\",[[\"value\",[\"int\",3]]]]]]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "48f218cbcb42c02e3ce212c094a35eb62c1e028c555826c183cf5b3687819fa4",
+            "node_count": 61,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 62,
+        "serialized_chars": 2211
+      }
+    },
+    {
+      "id": "type-comments",
+      "sources": {
+        "main.py": "def f(a,b): # type: (int, int) -> int\n    value = a + b # type: int\n    return value\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Add\",[]]],[\"right\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]],[\"type_comment\",\"int\"]]],[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null],[\"type_comment\",\"(int, int) -> int\"]]]",
+            "fingerprint": "0dc25d6ed1e01d1e233dab06314814172f2de089139e01eb350c2abedb776ee9",
+            "node_count": 16,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 17,
+        "serialized_chars": 735
+      }
+    },
+    {
+      "id": "argument-type-comments",
+      "sources": {
+        "main.py": "def f(\n    a, # type: int\n    b, # type: str\n):\n    # type: (...) -> str\n    return b\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 6,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",\"int\"]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",\"str\"]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null],[\"type_comment\",\"(...) -> str\"]]]",
+            "fingerprint": "8f96193511d2382972967dddd7ad3d25d6af9fd79146504f4e3a695a9f79aa5f",
+            "node_count": 7,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 8,
+        "serialized_chars": 478
+      }
+    },
+    {
+      "id": "header-type-comments",
+      "sources": {
+        "main.py": "def f(values,path):\n    for item in values: # type: int\n        pass\n    with open(path) as handle: # type: TextIO\n        pass\n    return 1\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 6,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]],[\"arg\",[[\"arg\",\"LOCAL_1\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"For\",[[\"target\",[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]]],[\"iter\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"body\",[[\"Pass\",[]]]],[\"orelse\",[]],[\"type_comment\",\"int\"]]],[\"With\",[[\"items\",[[\"withitem\",[[\"context_expr\",[\"Call\",[[\"func\",[\"Name\",[[\"id\",\"open\"],[\"ctx\",[\"Load\",[]]]]]],[\"args\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]],[\"keywords\",[]]]]],[\"optional_vars\",[\"Name\",[[\"id\",\"LOCAL_3\"],[\"ctx\",[\"Store\",[]]]]]]]]]],[\"body\",[[\"Pass\",[]]]],[\"type_comment\",\"TextIO\"]]],[\"Return\",[[\"value\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "f131e5ff160b8747427c25274ca218e33274e9a5f35d24b913e7a99b02b82e90",
+            "node_count": 22,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 23,
+        "serialized_chars": 929
+      }
+    },
+    {
+      "id": "type-ignore",
+      "sources": {
+        "main.py": "def f(value):\n    result = value # type: ignore[attr-defined]\n    return result\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"type_comment\",null]]],[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "27de12dccfe559f56a14e7103c4e1bf41b4f341035e84bd92b90d1d7590a3735",
+            "node_count": 11,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 13,
+        "serialized_chars": 530
+      }
+    },
+    {
+      "id": "module-dynamic",
+      "sources": {
+        "main.py": "eval(\"setup\")\ndef safe(x):\n    return x + 1\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "safe",
+            "kind": "function",
+            "start_line": 2,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"BinOp\",[[\"left\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"op\",[\"Add\",[]]],[\"right\",[\"Constant\",[[\"value\",[\"int\",1]]]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "9eed90feb2db3a1d686f2081b43ffae7e26c30f71e4452879c8034bb201949b7",
+            "node_count": 9,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "dynamic-eval",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "dynamic eval call is excluded"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 15,
+        "serialized_chars": 458
+      }
+    },
+    {
+      "id": "dynamic-eval",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return eval(value)\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "dynamic-eval",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "dynamic eval call is excluded"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 10,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "dynamic-exec",
+      "sources": {
+        "main.py": "def unsafe(value):\n    exec(value)\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "dynamic-exec",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "dynamic exec call is excluded"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 10,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "dynamic-attribute",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return object.eval(value)\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "dynamic-eval",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "dynamic eval call is excluded"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 12,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "dynamic-getattr",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return getattr(object,\"exec\")(value)\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "dynamic-exec",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "dynamic exec lookup is excluded"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 14,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "lambda",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return (lambda item: item)(value)\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "unsupported-node",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "lambda scopes are not named semantic regions"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 13,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "comprehension",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return [item for item in value]\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "comprehension-scope",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "comprehension bindings require a nested scope and are excluded conservatively"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 13,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "generator",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return (item for item in value)\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "comprehension-scope",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "comprehension bindings require a nested scope and are excluded conservatively"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 13,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "dict-comprehension",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return {item:item for item in value}\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "comprehension-scope",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "comprehension bindings require a nested scope and are excluded conservatively"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 15,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "set-comprehension",
+      "sources": {
+        "main.py": "def unsafe(value):\n    return {item for item in value}\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "comprehension-scope",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "comprehension bindings require a nested scope and are excluded conservatively"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 13,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "global",
+      "sources": {
+        "main.py": "value = 1\ndef unsafe():\n    global value\n    return value\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "global-statement",
+            "region_name": "unsafe",
+            "start_line": 2,
+            "end_line": 4,
+            "message": "global bindings are excluded conservatively"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 11,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "nonlocal",
+      "sources": {
+        "main.py": "def outer(value):\n    def unsafe():\n        nonlocal value\n        return value\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "outer",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 4,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "814dafa0765e52ff8501c5b2268d2a10e41c15ac14cc9d9ef53fd1249d0eb3e9",
+            "node_count": 3,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "nonlocal-statement",
+            "region_name": "outer.unsafe",
+            "start_line": 2,
+            "end_line": 4,
+            "message": "nonlocal bindings are excluded conservatively"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 10,
+        "serialized_chars": 304
+      }
+    },
+    {
+      "id": "star-import",
+      "sources": {
+        "main.py": "def unsafe():\n    from module import *\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "star-import",
+            "region_name": "unsafe",
+            "start_line": 1,
+            "end_line": 2,
+            "message": "star imports do not expose a bounded API anchor"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 5,
+        "serialized_chars": 0
+      },
+      "native_source_error": true,
+      "correction": "Native semantic syntax checking rejects star imports inside functions before shape analysis"
+    },
+    {
+      "id": "newer-grammar",
+      "sources": {
+        "main.py": "def safe():\n    return 1\ntype Alias = int\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "malformed-ast",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "Python source could not be parsed; no partial regions were emitted"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 0,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "multiline-decorator",
+      "sources": {
+        "main.py": "@(\n    decorator\n)\ndef f(x):\n    return x\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 2,
+            "end_line": 5,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[[\"Name\",[[\"id\",\"decorator\"],[\"ctx\",[\"Load\",[]]]]]]],[\"returns\",null]]]",
+            "fingerprint": "0a5ce3f2fcbe678ffaab4bdee8093130a070f096b3811739b9bd5fb1132199f7",
+            "node_count": 8,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 9,
+        "serialized_chars": 423
+      }
+    },
+    {
+      "id": "escaped-surrogate",
+      "sources": {
+        "main.py": "def f():\n    return \"\\ud800\"\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Constant\",[[\"value\",[\"str\",\"\\ud800\"]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "564b8646eaa3feb8fad3ff6d37529aebe298c6d685c84b6cff2f780dcb0f8b8d",
+            "node_count": 4,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 5,
+        "serialized_chars": 299
+      }
+    },
+    {
+      "id": "surrogates-adjacent-and-raw",
+      "sources": {
+        "main.py": "def f():\n    return \"x\\ud800y\\U0000dfffz\" \"ok\", r\"\\ud800\", \"\\N{GREEK SMALL LETTER ALPHA}\\ud800\", \"\\q\\ud800\"\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Constant\",[[\"value\",[\"str\",\"x\\ud800y\\udfffzok\"]]]],[\"Constant\",[[\"value\",[\"str\",\"\\\\ud800\"]]]],[\"Constant\",[[\"value\",[\"str\",\"\\u03b1\\ud800\"]]]],[\"Constant\",[[\"value\",[\"str\",\"\\\\q\\ud800\"]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "0b8344fcdd5ff315e4dafd61f64deb48830397ae5d3054c04b689250a2524728",
+            "node_count": 9,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 10,
+        "serialized_chars": 489
+      }
+    },
+    {
+      "id": "surrogate-fstrings",
+      "sources": {
+        "main.py": "def f(x):\n    return f\"before \\ud800 {x} after \\udfff\", rf\"raw \\ud800 {{ {x} }}\", \"\\ud800\" f\"{x}\"\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 2,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"JoinedStr\",[[\"values\",[[\"Constant\",[[\"value\",[\"str\",\"before \\ud800 \"]]]],[\"FormattedValue\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"conversion\",-1],[\"format_spec\",null]]],[\"Constant\",[[\"value\",[\"str\",\" after \\udfff\"]]]]]]]],[\"JoinedStr\",[[\"values\",[[\"Constant\",[[\"value\",[\"str\",\"raw \\\\ud800 { \"]]]],[\"FormattedValue\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"conversion\",-1],[\"format_spec\",null]]],[\"Constant\",[[\"value\",[\"str\",\" }\"]]]]]]]],[\"JoinedStr\",[[\"values\",[[\"Constant\",[[\"value\",[\"str\",\"\\ud800\"]]]],[\"FormattedValue\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"conversion\",-1],[\"format_spec\",null]]]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "876b571348efe841d898ae5a918f52eb50d865a9c79da0b8909a0ba5d1f2a42a",
+            "node_count": 23,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 24,
+        "serialized_chars": 1039
+      }
+    },
+    {
+      "id": "semicolon-type-comment",
+      "sources": {
+        "main.py": "def f():\n    x=1; y=2 # type: int\n    return x,y\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 3,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",1]]]]],[\"type_comment\",null]]],[\"Assign\",[[\"targets\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]]]],[\"value\",[\"Constant\",[[\"value\",[\"int\",2]]]]],[\"type_comment\",\"int\"]]],[\"Return\",[[\"value\",[\"Tuple\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Load\",[]]]]]]],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null]]]",
+            "fingerprint": "7580175070ce7ef7c6dca5c895998f1cdf6242ec2928b0bb13ba96235ed4329f",
+            "node_count": 17,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 18,
+        "serialized_chars": 683
+      }
+    },
+    {
+      "id": "multiline-header-comments",
+      "sources": {
+        "main.py": "def f(\n    value,\n): # type: (int) -> int\n    for (a,\n         b) in value: # type: Tuple[int, int]\n        pass\n    return value\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [
+          {
+            "file_path": "main.py",
+            "name": "f",
+            "kind": "function",
+            "start_line": 1,
+            "end_line": 7,
+            "canonical_shape": "[\"FunctionDef\",[[\"name\",\"<function-name>\"],[\"args\",[\"arguments\",[[\"posonlyargs\",[]],[\"args\",[[\"arg\",[[\"arg\",\"LOCAL_0\"],[\"annotation\",null],[\"type_comment\",null]]]]],[\"vararg\",null],[\"kwonlyargs\",[]],[\"kw_defaults\",[]],[\"kwarg\",null],[\"defaults\",[]]]]],[\"body\",[[\"For\",[[\"target\",[\"Tuple\",[[\"elts\",[[\"Name\",[[\"id\",\"LOCAL_1\"],[\"ctx\",[\"Store\",[]]]]],[\"Name\",[[\"id\",\"LOCAL_2\"],[\"ctx\",[\"Store\",[]]]]]]],[\"ctx\",[\"Store\",[]]]]]],[\"iter\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]],[\"body\",[[\"Pass\",[]]]],[\"orelse\",[]],[\"type_comment\",\"Tuple[int, int]\"]]],[\"Return\",[[\"value\",[\"Name\",[[\"id\",\"LOCAL_0\"],[\"ctx\",[\"Load\",[]]]]]]]]]],[\"decorator_list\",[]],[\"returns\",null],[\"type_comment\",\"(int) -> int\"]]]",
+            "fingerprint": "d367eda198edd45a211da16a542f15ba30d8d82ee87e94f9b28f5c082a4dd278",
+            "node_count": 16,
+            "fingerprint_algorithm": "sha256/semantic-shape-v1",
+            "shape_version": "semantic-shape-v1"
+          }
+        ],
+        "exclusions": [],
+        "files": [
+          "main.py"
+        ],
+        "status": "ok",
+        "node_count": 17,
+        "serialized_chars": 698
+      }
+    },
+    {
+      "id": "misplaced-type-comment",
+      "sources": {
+        "main.py": "def f():\n    return 1 # type: int\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "malformed-ast",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "Python source could not be parsed; no partial regions were emitted"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 0,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "duplicate-function-type-comment",
+      "sources": {
+        "main.py": "def f(x): # type: (int) -> int\n    # type: (str) -> str\n    return x\n"
+      },
+      "limits": {},
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "main.py",
+            "reason": "malformed-ast",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "Python source could not be parsed; no partial regions were emitted"
+          }
+        ],
+        "files": [
+          "main.py"
+        ],
+        "status": "excluded",
+        "node_count": 0,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "budget-max_files",
+      "sources": {
+        "a.py": "def f(x):\n    return x + 1\n",
+        "b.py": "def g(y):\n    return y + 2\n"
+      },
+      "limits": {
+        "max_files": 1
+      },
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "<sources>",
+            "reason": "max-files",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "source set exceeds max_files=1; no semantic regions were emitted"
+          }
+        ],
+        "files": [
+          "a.py",
+          "b.py"
+        ],
+        "status": "excluded",
+        "node_count": 0,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "budget-max_regions",
+      "sources": {
+        "a.py": "def f(x):\n    return x + 1\n",
+        "b.py": "def g(y):\n    return y + 2\n"
+      },
+      "limits": {
+        "max_regions": 1
+      },
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "b.py",
+            "reason": "max-regions",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "named-region budget was exhausted; no partial source result was emitted"
+          }
+        ],
+        "files": [
+          "a.py",
+          "b.py"
+        ],
+        "status": "excluded",
+        "node_count": 20,
+        "serialized_chars": 458
+      }
+    },
+    {
+      "id": "budget-max_nodes",
+      "sources": {
+        "a.py": "def f(x):\n    return x + 1\n",
+        "b.py": "def g(y):\n    return y + 2\n"
+      },
+      "limits": {
+        "max_nodes": 3
+      },
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "a.py",
+            "reason": "max-nodes",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "AST node budget was exhausted; no partial source result was emitted"
+          }
+        ],
+        "files": [
+          "a.py",
+          "b.py"
+        ],
+        "status": "excluded",
+        "node_count": 0,
+        "serialized_chars": 0
+      }
+    },
+    {
+      "id": "budget-max_serialized_chars",
+      "sources": {
+        "a.py": "def f(x):\n    return x + 1\n",
+        "b.py": "def g(y):\n    return y + 2\n"
+      },
+      "limits": {
+        "max_serialized_chars": 10
+      },
+      "original": {
+        "regions": [],
+        "exclusions": [
+          {
+            "file_path": "a.py",
+            "reason": "max-serialized-chars",
+            "region_name": null,
+            "start_line": null,
+            "end_line": null,
+            "message": "serialized semantic-shape budget was exhausted; no partial source result was emitted"
+          }
+        ],
+        "files": [
+          "a.py",
+          "b.py"
+        ],
+        "status": "excluded",
+        "node_count": 10,
+        "serialized_chars": 0
+      }
+    }
+  ]
+}

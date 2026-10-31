@@ -1,0 +1,26 @@
+[package]
+name = "ici-reporting"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ici-domain = { path = "../ici-domain" }
+ici-execution = { path = "../ici-execution" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+regex = "1.12"
+unicode-width = "=0.2.3"
+quick-xml = "=0.41.0"
+percent-encoding = "=2.3.2"
+chrono = { version = "=0.4.45", default-features = false, features = ["std"] }
+flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"] }
+
+[dev-dependencies]
+tempfile = "=3.27.0"
+
+[lints]
+workspace = true

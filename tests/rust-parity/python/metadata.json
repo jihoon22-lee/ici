@@ -1,0 +1,649 @@
+{
+  "oracle_file": "src/ici/analysis/_python_compatibility.py",
+  "oracle_file_sha256": "9d3660cfd105b757786c717fe1f864596774953d3eb00f6247a7c13370109b8f",
+  "cases": [
+    {
+      "specifier": "",
+      "floor": null,
+      "versions": {
+        "3.7.0": true,
+        "3.9.0": true,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": true,
+        "3.10.0+local": true,
+        "3.11rc1": true,
+        "3.11.0": true,
+        "4.20.99": true
+      }
+    },
+    {
+      "specifier": " ",
+      "floor": [
+        3,
+        7
+      ],
+      "versions": {
+        "3.7.0": true,
+        "3.9.0": true,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": true,
+        "3.10.0+local": true,
+        "3.11rc1": true,
+        "3.11.0": true,
+        "4.20.99": true
+      }
+    },
+    {
+      "specifier": ", ,",
+      "floor": [
+        3,
+        7
+      ],
+      "versions": {
+        "3.7.0": true,
+        "3.9.0": true,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": true,
+        "3.10.0+local": true,
+        "3.11rc1": true,
+        "3.11.0": true,
+        "4.20.99": true
+      }
+    },
+    {
+      "specifier": ">=3.10",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": false,
+        "3.10.0+local": true,
+        "3.11rc1": true,
+        "3.11.0": true,
+        "4.20.99": true
+      }
+    },
+    {
+      "specifier": ">=3.10.5,!=3.10.0",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": true,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": true,
+        "3.11.0": true,
+        "4.20.99": true
+      }
+    },
+    {
+      "specifier": "~=3.10.2",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": true,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "==3.10.*",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": true,
+        "3.10.0+local": true,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": ">=3.7,!=3.7.*,!=3.8.*",
+      "floor": [
+        3,
+        9
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": true,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": true,
+        "3.10.0+local": true,
+        "3.11rc1": true,
+        "3.11.0": true,
+        "4.20.99": true
+      }
+    },
+    {
+      "specifier": ">=4.20.99",
+      "floor": [
+        4,
+        20
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": true
+      }
+    },
+    {
+      "specifier": ">4.20.99",
+      "floor": null,
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": ">3.10.99,<3.11",
+      "floor": null,
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": ">=3.10rc1,<3.11",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": true,
+        "3.10.0+local": true,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "<3.11,>=3.10",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": true,
+        "3.10.0": true,
+        "3.10.5": true,
+        "3.10rc1": false,
+        "3.10.0+local": true,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "==3.10.0+local",
+      "floor": null,
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": true,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "===foo",
+      "floor": null,
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "===",
+      "floor": null,
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": false,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "===3.10",
+      "floor": null,
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": true,
+        "3.10.0": false,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "=== 3.10.0 ",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": true,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "<3.11,===3.10.0",
+      "floor": [
+        3,
+        10
+      ],
+      "versions": {
+        "3.7.0": false,
+        "3.9.0": false,
+        "3.10": false,
+        "3.10.0": true,
+        "3.10.5": false,
+        "3.10rc1": false,
+        "3.10.0+local": false,
+        "3.11rc1": false,
+        "3.11.0": false,
+        "4.20.99": false
+      }
+    },
+    {
+      "specifier": "3.10",
+      "error": "PythonMetadataError"
+    },
+    {
+      "specifier": "=>3.10",
+      "error": "PythonMetadataError"
+    },
+    {
+      "specifier": ">=3.10+local",
+      "error": "PythonMetadataError"
+    },
+    {
+      "specifier": "===foo bar",
+      "error": "PythonMetadataError"
+    },
+    {
+      "specifier": "===foo;bar",
+      "error": "PythonMetadataError"
+    },
+    {
+      "specifier": "===3.10)",
+      "error": "PythonMetadataError"
+    }
+  ],
+  "metadata_cases": [
+    {
+      "id": "no-metadata",
+      "sources": [
+        "src/demo/cli.py"
+      ],
+      "document": null,
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "demo"
+        ],
+        "pyproject_present": false
+      }
+    },
+    {
+      "id": "auto-module-names",
+      "sources": [
+        "lib/library/api.py",
+        "standalone.py",
+        "src/demo/__init__.py"
+      ],
+      "document": null,
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "demo",
+          "library",
+          "standalone"
+        ],
+        "pyproject_present": false
+      }
+    },
+    {
+      "id": "declared-imports",
+      "sources": [
+        "src/demo/main.py"
+      ],
+      "document": "[project]\nimport-names = [\"demo ; private\", \"bad-name\", \"nested.name\", 3, \"\"]\n",
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "demo",
+          "nested.name"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "script-modules",
+      "sources": [
+        "src/unused/api.py"
+      ],
+      "document": "[project.scripts]\nrun = \"demo.cli:main\"\nother = \"other\"\n[project.gui-scripts]\ngui = \"excluded.gui:main\"\n",
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "demo.cli",
+          "other"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "imports-and-script-union",
+      "sources": [
+        "src/demo/a.py"
+      ],
+      "document": "[project]\nimport-names = [\"a\", \"z\"]\n[project.scripts]\nrun = \"middle.run:main\"\n",
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "a",
+          "middle.run",
+          "z"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "tool-only-metadata",
+      "sources": [
+        "src/demo/main.py"
+      ],
+      "document": "[tool.app]\nenabled = true\n",
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "demo"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "project-not-table",
+      "sources": [
+        "src/demo/main.py"
+      ],
+      "document": "project = []\n",
+      "component_root": "",
+      "metadata_root": "",
+      "error": "PythonMetadataError"
+    },
+    {
+      "id": "specifier-not-string",
+      "sources": [
+        "src/demo/main.py"
+      ],
+      "document": "[project]\nrequires-python = 3\n",
+      "component_root": "",
+      "metadata_root": "",
+      "error": "PythonMetadataError"
+    },
+    {
+      "id": "specifier-invalid",
+      "sources": [
+        "src/demo/main.py"
+      ],
+      "document": "[project]\nrequires-python = \"not-a-specifier\"\n",
+      "component_root": "",
+      "metadata_root": "",
+      "error": "PythonMetadataError"
+    },
+    {
+      "id": "imports-not-list",
+      "sources": [
+        "src/demo/main.py"
+      ],
+      "document": "[project]\nimport-names = \"ignored\"\n",
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "demo"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "unicode-module-name",
+      "sources": [
+        "src/\uc774\ub984/\ubaa8\ub4c8.py"
+      ],
+      "document": "[project]\nimport-names = [\"\uc774\ub984.\ubaa8\ub4c8\"]\n",
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "\uc774\ub984.\ubaa8\ub4c8"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "declared-name-cap",
+      "sources": [
+        "src/demo/main.py"
+      ],
+      "document": "[project]\nimport-names = [\"module0\", \"module1\", \"module2\", \"module3\", \"module4\", \"module5\", \"module6\", \"module7\", \"module8\", \"module9\", \"module10\", \"module11\", \"module12\", \"module13\", \"module14\", \"module15\", \"module16\", \"module17\", \"module18\", \"module19\", \"module20\", \"module21\", \"module22\", \"module23\", \"module24\", \"module25\", \"module26\", \"module27\", \"module28\", \"module29\", \"module30\", \"module31\", \"module32\", \"module33\", \"module34\", \"module35\", \"module36\", \"module37\", \"module38\", \"module39\", \"module40\", \"module41\", \"module42\", \"module43\", \"module44\", \"module45\", \"module46\", \"module47\", \"module48\", \"module49\", \"module50\", \"module51\", \"module52\", \"module53\", \"module54\", \"module55\", \"module56\", \"module57\", \"module58\", \"module59\", \"module60\", \"module61\", \"module62\", \"module63\", \"module64\", \"module65\", \"module66\", \"module67\", \"module68\", \"module69\", \"module70\", \"module71\", \"module72\", \"module73\", \"module74\", \"module75\", \"module76\", \"module77\", \"module78\", \"module79\"]\n",
+      "component_root": "",
+      "metadata_root": "",
+      "original": {
+        "requires_python": "",
+        "import_names": [
+          "module0",
+          "module1",
+          "module10",
+          "module11",
+          "module12",
+          "module13",
+          "module14",
+          "module15",
+          "module16",
+          "module17",
+          "module18",
+          "module19",
+          "module2",
+          "module20",
+          "module21",
+          "module22",
+          "module23",
+          "module24",
+          "module25",
+          "module26",
+          "module27",
+          "module28",
+          "module29",
+          "module3",
+          "module30",
+          "module31",
+          "module32",
+          "module33",
+          "module34",
+          "module35",
+          "module36",
+          "module37",
+          "module38",
+          "module39",
+          "module4",
+          "module40",
+          "module41",
+          "module42",
+          "module43",
+          "module44",
+          "module45",
+          "module46",
+          "module47",
+          "module48",
+          "module49",
+          "module5",
+          "module50",
+          "module51",
+          "module52",
+          "module53",
+          "module54",
+          "module55",
+          "module56",
+          "module57",
+          "module58",
+          "module59",
+          "module6",
+          "module60",
+          "module61",
+          "module62",
+          "module63",
+          "module64",
+          "module65",
+          "module66"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "component-metadata",
+      "sources": [
+        "components/app/src/demo/main.py"
+      ],
+      "document": "[project]\nrequires-python = \">=3.10\"\n",
+      "component_root": "components/app",
+      "metadata_root": "components/app",
+      "original": {
+        "requires_python": ">=3.10",
+        "import_names": [
+          "demo"
+        ],
+        "pyproject_present": true
+      }
+    },
+    {
+      "id": "workspace-floor-fallback",
+      "sources": [
+        "components/app/src/demo/main.py"
+      ],
+      "document": "[project]\nrequires-python = \">=3.10\"\n",
+      "component_root": "components/app",
+      "metadata_root": "",
+      "original": {
+        "requires_python": ">=3.10",
+        "import_names": [
+          "components"
+        ],
+        "pyproject_present": true
+      }
+    }
+  ]
+}

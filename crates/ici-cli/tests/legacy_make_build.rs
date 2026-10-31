@@ -1,0 +1,569 @@
+//! Actual legacy `ici build` through a configured handwritten Make backend.
+use ici_cli::{commands, planning, registry};
+use std::{collections::BTreeMap, fs, path::Path};
+
+fn fixture(make: &str) -> tempfile::TempDir {
+    let root = tempfile::tempdir().unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
+    let tool = std::env::var("ICI_TEST_MAKE").expect("explicit GNU Make");
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::write(root.path().join("src/main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(
+        root.path().join("Makefile"),
+        format!(
+            "all:\n\tmkdir -p build/ici-make\n\tpwd > build/ici-make/cwd.txt\n\techo '$(MAKEFLAGS)' > build/ici-make/flags.txt\n\t{compiler} src/main.cpp -o build/ici-make/app\nclean:\n\techo clean >> build/ici-make/log.txt\nbroken:\n\texit 5\n"
+        ),
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("pyproject.toml"),
+        "[project]\nname='legacy-make-proof'\nversion='1.2.3'\n",
+    )
+    .unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        format!(
+            "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\n{}\n",
+            make.replace(
+                "['make'",
+                &format!("[{}", serde_json::to_string(&tool).unwrap())
+            )
+        ),
+    )
+    .unwrap();
+    root
+}
+fn environment() -> BTreeMap<String, String> {
+    BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())])
+}
+/// The saved legacy build engine of the latest run (summary, then each target's
+/// and finding `path:line message`). Frozen `ici build` prints only its engine line.
+fn saved_build_text(root: &Path) -> String {
+    let run: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join(".ici/rust-v1/result.json")).unwrap()).unwrap();
+    let details: serde_json::Value = serde_json::from_slice(
+        &fs::read(
+            root.join(".ici/rust-v1/details/result.json")
+                .join(run["run_id"].as_str().unwrap())
+                .join("details.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let engine = details["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|engine| engine["engine_name"] == "build")
+        .unwrap()
+        .clone();
+    let mut text = format!(
+        "{} build: {}",
+        engine["status"].as_str().unwrap(),
+        engine["summary"].as_str().unwrap()
+    );
+    for target in engine["targets"].as_array().unwrap() {
+        text.push_str(&format!(
+            "\n{}:{} {}",
+            target["file_path"].as_str().unwrap(),
+            target["start_line"],
+            target["message"].as_str().unwrap()
+        ));
+    }
+    for finding in engine["findings"].as_array().unwrap() {
+        text.push_str(&format!(
+            "\n{}:{} {}",
+            finding["primary_location"]["path"].as_str().unwrap(),
+            finding["primary_location"]["start_line"],
+            finding["message"].as_str().unwrap()
+        ));
+    }
+    text
+}
+fn dispatch(root: &Path) -> commands::CommandOutput {
+    let invocation = registry::parse(["ici", "build"]).unwrap();
+    commands::dispatch(&invocation, root, &environment()).unwrap()
+}
+
+#[test]
+#[ignore = "explicit actual GNU Make legacy build acceptance (ICI_TEST_MAKE, ICI_TEST_CXX)"]
+fn actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow() {
+    let root =
+        fixture("jobs=2\nclean_argv=['make','clean']\nbuild_argv=['make','-j','{jobs}','all']");
+    let canonical = root.path().canonicalize().unwrap();
+    let invocation = registry::parse(["ici", "build"]).unwrap();
+    let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
+    assert_eq!(
+        planned.context_preparations.len(),
+        1,
+        "{:?}",
+        planned.plan.limitations
+    );
+    let preparation = &planned.context_preparations[0];
+    assert_eq!(preparation.build.system, "make");
+    assert_eq!(preparation.build.shadow, "build/ici-make");
+    assert_eq!(preparation.build.generated_roots, ["build/ici-make"]);
+    assert_eq!(
+        preparation
+            .build
+            .tasks
+            .iter()
+            .map(|task| (task.id.rsplit(':').next().unwrap(), task.cwd.as_str()))
+            .collect::<Vec<_>>(),
+        [
+            ("clean", canonical.to_str().unwrap()),
+            ("compile", canonical.to_str().unwrap())
+        ]
+    );
+    assert!(
+        preparation.build.tasks[1]
+            .argv
+            .ends_with(&["-j".into(), "2".into(), "all".into()])
+    );
+    assert_eq!(preparation.effects["limitations"], serde_json::json!([]));
+    assert!(!root.path().join("build").exists() && !root.path().join(".ici").exists());
+    let output = dispatch(root.path());
+    let shadow = root.path().join("build/ici-make");
+    assert!(
+        shadow.join("app").is_file(),
+        "{} {}",
+        output.stdout,
+        output.stderr
+    );
+    assert_eq!(
+        fs::read_to_string(shadow.join("cwd.txt")).unwrap().trim(),
+        canonical.to_str().unwrap()
+    );
+    let flags = fs::read_to_string(shadow.join("flags.txt")).unwrap();
+    assert!(flags.contains("j2"), "{flags}");
+    assert_eq!(
+        fs::read_to_string(shadow.join("log.txt")).unwrap(),
+        "clean\n"
+    );
+    assert!(shadow.join(".ici-owner.json").is_file());
+    assert!(
+        !output.stdout.contains("changed during") && !output.stderr.contains("changed during"),
+        "{} {}",
+        output.stdout,
+        output.stderr
+    );
+    // A Make backend writes no compilation database; the build still completes like frozen
+    // (exit 0, "Build Completed") instead of failing input capture or reporting no build.
+    assert_eq!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
+    // Frozen console: only the engine line.
+    assert_eq!(
+        output.stdout,
+        "✔ Build Completed: legacy-make-proof v1.2.3 into v1.2.3/x86_64\n"
+    );
+    let saved = saved_build_text(root.path());
+    assert!(
+        saved.starts_with("PASS build: Build Completed: legacy-make-proof ")
+            && !saved.contains("inputs changed while running")
+            && !saved.contains("no build linked"),
+        "{saved}"
+    );
+    assert!(!shadow.join("compile_commands.json").exists());
+    // The owned shadow is adopted on the next run and clean runs again before build.
+    dispatch(root.path());
+    assert_eq!(
+        fs::read_to_string(shadow.join("log.txt")).unwrap(),
+        "clean\nclean\n"
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("src/main.cpp")).unwrap(),
+        "int main(){return 0;}\n"
+    );
+}
+
+#[test]
+#[ignore = "explicit actual GNU Make legacy build failure acceptance (ICI_TEST_MAKE, ICI_TEST_CXX)"]
+fn actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success() {
+    // Failing recipe: the build is not a pass and nothing is published.
+    let root = fixture("build_argv=['make','broken']");
+    let output = dispatch(root.path());
+    // Frozen BuildEngine: FAIL, exit 1, a BuildAdapter target at the Makefile.
+    assert_eq!(output.exit_code, 1, "{} {}", output.stdout, output.stderr);
+    assert_eq!(
+        output.stdout,
+        "✘ Build did not produce a complete artifact set\n"
+    );
+    let saved = saved_build_text(root.path());
+    assert!(
+        saved.contains("Make build command did not complete successfully")
+            && saved.contains("Makefile:1")
+            && saved.contains("build: Build did not produce a complete artifact set"),
+        "{saved}"
+    );
+    assert!(!root.path().join("build/ici-make/app").exists());
+    let result: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    assert_eq!(result["gate"]["selected"], "FAIL");
+    // A pre-existing unowned shadow is refused before any Make command and kept byte-for-byte.
+    let root = fixture("build_argv=['make','all']");
+    fs::create_dir_all(root.path().join("build/ici-make")).unwrap();
+    fs::write(root.path().join("build/ici-make/user.txt"), "keep").unwrap();
+    // The frozen pyz leaves no ownership marker in its default shadow, so a pyz-era
+    // `build/ici-make` is refused already at planning time with the cause and the fix.
+    let invocation = registry::parse(["ici", "build"]).unwrap();
+    let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
+    assert!(planned.context_preparations.is_empty());
+    let explained = planned.plan.limitations.iter().any(|limitation| {
+        limitation.contains("\"build/ici-make\" already contains files that ici did not create")
+            && limitation.contains("frozen pyz Make builds leave no ownership marker")
+            && limitation.contains("remove that directory or set build.make.shadow_dir")
+    });
+    assert!(explained, "{:?}", planned.plan.limitations);
+    assert!(!root.path().join("build/ici-make/.ici-owner.json").exists());
+    let output = dispatch(root.path());
+    assert_eq!(output.exit_code, 1, "{} {}", output.stdout, output.stderr);
+    assert!(
+        format!("{}{}", output.stdout, output.stderr).contains("shadow_dir")
+            || fs::read_to_string(root.path().join(".ici/rust-v1/result.json"))
+                .is_ok_and(|text| text.contains("shadow_dir")),
+        "{} {}",
+        output.stdout,
+        output.stderr
+    );
+    assert_eq!(
+        fs::read_to_string(root.path().join("build/ici-make/user.txt")).unwrap(),
+        "keep"
+    );
+    assert!(!root.path().join("build/ici-make/cwd.txt").exists());
+    // Frozen config validation rejects shell flags such as `-C` (casefolded `-c`) and invalid
+    // jobs before any process or filesystem effect.
+    for (make, message) in [
+        ("build_argv=['make','-C','src','all']", "command shell"),
+        ("jobs=65\nbuild_argv=['make','all']", "build.make.jobs"),
+        (
+            "out_of_tree='required'\nbuild_argv=['make','all']",
+            "non-root workdir",
+        ),
+        ("build_argv=['make','-j{jobs}']", "placeholder"),
+    ] {
+        let root = fixture(make);
+        let invocation = registry::parse(["ici", "build"]).unwrap();
+        let error = commands::dispatch(&invocation, root.path(), &environment())
+            .err()
+            .unwrap_or_else(|| panic!("{make} was accepted"));
+        assert!(error.to_string().contains(message), "{make}: {error}");
+        assert!(!root.path().join("build").exists() && !root.path().join(".ici").exists());
+    }
+}
+
+#[test]
+#[ignore = "explicit actual GNU Make legacy build misconfiguration acceptance (ICI_TEST_MAKE, ICI_TEST_CXX)"]
+fn actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make() {
+    // Frozen `ici build` exits 1 with "Build did not produce a complete artifact set" for each.
+    for (make, reason) in [
+        (
+            "workdir='native'\nbuild_argv=['make','all']",
+            "build.make.workdir \"native\" must be an existing project directory",
+        ),
+        (
+            "workdir='linked'\nbuild_argv=['make','all']",
+            "build.make.workdir \"linked\" must be an existing project directory",
+        ),
+        (
+            "build_argv=['/nonexistent/make','all']",
+            "configured executable is unavailable: /nonexistent/make",
+        ),
+    ] {
+        let root = fixture(make);
+        fs::create_dir(root.path().join("real")).unwrap();
+        std::os::unix::fs::symlink("real", root.path().join("linked")).unwrap();
+        let invocation = registry::parse(["ici", "build"]).unwrap();
+        let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
+        // Misconfiguration is not "nothing to prepare": no direct-compile fallback is planned.
+        assert!(planned.context_preparations.is_empty(), "{make}");
+        assert!(
+            planned.plan.limitations.iter().any(|limitation| {
+                limitation.contains("declared release build cannot be prepared")
+                    && limitation.contains(reason)
+            }),
+            "{make}: {:?}",
+            planned.plan.limitations
+        );
+        let output = dispatch(root.path());
+        assert_eq!(output.exit_code, 1, "{make}: {}", output.stdout);
+        let result: serde_json::Value = serde_json::from_slice(
+            &fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(result["gate"]["selected"], "FAIL", "{make}");
+        assert_eq!(
+            output.stdout, "✘ Build did not produce a complete artifact set\n",
+            "{make}"
+        );
+        let text = saved_build_text(root.path());
+        assert!(
+            text.contains("build: Build did not produce a complete artifact set")
+                && text.contains("Makefile:1")
+                && text.contains(reason)
+                && !text.contains("no build linked"),
+            "{make}: {text}"
+        );
+        // Nothing ran: no shadow, no Make output, and the sources are unchanged.
+        assert!(!root.path().join("build").exists(), "{make}");
+        assert!(
+            fs::read_dir(root.path().join("real"))
+                .unwrap()
+                .next()
+                .is_none(),
+            "{make}"
+        );
+        assert_eq!(
+            fs::read_to_string(root.path().join("src/main.cpp")).unwrap(),
+            "int main(){return 0;}\n"
+        );
+    }
+}
+
+#[test]
+fn legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling() {
+    // Frozen BuildEngine: a root Makefile without build.make.enabled=true is a BuildError and
+    // generic g++ is not invoked (exit 1); it is neither a direct compile nor a SKIP.
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir(root.path().join("src")).unwrap();
+    fs::write(root.path().join("src/main.cpp"), "int main(){return 0;}\n").unwrap();
+    fs::write(root.path().join("Makefile"), "all:\n\texit 9\n").unwrap();
+    fs::write(
+        root.path().join("ici.toml"),
+        "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+    )
+    .unwrap();
+    let invocation = registry::parse(["ici", "build"]).unwrap();
+    let planned = planning::prepare(&invocation, root.path(), &environment(), false).unwrap();
+    assert!(planned.context_preparations.is_empty());
+    let output = dispatch(root.path());
+    assert_eq!(output.exit_code, 1, "{}", output.stdout);
+    // Frozen BuildError console (rich wraps at 80 columns, keeping the trailing space).
+    assert_eq!(
+        output.stdout,
+        "✘ Makefile at the project root has no configured adapter; CMake, qmake, and \nexplicitly enabled Make are supported, and generic g++ was not invoked\n"
+    );
+    // The saved engine: ERROR whose summary is the tool error itself, located at the Makefile.
+    let text = saved_build_text(root.path());
+    assert!(
+        text.contains("ERROR build: Makefile at the project root has no configured adapter; CMake, qmake, and explicitly enabled Make are supported, and generic g++ was not invoked")
+            && text.contains("Makefile:1"),
+        "{text}"
+    );
+    // Under `ici build` the build check is required: the run gate is FAIL, never PASS.
+    let result: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.path().join(".ici/rust-v1/result.json")).unwrap())
+            .unwrap();
+    assert_eq!(result["gate"]["selected"], "FAIL");
+    assert!(!root.path().join("build").exists());
+    assert!(!root.path().join(".ici/rust-v1/build").exists());
+}
+
+#[test]
+#[ignore = "explicit actual GNU Make static preparation preflight (ICI_TEST_MAKE, ICI_TEST_CXX)"]
+fn doctor_and_next_plan_show_static_preparation_refusals_without_building() {
+    for (make, reason, pyz) in [
+        (
+            "workdir='native'\nbuild_argv=['make','all']",
+            "build.make.workdir \"native\" must be an existing project directory",
+            false,
+        ),
+        (
+            "build_argv=['/nonexistent/make','all']",
+            "configured executable is unavailable: /nonexistent/make",
+            false,
+        ),
+        (
+            "build_argv=['make','all']",
+            "already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir",
+            true,
+        ),
+    ] {
+        let root = fixture(make);
+        if pyz {
+            fs::create_dir_all(root.path().join("build/ici-make")).unwrap();
+            fs::write(root.path().join("build/ici-make/old.o"), "keep").unwrap();
+        }
+        for command in [&["ici", "doctor"][..], &["ici", "next", "plan"][..]] {
+            let invocation = registry::parse(command.iter().copied()).unwrap();
+            let output = commands::dispatch(&invocation, root.path(), &environment()).unwrap();
+            let text = output
+                .stdout
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            assert!(
+                text.contains("declared release build cannot be prepared (Makefile)")
+                    && text.contains(reason)
+                    && text.contains("nothing was built"),
+                "{make} {command:?}: {}",
+                output.stdout
+            );
+            if command[1] == "doctor" {
+                assert!(text.contains("prepare: blocked"), "{}", output.stdout);
+            }
+        }
+        // Static facts only: no build, no shadow marker, no result, pyz bytes kept.
+        assert!(!root.path().join(".ici").exists(), "{make}");
+        if pyz {
+            assert_eq!(
+                fs::read_to_string(root.path().join("build/ici-make/old.o")).unwrap(),
+                "keep"
+            );
+            assert!(!root.path().join("build/ici-make/.ici-owner.json").exists());
+        } else {
+            assert!(!root.path().join("build").exists(), "{make}");
+        }
+    }
+}
+
+fn package_tree(release: &Path) -> serde_json::Map<String, serde_json::Value> {
+    use std::os::unix::fs::PermissionsExt;
+    fn walk(path: &Path, base: &Path, out: &mut serde_json::Map<String, serde_json::Value>) {
+        let metadata = fs::symlink_metadata(path).unwrap();
+        let relative = path
+            .strip_prefix(base)
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        let mode = format!("0o{:o}", metadata.permissions().mode() & 0o777);
+        if metadata.is_dir() {
+            out.insert(relative, serde_json::json!({"type":"dir","mode":mode}));
+            let mut children = fs::read_dir(path)
+                .unwrap()
+                .map(|entry| entry.unwrap().path())
+                .collect::<Vec<_>>();
+            children.sort();
+            for child in children {
+                walk(&child, base, out);
+            }
+        } else {
+            let bytes = fs::read(path).unwrap();
+            let digest = if bytes.starts_with(b"\x7fELF") {
+                "elf".to_string()
+            } else {
+                ici_domain::sha256(&bytes)
+                    .trim_start_matches("sha256:")
+                    .to_string()
+            };
+            out.insert(
+                relative,
+                serde_json::json!({"type":"file","mode":mode,"sha256":digest}),
+            );
+        }
+    }
+    let mut out = serde_json::Map::new();
+    walk(release, release.parent().unwrap(), &mut out);
+    out
+}
+
+#[test]
+#[ignore = "explicit actual Make/g++/CMake release package acceptance (ICI_TEST_MAKE, ICI_TEST_CXX, ICI_TEST_CMAKE)"]
+fn legacy_build_package_trees_match_the_frozen_tree_and_loader_digests() {
+    use std::os::unix::fs::PermissionsExt;
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/package-tree-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    // Directories follow the process umask like frozen mkdir; the oracle was captured at 022.
+    let probe = tempfile::tempdir().unwrap();
+    let created = probe.path().join("probe");
+    std::fs::DirBuilder::new().create(&created).unwrap();
+    let umask = 0o777 & !(fs::metadata(&created).unwrap().permissions().mode() & 0o777);
+    let tools = ["ICI_TEST_MAKE", "ICI_TEST_CXX", "ICI_TEST_CMAKE"]
+        .map(|name| std::env::var(name).unwrap_or_else(|_| panic!("explicit {name}")));
+    let path = tools
+        .iter()
+        .map(|tool| Path::new(tool).parent().unwrap().display().to_string())
+        .chain(["/usr/bin".into(), "/bin".into()])
+        .collect::<Vec<_>>()
+        .join(":");
+    let environment = BTreeMap::from([("PATH".to_string(), path)]);
+    for (name, fixture) in [
+        ("make", include_dir_files("package-make")),
+        ("direct", include_dir_files("package-direct")),
+        ("cmake", include_dir_files("package-cmake")),
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        for (relative, text) in fixture {
+            let path = root.path().join(relative);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text).unwrap();
+        }
+        let invocation = registry::parse(["ici", "build"]).unwrap();
+        let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
+        let expected = &oracle["cases"][name];
+        assert_eq!(
+            output.exit_code, expected["exit_code"],
+            "{name}: {}",
+            output.stdout
+        );
+        let mut want = expected["tree"].as_object().unwrap().clone();
+        for value in want.values_mut() {
+            if value["type"] == "dir" {
+                value["mode"] = serde_json::json!(format!("0o{:o}", 0o777 & !umask));
+            }
+        }
+        assert_eq!(
+            package_tree(&root.path().join("v2.3.4")),
+            want,
+            "{name}: {}",
+            output.stdout
+        );
+    }
+}
+
+fn include_dir_files(name: &str) -> Vec<(&'static str, &'static str)> {
+    match name {
+        "package-make" => vec![
+            (
+                "src/main.cpp",
+                include_str!("../../../parity-fixtures/cpp/package-make/src/main.cpp"),
+            ),
+            (
+                "pyproject.toml",
+                include_str!("../../../parity-fixtures/cpp/package-make/pyproject.toml"),
+            ),
+            (
+                "ici.toml",
+                include_str!("../../../parity-fixtures/cpp/package-make/ici.toml"),
+            ),
+            (
+                "Makefile",
+                include_str!("../../../parity-fixtures/cpp/package-make/Makefile"),
+            ),
+        ],
+        "package-direct" => vec![
+            (
+                "src/main.cpp",
+                include_str!("../../../parity-fixtures/cpp/package-direct/src/main.cpp"),
+            ),
+            (
+                "pyproject.toml",
+                include_str!("../../../parity-fixtures/cpp/package-direct/pyproject.toml"),
+            ),
+            (
+                "ici.toml",
+                include_str!("../../../parity-fixtures/cpp/package-direct/ici.toml"),
+            ),
+        ],
+        _ => vec![
+            (
+                "src/main.cpp",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/src/main.cpp"),
+            ),
+            (
+                "pyproject.toml",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/pyproject.toml"),
+            ),
+            (
+                "ici.toml",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/ici.toml"),
+            ),
+            (
+                "CMakeLists.txt",
+                include_str!("../../../parity-fixtures/cpp/package-cmake/CMakeLists.txt"),
+            ),
+        ],
+    }
+}

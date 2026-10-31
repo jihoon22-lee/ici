@@ -1,0 +1,11 @@
+{
+  "source_revision": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "source_sha256": {
+    "src/ici/engines/build.py": "ed680842aa97f8e058052b87e6f637576bb25fe7363ba585a09c2125a7b853bd"
+  },
+  "content": {
+    "env.sh": "#!/usr/bin/env bash\n# Portable Environment Loader for BASH / ZSH / SH\nSCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\nexport PATH=\"${SCRIPT_DIR}/bin:${PATH}\"\nexport PYTHONPATH=\"${SCRIPT_DIR}/lib:${PYTHONPATH:-}\"\necho \"[ici Env] Loaded release environment from ${SCRIPT_DIR}\"\n",
+    "env.csh": "#!/bin/csh\n# Portable Environment Loader for CSH / TCSH\nset SCRIPT_PATH = ($_)\nif (\"$SCRIPT_PATH\" == \"\") then\n    set SCRIPT_DIR = `dirname $0`\nelse\n    set SCRIPT_DIR = `dirname $SCRIPT_PATH[2]`\nendif\nset FULL_DIR = `cd \"$SCRIPT_DIR\" && pwd`\nsetenv PATH \"${FULL_DIR}/bin:${PATH}\"\nsetenv PYTHONPATH \"${FULL_DIR}/lib:${PYTHONPATH}\"\necho \"[ici Env] Loaded release environment from ${FULL_DIR}\"\n",
+    "bin/demo": "#!/usr/bin/env bash\nset -e\nSCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\nROOT_DIR=\"$(cd \"$SCRIPT_DIR/../../..\" && pwd)\"\nexport PYTHONPATH=\"$SCRIPT_DIR/../lib:$ROOT_DIR/src:${PYTHONPATH:-}\"\n\nif [ -x \"$ROOT_DIR/.venv/bin/python\" ]; then\n    PYTHON=\"$ROOT_DIR/.venv/bin/python\"\nelif [ -x \"$ROOT_DIR/.venv/Scripts/python\" ]; then\n    PYTHON=\"$ROOT_DIR/.venv/Scripts/python\"\nelse\n    PYTHON=\"python3\"\nfi\nexec \"$PYTHON\" -c 'import importlib, sys; sys.exit(importlib.import_module(\"pkg.cli\").main())' \"$@\"\n"
+  }
+}

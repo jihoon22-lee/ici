@@ -1,0 +1,510 @@
+{
+  "oracle_source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "oracle_file": "src/ici/analysis/cycles.py",
+  "oracle_file_sha256": "1c74befcfb8d6f01d5aa46c6d9c8cef2d9d583929966a9336163ab16737acd38",
+  "python": "3.10.21",
+  "cases": [
+    {
+      "id": "acyclic",
+      "sources": {
+        "a.py": "import b\n",
+        "b.py": "x=1\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_cycles": [],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py"
+      }
+    },
+    {
+      "id": "simple-cycle",
+      "sources": {
+        "a.py": "import b\n",
+        "b.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py"
+      }
+    },
+    {
+      "id": "three-cycle",
+      "sources": {
+        "a.py": "import b\n",
+        "b.py": "import c\n",
+        "c.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "c"
+        ],
+        [
+          "c",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b",
+          "c"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py",
+        "c": "c.py"
+      }
+    },
+    {
+      "id": "self-cycle",
+      "sources": {
+        "a.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py"
+      }
+    },
+    {
+      "id": "from-alias",
+      "sources": {
+        "a.py": "from b import x as chosen\n",
+        "b.py": "from a import y\nx=1\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py"
+      }
+    },
+    {
+      "id": "stdlib-suffix",
+      "sources": {
+        "pkg/html.py": "import pkg.other\n",
+        "pkg/other.py": "import html\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "pkg.html",
+          "pkg.other"
+        ]
+      ],
+      "original_cycles": [],
+      "original_modules": {
+        "pkg.html": "pkg/html.py",
+        "pkg.other": "pkg/other.py"
+      }
+    },
+    {
+      "id": "unique-suffix",
+      "sources": {
+        "pkg/a.py": "import b\n",
+        "pkg/b.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "pkg.a",
+          "pkg.b"
+        ],
+        [
+          "pkg.b",
+          "pkg.a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "pkg.a",
+          "pkg.b"
+        ]
+      ],
+      "original_modules": {
+        "pkg.a": "pkg/a.py",
+        "pkg.b": "pkg/b.py"
+      },
+      "difference_reason": "Legacy unique-module-suffix edges are preserved but affected cycles are ESTIMATED because the runtime search path is not proven",
+      "corrected_evidence": "ESTIMATED"
+    },
+    {
+      "id": "conditional-import",
+      "sources": {
+        "a.py": "if enabled:\n import b\n",
+        "b.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py"
+      }
+    },
+    {
+      "id": "deferred-import",
+      "sources": {
+        "a.py": "def f():\n import b\n",
+        "b.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py"
+      }
+    },
+    {
+      "id": "class-import",
+      "sources": {
+        "a.py": "class C:\n import b\n",
+        "b.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py"
+      }
+    },
+    {
+      "id": "package-relative",
+      "sources": {
+        "pkg/a.py": "from .b import x\n",
+        "pkg/b.py": "from .a import y\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "pkg.a",
+          "pkg.b"
+        ],
+        [
+          "pkg.b",
+          "pkg.a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "pkg.a",
+          "pkg.b"
+        ]
+      ],
+      "original_modules": {
+        "pkg.a": "pkg/a.py",
+        "pkg.b": "pkg/b.py"
+      },
+      "corrected_edges": [
+        [
+          "pkg.a",
+          "pkg.b"
+        ],
+        [
+          "pkg.b",
+          "pkg.a"
+        ]
+      ],
+      "difference_reason": "Relative levels resolve within the declared package rather than through suffix guessing",
+      "corrected_cycles": [
+        [
+          "pkg.a",
+          "pkg.b"
+        ]
+      ]
+    },
+    {
+      "id": "relative-module-name",
+      "sources": {
+        "pkg/__init__.py": "from . import a\n",
+        "pkg/a.py": "from . import b\n",
+        "pkg/b.py": "from . import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [],
+      "original_cycles": [],
+      "original_modules": {
+        "pkg": "pkg/__init__.py",
+        "pkg.a": "pkg/a.py",
+        "pkg.b": "pkg/b.py"
+      },
+      "corrected_edges": [
+        [
+          "pkg",
+          "pkg.a"
+        ],
+        [
+          "pkg.a",
+          "pkg.b"
+        ],
+        [
+          "pkg.b",
+          "pkg.a"
+        ]
+      ],
+      "difference_reason": "from-dot named child modules are preserved; old collector ignored imports with module=None",
+      "corrected_cycles": [
+        [
+          "pkg.a",
+          "pkg.b"
+        ]
+      ]
+    },
+    {
+      "id": "named-package-attribute",
+      "sources": {
+        "pkg/__init__.py": "child=1\n",
+        "pkg/child.py": "import pkg.user\n",
+        "pkg/user.py": "from pkg import child\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "pkg.child",
+          "pkg.user"
+        ],
+        [
+          "pkg.user",
+          "pkg"
+        ]
+      ],
+      "original_cycles": [],
+      "original_modules": {
+        "pkg": "pkg/__init__.py",
+        "pkg.child": "pkg/child.py",
+        "pkg.user": "pkg/user.py"
+      },
+      "corrected_edges": [
+        [
+          "pkg.child",
+          "pkg.user"
+        ],
+        [
+          "pkg.user",
+          "pkg"
+        ]
+      ],
+      "difference_reason": "A statically declared package attribute is not invented as a child-module edge",
+      "corrected_cycles": []
+    },
+    {
+      "id": "source-precedence",
+      "sources": {
+        "first/a.py": "import b\n",
+        "first/b.py": "import a\n",
+        "second/a.py": "x=1\n"
+      },
+      "source_roots": [
+        "first",
+        "second"
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_modules": {
+        "a": "second/a.py",
+        "b": "first/b.py"
+      },
+      "corrected_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "difference_reason": "Configured source-root order is respected rather than last module file winning",
+      "corrected_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ]
+    },
+    {
+      "id": "from-star",
+      "sources": {
+        "a.py": "from b import *\n",
+        "b.py": "import a\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b",
+          "a"
+        ]
+      ],
+      "original_cycles": [
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "original_modules": {
+        "a": "a.py",
+        "b": "b.py"
+      }
+    },
+    {
+      "id": "external-only",
+      "sources": {
+        "a.py": "import requests\nfrom unknown import x\n"
+      },
+      "source_roots": [
+        "."
+      ],
+      "original_edges": [],
+      "original_cycles": [],
+      "original_modules": {
+        "a": "a.py"
+      }
+    }
+  ]
+}

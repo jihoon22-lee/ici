@@ -1,0 +1,101 @@
+{
+  "oracle_file": "src/ici/engines/type_check.py",
+  "oracle_file_sha256": "a098e04e4d31b3b6b2aec2f9a69500a3d2d6bab0243b6c0e8c786153dcbae097",
+  "cases": [
+    {
+      "id": "optin-disabled",
+      "source": "def plain():\n    pass\n",
+      "warn_on_missing_annotation": false,
+      "original_targets": [],
+      "incomplete": false
+    },
+    {
+      "id": "optin-enabled",
+      "source": "def plain():\n    pass\n",
+      "warn_on_missing_annotation": true,
+      "original_targets": [
+        {
+          "line": 1,
+          "name": "plain()",
+          "status": "WARN",
+          "message": "Function 'plain' is missing return type annotation"
+        }
+      ],
+      "incomplete": false
+    },
+    {
+      "id": "annotated",
+      "source": "def typed() -> int:\n    return 1\n",
+      "warn_on_missing_annotation": true,
+      "original_targets": [],
+      "incomplete": false
+    },
+    {
+      "id": "nested-async-and-method",
+      "source": "async def outer():\n    def inner():\n        pass\nclass C:\n    def method(self):\n        pass\n",
+      "warn_on_missing_annotation": true,
+      "original_targets": [
+        {
+          "line": 1,
+          "name": "outer()",
+          "status": "WARN",
+          "message": "Function 'outer' is missing return type annotation"
+        },
+        {
+          "line": 2,
+          "name": "inner()",
+          "status": "WARN",
+          "message": "Function 'inner' is missing return type annotation"
+        },
+        {
+          "line": 5,
+          "name": "method()",
+          "status": "WARN",
+          "message": "Function 'method' is missing return type annotation"
+        }
+      ],
+      "incomplete": false
+    },
+    {
+      "id": "dunder-shapes",
+      "source": "def __both__():\n    pass\ndef __prefix():\n    pass\ndef suffix__():\n    pass\n",
+      "warn_on_missing_annotation": true,
+      "original_targets": [
+        {
+          "line": 3,
+          "name": "__prefix()",
+          "status": "WARN",
+          "message": "Function '__prefix' is missing return type annotation"
+        },
+        {
+          "line": 5,
+          "name": "suffix__()",
+          "status": "WARN",
+          "message": "Function 'suffix__' is missing return type annotation"
+        }
+      ],
+      "incomplete": false
+    },
+    {
+      "id": "decorators-and-unicode",
+      "source": "@decorator\ndef 이름():\n    pass\n",
+      "warn_on_missing_annotation": true,
+      "original_targets": [
+        {
+          "line": 2,
+          "name": "이름()",
+          "status": "WARN",
+          "message": "Function '이름' is missing return type annotation"
+        }
+      ],
+      "incomplete": false
+    },
+    {
+      "id": "syntax-error",
+      "source": "def bad(:\n    pass\n",
+      "warn_on_missing_annotation": true,
+      "original_targets": [],
+      "incomplete": true
+    }
+  ]
+}

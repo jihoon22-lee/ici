@@ -1,0 +1,25 @@
+[package]
+name = "ici-validation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ici-domain = { path = "../ici-domain" }
+ici-execution = { path = "../ici-execution" }
+ici-providers = { path = "../ici-providers" }
+ici-cpp = { path = "../ici-cpp" }
+ici-analysis = { path = "../ici-analysis" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+regex = "1.12"
+nix = { version = "0.30", features = ["fs", "time"] }
+flate2 = "=1.1.10"
+
+[dev-dependencies]
+tempfile = "3.27"
+
+[lints]
+workspace = true

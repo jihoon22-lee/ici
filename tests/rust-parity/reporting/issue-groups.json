@@ -1,0 +1,2996 @@
+{
+  "oracle": "6fe3e405",
+  "cases": [
+    {
+      "name": "precise-BareExcept-E722",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:E722"
+                },
+                "related_locations": [],
+                "message": "external finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:E722",
+                "tool_name": "ruff",
+                "tool_version": "0.16.3",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "exception",
+            "status": "WARN",
+            "summary": "exception summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.exception.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "BareExcept"
+                },
+                "related_locations": [],
+                "message": "internal finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "BareExcept",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "exception + lint",
+          "rule_id": "ici.python.exception.bare-except",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8",
+            "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59"
+          ],
+          "message": "internal finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "BareExcept",
+                "Ruff:E722"
+              ]
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "exception",
+              1
+            ],
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [
+            "exception/BareExcept",
+            "lint/Ruff:E722 (ruff 0.16.3)"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "BareExcept"
+          },
+          "related_locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "start_column": 3,
+              "end_column": 18,
+              "label": "Ruff:E722"
+            }
+          ]
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "precise-BaseException-BLE001",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:e7878032d0c39d1b7a0be1d7e2d70f4b6908c6453f4a390b466d310b4799ead4",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:BLE001"
+                },
+                "related_locations": [],
+                "message": "external finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:BLE001",
+                "tool_name": "ruff",
+                "tool_version": "0.16.3",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "exception",
+            "status": "WARN",
+            "summary": "exception summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.exception.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:8ad6fcdb8dce6939b0e21ebe80523b181b458786d2a5f1e35b46653f2fb7259a",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "BaseException"
+                },
+                "related_locations": [],
+                "message": "internal finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "BaseException",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "exception + lint",
+          "rule_id": "ici.python.exception.base-exception",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:8ad6fcdb8dce6939b0e21ebe80523b181b458786d2a5f1e35b46653f2fb7259a",
+            "sha256:e7878032d0c39d1b7a0be1d7e2d70f4b6908c6453f4a390b466d310b4799ead4"
+          ],
+          "message": "internal finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "BaseException",
+                "Ruff:BLE001"
+              ]
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "exception",
+              1
+            ],
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [
+            "exception/BaseException",
+            "lint/Ruff:BLE001 (ruff 0.16.3)"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "BaseException"
+          },
+          "related_locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "start_column": 3,
+              "end_column": 18,
+              "label": "Ruff:BLE001"
+            }
+          ]
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "precise-Resource:OpenWithoutWith-SIM115",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:858019f6fac2ac15e4bd88ecb3b89cadb3a836c23a604f36a6a97543425e9c1f",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:SIM115"
+                },
+                "related_locations": [],
+                "message": "external finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:SIM115",
+                "tool_name": "ruff",
+                "tool_version": "0.16.3",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "resource",
+            "status": "WARN",
+            "summary": "resource summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.resource.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:a9a1070c009929b4ef160968cf66193f3f6e95ce5fe45085fd25f1c8803cc73d",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Resource:OpenWithoutWith"
+                },
+                "related_locations": [],
+                "message": "internal finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Resource:OpenWithoutWith",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint + resource",
+          "rule_id": "ici.python.resource.open-without-context",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:858019f6fac2ac15e4bd88ecb3b89cadb3a836c23a604f36a6a97543425e9c1f",
+            "sha256:a9a1070c009929b4ef160968cf66193f3f6e95ce5fe45085fd25f1c8803cc73d"
+          ],
+          "message": "external finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Resource:OpenWithoutWith",
+                "Ruff:SIM115"
+              ]
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ],
+            [
+              "resource",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:SIM115 (ruff 0.16.3)",
+            "resource/Resource:OpenWithoutWith"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "Ruff:SIM115"
+          },
+          "related_locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "start_column": 3,
+              "end_column": 18,
+              "label": "Resource:OpenWithoutWith"
+            }
+          ]
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "precise-Security:WeakCryptoMD5-S324",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:ef19e847812b03fdc19c959d4221fc398faa3b4eb82feede08ddfc6c73716fec",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:S324"
+                },
+                "related_locations": [],
+                "message": "external finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:S324",
+                "tool_name": "ruff",
+                "tool_version": "0.16.3",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "security",
+            "status": "WARN",
+            "summary": "security summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.security.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:9e1354583abea8ba11211e687d8b37c5000b5ab1053ab888b50292c26e732281",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Security:WeakCryptoMD5"
+                },
+                "related_locations": [],
+                "message": "internal finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Security:WeakCryptoMD5",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint + security",
+          "rule_id": "ici.python.security.weak-md5",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:9e1354583abea8ba11211e687d8b37c5000b5ab1053ab888b50292c26e732281",
+            "sha256:ef19e847812b03fdc19c959d4221fc398faa3b4eb82feede08ddfc6c73716fec"
+          ],
+          "message": "external finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:S324",
+                "Security:WeakCryptoMD5"
+              ]
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ],
+            [
+              "security",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:S324 (ruff 0.16.3)",
+            "security/Security:WeakCryptoMD5"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "Ruff:S324"
+          },
+          "related_locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "start_column": 3,
+              "end_column": 18,
+              "label": "Security:WeakCryptoMD5"
+            }
+          ]
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "precise-Security:WeakCryptoSHA1-S324",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:ef19e847812b03fdc19c959d4221fc398faa3b4eb82feede08ddfc6c73716fec",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:S324"
+                },
+                "related_locations": [],
+                "message": "external finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:S324",
+                "tool_name": "ruff",
+                "tool_version": "0.16.3",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "security",
+            "status": "WARN",
+            "summary": "security summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.security.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:3159ff230a15d16c185abe4b0a939f576ca8185c7e5c90e1eaa5d0e0d2ca4e4b",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Security:WeakCryptoSHA1"
+                },
+                "related_locations": [],
+                "message": "internal finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Security:WeakCryptoSHA1",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint + security",
+          "rule_id": "ici.python.security.weak-sha1",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:3159ff230a15d16c185abe4b0a939f576ca8185c7e5c90e1eaa5d0e0d2ca4e4b",
+            "sha256:ef19e847812b03fdc19c959d4221fc398faa3b4eb82feede08ddfc6c73716fec"
+          ],
+          "message": "external finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:S324",
+                "Security:WeakCryptoSHA1"
+              ]
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ],
+            [
+              "security",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:S324 (ruff 0.16.3)",
+            "security/Security:WeakCryptoSHA1"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "Ruff:S324"
+          },
+          "related_locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "start_column": 3,
+              "end_column": 18,
+              "label": "Security:WeakCryptoSHA1"
+            }
+          ]
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "precise-Security:EvalExec-S307",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:ba0ffc4b291c248a24c109b7e85db8ed2fa2e838c94b34bb4cab792016dbe10e",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:S307"
+                },
+                "related_locations": [],
+                "message": "external finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:S307",
+                "tool_name": "ruff",
+                "tool_version": "0.16.3",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "security",
+            "status": "WARN",
+            "summary": "security summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.security.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:7ae7d18f5037a514d9df4c6c265ba85c7f30e70d1180e6832acc56a9e63937e9",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Security:EvalExec"
+                },
+                "related_locations": [],
+                "message": "internal finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Security:EvalExec",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint + security",
+          "rule_id": "ici.python.security.eval",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:7ae7d18f5037a514d9df4c6c265ba85c7f30e70d1180e6832acc56a9e63937e9",
+            "sha256:ba0ffc4b291c248a24c109b7e85db8ed2fa2e838c94b34bb4cab792016dbe10e"
+          ],
+          "message": "external finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:S307",
+                "Security:EvalExec"
+              ]
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ],
+            [
+              "security",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:S307 (ruff 0.16.3)",
+            "security/Security:EvalExec"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "Ruff:S307"
+          },
+          "related_locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "start_column": 3,
+              "end_column": 18,
+              "label": "Security:EvalExec"
+            }
+          ]
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "precise-ShellTrue-S602",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:8fd119450cf9c6a51753332d3641f9a243c3cd7d109900c64bcca2875336d3c1",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:S602"
+                },
+                "related_locations": [],
+                "message": "external finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:S602",
+                "tool_name": "ruff",
+                "tool_version": "0.16.3",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "security",
+            "status": "WARN",
+            "summary": "security summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.security.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:8230f0ee8fafadd2cefd99644531d3b6d94d08c0ab729467f4d56135d7cf5ec7",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "ShellTrue"
+                },
+                "related_locations": [],
+                "message": "internal finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "ShellTrue",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint + security",
+          "rule_id": "ici.python.security.shell-true",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:8230f0ee8fafadd2cefd99644531d3b6d94d08c0ab729467f4d56135d7cf5ec7",
+            "sha256:8fd119450cf9c6a51753332d3641f9a243c3cd7d109900c64bcca2875336d3c1"
+          ],
+          "message": "external finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:S602",
+                "ShellTrue"
+              ]
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ],
+            [
+              "security",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:S602 (ruff 0.16.3)",
+            "security/ShellTrue"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "Ruff:S602"
+          },
+          "related_locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "start_column": 3,
+              "end_column": 18,
+              "label": "ShellTrue"
+            }
+          ]
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "line-only",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": "Ruff:E722"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:E722",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "exception",
+            "status": "WARN",
+            "summary": "exception summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.exception.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": "BareExcept"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "exception",
+          "rule_id": "ici.python.exception.bare-except",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "BareExcept"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "exception",
+              1
+            ]
+          ],
+          "provenance": [
+            "exception/BareExcept"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": null,
+            "end_column": null,
+            "label": "BareExcept"
+          },
+          "related_locations": []
+        },
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.python.exception.bare-except",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:E722"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:E722"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": null,
+            "end_column": null,
+            "label": "Ruff:E722"
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "different-columns",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 20,
+                  "end_column": 25,
+                  "label": "Ruff:E722"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:E722",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "exception",
+            "status": "WARN",
+            "summary": "exception summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.exception.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "BareExcept"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "exception",
+          "rule_id": "ici.python.exception.bare-except",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "BareExcept"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "exception",
+              1
+            ]
+          ],
+          "provenance": [
+            "exception/BareExcept"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "BareExcept"
+          },
+          "related_locations": []
+        },
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.python.exception.bare-except",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:E722"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:E722"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 20,
+            "end_column": 25,
+            "label": "Ruff:E722"
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "cpp-is-not-python",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:09b21d35d84856cd128dda14c2d93276247c64db3408e65311eebc4aa236ebe4",
+                "primary_location": {
+                  "path": "src/app.cpp",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:E722"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:E722",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "exception",
+            "status": "WARN",
+            "summary": "exception summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.exception.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:dce8081320e5a422680498fa975b5f05ed8260fafedd3bb9af52821fc84b3774",
+                "primary_location": {
+                  "path": "src/app.cpp",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "BareExcept"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "exception",
+          "rule_id": "ici.legacy.exception.target",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:dce8081320e5a422680498fa975b5f05ed8260fafedd3bb9af52821fc84b3774"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.cpp",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "BareExcept"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "exception",
+              1
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.cpp",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "BareExcept"
+          },
+          "related_locations": []
+        },
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.legacy.lint.target",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:09b21d35d84856cd128dda14c2d93276247c64db3408e65311eebc4aa236ebe4"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.cpp",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:E722"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.cpp",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "Ruff:E722"
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "same-engine",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 2,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 2,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.lint.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "Ruff:E722"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "Ruff:E722",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          },
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.legacy.exception.target",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 9,
+                  "end_line": 9,
+                  "start_column": 3,
+                  "end_column": 18,
+                  "label": "BareExcept"
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.python.exception.bare-except",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:70d2e45cd6875207e1d6c415eaab4b6f8f510f7da0727798fa72abd72d64aec8"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "BareExcept"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/BareExcept"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "BareExcept"
+          },
+          "related_locations": []
+        },
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.python.exception.bare-except",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:c1cd56032501f945d9657a9b2b9b3d902dfbf897f7ee1b391ab60ecefed41d59"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 9,
+              "end_line": 9,
+              "labels": [
+                "Ruff:E722"
+              ]
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [
+            "lint/Ruff:E722"
+          ],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 9,
+            "end_line": 9,
+            "start_column": 3,
+            "end_column": 18,
+            "label": "Ruff:E722"
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "same-identity-unions-overlap-only",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 1,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 1,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 10,
+                  "end_line": 12,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "overlap-1",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 12,
+                  "end_line": 15,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "overlap-2",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 20,
+                  "end_line": 22,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "separate-1",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 25,
+                  "end_line": 26,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "separate-2",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.test.issue",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "message": "overlap-1",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 10,
+              "end_line": 15,
+              "labels": []
+            }
+          ],
+          "original_finding_count": 2,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              2
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 10,
+            "end_line": 12,
+            "start_column": null,
+            "end_column": null,
+            "label": ""
+          },
+          "related_locations": []
+        },
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.test.issue",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "message": "separate-1",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 20,
+              "end_line": 22,
+              "labels": []
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 20,
+            "end_line": 22,
+            "start_column": null,
+            "end_column": null,
+            "label": ""
+          },
+          "related_locations": []
+        },
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.test.issue",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "message": "separate-2",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 25,
+              "end_line": 26,
+              "labels": []
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 25,
+            "end_line": 26,
+            "start_column": null,
+            "end_column": null,
+            "label": ""
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 4
+    },
+    {
+      "name": "different-fingerprints-stay-separate",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 1,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 1,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 10,
+                  "end_line": 15,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 12,
+                  "end_line": 18,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "finding",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.test.issue",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 10,
+              "end_line": 15,
+              "labels": []
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 10,
+            "end_line": 15,
+            "start_column": null,
+            "end_column": null,
+            "label": ""
+          },
+          "related_locations": []
+        },
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.test.issue",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          ],
+          "message": "finding",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 12,
+              "end_line": 18,
+              "labels": []
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 12,
+            "end_line": 18,
+            "start_column": null,
+            "end_column": null,
+            "label": ""
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 2
+    },
+    {
+      "name": "clone-transitive-overlap-cross-file",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 1,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 1,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "dup",
+            "status": "WARN",
+            "summary": "dup summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {
+              "clone_groups": [
+                {
+                  "id": 7,
+                  "lines_count": 6,
+                  "occurrences": [
+                    {
+                      "file_path": "src/a.py",
+                      "start_line": 10,
+                      "end_line": 12
+                    },
+                    {
+                      "file_path": "src/a.py",
+                      "start_line": 12,
+                      "end_line": 15
+                    },
+                    {
+                      "file_path": "src/b.py",
+                      "start_line": 3,
+                      "end_line": 7
+                    }
+                  ]
+                }
+              ]
+            },
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+                "primary_location": {
+                  "path": "src/b.py",
+                  "start_line": 3,
+                  "end_line": 7,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": "CloneGroup#7"
+                },
+                "related_locations": [],
+                "message": "clone",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+                "primary_location": {
+                  "path": "src/a.py",
+                  "start_line": 10,
+                  "end_line": 12,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": "CloneGroup#7"
+                },
+                "related_locations": [],
+                "message": "clone",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e",
+                "primary_location": {
+                  "path": "src/a.py",
+                  "start_line": 12,
+                  "end_line": 15,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": "CloneGroup#7"
+                },
+                "related_locations": [],
+                "message": "clone",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "dup",
+          "rule_id": "ici.test.issue",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:9d8c790c868b1417a94b2f5f2d7103f1d34580dcfd5d767d7802eb452e99a30d",
+            "sha256:e9a28c4b4db1f52f683e9dd4212403e41e731b02e8acb934295346cc22e1fd6e"
+          ],
+          "message": "Clone group 7: 6 matched lines across 2 location(s)",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/a.py",
+              "start_line": 10,
+              "end_line": 15,
+              "labels": []
+            },
+            {
+              "path": "src/b.py",
+              "start_line": 3,
+              "end_line": 7,
+              "labels": []
+            }
+          ],
+          "original_finding_count": 3,
+          "clone_group_id": "7",
+          "producer_counts": [
+            [
+              "dup",
+              3
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/a.py",
+            "start_line": 10,
+            "end_line": 12,
+            "start_column": null,
+            "end_column": null,
+            "label": "CloneGroup#7"
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 3
+    },
+    {
+      "name": "info-suppressed-not-actionable",
+      "input": {
+        "schema_version": "ici.result/v3",
+        "suite_status": "WARN",
+        "duration": 0.25,
+        "passed_count": 0,
+        "warned_count": 1,
+        "failed_count": 0,
+        "error_count": 0,
+        "skipped_count": 0,
+        "total_count": 1,
+        "tem_score": null,
+        "max_tem_score": 5.0,
+        "results": [
+          {
+            "schema_version": "ici.result/v3",
+            "engine_name": "lint",
+            "status": "WARN",
+            "summary": "lint summary",
+            "score": null,
+            "max_score": null,
+            "duration": 0.0,
+            "raw_output": "",
+            "extra": {},
+            "required": true,
+            "evidence": "MEASURED",
+            "cache_hit": false,
+            "cache_key": null,
+            "tool_evidence": [],
+            "targets": [],
+            "findings": [
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "info",
+                "confidence": "exact",
+                "fingerprint": "sha256:2b74221c8542d67326490c1ce00a50e8c06a89987c39c4825d9de49e48e91dfc",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 2,
+                  "end_line": null,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "info",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:9339ff3c88cee0e6f46ef83ff6437800fbf032a3e094327ba6f39937c2dacbf3",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 1,
+                  "end_line": null,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "actionable",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": false,
+                  "kind": "none",
+                  "reason": ""
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              },
+              {
+                "rule_id": "ici.test.issue",
+                "category": "correctness",
+                "severity": "high",
+                "confidence": "exact",
+                "fingerprint": "sha256:95e2e4ec95d3f3cd868da94a7c967d680a1cd22b6ea2d489e3a61d8b15147dca",
+                "primary_location": {
+                  "path": "src/app.py",
+                  "start_line": 3,
+                  "end_line": null,
+                  "start_column": null,
+                  "end_column": null,
+                  "label": ""
+                },
+                "related_locations": [],
+                "message": "suppressed",
+                "explanation": "",
+                "remediation": "",
+                "tool_rule_id": "",
+                "tool_name": "",
+                "tool_version": "",
+                "suppression": {
+                  "suppressed": true,
+                  "kind": "none",
+                  "reason": "accepted"
+                },
+                "metrics": {},
+                "snippet": "",
+                "fixes": []
+              }
+            ],
+            "support_matrix": null,
+            "artifact_manifests": []
+          }
+        ],
+        "support_matrix": null,
+        "analysis_metadata": null,
+        "baseline_comparison": null,
+        "capability_inventory": null,
+        "analysis_context": null
+      },
+      "expected": [
+        {
+          "engine_name": "lint",
+          "rule_id": "ici.test.issue",
+          "category": "correctness",
+          "severity": "high",
+          "confidence": "exact",
+          "fingerprints": [
+            "sha256:9339ff3c88cee0e6f46ef83ff6437800fbf032a3e094327ba6f39937c2dacbf3"
+          ],
+          "message": "actionable",
+          "snippet": "",
+          "locations": [
+            {
+              "path": "src/app.py",
+              "start_line": 1,
+              "end_line": 1,
+              "labels": []
+            }
+          ],
+          "original_finding_count": 1,
+          "clone_group_id": "",
+          "producer_counts": [
+            [
+              "lint",
+              1
+            ]
+          ],
+          "provenance": [],
+          "primary_location": {
+            "path": "src/app.py",
+            "start_line": 1,
+            "end_line": null,
+            "start_column": null,
+            "end_column": null,
+            "label": ""
+          },
+          "related_locations": []
+        }
+      ],
+      "total_findings": 1
+    }
+  ]
+}

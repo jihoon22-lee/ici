@@ -1,0 +1,53 @@
+{
+ "components[].checks.*.exemptions:positive": {
+  "native": "reject",
+  "native_key": "components[0].checks.lint.exemptions.app",
+  "reason": "Frozen read exemptions under a component's own check table but never consulted them (only root exemptions relax a requirement), so the declaration was silently inert. Native refuses it as an unknown key so authors move the reasoned exemption to the root."
+ },
+ "components[].id:slash": {
+  "native": "accept",
+  "native_values": {
+   "components.svc/api.root": "."
+  },
+  "reason": "Intended contract change: native component ids name monorepo packages (automatic discovery uses the package directory, e.g. rust/one), so the frozen lowercase [a-z0-9._-] identifier rule is not applied blindly. Native still requires a non-empty, at most 128-character, control-free id, unique within the workspace."
+ },
+ "components[].id:uppercase": {
+  "native": "accept",
+  "reason": "Intended contract change (same as components[].id:slash): native component ids are bounded printable package names and keep the author's case; the frozen lowercase-only domain rule is not applied."
+ },
+ "components[].languages:unknown_value": {
+  "native": "reject",
+  "native_key": "components[0].languages",
+  "reason": "Frozen accepted an unsupported language name and then selected no files for it. Native refuses unsupported language names so a typo cannot become an empty PASS scope."
+ },
+ "components[].python.test_tools:unknown_value": {
+  "native": "reject",
+  "native_key": "components[0].python.test_tools",
+  "reason": "Frozen stored any test_tools text without meaning. Native refuses values other than project/bundle instead of silently treating a typo as the default."
+ },
+ "local.builds.*.directory:undeclared": {
+  "native": "reject",
+  "native_key": "builds.ghost.directory",
+  "reason": "Frozen silently ignored a local overlay for a build no root declares, so the author believed it took effect. Native refuses it by name, consistent with the overlay's refuse-rather-than-ignore contract."
+ },
+ "local.components.*.python.executable:undeclared": {
+  "native": "reject",
+  "native_key": "components.ghost.python.executable",
+  "reason": "Frozen silently ignored a local interpreter for an undeclared component. Native refuses the overlay key by name instead of ignoring it."
+ },
+ "publish.branch:blank": {
+  "native": "reject",
+  "native_key": "publish.branch",
+  "reason": "Frozen silently replaced a whitespace-only branch with gh-pages. Native refuses the blank value; omitting branch still selects gh-pages."
+ },
+ "tools.*.config:escape": {
+  "native": "reject",
+  "native_key": "tools.ruff.config",
+  "reason": "Frozen next-v1 read [tools] but never composed it, so an escaping tool config path was silently ignored. Native resolves tool paths for providers and refuses a config path outside the workspace."
+ },
+ "workspace.profile:unknown_value": {
+  "native": "reject",
+  "native_key": "workspace.profile",
+  "reason": "Frozen next-v1 stored any profile text and ignored unknown values when selecting checks. Native refuses anything but fast/standard/deep, because the profile selects which checks run."
+ }
+}

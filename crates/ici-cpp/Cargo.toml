@@ -1,0 +1,25 @@
+[package]
+name = "ici-cpp"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+ici-domain = { path = "../ici-domain" }
+ici-analysis = { path = "../ici-analysis" }
+ici-execution = { path = "../ici-execution" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+regex = "1.12"
+nix = { version = "0.30", features = ["fs", "user", "process"] }
+tree-sitter = "=0.27.1"
+tree-sitter-cpp = "=0.23.4"
+
+[dev-dependencies]
+tempfile = "=3.27.0"
+
+[lints]
+workspace = true

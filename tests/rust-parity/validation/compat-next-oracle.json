@@ -1,0 +1,35 @@
+{
+  "checks": {
+    "python.compat-runtime": "SUCCEEDED"
+  },
+  "config": "schema_version=1\n[workspace]\nname='w'\nprofile='standard'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=\"<PYTHON>\"\n",
+  "files": {
+    "app.py": "def f():\n    try:\n        pass\n    except* ValueError:\n        pass\n",
+    "pyproject.toml": "[project]\nname = \"demo\"\nversion = \"1.0\"\nrequires-python = \">=3.11\"\n"
+  },
+  "findings": [
+    {
+      "category": "compatibility",
+      "location": {
+        "path": "pyproject.toml",
+        "start_line": 1
+      },
+      "message": "declared interpreter reports Python 3.10.21, outside requires-python '>=3.11'",
+      "provider": "python-compat-version",
+      "rule_id": "python.compat.runtime-version",
+      "severity": "high"
+    },
+    {
+      "category": "compatibility",
+      "location": {
+        "path": "app.py",
+        "start_line": 4
+      },
+      "message": "SyntaxError: invalid syntax",
+      "provider": "python-compat-compileall",
+      "rule_id": "python.compat.compile-failure",
+      "severity": "high"
+    }
+  ],
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

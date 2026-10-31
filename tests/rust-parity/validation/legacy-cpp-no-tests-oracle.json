@@ -1,0 +1,52 @@
+{
+  "fixtures": "parity-fixtures/cpp/legacy-no-tests",
+  "runs": {
+    "root-main": {
+      "evidence": "ESTIMATED",
+      "exit_code": 1,
+      "findings": [
+        {
+          "fingerprint": "sha256:5f996e1fb7db1f61457f5085eddd5c025adbb7269989e9d3789829901757b1fe",
+          "message": "No tests collected",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 100.0% (est), Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No tests collected",
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "[Project] Tests"
+        }
+      ]
+    },
+    "src-sources": {
+      "evidence": "ESTIMATED",
+      "exit_code": 1,
+      "findings": [
+        {
+          "fingerprint": "sha256:d6a228f045ac92514a5c50aac1b294c535702d984c1f34ec9406ead59c66c7b2",
+          "message": "No tests collected",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No tests collected",
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "[C++] Tests"
+        }
+      ]
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
