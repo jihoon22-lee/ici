@@ -342,29 +342,10 @@ pub fn legacy_projection(
             .filter(|result| result["status"] == status)
             .count()
     };
-    let suite_status = if !run.execution.required_complete
-        || results.is_empty()
-        || results.iter().any(|engine| {
-            engine_required(engine)
-                && engine["evidence"] != "NOT_APPLICABLE"
-                && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
-                    || engine["evidence"] == "NOT_RUN")
-        }) {
+    let suite_status = if !run.execution.required_complete {
         "ERROR"
-    } else if results
-        .iter()
-        .any(|engine| engine_required(engine) && engine["status"] == "FAIL")
-    {
-        "FAIL"
-    } else if results.iter().any(|engine| {
-        engine["evidence"] != "NOT_APPLICABLE"
-            && (engine["status"] == "WARN"
-                || !engine_required(engine)
-                    && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
-    }) {
-        "WARN"
     } else {
-        "PASS"
+        aggregate_suite_status(&results)
     };
     // Frozen `engines/verify.py`: the suite TEM is the legacy `test` engine's own score; the
     // next run's `tem.*` metrics use the unrounded next formula and are not this value.
@@ -1202,6 +1183,58 @@ fn strip_fix_markers(finding: &mut Value) {
             }
         }
     }
+}
+
+/// Frozen `aggregate_suite_status` over legacy engine results.
+fn aggregate_suite_status(results: &[Value]) -> &'static str {
+    if results.is_empty()
+        || results.iter().any(|engine| {
+            engine_required(engine)
+                && engine["evidence"] != "NOT_APPLICABLE"
+                && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
+                    || engine["evidence"] == "NOT_RUN")
+        })
+    {
+        "ERROR"
+    } else if results
+        .iter()
+        .any(|engine| engine_required(engine) && engine["status"] == "FAIL")
+    {
+        "FAIL"
+    } else if results.iter().any(|engine| {
+        engine["evidence"] != "NOT_APPLICABLE"
+            && (engine["status"] == "WARN"
+                || !engine_required(engine)
+                    && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
+    }) {
+        "WARN"
+    } else {
+        "PASS"
+    }
+}
+
+/// Recompute a legacy suite's status and counts after its engine verdicts were reshaped (frozen
+/// `aggregate_suite_status` and the VerificationSuiteResult counters). Returns the new status.
+pub fn legacy_refresh_suite(document: &mut Value) -> Result<String> {
+    let results = document["results"]
+        .as_array()
+        .cloned()
+        .ok_or_else(|| ReportError("legacy suite results must be an array".into()))?;
+    let count = |status: &str| {
+        results
+            .iter()
+            .filter(|result| result["status"] == status)
+            .count()
+    };
+    let status = aggregate_suite_status(&results);
+    document["suite_status"] = json!(status);
+    document["passed_count"] = json!(count("PASS"));
+    document["warned_count"] = json!(count("WARN"));
+    document["failed_count"] = json!(count("FAIL") + count("ERROR"));
+    document["error_count"] = json!(count("ERROR"));
+    document["skipped_count"] = json!(count("SKIP"));
+    document["total_count"] = json!(results.len());
+    Ok(status.into())
 }
 
 #[cfg(test)]

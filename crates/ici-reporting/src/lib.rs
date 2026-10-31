@@ -9,8 +9,8 @@ mod projection;
 mod safe;
 pub use projection::{
     ProjectionContext, legacy_engine, legacy_exit_code, legacy_no_sources,
-    legacy_no_tests_collected, legacy_policy_refused, legacy_projection, legacy_verdict,
-    legacy_worst_status,
+    legacy_no_tests_collected, legacy_policy_refused, legacy_projection, legacy_refresh_suite,
+    legacy_verdict, legacy_worst_status,
 };
 mod baseline_delta;
 pub use baseline_delta::{

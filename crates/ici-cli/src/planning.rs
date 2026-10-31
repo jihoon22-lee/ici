@@ -240,6 +240,7 @@ fn prepare_resolved_omitting(
     }
     definitions.extend(supplemental.iter().cloned());
     crate::validation::apply_legacy_coverage_defaults(invocation, &mut project);
+    crate::legacy::apply_descriptor_profile(invocation, &mut project, profile);
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
     let request = RunRequest {
         components: invocation.values("component").to_vec(),
