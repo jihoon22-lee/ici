@@ -59,6 +59,12 @@
 - 레거시 `ici type`이 이전 제품과 같이 프로젝트의 mypy를 실행합니다. 이전에는 ty를 선택해 ty가 없으면
   오류가 났습니다. 레거시 `ici lint`는 이전과 같은 `Ruff:<code>`·`Format:Style`·SyntaxError 대상과
   "N Errors, M Warnings Found" 요약을 보고합니다.
+- 레거시 `ici type`은 mypy가 없거나 필수일 때도 이전과 같은 판정을 보고하고, 반복되는 note를 `(xN)`으로 접습니다.
+  Python 소스가 없으면 `ici type`은 SKIP, `ici complexity`는 설정된 한도를 표시한 PASS를 보고합니다. 설정 파일이 없는
+  레거시 `ici line`은 이전과 같이 단일 루트 범위를 사용합니다(문서 전용 트리는 PASS, 하위 `svc_*/src`는 부가 파일).
+- v1 빌드 모델 오류(빌드 디렉터리 `.` 등)와 경로를 벗어나는 빌드 ID를 실행 전에 거부합니다. `ici next init --force`는
+  기존 범위를 보존하고 원본을 `.before-init`로 백업하며, 해석할 수 없는 기존 설정은 덮어쓰지 않고 위치와 함께
+  거부합니다.
 - 레거시·v1 설정 파일 검증 결과(오류 위치·메시지·exit code)와 `ici next plan` 선택 옵션, `ici next init`이 이전
   제품과 같습니다. 적용되지 않은 개인 설정과 병합되지 않은 과거 설정 계층은 숨기지 않고 표시합니다.
 - 레거시 `ici security|resource|dup|dead|cognitive|exception` 명령이 잘못된 인코딩·구문 오류·제외 전용 범위·
