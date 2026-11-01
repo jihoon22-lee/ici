@@ -541,9 +541,13 @@ pub fn execute(
                             cancellation,
                             &events,
                         );
+                        let configurations = prepared
+                            .cpp
+                            .legacy_lint_configurations(&planned.component_id)
+                            .filter(|_| !prepared.cpp.is_fallback(id));
                         if prepared.legacy_projection
                             && planned.check.id == "cpp.diagnostics"
-                            && prepared.cpp.is_fallback(id)
+                            && (prepared.cpp.is_fallback(id) || configurations.is_some())
                         {
                             let tooling = prepared
                                 .plan
@@ -558,6 +562,7 @@ pub fn execute(
                                 &mut output,
                                 tooling,
                                 prepared.cpp.legacy_standalone,
+                                configurations.as_ref(),
                             );
                         }
                         output

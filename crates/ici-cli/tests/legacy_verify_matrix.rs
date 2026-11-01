@@ -603,7 +603,7 @@ fn legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines()
     let oracle = oracle();
     let environment = compiler_environment(&oracle);
     let base = oracle["base"].as_str().unwrap();
-    const OPEN: [&str; 1] = ["lint"];
+    const OPEN: [&str; 0] = [];
     let mut mismatches = Vec::new();
     for (name, frozen) in oracle["database_cases"].as_object().unwrap() {
         let config = format!(

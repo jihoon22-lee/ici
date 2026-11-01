@@ -391,6 +391,13 @@ impl CppPlans {
                     request.analysis_unit_ids = vec![unit_id(component, unit)];
                     request.variant = Some(unit.variant.clone());
                     request.options.compiler_argv = replay.argv;
+                    if self.legacy_projection {
+                        // Frozen `compiler_diagnostic_command` requests GCC JSON diagnostics.
+                        request
+                            .options
+                            .compiler_argv
+                            .push("-fdiagnostics-format=json".into());
+                    }
                     request.options.source_token =
                         Some(replay.source.to_string_lossy().into_owned());
                     request.input_refs = context
@@ -814,6 +821,7 @@ impl CppPlans {
             return Err("clang tooling exceeds 2048 selected compilation units".into());
         }
         let mut selected = vec![];
+        let mut missing = vec![];
         for (field, name, kind) in [
             ("clang_tidy", "clang-tidy", ProviderKind::ClangTidy),
             ("clazy", "clazy-standalone", ProviderKind::Clazy),
@@ -837,9 +845,28 @@ impl CppPlans {
                     self.tools.insert(name.into(), tool.clone());
                     selected.push((kind, tool));
                 }
+                Err(_) if self.legacy_projection => {
+                    let (tool, label) = if kind == ProviderKind::Clazy {
+                        ("clazy", "ClazyUnavailable")
+                    } else {
+                        ("clang-tidy", "ClangTidyUnavailable")
+                    };
+                    missing.push((
+                        label,
+                        format!("{tool} is unavailable or incompletely probed"),
+                        mode(field) == "required",
+                    ));
+                }
                 Err(error) if mode(field) == "required" => return Err(error.to_string()),
                 Err(_) => {}
             }
+        }
+        if selected.is_empty() && !missing.is_empty() {
+            // Frozen LintEngine with an exact context and no resolvable clang tooling: the same
+            // unavailable targets at "." as without a context.
+            self.preparation_failures
+                .insert(id.into(), legacy_tooling_unavailable(id, &missing));
+            return Ok(Work::Internal);
         }
         if selected.is_empty() {
             return Err("clang-tidy and Clazy are disabled or unavailable".into());
@@ -1477,6 +1504,12 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
             .map(|(_, message, _)| message)
             .collect::<Vec<_>>()
     );
+    if errors.is_empty() && !unavailable.is_empty() {
+        // Frozen LintEngine: an unavailable optional tool leaves the lint verdict estimated.
+        let mut available = Measurement::measured("clang_tooling_available", 0.0);
+        available.evidence = ici_domain::EvidenceLevel::Estimated;
+        output.observation.measurements.push(available);
+    }
     for (label, message, required) in unavailable {
         output.observation.limitations.push(message.clone());
         let mut target = InspectionTarget::at(".", 1);
@@ -1496,6 +1529,7 @@ pub fn legacy_fallback_lint(
     output: &mut AnalysisOutput,
     tooling: Option<&AnalysisOutput>,
     standalone: bool,
+    configurations: Option<&BTreeMap<String, String>>,
 ) {
     const FALLBACK: &str = "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback";
     if !matches!(output.status.as_str(), "PASS" | "FAIL")
@@ -1514,7 +1548,14 @@ pub fn legacy_fallback_lint(
     for target in &output.targets {
         if target.status == "PASS" && target.target_name.is_empty() {
             let mut clean = target.clone();
-            clean.target_name = "C++Syntax:fallback".into();
+            // Frozen `_evaluate_process`: the clean unit is named by its configuration digest,
+            // `fallback` when no compilation database recorded one.
+            clean.target_name = format!(
+                "C++Syntax:{}",
+                configurations
+                    .and_then(|items| items.get(&target.file_path))
+                    .map_or("fallback", String::as_str)
+            );
             clean.message = "Compiler syntax analysis completed without diagnostics.".into();
             targets.push(clean);
             continue;
@@ -1578,7 +1619,7 @@ pub fn legacy_fallback_lint(
         }
     }
     output.targets = targets;
-    legacy_fallback_findings(output, &primaries, &notes);
+    legacy_fallback_findings(output, &primaries, &notes, configurations.is_some());
     let all: Vec<&InspectionTarget> = output
         .targets
         .iter()
@@ -1589,7 +1630,11 @@ pub fn legacy_fallback_lint(
         )
         .collect();
     let fail = all.iter().filter(|target| target.status == "FAIL").count();
-    let mut warnings = vec![FALLBACK.to_string()];
+    let mut warnings = if configurations.is_some() {
+        vec![]
+    } else {
+        vec![FALLBACK.to_string()]
+    };
     warnings.extend(
         tooling
             .and_then(|tooling| tooling.extra.get("legacy_tool_warnings"))
@@ -1622,11 +1667,6 @@ pub fn legacy_fallback_lint(
     };
 }
 
-/// Frozen `LintEngine._cpp_findings` in the heuristic fallback: every text diagnostic, each note
-/// included, is its own compiler finding with medium confidence (only an exact replay is exact),
-/// no related locations, and the target name as its label only when that name is unique in its
-/// file. Notes have no native finding of their own, so their frozen findings are supplied whole
-/// (`legacy_findings`). The adapted targets name the first compiler invocation as their tool.
 /// Frozen `DeadCodeEngine` over `run_cpp_unused_functions` with a selected database. Exact
 /// evidence is atomic: the first configuration that fails (in database order) yields one
 /// `C++UnusedFunctionError` and every source observed before it a discarded-observation target;
@@ -1785,11 +1825,18 @@ fn legacy_unused_projection(
         )
     };
 }
+/// Frozen `LintEngine._cpp_findings` in the heuristic fallback: every text diagnostic, each note
+/// included, is its own compiler finding with medium confidence (only an exact replay is exact),
+/// no related locations, and the target name as its label only when that name is unique in its
+/// file. Notes have no native finding of their own, so their frozen findings are supplied whole
+/// (`legacy_findings`). The adapted targets name the first compiler invocation as their tool.
 fn legacy_fallback_findings(
     output: &mut AnalysisOutput,
     primaries: &[(usize, String)],
     notes: &[(usize, String)],
+    exact: bool,
 ) {
+    let confidence = if exact { "exact" } else { "medium" };
     let mut counts = BTreeMap::<(&str, &str), usize>::new();
     for target in &output.targets {
         *counts
@@ -1818,7 +1865,7 @@ fn legacy_fallback_findings(
     for (index, parent) in notes {
         let target = &output.targets[*index];
         explicit.push(json!({"rule_id":"ici.legacy.lint.target","category":"correctness","severity":"medium",
-            "confidence":"medium","primary_location":{"path":target.file_path,"start_line":target.start_line,
+            "confidence":confidence,"primary_location":{"path":target.file_path,"start_line":target.start_line,
             "end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,"label":label(target)},
             "related_locations":[],"message":target.message,
             "explanation":"Compiler diagnostic from a sanitized translation-unit replay.","remediation":"",
@@ -1831,7 +1878,7 @@ fn legacy_fallback_findings(
         .filter(|name| !name.is_empty());
     for (fingerprint, label) in patches {
         let detail = &mut output.extra["finding_details"][&fingerprint];
-        detail["legacy_confidence"] = json!("medium");
+        detail["legacy_confidence"] = json!(confidence);
         detail["legacy_label"] = json!(label);
         detail["related_locations"] = json!([]);
     }
@@ -2257,6 +2304,24 @@ impl CppPlans {
     /// Whether this task runs the legacy c++17 heuristic fallback.
     pub fn is_fallback(&self, id: &str) -> bool {
         self.fallbacks.contains_key(id)
+    }
+    /// Frozen `compile_db` configuration identities (`canonical_digest` of the recorded
+    /// directory, argv and output; first 12 hex digits) per source of a component's context.
+    pub fn legacy_lint_configurations(&self, component: &str) -> Option<BTreeMap<String, String>> {
+        let context = self.contexts.get(component)?;
+        context.database_path.as_ref()?;
+        let mut digests = BTreeMap::new();
+        for unit in &context.units {
+            let canonical = ici_domain::canonical_json(
+                &json!({"directory":unit.directory,"argv":unit.argv,"output":unit.output}),
+            )
+            .ok()?;
+            let digest = ici_domain::sha256(canonical);
+            digests
+                .entry(unit.source.clone())
+                .or_insert_with(|| digest.trim_start_matches("sha256:")[..12].to_string());
+        }
+        Some(digests)
     }
     /// A frozen legacy output decided while planning, if any.
     pub fn planned(&self, id: &str) -> Option<&AnalysisOutput> {
@@ -2903,6 +2968,15 @@ impl CppPlans {
             }
             if request.check_id == "cpp.diagnostics" {
                 self.preserve_diagnostic_scope(&component.id, &mut output);
+                if self.legacy_projection {
+                    // Frozen lint tool evidence: one compiler run per recorded configuration.
+                    output.extra["concrete_tasks"] = json!(
+                        tasks
+                            .iter()
+                            .map(|task| json!({"id":task.id,"argv":task.argv}))
+                            .collect::<Vec<_>>()
+                    );
+                }
             }
             return output;
         }
