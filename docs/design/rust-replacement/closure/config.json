@@ -155,7 +155,7 @@
    "difference_reason": null,
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [],
@@ -187,7 +187,7 @@
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -403,7 +403,7 @@
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -560,7 +560,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (config_oracle.rs included); /tmp/ici-rust-replacement-20261028/w-config-cli-full3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -662,7 +662,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -691,7 +691,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -790,14 +790,14 @@
    "difference_reason": null,
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-cli/tests/cli_options.rs::next_publish_missing_config_page_or_destination_match_frozen"
     ],
     "negative": [
-     "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_endpoint_from_config_and_overlay_is_refused_as_frozen"
+     "crates/ici-cli/tests/cli_options.rs::next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen"
     ],
     "positive": [
      "crates/ici-cli/tests/publish_commands.rs::caller_preserves_historical_destination_and_credential_precedence",
@@ -818,7 +818,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -848,7 +848,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -909,7 +909,7 @@
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps --test doctor_commands --test compilation_commands --test publish_commands --test publish_comment --test legacy_publish --test verify_cutover --test config_commands --test legacy_make_build --test legacy_commands -- --include-ignored (all passed after routing doctor/export/publish through the working-directory reader); /tmp/ici-rust-replacement-20261028/w-config-rooting-tests.log; also legacy_verify_matrix/wire_schemas/plan_engines/analyze_text/legacy_type_interpreter/legacy_cpp_metrics and native_cpp/native_cpp_direct: /tmp/ici-rust-replacement-20261028/w-config-rooting-tests2.log, w-config-rooting-tests3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 68 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 43 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (24 passed; 75 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
    ],
    "fixtures": {
     "failure": [

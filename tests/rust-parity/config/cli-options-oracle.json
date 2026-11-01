@@ -1484,6 +1484,244 @@
     ]
    ]
   },
+  "publish/local-overlay-publish-key": {
+   "argv": [
+    "next",
+    "publish",
+    "--local-config",
+    "local.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "local.toml": "publish.repo = \"x/y\"\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: local.toml: publish.repo: a local overlay may only adjust paths (allowed: builds.*.directory, builds.*.project, cache, components.*.python.executable, output, tools.*.path)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-api-url-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\napi_url = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.api_url: api_url must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-branch-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nbranch = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.branch: branch must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-repo-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nrepo = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.repo: repo must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-server-url-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nserver_url = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.server_url: server_url must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-token-env-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\ntoken_env = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.token_env: token_env must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-publish-not-a-table": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\npublish = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish: publish must be a table, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
   "report/auxiliary": {
    "argv": [
     "next",

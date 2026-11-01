@@ -288,6 +288,30 @@ CASES = {
         ],
         [VERIFY],
     ),
+    # schema_version = 1 [publish] value types and a local overlay naming a publish key.
+    **{
+        f"publish/v1-invalid-{key.replace('_', '-')}-type": (
+            {**PY_TREE, "bad.toml": workspace(("app",), f"[publish]\n{key} = 1\n")},
+            ["next", "publish", "--config", "bad.toml", "--result", "out/base.json"],
+            [VERIFY],
+        )
+        for key in ("repo", "api_url", "server_url", "branch", "token_env")
+    },
+    "publish/v1-publish-not-a-table": (
+        {
+            **PY_TREE,
+            "bad.toml": workspace(("app",)).replace(
+                "schema_version = 1\n", "schema_version = 1\npublish = 1\n", 1
+            ),
+        },
+        ["next", "publish", "--config", "bad.toml", "--result", "out/base.json"],
+        [VERIFY],
+    ),
+    "publish/local-overlay-publish-key": (
+        {**PY_TREE, "local.toml": 'publish.repo = "x/y"\n'},
+        ["next", "publish", "--local-config", "local.toml", "--result", "out/base.json"],
+        [VERIFY],
+    ),
     "diff/next-spelling": (
         TREE,
         ["next", "diff", "out/base.json", "--result", "out/base.json"],

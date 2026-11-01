@@ -277,6 +277,48 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         r#""init: <root>/ici.toml already exists — pass --force to rewrite it (a .before-init backup is kept) or --preview to inspect""#,
         "Same `init: ` class, exit 2 and named file; native --force rewrites the file as the sparse schema v2 scaffold with a .before-init backup (command:ici next init) instead of overwriting it, and says so.",
     ),
+    (
+        "publish/local-overlay-publish-key",
+        "message",
+        r#""config: <root>/local.toml:1:9: publish.repo: local preferences may change display/cache/tool paths, never inspection policy""#,
+        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+    ),
+    (
+        "publish/v1-invalid-api-url-type",
+        "message",
+        r#""config: <root>/bad.toml:22:1: publish.api_url: invalid value type for configuration key""#,
+        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+    ),
+    (
+        "publish/v1-invalid-branch-type",
+        "message",
+        r#""config: <root>/bad.toml:22:1: publish.branch: invalid value type for configuration key""#,
+        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+    ),
+    (
+        "publish/v1-invalid-repo-type",
+        "message",
+        r#""config: <root>/bad.toml:22:1: publish.repo: invalid value type for configuration key""#,
+        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+    ),
+    (
+        "publish/v1-invalid-server-url-type",
+        "message",
+        r#""config: <root>/bad.toml:22:1: publish.server_url: invalid value type for configuration key""#,
+        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+    ),
+    (
+        "publish/v1-invalid-token-env-type",
+        "message",
+        r#""config: <root>/bad.toml:22:1: publish.token_env: invalid value type for configuration key""#,
+        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+    ),
+    (
+        "publish/v1-publish-not-a-table",
+        "message",
+        r#""config: <root>/bad.toml:2:1: publish: invalid value type for configuration key""#,
+        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+    ),
 ];
 
 fn scope_facts(document: &Value) -> Value {
@@ -488,9 +530,10 @@ cases! {
     next_report_invalid_auxiliary_sarif_merge_and_unreadable_result_are_refused_as_frozen: "report" "negative" 3;
     next_report_missing_result_and_auxiliary_are_refused_as_frozen: "report" "failure" 2;
 }
-// next publish --config/--local-config (offline: plain-HTTP endpoint refused, no destination).
+// next publish --config/--local-config (offline: plain-HTTP endpoint, schema v1 [publish] value
+// types and a local overlay naming a publish key refused; no destination; no page).
 cases! {
-    next_publish_plain_http_endpoint_from_config_and_overlay_is_refused_as_frozen: "publish" "negative" 2;
+    next_publish_plain_http_v1_value_types_and_publish_overlay_are_refused_as_frozen: "publish" "negative" 9;
     next_publish_missing_config_page_or_destination_match_frozen: "publish" "failure" 6;
 }
 // next diff and top-level diff/init spellings.
@@ -531,5 +574,5 @@ fn every_reviewed_difference_names_a_captured_case_and_a_reason() {
         );
         assert!(!reason.is_empty(), "{name}: {fact}");
     }
-    assert_eq!(oracle["cases"].as_object().unwrap().len(), 68);
+    assert_eq!(oracle["cases"].as_object().unwrap().len(), 75);
 }
