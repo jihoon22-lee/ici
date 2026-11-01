@@ -133,11 +133,15 @@ pub struct ValidationOptions {
     /// Frozen `_missing_python_scope` with `engines.sanitize.required = false`: a missing Python
     /// ResourceWarning scope is a SKIP verdict instead of an ERROR.
     pub sanitize_scope_optional: bool,
+    /// Frozen legacy `TestEngine`: a CTest case that did not run (disabled, skipped, missing
+    /// executable) is a SKIP target of a measured run, stated as a limitation, not an error.
+    pub ctest_not_run_measured: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
         Self {
             sanitize_scope_optional: false,
+            ctest_not_run_measured: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

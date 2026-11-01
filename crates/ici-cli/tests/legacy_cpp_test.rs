@@ -132,8 +132,8 @@ fn compiler_only_path(directory: &Path) -> String {
 }
 
 #[test]
-#[ignore = "explicit actual g++/gcov direct C++ test runs (ICI_TEST_CXX)"]
-fn legacy_direct_cpp_tests_report_frozen_targets_counts_and_verdicts() {
+#[ignore = "explicit actual g++/gcov direct and CMake/ctest C++ test runs (ICI_TEST_CXX, cmake/ctest from /usr/bin)"]
+fn legacy_cpp_tests_report_frozen_targets_counts_and_verdicts() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/test-cli-oracle.json"
     ))
@@ -141,7 +141,7 @@ fn legacy_direct_cpp_tests_report_frozen_targets_counts_and_verdicts() {
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let mut seen = 0;
     for (name, expected) in oracle["cases"].as_object().unwrap() {
-        if !name.starts_with("direct-") {
+        if !name.starts_with("direct-") && !name.starts_with("cmake-") {
             continue;
         }
         seen += 1;
@@ -164,6 +164,19 @@ fn legacy_direct_cpp_tests_report_frozen_targets_counts_and_verdicts() {
         // Intended: an empty branch denominator is a SKIP, not the frozen vacuous 100.0%.
         actual.retain(|target| target["target_name"] != "Threshold: Branch coverage");
         let mut frozen = expected["targets"].as_array().unwrap().clone();
+        // A build failure quotes stderr cut at a path-length-dependent point: first line only.
+        for target in actual.iter_mut().chain(frozen.iter_mut()) {
+            if target["target_name"] == "[C++] build" {
+                let first = target["message"]
+                    .as_str()
+                    .unwrap()
+                    .lines()
+                    .next()
+                    .unwrap()
+                    .to_owned();
+                target["message"] = Value::String(first);
+            }
+        }
         let only_tests = |targets: &mut Vec<Value>| {
             targets.retain(|target| {
                 target["target_name"]
@@ -212,5 +225,5 @@ fn legacy_direct_cpp_tests_report_frozen_targets_counts_and_verdicts() {
             );
         }
     }
-    assert_eq!(seen, 6);
+    assert_eq!(seen, 9);
 }

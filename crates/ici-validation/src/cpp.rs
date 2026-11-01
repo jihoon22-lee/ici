@@ -453,11 +453,21 @@ pub(crate) fn observe_ctest(
         ));
     }
     if skipped > 0 {
-        return Err(ValidationError(format!(
-            "{skipped} CTest suites were not run"
-        )));
+        if !plan.context.options.ctest_not_run_measured {
+            return Err(ValidationError(format!(
+                "{skipped} CTest suites were not run"
+            )));
+        }
+        output
+            .observation
+            .limitations
+            .push(format!("{skipped} CTest suites were not run"));
     }
-    if outcome.exit_code != Some(0) && output.observation.findings.is_empty() {
+    // ctest exits 8 for a "Not Run" case (missing executable); the legacy view counts it a SKIP.
+    if outcome.exit_code != Some(0)
+        && output.observation.findings.is_empty()
+        && !(plan.context.options.ctest_not_run_measured && skipped > 0)
+    {
         return Err(ValidationError(
             "CTest failed without attributable test failures".into(),
         ));

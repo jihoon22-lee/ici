@@ -174,3 +174,117 @@ pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &BTreeMap<Stri
         target.message = message;
     }
 }
+
+/// A failed build of the test/coverage variant as the test check's verdict: one FAIL target at
+/// the build descriptor with the adapter's failure message (`[C++] build` in the legacy view).
+pub fn test_build_failure(
+    id: &str,
+    observed: &AnalysisOutput,
+    legacy: bool,
+) -> Option<AnalysisOutput> {
+    let failed = observed
+        .targets
+        .iter()
+        .find(|target| target.status == "FAIL" && target.target_name == "BuildAdapter")?;
+    let mut output = AnalysisOutput::new(id, &observed.observation.provider);
+    output.observation.state = TaskState::Succeeded;
+    output.observation.limitations = observed.observation.limitations.clone();
+    output
+        .observation
+        .limitations
+        .push("the test build failed; no test was executed".into());
+    output.status = "FAIL".into();
+    output.summary = "C++ build failed before tests could run".into();
+    let mut target = InspectionTarget::at(&failed.file_path, 1);
+    target.target_name = if legacy {
+        "[C++] build"
+    } else {
+        "C++ test build"
+    }
+    .into();
+    target.status = "FAIL".into();
+    target.message = failed.message.clone();
+    let mut located = target.clone();
+    located.message = failed.message.trim().into();
+    add_finding(
+        &mut output,
+        &located,
+        "ici.cpp.test-build.failed",
+        &format!("cpp-test-build:{}:{}", failed.file_path, located.message),
+    );
+    if let Some(finding) = output.observation.findings.last_mut() {
+        finding.category = "build".into();
+    }
+    output.targets.push(target);
+    Some(output)
+}
+
+/// Frozen `TestEngine._resolve_test_source`: the first `tests/**/*.cpp` (sorted) whose stem is
+/// the test name before `::`; otherwise the build descriptor.
+fn legacy_test_source(root: &Path, name: &str, descriptor: &str) -> String {
+    let stem = name.split("::").next().unwrap_or(name);
+    let mut candidates: Vec<String> = crate::files::tree(root, &root.join("tests"))
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|entry| entry.file && entry.relative.ends_with(".cpp"))
+        .map(|entry| entry.relative)
+        .collect();
+    candidates.sort();
+    candidates
+        .into_iter()
+        .find(|path| Path::new(path).file_stem().and_then(|stem| stem.to_str()) == Some(stem))
+        .unwrap_or_else(|| descriptor.to_owned())
+}
+
+/// The ctest JUnit message frozen reads for a terminal verdict (ctest 4.2.3 `--output-junit`:
+/// Failed and WILL_FAIL "Failed", "Timeout", segmentation fault "SEGFAULT", a missing executable
+/// "Unable to find executable", a DISABLED test `status="disabled"`).
+fn junit_message(verdict: &str) -> String {
+    match verdict {
+        "Exception: SegFault" => "SEGFAULT".into(),
+        "Not Run (Disabled)" => "ctest reported status 'disabled'".into(),
+        "Not Run" => "Unable to find executable".into(),
+        other => other.into(),
+    }
+}
+
+/// The `SKIP_RETURN_CODE` property CMake recorded for one test in its generated CTestTestfile.
+fn skip_return_code(testfile: &Path, name: &str) -> Option<u32> {
+    let text = std::fs::read(testfile)
+        .ok()
+        .filter(|bytes| bytes.len() <= 4 * 1024 * 1024)?;
+    let text = String::from_utf8_lossy(&text);
+    let prefix = format!("set_tests_properties({name} PROPERTIES ");
+    let line = text.lines().find(|line| line.starts_with(&prefix))?;
+    let value = line.split_once("SKIP_RETURN_CODE \"")?.1.split_once('"')?.0;
+    value.parse().ok()
+}
+
+/// Frozen `TestEngine._run_cpp_tests_via_adapter` targets for CTest cases: `[C++] <name>` at the
+/// resolved test source, PASS "C++ Test Passed", FAIL "Execution Failed: <message>", and a case
+/// that did not run SKIP "Execution skipped: <message>".
+pub fn legacy_ctest_tests(output: &mut AnalysisOutput, root: &Path, descriptor: &str) {
+    for target in &mut output.targets {
+        if target.target_name.starts_with('[')
+            || !target.file_path.ends_with("CTestTestfile.cmake")
+            || !matches!(target.status.as_str(), "PASS" | "FAIL" | "SKIP")
+        {
+            continue;
+        }
+        let name = target.target_name.clone();
+        if target.message == "Skipped"
+            && let Some(code) = skip_return_code(&root.join(&target.file_path), &name)
+        {
+            // ctest's JUnit `<skipped message="SKIP_RETURN_CODE=<n>"/>`, from the same property.
+            target.message = format!("SKIP_RETURN_CODE={code}");
+        }
+        target.file_path = legacy_test_source(root, &name, descriptor);
+        target.start_line = 1;
+        target.target_name = format!("[C++] {name}");
+        target.message = match target.status.as_str() {
+            "PASS" => "C++ Test Passed".into(),
+            "FAIL" => format!("Execution Failed: {}", junit_message(&target.message)),
+            _ => format!("Execution skipped: {}", junit_message(&target.message)),
+        };
+    }
+}

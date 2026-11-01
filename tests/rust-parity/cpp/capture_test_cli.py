@@ -33,6 +33,10 @@ CASES = {
     "direct-abort": ("test-direct/abort", "", "tools"),
     "direct-mixed-without-gcov": ("test-direct/mixed", "", "compiler"),
     "direct-broken-without-gcov": ("test-direct/broken", "", "compiler"),
+    # CMake/ctest adapter runs (frozen reads ctest --output-junit).
+    "cmake-plain": ("test-cmake/plain", "", "tools"),
+    "cmake-suite": ("test-cmake/suite", "", "tools"),
+    "cmake-broken-build": ("test-cmake/broken-build", "", "tools"),
 }
 
 

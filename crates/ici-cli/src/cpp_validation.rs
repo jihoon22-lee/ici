@@ -308,6 +308,8 @@ fn bind_inner(
         options: ValidationOptions {
             build_dir: Some(directory.clone()),
             build_roots: vec![project.root.clone(), directory.clone()],
+            // Frozen legacy commands count a CTest case that did not run as a SKIP target.
+            ctest_not_run_measured: run_request.legacy_profiles,
             ..Default::default()
         },
     };
@@ -350,6 +352,7 @@ fn bind_inner(
                 .map_err(|error| error.to_string())?
                 .into_iter()
                 .filter(|entry| entry.file && entry.contained && entry.relative.ends_with(".gcno"))
+                .filter(|entry| !cmake_compiler_id_probe(&entry.relative))
                 .map(|entry| entry.relative)
                 .collect();
             for target in &request.targets {
@@ -929,4 +932,36 @@ fn selected(
                     .contains(&request.profile.unwrap_or(project.profile))
                 && ici_application::plan::configured_check(project, component, check).0
         })
+}
+
+/// CMake compiles its compiler-identification source (`CMakeFiles/<version>/CompilerId<LANG>/`)
+/// at configure time with the project's flags; it is never linked into or run by a test, so its
+/// coverage notes never get counters. They are CMake's, not project code.
+fn cmake_compiler_id_probe(relative: &str) -> bool {
+    let parts: Vec<&str> = relative.split('/').collect();
+    parts.windows(3).any(|window| {
+        window[0] == "CMakeFiles"
+            && window[1].starts_with(|first: char| first.is_ascii_digit())
+            && window[2].starts_with("CompilerId")
+    })
+}
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn cmake_compiler_identification_notes_are_not_project_coverage() {
+        for (path, probe) in [
+            (
+                ".ici/b/CMakeFiles/4.2.3/CompilerIdCXX/a-CMakeCXXCompilerId.gcno",
+                true,
+            ),
+            (
+                "build/CMakeFiles/3.28.1/CompilerIdC/CMakeCCompilerId.gcno",
+                true,
+            ),
+            (".ici/b/CMakeFiles/calc.dir/src/calc.cpp.gcno", false),
+            ("CMakeFiles/CompilerIdCXX/x.gcno", false),
+        ] {
+            assert_eq!(super::cmake_compiler_id_probe(path), probe, "{path}");
+        }
+    }
 }

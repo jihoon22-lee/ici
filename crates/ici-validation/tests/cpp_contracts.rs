@@ -112,6 +112,31 @@ fn ctest_terminal_count_leaves_disabled_tests_out_like_actual_ctest() {
         limitations.contains("3 CTest suites were not run"),
         "{limitations}"
     );
+    // Frozen legacy TestEngine: not-run cases are SKIP targets of a measured run.
+    let mut legacy = request(root.path(), ValidationKind::Ctest);
+    legacy.options.ctest_not_run_measured = true;
+    let legacy = plan(&legacy).unwrap();
+    let output = observe(
+        &legacy,
+        &BTreeMap::from([(id.clone(), outcome(&id, text, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|item| item == "3 CTest suites were not run")
+    );
+    assert_eq!(
+        output
+            .targets
+            .iter()
+            .filter(|target| target.status == "SKIP")
+            .count(),
+        3
+    );
     let miscounted = text.replace("out of 3", "out of 4");
     let output = observe(
         &planned,

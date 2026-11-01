@@ -584,6 +584,12 @@ pub fn execute(
                             crate::cpp::append_test_compile_failures(&mut output, &failures);
                             if prepared.legacy_projection && direct_gcc(&prepared, planned) {
                                 crate::cpp::legacy_direct_tests(&mut output, &failures);
+                            } else if prepared.legacy_projection {
+                                crate::cpp::legacy_ctest_tests(
+                                    &mut output,
+                                    &prepared.project.root,
+                                    "CMakeLists.txt",
+                                );
                             }
                         }
                         if prepared.legacy_projection && planned.check.id == "cpp.binary-compat" {
