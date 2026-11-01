@@ -216,9 +216,11 @@ jobs:
       CARGO_INCREMENTAL: "0"
 
     steps:
+      # Full history: the migration ledger check reads the frozen oracle commit with git archive.
       - name: Checkout Source Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Python 3.10
@@ -231,6 +233,12 @@ jobs:
         with:
           version: "0.12.5"
           enable-cache: true
+
+      # Fragment closure evidence and the oracle import closure must match the frozen source.
+      - name: Migration ledger
+        run: |
+          python3 scripts/rust_migration_inventory.py --self-test
+          python3 scripts/rust_migration_inventory.py --check
 
       - name: Project interpreter for CLI tests
         run: uv sync --frozen --python 3.10

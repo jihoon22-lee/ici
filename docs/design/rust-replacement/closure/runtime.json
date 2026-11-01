@@ -932,38 +932,50 @@
    "comparison": "Cached Finding rule_id/tool_rule_id/metrics are pass-through of the stored observation; native strict decode rejects malformed entries as corrupt misses instead of a wrong hit."
   },
   "finding_site:src/ici/domain/legacy.py:133:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-application/src/baseline.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_module_listed"
+    ],
+    "negative": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::reachable_module_not_listed"
+    ],
+    "failure": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_claim_refused"
+    ]
    },
    "evidence": [
-    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+    "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
    ],
-   "comparison": "Frozen site: finding_from_legacy (v3 Finding -> next Finding: rule_id/native_rule_id from tool_rule_id). The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
-   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+   "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/domain/legacy.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site."
   },
   "finding_site:src/ici/domain/legacy.py:192:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-application/src/baseline.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_module_listed"
+    ],
+    "negative": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::reachable_module_not_listed"
+    ],
+    "failure": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_claim_refused"
+    ]
    },
    "evidence": [
-    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+    "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
    ],
-   "comparison": "Frozen site: finding_to_legacy (next Finding -> v3 LegacyFinding). The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
-   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+   "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/domain/legacy.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site."
   },
   "finding_site:src/ici/domain/serialization.py:301:11": {
    "status": "complete",
@@ -1009,72 +1021,96 @@
    "comparison": "Run metrics (name/unit/value/numerator/denominator/evidence, e.g. line-coverage 446/500) are pass-through measurements; the frozen-published goldens and tests/rust-parity/domain/run-v2.json round-trip exactly."
   },
   "finding_site:src/ici/execution/legacy_reader.py:168:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-application/src/baseline.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_module_listed"
+    ],
+    "negative": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::reachable_module_not_listed"
+    ],
+    "failure": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_claim_refused"
+    ]
    },
    "evidence": [
-    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+    "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
    ],
-   "comparison": "Frozen site: v3 document finding reader (rule_id/tool_rule_id as strings). The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
-   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+   "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/legacy_reader.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site."
   },
   "finding_site:src/ici/execution/legacy_reader.py:325:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-application/src/baseline.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_module_listed"
+    ],
+    "negative": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::reachable_module_not_listed"
+    ],
+    "failure": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_claim_refused"
+    ]
    },
    "evidence": [
-    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+    "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
    ],
-   "comparison": "Frozen site: LegacyReport metrics from a v3 document. The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
-   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+   "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/legacy_reader.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site."
   },
   "finding_site:src/ici/execution/legacy_reader.py:376:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-application/src/baseline.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_module_listed"
+    ],
+    "negative": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::reachable_module_not_listed"
+    ],
+    "failure": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_claim_refused"
+    ]
    },
    "evidence": [
-    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+    "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
    ],
-   "comparison": "Frozen site: promote(LegacyReport) -> RunResult metrics. The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
-   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+   "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/legacy_reader.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site."
   },
   "finding_site:src/ici/execution/snapshot.py:263:11": {
-   "status": "difference_review",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-application/src/baseline.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_module_listed"
+    ],
+    "negative": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::reachable_module_not_listed"
+    ],
+    "failure": [
+     "scripts/rust_migration_inventory.py::import_closure_self_test::unreachable_claim_refused"
+    ]
    },
    "evidence": [
-    "python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src <runtime files>: module UNREACHABLE from ici.__main__; /tmp/ici-rust-replacement-20261028/w-runtime-import-closure.log"
+    "python3 scripts/rust_migration_inventory.py --check: import closure equals tests/rust-parity/oracle/import-closure-oracle.json (oracle 6fe3e405, 274 reachable modules, 9 unreachable Python modules including this file)",
+    "python3 scripts/rust_migration_inventory.py --self-test: import_closure_self_test PASS"
    ],
-   "comparison": "Frozen site: SnapshotDiff metric comparison between two RunResults. The containing module is not imported by any frozen command path (static AST closure from ici.__main__, including function-local imports; no dynamic import), so this constructor never produced user-visible findings or metrics in v0.13.0.",
-   "difference_reason": "Unreachable from ici.__main__ (static import closure), user-visible legacy intake is covered by ici-reporting migration.rs and native baseline comparison by ici-application baseline.rs; those are closed under their own reporting/identity rows, not by this site."
+   "comparison": "No behaviour to preserve: unreachable from every frozen entry point (console script ici = ici.__main__:main; src/ici/execution/snapshot.py is imported only by frozen tests). Proven by scripts/rust_migration_inventory.py --check, which recomputes the static import closure (function-local and relative imports included) from the git-archived oracle and requires it to equal tests/rust-parity/oracle/import-closure-oracle.json. User-visible legacy intake and baseline comparison are closed under their own reporting/identity rows (ici-reporting migration.rs, ici-application baseline.rs), not by this site."
   }
  },
  "source_files": {
