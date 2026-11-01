@@ -223,6 +223,111 @@
    "stderr": {
     "exact": "ici: unsafe-path: Native installation directory is missing or is not a real directory\n"
    }
+  },
+  "legacy_invalid_engine_cognitive": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_complexity": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_cycle": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_dead": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_dup": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_exception": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_line": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_lint": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_python-compat": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_resource": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_sanitize": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_security": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_test": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_thread-sanitize": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
+  },
+  "legacy_invalid_engine_type": {
+   "reason": "Same exit 2, the frozen `Configuration error: ` prefix and the same key; the native loader names the file:line:column origin and words the problem itself (legacy-schema-oracle.json compares accepted/rejected verdicts and keys, not wording).",
+   "stdout": "equal",
+   "stderr": {
+    "exact": "Configuration error: <root>/ici.toml:5:1: engines.line.warn_limit: invalid value type for configuration key\n"
+   }
   }
  }
 }

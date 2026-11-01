@@ -151,6 +151,246 @@
    },
    "written": []
   },
+  "legacy_invalid_engine_cognitive": {
+   "argv": [
+    "cognitive",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_complexity": {
+   "argv": [
+    "complexity",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_cycle": {
+   "argv": [
+    "cycle",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_dead": {
+   "argv": [
+    "dead",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_dup": {
+   "argv": [
+    "dup",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_exception": {
+   "argv": [
+    "exception",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_line": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_lint": {
+   "argv": [
+    "lint",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_python-compat": {
+   "argv": [
+    "python-compat",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_resource": {
+   "argv": [
+    "resource",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_sanitize": {
+   "argv": [
+    "sanitize",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_security": {
+   "argv": [
+    "security",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_test": {
+   "argv": [
+    "test",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_thread-sanitize": {
+   "argv": [
+    "thread-sanitize",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_engine_type": {
+   "argv": [
+    "type",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
   "legacy_invalid_export": {
    "argv": [
     "export-compilation-context"
@@ -626,6 +866,246 @@
    "argv": [
     "doctor",
     "--json"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_cognitive": {
+   "argv": [
+    "cognitive",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_complexity": {
+   "argv": [
+    "complexity",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_cycle": {
+   "argv": [
+    "cycle",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_dead": {
+   "argv": [
+    "dead",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_dup": {
+   "argv": [
+    "dup",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_exception": {
+   "argv": [
+    "exception",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_line": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_lint": {
+   "argv": [
+    "lint",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_python-compat": {
+   "argv": [
+    "python-compat",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_resource": {
+   "argv": [
+    "resource",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_sanitize": {
+   "argv": [
+    "sanitize",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_security": {
+   "argv": [
+    "security",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_test": {
+   "argv": [
+    "test",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_thread-sanitize": {
+   "argv": [
+    "thread-sanitize",
+    "--report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_engine_type": {
+   "argv": [
+    "type",
+    "--report"
    ],
    "cwd": ".",
    "exit_code": 2,

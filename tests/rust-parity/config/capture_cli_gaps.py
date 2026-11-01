@@ -6,7 +6,8 @@ Each case runs the frozen CLI once in a fresh copy of a small project (empty HOM
 without analysis tools) and records the exit code, stdout, stderr and the files the run
 wrote, with the project root as `<root>` and HOME as `<home>`:
 
-- non-engine subcommands on a `[workspace]` root (publish, doctor, build, export, env, ...);
+- every historical subcommand on a `[workspace]` root (engines, publish, doctor, build, export,
+  env, cache) and with an invalid legacy value;
 - the stderr prefix of configuration errors across commands (next schema problem,
   unparseable TOML, invalid legacy value, unknown scope) and of report/publish/diff refusals;
 - `ici line` from a subdirectory of a checkout, with and without a root configuration;
@@ -64,6 +65,23 @@ NEXT_PYPROJECT = {
     "main.py": "def hello():\n    return 1\n",
 }
 CONFIGLESS_PYPROJECT = {"pyproject.toml": "[project\n", "main.py": "def hello():\n    return 1\n"}
+ENGINES = (
+    "python-compat",
+    "resource",
+    "security",
+    "cognitive",
+    "cycle",
+    "line",
+    "lint",
+    "test",
+    "type",
+    "complexity",
+    "sanitize",
+    "thread-sanitize",
+    "dead",
+    "dup",
+    "exception",
+)
 CASES = {
     "workspace_publish": (WORKSPACE_TREE, ".", ["publish"]),
     "workspace_doctor": (WORKSPACE_TREE, ".", ["doctor"]),
@@ -122,6 +140,14 @@ CASES = {
     "legacy_pyproject_line": (LEGACY_PYPROJECT, ".", ["line"]),
     "next_pyproject_plan": (NEXT_PYPROJECT, ".", ["next", "plan"]),
     "configless_pyproject_plan": (CONFIGLESS_PYPROJECT, ".", ["analyze", "--plan"]),
+    **{
+        f"workspace_engine_{engine}": (WORKSPACE_TREE, ".", [engine, "--report"])
+        for engine in ENGINES
+    },
+    **{
+        f"legacy_invalid_engine_{engine}": (LEGACY_INVALID, ".", [engine, "--report"])
+        for engine in ENGINES
+    },
 }
 
 

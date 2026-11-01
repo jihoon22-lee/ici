@@ -112,20 +112,26 @@
    "status": "verified"
   },
   "command:ici analyze": {
-   "comparison": "Selection/config options (--language python/cpp/invalid, --python, --cpp, --component, --profile, --require-full, --config same/alternate/missing, --local-config accepted/policy-refused) are replayed against frozen `ici analyze --plan --json` on configless and configured trees (tests/rust-parity/config/cli-selection-oracle.json): exit code, task-id set, scope.require_full and scope.profile equal. Run/output options are exercised by the named native execution tests only, without a frozen run differential in this facet.",
+   "comparison": "Selection/config options (--language python/cpp/invalid, --python, --cpp, --component, --profile, --require-full, --config same/alternate/missing, --local-config accepted/policy-refused) are replayed against frozen `ici analyze --plan --json` on configless and configured trees (tests/rust-parity/config/cli-selection-oracle.json): exit code, task-id set, scope.require_full and scope.profile equal. Run/output options are exercised by the named native execution tests only, without a frozen run differential in this facet. Configuration and scope refusals carry frozen's `config: ` prefix on every problem line, after the announcement when scope resolved (analyze_text, plan_engines exact); an unknown --language is refused by name before the announcement (recorded difference); an unparseable pyproject.toml never refuses planning.",
    "difference_reason": null,
    "evidence": [
     ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
     "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
     "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs"
+     "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/analyze_text.rs::native_analyze_prints_the_frozen_frame_on_the_same_projects",
+     "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen"
     ],
     "negative": [
-     "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs"
+     "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
+     "crates/ici-cli/tests/cli_gaps.rs::unparseable_pyproject_is_never_a_configuration_refusal"
     ],
     "positive": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
@@ -171,14 +177,22 @@
    "status": "verified"
   },
   "command:ici build": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_legacy_build_compiles_owned_sources_and_publishes_actual_binary",
      "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_legacy_compile_failure_is_located_and_keeps_source_bytes",
@@ -195,17 +209,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici cognitive": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
     ]
@@ -215,17 +237,26 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici complexity": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
     ]
@@ -235,17 +266,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici cycle": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
      "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
@@ -257,17 +296,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici dead": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp.rs::actual_linker_dead_cli_intersects_targets_and_preserves_final_input_snapshot"
     ]
@@ -277,16 +324,20 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici diff": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: baseline.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. An unreadable baseline/current result is frozen's `diff: baseline <path> cannot be read: …` / `diff: <path> is not a result this version can read: …` (exit 2; the OS error text is Rust's). No negative fixture in this facet yet.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::stored_result_refusals_name_the_missing_file"
+    ],
     "negative": [],
     "positive": [
      "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
@@ -301,14 +352,24 @@
    "status": "verified"
   },
   "command:ici doctor": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
-   "difference_reason": null,
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)).",
+   "difference_reason": "The diagnostic content describes the native runtime and tool pack (capability:doctor-env-cache); the configuration gate, refusal messages and exit codes are frozen's.",
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/doctor_commands.rs::invalid_scope_is_an_actionable_error_and_does_not_run_probes"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/doctor_commands.rs::disabled_tool_checks_do_not_probe_or_become_required"
+    ],
     "positive": [
      "crates/ici-cli/tests/doctor_commands.rs::legacy_json_and_brief_describe_native_runtime_and_do_not_inherit_private_environment",
      "crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building"
@@ -319,17 +380,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici dup": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp.rs::generated_and_vendor_duplicate_options_change_actual_selected_cpp_findings"
     ]
@@ -339,17 +408,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici exception": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
     ]
@@ -359,21 +436,33 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici export-compilation-context": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: database, output, pretty.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. --database (explicit_database_failure…), --output (output_is_atomic…) and --pretty (standalone_export…) are exercised. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)).",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/compilation_commands.rs::explicit_database_failure_and_ambiguous_selection_never_prepare_or_fallback"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/compilation_commands.rs::read_only_export_does_not_scan_declared_source_components_or_guess_git_version"
+    ],
     "positive": [
      "crates/ici-cli/tests/compilation_commands.rs::actual_cmake_export_prepares_only_missing_context_without_running_analysis",
      "crates/ici-cli/tests/compilation_commands.rs::actual_qmake_export_prepares_qt5_and_qt6_with_same_native_binary",
-     "crates/ici-cli/tests/wire_schemas.rs::native_compilation_export_validates_and_schema_violations_are_detected"
+     "crates/ici-cli/tests/wire_schemas.rs::native_compilation_export_validates_and_schema_violations_are_detected",
+     "crates/ici-cli/tests/compilation_commands.rs::output_is_atomic_bounded_and_preserves_inputs_and_redirected_files",
+     "crates/ici-cli/tests/compilation_commands.rs::standalone_export_is_process_free_private_and_relocation_stable"
     ]
    },
    "rust_paths": [
@@ -381,7 +470,7 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici init": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: cpp, python.",
@@ -407,14 +496,24 @@
    "status": "verified"
   },
   "command:ici line": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. From a checkout subdirectory, with or without a configuration at the root, `ici line` analyses the working directory with its own (or default) configuration and writes line_report.json there, as frozen (rooted cases equal, stdout byte for byte).",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_are_rooted_at_the_working_directory"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
      "crates/ici-cli/tests/legacy_line_scope.rs::actual_cpp_line_command_retains_extras_labels_and_scoped_thresholds",
@@ -428,17 +527,26 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici lint": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
     ]
@@ -448,16 +556,19 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici next diff": {
    "comparison": "Same native dispatch as `ici diff` (commands.rs \"diff\" | \"next diff\"); exercised through the `ici diff` tests. No test invokes the `next diff` spelling or --current/baseline result comparison against frozen output.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::stored_result_refusals_name_the_missing_file"
+    ],
     "negative": [],
     "positive": [
      "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
@@ -472,13 +583,16 @@
    "status": "implemented"
   },
   "command:ici next doctor": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: config_path, cpp, local_config, profile, python.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: config_path, cpp, local_config, profile, python. An invalid next file is refused with frozen's `config: ` prefix, exit 2.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
     "negative": [],
     "positive": [
      "crates/ici-cli/tests/doctor_commands.rs::empty_workspace_and_cancelled_version_probes_remain_inspectable_without_writes",
@@ -521,28 +635,36 @@
    "status": "complete"
   },
   "command:ici next plan": {
-   "comparison": "Every option is replayed through the binary against frozen `ici next plan --json` (tests/rust-parity/config/cli-selection-oracle.json) with a projection each option changes: exit code, sorted plans[].checks[].task_id, scope.require_full, scope.profile and the tasks whose blocked reason names the --local-config interpreter. Cases: --component single/repeated/unknown, --python, --cpp, --profile fast/deep/invalid, --require-full full/partial, --config same/alternate (fewer components)/missing, --local-config interpreter override/policy refused. The 332 next-v1 configuration cases keep the frozen exit code.",
+   "comparison": "Every option is replayed through the binary against frozen `ici next plan --json` (tests/rust-parity/config/cli-selection-oracle.json) with a projection each option changes: exit code, sorted plans[].checks[].task_id, scope.require_full, scope.profile and the tasks whose blocked reason names the --local-config interpreter. Cases: --component single/repeated/unknown, --python, --cpp, --profile fast/deep/invalid, --require-full full/partial, --config same/alternate (fewer components)/missing, --local-config interpreter override/policy refused. The 332 next-v1 configuration cases keep the frozen exit code. The plan announcement and the nothing-selected refusal match frozen exactly (plan_engines.rs, reporting capture), a bare --local-config interpreter blocks with frozen's resolver text (cli-gaps bare_local_interpreter_plan, compared against frozen), and refusals carry `config: `.",
    "difference_reason": "Native adds limitations for unapplied output/cache/display preferences (frozen ignored them silently) and, with --require-full on a partial selection, a coverage_gaps entry naming the unselected component (frozen only set scope.require_full). A bare local interpreter name (python3) is a PATH lookup natively, as frozen Executable.searches_path/SPEC-01 section 3 document; the frozen plan reported it as \"no such file\" (defect not reproduced).",
    "evidence": [
     ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
     "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
     "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
-    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log"
+    "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_compat_parity --test legacy_cpp_metrics --test legacy_make_build --test plan_engines --test analyze_text -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-gaps-tests3.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
     ],
     "negative": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary",
+     "crates/ici-cli/tests/cli_gaps.rs::unparseable_pyproject_is_never_a_configuration_refusal"
     ],
     "positive": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
      "crates/ici-cli/tests/config_oracle.rs::unapplied_preferences_reach_the_plan_output_of_the_binary",
-     "crates/ici-cli/tests/config_oracle.rs::recorded_plan_differences_are_native_behaviour_not_silent_drift"
+     "crates/ici-cli/tests/config_oracle.rs::recorded_plan_differences_are_native_behaviour_not_silent_drift",
+     "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::bare_local_interpreter_blocks_with_the_frozen_resolver_text"
     ]
    },
    "rust_paths": [
@@ -579,10 +701,13 @@
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: auxiliary, page, result.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::stored_result_refusals_name_the_missing_file"
+    ],
     "negative": [],
     "positive": [
      "crates/ici-cli/tests/config_commands.rs::native_default_artifacts_do_not_replace_previous_python_results",
@@ -597,13 +722,16 @@
    "status": "verified"
   },
   "command:ici next verify": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: component, config_path, cpp, json_mode, local_config, require_full, result.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: component, config_path, cpp, json_mode, local_config, require_full, result. Configuration/scope refusals (invalid next key, unknown component) are frozen's `config: ` lines, exit 2 (cli_gaps).",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
     "negative": [],
     "positive": [
      "crates/ici-cli/tests/input_scope.rs::binary_code_changes_keep_scope_but_removed_selection_and_changed_bytes_remain_visible",
@@ -646,14 +774,22 @@
    "status": "verified"
   },
   "command:ici publish": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: html, json_report, report_dir.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: html, json_report, report_dir. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)).",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/legacy_publish.rs::legacy_publish_matches_frozen_skips_failures_and_messages"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/publish_commands.rs::caller_preserves_historical_destination_and_credential_precedence"
     ]
@@ -666,14 +802,25 @@
    "status": "verified"
   },
   "command:ici python-compat": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. An unparseable pyproject.toml is the frozen AnalysisUnavailable ERROR engine (exit 1, report written), not a configuration refusal; the refused target_version keeps frozen prefix, key and wording.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_compat_parity --test legacy_cpp_metrics --test legacy_make_build --test plan_engines --test analyze_text -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-gaps-tests3.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/legacy_python_compat_parity.rs::configuration_refusals_keep_their_recorded_exit_classes"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/cli_gaps.rs::unparseable_pyproject_is_never_a_configuration_refusal"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp.rs::legacy_python_only_descriptors_return_cpp_applicability_through_actual_cli_dispatch"
     ]
@@ -683,17 +830,23 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici report": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. A missing stored result is frozen's `report: no result at <path>; run `ici next verify` first` (exit 2); an unreadable one `report: <path> is not a result this version can read: …`. The default result path is the native namespace .ici/rust-v1/result.json (recorded).",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::stored_result_refusals_name_the_missing_file"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate"
+    ],
     "positive": [
      "crates/ici-cli/tests/report_commands.rs::historical_v2_reports_render_without_overwriting_or_inventing_native_evidence",
      "crates/ici-cli/tests/report_commands.rs::imported_evidence_is_separate_and_never_changes_gate",
@@ -706,17 +859,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici resource": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp.rs::legacy_python_only_descriptors_return_cpp_applicability_through_actual_cli_dispatch"
     ]
@@ -726,17 +887,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici sanitize": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp_direct.rs::actual_direct_sanitizer_variants_keep_instrumentation_and_runtime_limits_distinct"
     ]
@@ -746,17 +915,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici security": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp.rs::legacy_python_only_descriptors_return_cpp_applicability_through_actual_cli_dispatch"
     ]
@@ -766,17 +943,26 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici test": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_direct_build.rs::descriptorless_cpp_test_report_counts_each_executable_once_with_shared_coverage",
      "crates/ici-cli/tests/legacy_no_tests.rs::a_v2_project_with_blocked_test_checks_stays_incomplete_instead_of_no_tests",
@@ -790,17 +976,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici thread-sanitize": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: report. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through"
+    ],
     "positive": [
      "crates/ici-cli/tests/native_cpp_direct.rs::actual_direct_sanitizer_variants_keep_instrumentation_and_runtime_limits_distinct"
     ]
@@ -810,20 +1004,32 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici type": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
-   "difference_reason": null,
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. Legacy mypy selection follows frozen TypeCheckEngine._find_mypy_cmd (type_check.py:176, toolchain.py:449): standalone `ici type` PATH mypy then the project .venv mypy (a broken .venv mypy behind a PATH mypy is not used); verify `<.venv python | pyz launcher interpreter> -m mypy` after a `-m mypy --version` probe, else the estimated AST fallback. Status, summary, evidence and target names equal frozen in 7 pyz scenarios; the selected executable is recorded in the run limitations.",
+   "difference_reason": "The legacy type report carries no mypy tool_evidence entry (frozen lists the executed argv, or the not-found record); the selection is recorded in the native run limitations instead (cross-area: legacy report projection).",
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
+    "/home/jihoon/projects/ici/.venv/bin/python tests/rust-parity/config/capture_legacy_type_interpreter.py --oracle <oracle> --pyz <private copy of dist/ici.pyz, sha256 9e5f5751..., 283 ici/ sources equal to the frozen tree> --python <ICI_TEST_PYTHON> --bare <ICI_TEST_PYTHON_BARE> -> tests/rust-parity/config/legacy-type-interpreter-oracle.json; /tmp/ici-rust-replacement-20261028/w-config-type-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_type_interpreter -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-type-interpreter.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/legacy_type_interpreter.rs::legacy_type_and_verify_select_mypy_like_the_frozen_engine"
+    ],
     "positive": [
      "crates/ici-cli/tests/legacy_commands.rs::legacy_annotation_evidence_survives_missing_type_tool_without_claiming_type_completion",
-     "crates/ici-cli/tests/native_cpp.rs::legacy_cpp_type_keeps_located_not_applicable_without_reading_compilation_context"
+     "crates/ici-cli/tests/native_cpp.rs::legacy_cpp_type_keeps_located_not_applicable_without_reading_compilation_context",
+     "crates/ici-cli/tests/legacy_type_interpreter.rs::legacy_type_and_verify_select_mypy_like_the_frozen_engine"
     ]
    },
    "rust_paths": [
@@ -831,17 +1037,27 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici verify": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: group_by, publish, verbose.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. --verbose/--group-by map directly onto the console renderer options (legacy_execute.rs) proven by the renderer test; --publish by legacy_publish.rs. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. On a [workspace] root verify is the cutover: an invalid next file prints the cutover line and then frozen's `config: ` problem lines (exit 2).",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_type_interpreter -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-type-interpreter.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/verify_cutover.rs::workspace_verify_runs_the_next_path_and_composes_outputs_like_frozen_cutover"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/verify_cutover.rs::legacy_schema_verify_keeps_the_historical_suite"
+    ],
     "positive": [
      "crates/ici-cli/tests/coverage_regression.rs::actual_coverage_drop_gates_fail_on_new_without_changing_selected_gate_or_baseline",
      "crates/ici-cli/tests/integration_legacy.rs::schema_refused_placeholder_keeps_the_frozen_configuration_exit_code",
@@ -858,7 +1074,10 @@
      "crates/ici-cli/tests/native_cpp.rs::compilation_policy_flags_and_missing_database_policy_reach_the_common_cli_gate",
      "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy",
      "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
-     "crates/ici-cli/tests/registry.rs::repeatable_selection_aliases_enum_and_integer_bounds_are_enforced"
+     "crates/ici-cli/tests/registry.rs::repeatable_selection_aliases_enum_and_integer_bounds_are_enforced",
+     "crates/ici-reporting/tests/limits.rs::console_caps_per_engine_verbose_and_unicode_width_preserve_original_inventory",
+     "crates/ici-cli/tests/legacy_publish.rs::legacy_verify_publish_never_changes_the_run_exit",
+     "crates/ici-cli/tests/legacy_type_interpreter.rs::legacy_type_and_verify_select_mypy_like_the_frozen_engine"
     ]
    },
    "rust_paths": [
@@ -866,17 +1085,25 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command_group:ici next": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. The next commands are exempt from the stable loader gate (frozen main_callback) and refuse their own configuration problems with `config: ` (cli_gaps).",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (75 frozen v0.13.0 cases, empty HOME, PATH=os.defpath); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (8 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/cli_gaps.rs::stored_result_refusals_name_the_missing_file"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/cli_gaps.rs::unparseable_pyproject_is_never_a_configuration_refusal"
+    ],
     "positive": [
      "crates/ici-cli/tests/config_commands.rs::migration_explains_legacy_overrides_without_applying_them",
      "crates/ici-cli/tests/config_commands.rs::migration_preview_and_new_file_preserve_original_and_explicit_write_keeps_backup",
@@ -927,7 +1154,7 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "config:src/ici/_analysis_config.py:169:27": {
    "comparison": "Frozen reader site src/ici/_analysis_config.py:169:27 (validation of engines.integration.cases[].name); replayed frozen cases engines.integration.cases[].name:positive, engines.integration.cases[].name:failure0, engines.integration.cases[].name:failure1, engines.integration.cases[].name:failure2, engines.integration.cases[].name:duplicate from tests/rust-parity/config/legacy-schema-oracle.json. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
@@ -13977,6 +14204,51 @@
   }
  },
  "source_files": {
+  "src/ici/__init__.py": {
+   "disposition": "mapped",
+   "reason": "Package version: Read the complete frozen module. `__version__ = \"0.13.0\"` and MIN_PYTHON (3,10) are the only behaviours: the version is reported by `ici --version` (native prints its own product version, recorded under command:ici <global>); MIN_PYTHON is the pyz/launcher floor, which the native binary replaces by having no interpreter dependency (ADR-0008) while legacy launcher-rule interpreter selection keeps the 3.10 floor (legacy_launcher_interpreter.rs).",
+   "requirements": [
+    "command:ici <global>",
+    "capability:legacy-command-config-result-projection"
+   ]
+  },
+  "src/ici/__main__.py": {
+   "disposition": "mapped",
+   "reason": "Typer CLI entry: Read the complete frozen module. Every registered command, option name/alias/default (registry.rs every_published_command_parameter_and_alias_remains_registered), the main_callback stable-loader gate (next/analyze/report/diff/init/import-report and env/cache exempt; [workspace] refusal; `Configuration error:` exit 2; verify cutover) replayed from frozen for every historical subcommand (cli_gaps.rs, cli-gaps-oracle.json), root = cwd for historical commands, baseline option relationships (`--fail-on-new requires --baseline`, contained paths), verify output paths (--report/--html/--open/--publish/--sarif), engine subcommand table (report file names, line distribution chart), publish --html/--json/--report-dir collection and exit 1 on upload failure, doctor --json/--brief, env --csh/--sh, cache --clear inventory, status icons and exit codes map to the listed command rows.",
+   "requirements": [
+    "command:ici <global>",
+    "command:ici verify",
+    "command:ici publish",
+    "command:ici doctor",
+    "command:ici analyze",
+    "command:ici report",
+    "command:ici diff",
+    "command:ici init",
+    "command:ici import-report",
+    "command:ici export-compilation-context",
+    "command:ici env",
+    "command:ici cache",
+    "command:ici cognitive",
+    "command:ici complexity",
+    "command:ici cycle",
+    "command:ici dead",
+    "command:ici dup",
+    "command:ici exception",
+    "command:ici line",
+    "command:ici lint",
+    "command:ici python-compat",
+    "command:ici resource",
+    "command:ici security",
+    "command:ici sanitize",
+    "command:ici thread-sanitize",
+    "command:ici test",
+    "command:ici type",
+    "command:ici build",
+    "command_group:ici next",
+    "capability:doctor-env-cache",
+    "capability:report-console-markdown-json-html-sarif"
+   ]
+  },
   "src/ici/_analysis_config.py": {
    "disposition": "mapped",
    "reason": "Build/integration/compat/ABI validators: Reviewed the complete frozen module; every key, default, validation branch, error key and exit path is replayed by the named oracle fixtures of the listed rows.",
@@ -14329,6 +14601,84 @@
     "config_key:legacy:version"
    ]
   },
+  "src/ici/cli/__init__.py": {
+   "disposition": "mapped",
+   "reason": "CLI package marker: Read the complete frozen module. The module holds only its docstring; it has no behaviour. Mapped to the command group it introduces.",
+   "requirements": [
+    "command_group:ici next"
+   ]
+  },
+  "src/ici/cli/analyze.py": {
+   "disposition": "mapped",
+   "reason": "ici analyze: Read the complete frozen module. `analyze` forwards every next option (--component, --language repeatable, --plan, --python, --cpp, --profile, --require-full, --result/--output, --no-cache, --json, --events, --baseline, --config, --local-config) to run_checks with static_only=True: plan selection replayed against frozen (cli-selection-oracle.json), the announcement/refusal frame (analyze_text.rs, plan_engines.rs) and config/scope refusals (cli_gaps.rs).",
+   "requirements": [
+    "command:ici analyze"
+   ]
+  },
+  "src/ici/cli/cutover.py": {
+   "disposition": "mapped",
+   "reason": "verify cutover: Read the complete frozen module. On a [workspace] root `ici verify` runs the next path: stable-only options (--fail-on-new, --write-baseline, --github-summary, --verbose, --max-findings non-default, --group-by non-default) refuse with their replacement hints (exit 2); otherwise the `ici-next: [workspace] config found` line, `next verify` with --profile/--no-cache/--baseline and result verify_report.json under --report, then --sarif/--html/--open/--publish composed from the stored result unless exit 2. Replayed by verify_cutover.rs (verify-cutover-oracle.json) and cli_gaps.rs next_invalid_stable_verify (banner then `config:` lines).",
+   "requirements": [
+    "command:ici verify",
+    "command:ici next verify",
+    "command:ici next report",
+    "command:ici next publish"
+   ]
+  },
+  "src/ici/cli/next_common.py": {
+   "disposition": "mapped",
+   "reason": "next plumbing: Read the complete frozen module. EXIT_CONFIG=2, default result/page paths (native namespace .ici/rust-v1, recorded), option spellings, _artifact_root (workspace root above cwd), _workspace (configless automatic discovery, --local-config refused without a workspace, every NextConfigError problem echoed as `config: <problem>`, OSError/ValueError `config:`), _request (language flags union), _profile and _scope refusals (`config:`), _announce (root/scope lines, stderr under --json). Replayed by config_oracle.rs, plan_engines.rs, analyze_text.rs and cli_gaps.rs.",
+   "requirements": [
+    "command:ici next plan",
+    "command:ici next verify",
+    "command:ici next doctor",
+    "command:ici analyze",
+    "command:ici next report",
+    "command:ici next diff",
+    "command:ici next publish",
+    "command:ici next init",
+    "command_group:ici next"
+   ]
+  },
+  "src/ici/cli/next_events.py": {
+   "disposition": "mapped",
+   "reason": "event sink: Read the complete frozen module. EventSink writes the ici.next.event stream: monotonic per-run seq under a lock, appended and flushed per event, file opened on first event, task.started only when work begins, task.completed with `<state> — <detail>`, nothing but events in the file. Mapped to the event wire schema and wire-result-events rows (events/analyze stream fixtures).",
+   "requirements": [
+    "wire_schema:ici-next-event-v1.schema.json",
+    "capability:wire-result-events",
+    "command:ici next verify",
+    "command:ici analyze"
+   ]
+  },
+  "src/ici/cli/next_path.py": {
+   "disposition": "mapped",
+   "reason": "next commands: Read the complete frozen module. next init (schema_version=1 scaffold from directory candidates, --python/--cpp, --preview, refusal of an existing ici.toml without --force; native writes the sparse v2 scaffold, recorded in cli-selection-differences.json), next doctor (per-check omitted/blocked/selected with resolve/recheck guidance, compile inputs, ici.next.doctor JSON), next plan (NothingSelected `config:` refusal before the announcement, plan JSON/text), next verify/run_checks (baseline read first, event sink, drift, cancellation exit 130, gate exit), report (`report:` refusals for --auxiliary+SARIF, missing/unreadable result), publish (`publish:` refusals, exit 1 failed, 2 not configured), diff (`diff:` refusals, incompatible exit 2, gate change). Mapped to the next command rows and their fixtures (config_oracle.rs, plan_engines.rs, analyze_text.rs, verify_cutover.rs, report_commands.rs, legacy_publish.rs, cli_gaps.rs).",
+   "requirements": [
+    "command:ici next init",
+    "command:ici init",
+    "command:ici next doctor",
+    "command:ici next plan",
+    "command:ici next verify",
+    "command:ici next report",
+    "command:ici report",
+    "command:ici next publish",
+    "command:ici next diff",
+    "command:ici diff",
+    "command:ici analyze",
+    "command_group:ici next",
+    "capability:identity-cache-baseline",
+    "capability:wire-result-events"
+   ]
+  },
+  "src/ici/cli/next_render.py": {
+   "disposition": "mapped",
+   "reason": "next output shaping: Read the complete frozen module. linked_builds (build id/system/variant/directory/definition/artifacts/linked_by), plan_json (ici.next.plan schema: root, scope components/languages/profile/require_full, plans/checks task_id/check/kind/argv/requires/work_dirs/blocked, graph, builds, coverage_gaps, limitations), plan_text (`<scope>: N check(s)`, dependencies/shared/mutating/builds sections, coverage gaps, notes) and verify_text (verdict, reasons, baseline counts or incompatibility, cache reuse, notes, `saved <path>`). Mapped to plan/analyze rows (plan_engines.rs two-line frame, config_oracle.rs plan JSON projection, analyze_text.rs verdict block).",
+   "requirements": [
+    "command:ici next plan",
+    "command:ici analyze",
+    "command:ici next verify"
+   ]
+  },
   "src/ici/config/__init__.py": {
    "disposition": "mapped",
    "reason": "Stable loader: DEFAULT_CONFIG is compared leaf for leaf, load_config precedence/global default/missing explicit file and get_engine_config are observed in legacy-layers-oracle.json; save_config/_ensure_global_default_config only serve the frozen global write that native intentionally omits (recorded difference).",
@@ -14346,6 +14696,131 @@
    "reason": "Config-less automatic scope: replayed in configless_runs_match_frozen_automatic_scope_and_refusals.",
    "requirements": [
     "capability:discovery-config-origin"
+   ]
+  },
+  "src/ici/config/composition.py": {
+   "disposition": "mapped",
+   "reason": "next composition: Read the complete frozen module. Layer precedence with origins (_decide: later layer wins only if it beats the current one), workspace/component check composition with exemptions (a component may not lower a root-required check without `[checks.<id>.exemptions.<component>]`), component id/root/languages requirements, glob anchoring at the component root, path anchoring and workspace-escape diagnostics, external inputs, integration case defaults (expected_exit 0, timeout 30, kind other, min_size 1, required true), suppressions (normalised paths), publish defaults (gh-pages, GITHUB_TOKEN, trailing slash removal), builds (local overlay directory/project, default variant, prepare only explicit, canonical artifact globs), python executable (overlay, empty refused, PATH-searched bare names, anchored paths), type_provider choices, standalone composition and the policy digest. Proven by the listed config/config_key rows (next-schema-oracle.json replay).",
+   "requirements": [
+    "config:src/ici/config/composition.py:1018:15",
+    "config:src/ici/config/composition.py:1055:15",
+    "config:src/ici/config/composition.py:1061:44",
+    "config:src/ici/config/composition.py:454:15",
+    "config:src/ici/config/composition.py:803:34",
+    "config:src/ici/config/composition.py:813:40",
+    "config:src/ici/config/composition.py:982:15",
+    "capability:discovery-config-origin",
+    "capability:identity-cache-baseline",
+    "config_key:next-local-overlay:builds.*.directory",
+    "config_key:next-local-overlay:builds.*.project",
+    "config_key:next-local-overlay:cache",
+    "config_key:next-local-overlay:components.*.python.executable",
+    "config_key:next-local-overlay:output",
+    "config_key:next-local-overlay:tools.*.path",
+    "config_key:next-v1:builds",
+    "config_key:next-v1:builds.*.artifacts",
+    "config_key:next-v1:builds.*.directory",
+    "config_key:next-v1:builds.*.prepare",
+    "config_key:next-v1:builds.*.project",
+    "config_key:next-v1:builds.*.system",
+    "config_key:next-v1:builds.*.variant",
+    "config_key:next-v1:checks",
+    "config_key:next-v1:checks.*.enabled",
+    "config_key:next-v1:checks.*.exemptions",
+    "config_key:next-v1:checks.*.exemptions.*.reason",
+    "config_key:next-v1:checks.*.required",
+    "config_key:next-v1:component",
+    "config_key:next-v1:component.build",
+    "config_key:next-v1:component.checks",
+    "config_key:next-v1:component.cpp",
+    "config_key:next-v1:component.exclude",
+    "config_key:next-v1:component.external",
+    "config_key:next-v1:component.id",
+    "config_key:next-v1:component.include",
+    "config_key:next-v1:component.integrations",
+    "config_key:next-v1:component.languages",
+    "config_key:next-v1:component.needs",
+    "config_key:next-v1:component.python",
+    "config_key:next-v1:component.root",
+    "config_key:next-v1:component.sources",
+    "config_key:next-v1:component.vendor",
+    "config_key:next-v1:components",
+    "config_key:next-v1:components[].build",
+    "config_key:next-v1:components[].checks",
+    "config_key:next-v1:components[].checks.*.enabled",
+    "config_key:next-v1:components[].checks.*.exemptions",
+    "config_key:next-v1:components[].checks.*.required",
+    "config_key:next-v1:components[].config",
+    "config_key:next-v1:components[].cpp",
+    "config_key:next-v1:components[].cpp.qt",
+    "config_key:next-v1:components[].exclude",
+    "config_key:next-v1:components[].external",
+    "config_key:next-v1:components[].id",
+    "config_key:next-v1:components[].include",
+    "config_key:next-v1:components[].integrations",
+    "config_key:next-v1:components[].integrations[].argv",
+    "config_key:next-v1:components[].integrations[].env",
+    "config_key:next-v1:components[].integrations[].expected_exit",
+    "config_key:next-v1:components[].integrations[].name",
+    "config_key:next-v1:components[].integrations[].output_artifacts",
+    "config_key:next-v1:components[].integrations[].output_artifacts[].kind",
+    "config_key:next-v1:components[].integrations[].output_artifacts[].min_size",
+    "config_key:next-v1:components[].integrations[].output_artifacts[].path",
+    "config_key:next-v1:components[].integrations[].python_targets",
+    "config_key:next-v1:components[].integrations[].required",
+    "config_key:next-v1:components[].integrations[].requires",
+    "config_key:next-v1:components[].integrations[].stderr_contains",
+    "config_key:next-v1:components[].integrations[].stderr_not_contains",
+    "config_key:next-v1:components[].integrations[].stdout_contains",
+    "config_key:next-v1:components[].integrations[].stdout_not_contains",
+    "config_key:next-v1:components[].integrations[].timeout_seconds",
+    "config_key:next-v1:components[].languages",
+    "config_key:next-v1:components[].needs",
+    "config_key:next-v1:components[].python",
+    "config_key:next-v1:components[].python.executable",
+    "config_key:next-v1:components[].python.test_paths",
+    "config_key:next-v1:components[].python.test_tools",
+    "config_key:next-v1:components[].python.type_provider",
+    "config_key:next-v1:components[].root",
+    "config_key:next-v1:components[].sources",
+    "config_key:next-v1:components[].vendor",
+    "config_key:next-v1:cpp.qt",
+    "config_key:next-v1:publish",
+    "config_key:next-v1:publish.api_url",
+    "config_key:next-v1:publish.branch",
+    "config_key:next-v1:publish.repo",
+    "config_key:next-v1:publish.server_url",
+    "config_key:next-v1:publish.token_env",
+    "config_key:next-v1:python.executable",
+    "config_key:next-v1:python.test_paths",
+    "config_key:next-v1:python.test_tools",
+    "config_key:next-v1:python.type_provider",
+    "config_key:next-v1:schema_version",
+    "config_key:next-v1:suppressions",
+    "config_key:next-v1:suppressions[].component",
+    "config_key:next-v1:suppressions[].fingerprint",
+    "config_key:next-v1:suppressions[].path",
+    "config_key:next-v1:suppressions[].reason",
+    "config_key:next-v1:suppressions[].rule",
+    "config_key:next-v1:tools",
+    "config_key:next-v1:tools.*.config",
+    "config_key:next-v1:tools.*.path",
+    "config_key:next-v1:tools.*.source",
+    "config_key:next-v1:workspace",
+    "config_key:next-v1:workspace.name",
+    "config_key:next-v1:workspace.profile"
+   ]
+  },
+  "src/ici/config/discovery.py": {
+   "disposition": "mapped",
+   "reason": "next discovery: Read the complete frozen module. discover (explicit --config taken as given incl. a component file -> STANDALONE; upward search for an ici.toml declaring [workspace], tolerant of malformed files so the reader names the problem; stop at .git/.hg/.svn with the searched list and component-file hint), find_workspace_root (strict: parseable TOML with a top-level workspace; ported as ici_config::find_workspace_root and used by the verify cutover and the stable-loader gate), load (local overlay, standalone vs workspace composition) and _children (registered child files only, env substitution, escape and missing-file problems). Proven by capability:discovery-config-origin fixtures and cli_gaps.rs (workspace detection incl. an invalid next file still claimed as a workspace).",
+   "requirements": [
+    "capability:discovery-config-origin",
+    "command:ici verify",
+    "command:ici next plan",
+    "config_key:next-v1:components[].config",
+    "config_key:next-v1:component",
+    "config_key:next-local-overlay:builds.*.directory"
    ]
   },
   "src/ici/config/documents.py": {
@@ -14894,6 +15369,16 @@
     "config_key:next-v1:workspace.profile"
    ]
   },
+  "src/ici/config/scaffold.py": {
+   "disposition": "mapped",
+   "reason": "configless scaffold: Read the complete frozen module. propose/write used by config/automatic (configless analyze): language detection from python markers and suffixes (python, cpp, rust, javascript, typescript) skipping VCS/venv/build/target/.ici directories, evidence filenames, foreign tool configs listed but never read, more than one build file left UNDECIDED, refusal to overwrite an existing file. Native scaffold/automatic discovery (crates/ici-config write.rs, discovery.rs) is proven by command:ici init/next init and the configless analyze plan replay (cli-selection-oracle.json configless cases); native writes the sparse v2 scaffold (recorded difference next_init:scaffold_text).",
+   "requirements": [
+    "command:ici init",
+    "command:ici next init",
+    "command:ici analyze",
+    "capability:discovery-config-origin"
+   ]
+  },
   "src/ici/config/schema.py": {
    "disposition": "mapped",
    "reason": "ici-next v1 reader: Reviewed the complete frozen module; every key, default, validation branch, error key and exit path is replayed by the named oracle fixtures of the listed rows. (next-schema-oracle.json).",
@@ -15320,6 +15805,152 @@
     "config_key:legacy:project.version",
     "config_key:legacy:type",
     "config_key:legacy:version"
+   ]
+  },
+  "src/ici/core/backend.py": {
+   "disposition": "mapped",
+   "reason": "build backend selection: Read the complete frozen module. select_backend inspects only the project root: CMakeLists.txt (a .pro passed over is named) > first *.pro > Makefile/makefile/GNUmakefile only with build.make.enabled=true (else the explicit-argv requirement reason) > none; symlinked descriptors are not real files. Mapped to the build and compile rows that replay the backend choice (legacy_make_build.rs, legacy C++ build fixtures).",
+   "requirements": [
+    "command:ici build",
+    "descriptor:build",
+    "config_key:legacy:build.make.enabled",
+    "check:cpp.compile"
+   ]
+  },
+  "src/ici/core/capabilities.py": {
+   "disposition": "mapped",
+   "reason": "capability inventory: Read the complete frozen module. ToolRequirement (sorted unique required_by/optional_by; required wins), CapabilityInventory (key/name consistency, missing_required, incomplete_required, healthy), derive_tool_policy (doctor.required_tools as doctor.config, applicable+enabled support entries `<engine>:<language>`), collect_capability_inventory (registered probes then requested names, unregistered names unavailable) and the ici.capabilities/v1 serialisation (state ready/incomplete/unavailable, counts, PASS/WARN). Native doctor emits the same capability_inventory shape (doctor_commands.rs legacy JSON, declared required tools, excessive output incomplete).",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "command:ici doctor",
+    "config_key:legacy:doctor.required_tools"
+   ]
+  },
+  "src/ici/core/env.py": {
+   "disposition": "mapped",
+   "reason": "environment utilities: Read the complete frozen module. PYTHON_CANDIDATES and find_python_candidates/_get_py_ver (doctor python_candidates; the launcher candidate order reused by the legacy launcher rule), find_project_executable (.venv bin/Scripts, executable bit; native legacy mypy/test lookup, legacy_type_interpreter.rs), get_system_info/os-release/glibc/WSL (doctor system section). find_infra_root/get_nas_shared_dir/get_nas_cpp_lib_dir/find_uv name NAS/infra paths that AGENTS §8 (R01) forbids the product to know; native doctor reports no such paths (recorded in capability:doctor-env-cache).",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "command:ici doctor",
+    "command:ici type",
+    "command:ici test",
+    "capability:native-windows-disposition"
+   ]
+  },
+  "src/ici/core/path_utils.py": {
+   "disposition": "mapped",
+   "reason": "project path containment: Read the complete frozen module. resolve_project_path resolves against the canonical project root and refuses escapes (`path is outside project root: <value>`; resolution failures named). Ported in the legacy path validation proven by the _config_paths rows.",
+   "requirements": [
+    "config:src/ici/_config_paths.py:43:23",
+    "config:src/ici/_config_paths.py:63:8",
+    "config:src/ici/_config_paths.py:102:14"
+   ]
+  },
+  "src/ici/core/project.py": {
+   "disposition": "mapped",
+   "reason": "legacy project model: Read the complete frozen module. DEFAULT_SOURCE_DIRS (src, lib, app, packages, python), contained symlink-free directory/file walks, get_source_dirs (configured list strict, defaults tolerant), detect_project_type (ici.toml/dev.toml type text, then markers/sources), project name/version metadata (ici.toml, dev.toml, pyproject [project]; validation; git describe or v1.0.0), C++ sources/headers (include/, .moc), cpp_pkg_config flags via pkg-config, external build dirs, compilable sources, include flags and python sources. Proven by the legacy project config_key rows, the legacy line/scope fixtures and the compilation export metadata test (static_metadata_uses_legacy_top_level_name_version_and_root_qmake_descriptor).",
+   "requirements": [
+    "config_key:legacy:project",
+    "config_key:legacy:project.compile_database",
+    "config_key:legacy:project.cpp_external_build_dirs",
+    "config_key:legacy:project.cpp_pkg_config",
+    "config_key:legacy:project.name",
+    "config_key:legacy:project.source_dirs",
+    "config_key:legacy:project.type",
+    "config_key:legacy:project.version",
+    "capability:legacy-command-config-result-projection",
+    "command:ici export-compilation-context",
+    "command:ici line"
+   ]
+  },
+  "src/ici/core/support.py": {
+   "disposition": "mapped",
+   "reason": "support matrix: Read the complete frozen module. 38 SupportDeclaration entries (engine x language, required/optional tools, confidence, limitations), project language/framework detection (sources, configured type, markers; Qt via pkg-config, CMake or .pro), confidence downgrade by evidence, tool promotion policies (ruff_required, mypy_required, coverage_required, clang_tidy/clazy, dead cpp_unused/cpp_linker), language enablement, evaluate_support_matrix and the documentation renderers. Mapped to the doctor/report support-matrix rows and the tool-policy config keys.",
+   "requirements": [
+    "capability:doctor-env-cache",
+    "command:ici doctor",
+    "capability:report-console-markdown-json-html-sarif",
+    "config_key:legacy:engines.lint.ruff_required",
+    "config_key:legacy:engines.type.mypy_required",
+    "config_key:legacy:engines.test.coverage_required",
+    "config_key:legacy:engines.lint.clang_tidy",
+    "config_key:legacy:engines.lint.clazy",
+    "config_key:legacy:engines.dead.cpp_unused",
+    "config_key:legacy:engines.dead.cpp_linker"
+   ]
+  },
+  "src/ici/doctor.py": {
+   "disposition": "mapped",
+   "reason": "legacy doctor: Read the complete frozen module. collect_diagnostics (system info, running python and candidates, profile, doctor.required_tools, support matrix, derived policy, capability inventory, NAS paths), support table and the Rich table/brief renderers. Native `ici doctor` keeps the JSON keys and capability inventory but describes the native runtime instead of a Python interpreter search and reports no NAS paths (recorded difference, capability:doctor-env-cache); the stable loader gate and refusals are frozen (cli_gaps.rs).",
+   "requirements": [
+    "command:ici doctor",
+    "capability:doctor-env-cache",
+    "config_key:legacy:doctor.required_tools"
+   ]
+  },
+  "src/ici/workspace/__init__.py": {
+   "disposition": "mapped",
+   "reason": "workspace package: Read the complete frozen module. Re-exports build, project_context and project_type; no behaviour of its own.",
+   "requirements": [
+    "capability:legacy-command-config-result-projection",
+    "capability:discovery-config-origin"
+   ]
+  },
+  "src/ici/workspace/instrumentation.py": {
+   "disposition": "mapped",
+   "reason": "instrumentation proof: Read the complete frozen module. is_elf (magic bytes, None when unreadable), sanitizer_marked (ASan/UBSan or TSan markers in a bounded binary read) and ctest_binaries (add_test executables from bounded CTestTestfile text) prove a variant binary carries its sanitizer. Mapped to the C++ sanitize/tsan/test check rows.",
+   "requirements": [
+    "check:cpp.sanitize",
+    "check:cpp.tsan",
+    "check:cpp.test"
+   ]
+  },
+  "src/ici/workspace/inventory.py": {
+   "disposition": "mapped",
+   "reason": "source inventory: Read the complete frozen module. take (sources+include minus exclude, vendor role, generated roles under build directories, external inputs inside the workspace become members, contained resolution, per-file sha256 and size, unreadable list, composite digest), _expand (`/**` also matches direct children, absolute patterns allowed), external digests and diff (added/removed/changed/role_changed/externals). Mapped to identity/cache/baseline and scope binding rows.",
+   "requirements": [
+    "capability:identity-cache-baseline",
+    "capability:python-scope-binding",
+    "capability:discovery-config-origin",
+    "config_key:next-v1:components[].external",
+    "config_key:next-v1:components[].vendor"
+   ]
+  },
+  "src/ici/workspace/legacy.py": {
+   "disposition": "mapped",
+   "reason": "legacy projection: Read the complete frozen module. project_context projects the workspace into the legacy ProjectModel (name, project_type, sorted component roots as source_dirs, claimed non-generated python/cpp sources) and _backend (none / several build units / explicit / declared system with its definition). Mapped to the legacy projection capability.",
+   "requirements": [
+    "capability:legacy-command-config-result-projection",
+    "command:ici verify"
+   ]
+  },
+  "src/ici/workspace/model.py": {
+   "disposition": "mapped",
+   "reason": "workspace model: Read the complete frozen module. build (build units: system required else explicit, directory required, default variant; components with default source globs per language anchored at the root; analysis units per component x language with python runtime and build variant; workspace id slug; policy digest; model errors as NextConfigError) and project_type. Mapped to the next schema/config rows replayed through the binary.",
+   "requirements": [
+    "capability:discovery-config-origin",
+    "config_key:next-v1:builds.*.system",
+    "config_key:next-v1:builds.*.directory",
+    "config_key:next-v1:builds.*.variant",
+    "config_key:next-v1:components[].sources",
+    "config_key:next-v1:components[].languages",
+    "config_key:next-v1:workspace.name"
+   ]
+  },
+  "src/ici/workspace/test_suites.py": {
+   "disposition": "mapped",
+   "reason": "test suite discovery: Read the complete frozen module. suites_for_build: CMake builds with add_test entries give one ctest suite (conditional when every test is), qmake builds give one qtest suite per testlib/testcase .pro target (bounded read, TARGET or file stem). Mapped to the C++ test check row.",
+   "requirements": [
+    "check:cpp.test",
+    "config_key:next-v1:builds.*.project"
+   ]
+  },
+  "src/ici/workspace/vcs.py": {
+   "disposition": "mapped",
+   "reason": "VCS snapshot: Read the complete frozen module. status: `git rev-parse HEAD` and `git status --porcelain=v1 --untracked-files=all -z` with a 10 s timeout; no repository -> None; dirty and untracked as sorted paths; clean only with a commit and no changes. Native crates/ici-cli/src/vcs.rs records the same snapshot axes (identity/cache rows).",
+   "requirements": [
+    "capability:identity-cache-baseline",
+    "capability:wire-result-events"
    ]
   }
  }

@@ -133,21 +133,57 @@ fn expect(name: &str, stream: &str, rule: &Value, native: &str, frozen: &str) {
     }
 }
 
-#[test]
-fn frozen_cli_boundary_cases_replay_natively_or_are_recorded_differences() {
+const GROUPS: [(&str, &[&str]); 6] = [
+    ("workspace", &["workspace_"]),
+    (
+        "refusal",
+        &["next_invalid_", "unparseable_", "legacy_invalid_", "scope_"],
+    ),
+    (
+        "stored",
+        &[
+            "report_without_result",
+            "publish_without_result",
+            "diff_without_baseline",
+        ],
+    ),
+    (
+        "rooted",
+        &[
+            "configless_subdir_line",
+            "configless_root_line",
+            "legacy_root_",
+        ],
+    ),
+    (
+        "pyproject",
+        &[
+            "legacy_pyproject_",
+            "next_pyproject_",
+            "configless_pyproject_",
+        ],
+    ),
+    ("interpreter", &["bare_local_interpreter_"]),
+];
+
+fn group_of(name: &str) -> Option<&'static str> {
+    GROUPS
+        .iter()
+        .find(|(_, prefixes)| prefixes.iter().any(|prefix| name.starts_with(prefix)))
+        .map(|(group, _)| *group)
+}
+
+/// Replays every case of one group; returns how many ran.
+fn replay(group: &str) -> usize {
     let oracle = fixture("cli-gaps-oracle.json");
     let differences = fixture("cli-gaps-differences.json");
     let recorded = differences["cases"].as_object().unwrap();
-    let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 45);
-    for name in recorded.keys() {
-        assert!(cases.contains_key(name), "{name}: difference names no case");
-        assert!(
-            !recorded[name]["reason"].as_str().unwrap().is_empty(),
-            "{name}"
-        );
-    }
-    for (name, frozen) in cases {
+    let mut count = 0;
+    for (name, frozen) in oracle["cases"].as_object().unwrap() {
+        if group_of(name) != Some(group) {
+            continue;
+        }
+        count += 1;
         let native = run(frozen);
         assert_eq!(
             native.exit,
@@ -207,6 +243,155 @@ fn frozen_cli_boundary_cases_replay_natively_or_are_recorded_differences() {
             &difference["stderr"],
             &native.stderr,
             &frozen_stderr,
+        );
+    }
+    assert!(count > 0, "{group}");
+    count
+}
+
+#[test]
+fn every_frozen_case_and_recorded_difference_belongs_to_a_replayed_group() {
+    let oracle = fixture("cli-gaps-oracle.json");
+    let differences = fixture("cli-gaps-differences.json");
+    let cases = oracle["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 75);
+    for name in cases.keys() {
+        assert!(group_of(name).is_some(), "{name}: not replayed");
+    }
+    for (name, difference) in differences["cases"].as_object().unwrap() {
+        assert!(cases.contains_key(name), "{name}: difference names no case");
+        assert!(!difference["reason"].as_str().unwrap().is_empty(), "{name}");
+    }
+}
+
+/// Frozen `main_callback`: historical subcommands on a `[workspace]` root refuse with the
+/// frozen message and write nothing; from a subdirectory without its own file they run.
+#[test]
+fn workspace_roots_refuse_stable_subcommands_like_frozen() {
+    assert_eq!(replay("workspace"), 24);
+}
+
+/// `config: ` (next path), `Configuration error: ` (stable loader), exit 2, nothing written.
+#[test]
+fn configuration_and_scope_refusals_carry_the_frozen_class_prefix() {
+    assert_eq!(replay("refusal"), 39);
+}
+
+#[test]
+fn stored_result_refusals_name_the_missing_file() {
+    assert_eq!(replay("stored"), 3);
+}
+
+/// Frozen `load_config(base=cwd)`: the working directory is the root; no walk up.
+#[test]
+fn historical_commands_are_rooted_at_the_working_directory() {
+    assert_eq!(replay("rooted"), 5);
+}
+
+#[test]
+fn unparseable_pyproject_is_never_a_configuration_refusal() {
+    assert_eq!(replay("pyproject"), 3);
+}
+
+#[test]
+fn bare_local_interpreter_blocks_with_the_frozen_resolver_text() {
+    assert_eq!(replay("interpreter"), 1);
+}
+
+const HISTORICAL: [&str; 20] = [
+    "python-compat",
+    "resource",
+    "security",
+    "cognitive",
+    "cycle",
+    "line",
+    "lint",
+    "test",
+    "type",
+    "complexity",
+    "sanitize",
+    "thread-sanitize",
+    "dead",
+    "dup",
+    "exception",
+    "build",
+    "verify",
+    "doctor",
+    "publish",
+    "export-compilation-context",
+];
+
+fn gate(config: &str, cwd: &str, command: &str) -> Result<Option<String>, String> {
+    let directory = tempfile::tempdir().unwrap();
+    let base = directory.path().canonicalize().unwrap();
+    fs::create_dir(base.join(".git")).unwrap();
+    fs::create_dir_all(base.join("pkg")).unwrap();
+    fs::write(base.join("ici.toml"), config).unwrap();
+    fs::write(base.join("main.py"), "X = 1\n").unwrap();
+    let invocation = ici_cli::registry::parse(["ici", command]).unwrap();
+    let environment = std::collections::BTreeMap::from([(
+        "XDG_CONFIG_HOME".to_string(),
+        base.join("xdg").display().to_string(),
+    )]);
+    ici_cli::cutover::stable_refusal(&invocation, &base.join(cwd), &environment)
+        .map(|refusal| refusal.map(|output| output.stderr))
+        .map_err(|error| error.to_string())
+}
+
+/// The gate refuses only what frozen's stable loader could not read: a native
+/// `schema_version = 2` file (even with a `[workspace]` table) and a legacy file are read by
+/// every historical subcommand, `env`/`cache`/`setup` never consult it, and a subdirectory
+/// below a next-v1 root without its own file runs with the defaults.
+#[test]
+fn the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through() {
+    let v1 = "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n";
+    let v2 = "schema_version = 2\n[workspace]\nname = \"demo\"\n";
+    let legacy = "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n";
+    for command in HISTORICAL {
+        assert_eq!(gate(v2, ".", command), Ok(None), "{command}: v2");
+        assert_eq!(gate(legacy, ".", command), Ok(None), "{command}: legacy");
+        assert_eq!(
+            gate(v1, "pkg", command),
+            Ok(None),
+            "{command}: v1 subdirectory"
+        );
+        let refused = gate(v1, ".", command);
+        if command == "verify" {
+            assert_eq!(refused, Ok(None), "verify on a next root is the cutover");
+        } else {
+            assert!(
+                refused
+                    .unwrap()
+                    .unwrap()
+                    .contains("this workspace declares a [workspace] (ici-next) config"),
+                "{command}"
+            );
+        }
+        let invalid = gate("[engines.line]\nwarn_limit = \"many\"\n", ".", command).unwrap_err();
+        assert!(
+            invalid.starts_with("Configuration error: ")
+                && invalid.contains("engines.line.warn_limit"),
+            "{command}: {invalid}"
+        );
+    }
+    for command in [
+        "env",
+        "cache",
+        "init",
+        "analyze",
+        "report",
+        "next plan",
+        "next verify",
+    ] {
+        let argv: Vec<&str> = command.split(' ').collect();
+        let directory = tempfile::tempdir().unwrap();
+        fs::write(directory.path().join("ici.toml"), "[[\n").unwrap();
+        let invocation = ici_cli::registry::parse(std::iter::once("ici").chain(argv)).unwrap();
+        assert!(
+            ici_cli::cutover::stable_refusal(&invocation, directory.path(), &Default::default())
+                .unwrap()
+                .is_none(),
+            "{command}: not a stable-loader subcommand"
         );
     }
 }
