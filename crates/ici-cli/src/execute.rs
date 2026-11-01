@@ -712,11 +712,36 @@ pub fn execute(
                                     &mut output,
                                     &planned.check.id,
                                 ),
-                                Some("cmake") => crate::cpp::legacy_ctest_sanitizer(
-                                    &mut output,
-                                    &planned.check.id,
-                                    "CMakeLists.txt",
-                                ),
+                                Some("cmake") => {
+                                    let testfile = plans
+                                        .first()
+                                        .and_then(|plan| plan.context.options.build_dir.clone())
+                                        .map(|directory| directory.join("CTestTestfile.cmake"))
+                                        .unwrap_or_default();
+                                    // Frozen `engines.<sanitize|thread_sanitize>.required`
+                                    // (default true) decides whether a case that was not
+                                    // executed is an ERROR or a SKIP scope.
+                                    let section = if planned.check.id == "cpp.tsan" {
+                                        "/engines/thread_sanitize/required"
+                                    } else {
+                                        "/engines/sanitize/required"
+                                    };
+                                    let required = prepared
+                                        .project
+                                        .components
+                                        .iter()
+                                        .find(|component| component.id == planned.component_id)
+                                        .and_then(|component| component.settings.pointer(section))
+                                        .and_then(serde_json::Value::as_bool)
+                                        != Some(false);
+                                    crate::cpp::legacy_ctest_sanitizer(
+                                        &mut output,
+                                        &planned.check.id,
+                                        "CMakeLists.txt",
+                                        &testfile,
+                                        required,
+                                    );
+                                }
                                 _ => {}
                             }
                         }

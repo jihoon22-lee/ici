@@ -38,6 +38,10 @@ pub struct ContextPreparationPlan {
     pub descriptor: String,
     pub effects: Value,
     pub direct: Option<DirectPreparation>,
+    /// Frozen legacy `prepare_cmake_compilation_context` only configures the release shadow
+    /// (it builds only to generate missing sources), so a `verify` whose release build fails
+    /// still analyses the configured database. Set only when no check consumes release artifacts.
+    pub configured_context_on_build_failure: bool,
 }
 #[derive(Clone)]
 pub struct PreparedContext {
@@ -54,6 +58,8 @@ pub struct PreparedContext {
     /// compiler's bounded stderr. Their executables were not linked; the other tests still run.
     pub test_compile_failures: BTreeMap<String, String>,
     pub evidence: Option<Value>,
+    /// The failed build step of a configured-only legacy release context (frozen never builds it).
+    pub build_failure: Option<String>,
     _lease: Arc<BuildLease>,
 }
 
@@ -333,6 +339,7 @@ fn plan_selected_preparation(
         descriptor,
         effects,
         direct: None,
+        configured_context_on_build_failure: false,
     })
 }
 
@@ -452,6 +459,31 @@ fn execute_native_preparation(
                 // error, a failed build means no complete artifact set.
                 let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
                 let configuration = step == "configure";
+                if !configuration && plan.configured_context_on_build_failure {
+                    let context = prepared_context(plan);
+                    if context.database_path.is_some()
+                        && !context.units.is_empty()
+                        && !context
+                            .diagnostics
+                            .iter()
+                            .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
+                            .any(|diagnostic| diagnostic.level == "error")
+                    {
+                        // Frozen analyses the configured database; nothing built is claimed.
+                        return Ok(PreparedContext {
+                            plan: plan.clone(),
+                            context,
+                            artifacts: vec![],
+                            non_elf: vec![],
+                            test_executable: None,
+                            test_executables: BTreeMap::new(),
+                            test_compile_failures: BTreeMap::new(),
+                            evidence: None,
+                            build_failure: Some(detail),
+                            _lease: Arc::new(lease),
+                        });
+                    }
+                }
                 let message = format!(
                     "{} {} failed: {}",
                     plan.build.system,
@@ -574,6 +606,7 @@ fn execute_native_preparation(
         test_executables: BTreeMap::new(),
         test_compile_failures: BTreeMap::new(),
         evidence: None,
+        build_failure: None,
         _lease: Arc::new(lease),
     })
 }

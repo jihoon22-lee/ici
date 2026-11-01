@@ -406,6 +406,7 @@ pub fn plan_legacy_direct_preparation(
         declared_build: None,
         descriptor: component.root.clone(),
         effects: Value::Null,
+        configured_context_on_build_failure: false,
         direct: Some(DirectPreparation {
             flags,
             sources: Arc::new(sources),

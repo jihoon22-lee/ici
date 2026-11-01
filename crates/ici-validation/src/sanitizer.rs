@@ -17,6 +17,10 @@ pub struct SanitizerDiagnostic {
     pub frames_observed: usize,
     pub project_frames: usize,
     pub external_locations: Vec<ExternalLocation>,
+    /// The CTest case whose `--output-on-failure` block printed the report (frozen
+    /// `_SanitizerFinding.test_name`); absent outside a CTest sanitizer suite.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub test_name: Option<String>,
     #[serde(skip)]
     pub finding: Finding,
 }
@@ -77,8 +81,22 @@ pub fn parse_diagnostics(
             "sanitizer diagnostic count exceeds 64".into(),
         ));
     }
+    // `ctest --output-on-failure` prints a case's output right after its result line, before any
+    // later `Start`/result line.
+    let ctest_case = (plan.context.options.sanitizer_suite_kind == Some(ValidationKind::Ctest))
+        .then(|| {
+            Regex::new(r"^\s*\d+/\d+\s+Test\s+#\d+:\s+(.+?)\s*\.{3,}").expect("constant regex")
+        });
+    let start_line = Regex::new(r"^\s*Start\s+\d+:").expect("constant regex");
     let mut findings = vec![];
     for (index, (start, tool, description)) in starters.iter().enumerate() {
+        let test_name = ctest_case.as_ref().and_then(|case| {
+            lines[..*start]
+                .iter()
+                .rev()
+                .take_while(|line| !start_line.is_match(line))
+                .find_map(|line| case.captures(line).map(|capture| capture[1].to_string()))
+        });
         let end = starters.get(index + 1).map_or(lines.len(), |item| item.0);
         let mut runtime_locations = vec![];
         let mut frames = vec![];
@@ -237,6 +255,7 @@ pub fn parse_diagnostics(
             frames_observed: frames_seen,
             project_frames,
             external_locations,
+            test_name,
             finding: item,
         });
     }
@@ -400,9 +419,41 @@ pub(crate) fn observe(
         }
     }
     let mut unlocated = false;
+    let legacy_unlocated = plan.context.options.legacy_unlocated_sanitizer_scope;
+    let mut unlocated_scopes = false;
     for diagnostic in diagnostics {
         let Some(location) = &diagnostic.primary_location else {
-            unlocated = true;
+            if legacy_unlocated {
+                // Frozen: the first external frame (else `[external]`:1) carries the ERROR.
+                let external = diagnostic
+                    .related_locations
+                    .iter()
+                    .find(|span| span.path == "[external]");
+                let mut target =
+                    InspectionTarget::at("[external]", external.map_or(1, |span| span.start_line));
+                target.target_name = "SanitizerDiagnosticLocation".into();
+                target.status = "ERROR".into();
+                target.message = format!(
+                    "{} diagnostic has no validated project-owned source location",
+                    diagnostic.tool_name
+                );
+                target.metrics.insert(
+                    "frames_observed".into(),
+                    serde_json::json!(diagnostic.frames_observed),
+                );
+                target.metrics.insert(
+                    "project_frames".into(),
+                    serde_json::json!(diagnostic.project_frames),
+                );
+                output.targets.push(target);
+                unlocated_scopes = true;
+                output
+                    .observation
+                    .limitations
+                    .push("a sanitizer report named no confirmed project source location".into());
+            } else {
+                unlocated = true;
+            }
             continue;
         };
         let label = crate::finding_details::sanitizer_label(&diagnostic.kind);
@@ -451,6 +502,7 @@ pub(crate) fn observe(
         ));
     }
     if output.observation.findings.is_empty()
+        && !unlocated_scopes
         && [
             "AddressSanitizer:DEADLYSIGNAL",
             "FATAL: ThreadSanitizer",

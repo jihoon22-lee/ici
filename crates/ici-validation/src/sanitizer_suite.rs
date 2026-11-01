@@ -206,7 +206,7 @@ pub(crate) fn inventory(
         .collect::<BTreeSet<_>>();
     let mut names = BTreeSet::new();
     let mut commands = vec![];
-    for test in tests {
+    'tests: for test in tests {
         let name = test["name"]
             .as_str()
             .filter(|name| !name.trim().is_empty() && name.len() <= 1024)
@@ -242,9 +242,16 @@ pub(crate) fn inventory(
                         ));
                     };
                     if disabled {
-                        return Err(ValidationError(format!(
-                            "sanitizer CTest inventory contains disabled test {name:?}"
-                        )));
+                        // Frozen legacy sanitizer engines record a DISABLED case as a scope that
+                        // was not executed (never run, so its command proves nothing); the
+                        // native contract keeps refusing an inventory it cannot fully run.
+                        if !plan.context.options.ctest_not_run_measured {
+                            return Err(ValidationError(format!(
+                                "sanitizer CTest inventory contains disabled test {name:?}"
+                            )));
+                        }
+                        commands.push(json!({"name":name,"disabled":true}));
+                        continue 'tests;
                     }
                 }
             }

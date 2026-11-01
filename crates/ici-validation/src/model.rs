@@ -136,12 +136,17 @@ pub struct ValidationOptions {
     /// Frozen legacy `TestEngine`: a CTest case that did not run (disabled, skipped, missing
     /// executable) is a SKIP target of a measured run, stated as a limitation, not an error.
     pub ctest_not_run_measured: bool,
+    /// Frozen legacy sanitizer engines (`_append_sanitizer_diagnostics`): a report without a
+    /// confirmed project frame is a `SanitizerDiagnosticLocation` ERROR scope of a measured run
+    /// at its first external frame; native runs refuse the incomplete attribution instead.
+    pub legacy_unlocated_sanitizer_scope: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
         Self {
             sanitize_scope_optional: false,
             ctest_not_run_measured: false,
+            legacy_unlocated_sanitizer_scope: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

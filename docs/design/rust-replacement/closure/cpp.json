@@ -1023,19 +1023,25 @@
         "crates/ici-cpp/src/analysis.rs",
         "crates/ici-cpp/src/compiler.rs",
         "crates/ici-cpp/src/source_rules.rs",
-        "crates/ici-reporting/src/projection.rs"
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/export_context.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ]
       },
       "evidence": [
@@ -1045,7 +1051,9 @@
         "Merged feat/rust-application bdcdd96 (runtime verify shape_engine/legacy_refresh_suite replaces the cpp verify no-test patch): fmt, strict Clippy (ici-application/reporting/cpp/cli), ici-application/reporting/cpp tests and the same ici-cli binaries --include-ignored --no-fail-fast all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log",
         "Frozen captures by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, frozen .venv, PYTHONHASHSEED=0, PATH=/usr/bin:/bin without clang-tidy/clazy-standalone, fixed project path /tmp/ici-cpp-verify-matrix-capture/project, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted) into tests/rust-parity/cpp/verify-matrix-oracle.json over parity-fixtures/cpp/legacy-scope-fixture; rerun twice byte-identical. Section 1 now also records every legacy finding and engine summary/score; section commands: all 15 frozen single-engine commands (`__main__._ENGINE_COMMANDS`: line, type, resource, security, python-compat, thread-sanitize, dup, dead, cognitive, complexity, cycle, exception, test, sanitize, lint) with --report: exit code, status, required, evidence, summary, score, max_score, every target (name/status/message/start/end line/path) and every legacy finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, explanation, remediation, related_locations, fixes, metrics, snippet, primary_location, fingerprint).",
         "source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --test legacy_lint --test legacy_python_engines --test legacy_cpp_metrics --locked -j2 -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-cpp3-commands.log; regression ici-cpp/ici-analysis/ici-reporting/ici-application and 21 ici-cli C++/legacy test binaries --include-ignored (346 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-next-regress.log; post-merge of feat/rust-application 47405cd: /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
-        "Profile application: crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands proves fast/standard/deep (config and --profile) omit every out-of-profile check once as \"not in profile '<p>'\"; the redundant component engine disabling (legacy::apply_descriptor_profile) was removed in 42179d4 with the matrix profile_fast/profile_deep cases and every profile-touching ici-cli test still passing (136 passed): /tmp/ici-rust-replacement-20261028/w-cpp3-profile-once.log"
+        "Profile application: crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands proves fast/standard/deep (config and --profile) omit every out-of-profile check once as \"not in profile '<p>'\"; the redundant component engine disabling (legacy::apply_descriptor_profile) was removed in 42179d4 with the matrix profile_fast/profile_deep cases and every profile-touching ici-cli test still passing (136 passed): /tmp/ici-rust-replacement-20261028/w-cpp3-profile-once.log",
+        "Rust defects fixed (CMake legacy verify exited 3 where frozen exits 1): (1) every owned CMake preparation read as input drift: preparation kept the initial plan's legacy fallback g++ tool beside the rebound plan while the final input re-plan did not, so tool pins differed and the gate became INCOMPLETE (\"inputs changed while running\"); the final re-plan now carries the same roles, each re-measured by digest (execute.rs); (2) a DISABLED/SKIP_RETURN_CODE sanitizer case blocked the whole sanitize check; (3) a test that does not compile failed the release preparation (Rust also builds the release shadow; frozen only configures it), blocking compile_db/lint/tidy/dead, and the failed sanitizer build blocked sanitize: the legacy release CMake context now keeps its configured database when only the build step fails and no cpp.artifact/cpp.binary-compat consumer is selected (limitation recorded), and the sanitizer build failure is the frozen C++Sanitizer ERROR. Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log",
+        "Regression: cargo test -p ici-validation --locked -j2 -- --include-ignored and cargo test -p ici-cli --test {legacy_cmake_verify,legacy_cmake_manifests,execution,native_cpp,native_cpp_direct,legacy_test_parity,legacy_sanitize,legacy_cpp_test,legacy_make_build,legacy_verify_matrix,legacy_build_targets,legacy_direct_build,legacy_qt_codegen,legacy_binary_compat,legacy_no_tests,legacy_exit_policy,legacy_lint,legacy_lint_branches,legacy_lint_budget,legacy_gcov_cli,legacy_cpp_metrics,legacy_report_keys,legacy_line_hybrid,legacy_test_metrics,legacy_commands} --locked -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress.log"
       ],
       "comparison": "C++ facet: legacy `ici verify` on a C++ project selects the frozen descriptor set per profile (fast/standard/deep) and per engines.*.enabled, applies mode and required like frozen, and reproduces every engine status/required/evidence/target. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target.",
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: options (baseline, html, sarif, publish) are other facets; Qt, compilation-database, build and test-bearing C++ trees are not in this matrix."
@@ -4235,26 +4243,32 @@
       "difference_reason": "Open: engines.sanitize.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
     },
     "config_key:legacy:engines.sanitize.required": {
-      "status": "implemented",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/planning.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
+        ]
       },
       "evidence": [
         "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
-        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log",
+        "Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log",
+        "source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log"
       ],
-      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required).",
-      "difference_reason": "Open: the effect of required=true on measured or unmeasured sanitizer scopes (ERROR for unexecuted adapter cases, gate blocking) needs actual sanitizer runs and is not compared."
+      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required). With an actual CMake sanitizer run (test-cmake/suite): required=true (default) makes a DISABLED or SKIP_RETURN_CODE case an ERROR scope (engine ERROR, suite ERROR exit 1); required=false makes it SKIP (engine FAIL partial, ESTIMATED, suite FAIL exit 1). Rust reads the key in execute.rs for crate::cpp::legacy_ctest_sanitizer.",
+      "difference_reason": "The thread_sanitize twin is tracked on its own row. Recorded differences (named in legacy_cmake_verify.rs::comparable): frozen tool_evidence (backend selection, cmake/ctest argv) has no native counterpart, so adapted findings carry an empty tool_name and diagnostics no process_evidence_index metric; an empty branch denominator reads `Branch: n/a` (not the vacuous 100.0%); a failed coverage build has no fabricated ESTIMATED coverage/TEM (test summary, evidence NOT_RUN, finding confidence low, suite tem_score null). The test passes LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale for its children (PEP 538), and uses a project root as long as the capture root so the frozen 200-character stderr cut lands identically."
     },
     "config_key:legacy:engines.security": {
       "status": "verified",
@@ -4847,26 +4861,32 @@
       "difference_reason": "Open: engines.thread_sanitize.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
     },
     "config_key:legacy:engines.thread_sanitize.required": {
-      "status": "implemented",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/planning.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
+        ]
       },
       "evidence": [
         "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
-        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log",
+        "Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log",
+        "source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log"
       ],
-      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required).",
-      "difference_reason": "Open: the effect of required=true on measured or unmeasured sanitizer scopes (ERROR for unexecuted adapter cases, gate blocking) needs actual sanitizer runs and is not compared."
+      "comparison": "Frozen: the test-less C++ scope skip is explicitly required=False, so engines.<sanitize|thread_sanitize>.required=true still yields SKIP exit 2; Rust matches (oracle case testless-make-required). With an actual CMake TSan run (test-cmake/suite under `ici thread-sanitize`): the default required=true makes the DISABLED and SKIP_RETURN_CODE cases ERROR scopes (engine ERROR with three reasons, exit 1); required=false makes them SKIP scopes while the unlocated report stays the only ERROR reason (exit 1).",
+      "difference_reason": "Recorded differences (named in legacy_cmake_verify.rs::comparable): frozen tool_evidence (backend selection, cmake/ctest argv) has no native counterpart, so adapted findings carry an empty tool_name and diagnostics no process_evidence_index metric; an empty branch denominator reads `Branch: n/a` (not the vacuous 100.0%); a failed coverage build has no fabricated ESTIMATED coverage/TEM (test summary, evidence NOT_RUN, finding confidence low, suite tem_score null). The test passes LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale for its children (PEP 538), and uses a project root as long as the capture root so the frozen 200-character stderr cut lands identically."
     },
     "config_key:legacy:engines.type": {
       "status": "verified",
@@ -5924,7 +5944,8 @@
       },
       "evidence": [
         "Frozen parser oracle tests/rust-parity/cpp/cpptest-parser-oracle.json captured by development-only tests/rust-parity/cpp/capture_cpptest_parsers.py (oracle 6fe3e40): real transcripts from parity-fixtures/cpp/test-cmake/suite (ctest 4.2.3), test-qmake (QtTest 5.15.18, out-of-source build, and the same transcript with in-root Loc paths) and test-cmake/sanitize built with g++ -fsanitize=address,undefined / -fsanitize=thread (heap use-after-free; a test exiting 3), parsed by the frozen _parse_ctest, _parse_qtest and SanitizeProvider.parse; /tmp/ici-rust-replacement-20261028/w-cpp-cpptest-capture.log",
-        "cargo test -p ici-validation --locked -j2 -- --include-ignored (cpptest_oracle 3, cpp_contracts 9 ...) and the ici-cli legacy_cpp_test/legacy_sanitize/native_cpp*/native_validation*/legacy_verify_matrix replays with --include-ignored: all passed; strict ici-cli/ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-next-providers.log"
+        "cargo test -p ici-validation --locked -j2 -- --include-ignored (cpptest_oracle 3, cpp_contracts 9 ...) and the ici-cli legacy_cpp_test/legacy_sanitize/native_cpp*/native_validation*/legacy_verify_matrix replays with --include-ignored: all passed; strict ici-cli/ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-next-providers.log",
+        "Rust observe_ctest now orders cases by their `Test #N` index (ctest --parallel prints completion order; frozen JUnit lists the index order), so test and sanitize targets/findings follow the frozen case order; replayed in legacy_cmake_verify (cases plain/suite). source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log"
       ],
       "comparison": "Frozen _parse_ctest: one ctest.failed finding per failed verdict ('test <name>: <verdict>', high/high) at the test source matched by name, line 1; Passed counts, not-run verdicts (Not Run, Disabled, Skipped) count in the total but are a limitation; measurement ctest.cases passed/total. Rust observe_ctest replayed on the real ctest 4.2.3 transcript of test-cmake/suite: the two findings (test_fail 'Failed', test_crash 'Exception: SegFault'), locations tests/test_fail.cpp and tests/test_crash.cpp, and ctest.cases 2/6 match.",
       "difference_reason": "Intended (R05): native Rust refuses a suite with not-run cases ('2 CTest suites were not run', state FAILED) where frozen next keeps a limitation of a measured run; legacy commands keep the frozen behaviour (ctest_not_run_measured). Rust also checks the terminal 'out of N' count (DISABLED tests excluded, fixed in 4cafb4b). A ctest name with no matching source falls back to the declared inventory path in Rust and to the bare stem in frozen (not a finding in the capture)."
@@ -7865,44 +7886,60 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ]
       },
       "evidence": [
         "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json regenerated by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40): 18 cases for `ici sanitize` and `ici thread-sanitize`; new: noscope (parity-fixtures/cpp/sanitize-noscope), cmake-plain (test-cmake/plain: a failing test without a report) and cmake-defect (test-cmake/sanitize: heap use-after-free); targets are now sorted and the legacy findings normalized from sanitizer reports (rule, category, severity, confidence, message, primary/related locations, explanation, remediation, tool name/rule) are recorded; the 12 earlier cases are unchanged apart from target order; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-capture.log",
-        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_test --test legacy_sanitize --test legacy_python_sanitize --test legacy_python_sanitize_scopes --test native_cpp_direct --test native_cpp --test legacy_verify_matrix --test native_validation_extra --test native_validation --locked -j2 -- --include-ignored --test-threads=2 and cargo test -p ici-validation --locked -j2 -- --include-ignored: all passed; strict ici-cli/ici-validation/ici-reporting Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-adapter.log"
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_test --test legacy_sanitize --test legacy_python_sanitize --test legacy_python_sanitize_scopes --test native_cpp_direct --test native_cpp --test legacy_verify_matrix --test native_validation_extra --test native_validation --locked -j2 -- --include-ignored --test-threads=2 and cargo test -p ici-validation --locked -j2 -- --include-ignored: all passed; strict ici-cli/ici-validation/ici-reporting Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-adapter.log",
+        "Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log",
+        "source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log",
+        "Regression: cargo test -p ici-validation --locked -j2 -- --include-ignored and cargo test -p ici-cli --test {legacy_cmake_verify,legacy_cmake_manifests,execution,native_cpp,native_cpp_direct,legacy_test_parity,legacy_sanitize,legacy_cpp_test,legacy_make_build,legacy_verify_matrix,legacy_build_targets,legacy_direct_build,legacy_qt_codegen,legacy_binary_compat,legacy_no_tests,legacy_exit_policy,legacy_lint,legacy_lint_branches,legacy_lint_budget,legacy_gcov_cli,legacy_cpp_metrics,legacy_report_keys,legacy_line_hybrid,legacy_test_metrics,legacy_commands} --locked -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress.log"
       ],
       "comparison": "Frozen _append_adapter_case_target: a CMake/ctest sanitizer case without a diagnostic is `[C++ ASan/UBSan|TSan] <name>` at the descriptor (CMakeLists.txt), PASS 'Sanitizers reported no diagnostics' or FAIL 'Sanitizer run failed: <JUnit message>'; a case whose output held a sanitizer report is replaced by its located diagnostic targets; summary '<n> Memory / Resource|Thread Safety Defect(s) Detected'. Rust native ctest sanitizer targets (CTestTestfile path, verdict text, 'Instrumented suite') are projected by crate::cpp::legacy_ctest_sanitizer. Replayed sanitize/thread-sanitize cmake-plain and cmake-defect: exit, status, evidence, summary, targets and diagnostic findings match.",
-      "difference_reason": "Intended: frozen configures CMake into the project's build/; Rust builds the sanitizer variant in its owned shadow (built=false asserted). Open: when one run has both a sanitizer report and a failing test without a report, Rust cannot attribute the report to a case (ctest stdout, not per-case JUnit output), so every failing case is replaced by the diagnostics (not captured); Make/qmake sanitizer adapters keep their native targets (not captured); not-run sanitizer cases are not captured."
+      "difference_reason": "Intended: frozen configures CMake into the project's build/; Rust builds the sanitizer variant in its owned shadow (built=false asserted). Closed: a sanitizer report is now attributed to the CTest case whose --output-on-failure block printed it (SanitizerDiagnostic.test_name, frozen _SanitizerFinding.test_name), so in test-cmake/suite the failing test_fail keeps \"Sanitizer run failed: Failed\" while test_crash is replaced by its ASan diagnostic in case order; the native ctest.failed findings map to their relocated targets instead of extra native rows. Recorded differences (named in legacy_cmake_verify.rs::comparable): frozen tool_evidence (backend selection, cmake/ctest argv) has no native counterpart, so adapted findings carry an empty tool_name and diagnostics no process_evidence_index metric; an empty branch denominator reads `Branch: n/a` (not the vacuous 100.0%); a failed coverage build has no fabricated ESTIMATED coverage/TEM (test summary, evidence NOT_RUN, finding confidence low, suite tem_score null). The test passes LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale for its children (PEP 538), and uses a project root as long as the capture root so the frozen 200-character stderr cut lands identically. Open: Make/qmake sanitizer adapters keep their native targets (not captured)."
     },
     "finding_site:src/ici/engines/sanitize.py:630:21": {
       "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/execute.rs",
-        "crates/ici-validation/src/sanitizer.rs"
+        "crates/ici-validation/src/sanitizer.rs",
+        "crates/ici-validation/src/model.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
+        ],
         "failure": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ]
       },
       "evidence": [
         "tests/rust-parity/cpp/sanitize-oracle.json now also holds 4 direct g++ runs captured by tests/rust-parity/cpp/capture_sanitize_cli.py (fixtures parity-fixtures/cpp/sanitize-direct-clean and sanitize-direct: a clean test and a heap use-after-free test) for `ici sanitize` and `ici thread-sanitize`; the 8 earlier cases were reproduced byte for byte.",
-        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_sanitize --test native_cpp_direct --test native_cpp --test legacy_direct_build --test legacy_binary_compat --test native_validation_extra --locked -j2 -- --include-ignored --test-threads=2: 2+6+28+3+1+27 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-runs.log"
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_sanitize --test native_cpp_direct --test native_cpp --test legacy_direct_build --test legacy_binary_compat --test native_validation_extra --locked -j2 -- --include-ignored --test-threads=2: 2+6+28+3+1+27 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-runs.log",
+        "Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log",
+        "source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log",
+        "Regression: cargo test -p ici-validation --locked -j2 -- --include-ignored and cargo test -p ici-cli --test {legacy_cmake_verify,legacy_cmake_manifests,execution,native_cpp,native_cpp_direct,legacy_test_parity,legacy_sanitize,legacy_cpp_test,legacy_make_build,legacy_verify_matrix,legacy_build_targets,legacy_direct_build,legacy_qt_codegen,legacy_binary_compat,legacy_no_tests,legacy_exit_policy,legacy_lint,legacy_lint_branches,legacy_lint_budget,legacy_gcov_cli,legacy_cpp_metrics,legacy_report_keys,legacy_line_hybrid,legacy_test_metrics,legacy_commands} --locked -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress.log"
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _append_sanitizer_diagnostics: one `<ASan/UBSan|TSan|LSan> Error` FAIL target per normalized diagnostic at its project location (heap use after free at tests/test_uaf.cpp:2), summary '<n> <noun> Defect(s) Detected', exit 1. Rust's ici-validation diagnostic targets already match; the projection drops the extra executable/suite targets; both engines match exactly.",
-      "difference_reason": "Open: the unlocated diagnostic branch (`SanitizerDiagnosticLocation` ERROR) and LSan-only reports are not captured; adapter (Make/CMake) sanitizer cases use '[C++ <label>] <case>' targets and are not compared."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _append_sanitizer_diagnostics: one `<ASan/UBSan|TSan|LSan> Error` FAIL target per normalized diagnostic at its project location (heap use after free at tests/test_uaf.cpp:2), summary '<n> <noun> Defect(s) Detected', exit 1. Rust's ici-validation diagnostic targets already match; the projection drops the extra executable/suite targets; both engines match exactly. Unlocated branch: a report with no confirmed project frame (TSan SEGV of test-cmake/suite test_crash, frames only in libc) is one `SanitizerDiagnosticLocation` ERROR at the first external frame (else `[external]`:1) with \"<tool> diagnostic has no validated project-owned source location\", a tool error after the earlier reasons (engine ERROR NOT_RUN, exit 1), and the other cases keep their targets. Rust: ValidationOptions.legacy_unlocated_sanitizer_scope (legacy commands) records that ERROR target in diagnostic order inside a measured run (native runs still refuse the attribution, exit 3), and legacy_ctest_sanitizer attributes it to its CTest case; replayed exactly (target, metrics frames_observed/project_frames, finding fingerprint, summary).",
+      "difference_reason": "Intended: native (non-legacy) runs keep refusing an unlocated sanitizer report (incomplete attribution). Recorded differences (named in legacy_cmake_verify.rs::comparable): frozen tool_evidence (backend selection, cmake/ctest argv) has no native counterpart, so adapted findings carry an empty tool_name and diagnostics no process_evidence_index metric; an empty branch denominator reads `Branch: n/a` (not the vacuous 100.0%); a failed coverage build has no fabricated ESTIMATED coverage/TEM (test summary, evidence NOT_RUN, finding confidence low, suite tem_score null). The test passes LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale for its children (PEP 538), and uses a project root as long as the capture root so the frozen 200-character stderr cut lands identically. Open: LSan-only reports are not captured; Make/qmake adapter sanitizer cases are not compared."
     },
     "finding_site:src/ici/engines/sanitize.py:669:16": {
       "status": "complete",
@@ -7933,55 +7970,72 @@
       "difference_reason": ""
     },
     "finding_site:src/ici/engines/sanitize.py:838:12": {
-      "status": "implemented",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
-        "crates/ici-cli/src/planning.rs"
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ]
       },
       "evidence": [
         "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
         "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log",
-        "Merged feat/rust-application 273aa5f (reporting: legacy engines keep the frozen status class and summary, no check-id ERROR prefix); after the merge the legacy_build_targets, legacy_binary_compat and legacy_sanitize oracles compare ERROR summaries exactly (cargo test -p ici-cli --test legacy_sanitize --test legacy_build_targets --test legacy_binary_compat --test legacy_make_build --test artifact_contract --test legacy_direct_build --locked -j2 -- --include-ignored: 2+1+1+6+1+3 passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-evidence.log)."
+        "Merged feat/rust-application 273aa5f (reporting: legacy engines keep the frozen status class and summary, no check-id ERROR prefix); after the merge the legacy_build_targets, legacy_binary_compat and legacy_sanitize oracles compare ERROR summaries exactly (cargo test -p ici-cli --test legacy_sanitize --test legacy_build_targets --test legacy_binary_compat --test legacy_make_build --test artifact_contract --test legacy_direct_build --locked -j2 -- --include-ignored: 2+1+1+6+1+3 passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-evidence.log).",
+        "Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log",
+        "source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log",
+        "Regression: cargo test -p ici-validation --locked -j2 -- --include-ignored and cargo test -p ici-cli --test {legacy_cmake_verify,legacy_cmake_manifests,execution,native_cpp,native_cpp_direct,legacy_test_parity,legacy_sanitize,legacy_cpp_test,legacy_make_build,legacy_verify_matrix,legacy_build_targets,legacy_direct_build,legacy_qt_codegen,legacy_binary_compat,legacy_no_tests,legacy_exit_policy,legacy_lint,legacy_lint_branches,legacy_lint_budget,legacy_gcov_cli,legacy_cpp_metrics,legacy_report_keys,legacy_line_hybrid,legacy_test_metrics,legacy_commands} --locked -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress.log"
       ],
-      "comparison": "Frozen _append_scope_error via _fail_adapter_scope: a sanitizer adapter configure failure is one `C++Sanitizer` ERROR target at the descriptor (Makefile) with the configuration message; engine ERROR, summary = the message, exit 1, nothing built. Rust legacy planning maps the typed Misconfigured preparation error of the sanitize/thread-sanitize variant to crate::cpp::legacy_sanitizer_configuration_error; target, status and exit match the oracle for the missing build.make.{sanitize,thread_sanitize}_build_argv cases.",
-      "difference_reason": "Open: (1) frozen reports this tool/configuration ERROR with NOT_RUN evidence and exit 1; the reporting projection derives NOT_RUN only from a non-succeeded task, which the legacy verdict turns into INCOMPLETE (exit 3), so Rust keeps the ERROR MEASURED (asserted in legacy_sanitize; reporting/legacy-verdict area); (2) build failures after configure, the no-tests-reported and missing-process-evidence callers need actual sanitizer adapter runs and are not compared."
+      "comparison": "Frozen _append_scope_error via _fail_adapter_scope: a sanitizer adapter configure failure is one `C++Sanitizer` ERROR target at the descriptor (Makefile) with the configuration message; engine ERROR, summary = the message, exit 1, nothing built. Rust legacy planning maps the typed Misconfigured preparation error of the sanitize/thread-sanitize variant to crate::cpp::legacy_sanitizer_configuration_error; target, status and exit match the oracle for the missing build.make.{sanitize,thread_sanitize}_build_argv cases. Build-failure caller (sanitize.py:433): a sanitizer adapter build that fails after configure is one `C++Sanitizer` ERROR at CMakeLists.txt with the session error (\"cmake build failed: \" + 200 characters of stderr), engine ERROR NOT_RUN, one critical finding, suite ERROR exit 1. Rust preparation.rs maps the observed failed sanitize/thread-sanitize adapter build of a legacy run to crate::cpp::legacy_sanitizer_configuration_error instead of blocking the check (BLOCKED, exit 3 before this change); replayed broken-build matches target, message, summary, evidence and fingerprint exactly.",
+      "difference_reason": "Closed: (1) the ERROR now projects NOT_RUN evidence (asserted in legacy_sanitize and legacy_cmake_verify). Recorded differences (named in legacy_cmake_verify.rs::comparable): frozen tool_evidence (backend selection, cmake/ctest argv) has no native counterpart, so adapted findings carry an empty tool_name and diagnostics no process_evidence_index metric; an empty branch denominator reads `Branch: n/a` (not the vacuous 100.0%); a failed coverage build has no fabricated ESTIMATED coverage/TEM (test summary, evidence NOT_RUN, finding confidence low, suite tem_score null). The test passes LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale for its children (PEP 538), and uses a project root as long as the capture root so the frozen 200-character stderr cut lands identically. Open: the no-tests-reported (sanitize.py:449), missing-process-evidence (458) and timed-out/truncated (467) callers are not captured."
     },
     "finding_site:src/ici/engines/sanitize.py:865:12": {
-      "status": "implemented",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
-        "crates/ici-cli/src/planning.rs"
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/sanitizer_suite.rs",
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ]
       },
       "evidence": [
         "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
         "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log",
         "Frozen _overall_verdict returns ESTIMATED evidence whenever a scope was skipped (_skipped_scopes), so the test-less C++ sanitizer SKIP keeps the required legacy suite at ERROR ('required engine sanitize reported SKIP'); Rust legacy_sanitizer_skip now records an ESTIMATED applicability measurement (projected engine evidence ESTIMATED, previously NOT_APPLICABLE). `ici sanitize --report` still SKIP exit 2. cargo test -p ici-cli --test legacy_sanitize --test native_cpp --test native_cpp_direct --locked -j2 -- --include-ignored: 2+28+6 passed; strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-evidence.log",
-        "sanitize-oracle.json now records frozen `evidence`: ESTIMATED for the test-less skips (Rust matches since b93a626), MEASURED for direct runs, NOT_RUN for the missing-argv ERROR; the legacy_sanitize tests assert evidence."
+        "sanitize-oracle.json now records frozen `evidence`: ESTIMATED for the test-less skips (Rust matches since b93a626), MEASURED for direct runs, NOT_RUN for the missing-argv ERROR; the legacy_sanitize tests assert evidence.",
+        "Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log",
+        "source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log",
+        "Regression: cargo test -p ici-validation --locked -j2 -- --include-ignored and cargo test -p ici-cli --test {legacy_cmake_verify,legacy_cmake_manifests,execution,native_cpp,native_cpp_direct,legacy_test_parity,legacy_sanitize,legacy_cpp_test,legacy_make_build,legacy_verify_matrix,legacy_build_targets,legacy_direct_build,legacy_qt_codegen,legacy_binary_compat,legacy_no_tests,legacy_exit_policy,legacy_lint,legacy_lint_branches,legacy_lint_budget,legacy_gcov_cli,legacy_cpp_metrics,legacy_report_keys,legacy_line_hybrid,legacy_test_metrics,legacy_commands} --locked -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress.log"
       ],
-      "comparison": "Frozen _mark_scope_skip appends one target and counts a skipped scope; its not-required caller in _run_cpp_sanitizer (no tests/**/*.cpp under the project root) gives `C++Sanitizer` SKIP at `tests` line 1, 'No C++ sanitizer test sources were selected; compilation was not run', engine SKIP with SKIP_SUMMARY and exit 2 for both ASan/UBSan and TSan, even with engines.*.required=true. Rust legacy planning walks tests/ with the frozen ignore names (no symlink traversal) and, when no .cpp is proven, records crate::cpp::legacy_sanitizer_skip and does not prepare or build the sanitizer variant; the 8 oracle cases match exactly.",
-      "difference_reason": "Open: the required (ERROR) caller for adapter test cases that were not executed ('[C++ ASan/UBSan] <case>' at the descriptor) is not compared; it needs an actual sanitizer adapter run. Open divergence (adapter caller, found with tests/rust-parity/cpp/cmake-manifests-oracle.json fixture test-cmake/suite under `ici verify`): frozen marks a disabled CTest case and a SKIP_RETURN_CODE=77 case as per-case ERROR targets ('Sanitizer test was not executed: ctest reported status \\'disabled\\'' / '...: SKIP_RETURN_CODE=77') and runs the rest (sanitize ERROR, suite exit 1); native ici-validation sanitizer_suite.rs rejects the whole CTest inventory ('sanitizer CTest inventory contains disabled test'), the check is BLOCKED/NOT_RUN and the suite exits 3."
+      "comparison": "Frozen _mark_scope_skip appends one target and counts a skipped scope; its not-required caller in _run_cpp_sanitizer (no tests/**/*.cpp under the project root) gives `C++Sanitizer` SKIP at `tests` line 1, 'No C++ sanitizer test sources were selected; compilation was not run', engine SKIP with SKIP_SUMMARY and exit 2 for both ASan/UBSan and TSan, even with engines.*.required=true. Rust legacy planning walks tests/ with the frozen ignore names (no symlink traversal) and, when no .cpp is proven, records crate::cpp::legacy_sanitizer_skip and does not prepare or build the sanitizer variant; the 8 oracle cases match exactly. Adapter caller (_record_adapter_cases, sanitize.py:485): a CTest case that was not executed (DISABLED: \"ctest reported status 'disabled'\"; SKIP_RETURN_CODE: \"SKIP_RETURN_CODE=77\") is `[C++ ASan/UBSan] <case>` at CMakeLists.txt line 1 with \"Sanitizer test was not executed: <reason>\": ERROR and a tool error under engines.sanitize.required=true (default; engine ERROR, NOT_RUN, summary = the first three reasons joined by \"; \", critical findings, suite ERROR exit 1), SKIP under required=false (partial verdict: FAIL when an executed case failed, else WARN; ESTIMATED; \"Sanitize partially executed: one or more applicable scopes were skipped\"); the other cases still run. Rust: ici-validation sanitizer_suite inventory records a DISABLED test as not executed when ctest_not_run_measured (legacy commands) instead of rejecting the inventory, observe_ctest orders cases by CTest index, and crate::cpp::legacy_ctest_sanitizer projects the frozen targets, statuses, messages, verdict, evidence and summary; fingerprints and severities match.",
+      "difference_reason": "Intended: native (non-legacy) runs still refuse a sanitizer CTest inventory with a DISABLED test (the instrumented scope cannot be fully run). Recorded differences (named in legacy_cmake_verify.rs::comparable): frozen tool_evidence (backend selection, cmake/ctest argv) has no native counterpart, so adapted findings carry an empty tool_name and diagnostics no process_evidence_index metric; an empty branch denominator reads `Branch: n/a` (not the vacuous 100.0%); a failed coverage build has no fabricated ESTIMATED coverage/TEM (test summary, evidence NOT_RUN, finding confidence low, suite tem_score null). The test passes LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale for its children (PEP 538), and uses a project root as long as the capture root so the frozen 200-character stderr cut lands identically. Both halves are captured: ASan/UBSan under verify (required and not required) and TSan under `ici thread-sanitize` (`[C++ TSan] <case>`, same reasons)."
     },
     "finding_site:src/ici/engines/test.py:352:12": {
       "status": "complete",
@@ -8028,19 +8082,22 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_test.rs::legacy_cpp_tests_report_frozen_targets_counts_and_verdicts"
+          "crates/ici-cli/tests/legacy_cpp_test.rs::legacy_cpp_tests_report_frozen_targets_counts_and_verdicts",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_test.rs::legacy_cpp_tests_report_frozen_targets_counts_and_verdicts"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_test.rs::legacy_cpp_tests_report_frozen_targets_counts_and_verdicts"
+          "crates/ici-cli/tests/legacy_cpp_test.rs::legacy_cpp_tests_report_frozen_targets_counts_and_verdicts",
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
         ]
       },
       "evidence": [
         "Frozen CLI oracle tests/rust-parity/cpp/test-cli-oracle.json captured by development-only tests/rust-parity/cpp/capture_test_cli.py (oracle 6fe3e40): 10 `ici test` cases over parity-fixtures/cpp/test-direct/{mixed,broken,all-broken,abort,lib-broken} (with gcov, and a g++/as/ld-only PATH) and test-cmake/{plain,suite,broken-build} (frozen ctest --output-junit); exit code, status, evidence, summary, passed/total counts and normalized located targets; /tmp/ici-rust-replacement-20261028/w-cpp-test-capture.log",
         "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_test --test legacy_sanitize --test native_cpp_direct --test native_cpp --test legacy_direct_build --test legacy_no_tests --test legacy_verify_matrix --test legacy_build_targets --test legacy_make_build --test legacy_binary_compat --test legacy_cpp_metrics --test legacy_gcov_cli --test native_validation_extra --test native_validation --test artifact_contract --test native_preparation --locked -j2 -- --include-ignored --test-threads=2, cargo test -p ici-validation --locked -j2 -- --include-ignored and the ici-cli cmake_compiler unit test: all passed; strict ici-cli/ici-validation/ici-reporting Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-test-adapter.log",
-        "Re-run after the lib-broken case and a ctest case named after a source stem (`calc`, test-cmake/plain): cargo test -p ici-cli --test legacy_cpp_test --test legacy_sanitize ... --include-ignored and cargo test -p ici-reporting -- --include-ignored all passed; /tmp/ici-rust-replacement-20261028/w-cpp-test-libbroken.log"
+        "Re-run after the lib-broken case and a ctest case named after a source stem (`calc`, test-cmake/plain): cargo test -p ici-cli --test legacy_cpp_test --test legacy_sanitize ... --include-ignored and cargo test -p ici-reporting -- --include-ignored all passed; /tmp/ici-rust-replacement-20261028/w-cpp-test-libbroken.log",
+        "The native ici.cpp.test-build.failed finding now names its untrimmed `[C++] build` target in the legacy view (finding_details legacy_path/legacy_message), so it is the frozen target-adapted row (fingerprint equal) instead of an extra row; full broken-build engine comparison in legacy_cmake_verify. Frozen `ici verify --report` captured by development-only tests/rust-parity/cpp/capture_cmake_verify.py (oracle 6fe3e40, frozen .venv, PATH=/usr/bin:/bin, cmake 4.2.3, g++ 15.2.0) into tests/rust-parity/cpp/cmake-verify-oracle.json over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} plus suite with [engines.sanitize] required=false and `ici thread-sanitize --report` on the suite with the default and [engines.thread_sanitize] required=false (6 cases): exit code, suite counters, every engine verdict (status/evidence/summary/score) and the test/sanitize targets and findings (rule, severity, confidence, category, message, location, fingerprint); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-capture.log source opus-env.sh; cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored (1 passed: 6 cases equal after the named reductions, exit 1 and gate not INCOMPLETE in every case); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log"
       ],
       "comparison": "Frozen _run_cpp_tests_via_adapter: a build of the coverage variant that fails is one `[C++] build` FAIL target at the descriptor (CMakeLists.txt) with the session error ('cmake build failed: <stderr>'), and the engine is FAIL exit 1 with no test run. Rust: preparation.rs gives the failed test/coverage-variant adapter build to cpp.test as crate::cpp::test_build_failure (one FAIL target at the descriptor with the adapter message, finding ici.cpp.test-build.failed; '[C++] build' in the legacy view) instead of blocking cpp.test with 'C++ runtime checks require a declared component build' (SKIP exit 3, a Rust gap before this change). Replayed cmake-broken-build: target (first line of the stderr excerpt), status FAIL and exit 1 match.",
       "difference_reason": "Intended: frozen fabricates ESTIMATED coverage ('0/0 Tests Passed | Line: 45.0% (est)'); Rust keeps coverage NOT_RUN and the summary 'C++ build failed before tests could run'. The stderr excerpt is compared on its first line (frozen cuts at 200 characters of a host-path-dependent text). Make/qmake test-build failures use the same path but are not captured."
