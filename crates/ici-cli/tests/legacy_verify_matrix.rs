@@ -118,22 +118,18 @@ fn legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite() {
             );
         }
         let incomplete = report["native_run"]["execution"]["required_complete"] == false;
-        if incomplete {
-            // Accepted policy: a run with incomplete required evidence (the g++ heuristic lint
-            // fallback is estimated) keeps an ERROR suite and exits 3; frozen exited 1.
-            assert_eq!(report["suite_status"], "ERROR", "{name}: suite");
-            assert_eq!(exit_code, 3, "{name}: exit");
-            assert_eq!(frozen["exit_code"], 1, "{name}: frozen exit");
-            assert!(
-                matches!(frozen["suite_status"].as_str(), Some("ERROR" | "FAIL")),
-                "{name}: frozen suite"
-            );
-        } else {
-            assert_eq!(
-                report["suite_status"], frozen["suite_status"],
-                "{name}: suite"
-            );
-            assert_eq!(exit_code, frozen["exit_code"], "{name}: exit");
+        if report["suite_status"] == frozen["suite_status"] && exit_code == frozen["exit_code"] {
+            continue;
         }
+        // Accepted policy: a run whose required evidence stays incomplete keeps an ERROR suite
+        // and exits 3 where frozen exited 1 with the same ERROR suite.
+        assert!(incomplete, "{name}: complete run differs from frozen");
+        assert_eq!(report["suite_status"], "ERROR", "{name}: suite");
+        assert_eq!(frozen["suite_status"], "ERROR", "{name}: frozen suite");
+        assert_eq!(
+            (exit_code, &frozen["exit_code"]),
+            (3, &Value::from(1)),
+            "{name}: exit"
+        );
     }
 }

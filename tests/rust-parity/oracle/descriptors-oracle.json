@@ -1,0 +1,443 @@
+{
+ "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "descriptors": [
+  {
+   "name": "line",
+   "factory_name": "LineCountEngine",
+   "factory_resolves": "LineCountEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:line"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "lint",
+   "factory_name": "LintEngine",
+   "factory_resolves": "LintEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:lint"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "compile_db",
+   "factory_name": "CompileDatabaseEngine",
+   "factory_resolves": "CompileDatabaseEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:compile-db",
+    "compilation-coverage"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "test",
+   "factory_name": "TestEngine",
+   "factory_resolves": "TestEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:test",
+    "test-results",
+    "coverage-report",
+    "build:coverage"
+   ],
+   "consumes": [
+    "analysis-context",
+    "capability-inventory"
+   ],
+   "profiles": [
+    "deep",
+    "standard"
+   ],
+   "execution": "build",
+   "build_variant": "coverage"
+  },
+  {
+   "name": "type",
+   "factory_name": "TypeCheckEngine",
+   "factory_resolves": "TypeCheckEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:type"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "python_compat",
+   "factory_name": "PythonCompatibilityEngine",
+   "factory_resolves": "PythonCompatibilityEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:python-compat",
+    "python-runtime-evidence"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "cognitive",
+   "factory_name": "CognitiveEngine",
+   "factory_resolves": "CognitiveEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:cognitive"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "resource",
+   "factory_name": "ResourceEngine",
+   "factory_resolves": "ResourceEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:resource"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "security",
+   "factory_name": "SecurityEngine",
+   "factory_resolves": "SecurityEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:security"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "cycle",
+   "factory_name": "CycleEngine",
+   "factory_resolves": "CycleEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:cycle"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "complexity",
+   "factory_name": "ComplexityEngine",
+   "factory_resolves": "ComplexityEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:complexity"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "sanitize",
+   "factory_name": "SanitizeEngine",
+   "factory_resolves": "SanitizeEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:sanitize",
+    "sanitizer-results",
+    "build:sanitize"
+   ],
+   "consumes": [
+    "analysis-context",
+    "capability-inventory"
+   ],
+   "profiles": [
+    "deep",
+    "standard"
+   ],
+   "execution": "build",
+   "build_variant": "sanitize"
+  },
+  {
+   "name": "thread_sanitize",
+   "factory_name": "ThreadSanitizeEngine",
+   "factory_resolves": "ThreadSanitizeEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:thread-sanitize",
+    "thread-sanitizer-results",
+    "build:thread-sanitize"
+   ],
+   "consumes": [
+    "analysis-context",
+    "capability-inventory"
+   ],
+   "profiles": [
+    "deep"
+   ],
+   "execution": "build",
+   "build_variant": "thread-sanitize"
+  },
+  {
+   "name": "dead",
+   "factory_name": "DeadCodeEngine",
+   "factory_resolves": "DeadCodeEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:dead"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "dup",
+   "factory_name": "DuplicateEngine",
+   "factory_resolves": "DuplicateEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:dup"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "exception",
+   "factory_name": "ExceptionSafetyEngine",
+   "factory_resolves": "ExceptionSafetyEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:exception"
+   ],
+   "consumes": [
+    "analysis-context"
+   ],
+   "profiles": [
+    "deep",
+    "fast",
+    "standard"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "build",
+   "factory_name": "BuildEngine",
+   "factory_resolves": "BuildEngine",
+   "dependencies": [],
+   "produces": [
+    "findings:build",
+    "artifact-manifests",
+    "build:release"
+   ],
+   "consumes": [
+    "analysis-context",
+    "capability-inventory"
+   ],
+   "profiles": [
+    "deep"
+   ],
+   "execution": "build",
+   "build_variant": "release"
+  },
+  {
+   "name": "binary_compat",
+   "factory_name": "BinaryCompatibilityEngine",
+   "factory_resolves": "BinaryCompatibilityEngine",
+   "dependencies": [
+    "build"
+   ],
+   "produces": [
+    "findings:binary-compat",
+    "elf-facts"
+   ],
+   "consumes": [
+    "analysis-context",
+    "capability-inventory",
+    "artifact-manifests"
+   ],
+   "profiles": [
+    "deep"
+   ],
+   "execution": "read-only",
+   "build_variant": null
+  },
+  {
+   "name": "integration",
+   "factory_name": "IntegrationEngine",
+   "factory_resolves": "IntegrationEngine",
+   "dependencies": [
+    "build"
+   ],
+   "produces": [
+    "findings:integration",
+    "integration-results"
+   ],
+   "consumes": [
+    "analysis-context",
+    "artifact-manifests"
+   ],
+   "profiles": [
+    "deep"
+   ],
+   "execution": "build",
+   "build_variant": "release"
+  }
+ ],
+ "profiles": {
+  "fast": [
+   "line",
+   "lint",
+   "compile_db",
+   "type",
+   "python_compat",
+   "resource",
+   "security",
+   "cycle",
+   "complexity",
+   "dead",
+   "dup",
+   "exception"
+  ],
+  "standard": [
+   "line",
+   "lint",
+   "compile_db",
+   "test",
+   "type",
+   "python_compat",
+   "resource",
+   "security",
+   "cycle",
+   "complexity",
+   "sanitize",
+   "dead",
+   "dup",
+   "exception"
+  ],
+  "deep": [
+   "line",
+   "lint",
+   "compile_db",
+   "test",
+   "type",
+   "python_compat",
+   "cognitive",
+   "resource",
+   "security",
+   "cycle",
+   "complexity",
+   "sanitize",
+   "thread_sanitize",
+   "dead",
+   "dup",
+   "exception",
+   "build",
+   "binary_compat",
+   "integration"
+  ]
+ },
+ "disabled_by_default_profile": [
+  "binary_compat",
+  "build",
+  "cognitive",
+  "integration",
+  "thread_sanitize"
+ ],
+ "refusals": {
+  "dependency_outside_profile": "engine integration dependency build is unavailable in fast, standard",
+  "duplicate_artifact": "artifact findings:line has multiple producers: line, line2",
+  "unknown_dependency": "engine x depends on unknown engine nope"
+ }
+}

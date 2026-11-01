@@ -107,11 +107,16 @@ pub fn read_events(text: &str) -> Result<(Vec<RunEvent>, Vec<String>)> {
         if let Some(last) = previous
             && Some(event.seq) != last.checked_add(1)
         {
-            notes.push(format!(
-                "line {}: seq jumped from {last} to {}",
-                number + 1,
-                event.seq
-            ));
+            // Frozen `_seq_note`: a repeat is a broken producer, a gap is lost data.
+            notes.push(if event.seq == last {
+                format!("line {}: duplicate seq {last}", number + 1)
+            } else {
+                format!(
+                    "line {}: seq jumped from {last} to {}",
+                    number + 1,
+                    event.seq
+                )
+            });
         }
         previous = Some(event.seq);
         events.push(event);
