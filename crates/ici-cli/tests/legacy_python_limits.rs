@@ -2,11 +2,14 @@
 //! (`tests/rust-parity/python/capture_legacy_python_limits.py`): `ici resource` past
 //! MAX_RESOURCE_AST_NODES (engines/resource.py:185) and `ici dup` past a bounded comparison
 //! limit (engines/dup.py:207), and the `{:,}` grouping of the `ici line` summary
-//! (engines/line.py). Fixtures are generated from the recorded parameters.
+//! (engines/line.py), plus the legacy dup/dead target shapes and finding severities (`DuplicateScan`,
+//! `PythonSemanticShapeError`, AST-shape and lexical `CloneGroup#N`, `UnreachableCode`). Fixtures
+//! are generated from the recorded parameters.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs};
 
+const FINDING_FIELDS: [&str; 4] = ["rule_id", "fingerprint", "message", "severity"];
 const FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -53,21 +56,22 @@ fn generate(content: &Value) -> String {
 }
 
 #[test]
-fn legacy_resource_and_dup_bounded_stops_and_line_grouping_match_frozen() {
+fn legacy_bounded_stops_line_grouping_and_dup_dead_shapes_match_frozen() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/python/legacy-python-limits-oracle.json"
     ))
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 7);
+    assert_eq!(cases.len(), 12);
     for (name, case) in cases {
         let root = tempfile::tempdir().unwrap();
-        fs::write(
-            root.path().join("ici.toml"),
+        let config = format!(
+            "{}{}",
             oracle["base"].as_str().unwrap(),
-        )
-        .unwrap();
+            case["config"].as_str().unwrap_or("")
+        );
+        fs::write(root.path().join("ici.toml"), config).unwrap();
         for (file, content) in case["files"].as_object().unwrap() {
             let path = root.path().join(file);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -105,25 +109,29 @@ fn legacy_resource_and_dup_bounded_stops_and_line_grouping_match_frozen() {
         for key in ["status", "summary", "evidence"] {
             assert_eq!(report[key], frozen[key], "{name}: {key}");
         }
-        let pick = |targets: &Value| -> Vec<Value> {
-            targets
+        let pick = |items: &Value, keys: &[&str]| -> Vec<Value> {
+            items
                 .as_array()
                 .unwrap()
                 .iter()
-                .map(|target| {
+                .map(|item| {
                     Value::Object(
-                        FIELDS
-                            .iter()
-                            .map(|key| ((*key).to_owned(), target[*key].clone()))
+                        keys.iter()
+                            .map(|key| ((*key).to_owned(), item[*key].clone()))
                             .collect(),
                     )
                 })
                 .collect()
         };
         assert_eq!(
-            pick(&report["targets"]),
-            pick(&frozen["targets"]),
+            pick(&report["targets"], &FIELDS),
+            pick(&frozen["targets"], &FIELDS),
             "{name}: targets"
+        );
+        assert_eq!(
+            pick(&report["findings"], &FINDING_FIELDS),
+            pick(&frozen["findings"], &FINDING_FIELDS),
+            "{name}: findings"
         );
     }
 }

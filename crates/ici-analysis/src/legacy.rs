@@ -280,6 +280,18 @@ pub(crate) fn frozen_evidence(kind: &str, output: &mut AnalysisOutput) {
     if !matches!(kind, "dup" | "dead") || output.observation.state != TaskState::Succeeded {
         return;
     }
+    // Frozen dead.py:400 names every analysis family in the finding summary; a Python-only scan
+    // has no compiler-local or GNU ELF findings.
+    if kind == "dead"
+        && output
+            .summary
+            .ends_with(" dead-code finding(s) in selected Python sources")
+        && let Some(issues) = output.extra["python_issues"].as_u64()
+    {
+        output.summary = format!(
+            "{issues} dead-code finding(s): {issues} heuristic Python, 0 compiler-local C/C++, 0 target-local GNU ELF"
+        );
+    }
     for measurement in &mut output.observation.measurements {
         if measurement.evidence == ici_domain::EvidenceLevel::Measured {
             measurement.evidence = ici_domain::EvidenceLevel::Estimated;

@@ -1,6 +1,171 @@
 {
  "base": "[project]\ntype='python'\nsource_dirs=['src']\n",
  "cases": {
+  "dead/unreachable-statement": {
+   "command": "dead",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n    x = 2\n\n\nf()\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:1b0ab0a760f3e942478b14eb5e3cdabf15650cd7d68085ac44b4026788a3c27e",
+      "message": "Unreachable code statement detected after terminal return/raise",
+      "rule_id": "ici.legacy.dead.target",
+      "severity": "medium"
+     }
+    ],
+    "status": "WARN",
+    "summary": "1 dead-code finding(s): 1 heuristic Python, 0 compiler-local C/C++, 0 target-local GNU ELF",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Unreachable code statement detected after terminal return/raise",
+      "start_column": 5,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "UnreachableCode"
+     }
+    ]
+   }
+  },
+  "dup/ast-shape-clone": {
+   "command": "dup",
+   "files": {
+    "src/a.py": "def f(a, b):\n    x = a + 1\n    y = b + 2\n    z = x * y\n    w = z - a\n    v = w + b\n    return v\n",
+    "src/b.py": "def g(p, q):\n    x = (p\n         + 1)\n    y = q + 2\n    z = x * y\n    w = z - p\n    v = w + q\n    return v\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:0852f64af548ed6864b06e7842e0502cf305b86e8661d767264f88a6ccdcdcec",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium"
+     },
+     {
+      "fingerprint": "sha256:ef135f656e25394919280342ac0f53476c5eab4da0b8399799fff90dd9d9f27c",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Code Duplication Rate: 53.3% (1 distinct clone groups found, 1 from Python AST shapes)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Equivalent bounded Python AST shape shared across 2 callable regions",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     }
+    ]
+   }
+  },
+  "dup/lexical-clone": {
+   "command": "dup",
+   "files": {
+    "src/a.py": "def f(a, b):\n    v0 = a * 0 + b - 0\n    v1 = a * 1 + b - 1\n    v2 = a * 2 + b - 2\n    v3 = a * 3 + b - 3\n    v4 = a * 4 + b - 4\n    v5 = a * 5 + b - 5\n    v6 = a * 6 + b - 6\n    v7 = a * 7 + b - 7\n    v8 = a * 8 + b - 8\n    v9 = a * 9 + b - 9\n    v10 = a * 10 + b - 10\n    v11 = a * 11 + b - 11\n    return v0\n",
+    "src/b.py": "def g(a, b):\n    v0 = a * 0 + b - 0\n    v1 = a * 1 + b - 1\n    v2 = a * 2 + b - 2\n    v3 = a * 3 + b - 3\n    v4 = a * 4 + b - 4\n    v5 = a * 5 + b - 5\n    v6 = a * 6 + b - 6\n    v7 = a * 7 + b - 7\n    v8 = a * 8 + b - 8\n    v9 = a * 9 + b - 9\n    v10 = a * 10 + b - 10\n    v11 = a * 11 + b - 11\n    return v0\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:0852f64af548ed6864b06e7842e0502cf305b86e8661d767264f88a6ccdcdcec",
+      "message": "Duplicate code block (14 lines) shared across 2 locations",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium"
+     },
+     {
+      "fingerprint": "sha256:ef135f656e25394919280342ac0f53476c5eab4da0b8399799fff90dd9d9f27c",
+      "message": "Duplicate code block (14 lines) shared across 2 locations",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "medium"
+     }
+    ],
+    "status": "WARN",
+    "summary": "Code Duplication Rate: 50.0% (1 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Duplicate code block (14 lines) shared across 2 locations",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Duplicate code block (14 lines) shared across 2 locations",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "CloneGroup#1"
+     }
+    ]
+   }
+  },
+  "dup/no-duplicates": {
+   "command": "dup",
+   "files": {
+    "src/a.py": "def f(a):\n    return a + 1\n",
+    "src/b.py": "x = 2\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:394d930f13a874939b18c44ced01af53dd66499aaec9d1e16d2ccc1369871e5c",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info"
+     },
+     {
+      "fingerprint": "sha256:e8982d102c42c50d25fcc0a18e9e6b8c309c6e7c289800a688664dd11e90e520",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "info"
+     }
+    ],
+    "status": "PASS",
+    "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Source was analyzed and has no reported duplicate region",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DuplicateScan"
+     }
+    ]
+   }
+  },
   "dup/raw-match-limit": {
    "command": "dup",
    "files": {
@@ -12,6 +177,14 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:71dc6092346b445baba84c79404991a444b260df55c23962b742b1c7791af790",
+      "message": "Raw duplicate match count exceeds MAX_DUPLICATE_RAW_MATCHES=10000",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "critical"
+     }
+    ],
     "status": "ERROR",
     "summary": "Duplicate analysis exceeded a bounded comparison limit",
     "targets": [
@@ -22,6 +195,37 @@
       "start_line": 1,
       "status": "ERROR",
       "target_name": "DuplicateComparisonLimit"
+     }
+    ]
+   }
+  },
+  "dup/required-semantic-dynamic-eval": {
+   "command": "dup",
+   "config": "[engines.dup]\npython_semantic='required'\n",
+   "files": {
+    "src/a.py": "def f(a):\n    return eval(a)\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:4791cdad3a68b25124a85c20f3cc3bb9f1262f5192fa9ceb09091a05f8704ea5",
+      "message": "dynamic-eval: dynamic eval call is excluded (f)",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "critical"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Required Python AST-shape duplicate analysis was incomplete",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "dynamic-eval: dynamic eval call is excluded (f)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "PythonSemanticShapeError"
      }
     ]
    }
@@ -37,6 +241,14 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:45ffda7311b409f6a868d658c70b15718aa77352a1db2a8fa2a479ab96701990",
+      "message": "Shared duplicate-window occurrence count exceeds MAX_DUPLICATE_WINDOW_OCCURRENCES=2048",
+      "rule_id": "ici.legacy.dup.target",
+      "severity": "critical"
+     }
+    ],
     "status": "ERROR",
     "summary": "Duplicate analysis exceeded a bounded comparison limit",
     "targets": [
@@ -64,6 +276,14 @@
    "frozen": {
     "evidence": "MEASURED",
     "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:e808ea45a9d3b28a12be6cb638518e3e5182593f6d1e9276e2b94ced1750880f",
+      "message": "Pure code lines (1234) exceed 1000 lines limit (Refactoring required)",
+      "rule_id": "ici.legacy.line.target",
+      "severity": "high"
+     }
+    ],
     "status": "FAIL",
     "summary": "Total 2,237 lines (1,234 code, 1,001 comment, 2 blank) across 1 files",
     "targets": [
@@ -90,6 +310,14 @@
    "frozen": {
     "evidence": "MEASURED",
     "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info"
+     }
+    ],
     "status": "PASS",
     "summary": "Resource/correctness analysis clean across 1 file(s)",
     "targets": [
@@ -116,6 +344,14 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:c24ab67ca48bfb15d52db12675177531927d36c59477fcb9436ac2ee807075ee",
+      "message": "Python resource AST exceeds the bounded limit (100000 nodes)",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "critical"
+     }
+    ],
     "status": "ERROR",
     "summary": "Resource analysis incomplete: src/a.py:1: Python resource AST exceeds the bounded limit (100000 nodes)",
     "targets": [
@@ -143,6 +379,26 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:2cdf8aa8ce204c9aabc3c0c84bce4decf8e4d44a9c0f742414bcb20f0b0244b9",
+      "message": "Python resource AST exceeds the bounded limit (100000 nodes)",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "critical"
+     },
+     {
+      "fingerprint": "sha256:4eaf622134dd565fa1b333d55c0393efe33ae82e9959c5e67a56711967b7a7d1",
+      "message": "f from builtins.open may remain open on an exit path",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "medium"
+     },
+     {
+      "fingerprint": "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info"
+     }
+    ],
     "status": "ERROR",
     "summary": "Resource analysis incomplete: src/b.py:1: Python resource AST exceeds the bounded limit (100000 nodes)",
     "targets": [
@@ -184,6 +440,14 @@
    "frozen": {
     "evidence": "MEASURED",
     "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:fe66604e59e0c343c6097313d71ccd200cb4f092800d029b477c47a6f9016726",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "rule_id": "ici.legacy.resource.target",
+      "severity": "info"
+     }
+    ],
     "status": "PASS",
     "summary": "Resource/correctness analysis clean across 1 file(s)",
     "targets": [
