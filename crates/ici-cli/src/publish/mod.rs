@@ -385,6 +385,16 @@ fn escape(value: &str) -> String {
         .replace('>', "&gt;")
 }
 
+/// The stderr line for a publish refusal inside `verify --publish`: one `publish: ` prefix,
+/// whether or not the refusal already carries it (result loading does).
+pub fn refusal_line(reason: &CliError) -> String {
+    let text = reason.to_string();
+    if text.starts_with("publish: ") {
+        format!("{text}\n")
+    } else {
+        format!("publish: {text}\n")
+    }
+}
 pub fn command(
     invocation: &Invocation,
     cwd: &Path,
@@ -786,6 +796,18 @@ mod tests {
         assert_eq!(pr, Some(3));
         assert_eq!(run_head(event_head, "push-sha".into()), "push-sha");
         assert_eq!(run_head(String::new(), "push-sha".into()), "push-sha");
+    }
+
+    #[test]
+    fn a_refusal_carries_one_publish_prefix() {
+        assert_eq!(
+            refusal_line(&CliError("publish: cannot read result r.json: gone".into())),
+            "publish: cannot read result r.json: gone\n"
+        );
+        assert_eq!(
+            refusal_line(&CliError("page is not UTF-8".into())),
+            "publish: page is not UTF-8\n"
+        );
     }
 
     #[test]

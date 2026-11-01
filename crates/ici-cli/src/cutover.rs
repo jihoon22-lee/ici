@@ -239,7 +239,7 @@ pub fn verify(
                         }
                     }
                     Err(reason) => {
-                        stderr.push_str(&format!("publish: {reason}\n"));
+                        stderr.push_str(&crate::publish::refusal_line(&reason));
                         exit_code = EXIT_CONFIG;
                     }
                 }

@@ -436,7 +436,7 @@ pub fn command(
                 stdout.push_str(&published.stdout);
                 stderr.push_str(&published.stderr);
             }
-            Err(reason) => stderr.push_str(&format!("publish: {reason}\n")),
+            Err(reason) => stderr.push_str(&crate::publish::refusal_line(&reason)),
         }
     }
     if single.is_none() {
