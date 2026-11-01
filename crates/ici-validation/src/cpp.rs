@@ -113,7 +113,11 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                     "gcov requires explicit notes and source scopes".into(),
                 ));
             }
-            let mut args = vec!["--json-format".into(), "-b".into(), "-p".into()];
+            // `-x` names each report `<notes>##<md5 of the full path>`: unique like `-p`, but
+            // never longer than NAME_MAX. `-p` mangled the whole absolute notes path into the
+            // report name, so gcov exited 6 ("Cannot open JSON output file") once a project
+            // lived about 100 characters deep.
+            let mut args = vec!["--json-format".into(), "-b".into(), "-x".into()];
             args.extend(
                 request
                     .targets
@@ -381,10 +385,14 @@ pub(crate) fn observe_ctest(
     let mut passed = 0;
     let mut total = 0;
     let mut skipped = 0;
+    // CTest leaves DISABLED tests out of its "out of N" line (ctest 4.2.3: Passed, Skipped,
+    // Not Run and Failed count; "Not Run (Disabled)" does not).
+    let mut disabled = 0;
     let mut observed = BTreeMap::new();
     for case in cases.captures_iter(&text) {
         total += 1;
         let verdict = case[2].trim_start_matches('*').trim();
+        disabled += u64::from(verdict.ends_with("(Disabled)"));
         let path = source(plan, &case[1]);
         let mut target = InspectionTarget::at(&path, 1);
         target.target_name = case[1].into();
@@ -438,18 +446,28 @@ pub(crate) fn observe_ctest(
     if summary
         .captures(&text)
         .and_then(|capture| capture[1].parse::<u64>().ok())
-        != Some(total)
+        != Some(total - disabled)
     {
         return Err(ValidationError(
             "CTest terminal count does not match case evidence".into(),
         ));
     }
     if skipped > 0 {
-        return Err(ValidationError(format!(
-            "{skipped} CTest suites were not run"
-        )));
+        if !plan.context.options.ctest_not_run_measured {
+            return Err(ValidationError(format!(
+                "{skipped} CTest suites were not run"
+            )));
+        }
+        output
+            .observation
+            .limitations
+            .push(format!("{skipped} CTest suites were not run"));
     }
-    if outcome.exit_code != Some(0) && output.observation.findings.is_empty() {
+    // ctest exits 8 for a "Not Run" case (missing executable); the legacy view counts it a SKIP.
+    if outcome.exit_code != Some(0)
+        && output.observation.findings.is_empty()
+        && !(plan.context.options.ctest_not_run_measured && skipped > 0)
+    {
         return Err(ValidationError(
             "CTest failed without attributable test failures".into(),
         ));
@@ -507,7 +525,12 @@ pub(crate) fn observe_qtest(
                         "qtest.{}",
                         case[1].trim_end_matches('!').to_ascii_lowercase()
                     ),
-                    &format!("{} {}", &case[2], &case[1]),
+                    // Frozen `f"{node} {verdict.rstrip('!').lower()}"`.
+                    &format!(
+                        "{} {}",
+                        &case[2],
+                        case[1].trim_end_matches('!').to_ascii_lowercase()
+                    ),
                     &path,
                     1,
                 ));

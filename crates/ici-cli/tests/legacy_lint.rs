@@ -137,3 +137,105 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
         assert_eq!(&actual, frozen, "{name}");
     }
 }
+
+/// The capture script's temporary bin directory: `clang-tidy` symlinked to ICI_TEST_CLANG_TIDY,
+/// `clazy-standalone` a wrapper that sets ICI_TEST_CLANG_LIBRARY_PATH (frozen replaces the
+/// clang tools' environment), or the raw binary for `clazy-raw`.
+fn tool_bin(directory: &Path, tools: &[Value]) {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    fs::create_dir_all(directory).unwrap();
+    let variable = |name: &str| std::env::var(name).unwrap_or_else(|_| panic!("explicit {name}"));
+    for tool in tools {
+        match tool.as_str().unwrap() {
+            "clang-tidy" => symlink(
+                variable("ICI_TEST_CLANG_TIDY"),
+                directory.join("clang-tidy"),
+            )
+            .unwrap(),
+            "clazy-raw" => symlink(
+                variable("ICI_TEST_CLAZY"),
+                directory.join("clazy-standalone"),
+            )
+            .unwrap(),
+            _ => {
+                let wrapper = directory.join("clazy-standalone");
+                fs::write(
+                    &wrapper,
+                    format!(
+                        "#!/bin/sh\nLD_LIBRARY_PATH={} exec {} \"$@\"\n",
+                        variable("ICI_TEST_CLANG_LIBRARY_PATH"),
+                        variable("ICI_TEST_CLAZY")
+                    ),
+                )
+                .unwrap();
+                fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
+            }
+        }
+    }
+}
+
+#[test]
+#[ignore = "explicit actual g++, clang-tidy and Clazy legacy verify lint with a compilation database (ICI_TEST_CXX, ICI_TEST_CLANG_TIDY, ICI_TEST_CLAZY, ICI_TEST_CLANG_LIBRARY_PATH)"]
+fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/lint-oracle.json"
+    ))
+    .unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
+    let directory = Path::new(&compiler).parent().unwrap().display().to_string();
+    let base = oracle["base"].as_str().unwrap();
+    let cases = oracle["tool_cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 6);
+    for (name, case) in cases {
+        let tools = tempfile::tempdir().unwrap();
+        tool_bin(&tools.path().join("bin"), case["tools"].as_array().unwrap());
+        let environment = BTreeMap::from([(
+            "PATH".to_string(),
+            format!(
+                "{}:{directory}:/usr/bin:/bin",
+                tools.path().join("bin").display()
+            ),
+        )]);
+        let mut actual = run(case, base, &environment);
+        let mut frozen = case["frozen"].clone();
+        match name.as_str() {
+            "clazy-unloadable" => {
+                // Intended: frozen probes `clazy-standalone --version` in its replaced
+                // environment and reports ClazyUnavailable when the binary cannot load; Rust
+                // resolves the executable on PATH without a capability probe and reports the
+                // failed run per source as the frozen ClazyExecutionError shape.
+                let targets = actual["targets"].as_array().unwrap();
+                let errors: Vec<_> = targets
+                    .iter()
+                    .filter(|target| target["target_name"] == "ClazyExecutionError")
+                    .collect();
+                assert_eq!(errors.len(), 3, "{name}: {actual}");
+                assert!(
+                    errors[0]["message"]
+                        .as_str()
+                        .unwrap()
+                        .starts_with("clazy failed with exit code 127 (fatal=0, error=0"),
+                    "{name}: {actual}"
+                );
+                assert_eq!(actual["status"], "ERROR", "{name}");
+                assert_eq!(actual["evidence"], "NOT_RUN", "{name}");
+                continue;
+            }
+            "tidy-and-clazy-qt" => {
+                // Open: Rust has no frozen Qt compatibility / generated-code verification
+                // (analysis/_qt_codegen.py), so the QtCompatibility targets and the summary
+                // and evidence they decide are absent; every clang tool target matches.
+                frozen["targets"]
+                    .as_array_mut()
+                    .unwrap()
+                    .retain(|target| target["target_name"] != "QtCompatibility:UnknownMajor");
+                for key in ["summary", "evidence"] {
+                    actual[key] = Value::Null;
+                    frozen[key] = Value::Null;
+                }
+            }
+            _ => {}
+        }
+        assert_eq!(actual, frozen, "{name}");
+    }
+}

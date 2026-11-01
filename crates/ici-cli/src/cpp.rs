@@ -1,6 +1,8 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
 mod config_scope;
 mod fallback;
+mod legacy_tests;
+mod legacy_tooling;
 mod linker;
 pub(crate) mod package_flags;
 pub use config_scope::external_build_directories;
@@ -15,6 +17,7 @@ use ici_providers::{
     ProviderKind, ProviderPlan, ProviderRequest,
     resolver::{ResolvedTool, ToolRequest},
 };
+pub use legacy_tests::*;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -67,6 +70,8 @@ pub struct CppPlans {
     resolved: BTreeMap<String, std::result::Result<ResolvedTool, String>>,
     fallbacks: BTreeMap<String, fallback::FallbackPlan>,
     compile_externals: BTreeMap<String, Vec<String>>,
+    /// Legacy lint with one clang tool resolvable: the frozen Unavailable target of the other.
+    legacy_tooling_missing: BTreeMap<String, Vec<(&'static str, String, bool)>>,
 }
 impl CppPlans {
     fn resolve_searches(
@@ -861,6 +866,10 @@ impl CppPlans {
                 Err(_) => {}
             }
         }
+        if !selected.is_empty() && !missing.is_empty() {
+            self.legacy_tooling_missing
+                .insert(id.into(), missing.clone());
+        }
         if selected.is_empty() && !missing.is_empty() {
             // Frozen LintEngine with an exact context and no resolvable clang tooling: the same
             // unavailable targets at "." as without a context.
@@ -1472,6 +1481,16 @@ pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
     Some(count)
 }
 
+/// Frozen `compile_db` configuration identity of one recorded unit (`canonical_digest` of the
+/// recorded directory, argv and output; first 12 hex digits).
+fn legacy_configuration_digest(unit: &CompilationUnit) -> Option<String> {
+    let canonical = ici_domain::canonical_json(
+        &json!({"directory":unit.directory,"argv":unit.argv,"output":unit.output}),
+    )
+    .ok()?;
+    Some(ici_domain::sha256(canonical).trim_start_matches("sha256:")[..12].to_string())
+}
+
 /// Frozen `_unavailable` targets of clang-tidy and Clazy in a legacy lint run.
 fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici.cpp.tooling");
@@ -1525,17 +1544,24 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
 /// `Compiler:<rule>` / `C++Syntax` targets with kind-prefixed messages (errors FAIL, warnings and
 /// notes WARN, notes as their own targets), `C++Syntax:fallback` PASS for clean files, and the
 /// frozen LintEngine summary over these targets, the clang tooling targets and tool warnings.
+/// Returns whether the output was projected (complete PASS/FAIL syntax evidence).
 pub fn legacy_fallback_lint(
     output: &mut AnalysisOutput,
     tooling: Option<&AnalysisOutput>,
     standalone: bool,
     configurations: Option<&BTreeMap<String, String>>,
-) {
-    const FALLBACK: &str = "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback";
-    if !matches!(output.status.as_str(), "PASS" | "FAIL")
-        || !output.observation.evidence_is_complete()
+) -> bool {
+    // A recorded subset (frozen ContextMissing WARN targets) is still projected; the verdict is
+    // the frozen tool ERROR.
+    let partial = output.extra.get("legacy_context_missing").is_some()
+        && output.targets.iter().all(|target| {
+            target.status != "ERROR" && output.observation.state != TaskState::Cancelled
+        });
+    if !partial
+        && (!matches!(output.status.as_str(), "PASS" | "FAIL")
+            || !output.observation.evidence_is_complete())
     {
-        return;
+        return false;
     }
     let details = output
         .extra
@@ -1575,7 +1601,7 @@ pub fn legacy_fallback_lint(
             .and_then(|detail| detail.get("legacy_message"))
             .and_then(Value::as_str)
         else {
-            return;
+            return false;
         };
         let kind = legacy.split(": ").next().unwrap_or_default();
         let mut primary = target.clone();
@@ -1620,6 +1646,30 @@ pub fn legacy_fallback_lint(
     }
     output.targets = targets;
     legacy_fallback_findings(output, &primaries, &notes, configurations.is_some());
+    legacy_lint_verdict(output, tooling, configurations.is_none());
+    true
+}
+
+/// Frozen `LintEngine` status and summary over the compiler syntax targets, the clang tooling
+/// targets and the tool warnings (engines/lint.py, mode pass_warn_fail): its own tool errors
+/// first (the report joins the clang tooling errors after them), `0 Violations Found` when nothing is reported, the first two tool warnings when there
+/// is no failure, else the error/warning counts.
+pub fn legacy_lint_verdict(
+    output: &mut AnalysisOutput,
+    tooling: Option<&AnalysisOutput>,
+    fallback: bool,
+) {
+    const FALLBACK: &str = "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback";
+    let tool_list = |key: &str| -> Vec<String> {
+        tooling
+            .and_then(|tooling| tooling.extra.get(key))
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(str::to_owned)
+            .collect()
+    };
     let all: Vec<&InspectionTarget> = output
         .targets
         .iter()
@@ -1630,20 +1680,23 @@ pub fn legacy_fallback_lint(
         )
         .collect();
     let fail = all.iter().filter(|target| target.status == "FAIL").count();
-    let mut warnings = if configurations.is_some() {
-        vec![]
-    } else {
+    let mut warnings = if fallback {
         vec![FALLBACK.to_string()]
+    } else {
+        vec![]
     };
-    warnings.extend(
-        tooling
-            .and_then(|tooling| tooling.extra.get("legacy_tool_warnings"))
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(Value::as_str)
-            .map(str::to_owned),
-    );
+    warnings.extend(tool_list("legacy_tool_warnings"));
+    // Only this output's own tool errors: the report joins every ERROR check's summary into
+    // the frozen `"; ".join(errors[:3])`.
+    let errors: Vec<String> = output
+        .extra
+        .get("legacy_tool_errors")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect();
     let messages: BTreeSet<&str> = all
         .iter()
         .filter(|target| target.status == "WARN")
@@ -1654,8 +1707,26 @@ pub fn legacy_fallback_lint(
             .iter()
             .filter(|message| !messages.contains(message.as_str()))
             .count();
-    output.status = if fail > 0 { "FAIL" } else { "WARN" }.into();
-    output.summary = if fail == 0 {
+    output.status = if !errors.is_empty() {
+        "ERROR"
+    } else if fail > 0 {
+        "FAIL"
+    } else if warn > 0 {
+        "WARN"
+    } else {
+        "PASS"
+    }
+    .into();
+    output.summary = if !errors.is_empty() {
+        errors
+            .iter()
+            .take(3)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ")
+    } else if output.status == "PASS" {
+        "0 Violations Found".into()
+    } else if fail == 0 && !warnings.is_empty() {
         warnings
             .iter()
             .take(2)
@@ -2003,6 +2074,27 @@ pub fn legacy_binary_compat_unavailable(id: &str, error: Option<&str>) -> Analys
 /// path, `BinaryCompatibility:NonElf` SKIP for allowed non-ELF files, and the
 /// "ELF compatibility: N checked, V violation(s), S skipped" summary.
 pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: &str) {
+    // Frozen `parse_readelf` errors (analysis/_elf.py) for a readelf that ran but returned
+    // incomplete evidence: one AnalysisUnavailable ERROR at "." and the "incomplete" summary.
+    let frozen_error = output
+        .summary
+        .split_once(": ")
+        .and_then(|(code, _)| match code {
+            "readelf-header-missing" => Some("readelf output is missing ELF header facts"),
+            "readelf-bounds" => Some("readelf output exceeds the bounded text contract"),
+            _ => None,
+        });
+    if output.observation.state != TaskState::Succeeded
+        && let Some(message) = frozen_error
+    {
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = "BinaryCompatibility:AnalysisUnavailable".into();
+        target.status = "ERROR".into();
+        target.message = message.into();
+        output.targets = vec![target];
+        output.summary = format!("Binary compatibility analysis incomplete: {message}");
+        return;
+    }
     if !matches!(output.status.as_str(), "PASS" | "FAIL")
         || !output.observation.evidence_is_complete()
     {
@@ -2312,16 +2404,35 @@ impl CppPlans {
         context.database_path.as_ref()?;
         let mut digests = BTreeMap::new();
         for unit in &context.units {
-            let canonical = ici_domain::canonical_json(
-                &json!({"directory":unit.directory,"argv":unit.argv,"output":unit.output}),
-            )
-            .ok()?;
-            let digest = ici_domain::sha256(canonical);
-            digests
-                .entry(unit.source.clone())
-                .or_insert_with(|| digest.trim_start_matches("sha256:")[..12].to_string());
+            let digest = legacy_configuration_digest(unit)?;
+            digests.entry(unit.source.clone()).or_insert(digest);
         }
         Some(digests)
+    }
+    /// The frozen targets of one legacy `cpp.tidy` run (`<task>.tidy<n>` / `<task>.clazy<n>`
+    /// on recorded unit n).
+    fn legacy_tool_run(
+        &self,
+        component: &str,
+        provider: &ProviderPlan,
+        outcome: &ici_execution::TaskOutcome,
+        output: &AnalysisOutput,
+    ) -> Option<legacy_tooling::LegacyToolRun> {
+        let clazy = provider.kind == ProviderKind::Clazy;
+        let suffix = provider.task.id.rsplit('.').next()?;
+        let index: usize = suffix
+            .strip_prefix(if clazy { "clazy" } else { "tidy" })?
+            .parse()
+            .ok()?;
+        let unit = self.contexts.get(component)?.units.get(index)?;
+        Some(legacy_tooling::legacy_tool_run(
+            clazy,
+            index,
+            &unit.source,
+            &legacy_configuration_digest(unit)?,
+            outcome,
+            output,
+        ))
     }
     /// A frozen legacy output decided while planning, if any.
     pub fn planned(&self, id: &str) -> Option<&AnalysisOutput> {
@@ -2895,6 +3006,7 @@ impl CppPlans {
             let mut outputs = vec![];
             let mut unused_observations = vec![];
             let mut unused_runs = vec![];
+            let mut legacy_tool_runs = vec![];
             for outcome in schedule.outcomes {
                 events.emit(
                     "task.completed",
@@ -2920,6 +3032,13 @@ impl CppPlans {
                         findings: output.observation.findings.clone(),
                     });
                     unused_runs.push((index, outcome.exit_code, outcome.timed_out));
+                }
+                if self.legacy_projection
+                    && request.check_id == "cpp.tidy"
+                    && let Some(run) =
+                        self.legacy_tool_run(&component.id, provider, &outcome, &output)
+                {
+                    legacy_tool_runs.push(run);
                 }
                 outputs.push(output);
             }
@@ -2965,6 +3084,22 @@ impl CppPlans {
             );
             if !projections.is_empty() {
                 output.extra["tooling_projections"] = json!(projections);
+            }
+            if self.legacy_projection && request.check_id == "cpp.tidy" {
+                let uncovered = self
+                    .contexts
+                    .get(&component.id)
+                    .map(|context| context.uncovered_sources.clone())
+                    .unwrap_or_default();
+                legacy_tooling::legacy_tooling_projection(
+                    &mut output,
+                    legacy_tool_runs,
+                    self.legacy_tooling_missing
+                        .get(&request.task_id)
+                        .map(Vec::as_slice)
+                        .unwrap_or_default(),
+                    &uncovered,
+                );
             }
             if request.check_id == "cpp.diagnostics" {
                 self.preserve_diagnostic_scope(&component.id, &mut output);

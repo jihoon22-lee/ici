@@ -391,6 +391,20 @@ fn prepare_resolved_omitting(
                     cpp.fail_preparation(task_id, output);
                     return Ok(Work::Internal);
                 }
+                if check.id == "cpp.test" && matches!(bound.work, Work::Blocked { .. }) {
+                    // Every descriptor-free test source failed to compile: those are the
+                    // measured test failures, not a missing suite.
+                    let failures =
+                        crate::cpp::direct_test_compile_failures(&project, &component.id);
+                    if !failures.is_empty() {
+                        let mut output = crate::cpp::test_compile_failures_only(task_id, &failures);
+                        if crate::legacy::is_legacy(invocation) {
+                            crate::cpp::legacy_direct_tests(&mut output, &failures);
+                        }
+                        cpp.fail_preparation(task_id, output);
+                        return Ok(Work::Internal);
+                    }
+                }
                 tools.extend(bound.tools);
                 if !bound.plans.is_empty() {
                     validations.insert(task_id.into(), bound.plans);
@@ -688,7 +702,15 @@ fn prepare_resolved_omitting(
                 }) {
                     cpp.fail_preparation(
                         &check.task_id,
-                        crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id),
+                        if crate::cpp::legacy_sanitizer_without_scope(
+                            &project.root,
+                            component,
+                            check_id,
+                        ) {
+                            crate::cpp::legacy_sanitizer_no_scope(&check.task_id, check_id)
+                        } else {
+                            crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id)
+                        },
                     );
                     validations.remove(&check.task_id);
                     check.check.needs.clear();

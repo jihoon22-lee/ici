@@ -649,6 +649,31 @@ fn project_test_extra(engine: &mut Value, checks: &[Value]) -> Result<()> {
     Ok(())
 }
 
+fn cpp_executable_part(part: &Value) -> bool {
+    part["test_execution"]["framework"] == "cpp-executable"
+}
+
+/// The suites of several plain C++ executables as one test part, when every other frozen
+/// test field agrees (absent fields stay absent).
+fn merged_cpp_parts(parts: &[Value]) -> Option<Value> {
+    let mut merged = json!({"test_suites":[]});
+    for (key, value) in parts[0].as_object()? {
+        if key != "test_suites" && parts.iter().all(|part| part.get(key) == Some(value)) {
+            merged[key] = value.clone();
+        }
+    }
+    for part in parts {
+        merged["test_suites"].as_array_mut()?.extend(
+            part["test_suites"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .cloned(),
+        );
+    }
+    Some(merged)
+}
+
 /// One test producer and one coverage producer of the same physical suite carry the frozen
 /// single-engine result: its direct extra keys, TEM score and summary line.
 fn frozen_test_summary(
@@ -657,8 +682,18 @@ fn frozen_test_summary(
     passed: u64,
     total: u64,
 ) {
-    let (Some([test]), Some([coverage])) = (
-        parts.get("test").map(Vec::as_slice),
+    let merged;
+    let (Some(test), Some([coverage])) = (
+        match parts.get("test").map(Vec::as_slice) {
+            Some([test]) => Some(test),
+            // Plain C++ test executables are one physical suite each; their single-suite view
+            // is the concatenated suite list with the other (per-run) fields shared.
+            Some(tests) if tests.len() > 1 && tests.iter().all(cpp_executable_part) => {
+                merged = merged_cpp_parts(tests);
+                merged.as_ref()
+            }
+            _ => None,
+        },
         parts.get("coverage").map(Vec::as_slice),
     ) else {
         return;

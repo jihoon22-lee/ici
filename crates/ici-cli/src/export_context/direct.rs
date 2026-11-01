@@ -14,6 +14,18 @@ pub struct DirectPreparation {
     objects: Vec<String>,
     binaries: Vec<DirectBinary>,
 }
+impl DirectPreparation {
+    /// The `tests/**/*.cpp` sources this direct build links into test executables.
+    pub fn test_sources(&self) -> Vec<String> {
+        let mut sources: Vec<String> = self
+            .binaries
+            .iter()
+            .filter_map(|binary| binary.source.clone())
+            .collect();
+        sources.sort();
+        sources
+    }
+}
 #[derive(Clone, Debug)]
 struct DirectBinary {
     path: String,

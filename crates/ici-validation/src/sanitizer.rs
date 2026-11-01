@@ -128,7 +128,16 @@ pub fn parse_diagnostics(
             } else {
                 "sanitizer diagnostic".into()
             };
-            let path = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd).ok();
+            let path = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd)
+                .ok()
+                .filter(|path| {
+                    // A build-directory-relative frame that names no confirmed project line and
+                    // escapes the project from its root (`../../../../src/libsanitizer/...`,
+                    // the runtime's own sources) is an external frame, as frozen records it.
+                    plan.source_coordinates.contains_line(path, row) == Some(true)
+                        || planning::relative(&capture[1], &plan.context.root, &plan.context.root)
+                            .is_ok()
+                });
             let mut span = if let Some(path) = path {
                 if plan.source_coordinates.contains_line(&path, row) != Some(true) {
                     limitations.push(
@@ -239,19 +248,11 @@ fn frame_label(line: &str, location: &regex::Captures<'_>, frame: &Regex) -> Str
         .and_then(|capture| capture.get(1))
         .map_or("?", |index| index.as_str());
     let prefix = line[..location.get(1).expect("matched source path").start()].trim();
-    let function = if let Some((_, function)) = prefix.rsplit_once(" in ") {
-        function.trim().to_string()
-    } else {
-        let rest = frame.replace(prefix, "");
-        let rest = rest.trim();
-        if rest.starts_with("0x") {
-            rest.split_once(' ')
-                .map_or("", |(_, rest)| rest.trim())
-                .to_string()
-        } else {
-            rest.to_string()
-        }
-    };
+    // Frozen `_function_label`: only an ASan/UBSan/LSan "... in <function>" frame names its
+    // function; a TSan frame ("#0 free <path>:<line> (lib+0x..)") is just "frame #<n>".
+    let function = prefix
+        .rsplit_once(" in ")
+        .map_or_else(String::new, |(_, function)| function.trim().to_string());
     let addresses = Regex::new(r"(?i)\b0x[0-9a-f]+\b").expect("constant regex");
     let function = addresses
         .replace_all(&function, "address")
@@ -474,16 +475,22 @@ pub(crate) fn observe(
         crate::sanitizer_suite::observe_framework(plan, outcome, output)?;
     }
     if output.observation.findings.is_empty() && outcome.exit_code != Some(0) {
-        output.observation.findings.push(finding(
+        // Frozen `_suite_failure_finding` text; the exit code is shown, not its Rust Option.
+        let mut failure = finding(
             plan,
             "ici.sanitize.suite-failure",
             &format!(
-                "suite exited {:?} without sanitizer defect evidence",
-                outcome.exit_code
+                "suite exited {} with no sanitizer diagnostic in its output \u{2014} the run failed without the sanitizer reporting a defect",
+                outcome.exit_code.map_or_else(
+                    || "without an exit code".to_owned(),
+                    |code| code.to_string()
+                )
             ),
             &crate::cpp::source(plan, "sanitizer"),
             1,
-        ));
+        );
+        failure.native_rule_id.clear();
+        output.observation.findings.push(failure);
     }
     output.observation.measurements.push(Measurement::measured(
         format!("{}.diagnostics", plan.kind.provider()),

@@ -629,7 +629,38 @@ pub(crate) fn observe(
     if !planning::completed(outcome) || outcome.exit_code != Some(0) {
         return Err(error("gcov report process did not complete successfully"));
     }
-    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    // Frozen legacy TestEngine: a CTest case that did not run leaves its notes without counters,
+    // and gcov reports them "not executed". Only notes with no data artifact at all qualify.
+    let unexecuted: Vec<&String> = if plan.context.options.ctest_not_run_measured {
+        plan.context
+            .targets
+            .iter()
+            .filter(|target| {
+                !artifacts
+                    .outputs
+                    .contains_key(&format!("gcov-data:{target}"))
+            })
+            .collect()
+    } else {
+        vec![]
+    };
+    let stderr: String = String::from_utf8_lossy(&outcome.stderr)
+        .lines()
+        .filter(|line| {
+            !(line.contains("cannot open data file") || line.contains("assuming not executed"))
+                || unexecuted.iter().all(|target| {
+                    let data = target.strip_suffix(".gcno").unwrap_or(target);
+                    !line.contains(&format!("{data}.gcda"))
+                })
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    if !unexecuted.is_empty() {
+        output.observation.limitations.push(format!(
+            "{} coverage note file(s) had no run data because no executed test linked them",
+            unexecuted.len()
+        ));
+    }
     if [
         "stamp mismatch",
         "version mismatch",
@@ -677,7 +708,12 @@ pub(crate) fn observe(
         .find(|metric| metric.name.ends_with(".cases"))
         .and_then(|metric| metric.numerator.zip(metric.denominator))
         .ok_or_else(|| error("C++ test raw counts absent"))?;
-    for target in &plan.context.targets {
+    for target in plan
+        .context
+        .targets
+        .iter()
+        .filter(|target| !unexecuted.contains(target))
+    {
         let key = format!("gcov-data:{target}");
         if !artifacts.outputs.get(&key).is_some_and(|witness| {
             witness.fresh && witness.size > 0 && witness.producer_task_id == producer

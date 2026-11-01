@@ -177,9 +177,17 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
                 .unwrap_or(5),
             ..Default::default()
         };
+        // A test source that failed to compile is still a test source, not production code.
+        let failed_tests = build
+            .settings
+            .get("direct_test_compile_failures")
+            .and_then(Value::as_object);
         let coverage_sources = sources
             .into_iter()
-            .filter(|source| !suites.contains_key(source))
+            .filter(|source| {
+                !suites.contains_key(source)
+                    && !failed_tests.is_some_and(|failed| failed.contains_key(source))
+            })
             .collect::<Vec<_>>();
         if coverage_sources.is_empty() {
             return Err("direct GCOV coverage has no non-main production sources".into());

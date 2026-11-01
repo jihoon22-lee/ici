@@ -13,6 +13,20 @@ const FIELDS: [&str; 6] = [
     "file_path",
 ];
 
+const FINDING_FIELDS: [&str; 11] = [
+    "rule_id",
+    "category",
+    "severity",
+    "confidence",
+    "message",
+    "primary_location",
+    "related_locations",
+    "explanation",
+    "remediation",
+    "tool_name",
+    "tool_rule_id",
+];
+
 fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).unwrap();
     for entry in fs::read_dir(from).unwrap() {
@@ -54,7 +68,7 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
         .unwrap(),
     )
     .unwrap();
-    let targets: Vec<Value> = report["targets"]
+    let mut targets: Vec<Value> = report["targets"]
         .as_array()
         .unwrap()
         .iter()
@@ -63,6 +77,31 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
                 FIELDS
                     .iter()
                     .map(|key| ((*key).to_owned(), target[*key].clone()))
+                    .collect(),
+            )
+        })
+        .collect();
+    targets.sort_by_key(|target| {
+        (
+            target["target_name"].as_str().unwrap().to_owned(),
+            target["file_path"].as_str().unwrap().to_owned(),
+        )
+    });
+    // The legacy findings normalized from sanitizer reports (frozen `_normalized_findings`).
+    let diagnostic_findings: Vec<Value> = report["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|finding| {
+            finding["explanation"].as_str().is_some_and(|text| {
+                text.starts_with("Normalized from a bounded runtime-sanitizer report")
+            })
+        })
+        .map(|finding| {
+            Value::Object(
+                FINDING_FIELDS
+                    .iter()
+                    .map(|key| ((*key).to_owned(), finding[*key].clone()))
                     .collect(),
             )
         })
@@ -80,6 +119,7 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
         "evidence": report["evidence"],
         "built": root.path().join("build").exists(),
         "targets": targets,
+        "diagnostic_findings": diagnostic_findings,
     })
 }
 
@@ -95,10 +135,14 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
         ("testless-make", "sanitize-testless"),
         ("testless-make-required", "sanitize-testless"),
         ("tested-make-without-sanitizer-argv", "sanitize-tested"),
+        ("noscope", "sanitize-noscope"),
     ]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 12);
-    for (name, expected) in cases.iter().filter(|(name, _)| !name.contains(":direct-")) {
+    assert_eq!(cases.len(), 18);
+    for (name, expected) in cases
+        .iter()
+        .filter(|(name, _)| !name.contains(":direct-") && !name.contains(":cmake-"))
+    {
         let (command, config) = name.split_once(':').unwrap();
         let actual = run(
             fixtures[config],
@@ -111,20 +155,26 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
 }
 
 #[test]
-#[ignore = "explicit actual g++ sanitizer runs (ICI_TEST_CXX)"]
+#[ignore = "explicit actual g++ and CMake/ctest sanitizer runs (ICI_TEST_CXX, ICI_TEST_CMAKE, ICI_TEST_CTEST)"]
 fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/sanitize-oracle.json"
     ))
     .unwrap();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
-    let path = format!(
-        "{}:/usr/bin:/bin",
-        Path::new(&compiler).parent().unwrap().display()
-    );
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake (ICI_TEST_CMAKE)");
+    let ctest = std::env::var("ICI_TEST_CTEST").expect("explicit CTest (ICI_TEST_CTEST)");
+    let path = [&compiler, &cmake, &ctest]
+        .iter()
+        .map(|tool| Path::new(tool).parent().unwrap().display().to_string())
+        .chain(["/usr/bin".into(), "/bin".into()])
+        .collect::<Vec<_>>()
+        .join(":");
     let fixtures = BTreeMap::from([
         ("direct-clean", "sanitize-direct-clean"),
         ("direct-defect", "sanitize-direct"),
+        ("cmake-plain", "test-cmake/plain"),
+        ("cmake-defect", "test-cmake/sanitize"),
     ]);
     let mut seen = 0;
     for (name, expected) in oracle["cases"].as_object().unwrap() {
@@ -133,8 +183,17 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
             continue;
         };
         seen += 1;
-        let actual = run_with(fixture, command, "", &path, true);
-        assert_eq!(&actual, expected, "{name}");
+        let mut actual = run_with(fixture, command, "", &path, true);
+        let mut expected = expected.clone();
+        if config.starts_with("cmake-") {
+            // Intended: frozen CMake configures into the project's `build/`; Rust builds the
+            // sanitizer variant in its owned shadow under .ici and leaves the project tree alone.
+            assert_eq!(expected["built"], true, "{name}");
+            assert_eq!(actual["built"], false, "{name}");
+            actual["built"] = Value::Null;
+            expected["built"] = Value::Null;
+        }
+        assert_eq!(actual, expected, "{name}");
     }
-    assert_eq!(seen, 4);
+    assert_eq!(seen, 8);
 }

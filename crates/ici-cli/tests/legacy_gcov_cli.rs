@@ -12,14 +12,18 @@ fn required(name: &str) -> String {
 #[test]
 #[ignore = "explicit actual GCC/gcov 7.4.0 text coverage through the common CLI"]
 fn old_gcov_plan_names_the_text_condition_and_the_run_reads_text_evidence() {
-    let root = tempfile::tempdir().unwrap();
+    let temporary = tempfile::tempdir().unwrap();
+    // Deep enough that a report name carrying the whole mangled path exceeds NAME_MAX.
+    let project = temporary.path().join("t".repeat(80)).join("u".repeat(80));
+    fs::create_dir_all(&project).unwrap();
+    let root = &project;
     fs::write(
-        root.path().join("main.c"),
+        root.as_path().join("main.c"),
         "int never(){return 4;}\nint branch(int value){if(value)return 1;return 0;}\nint main(){return branch(1)==1?0:1;}\n",
     )
     .unwrap();
     fs::write(
-        root.path().join("CMakeLists.txt"),
+        root.as_path().join("CMakeLists.txt"),
         "cmake_minimum_required(VERSION 3.16)\nproject(native LANGUAGES C)\nenable_testing()\nadd_executable(suite main.c)\ntarget_compile_options(suite PRIVATE --coverage -O0)\ntarget_link_options(suite PRIVATE --coverage)\nadd_test(NAME green COMMAND suite)\n",
     )
     .unwrap();
@@ -45,7 +49,7 @@ fn old_gcov_plan_names_the_text_condition_and_the_run_reads_text_evidence() {
         let output = std::process::Command::new(&cmake)
             .args(&args)
             .env("LD_LIBRARY_PATH", &library)
-            .current_dir(root.path())
+            .current_dir(root.as_path())
             .output()
             .unwrap();
         assert!(
@@ -74,11 +78,11 @@ fn old_gcov_plan_names_the_text_condition_and_the_run_reads_text_evidence() {
         ));
     }
     config.push_str("[builds.native]\nsystem='cmake'\ndirectory='build'\nartifacts=['suite']\n[[components]]\nid='project'\nroot='.'\nlanguages=['cpp']\nsources=['main.c']\nbuild='native'\n");
-    fs::write(root.path().join("ici.toml"), config).unwrap();
+    fs::write(root.as_path().join("ici.toml"), config).unwrap();
     let invocation = registry::parse(["ici", "next", "verify"]).unwrap();
     let environment = BTreeMap::from([("PATH".into(), String::new())]);
-    let preview = planning::prepare(&invocation, root.path(), &environment, false).unwrap();
-    assert!(!root.path().join(".ici").exists());
+    let preview = planning::prepare(&invocation, root.as_path(), &environment, false).unwrap();
+    assert!(!root.as_path().join(".ici").exists());
     let text = preview.text();
     for line in [
         "project.cpp.coverage.report: only when project.cpp.coverage.capability selects gcov JSON format",
@@ -91,7 +95,7 @@ fn old_gcov_plan_names_the_text_condition_and_the_run_reads_text_evidence() {
     assert!(document.contains("\"gcov_format\":\"json\""), "{document}");
     let run = execute::execute(
         &invocation,
-        root.path(),
+        root.as_path(),
         &environment,
         false,
         &Cancellation::default(),

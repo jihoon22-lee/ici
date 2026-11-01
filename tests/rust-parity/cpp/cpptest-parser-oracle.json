@@ -1,0 +1,196 @@
+{
+ "cases": {
+  "ctest-suite": {
+   "fixture": "test-cmake/suite",
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "message": "test test_fail: Failed",
+      "path": "tests/test_fail.cpp",
+      "rule_id": "ctest.failed",
+      "severity": "high",
+      "start_line": 1
+     },
+     {
+      "confidence": "high",
+      "message": "test test_crash: Exception: SegFault",
+      "path": "tests/test_crash.cpp",
+      "rule_id": "ctest.failed",
+      "severity": "high",
+      "start_line": 1
+     }
+    ],
+    "limitations": [
+     "2 case(s) did not run: test_skipped, test_skipcode"
+    ],
+    "measurements": [
+     {
+      "denominator": 6,
+      "name": "ctest.cases",
+      "numerator": 2,
+      "value": 6.0
+     }
+    ]
+   },
+   "transcript": "Test project <ROOT>/build\n    Start 1: test_pass\n1/6 Test #1: test_pass ........................   Passed    0.00 sec\n    Start 2: test_fail\n2/6 Test #2: test_fail ........................***Failed    0.00 sec\ntwice(2) was 5\n\n    Start 3: test_skipped\n3/6 Test #3: test_skipped .....................***Not Run (Disabled)   0.00 sec\n    Start 4: test_skipcode\n4/6 Test #4: test_skipcode ....................***Skipped   0.00 sec\n    Start 5: test_crash\n5/6 Test #5: test_crash .......................***Exception: SegFault  0.00 sec\n\n    Start 6: orphan_check\n6/6 Test #6: orphan_check .....................   Passed    0.00 sec\n\n60% tests passed, 2 tests failed out of 5\n\nTotal Test time (real) =   0.01 sec\n\nThe following tests did not run:\n\t  3 - test_skipped (Disabled)\n\t  4 - test_skipcode (Skipped)\n\nThe following tests FAILED:\n\t  2 - test_fail (Failed)\n\t  5 - test_crash (SEGFAULT)\nErrors while running CTest\n"
+  },
+  "qtest-in-root-locations": {
+   "fixture": "test-qmake",
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "message": "Unit::fails() fail",
+      "path": "tests/test_unit.cpp",
+      "rule_id": "qtest.fail",
+      "severity": "high",
+      "start_line": 7
+     },
+     {
+      "confidence": "high",
+      "message": "Unit::unexpectedlyPasses() xpass",
+      "path": "tests/test_unit.cpp",
+      "rule_id": "qtest.xpass",
+      "severity": "high",
+      "start_line": 12
+     }
+    ],
+    "limitations": [],
+    "measurements": [
+     {
+      "denominator": 6,
+      "name": "qtest.cases",
+      "numerator": 3,
+      "value": 6.0
+     }
+    ]
+   },
+   "transcript": "********* Start testing of Unit *********\nConfig: Using QtTest library 5.15.18, Qt 5.15.18 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.2.0), ubuntu 26.04\nPASS   : Unit::initTestCase()\nPASS   : Unit::passes()\nFAIL!  : Unit::fails() '1 + 1 == 3' returned FALSE. ()\n   Loc: [tests/test_unit.cpp(7)]\nXPASS  : Unit::unexpectedlyPasses() 'true' returned TRUE unexpectedly. ()\n   Loc: [tests/test_unit.cpp(10)]\nSKIP   : Unit::skipped() not on this host\n   Loc: [tests/test_unit.cpp(12)]\nPASS   : Unit::cleanupTestCase()\nTotals: 3 passed, 2 failed, 1 skipped, 0 blacklisted, 1ms\n********* Finished testing of Unit *********\n"
+  },
+  "qtest-out-of-source": {
+   "fixture": "test-qmake",
+   "frozen": {
+    "exception": "ValueError: span path must be relative and contained: '../../tests/test_unit.cpp'"
+   },
+   "transcript": "********* Start testing of Unit *********\nConfig: Using QtTest library 5.15.18, Qt 5.15.18 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 15.2.0), ubuntu 26.04\nPASS   : Unit::initTestCase()\nPASS   : Unit::passes()\nFAIL!  : Unit::fails() '1 + 1 == 3' returned FALSE. ()\n   Loc: [../../tests/test_unit.cpp(7)]\nXPASS  : Unit::unexpectedlyPasses() 'true' returned TRUE unexpectedly. ()\n   Loc: [../../tests/test_unit.cpp(10)]\nSKIP   : Unit::skipped() not on this host\n   Loc: [../../tests/test_unit.cpp(12)]\nPASS   : Unit::cleanupTestCase()\nTotals: 3 passed, 2 failed, 1 skipped, 0 blacklisted, 1ms\n********* Finished testing of Unit *********\n"
+  },
+  "sanitize-exit": {
+   "exit_code": 3,
+   "fixture": "test-cmake/sanitize",
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "label": "",
+      "limitations": [],
+      "message": "suite exited 3 with no sanitizer diagnostic in its output \u2014 the run failed without the sanitizer reporting a defect",
+      "native_rule_id": "",
+      "path": "build/sanitize-exit",
+      "related": [],
+      "rule_id": "ici.sanitize.suite-failure",
+      "severity": "high",
+      "start_column": null,
+      "start_line": 1
+     }
+    ],
+    "measurements": []
+   },
+   "source": "tests/test_exit.cpp",
+   "stderr": "",
+   "stdout": ""
+  },
+  "sanitize-uaf": {
+   "exit_code": 1,
+   "fixture": "test-cmake/sanitize",
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "label": "frame #0: main",
+      "limitations": [],
+      "message": "AddressSanitizer detected heap use after free",
+      "native_rule_id": "heap-use-after-free",
+      "path": "tests/test_uaf.cpp",
+      "related": [],
+      "rule_id": "ici.sanitize.asan.heap-use-after-free",
+      "severity": "high",
+      "start_column": null,
+      "start_line": 2
+     }
+    ],
+    "measurements": [
+     {
+      "name": "sanitize.diagnostics",
+      "value": 1.0
+     }
+    ]
+   },
+   "source": "tests/test_uaf.cpp",
+   "stderr": "=================================================================\n==2928490==ERROR: AddressSanitizer: heap-use-after-free on address 0x733fc77e0010 at pc 0x61ce9a5822ae bp 0x7ffda6f0bfd0 sp 0x7ffda6f0bfc0\nREAD of size 4 at 0x733fc77e0010 thread T0\n    #0 0x61ce9a5822ad in main tests/test_uaf.cpp:2\n    #1 0x771fc842a600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)\n    #2 0x771fc842a717 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)\n    #3 0x61ce9a582164 in _start (<ROOT>/build/sanitize-uaf+0x1164) (BuildId: d5687c99debc30a82c58c4241011f24e5591cad3)\n\n0x733fc77e0010 is located 0 bytes inside of 4-byte region [0x733fc77e0010,0x733fc77e0014)\nfreed by thread T0 here:\n    #0 0x771fc952a3ff in free ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:51\n    #1 0x61ce9a58224e in main tests/test_uaf.cpp:2\n    #2 0x771fc842a600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)\n    #3 0x771fc842a717 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)\n    #4 0x61ce9a582164 in _start (<ROOT>/build/sanitize-uaf+0x1164) (BuildId: d5687c99debc30a82c58c4241011f24e5591cad3)\n\npreviously allocated by thread T0 here:\n    #0 0x771fc952b60f in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:67\n    #1 0x61ce9a58223e in main tests/test_uaf.cpp:2\n    #2 0x771fc842a600  (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a600) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)\n    #3 0x771fc842a717 in __libc_start_main (/usr/lib/x86_64-linux-gnu/libc.so.6+0x2a717) (BuildId: 066527e430a32768d82741e00b81eebb1a872294)\n    #4 0x61ce9a582164 in _start (<ROOT>/build/sanitize-uaf+0x1164) (BuildId: d5687c99debc30a82c58c4241011f24e5591cad3)\n\nSUMMARY: AddressSanitizer: heap-use-after-free tests/test_uaf.cpp:2 in main\nShadow bytes around the buggy address:\n  0x733fc77dfd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x733fc77dfe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x733fc77dfe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x733fc77dff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n  0x733fc77dff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\n=>0x733fc77e0000: fa fa[fd]fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x733fc77e0080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x733fc77e0100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x733fc77e0180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x733fc77e0200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\n  0x733fc77e0280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa\nShadow byte legend (one shadow byte represents 8 application bytes):\n  Addressable:           00\n  Partially addressable: 01 02 03 04 05 06 07 \n  Heap left redzone:       fa\n  Freed heap region:       fd\n  Stack left redzone:      f1\n  Stack mid redzone:       f2\n  Stack right redzone:     f3\n  Stack after return:      f5\n  Stack use after scope:   f8\n  Global redzone:          f9\n  Global init order:       f6\n  Poisoned by user:        f7\n  Container overflow:      fc\n  Array cookie:            ac\n  Intra object redzone:    bb\n  ASan internal:           fe\n  Left alloca redzone:     ca\n  Right alloca redzone:    cb\n==2928490==ABORTING\n",
+   "stdout": ""
+  },
+  "thread-sanitize-exit": {
+   "exit_code": 3,
+   "fixture": "test-cmake/sanitize",
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "label": "",
+      "limitations": [],
+      "message": "suite exited 3 with no sanitizer diagnostic in its output \u2014 the run failed without the sanitizer reporting a defect",
+      "native_rule_id": "",
+      "path": "build/thread-sanitize-exit",
+      "related": [],
+      "rule_id": "ici.sanitize.suite-failure",
+      "severity": "high",
+      "start_column": null,
+      "start_line": 1
+     }
+    ],
+    "measurements": []
+   },
+   "source": "tests/test_exit.cpp",
+   "stderr": "",
+   "stdout": ""
+  },
+  "thread-sanitize-uaf": {
+   "exit_code": 66,
+   "fixture": "test-cmake/sanitize",
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "label": "frame #0",
+      "limitations": [],
+      "message": "ThreadSanitizer detected thread safety defect",
+      "native_rule_id": "thread-safety-defect",
+      "path": "tests/test_uaf.cpp",
+      "related": [],
+      "rule_id": "ici.sanitize.tsan.thread-safety-defect",
+      "severity": "high",
+      "start_column": null,
+      "start_line": 2
+     }
+    ],
+    "measurements": [
+     {
+      "name": "thread-sanitize.diagnostics",
+      "value": 1.0
+     }
+    ]
+   },
+   "source": "tests/test_uaf.cpp",
+   "stderr": "==================\nWARNING: ThreadSanitizer: heap-use-after-free (pid=2928524)\n  Read of size 4 at 0x720400000000 by main thread:\n    #0 main tests/test_uaf.cpp:2 (thread-sanitize-uaf+0x1227) (BuildId: 7de0245f5e92dda65e3d8babafb68ca6181d9981)\n\n  Previous write of size 8 at 0x720400000000 by main thread:\n    #0 free ../../../../src/libsanitizer/tsan/tsan_interceptors_posix.cpp:735 (libtsan.so.2+0x8cb43) (BuildId: 66d37dc704b813df6c813b77217284deb43a0042)\n    #1 main tests/test_uaf.cpp:2 (thread-sanitize-uaf+0x121b) (BuildId: 7de0245f5e92dda65e3d8babafb68ca6181d9981)\n\nSUMMARY: ThreadSanitizer: heap-use-after-free tests/test_uaf.cpp:2 in main\n==================\nThreadSanitizer: reported 1 warnings\n",
+   "stdout": ""
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
