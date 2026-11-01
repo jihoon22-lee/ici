@@ -22,7 +22,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/core/context.py:1, src/ici/core/compilation_export.py:1, src/ici/compilation_export_cli.py:1) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
+      "difference_reason": "Open: capability src/ici/core/context.py (prepare_analysis_context / compilation-context export) is compared only through tests/rust-parity/cpp/compilation-export-oracle.json; `ici export-compilation-context` and the context sites (_cpp_include_trace.py:124, compile_db.py:71/90/208, _cpp_diagnostics.py database mode) are not replayed against frozen on a recorded compilation database."
     },
     "capability:cpp-parser-heuristic-confidence": {
       "status": "not_started",
@@ -563,28 +563,54 @@
       "difference_reason": "Open: compilation-database-backed and GNU ELF linker modes of `ici dead` are not yet compared against the frozen CLI."
     },
     "command:ici dup": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:394, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
+      "evidence": [
+        "Frozen oracle(s) (6fe3e40): tests/rust-parity/cpp/include-scope-oracle.json.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_metrics --test legacy_sanitize --test legacy_no_tests (and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log"
+      ],
+      "comparison": "C++ facet of `ici dup --report`: the frozen include-scope capture (src plus a top-level include/ with headers) gives the same status, exit code and targets.",
+      "difference_reason": "Open: only one C++ tree without clone groups is captured; windowing/min_window/warn_pct/fail_pct on C++ clones (check:cpp.dup, engines.dup keys) are not compared."
     },
     "command:ici exception": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:400, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
+      "evidence": [
+        "Frozen oracle(s) (6fe3e40): tests/rust-parity/cpp/exception-oracle.json, tests/rust-parity/cpp/legacy-scope-oracle.json.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_metrics --test legacy_sanitize --test legacy_no_tests (and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log"
+      ],
+      "comparison": "C++ facet of `ici exception --report`: frozen captures over parity-fixtures/cpp/exception-fixture and legacy-scope-fixture give the same status, exit code and every target (masked-line heuristic, destructor throws, catch-all, literals, CRLF, header exclusion).",
+      "difference_reason": "Open: options other than --report and the console text are not compared for C++; source-input error sites (exception.py:52/150) stay open."
     },
     "command:ici export-compilation-context": {
       "status": "not_started",
@@ -673,16 +699,29 @@
       "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici sanitize": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:376, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
+      "evidence": [
+        "Frozen oracle(s) (6fe3e40): tests/rust-parity/cpp/sanitize-oracle.json.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_metrics --test legacy_sanitize --test legacy_no_tests (and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log"
+      ],
+      "comparison": "C++ facet of `ici sanitize --report`: frozen captures over parity-fixtures/cpp/sanitize-* give the same targets and summaries for actual direct g++ ASan/UBSan runs, the test-less SKIP and the missing sanitizer argv ERROR.",
+      "difference_reason": "Open: CMake/qmake sanitizer builds and the no-scope '.' Sanitize SKIP target are not captured."
     },
     "command:ici security": {
       "status": "not_started",
@@ -697,16 +736,29 @@
       "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici test": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_no_tests.rs::test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_no_tests.rs::test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:358, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
+      "evidence": [
+        "Frozen oracle(s) (6fe3e40): tests/rust-parity/validation/legacy-cpp-no-tests-oracle.json.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_metrics --test legacy_sanitize --test legacy_no_tests (and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log"
+      ],
+      "comparison": "C++ facet of `ici test --report` on test-less C++ trees: the frozen 'No tests collected' FAIL target, finding identity and exit 1 (validation's capture).",
+      "difference_reason": "Open: C++ trees with real tests/coverage (gcov, CTest, Make test_argv) are the validation area's rows; the no-test summary/evidence keep validation's recorded difference."
     },
     "command:ici thread-sanitize": {
       "status": "not_started",
@@ -1819,16 +1871,18 @@
       "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.artifacts": {
-      "status": "not_started",
+      "status": "difference_review",
       "rust_paths": [],
       "fixtures": {
         "positive": [],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "failure": []
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
+      "difference_reason": "Difference (open): artifacts is varied in tests/rust-parity/cpp/binary-compat-oracle.json case unpublished-selection (artifacts=['release:shadow:nope']); frozen reports binary_compat ERROR 'configured artifact was not published: release:shadow:nope' while Rust drops cpp.binary-compat for the python.binary-compat entry and reports SKIP (legacy_binary_compat.rs carve-out)."
     },
     "config_key:legacy:engines.binary_compat.enabled": {
       "status": "complete",
