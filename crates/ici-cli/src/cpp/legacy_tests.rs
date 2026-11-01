@@ -281,8 +281,10 @@ fn map_case_findings(
         .findings
         .iter()
         .filter(|finding| {
-            finding.native_rule_id == "ctest.failed"
-                && finding.primary_location.path == native_path
+            matches!(
+                finding.native_rule_id.as_str(),
+                "ctest.failed" | "make-check.failed"
+            ) && finding.primary_location.path == native_path
                 && finding.message == message
         })
         .map(|finding| finding.fingerprint.clone())
@@ -610,4 +612,53 @@ pub fn legacy_ctest_sanitizer(
         output.summary = skipped_summary.into();
         estimated(output);
     }
+}
+
+/// Frozen `TestEngine._run_cpp_tests_via_adapter` targets for a `make check` run (qmake): one
+/// `[C++] <binary>` per test binary at its resolved test source, PASS "C++ Test Passed", FAIL
+/// "Execution Failed: <message>", a binary that did not run SKIP "Execution skipped: <message>".
+pub fn legacy_make_check_tests(output: &mut AnalysisOutput, root: &Path, descriptor: &str) {
+    let names: BTreeSet<String> = make_check_cases(output)
+        .into_iter()
+        .filter_map(|case| case["name"].as_str().map(str::to_owned))
+        .collect();
+    let mut relocated = vec![];
+    for target in &mut output.targets {
+        if !names.contains(&target.target_name)
+            || !matches!(target.status.as_str(), "PASS" | "FAIL" | "SKIP")
+        {
+            continue;
+        }
+        let name = target.target_name.clone();
+        let native = (target.file_path.clone(), target.message.clone());
+        target.file_path = legacy_test_source(root, &name, descriptor);
+        target.start_line = 1;
+        target.target_name = format!("[C++] {name}");
+        target.message = match target.status.as_str() {
+            "PASS" => "C++ Test Passed".into(),
+            "FAIL" => format!("Execution Failed: {}", target.message),
+            _ if target.message.is_empty() => "Execution skipped: no reason reported".into(),
+            _ => format!("Execution skipped: {}", target.message),
+        };
+        relocated.push((native, name, target.clone()));
+    }
+    for ((path, verdict), name, target) in relocated {
+        map_case_findings(output, &path, &name, &verdict, &target);
+    }
+}
+
+/// The observed `make check` cases of a validation output (top level or one plan's part).
+pub fn make_check_cases(output: &AnalysisOutput) -> Vec<Value> {
+    std::iter::once(&output.extra)
+        .chain(
+            output
+                .extra
+                .as_object()
+                .into_iter()
+                .flat_map(|parts| parts.values()),
+        )
+        .filter_map(|part| part.get("make_check_cases").and_then(Value::as_array))
+        .flatten()
+        .cloned()
+        .collect()
 }

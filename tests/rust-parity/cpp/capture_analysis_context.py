@@ -1,7 +1,8 @@
 """Development-only frozen `ici verify` top-level `analysis_context` captures; never called by Rust.
 
 Runs the frozen CLI over a C++ project (parity-fixtures/cpp/test-cmake/plain), a Python project
-(the two Python files below) and a hybrid project (both) in a git checkout and keeps the
+(the two Python files below), a hybrid project (both) and a CMake project that enables unity
+builds through its cache (parity-fixtures/cpp/unity-cache) in a git checkout and keeps the
 `ici.analysis-context/v1` object of `verify_report.json`. The project root is replaced by `<ROOT>`.
 """
 
@@ -17,11 +18,17 @@ EXPECTED = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-analysis-context"
 CPP = "test-cmake/plain"
+# name: (C++ fixture or None, project type)
+CASES = {
+    "cpp": (CPP, "cpp"),
+    "python": (None, "python"),
+    "hybrid": (CPP, "hybrid"),
+    "cpp-unity": ("unity-cache", "cpp"),
+}
 PYTHON_FILES = {
     "src/app.py": "def add(a, b):\n    return a + b\n",
     "tests/test_app.py": "from app import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
 }
-CASES = ["cpp", "python", "hybrid"]
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
     == EXPECTED
@@ -29,14 +36,14 @@ assert (
 CMAKE = subprocess.check_output(["cmake", "--version"], text=True).splitlines()[0]
 
 
-def run(kind: str) -> dict:
+def run(fixture: str | None, kind: str) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
         project.mkdir()
-        if kind != "python":
-            shutil.copytree(ROOT / "parity-fixtures/cpp" / CPP, project, dirs_exist_ok=True)
+        if fixture is not None:
+            shutil.copytree(ROOT / "parity-fixtures/cpp" / fixture, project, dirs_exist_ok=True)
         if kind != "cpp":
             for name, text in PYTHON_FILES.items():
                 (project / name).parent.mkdir(parents=True, exist_ok=True)
@@ -62,13 +69,14 @@ def run(kind: str) -> dict:
         shutil.rmtree(WORK, ignore_errors=True)
 
 
-cases = {kind: run(kind) for kind in CASES}
+cases = {name: run(fixture, kind) for name, (fixture, kind) in CASES.items()}
 (ROOT / "tests/rust-parity/cpp/analysis-context-oracle.json").write_text(
     json.dumps(
         {
             "oracle": EXPECTED,
             "cmake": CMAKE,
             "cpp_fixture": CPP,
+            "case_projects": {name: list(value) for name, value in CASES.items()},
             "python_files": PYTHON_FILES,
             "cases": cases,
         },

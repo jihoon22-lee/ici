@@ -17,15 +17,19 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
-fn run(oracle: &Value, kind: &str) -> Value {
+fn run(oracle: &Value, name: &str) -> Value {
     let work = tempfile::tempdir().unwrap();
     let root = work.path().join("project");
     fs::create_dir_all(&root).unwrap();
-    if kind != "python" {
+    let (fixture, kind) = (
+        oracle["case_projects"][name][0].as_str(),
+        oracle["case_projects"][name][1].as_str().unwrap(),
+    );
+    if let Some(fixture) = fixture {
         copy_tree(
             &Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("../../parity-fixtures/cpp")
-                .join(oracle["cpp_fixture"].as_str().unwrap()),
+                .join(fixture),
             &root,
         );
     }
@@ -84,9 +88,9 @@ fn digest(value: &Value) -> bool {
 }
 
 /// Checks the run-specific values (commit, digests, shadow paths, sizes) for their shape and
-/// removes them. Recorded differences: ici prepares its shadow builds under `.ici/rust-v1/build`
-/// (frozen `build/ici-cmake*`) without frozen's `-DCMAKE_UNITY_BUILD=OFF`, so `unity_build`
-/// reads the unset cache entry (null, frozen false); digests are the native identities.
+/// removes them. Recorded difference: ici prepares its shadow builds under `.ici/rust-v1/build`
+/// (frozen `build/ici-cmake*`); digests are the native identities. The release analysis
+/// database is configured with frozen's `-DCMAKE_UNITY_BUILD=OFF`, so `unity_build` is compared.
 fn comparable(mut context: Value, name: &str) -> Value {
     assert_eq!(
         context["schema_version"], "ici.analysis-context/v1",
@@ -121,7 +125,6 @@ fn comparable(mut context: Value, name: &str) -> Value {
         assert!(digest(&compilation["database_digest"]), "{name}");
         compilation["database_path"] = json!("<shadow>");
         compilation["database_digest"] = Value::Null;
-        compilation["unity_build"] = Value::Null;
     }
     for unit in compilation["units"].as_array_mut().unwrap() {
         assert!(digest(&unit["configuration"]), "{name}");
@@ -153,6 +156,8 @@ fn comparable(mut context: Value, name: &str) -> Value {
 /// database's units (compiler `[external]`, project-relative sources) and the coverage/sanitize
 /// manifests. Negative: a Python project has no backend, no database (null path, no digest) and
 /// no manifests, but the same standard-profile requested variants. A hybrid project carries both.
+/// A project enabling unity builds through its cache keeps one unit per source with
+/// `unity_build` false: the release analysis database is configured `-DCMAKE_UNITY_BUILD=OFF`.
 #[test]
 #[ignore = "explicit actual CMake/ctest/g++ runs: /usr/bin/cmake (4.2.3), ctest and /usr/bin/g++ must be the captured tools"]
 fn legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid() {
@@ -167,7 +172,15 @@ fn legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid() {
         oracle["cmake"].as_str()
     );
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 3);
+    assert_eq!(cases.len(), 4);
+    assert_eq!(cases["cpp-unity"]["compilation"]["unity_build"], false);
+    assert_eq!(
+        cases["cpp-unity"]["compilation"]["units"]
+            .as_array()
+            .unwrap()
+            .len(),
+        2
+    );
     assert!(cases["python"]["compilation"]["database_path"].is_null());
     assert!(
         cases["python"]["compilation"]

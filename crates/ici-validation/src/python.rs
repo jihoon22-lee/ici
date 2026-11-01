@@ -135,6 +135,9 @@ pub fn observe_for(
             ValidationKind::PythonImports => observe_imports(plan, outcomes, &mut output),
             ValidationKind::Ctest => crate::cpp::observe_ctest(plan, outcomes, &mut output),
             ValidationKind::Qtest => crate::cpp::observe_qtest(plan, outcomes, &mut output),
+            ValidationKind::MakeCheck => {
+                crate::cpp::observe_make_check(plan, outcomes, &mut output)
+            }
             ValidationKind::CppExecutable => {
                 crate::standalone::observe(plan, outcomes, &mut output)
             }

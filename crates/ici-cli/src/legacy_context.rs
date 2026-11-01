@@ -263,16 +263,20 @@ fn unit(value: &Value, root: &Path) -> Value {
             json!({"name": text(name), "value": value})
         })
         .collect();
+    // Frozen `_record_include_value` records only -I/-isystem/-iquote (and MSVC /I) search
+    // directories, each with whether it is a directory; native also keeps -idirafter and
+    // forced includes, which frozen never serialized.
     let include_paths: Vec<Value> = value["include_paths"]
         .as_array()
         .into_iter()
         .flatten()
+        .filter(|item| matches!(item["kind"].as_str(), Some("include" | "system" | "quote")))
         .map(|item| {
             json!({
                 "path": path(item["path"].as_str().unwrap_or_default(), root),
                 "kind": item["kind"],
                 "scope": item["scope"],
-                "exists": item["exists"],
+                "exists": item["present"],
             })
         })
         .collect();
@@ -378,6 +382,8 @@ fn project(prepared: &PreparedPlan, document: &Value, commit: Option<&str>) -> V
         .components
         .iter()
         .flat_map(|component| component.source_dirs.iter().cloned())
+        // Frozen `get_source_dirs` keeps only configured directories that exist.
+        .filter(|directory| crate::files::under(root, directory).is_dir())
         .collect();
     source_dirs.sort();
     source_dirs.dedup();
@@ -511,15 +517,21 @@ fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
         .parent()
         .map(|directory| root.join(directory).join("CMakeCache.txt"))
         .and_then(|path| std::fs::read_to_string(path).ok());
-    let generator = cache
-        .as_deref()
-        .and_then(|cache| {
-            cache.lines().find_map(|line| {
-                line.strip_prefix("CMAKE_GENERATOR:INTERNAL=")
-                    .map(str::to_owned)
+    // Frozen `qmake_context` names its captured database's generator `qmake`; a CMake
+    // database reads the generator from its cache.
+    let generator = if origin == "qmake" {
+        "qmake".to_owned()
+    } else {
+        cache
+            .as_deref()
+            .and_then(|cache| {
+                cache.lines().find_map(|line| {
+                    line.strip_prefix("CMAKE_GENERATOR:INTERNAL=")
+                        .map(str::to_owned)
+                })
             })
-        })
-        .unwrap_or_default();
+            .unwrap_or_default()
+    };
     let unity = cache
         .as_deref()
         .and_then(crate::export_context::cmake_unity_build);

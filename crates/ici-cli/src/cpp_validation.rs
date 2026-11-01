@@ -279,7 +279,9 @@ fn bind_inner(
             "test_argv"
         };
         let argv = suite_argv(component, build, field);
-        if let Some(selected) = argv.first() {
+        if legacy_make_check(project, build) || legacy_make(project, build) {
+            resolve(project, environment, "make", None, &directory)?
+        } else if let Some(selected) = argv.first() {
             executable(
                 project,
                 environment,
@@ -317,6 +319,15 @@ fn bind_inner(
     let mut plans = vec![];
     match kind {
         ValidationKind::Gcov => {
+            if run_request.legacy_profiles {
+                request.source_files =
+                    legacy_coverage_sources(&project.root, &request.source_files)?;
+            }
+            if run_request.legacy_profiles && request.source_files.is_empty() {
+                // Frozen TestEngine measures adapter coverage over the selected production
+                // sources; with none selected it falls back to its fixed estimate.
+                return Err(NO_PRODUCTION_COVERAGE.into());
+            }
             request.options.gcov_capability_probe = true;
             let mut suite = request.clone();
             suite.task_id = format!("{id}.tests");
@@ -330,8 +341,11 @@ fn bind_inner(
                 &mut suite,
             )?;
             let test_selected = selected(project, component, run_request, "cpp.test");
+            // A legacy Make component runs one coverage-variant test command for both checks
+            // (frozen TestEngine uses the coverage session's `coverage_test_argv`).
             let shared = test_selected
-                && (suite_argv(component, build, "coverage_test_argv").is_empty()
+                && (legacy_make(project, build)
+                    || suite_argv(component, build, "coverage_test_argv").is_empty()
                     || suite_argv(component, build, "coverage_test_argv")
                         == suite_argv(component, build, "test_argv"));
             request.options.shared_test_kind = Some(suite.kind);
@@ -395,17 +409,41 @@ fn bind_inner(
             } else {
                 "thread_sanitize_test_argv"
             };
-            let mut argv = suite_argv(component, build, field);
-            if argv.is_empty() && variant == Some(build.variant.as_str()) {
+            let mut make_suite = request.clone();
+            let make_test =
+                configure_make_test(project, component, build, environment, &mut make_suite)?;
+            let make_check = legacy_make_check(project, build) || make_test;
+            let mut argv = if make_check {
+                vec![]
+            } else {
+                suite_argv(component, build, field)
+            };
+            if argv.is_empty() && variant == Some(build.variant.as_str()) && !make_check {
                 argv = suite_argv(component, build, "test_argv");
             }
             validate_argv(&argv)?;
-            if argv.is_empty() && build.system.as_deref() == Some("cmake") {
-                let inventory = directory.join("CTestTestfile.cmake");
-                regular_file(&project.root, &inventory)?;
-                request.tool = resolve(project, environment, "ctest", None, &directory)?;
-                request.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
-                request.targets = vec![relative(&project.root, &inventory)?];
+            if argv.is_empty() && (build.system.as_deref() == Some("cmake") || make_check) {
+                if make_check {
+                    // Frozen sanitizer engines run the qmake `make check` target of the
+                    // instrumented shadow (or the Make backend's configured sanitizer test
+                    // argv in its workdir); every linked executable there is probed.
+                    let mut suite = make_suite;
+                    if !make_test {
+                        configure_make_check(project, environment, &mut suite)?;
+                    }
+                    request.tool = suite.tool;
+                    request.cwd = suite.cwd;
+                    request.targets = suite.targets;
+                    request.options.argv = suite.options.argv;
+                    request.options.make_check_qtest = suite.options.make_check_qtest;
+                    request.options.sanitizer_suite_kind = Some(ValidationKind::MakeCheck);
+                } else {
+                    let inventory = directory.join("CTestTestfile.cmake");
+                    regular_file(&project.root, &inventory)?;
+                    request.tool = resolve(project, environment, "ctest", None, &directory)?;
+                    request.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+                    request.targets = vec![relative(&project.root, &inventory)?];
+                }
                 for path in &artifacts {
                     let absolute = project.root.join(path);
                     if crate::export_context::compiled_artifact_kind(&absolute)?
@@ -431,7 +469,16 @@ fn bind_inner(
                     }
                 }
                 if request.options.instrumented_artifacts.is_empty() {
-                    return Err("CMake sanitizer suite has no declared executable artifacts to prove instrumentation".into());
+                    return Err(format!(
+                        "{} sanitizer suite has no declared executable artifacts to prove instrumentation",
+                        if make_test {
+                            "Make"
+                        } else if make_check {
+                            "qmake"
+                        } else {
+                            "CMake"
+                        }
+                    ));
                 }
             } else {
                 if argv.is_empty() {
@@ -499,6 +546,14 @@ fn configure_suite(
     field: &str,
     request: &mut ValidationRequest,
 ) -> Result<(), String> {
+    if legacy_make_check(project, build) {
+        // Frozen `core/cmake.run_tests` (qmake backend): `make check TESTARGS=-xunitxml` in the
+        // variant shadow runs every `CONFIG += testcase` binary of the SUBDIRS tree.
+        return configure_make_check(project, environment, request);
+    }
+    if configure_make_test(project, component, build, environment, request)? {
+        return Ok(());
+    }
     let mut argv = suite_argv(component, build, field);
     if argv.is_empty() && field == "coverage_test_argv" {
         argv = suite_argv(component, build, "test_argv");
@@ -533,6 +588,118 @@ fn configure_suite(
     }
     Ok(())
 }
+/// A legacy project's undeclared qmake build: frozen tests it through its own `make check`
+/// (never a declared QTest executable, which the legacy configuration cannot name).
+fn legacy_make_check(project: &ResolvedProject, build: &Build) -> bool {
+    project.schema_family == ici_config::SchemaFamily::Legacy
+        && build.system.as_deref() == Some("qmake")
+}
+/// A legacy project's enabled `[build.make]` backend.
+fn legacy_make(project: &ResolvedProject, build: &Build) -> bool {
+    project.schema_family == ici_config::SchemaFamily::Legacy
+        && build.system.as_deref() == Some("make")
+}
+/// Frozen `core/cmake.run_tests` (Make backend): the build variant's
+/// `build.make.<variant>_test_argv` (else `test_argv`) runs in the Make workdir and its
+/// transcript is read by `parse_make_check_stdout` (no xunit merge). Returns false when the
+/// component is not a legacy Make backend or configures no test command.
+fn configure_make_test(
+    project: &ResolvedProject,
+    component: &Component,
+    build: &Build,
+    environment: &BTreeMap<String, String>,
+    request: &mut ValidationRequest,
+) -> Result<bool, String> {
+    if !legacy_make(project, build) {
+        return Ok(false);
+    }
+    let descriptor = build.project.clone().unwrap_or_else(|| "Makefile".into());
+    let settings = ici_cpp::make_settings(
+        crate::export_context::make_table(project, component),
+        &build.variant,
+        Path::new(&descriptor)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Makefile"),
+    )
+    .map_err(|error| format!("Make configuration failed: {}", error.message))?;
+    let Some(selected) = settings.test_argv.first().cloned() else {
+        return Ok(false);
+    };
+    let workdir = crate::files::under(&project.root, &settings.workdir);
+    regular_directory(&project.root, &workdir)?;
+    let name = Path::new(&selected)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or("invalid Make test executable")?;
+    let tool = resolve(
+        project,
+        environment,
+        name,
+        selected
+            .contains('/')
+            .then(|| crate::files::under(&project.root, &selected)),
+        &workdir,
+    )
+    .map_err(|error| format!("configured executable is unavailable: {selected}: {error}"))?;
+    request.kind = ValidationKind::MakeCheck;
+    request.options.make_check_qtest = false;
+    request.options.argv = std::iter::once(tool.path.to_string_lossy().into_owned())
+        .chain(settings.test_argv.into_iter().skip(1))
+        .collect();
+    request.tool = tool;
+    request.cwd = workdir;
+    request.targets = vec![descriptor];
+    Ok(true)
+}
+fn configure_make_check(
+    project: &ResolvedProject,
+    environment: &BTreeMap<String, String>,
+    request: &mut ValidationRequest,
+) -> Result<(), String> {
+    let makefile = request.cwd.join("Makefile");
+    regular_file(&project.root, &makefile).map_err(|error| {
+        format!("qmake Makefile is unavailable: {error}; prepare the declared build first")
+    })?;
+    request.kind = ValidationKind::MakeCheck;
+    request.tool = resolve(project, environment, "make", None, &request.cwd)?;
+    request.targets = vec![relative(&project.root, &makefile)?];
+    request.options.make_check_qtest = true;
+    request.options.argv = vec![
+        request.tool.path.to_string_lossy().into_owned(),
+        "check".into(),
+        "TESTARGS=-xunitxml".into(),
+    ];
+    Ok(())
+}
+/// Frozen `TestEngine` adapter coverage: the selected `project_cpp_sources` (`.cpp`, `.cc`,
+/// `.cxx`, `.c`; headers are a separate input set) that do not define `int main`.
+fn legacy_coverage_sources(root: &Path, sources: &[String]) -> Result<Vec<String>, String> {
+    let mut selected = vec![];
+    for path in sources {
+        if !matches!(
+            Path::new(path)
+                .extension()
+                .and_then(|extension| extension.to_str()),
+            Some("cpp" | "cc" | "cxx" | "c")
+        ) {
+            continue;
+        }
+        let absolute = crate::files::under(root, path);
+        regular_file(root, &absolute)?;
+        let bytes = std::fs::read(&absolute).map_err(|error| format!("{path}: {error}"))?;
+        let input = ici_domain::SourceInput {
+            path: path.clone(),
+            bytes,
+        };
+        if ici_cpp::legacy_main_definition_count(&input).map_err(|error| error.to_string())? == 0 {
+            selected.push(path.clone());
+        }
+    }
+    Ok(selected)
+}
+pub(crate) const NO_PRODUCTION_COVERAGE: &str =
+    "GCOV coverage has no production sources in the configured scope";
 fn suite_argv(component: &Component, build: &Build, field: &str) -> Vec<String> {
     let modern = strings(build.settings.get(field));
     if !modern.is_empty() {

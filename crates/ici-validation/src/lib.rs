@@ -8,6 +8,7 @@ pub mod gcov;
 mod gcov_format;
 pub mod gcov_text;
 pub mod integration;
+pub mod make_check;
 pub mod model;
 pub mod planning;
 pub mod policy;
