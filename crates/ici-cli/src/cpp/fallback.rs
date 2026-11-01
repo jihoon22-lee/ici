@@ -74,6 +74,23 @@ impl CppPlans {
             .iter()
             .filter(|path| ici_cpp::is_translation_unit(path))
             .collect();
+        // Frozen `run_cpp_lint`: more than 2048 selected sources stop before any replay with one
+        // C++SyntaxBudgetError at the project root (the clang tool steps still report).
+        if self.legacy_projection && sources.len() > super::legacy_syntax::MAX_SELECTED_UNITS {
+            let message = "C++ source count exceeds the bounded limit";
+            let mut target = InspectionTarget::at(".", 1);
+            target.target_name = "C++SyntaxBudgetError".into();
+            target.status = "ERROR".into();
+            target.message = message.into();
+            self.legacy_context_errors.insert(
+                id.into(),
+                super::legacy_syntax::Terminal {
+                    targets: vec![target],
+                    errors: vec![message.into()],
+                },
+            );
+            return Ok(Work::Internal);
+        }
         if sources.is_empty() || sources.len() > 2048 {
             return Err(
                 "legacy syntax fallback requires 1..2048 selected translation units".into(),

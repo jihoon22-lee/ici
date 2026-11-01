@@ -4,7 +4,8 @@ Frozen `_cpp_lint` shares one 600 s budget (`_GLOBAL_TIMEOUT_SECONDS`) across ev
 unit of `_run_exact` and `_run_fallback`: a unit gets `min(120 s, remaining)` and once the
 budget is spent the next unit is a `C++SyntaxBudgetError` target and the rest are not run.
 This script runs the frozen CLI with that constant replaced (0 s: spent before the first unit;
-20 s: spent while `slow.cpp` sleeps behind a fake `g++`) over parity-fixtures/cpp/lint-branches.
+20 s: spent while `slow.cpp` sleeps behind a fake `g++`) over parity-fixtures/cpp/lint-branches,
+and one with 2049 generated sources (`run_cpp_lint` source-count bound, nothing replayed).
 Paths are stored as {root} (the project) and {bin} (the fake tool directory).
 """
 
@@ -79,10 +80,13 @@ CASES = {
         20.0,
         {**SLOW, "build/compile_commands.json": json.dumps(DATABASE)},
     ),
+    # 2049 selected sources (src/gen/s<index>.cpp, generated from "generated_sources").
+    "fallback-source-count": ("lint", 600.0, {}),
 }
+GENERATED = {"fallback-source-count": 2049 - len(BRANCHES)}
 
 
-def run(command: str, budget: float, files: dict) -> dict:
+def run(command: str, budget: float, files: dict, generated: int) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -96,6 +100,10 @@ def run(command: str, budget: float, files: dict) -> dict:
         for name, text in files.items():
             (project / name).parent.mkdir(parents=True, exist_ok=True)
             (project / name).write_text(text.replace("{root}", str(project)), encoding="utf-8")
+        if generated:
+            (project / "src/gen").mkdir()
+        for index in range(generated):
+            (project / f"src/gen/s{index}.cpp").write_text(f"int s{index}();\n", encoding="utf-8")
         result = subprocess.run(
             [PYTHON, "-c", LAUNCH, str(budget), command, "--report"],
             cwd=project,
@@ -133,7 +141,8 @@ cases = {
         "command": command,
         "budget_seconds": budget,
         "files": files,
-        "frozen": run(command, budget, files),
+        "generated_sources": GENERATED.get(name, 0),
+        "frozen": run(command, budget, files, GENERATED.get(name, 0)),
     }
     for name, (command, budget, files) in CASES.items()
 }

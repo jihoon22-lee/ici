@@ -396,7 +396,8 @@
       "target_name": "ClazyUnavailable"
      }
     ]
-   }
+   },
+   "generated_sources": 0
   },
   "exact-budget-spent": {
    "budget_seconds": 0.0,
@@ -527,7 +528,8 @@
       "target_name": "ClazyUnavailable"
      }
     ]
-   }
+   },
+   "generated_sources": 0
   },
   "fallback-budget-mid": {
    "budget_seconds": 20.0,
@@ -924,7 +926,8 @@
       "target_name": "ClazyUnavailable"
      }
     ]
-   }
+   },
+   "generated_sources": 0
   },
   "fallback-budget-spent": {
    "budget_seconds": 0.0,
@@ -1055,7 +1058,138 @@
       "target_name": "ClazyUnavailable"
      }
     ]
-   }
+   },
+   "generated_sources": 0
+  },
+  "fallback-source-count": {
+   "budget_seconds": 600.0,
+   "command": "lint",
+   "files": {},
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:38651f4afa806af9772eb14c34080ed7718db01977d01bacb622193debf9d3db",
+      "fixes": [],
+      "message": "C++ source count exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxBudgetError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "C++ source count exceeds the bounded limit",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "C++ source count exceeds the bounded limit",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxBudgetError"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "generated_sources": 2042
   }
  },
  "fake": "#!/bin/sh\ncase \"$*\" in\n  *--version*) exec /usr/bin/g++ \"$@\" ;;\n  *sig.cpp*) kill -KILL $$ ;;\n  *exit3.cpp*) exit 3 ;;\n  *quiet1.cpp*) exit 1 ;;\n  *err0.cpp*) /usr/bin/g++ \"$@\"; exit 0 ;;\n  *warn1.cpp*) /usr/bin/g++ \"$@\"; exit 1 ;;\n  *big.cpp*) head -c 1000001 /dev/zero | tr '\\0' x; exit 0 ;;\n  *slow.cpp*) sleep 60; exit 0 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",

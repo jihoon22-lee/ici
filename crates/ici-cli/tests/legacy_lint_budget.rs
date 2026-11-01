@@ -53,6 +53,17 @@ fn run(oracle: &Value, case: &Value) -> Value {
         )
         .unwrap();
     }
+    let generated = case["generated_sources"].as_u64().unwrap_or(0);
+    if generated > 0 {
+        fs::create_dir_all(root.join("src/gen")).unwrap();
+    }
+    for index in 0..generated {
+        fs::write(
+            root.join(format!("src/gen/s{index}.cpp")),
+            format!("int s{index}();\n"),
+        )
+        .unwrap();
+    }
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
     let environment = BTreeMap::from([(
@@ -112,6 +123,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
 /// Positive: a budget spent while `slow.cpp` runs times that unit out at the remaining budget
 /// (not the 120 s unit limit) and stops before `warn1.cpp` ("left 1 unit(s) unexamined").
 /// Failure: a budget spent before the first unit replays nothing ("left 8 unit(s)").
+/// Failure: 2049 selected sources stop before any replay ('C++ source count exceeds the bounded
+/// limit' at the project root).
 /// Negative: the 600 s budget is not reached by the other lint tests in this crate, whose
 /// frozen outcomes carry no budget target (`legacy_lint_branches.rs`, `legacy_lint.rs`).
 #[test]
@@ -132,7 +145,7 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
         "the budget oracle was captured with another g++"
     );
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 4);
+    assert_eq!(cases.len(), 5);
     let mut mismatches = vec![];
     for (name, case) in cases {
         let actual = run(&oracle, case);

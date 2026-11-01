@@ -6664,7 +6664,7 @@
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/lint-budget-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_budget.py (oracle 6fe3e40 CLI `ici verify --report` with `_cpp_lint._GLOBAL_TIMEOUT_SECONDS` replaced by 0 s and 20 s, fake g++ over /usr/bin/g++ 15.2.0); /tmp/ici-rust-replacement-20261028/w-cpp7-budget-capture.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_budget / legacy_lint_branches / legacy_lint --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-budget-rust.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_budget (5 cases incl. 2049 sources) / legacy_lint_branches / legacy_lint --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-budget-rust.log"
       ],
       "comparison": "Frozen `_run_exact` global time budget: one 600 s deadline for every selected unit in frozen (source, directory, configuration) order, checked before each unit (also units that are not replayed); a replayed unit runs with min(120 s, remaining); when the budget is spent that unit is one C++SyntaxBudgetError ERROR at its source 'C++ syntax global time budget left <n> unit(s) unexamined' (n counts it and every later unit), the LintEngine tool error with the same text, and no later unit runs or adds targets/tool evidence. Native runs the legacy syntax replays one at a time under the same deadline (the 600 s constant, replaceable only by the in-process test hook). Lint engine status, summary, evidence, targets and adapted findings equal frozen for a budget spent before the first unit (left 8) and one spent while slow.cpp runs (slow.cpp times out at the remaining budget, warn1.cpp left 1); without a budget hit (legacy_lint_branches, legacy_lint) no budget target appears.",
       "difference_reason": null
@@ -6715,7 +6715,7 @@
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/lint-budget-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_budget.py (oracle 6fe3e40 CLI `ici lint --report` with `_cpp_lint._GLOBAL_TIMEOUT_SECONDS` replaced by 0 s and 20 s, fake g++ over /usr/bin/g++ 15.2.0); /tmp/ici-rust-replacement-20261028/w-cpp7-budget-capture.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_budget / legacy_lint_branches / legacy_lint --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-budget-rust.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_budget (5 cases incl. 2049 sources) / legacy_lint_branches / legacy_lint --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-budget-rust.log"
       ],
       "comparison": "Frozen `_run_fallback` global time budget (c++17 heuristic fallback of `ici lint`): the same 600 s deadline over the selected sources in order, min(120 s, remaining) per source, and on exhaustion one C++SyntaxBudgetError ERROR at the source 'C++ syntax global time budget left <n> unit(s) unexamined' plus the tool error, after which nothing runs. Native fallback runs the sources one at a time under the same deadline. Status, summary, exit code, evidence, targets and adapted findings equal frozen for a spent (left 8) and a mid-run (slow.cpp timed out, warn1.cpp left 1) budget; frozen also records clang-tidy/Clazy 'analysis context unavailable' tool evidence in this context-free run (first engine tool of the adapted findings when no g++ ran), which native now records.",
       "difference_reason": null
@@ -6781,16 +6781,28 @@
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:604:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/fallback.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint_budget.rs::legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evidence"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_budget.rs::legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evidence"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:604); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/lint-budget-oracle.json case fallback-source-count (capture_lint_budget.py, oracle 6fe3e40 `ici lint --report` over 2049 generated sources); /tmp/ici-rust-replacement-20261028/w-cpp7-budget-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_budget --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-budget-rust.log"
+      ],
+      "comparison": "Frozen `run_cpp_lint` source-count bound in the c++17 heuristic fallback (`ici lint`): more than 2048 selected C++ sources give one C++SyntaxBudgetError ERROR at '.' 'C++ source count exceeds the bounded limit' and the LintEngine tool error, nothing is replayed, and the clang tool steps still add their unavailable targets; status, summary, exit code, evidence, targets and adapted findings equal frozen (native previously blocked the whole check). Seven sources (lint-branches) stay under the bound.",
+      "difference_reason": "Open facet: the same bound with a recorded compilation database (exact mode) is not captured."
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:144:11": {
       "status": "not_started",
