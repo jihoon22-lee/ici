@@ -635,8 +635,25 @@ fn package_and_wheel_contracts_match_frozen_findings_targets_and_metadata() {
         "../../../tests/rust-parity/python/package.json"
     ))
     .unwrap();
+    // F3: frozen structure refusals package.json lacks (capture_wheel_structure.py).
+    let structure: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/python/wheel-structure.json"
+    ))
+    .unwrap();
+    assert_eq!(structure["oracle_files"], fixture["oracle_files"]);
+    let structure_ids: Vec<_> = structure["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|case| case["id"].clone())
+        .collect();
     let mut differences = vec![];
-    for case in fixture["cases"].as_array().unwrap() {
+    for case in fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .chain(structure["cases"].as_array().unwrap())
+    {
         let mut input = request("compat", "");
         input.options = case["options"].clone();
         input.options["package_inspection"] = json!(true);
@@ -696,11 +713,25 @@ fn package_and_wheel_contracts_match_frozen_findings_targets_and_metadata() {
             assert_eq!(output.extra["package_evidence"]["invalid"], json!(1));
             continue;
         }
-        if case.get("original_error").is_some() {
+        if let Some(error) = case.get("original_error") {
             if output.observation.state != TaskState::Failed || output.status != "ERROR" {
                 differences.push(format!(
                     "{}: expected incomplete metadata/policy, got{} {:?}",
                     case["id"], output.status, output.observation.limitations
+                ));
+            }
+            // The structure golden also pins the frozen refusal text.
+            let message = error["message"].as_str().unwrap_or_default();
+            if structure_ids.contains(&case["id"])
+                && !output
+                    .observation
+                    .limitations
+                    .iter()
+                    .any(|limitation| limitation.contains(message))
+            {
+                differences.push(format!(
+                    "{}: refusal text {message:?} missing from {:?}",
+                    case["id"], output.observation.limitations
                 ));
             }
             continue;

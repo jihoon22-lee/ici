@@ -554,7 +554,9 @@ fn shape_engine(
                     .cloned()
             })
             .unwrap_or_default();
-        replaced = crate::legacy_python_compat::shape(value, &settings).map_err(error)?;
+        let compile_targets = crate::legacy_python_compat::compile_target_count(&prepared.project);
+        replaced =
+            crate::legacy_python_compat::shape(value, &settings, compile_targets).map_err(error)?;
     } else if family == "lint" && legacy_schema && ruff_unavailable(value) {
         // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
         // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under

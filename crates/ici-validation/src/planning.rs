@@ -177,6 +177,10 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
             metadata.kind = TaskKind::Probe;
             metadata.timeout_seconds = Some(5.0);
             metadata.output_limit_bytes = Some(64 * 1024);
+            if request.options.legacy_runtime_bounds {
+                metadata.timeout_seconds = Some(10.0);
+                metadata.output_limit_bytes = Some(8192);
+            }
             let metadata_id = metadata.id.clone();
             plan.tasks.push(metadata);
             if request.options.compile_sources {
@@ -221,6 +225,10 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
                         .into_owned(),
                 );
                 compile.timeout_seconds = Some(120.0);
+                if request.options.legacy_runtime_bounds {
+                    compile.timeout_seconds = Some(60.0);
+                    compile.output_limit_bytes = Some(128_000);
+                }
                 plan.prerequisites.insert(
                     compile.id.clone(),
                     vec![StepPrerequisite {
@@ -276,6 +284,9 @@ pub fn plan(request: &ValidationRequest) -> Result<ValidationPlan, ValidationErr
             );
             imports.timeout_seconds = Some(30.0);
             imports.output_limit_bytes = Some(1024 * 1024);
+            if request.options.legacy_runtime_bounds {
+                imports.output_limit_bytes = Some(128_000);
+            }
             imports.kind = TaskKind::Test;
             plan.tasks.push(imports);
             plan.limitations.push("explicit imports execute module initialization; module main entry points are not invoked".into());

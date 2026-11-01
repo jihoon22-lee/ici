@@ -1,0 +1,341 @@
+{
+ "cases": [
+  {
+   "artifacts": {
+    "dist/demo-1.2.3-py3-none-any.whl": "UEsDBBQAAAAAAHE7Yl0VD8SATgAAAE4AAAAaAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vV0hFRUxXaGVlbC1WZXJzaW9uOiAxLjAKR2VuZXJhdG9yOiBmaXh0dXJlClJvb3QtSXMtUHVyZWxpYjogdHJ1ZQpUYWc6IHB5My1ub25lLWFueQpQSwMEFAAAAAAAcTtiXbxM+TUbAAAAGwAAAB0AAABkZW1vLTEuMi4zLmRpc3QtaW5mby9NRVRBREFUQU5hbWU6IGRlbW//ClZlcnNpb246IDEuMi4zClBLAwQUAAAAAABxO2JdZKRmEwoAAAAKAAAAEAAAAGRlbW8vX19pbml0X18ucHlWQUxVRSA9IDEKUEsDBBQAAAAAAHE7Yl0r/tXCGQAAABkAAAALAAAAZGVtby9jbGkucHlkZWYgbWFpbigpOgogICAgcmV0dXJuIDAKUEsDBBQAAAAAAHE7Yl0MSHqkJwAAACcAAAAlAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dFtjb25zb2xlX3NjcmlwdHNdCmRlbW8gPSBkZW1vLmNsaTptYWluClBLAwQUAAAAAABxO2Jdh44vOagBAACoAQAAGwAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL1JFQ09SRGRlbW8tMS4yLjMuZGlzdC1pbmZvL1dIRUVMLHNoYTI1Nj1kdDZIcGlhTFEtcndwMlhVRjV0MU4wMVYwWGpaVHVqT2luN0tHNzM3YzFnLDc4CmRlbW8tMS4yLjMuZGlzdC1pbmZvL01FVEFEQVRBLHNoYTI1Nj1wdUM0REVBZGxQckRXSDdHTmc1STJidy1QY251ajN4YXNpYWltcWVScEw4LDI3CmRlbW8vX19pbml0X18ucHksc2hhMjU2PTRUMzR4RXIxM3FIa0VrQTVFTG1jeGFTUExNdjJpbWF6TjAxcXVjNzVfR1UsMTAKZGVtby9jbGkucHksc2hhMjU2PUVFUHZVdWl5RkZPQ05vclA0eVJISVBNWjlUbWxUeFZDcWNQSVYtMDlJUkUsMjUKZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dCxzaGEyNTY9U0JlT1lDQ0VNcDRDQk1RVFFjU0dTeF90NXNCUmx4VVVJNUpqX0h6UmZmYywzOQpkZW1vLTEuMi4zLmRpc3QtaW5mby9SRUNPUkQsLApQSwECFAMUAAAAAABxO2JdFQ/EgE4AAABOAAAAGgAAAAAAAAAAAAAAgAEAAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vV0hFRUxQSwECFAMUAAAAAABxO2JdvEz5NRsAAAAbAAAAHQAAAAAAAAAAAAAAgAGGAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vTUVUQURBVEFQSwECFAMUAAAAAABxO2JdZKRmEwoAAAAKAAAAEAAAAAAAAAAAAAAAgAHcAAAAZGVtby9fX2luaXRfXy5weVBLAQIUAxQAAAAAAHE7Yl0r/tXCGQAAABkAAAALAAAAAAAAAAAAAACAARQBAABkZW1vL2NsaS5weVBLAQIUAxQAAAAAAHE7Yl0MSHqkJwAAACcAAAAlAAAAAAAAAAAAAACAAVYBAABkZW1vLTEuMi4zLmRpc3QtaW5mby9lbnRyeV9wb2ludHMudHh0UEsBAhQDFAAAAAAAcTtiXYeOLzmoAQAAqAEAABsAAAAAAAAAAAAAAIABwAEAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL1JFQ09SRFBLBQYAAAAABgAGAKYBAAChAwAAAAA="
+   },
+   "id": "wheel-metadata-not-utf8",
+   "options": {
+    "wheel_globs": [
+     "dist/*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original": {
+    "failures": 1,
+    "findings": [
+     {
+      "category": "compatibility",
+      "confidence": "exact",
+      "fingerprint": "sha256:bb3b03d2ca61a561635f79d50721adfd53e3e9f712393a31d0065ba485940949",
+      "line": 1,
+      "message": "Wheel could not be inspected safely: wheel metadata is not UTF-8: demo-1.2.3.dist-info/METADATA",
+      "native_rule_id": "wheel.structure",
+      "path": "dist/demo-1.2.3-py3-none-any.whl",
+      "rule_id": "ici.package.wheel-invalid",
+      "severity": "high"
+     }
+    ],
+    "metadata": {
+     "attempted": 1,
+     "checked": 0,
+     "entrypoints": 1,
+     "findings": [
+      "ici.package.wheel-invalid"
+     ],
+     "invalid": 1,
+     "members": 0,
+     "policy": "pure",
+     "pure": false,
+     "requested": [
+      "dist/*.whl"
+     ],
+     "source_modules": 2,
+     "source_package_files": 2,
+     "state": "MEASURED",
+     "uncompressed_bytes": 0,
+     "wheels": []
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "pyproject.toml",
+      "message": "Package contract inspection completed",
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Package:SourceMetadata"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "dist/demo-1.2.3-py3-none-any.whl",
+      "message": "Package inspection found 1 issue(s)",
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Package:Wheel"
+     }
+    ],
+    "warnings": 0
+   },
+   "pyproject": "[project]\nname = \"demo\"\nversion = \"1.2.3\"\nrequires-python = \">=3.10\"\n[project.scripts]\ndemo = \"demo.cli:main\"\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  },
+  {
+   "artifacts": {
+    "dist/demo-1.2.3-py3-none-any.whl": "UEsDBBQAAAAAAHE7Yl0VD8SATgAAAE4AAAAaAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vV0hFRUxXaGVlbC1WZXJzaW9uOiAxLjAKR2VuZXJhdG9yOiBmaXh0dXJlClJvb3QtSXMtUHVyZWxpYjogdHJ1ZQpUYWc6IHB5My1ub25lLWFueQpQSwMEFAAAAAAAcTtiXRY0GDUaAAAAGgAAAB0AAABkZW1vLTEuMi4zLmRpc3QtaW5mby9NRVRBREFUQU5hbWU6IGRlbW8KVmVyc2lvbjogMS4yLjMKUEsDBBQAAAAAAHE7Yl1kpGYTCgAAAAoAAAAQAAAAZGVtby9fX2luaXRfXy5weVZBTFVFID0gMQpQSwMEFAAAAAAAcTtiXSv+1cIZAAAAGQAAAAsAAABkZW1vL2NsaS5weWRlZiBtYWluKCk6CiAgICByZXR1cm4gMApQSwMEFAAAAAAAcTtiXQxIeqQnAAAAJwAAACUAAABkZW1vLTEuMi4zLmRpc3QtaW5mby9lbnRyeV9wb2ludHMudHh0W2NvbnNvbGVfc2NyaXB0c10KZGVtbyA9IGRlbW8uY2xpOm1haW4KUEsDBBQAAAAAAHE7Yl0fCOpGAgAAAAIAAAAZAAAAZXh0cmEtMS4wLmRpc3QtaW5mby9OT1RFU3gKUEsDBBQAAAAAAHE7Yl3uMKmn9wEAAPcBAAAbAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vUkVDT1JEZGVtby0xLjIuMy5kaXN0LWluZm8vV0hFRUwsc2hhMjU2PWR0NkhwaWFMUS1yd3AyWFVGNXQxTjAxVjBYalpUdWpPaW43S0c3MzdjMWcsNzgKZGVtby0xLjIuMy5kaXN0LWluZm8vTUVUQURBVEEsc2hhMjU2PURUamNmWlJrQnREdmlBWWJEUmxySGtPNnRNdjRwOEZlODQ4a3hodWVmMnMsMjYKZGVtby9fX2luaXRfXy5weSxzaGEyNTY9NFQzNHhFcjEzcUhrRWtBNUVMbWN4YVNQTE12MmltYXpOMDFxdWM3NV9HVSwxMApkZW1vL2NsaS5weSxzaGEyNTY9RUVQdlV1aXlGRk9DTm9yUDR5UkhJUE1aOVRtbFR4VkNxY1BJVi0wOUlSRSwyNQpkZW1vLTEuMi4zLmRpc3QtaW5mby9lbnRyeV9wb2ludHMudHh0LHNoYTI1Nj1TQmVPWUNDRU1wNENCTVFUUWNTR1N4X3Q1c0JSbHhVVUk1SmpfSHpSZmZjLDM5CmV4dHJhLTEuMC5kaXN0LWluZm8vTk9URVMsc2hhMjU2PWM4czRXS2FIcUVsTW96SXdVd0ZpZ3ZQYTA1MUN6MkxLVG5uZG9xckgyYXcsMgpkZW1vLTEuMi4zLmRpc3QtaW5mby9SRUNPUkQsLApQSwECFAMUAAAAAABxO2JdFQ/EgE4AAABOAAAAGgAAAAAAAAAAAAAAgAEAAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vV0hFRUxQSwECFAMUAAAAAABxO2JdFjQYNRoAAAAaAAAAHQAAAAAAAAAAAAAAgAGGAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vTUVUQURBVEFQSwECFAMUAAAAAABxO2JdZKRmEwoAAAAKAAAAEAAAAAAAAAAAAAAAgAHbAAAAZGVtby9fX2luaXRfXy5weVBLAQIUAxQAAAAAAHE7Yl0r/tXCGQAAABkAAAALAAAAAAAAAAAAAACAARMBAABkZW1vL2NsaS5weVBLAQIUAxQAAAAAAHE7Yl0MSHqkJwAAACcAAAAlAAAAAAAAAAAAAACAAVUBAABkZW1vLTEuMi4zLmRpc3QtaW5mby9lbnRyeV9wb2ludHMudHh0UEsBAhQDFAAAAAAAcTtiXR8I6kYCAAAAAgAAABkAAAAAAAAAAAAAAIABvwEAAGV4dHJhLTEuMC5kaXN0LWluZm8vTk9URVNQSwECFAMUAAAAAABxO2Jd7jCpp/cBAAD3AQAAGwAAAAAAAAAAAAAAgAH4AQAAZGVtby0xLjIuMy5kaXN0LWluZm8vUkVDT1JEUEsFBgAAAAAHAAcA7QEAACgEAAAAAA=="
+   },
+   "id": "wheel-two-dist-info-directories",
+   "options": {
+    "wheel_globs": [
+     "dist/*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original": {
+    "failures": 1,
+    "findings": [
+     {
+      "category": "compatibility",
+      "confidence": "exact",
+      "fingerprint": "sha256:bb3b03d2ca61a561635f79d50721adfd53e3e9f712393a31d0065ba485940949",
+      "line": 1,
+      "message": "Wheel could not be inspected safely: wheel must contain exactly one .dist-info directory: dist/demo-1.2.3-py3-none-any.whl",
+      "native_rule_id": "wheel.structure",
+      "path": "dist/demo-1.2.3-py3-none-any.whl",
+      "rule_id": "ici.package.wheel-invalid",
+      "severity": "high"
+     }
+    ],
+    "metadata": {
+     "attempted": 1,
+     "checked": 0,
+     "entrypoints": 1,
+     "findings": [
+      "ici.package.wheel-invalid"
+     ],
+     "invalid": 1,
+     "members": 0,
+     "policy": "pure",
+     "pure": false,
+     "requested": [
+      "dist/*.whl"
+     ],
+     "source_modules": 2,
+     "source_package_files": 2,
+     "state": "MEASURED",
+     "uncompressed_bytes": 0,
+     "wheels": []
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "pyproject.toml",
+      "message": "Package contract inspection completed",
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Package:SourceMetadata"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "dist/demo-1.2.3-py3-none-any.whl",
+      "message": "Package inspection found 1 issue(s)",
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Package:Wheel"
+     }
+    ],
+    "warnings": 0
+   },
+   "pyproject": "[project]\nname = \"demo\"\nversion = \"1.2.3\"\nrequires-python = \">=3.10\"\n[project.scripts]\ndemo = \"demo.cli:main\"\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  },
+  {
+   "artifacts": {
+    "dist/demo-1.2.3-py3-none-any.whl": "UEsDBBQAAAAAAHE7Yl0VD8SATgAAAE4AAAAeAAAAbGliL2RlbW8tMS4yLjMuZGlzdC1pbmZvL1dIRUVMV2hlZWwtVmVyc2lvbjogMS4wCkdlbmVyYXRvcjogZml4dHVyZQpSb290LUlzLVB1cmVsaWI6IHRydWUKVGFnOiBweTMtbm9uZS1hbnkKUEsDBBQAAAAAAHE7Yl0WNBg1GgAAABoAAAAhAAAAbGliL2RlbW8tMS4yLjMuZGlzdC1pbmZvL01FVEFEQVRBTmFtZTogZGVtbwpWZXJzaW9uOiAxLjIuMwpQSwMEFAAAAAAAcTtiXWSkZhMKAAAACgAAABAAAABkZW1vL19faW5pdF9fLnB5VkFMVUUgPSAxClBLAwQUAAAAAABxO2JdK/7VwhkAAAAZAAAACwAAAGRlbW8vY2xpLnB5ZGVmIG1haW4oKToKICAgIHJldHVybiAwClBLAwQUAAAAAABxO2JdDEh6pCcAAAAnAAAAKQAAAGxpYi9kZW1vLTEuMi4zLmRpc3QtaW5mby9lbnRyeV9wb2ludHMudHh0W2NvbnNvbGVfc2NyaXB0c10KZGVtbyA9IGRlbW8uY2xpOm1haW4KUEsDBBQAAAAAAHE7Yl2T5ZhuuAEAALgBAAAfAAAAbGliL2RlbW8tMS4yLjMuZGlzdC1pbmZvL1JFQ09SRGxpYi9kZW1vLTEuMi4zLmRpc3QtaW5mby9XSEVFTCxzaGEyNTY9ZHQ2SHBpYUxRLXJ3cDJYVUY1dDFOMDFWMFhqWlR1ak9pbjdLRzczN2MxZyw3OApsaWIvZGVtby0xLjIuMy5kaXN0LWluZm8vTUVUQURBVEEsc2hhMjU2PURUamNmWlJrQnREdmlBWWJEUmxySGtPNnRNdjRwOEZlODQ4a3hodWVmMnMsMjYKZGVtby9fX2luaXRfXy5weSxzaGEyNTY9NFQzNHhFcjEzcUhrRWtBNUVMbWN4YVNQTE12MmltYXpOMDFxdWM3NV9HVSwxMApkZW1vL2NsaS5weSxzaGEyNTY9RUVQdlV1aXlGRk9DTm9yUDR5UkhJUE1aOVRtbFR4VkNxY1BJVi0wOUlSRSwyNQpsaWIvZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dCxzaGEyNTY9U0JlT1lDQ0VNcDRDQk1RVFFjU0dTeF90NXNCUmx4VVVJNUpqX0h6UmZmYywzOQpsaWIvZGVtby0xLjIuMy5kaXN0LWluZm8vUkVDT1JELCwKUEsBAhQDFAAAAAAAcTtiXRUPxIBOAAAATgAAAB4AAAAAAAAAAAAAAIABAAAAAGxpYi9kZW1vLTEuMi4zLmRpc3QtaW5mby9XSEVFTFBLAQIUAxQAAAAAAHE7Yl0WNBg1GgAAABoAAAAhAAAAAAAAAAAAAACAAYoAAABsaWIvZGVtby0xLjIuMy5kaXN0LWluZm8vTUVUQURBVEFQSwECFAMUAAAAAABxO2JdZKRmEwoAAAAKAAAAEAAAAAAAAAAAAAAAgAHjAAAAZGVtby9fX2luaXRfXy5weVBLAQIUAxQAAAAAAHE7Yl0r/tXCGQAAABkAAAALAAAAAAAAAAAAAACAARsBAABkZW1vL2NsaS5weVBLAQIUAxQAAAAAAHE7Yl0MSHqkJwAAACcAAAApAAAAAAAAAAAAAACAAV0BAABsaWIvZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dFBLAQIUAxQAAAAAAHE7Yl2T5ZhuuAEAALgBAAAfAAAAAAAAAAAAAACAAcsBAABsaWIvZGVtby0xLjIuMy5kaXN0LWluZm8vUkVDT1JEUEsFBgAAAAAGAAYAtgEAAMADAAAAAA=="
+   },
+   "id": "wheel-nested-dist-info-directory",
+   "options": {
+    "wheel_globs": [
+     "dist/*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original": {
+    "failures": 1,
+    "findings": [
+     {
+      "category": "compatibility",
+      "confidence": "exact",
+      "fingerprint": "sha256:bb3b03d2ca61a561635f79d50721adfd53e3e9f712393a31d0065ba485940949",
+      "line": 1,
+      "message": "Wheel could not be inspected safely: wheel .dist-info directory must be at the archive root: dist/demo-1.2.3-py3-none-any.whl",
+      "native_rule_id": "wheel.structure",
+      "path": "dist/demo-1.2.3-py3-none-any.whl",
+      "rule_id": "ici.package.wheel-invalid",
+      "severity": "high"
+     }
+    ],
+    "metadata": {
+     "attempted": 1,
+     "checked": 0,
+     "entrypoints": 1,
+     "findings": [
+      "ici.package.wheel-invalid"
+     ],
+     "invalid": 1,
+     "members": 0,
+     "policy": "pure",
+     "pure": false,
+     "requested": [
+      "dist/*.whl"
+     ],
+     "source_modules": 2,
+     "source_package_files": 2,
+     "state": "MEASURED",
+     "uncompressed_bytes": 0,
+     "wheels": []
+    },
+    "targets": [
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "pyproject.toml",
+      "message": "Package contract inspection completed",
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Package:SourceMetadata"
+     },
+     {
+      "end_column": null,
+      "end_line": null,
+      "file_path": "dist/demo-1.2.3-py3-none-any.whl",
+      "message": "Package inspection found 1 issue(s)",
+      "snippet": "",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Package:Wheel"
+     }
+    ],
+    "warnings": 0
+   },
+   "pyproject": "[project]\nname = \"demo\"\nversion = \"1.2.3\"\nrequires-python = \">=3.10\"\n[project.scripts]\ndemo = \"demo.cli:main\"\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  },
+  {
+   "artifacts": {},
+   "id": "pyproject-project-not-table",
+   "options": {
+    "wheel_globs": [
+     "dist/*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original_error": {
+    "message": "pyproject.toml [project] must be a table",
+    "type": "PythonPackagingError"
+   },
+   "pyproject": "project = 1\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  },
+  {
+   "artifacts": {},
+   "id": "pyproject-version-not-string",
+   "options": {
+    "wheel_globs": [
+     "dist/*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original_error": {
+    "message": "project.version must be a string",
+    "type": "PythonPackagingError"
+   },
+   "pyproject": "[project]\nname = \"demo\"\nversion = 1\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  },
+  {
+   "artifacts": {},
+   "id": "wheel-glob-absolute",
+   "options": {
+    "wheel_globs": [
+     "/abs/*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original_error": {
+    "message": "wheel glob must be project-relative and contained: '/abs/*.whl'",
+    "type": "PythonPackagingError"
+   },
+   "pyproject": "[project]\nname = \"demo\"\nversion = \"1.2.3\"\nrequires-python = \">=3.10\"\n[project.scripts]\ndemo = \"demo.cli:main\"\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  },
+  {
+   "artifacts": {},
+   "id": "wheel-glob-parent",
+   "options": {
+    "wheel_globs": [
+     "../*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original_error": {
+    "message": "wheel glob must be project-relative and contained: '../*.whl'",
+    "type": "PythonPackagingError"
+   },
+   "pyproject": "[project]\nname = \"demo\"\nversion = \"1.2.3\"\nrequires-python = \">=3.10\"\n[project.scripts]\ndemo = \"demo.cli:main\"\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  },
+  {
+   "artifacts": {
+    "dist/demo-1.2.3-py3-none-any.whl": "UEsDBBQAAAAIAAAAIVAVD8SATgAAAE4AAAAaAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vV0hFRUwLz0hNzdENSy0qzszPs1Iw1DPgck/NSy1KLMkvslJIy6woKS1K5QrKzy/R9SzWDQBycjKTrBRKikpTuUIS060UCiqNdfPy81J1E/MquQBQSwMEFAAAAAgAAAAhUBY0GDUcAAAAGgAAAB0AAABkZW1vLTEuMi4zLmRpc3QtaW5mby9NRVRBREFUQfNLzE21UkhJzc3nCkstKs7Mz7NSMNQz0jPmAgBQSwMEFAAAAAgAAAAhUGSkZhMMAAAACgAAABAAAABkZW1vL19faW5pdF9fLnB5C3P0CXVVsFUw5AIAUEsDBBQAAAAIAAAAIVB6/bIlEwAAABEAAAALAAAAZGVtby9jbGkucHlLSU1TyE3MzNPQtFIoSCwu5gIAUEsDBBQAAAAIAAAAIVAMWirtJAAAACUAAAAlAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dItOzs8rzs9JjS9OLsosKCmO5UpJzc23BRF6yTmZVrmJmXlcAFBLAwQUAAAACAAAACFQSR+/PSgBAACoAQAAGwAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL1JFQ09SRHXPy3KCMABA0b3fEpHwdtEFlQCtqAWxiJsMhocBQYSA4Ne3044zXdgfOHNvnJSXKeQETuRi2rIprdLLLLARckB7igRZeYmZYtc0ctxpc6uF/c6UGVzz8JPf5we/yze0UpeWKqoEZkDVJvEzcIV83dB9/WEafk7Sg1e8MqOneng0vHNjFxuFrXqp1sxEk7RiOHVJKrRAUH7MGca0ogxjrh4fjOSL0oAaKF7tAhW6jJySDNH2w1n1Ai2j+3fmtSOqjK0dgPwvQ870jzB2kp8aebO/bm9ewEtBGDXwPU6phoo31woJWtJ7GyysngdQfT6XVKwZcX2hFWs5NrCHfSrKzhyOdDyH42K+JvNjxwc318wzDEm27kQnzPBGcJu7C8R/bA8tNp4BwOQLUEsBAhQDFAAAAAgAAAAhUBUPxIBOAAAATgAAABoAAAAAAAAAAAAAAKSBAAAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL1dIRUVMUEsBAhQDFAAAAAgAAAAhUBY0GDUcAAAAGgAAAB0AAAAAAAAAAAAAAKSBhgAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL01FVEFEQVRBUEsBAhQDFAAAAAgAAAAhUGSkZhMMAAAACgAAABAAAAAAAAAAAAAAAKSB3QAAAGRlbW8vX19pbml0X18ucHlQSwECFAMUAAAACAAAACFQev2yJRMAAAARAAAACwAAAAAAAAAAAAAApIEXAQAAZGVtby9jbGkucHlQSwECFAMUAAAACAAAACFQDFoq7SQAAAAlAAAAJQAAAAAAAAAAAAAApIFTAQAAZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dFBLAQIUAxQAAAAIAAAAIVBJH789KAEAAKgBAAAbAAAAAAAAAAAAAACkgboBAABkZW1vLTEuMi4zLmRpc3QtaW5mby9SRUNPUkRQSwUGAAAAAAYABgCmAQAAGwMAAAAA",
+    "dist/demo-1.2.4-py3-none-any.whl": "UEsDBBQAAAAIAAAAIVAVD8SATgAAAE4AAAAaAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vV0hFRUwLz0hNzdENSy0qzszPs1Iw1DPgck/NSy1KLMkvslJIy6woKS1K5QrKzy/R9SzWDQBycjKTrBRKikpTuUIS060UCiqNdfPy81J1E/MquQBQSwMEFAAAAAgAAAAhUBY0GDUcAAAAGgAAAB0AAABkZW1vLTEuMi4zLmRpc3QtaW5mby9NRVRBREFUQfNLzE21UkhJzc3nCkstKs7Mz7NSMNQz0jPmAgBQSwMEFAAAAAgAAAAhUGSkZhMMAAAACgAAABAAAABkZW1vL19faW5pdF9fLnB5C3P0CXVVsFUw5AIAUEsDBBQAAAAIAAAAIVB6/bIlEwAAABEAAAALAAAAZGVtby9jbGkucHlLSU1TyE3MzNPQtFIoSCwu5gIAUEsDBBQAAAAIAAAAIVAMWirtJAAAACUAAAAlAAAAZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dItOzs8rzs9JjS9OLsosKCmO5UpJzc23BRF6yTmZVrmJmXlcAFBLAwQUAAAACAAAACFQSR+/PSgBAACoAQAAGwAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL1JFQ09SRHXPy3KCMABA0b3fEpHwdtEFlQCtqAWxiJsMhocBQYSA4Ne3044zXdgfOHNvnJSXKeQETuRi2rIprdLLLLARckB7igRZeYmZYtc0ctxpc6uF/c6UGVzz8JPf5we/yze0UpeWKqoEZkDVJvEzcIV83dB9/WEafk7Sg1e8MqOneng0vHNjFxuFrXqp1sxEk7RiOHVJKrRAUH7MGca0ogxjrh4fjOSL0oAaKF7tAhW6jJySDNH2w1n1Ai2j+3fmtSOqjK0dgPwvQ870jzB2kp8aebO/bm9ewEtBGDXwPU6phoo31woJWtJ7GyysngdQfT6XVKwZcX2hFWs5NrCHfSrKzhyOdDyH42K+JvNjxwc318wzDEm27kQnzPBGcJu7C8R/bA8tNp4BwOQLUEsBAhQDFAAAAAgAAAAhUBUPxIBOAAAATgAAABoAAAAAAAAAAAAAAKSBAAAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL1dIRUVMUEsBAhQDFAAAAAgAAAAhUBY0GDUcAAAAGgAAAB0AAAAAAAAAAAAAAKSBhgAAAGRlbW8tMS4yLjMuZGlzdC1pbmZvL01FVEFEQVRBUEsBAhQDFAAAAAgAAAAhUGSkZhMMAAAACgAAABAAAAAAAAAAAAAAAKSB3QAAAGRlbW8vX19pbml0X18ucHlQSwECFAMUAAAACAAAACFQev2yJRMAAAARAAAACwAAAAAAAAAAAAAApIEXAQAAZGVtby9jbGkucHlQSwECFAMUAAAACAAAACFQDFoq7SQAAAAlAAAAJQAAAAAAAAAAAAAApIFTAQAAZGVtby0xLjIuMy5kaXN0LWluZm8vZW50cnlfcG9pbnRzLnR4dFBLAQIUAxQAAAAIAAAAIVBJH789KAEAAKgBAAAbAAAAAAAAAAAAAACkgboBAABkZW1vLTEuMi4zLmRpc3QtaW5mby9SRUNPUkRQSwUGAAAAAAYABgCmAQAAGwMAAAAA"
+   },
+   "id": "wheel-match-count-bound",
+   "options": {
+    "max_wheels": 1,
+    "wheel_globs": [
+     "dist/*.whl"
+    ],
+    "wheel_policy": "pure"
+   },
+   "original_error": {
+    "message": "wheel match count exceeds the configured bound",
+    "type": "PythonPackagingError"
+   },
+   "pyproject": "[project]\nname = \"demo\"\nversion = \"1.2.3\"\nrequires-python = \">=3.10\"\n[project.scripts]\ndemo = \"demo.cli:main\"\n",
+   "sources": {
+    "src/demo/__init__.py": "VALUE = 1\n",
+    "src/demo/cli.py": "def main():\n    return 0\n"
+   }
+  }
+ ],
+ "oracle_files": {
+  "src/ici/analysis/_python_packaging.py": "6df34215b7a21cfe66cf1df63704aa626dae211e96dbd812a089db743c5acc2d",
+  "src/ici/analysis/_python_wheel.py": "f84e7bee56dd4914dbedcb69652a6901e03a3b6b8c2e60d5c1a38286da90d2ce"
+ }
+}
