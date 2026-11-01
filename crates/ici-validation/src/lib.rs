@@ -27,6 +27,7 @@ pub use artifacts::{CapturedArtifacts, OwnedRun, capture_artifacts, capture_bina
 pub use model::*;
 pub use planning::{plan, ready_steps};
 pub use python::{observe, observe_for};
+pub use python_sanitize::{legacy_missing_scope, legacy_python_scope_missing};
 
 #[derive(Clone, Debug, thiserror::Error)]
 #[error("{0}")]

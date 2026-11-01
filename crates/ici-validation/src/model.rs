@@ -130,10 +130,14 @@ pub struct ValidationOptions {
     pub timeout_seconds: f64,
     pub output_limit_bytes: Option<u64>,
     pub build_dir: Option<PathBuf>,
+    /// Frozen `_missing_python_scope` with `engines.sanitize.required = false`: a missing Python
+    /// ResourceWarning scope is a SKIP verdict instead of an ERROR.
+    pub sanitize_scope_optional: bool,
 }
 impl Default for ValidationOptions {
     fn default() -> Self {
         Self {
+            sanitize_scope_optional: false,
             collect_coverage: false,
             coverage_module_probe: false,
             unittest_fallback: false,

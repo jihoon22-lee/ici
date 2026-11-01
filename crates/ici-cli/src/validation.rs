@@ -116,6 +116,16 @@ pub fn bind(
     } else {
         project.root.join(&component.root)
     };
+    // Frozen legacy `_check_python_resource_warnings` refuses a missing or test-less `tests`
+    // directory before resolving or running anything (`internal` supplies that verdict).
+    if kind == ValidationKind::PythonSanitize && legacy_sanitize_scope(project, component).is_some()
+    {
+        return Some(BoundValidation {
+            work: Work::Internal,
+            plans: vec![],
+            tool: None,
+        });
+    }
     let matrix = if kind == ValidationKind::PythonRuntime {
         match runtime_matrix(project, component, &cwd, environment) {
             Ok(matrix) => matrix,
@@ -356,6 +366,13 @@ pub fn bind(
             Err(error) => return Some(blocked(format!("project Python search path: {error}"))),
         }
     }
+    options.sanitize_scope_optional = kind == ValidationKind::PythonSanitize
+        && project.schema_family == ici_config::SchemaFamily::Legacy
+        && component
+            .settings
+            .pointer("/engines/sanitize/required")
+            .and_then(Value::as_bool)
+            == Some(false);
     options.min_file_statements = test
         .and_then(|value| value.get("min_file_statements"))
         .and_then(Value::as_u64)
@@ -982,6 +999,23 @@ fn runtime_matrix(
         })
         .collect())
 }
+/// Frozen legacy Python sanitize scope refused before pytest: the message and whether
+/// `engines.sanitize.required = false` makes it a SKIP.
+fn legacy_sanitize_scope(
+    project: &ResolvedProject,
+    component: &Component,
+) -> Option<(&'static str, bool)> {
+    if project.schema_family != ici_config::SchemaFamily::Legacy || component.root != "." {
+        return None;
+    }
+    let message = ici_validation::legacy_python_scope_missing(&project.root)?;
+    let optional = component
+        .settings
+        .pointer("/engines/sanitize/required")
+        .and_then(Value::as_bool)
+        == Some(false);
+    Some((message, optional))
+}
 fn integration_owner(project: &ResolvedProject) -> Option<&str> {
     project
         .components
@@ -1022,6 +1056,11 @@ pub fn internal(
 ) -> Option<ici_domain::AnalysisOutput> {
     if matches!(check_id, "cpp.binary-compat" | "python.binary-compat") {
         return crate::cpp_validation::internal_binary(project, component, check_id, task_id);
+    }
+    if check_id == "python.sanitize" {
+        return legacy_sanitize_scope(project, component).map(|(message, optional)| {
+            ici_validation::legacy_missing_scope(task_id, message, optional)
+        });
     }
     if check_id != "integration" || !empty_optional_integration(project, component) {
         return None;
