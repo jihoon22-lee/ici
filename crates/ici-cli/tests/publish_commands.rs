@@ -449,3 +449,94 @@ fn caller_preserves_historical_destination_and_credential_precedence() {
         );
     }
 }
+
+#[test]
+fn pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard() {
+    let head = "1".repeat(40);
+    let merge = "2".repeat(40);
+    let newer = "3".repeat(40);
+    for (current_head, expect_comment) in [(&head, true), (&newer, false)] {
+        let root = tempfile::tempdir().unwrap();
+        fs::write(root.path().join("ici.toml"), "schema_version=2\n").unwrap();
+        let old=br#"{"schema_version":"ici.result/v2","suite_status":"FAIL","results":[{"engine_name":"lint","status":"FAIL","summary":"saved historical failure"}]}"#;
+        fs::write(root.path().join("verify_report.json"), old).unwrap();
+        fs::write(
+            root.path().join("verify_report.html"),
+            "<!doctype html>saved",
+        )
+        .unwrap();
+        let event = root.path().join("event.json");
+        fs::write(
+            &event,
+            json!({"pull_request":{"number":7,"head":{"sha":head}}}).to_string(),
+        )
+        .unwrap();
+        let environment: BTreeMap<String, String> = [
+            ("GITHUB_REPOSITORY", "team/repo"),
+            ("GITHUB_API_URL", "https://git.example/api/v3"),
+            ("GITHUB_TOKEN", "own"),
+            ("GITHUB_SHA", merge.as_str()),
+            ("GITHUB_EVENT_PATH", event.to_str().unwrap()),
+        ]
+        .into_iter()
+        .map(|(key, value)| (key.to_string(), value.to_string()))
+        .collect();
+        let invocation = registry::parse([
+            "ici",
+            "next",
+            "publish",
+            "--result",
+            "verify_report.json",
+            "--out",
+            "verify_report.html",
+        ])
+        .unwrap();
+        let mut uploads = vec![];
+        let mut comments = 0;
+        let output = publish::command_with_transport(
+            &invocation,
+            root.path(),
+            &environment,
+            &mut |request: &Request| {
+                if request.url.contains("/git/ref/") {
+                    return response(200, json!({}));
+                }
+                if request.url.ends_with("/pages") {
+                    return response(404, json!({}));
+                }
+                if request.url.ends_with("/pulls/7") {
+                    return response(200, json!({"head":{"sha":current_head}}));
+                }
+                if request.url.contains("/comments") {
+                    if request.method == "GET" {
+                        return response(200, json!([]));
+                    }
+                    comments += 1;
+                    return response(
+                        201,
+                        json!({"html_url":"https://github.com/team/repo/pull/7"}),
+                    );
+                }
+                if request.url.contains("/contents/") {
+                    if request.method == "PUT" {
+                        uploads.push(request.url.clone());
+                    }
+                    return response(if request.method == "GET" { 404 } else { 201 }, json!({}));
+                }
+                panic!("unexpected {} {}", request.method, request.url)
+            },
+        )
+        .unwrap();
+        assert_eq!(output.exit_code, 0, "{} {}", output.stdout, output.stderr);
+        assert!(!uploads.is_empty());
+        assert!(
+            uploads.iter().all(|url| url.contains(&head[..12])),
+            "{uploads:?}"
+        );
+        assert!(
+            uploads.iter().all(|url| !url.contains(&merge[..12])),
+            "{uploads:?}"
+        );
+        assert_eq!(comments, usize::from(expect_comment), "{}", output.stdout);
+    }
+}

@@ -17,6 +17,7 @@
 |배포|Rust native core + 고정 native tool pack, rootless archive/installer, `.ici/rust-v1` 상태|R8에서 실제 core libc/ISA·archive/license/업데이트/rollback 확인 전 supported 추정 금지|
 |TLS|reqwest 0.12.28 `default-features=false`, blocking + rustls-tls-native-roots; custom CA/proxy/no-proxy|[12개 시스템/사설 CA·CONNECT·실패 fixture](tool-transport-evaluation.md); 인증/토큰 redaction/게시 상태 분리는 R7|
 |이전|ICI_PYTHON core fallback 없음, doctor에서 이전 설치/PATH 충돌 안내; config/result 원본 유지|migration preview/new output, rollback은 과거 공개 artifact의 명시 선택이며 사용자 데이터 복원 아님|
+|레거시 프로젝트 Python|레거시 스키마에서 `engines.test.python`과 `.venv`가 없으면 v0.13.0 pyz launcher가 고르던 인터프리터(`$ICI_PYTHON`, python3.14…python3.10, python3 중 PATH에서 처음 찾은 3.10+)를 *프로젝트* 인터프리터로 사용하고 출처를 결과에 기록. ici core의 Python fallback이 아님. 새 스키마는 선언 executable/컴포넌트 `.venv`만 사용|기존 pyz 소비자 호환(AGENTS §9) vs §8 환경 분리; 2026-11-01 root 결정, validation fragment fixture|
 
 ## 공유 코드 경계
 
@@ -60,6 +61,7 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 |SARIF uriBaseId 존재|기존 importer의 상대 URI 단독 처리|R7: 명시 base mapping 후 containment 검증, 알 수 없는 base/외부는 명시 거부|
 |제한/variant가 다른 task의 공유|기존 share_key에 timeout/output cap 등 없음|R2: 서로 다른 실행 계약은 공유하지 않음, bounded output/truncation 보존|
 |doctor가 내부 검사로 기술한 외부 runtime/test|기존 doctor golden에 in-process 표기|R1/R3/R6: 실제 resolver/plan과 같은 실행 효과·도구 요구를 표시|
+|`pull_request` 이벤트의 게시 commit|`application/publish.py`가 `GITHUB_SHA`(합성 merge commit)를 우선해 PR head와 비교하는 순서 guard가 모든 PR 실행을 stale로 판정|R7: `pull_request.head.sha` 우선, 없으면 `GITHUB_SHA`. 원격 경로·viewer URL도 PR head 기준(`publish_commands.rs::pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard`, `publish/mod.rs` tests)|
 
 교정 행은 R0에서 기대값을 고정한 것이며 해당 구현/회귀 fixture는 담당 WP의 closure에
 반드시 연결한다. golden을 무조건 재생성해 기존 결함이나 새로운 회귀를 숨기지 않는다.

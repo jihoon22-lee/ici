@@ -55,7 +55,8 @@
           "tests/rust-parity/distribution/verify_publish.py::trusted-ghes-create-comment",
           "tests/rust-parity/distribution/verify_publish.py::trusted-github-style-update-comment",
           "tests/rust-parity/distribution/verify_publish.py::large-finding-has-bounded-comment",
-          "crates/ici-cli/src/publish/mod.rs::tests::pull_request_runs_report_on_the_pr_head_not_the_merge_commit"
+          "crates/ici-cli/src/publish/mod.rs::tests::pull_request_runs_report_on_the_pr_head_not_the_merge_commit",
+          "crates/ici-cli/tests/publish_commands.rs::pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard"
         ],
         "negative": [
           "tests/rust-parity/distribution/verify_publish.py::untrusted-private-ca",
@@ -77,7 +78,7 @@
         ".venv/bin/python tests/rust-parity/distribution/publish_oracle.py <frozen-6fe3e405-checkout>; original publisher SUCCESS with 238-byte comment for identical 100KB diagnostic; tests/rust-parity/distribution/publish-large-oracle.json"
       ],
       "comparison": "Actual modern saved-result publication is verified over local HTTPS, including named credentials, API prefix, sticky create/update, malformed responses and the 100KB diagnostic. Input/page bytes and analysis verdict never change. Config/local-config and output alias interpretation belong to the shared native configuration/registry contracts; final exact-source artifact execution is still pending.",
-      "difference_reason": "The R0-approved .ici/rust-v1 namespace replaces the frozen result-adjacent publish.json path. Head identity: the caller prefers pull_request.head.sha over GITHUB_SHA where frozen used GITHUB_SHA first. Accepted by the root (2026-11-01) as a known-bug correction: in pull_request events GITHUB_SHA is the synthetic merge commit, which never equals the PR head the ordering guard compares against, so the frozen order made every PR run stale; fixtures crates/ici-cli/src/publish/mod.rs::tests (PR head preferred, GITHUB_SHA without a PR head, malformed event refused). Comment presentation now uses a bounded shared summary rather than the old count-only text. Native v1/default/override configuration fixtures must be linked before marking this whole command complete."
+      "difference_reason": "The R0-approved .ici/rust-v1 namespace replaces the frozen result-adjacent publish.json path. Head identity: the caller prefers pull_request.head.sha over GITHUB_SHA where frozen used GITHUB_SHA first. Accepted by the root (2026-11-01) as a known-bug correction: in pull_request events GITHUB_SHA is the synthetic merge commit, which never equals the PR head the ordering guard compares against, so the frozen order made every PR run stale; fixtures crates/ici-cli/src/publish/mod.rs::tests (PR head preferred, GITHUB_SHA without a PR head, malformed event refused) and the command-level ordering-guard replay crates/ici-cli/tests/publish_commands.rs::pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard (upload path carries the PR head, never the merge commit; a newer PR head posts no comment); recorded in decisions.md. Comment presentation now uses a bounded shared summary rather than the old count-only text. Native v1/default/override configuration fixtures must be linked before marking this whole command complete."
     },
     "command:ici publish": {
       "status": "difference_review",
