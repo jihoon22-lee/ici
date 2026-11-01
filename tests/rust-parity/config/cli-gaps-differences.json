@@ -2,7 +2,8 @@
  "oracle": "cli-gaps-oracle.json (capture_cli_gaps.py, v0.13.0 6fe3e405)",
  "global": {
   "evidence_namespace": "Native historical commands record their run under `.ici/rust-v1/` (native evidence namespace, ADR-0008); those files are excluded from the written-file comparison.",
-  "global_default": "Frozen created `$XDG_CONFIG_HOME/ici/ici.toml` on first use and printed `[ici] 기본 전역 설정을 생성했습니다: <path>`; native never writes the user's configuration directory (legacy-layers-oracle.json records the same difference), so that line and file are excluded."
+  "global_default": "Frozen created `$XDG_CONFIG_HOME/ici/ici.toml` on first use and printed `[ici] 기본 전역 설정을 생성했습니다: <path>`; native never writes the user's configuration directory (legacy-layers-oracle.json records the same difference), so that line and file are excluded.",
+  "native_v2_subdirectory": "Root decision pending (native-only, frozen v0.13.0 had no schema_version = 2): historical commands read only the working directory's configuration, as frozen load_config(base=cwd) did, so `ici line` (or any engine, verify, doctor, export, publish) run from a subdirectory of a native v2 project ignores the v2 ici.toml above it and analyses the subdirectory with defaults; `ici next ...`/`ici analyze` still discover the v2 file upwards. cli_gaps.rs historical_commands_below_a_native_v2_root_ignore_the_file_above."
  },
  "cases": {
   "bare_local_interpreter_plan": {

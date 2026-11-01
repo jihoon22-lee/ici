@@ -36,10 +36,11 @@
    "status": "complete"
   },
   "capability:doctor-env-cache": {
-   "comparison": "Native doctor/env/cache behaviour is exercised through the actual binary (runtime description without private environment, probe scope, shell loaders, cache inventory/clear preservation). Not compared field-for-field with frozen doctor.py/core/env.py output in this facet.",
-   "difference_reason": "Native doctor describes the native runtime and tool pack instead of a Python interpreter search (no ICI_PYTHON/PYTHON_CANDIDATES in the Rust product, ADR-0008). Recorded doctor content differences against frozen doctor.py/core/env.py/core/support.py: (1) the frozen `paths` section (find_infra_root, NAS shared and NAS C++ library directories) and find_uv are not reported — AGENTS §8 (R01) forbids the product to know NAS/shared-library paths; native reports workspace, configuration files and native tool pack; (2) `running_python` is null and python_candidates are the project Python tools found by the native resolver, not the core interpreter search (ADR-0008: no Python in the product); (3) support_matrix entries are the native plan's checks per component (evidence NOT_RUN, confidence low, project_frameworks []), not the frozen 38 SupportDeclaration rows with Qt framework detection and tool-promotion policies — e.g. frozen effective_required_tools coverage/mypy/pytest/python3/ruff vs native python/ruff/ty for one mypy_required/ruff_required/coverage_required project, and frozen project_languages [] vs native [python] for a configless directory whose .py file is outside the default source_dirs; (4) the Rich table and brief renderers print the native fields. Doctor's configuration gate, rooting and `doctor.required_tools` are frozen's (cli_gaps.rs).",
+   "comparison": "Native doctor/env/cache behaviour is exercised through the actual binary (runtime description without private environment, probe scope, shell loaders, cache inventory/clear preservation). Compared with frozen doctor.py/core/env.py/core/support.py output field by field in /tmp/ici-rust-replacement-20261028/w-config-doctor-content.log; every content difference is listed in difference_reason. Doctor's configuration gate, cwd rooting and doctor.required_tools equal frozen (cli_gaps.rs).",
+   "difference_reason": "Native doctor describes the native runtime and tool pack instead of a Python interpreter search (no ICI_PYTHON/PYTHON_CANDIDATES in the Rust product, ADR-0008). Recorded doctor content differences against frozen doctor.py/core/env.py/core/support.py: (1) the frozen `paths` section (find_infra_root, NAS shared and NAS C++ library directories) and find_uv are not reported — AGENTS §8 (R01) forbids the product to know NAS/shared-library paths; native reports workspace, configuration files and native tool pack; (2) `running_python` is null and python_candidates are the project Python tools found by the native resolver, not the core interpreter search (ADR-0008: no Python in the product); (3) support_matrix entries are the native plan's checks per component (evidence NOT_RUN, confidence low, project_frameworks []), not the frozen 38 SupportDeclaration rows with Qt framework detection and tool-promotion policies — e.g. frozen effective_required_tools coverage/mypy/pytest/python3/ruff vs native python/ruff/ty for one mypy_required/ruff_required/coverage_required project, and frozen project_languages [] vs native [python] for a configless directory whose .py file is outside the default source_dirs; (4) the Rich table and brief renderers print the native fields. Doctor's configuration gate, rooting and `doctor.required_tools` are frozen's (cli_gaps.rs). (5) capability_inventory: counts omit `optional` and add blocked_required_checks/version_probes; tool rows carry origin/sha256 instead of state/version_tuple/probe_argv/returncode/timed_out/truncated/evidence.",
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test doctor_commands --test native_env --test config_commands ... -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test doctor_commands --test native_env --test config_commands ... -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "frozen (PYTHONPATH oracle, .venv python) and native `ici doctor --json` on one mypy_required/ruff_required/coverage_required python project (at its root and from a subdirectory whose .py file is outside the default source_dirs): top-level keys, effective_required_tools, project_languages, running_python, paths and capability_inventory shape; /tmp/ici-rust-replacement-20261028/w-config-doctor-content.log"
    ],
    "fixtures": {
     "failure": [
@@ -63,6 +64,37 @@
     "crates/ici-cli/src/commands.rs"
    ],
    "status": "verified"
+  },
+  "capability:legacy-command-config-result-projection": {
+   "comparison": "Config/CLI facet only: the configuration a historical command projects onto its result is the working directory's (frozen load_config(base=cwd)), refused before running with frozen's gate messages, and the legacy type/lint tool selection (PATH/.venv mypy and ruff, `-m mypy` under verify) is frozen's and recorded in the run limitations (named fixtures). OPEN (cross-area, legacy report projection): every native single-engine report and every `results[]` entry of a native verify_report.json omits the frozen keys `support_matrix` (frozen evaluate_support_matrix per engine, __main__.py:434, engines/verify.py:326), `cache_hit`, `cache_key` and `artifact_manifests`, and adds `native_run` (verify also adds top-level `native_run`/`project_name`); the legacy type/lint reports carry no mypy/ruff tool_evidence entries. No row records this as an intended difference (/tmp/ici-rust-replacement-20261028/w-config-legacy-report-keys.log).",
+   "difference_reason": "Pending root decision: whether the legacy report projection must emit the per-engine support_matrix/cache_hit/cache_key/artifact_manifests keys and the external tool_evidence entries frozen v0.13.0 wrote, or record their absence as an intended difference.",
+   "evidence": [
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_type_interpreter --test legacy_python_engines --test legacy_lint --test legacy_python_no_tests --test legacy_verify_matrix --test legacy_quality_paths -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-config-type-interpreter2.log",
+    "frozen (PYTHONPATH oracle, .venv python) and native `ici line --report` / `ici verify --report --no-cache` on one python project, report top-level and per-engine keys; /tmp/ici-rust-replacement-20261028/w-config-legacy-report-keys.log"
+   ],
+   "fixtures": {
+    "failure": [
+     "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
+     "crates/ici-cli/tests/cli_gaps.rs::doctor_export_and_publish_read_only_the_working_directory_configuration",
+     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_below_a_native_v2_root_ignore_the_file_above"
+    ],
+    "positive": [
+     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_are_rooted_at_the_working_directory",
+     "crates/ici-cli/tests/legacy_type_interpreter.rs::legacy_type_lint_and_verify_select_mypy_and_ruff_like_the_frozen_engines"
+    ]
+   },
+   "rust_paths": [
+    "crates/ici-cli/src/cutover.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/validation.rs",
+    "crates/ici-cli/src/legacy_execute.rs"
+   ],
+   "status": "difference_review"
   },
   "capability:wire-result-events": {
    "comparison": "Config-area facet only: event task/component ids. Frozen RunEvent required an identifier whenever an id was present; native now refuses empty, padded, control-bearing or >256-character ids and emits workspace-level events without a component instead of an empty one. Run v2/event order/run_id/stdout-stderr split remain the runtime facet.",
@@ -120,7 +152,7 @@
     "config_oracle also ran inside /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -182,7 +214,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -217,7 +249,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -245,7 +277,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -274,7 +306,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -304,7 +336,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -332,7 +364,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -357,7 +389,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps --test doctor_commands --test compilation_commands --test publish_commands --test publish_comment --test legacy_publish --test verify_cutover --test config_commands --test legacy_make_build --test legacy_commands -- --include-ignored (all passed after routing doctor/export/publish through the working-directory reader); /tmp/ici-rust-replacement-20261028/w-config-rooting-tests.log; also legacy_verify_matrix/wire_schemas/plan_engines/analyze_text/legacy_type_interpreter/legacy_cpp_metrics and native_cpp/native_cpp_direct: /tmp/ici-rust-replacement-20261028/w-config-rooting-tests2.log, w-config-rooting-tests3.log"
    ],
@@ -391,7 +423,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -419,7 +451,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -447,7 +479,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps --test doctor_commands --test compilation_commands --test publish_commands --test publish_comment --test legacy_publish --test verify_cutover --test config_commands --test legacy_make_build --test legacy_commands -- --include-ignored (all passed after routing doctor/export/publish through the working-directory reader); /tmp/ici-rust-replacement-20261028/w-config-rooting-tests.log; also legacy_verify_matrix/wire_schemas/plan_engines/analyze_text/legacy_type_interpreter/legacy_cpp_metrics and native_cpp/native_cpp_direct: /tmp/ici-rust-replacement-20261028/w-config-rooting-tests2.log, w-config-rooting-tests3.log"
    ],
@@ -503,12 +535,12 @@
    "status": "verified"
   },
   "command:ici line": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. From a checkout subdirectory, with or without a configuration at the root, `ici line` analyses the working directory with its own (or default) configuration and writes line_report.json there, as frozen (rooted cases equal, stdout byte for byte).",
-   "difference_reason": "Accepted exit-code policy (root decision recorded in reporting.json command:ici verify and capability:legacy-command-config-result-projection; SPEC-01 §8, SPEC-04): a historical engine command whose required native evidence is incomplete exits 3 where frozen exited 1 for the same ERROR verdict (crates/ici-cli/tests/legacy_exit_policy.rs). The configuration gate, refusal messages and their exit 2 compared in this facet are frozen's.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. From a checkout subdirectory, with or without a configuration at the root, `ici line` analyses the working directory with its own (or default) configuration and writes line_report.json there, as frozen (rooted cases equal, stdout byte for byte). Native-only: below a native schema_version = 2 root the historical command also reads only its working directory (pending root decision, cli-gaps-differences.json global.native_v2_subdirectory).",
+   "difference_reason": "Accepted exit-code policy (root decision recorded in reporting.json command:ici verify and capability:legacy-command-config-result-projection; SPEC-01 §8, SPEC-04): a historical engine command whose required native evidence is incomplete exits 3 where frozen exited 1 for the same ERROR verdict (crates/ici-cli/tests/legacy_exit_policy.rs). The configuration gate, refusal messages and their exit 2 compared in this facet are frozen's. A historical command run below a native v2 root ignores the v2 file above it (frozen had no v2; the cwd-only rule is applied uniformly; root decision pending).",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -519,7 +551,8 @@
     ],
     "negative": [
      "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
-     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_are_rooted_at_the_working_directory"
+     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_are_rooted_at_the_working_directory",
+     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_below_a_native_v2_root_ignore_the_file_above"
     ],
     "positive": [
      "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
@@ -542,7 +575,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
     "/home/jihoon/projects/ici/.venv/bin/python tests/rust-parity/config/capture_legacy_type_interpreter.py --oracle <oracle> --pyz <private copy of dist/ici.pyz, sha256 9e5f5751...> --python <ICI_TEST_PYTHON> --bare <ICI_TEST_PYTHON_BARE> -> legacy-type-interpreter-oracle.json; /tmp/ici-rust-replacement-20261028/w-config-type-capture2.log (11 scenarios; the 7 type/verify scenarios unchanged from the first capture)",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_type_interpreter --test legacy_python_engines --test legacy_lint --test legacy_python_no_tests --test legacy_verify_matrix --test legacy_quality_paths -- --include-ignored (all passed, 11 frozen scenarios replayed); /tmp/ici-rust-replacement-20261028/w-config-type-interpreter2.log and w-config-type-interpreter3.log"
@@ -576,7 +609,7 @@
    "difference_reason": null,
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -600,7 +633,7 @@
    "difference_reason": null,
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -657,7 +690,7 @@
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_next_schema.py <oracle> tests/rust-parity/config/next-schema-oracle.json (frozen v0.13.0 ici.config.discovery.load + ici.workspace.build per case, 4 frozen `ici next plan --json` exit samples)",
     "cargo test -p ici-config --locked and cargo test -p ici-cli --test config_oracle/artifact_contract/config_commands/plan_commands/publish_commands/integration_legacy/... --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-next-schema.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_compat_parity --test legacy_cpp_metrics --test legacy_make_build --test plan_engines --test analyze_text -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-gaps-tests3.log"
    ],
    "fixtures": {
@@ -715,7 +748,7 @@
    "difference_reason": null,
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -739,7 +772,7 @@
    "difference_reason": null,
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -792,7 +825,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps --test doctor_commands --test compilation_commands --test publish_commands --test publish_comment --test legacy_publish --test verify_cutover --test config_commands --test legacy_make_build --test legacy_commands -- --include-ignored (all passed after routing doctor/export/publish through the working-directory reader); /tmp/ici-rust-replacement-20261028/w-config-rooting-tests.log; also legacy_verify_matrix/wire_schemas/plan_engines/analyze_text/legacy_type_interpreter/legacy_cpp_metrics and native_cpp/native_cpp_direct: /tmp/ici-rust-replacement-20261028/w-config-rooting-tests2.log, w-config-rooting-tests3.log"
    ],
    "fixtures": {
@@ -823,7 +856,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_compat_parity --test legacy_cpp_metrics --test legacy_make_build --test plan_engines --test analyze_text -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-gaps-tests3.log"
    ],
@@ -854,7 +887,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -883,7 +916,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -911,7 +944,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -939,7 +972,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -967,7 +1000,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -1000,7 +1033,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log"
    ],
    "fixtures": {
@@ -1028,7 +1061,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
     "/home/jihoon/projects/ici/.venv/bin/python tests/rust-parity/config/capture_legacy_type_interpreter.py --oracle <oracle> --pyz <private copy of dist/ici.pyz, sha256 9e5f5751..., 283 ici/ sources equal to the frozen tree> --python <ICI_TEST_PYTHON> --bare <ICI_TEST_PYTHON_BARE> -> tests/rust-parity/config/legacy-type-interpreter-oracle.json; /tmp/ici-rust-replacement-20261028/w-config-type-capture2.log (11 scenarios; the 7 type/verify scenarios unchanged from the first capture)",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_type_interpreter --test legacy_python_engines --test legacy_lint --test legacy_python_no_tests --test legacy_verify_matrix --test legacy_quality_paths -- --include-ignored (all passed, 11 frozen scenarios replayed); /tmp/ici-rust-replacement-20261028/w-config-type-interpreter2.log and w-config-type-interpreter3.log"
@@ -1061,7 +1094,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers -p ici-application -p ici-analysis --locked -j2 --no-fail-fast -- --include-ignored (every test of the touched crates after the gate change: 92 binaries ok, 1 failure in ici-providers resolution.rs asserting the old unparseable-pyproject refusal, updated to the new contract and rerun green in /tmp/ici-rust-replacement-20261028/w-config-providers-resolution.log); /tmp/ici-rust-replacement-20261028/w-config-cli-full2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_type_interpreter --test legacy_python_engines --test legacy_lint --test legacy_python_no_tests --test legacy_verify_matrix --test legacy_quality_paths -- --include-ignored (all passed, 11 frozen scenarios replayed); /tmp/ici-rust-replacement-20261028/w-config-type-interpreter2.log and w-config-type-interpreter3.log"
    ],
@@ -1109,7 +1142,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (9 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps2.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log"
    ],
    "fixtures": {
     "failure": [
@@ -8874,7 +8907,7 @@
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
     "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_engines -- --include-ignored (2 passed, pinned ruff/mypy); /tmp/ici-rust-replacement-20261028/w-config-tool-policy.log; frozen/native doctor --json on [engines.type] mypy_required/[engines.lint] ruff_required/[engines.test] coverage_required: frozen effective_required_tools coverage, mypy, pytest, python3, ruff; native python, ruff, ty (manual run, recorded here)"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_engines -- --include-ignored (2 passed, pinned ruff/mypy); /tmp/ici-rust-replacement-20261028/w-config-tool-policy.log; frozen/native doctor --json on [engines.type] mypy_required/[engines.lint] ruff_required/[engines.test] coverage_required: frozen effective_required_tools coverage, mypy, pytest, python3, ruff; native python, ruff, ty (/tmp/ici-rust-replacement-20261028/w-config-doctor-content.log)"
    ],
    "fixtures": {
     "failure": [
@@ -10782,7 +10815,7 @@
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
     "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_engines -- --include-ignored (2 passed, pinned ruff/mypy); /tmp/ici-rust-replacement-20261028/w-config-tool-policy.log; frozen/native doctor --json on [engines.type] mypy_required/[engines.lint] ruff_required/[engines.test] coverage_required: frozen effective_required_tools coverage, mypy, pytest, python3, ruff; native python, ruff, ty (manual run, recorded here)"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_engines -- --include-ignored (2 passed, pinned ruff/mypy); /tmp/ici-rust-replacement-20261028/w-config-tool-policy.log; frozen/native doctor --json on [engines.type] mypy_required/[engines.lint] ruff_required/[engines.test] coverage_required: frozen effective_required_tools coverage, mypy, pytest, python3, ruff; native python, ruff, ty (/tmp/ici-rust-replacement-20261028/w-config-doctor-content.log)"
    ],
    "fixtures": {
     "failure": [
@@ -14237,7 +14270,7 @@
   },
   "src/ici/__main__.py": {
    "disposition": "mapped",
-   "reason": "Typer CLI entry: Read the complete frozen module. Every registered command, option name/alias/default (registry.rs every_published_command_parameter_and_alias_remains_registered), the main_callback stable-loader gate (next/analyze/report/diff/init/import-report and env/cache exempt; [workspace] refusal; `Configuration error:` exit 2; verify cutover) replayed from frozen for every historical subcommand (cli_gaps.rs, cli-gaps-oracle.json), root = cwd for historical commands, baseline option relationships (`--fail-on-new requires --baseline`, contained paths), verify output paths (--report/--html/--open/--publish/--sarif), engine subcommand table (report file names, line distribution chart), publish --html/--json/--report-dir collection and exit 1 on upload failure, doctor --json/--brief, env --csh/--sh, cache --clear inventory, status icons and exit codes map to the listed command rows.",
+   "reason": "Typer CLI entry: Read the complete frozen module. Every registered command, option name/alias/default (registry.rs every_published_command_parameter_and_alias_remains_registered), the main_callback stable-loader gate (next/analyze/report/diff/init/import-report and env/cache exempt; [workspace] refusal; `Configuration error:` exit 2; verify cutover) replayed from frozen for every historical subcommand (cli_gaps.rs, cli-gaps-oracle.json), root = cwd for historical commands, baseline option relationships (`--fail-on-new requires --baseline`, contained paths), verify output paths (--report/--html/--open/--publish/--sarif), engine subcommand table (report file names, line distribution chart), publish --html/--json/--report-dir collection and exit 1 on upload failure, doctor --json/--brief, env --csh/--sh, cache --clear inventory, status icons and exit codes map to the listed command rows. Open: `_run_engine` attaches evaluate_support_matrix to every single-engine report (and the cache/artifact keys); native legacy reports omit them (capability:legacy-command-config-result-projection, difference_review).",
    "requirements": [
     "command:ici <global>",
     "command:ici verify",
@@ -14269,7 +14302,8 @@
     "command:ici build",
     "command_group:ici next",
     "capability:doctor-env-cache",
-    "capability:report-console-markdown-json-html-sarif"
+    "capability:report-console-markdown-json-html-sarif",
+    "capability:legacy-command-config-result-projection"
    ]
   },
   "src/ici/_analysis_config.py": {
@@ -15842,7 +15876,7 @@
   },
   "src/ici/core/capabilities.py": {
    "disposition": "mapped",
-   "reason": "capability inventory: Read the complete frozen module. ToolRequirement (sorted unique required_by/optional_by; required wins), CapabilityInventory (key/name consistency, missing_required, incomplete_required, healthy), derive_tool_policy (doctor.required_tools as doctor.config, applicable+enabled support entries `<engine>:<language>`), collect_capability_inventory (registered probes then requested names, unregistered names unavailable) and the ici.capabilities/v1 serialisation (state ready/incomplete/unavailable, counts, PASS/WARN). Native doctor emits the same capability_inventory shape (doctor_commands.rs legacy JSON, declared required tools, excessive output incomplete).",
+   "reason": "capability inventory: Read the complete frozen module. ToolRequirement (sorted unique required_by/optional_by; required wins), CapabilityInventory (key/name consistency, missing_required, incomplete_required, healthy), derive_tool_policy (doctor.required_tools as doctor.config, applicable+enabled support entries `<engine>:<language>`), collect_capability_inventory (registered probes then requested names, unregistered names unavailable) and serialize_capability_inventory (ici.capabilities/v1, PASS/WARN, counts, per-tool state ready/incomplete/unavailable, probe argv/returncode/timed_out/truncated/evidence, recursive redaction). Native doctor keeps the top-level keys (schema_version, status, healthy, counts, missing_required, incomplete_required, tools) and the required/incomplete semantics (doctor_commands.rs declared required tools, excessive output incomplete), but its counts omit `optional` and add blocked_required_checks/version_probes, and each tool row carries origin/sha256 instead of state/version_tuple/probe_argv/returncode/timed_out/truncated/evidence (recorded in capability:doctor-env-cache).",
    "requirements": [
     "capability:doctor-env-cache",
     "command:ici doctor",
@@ -15851,13 +15885,14 @@
   },
   "src/ici/core/env.py": {
    "disposition": "mapped",
-   "reason": "environment utilities: Read the complete frozen module. PYTHON_CANDIDATES and find_python_candidates/_get_py_ver (doctor python_candidates; the launcher candidate order reused by the legacy launcher rule), find_project_executable (.venv bin/Scripts, executable bit; native legacy mypy/test lookup, legacy_type_interpreter.rs), get_system_info/os-release/glibc/WSL (doctor system section). find_infra_root/get_nas_shared_dir/get_nas_cpp_lib_dir/find_uv name NAS/infra paths that AGENTS §8 (R01) forbids the product to know; native doctor reports no such paths (recorded in capability:doctor-env-cache).",
+   "reason": "environment utilities: Read the complete frozen module. PYTHON_CANDIDATES (python3.14 … python3.10, python3) and find_python_candidates/_get_py_ver feed the frozen doctor python_candidates; native doctor lists the project Python tools found by its resolver instead (capability:doctor-env-cache). The same candidate order is the native legacy pyz launcher rule (validation.rs LAUNCHER_CANDIDATES, legacy `ici verify` `-m mypy`, legacy_type_interpreter.rs). find_project_executable (.venv bin/Scripts, executable bit) is the frozen lookup for legacy type mypy and lint ruff after PATH (validation::project_executable via legacy_mypy/legacy_ruff, legacy_type_interpreter.rs type_venv_mypy/lint_venv_ruff). get_system_info/os-release/glibc/WSL feed the doctor system section. find_infra_root/get_nas_shared_dir/get_nas_cpp_lib_dir/find_uv name infrastructure/NAS paths and uv that AGENTS §8 (R01) forbids the product to know; native doctor reports none of them (recorded difference, capability:doctor-env-cache).",
    "requirements": [
     "capability:doctor-env-cache",
     "command:ici doctor",
     "command:ici type",
-    "command:ici test",
-    "capability:native-windows-disposition"
+    "capability:native-windows-disposition",
+    "command:ici lint",
+    "command:ici verify"
    ]
   },
   "src/ici/core/path_utils.py": {
@@ -15888,7 +15923,7 @@
   },
   "src/ici/core/support.py": {
    "disposition": "mapped",
-   "reason": "support matrix: Read the complete frozen module. 38 SupportDeclaration entries (engine x language, required/optional tools, confidence, limitations), project language/framework detection (sources, configured type, markers; Qt via pkg-config, CMake or .pro), confidence downgrade by evidence, tool promotion policies (ruff_required, mypy_required, coverage_required, clang_tidy/clazy, dead cpp_unused/cpp_linker), language enablement, evaluate_support_matrix and the documentation renderers. Mapped to the doctor/report support-matrix rows and the tool-policy config keys.",
+   "reason": "support matrix: Read the complete frozen module (all 38 SupportDeclaration rows inspected through support_declarations(), and every helper). Project language detection (sources, headers, configured type, pyproject/CMake/.pro markers), Qt framework detection (cpp_pkg_config qt5/qt6, find_package(Qt5|6)/qt_add_/QT +=), evidence-based confidence downgrade, tool promotion (ruff_required, mypy_required, coverage_required → coverage/gcov, independent clang_tidy/clazy, dead cpp_unused/cpp_linker), language enablement and evaluate_support_matrix. The doctor matrix differs natively (native plan checks, no Qt detection, no mypy/coverage promotion; capability:doctor-env-cache); the per-engine support_matrix frozen attached to every single-engine and verify engine result is not emitted natively (OPEN, capability:legacy-command-config-result-projection difference_review); render_support_markdown/render_limitation_inventory_markdown/render_tool_requirements_markdown generated frozen documentation tables and have no runtime caller.",
    "requirements": [
     "capability:doctor-env-cache",
     "command:ici doctor",
@@ -15899,12 +15934,13 @@
     "config_key:legacy:engines.lint.clang_tidy",
     "config_key:legacy:engines.lint.clazy",
     "config_key:legacy:engines.dead.cpp_unused",
-    "config_key:legacy:engines.dead.cpp_linker"
+    "config_key:legacy:engines.dead.cpp_linker",
+    "capability:legacy-command-config-result-projection"
    ]
   },
   "src/ici/doctor.py": {
    "disposition": "mapped",
-   "reason": "legacy doctor: Read the complete frozen module. collect_diagnostics (system info, running python and candidates, profile, doctor.required_tools, support matrix, derived policy, capability inventory, NAS paths), support table and the Rich table/brief renderers. Native `ici doctor` keeps the JSON keys and capability inventory but describes the native runtime instead of a Python interpreter search and reports no NAS paths (recorded difference, capability:doctor-env-cache); the stable loader gate and refusals are frozen (cli_gaps.rs).",
+   "reason": "legacy doctor: Read the complete frozen module. collect_diagnostics(root=cwd) gathers system info, the running core Python and candidates, analysis profile, doctor.required_tools, the support matrix, the derived tool policy, the capability inventory and the infra/NAS paths; _render_support_table, render_doctor_table (OS, Python candidates, tools with Ready/Incomplete/Missing (required) WARN/Unavailable, support matrix, Workspace & Shared Paths) and render_doctor_brief (os/shell/python/scope/caps/tools lines) print it. Native `ici doctor` keeps the frozen gate, cwd rooting and doctor.required_tools (cli_gaps.rs) and the JSON top-level keys, but its content is the native runtime: no running_python/NAS/infra paths, project Python tools as candidates, native plan checks as the support matrix, its own table/brief text — recorded field by field in capability:doctor-env-cache (verified, difference).",
    "requirements": [
     "command:ici doctor",
     "capability:doctor-env-cache",
@@ -15930,7 +15966,7 @@
   },
   "src/ici/workspace/inventory.py": {
    "disposition": "mapped",
-   "reason": "source inventory: Read the complete frozen module. take (sources+include minus exclude, vendor role, generated roles under build directories, external inputs inside the workspace become members, contained resolution, per-file sha256 and size, unreadable list, composite digest), _expand (`/**` also matches direct children, absolute patterns allowed), external digests and diff (added/removed/changed/role_changed/externals). Mapped to identity/cache/baseline and scope binding rows.",
+   "reason": "source inventory: Read the complete frozen module. SourceRole (source/vendor/generated), InventoriedFile/ExternalInput validation (relative path, sha256 digest, non-negative size, an absent external carries no digest), SourceInventory.snapshot (digest, files, generated, external_inputs, commit, dirty), InventoryDiff.stable and diff (added/removed/changed/role_changed/externals_*), take (sources+include minus exclude, generated prefixes win over vendor in _role, external inputs inside the workspace become members, contained resolution, unreadable list, composite digest), _expand (`/**` also matches direct children), _external and _hash (sha256 streamed in 1 MiB chunks, size). Mapped to identity/cache/baseline and scope binding rows.",
    "requirements": [
     "capability:identity-cache-baseline",
     "capability:python-scope-binding",

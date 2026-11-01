@@ -430,3 +430,31 @@ fn the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_throu
 fn doctor_export_and_publish_read_only_the_working_directory_configuration() {
     assert_eq!(replay("subdirectory"), 6);
 }
+
+/// Native-only (frozen v0.13.0 has no schema_version = 2): a historical command below a native
+/// v2 root reads only its working directory, like every other historical command, so a v2 file
+/// above it — here an invalid one that refuses the command at the root — is not consulted.
+/// Recorded for the root as `global.native_v2_subdirectory` in cli-gaps-differences.json.
+#[test]
+fn historical_commands_below_a_native_v2_root_ignore_the_file_above() {
+    let differences = fixture("cli-gaps-differences.json");
+    assert!(differences["global"]["native_v2_subdirectory"].is_string());
+    let tree = serde_json::json!({
+        "ici.toml": "schema_version = 2\nbogus = 1\n",
+        "sub/src/a.py": "A = 1\n",
+    });
+    let case =
+        |cwd: &str| serde_json::json!({"tree": tree, "cwd": cwd, "argv": ["line", "--report"]});
+    let root = run(&case("."));
+    assert_eq!(root.exit, 2, "{}", root.stderr);
+    assert!(
+        root.stderr.starts_with("Configuration error: "),
+        "{}",
+        root.stderr
+    );
+    assert!(root.stderr.contains("bogus"), "{}", root.stderr);
+    assert!(root.written.is_empty(), "{:?}", root.written);
+    let below = run(&case("sub"));
+    assert_eq!(below.exit, 0, "{}", below.stderr);
+    assert_eq!(below.written, ["sub/line_report.json"]);
+}
