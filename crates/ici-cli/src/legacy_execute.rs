@@ -389,14 +389,9 @@ pub fn command(
             exit_code = 2;
         }
     }
-    // Frozen ReportPublisher._publish_single: outside GitHub Actions the publish step is skipped
-    // with this notice and never touches the verify exit.
-    let actions = environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true");
-    if invocation.flag("publish") && !actions {
-        stdout.push_str("[publish] --publish requires a GitHub Actions environment; skipping.\n");
-    }
+    // Frozen engines/verify.py: `--publish` prints the publisher's `[publish]` lines (its own
+    // Actions/target guards included) and never changes the verify exit.
     if invocation.flag("publish")
-        && actions
         && let Some(path) = &page_path
     {
         let publish = crate::registry::parse([
@@ -415,16 +410,8 @@ pub fn command(
             Ok(published) => {
                 stdout.push_str(&published.stdout);
                 stderr.push_str(&published.stderr);
-                if exit_code == 0 {
-                    exit_code = published.exit_code;
-                }
             }
-            Err(reason) => {
-                stderr.push_str(&format!("publish: {reason}\n"));
-                if exit_code == 0 {
-                    exit_code = 2;
-                }
-            }
+            Err(reason) => stderr.push_str(&format!("publish: {reason}\n")),
         }
     }
     if single.is_none() {
