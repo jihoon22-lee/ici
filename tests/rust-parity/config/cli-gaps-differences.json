@@ -229,10 +229,10 @@
    "stderr": "equal"
   },
   "publish_without_result": {
-   "reason": "Open cross-area (reporting/publish): exit 2 is equal, but native `next publish` reads the page before the result and reports `ici: publish page: ...` instead of frozen `publish: cannot read result <path>: ...`.",
+   "reason": "Same `publish: cannot read result <path>: ...` refusal class and exit 2, with the result read before the page like frozen `_load_result`; the native default result lives in the native namespace `.ici/rust-v1/result.json` (frozen `.ici/next/result.json`) and the OS error text is Rust's (`No such file or directory (os error 2)`) where frozen printed Python's `[Errno 2] No such file or directory: '<path>'`.",
    "stdout": "equal",
    "stderr": {
-    "exact": "ici: publish page: No such file or directory (os error 2)\n"
+    "exact": "publish: cannot read result <root>/.ici/rust-v1/result.json: No such file or directory (os error 2)\n"
    }
   },
   "report_without_result": {

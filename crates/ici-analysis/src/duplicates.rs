@@ -12,6 +12,8 @@ use std::{
 };
 
 pub const FINGERPRINT_ALGORITHM: &str = "sha256/type2-region-v2";
+/// Separates a bounded-comparison stop message from the file that reached it (internal only).
+const LIMIT_FILE: char = '\u{1f}';
 #[derive(Clone, Debug)]
 pub struct DuplicateFileData {
     pub file_path: String,
@@ -214,8 +216,8 @@ fn windows(
             let occurrences = windows.entry((file.language.clone(), rolling)).or_default();
             if occurrences.len() >= limits.occurrences {
                 return Err(format!(
-                    "Shared duplicate-window occurrence count exceeds MAX_DUPLICATE_WINDOW_OCCURRENCES={}",
-                    limits.occurrences
+                    "Shared duplicate-window occurrence count exceeds MAX_DUPLICATE_WINDOW_OCCURRENCES={}{LIMIT_FILE}{}",
+                    limits.occurrences, file.file_path
                 ));
             }
             occurrences.push((file_index, start));
@@ -258,8 +260,8 @@ impl Budget<'_> {
             self.same += 1;
             if self.same > self.limits.same {
                 return Err(format!(
-                    "Duplicate same-file seed pair count exceeds MAX_DUPLICATE_SAME_FILE_SEED_PAIRS={}",
-                    self.limits.same
+                    "Duplicate same-file seed pair count exceeds MAX_DUPLICATE_SAME_FILE_SEED_PAIRS={}{LIMIT_FILE}{}",
+                    self.limits.same, self.files[a].file_path
                 ));
             }
             Ok(y - x >= size)
@@ -483,11 +485,17 @@ pub(crate) fn analyze_inner(
         Ok(matches) => matches,
         Err(message) => {
             if !cancelled(&mut output, cancellation) {
+                // Frozen `DuplicateComparisonLimit(message, file_path)`: the per-file limits name
+                // the file that reached them, every other stop names the project.
+                let (message, path) = message
+                    .split_once(LIMIT_FILE)
+                    .map_or((message.as_str(), "."), |(message, path)| (message, path));
+                let message = message.to_owned();
                 output.observation.state = ici_domain::TaskState::Failed;
                 output.status = "ERROR".into();
                 output.summary = "Duplicate analysis did not complete".into();
                 output.observation.limitations.push(message.clone());
-                let mut target = InspectionTarget::at(".", 1);
+                let mut target = InspectionTarget::at(path, 1);
                 target.target_name = "DuplicateAnalysisError".into();
                 target.status = "ERROR".into();
                 target.message = message;

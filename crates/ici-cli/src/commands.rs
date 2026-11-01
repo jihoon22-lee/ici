@@ -32,9 +32,15 @@ pub fn classed(prefix: &str, problem: impl Display) -> CliError {
 /// else under the native `ici: ` prefix. Secrets are redacted either way.
 pub fn diagnostic(error: &CliError) -> String {
     let text = ici_execution::redaction::redact_text(&error.to_string());
-    if [CONFIG_PREFIX, STABLE_CONFIG_PREFIX, "report: ", "diff: "]
-        .iter()
-        .any(|prefix| text.starts_with(prefix))
+    if [
+        CONFIG_PREFIX,
+        STABLE_CONFIG_PREFIX,
+        "report: ",
+        "diff: ",
+        "publish: ",
+    ]
+    .iter()
+    .any(|prefix| text.starts_with(prefix))
     {
         format!("{text}\n")
     } else {

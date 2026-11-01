@@ -385,6 +385,16 @@ fn escape(value: &str) -> String {
         .replace('>', "&gt;")
 }
 
+/// The stderr line for a publish refusal inside `verify --publish`: one `publish: ` prefix,
+/// whether or not the refusal already carries it (result loading does).
+pub fn refusal_line(reason: &CliError) -> String {
+    let text = reason.to_string();
+    if text.starts_with("publish: ") {
+        format!("{text}\n")
+    } else {
+        format!("publish: {text}\n")
+    }
+}
 pub fn command(
     invocation: &Invocation,
     cwd: &Path,
@@ -692,6 +702,26 @@ fn load_page(
     result: Option<&Path>,
     required: bool,
 ) -> Result<Page> {
+    // Frozen `publish_run` (application/publish.py `_load_result`) reads the stored result
+    // before the page: a missing or unreadable result is a `publish: ` refusal naming it.
+    let (result, result_digest) = match result {
+        Some(path) if required || path.exists() => {
+            let bytes = crate::report::read_bounded(path, 64 * 1024 * 1024).map_err(|error| {
+                CliError(format!(
+                    "publish: cannot read result {}: {error}",
+                    path.display()
+                ))
+            })?;
+            let loaded = crate::report::load(path).map_err(|error| {
+                CliError(format!(
+                    "publish: {} is not a result this version can read: {error}",
+                    path.display()
+                ))
+            })?;
+            (Some(loaded), Some(ici_domain::sha256(bytes)))
+        }
+        _ => (None, None),
+    };
     let canonical = path
         .canonicalize()
         .map_err(|error| CliError(format!("publish page: {error}")))?;
@@ -701,16 +731,6 @@ fn load_page(
         ));
     }
     let bytes = crate::report::read_bounded(&canonical, 64 * 1024 * 1024)?;
-    let (result, result_digest) = match result {
-        Some(path) if required || path.exists() => (
-            Some(crate::report::load(path)?),
-            Some(ici_domain::sha256(crate::report::read_bounded(
-                path,
-                64 * 1024 * 1024,
-            )?)),
-        ),
-        _ => (None, None),
-    };
     Ok(Page {
         label: label.into(),
         bytes,
@@ -776,6 +796,18 @@ mod tests {
         assert_eq!(pr, Some(3));
         assert_eq!(run_head(event_head, "push-sha".into()), "push-sha");
         assert_eq!(run_head(String::new(), "push-sha".into()), "push-sha");
+    }
+
+    #[test]
+    fn a_refusal_carries_one_publish_prefix() {
+        assert_eq!(
+            refusal_line(&CliError("publish: cannot read result r.json: gone".into())),
+            "publish: cannot read result r.json: gone\n"
+        );
+        assert_eq!(
+            refusal_line(&CliError("page is not UTF-8".into())),
+            "publish: page is not UTF-8\n"
+        );
     }
 
     #[test]

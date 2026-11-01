@@ -17,7 +17,9 @@ pub use baseline_delta::{
     baseline_gate_failures, baseline_gated, legacy_baseline_comparison, severity_regressed,
 };
 mod legacy_console;
+mod legacy_support;
 pub use legacy_console::legacy_engine_console;
+pub use legacy_support::{LegacySupportInputs, legacy_support_declarations, legacy_support_matrix};
 mod facets;
 mod render;
 mod view;

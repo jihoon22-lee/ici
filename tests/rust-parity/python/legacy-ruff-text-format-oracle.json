@@ -1,0 +1,445 @@
+{
+ "base": "[project]\ntype='python'\nsource_dirs=['src']\n",
+ "cases": {
+  "clean": {
+   "files": {
+    "src/a.py": "x = 1\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "0 Violations Found",
+    "targets": [],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<tools>/ruff",
+       "check",
+       "--no-fix",
+       "--no-fix-only",
+       "--no-unsafe-fixes",
+       "src/a.py",
+       "--output-format=json"
+      ],
+      "error": "",
+      "name": "ruff check",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--help"
+      ],
+      "error": "",
+      "name": "ruff format capability",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--check",
+       "src/a.py"
+      ],
+      "error": "",
+      "name": "ruff format",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "format-needed": {
+   "files": {
+    "src/a.py": "x=1\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "WARN",
+    "summary": "0 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "File requires reformatting (PEP 8 style mismatch)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Format:Style"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<tools>/ruff",
+       "check",
+       "--no-fix",
+       "--no-fix-only",
+       "--no-unsafe-fixes",
+       "src/a.py",
+       "--output-format=json"
+      ],
+      "error": "",
+      "name": "ruff check",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--help"
+      ],
+      "error": "",
+      "name": "ruff format capability",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--check",
+       "src/a.py"
+      ],
+      "error": "",
+      "name": "ruff format",
+      "path": "<tools>/ruff",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "lint-and-format": {
+   "files": {
+    "src/a.py": "import os\nx=1\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "1 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "`os` imported but unused",
+      "start_column": 8,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Ruff:F401"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "File requires reformatting (PEP 8 style mismatch)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Format:Style"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<tools>/ruff",
+       "check",
+       "--no-fix",
+       "--no-fix-only",
+       "--no-unsafe-fixes",
+       "src/a.py",
+       "--output-format=json"
+      ],
+      "error": "",
+      "name": "ruff check",
+      "path": "<tools>/ruff",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--help"
+      ],
+      "error": "",
+      "name": "ruff format capability",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--check",
+       "src/a.py"
+      ],
+      "error": "",
+      "name": "ruff format",
+      "path": "<tools>/ruff",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "syntax": {
+   "files": {
+    "src/a.py": "x = 1\n",
+    "src/b.py": "def f(:\n    pass\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Ruff check output was not valid JSON: ruff entry 0 was not readable: code is missing; Ruff format check failed with exit code 2",
+    "targets": [
+     {
+      "file_path": "src/b.py",
+      "message": "SyntaxError: invalid syntax",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "SyntaxError"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<tools>/ruff",
+       "check",
+       "--no-fix",
+       "--no-fix-only",
+       "--no-unsafe-fixes",
+       "src/a.py",
+       "src/b.py",
+       "--output-format=json"
+      ],
+      "error": "Ruff check output was not valid JSON: ruff entry 0 was not readable: code is missing",
+      "name": "ruff check",
+      "path": "<tools>/ruff",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--help"
+      ],
+      "error": "",
+      "name": "ruff format capability",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--check",
+       "src/a.py",
+       "src/b.py"
+      ],
+      "error": "Ruff format check failed with exit code 2",
+      "name": "ruff format",
+      "path": "<tools>/ruff",
+      "returncode": 2,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "two-files-both-format": {
+   "files": {
+    "src/a.py": "x=1\n",
+    "src/pkg/b.py": "y=2\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "WARN",
+    "summary": "0 Errors, 2 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "File requires reformatting (PEP 8 style mismatch)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Format:Style"
+     },
+     {
+      "file_path": "src/pkg/b.py",
+      "message": "File requires reformatting (PEP 8 style mismatch)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Format:Style"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<tools>/ruff",
+       "check",
+       "--no-fix",
+       "--no-fix-only",
+       "--no-unsafe-fixes",
+       "src/a.py",
+       "src/pkg/b.py",
+       "--output-format=json"
+      ],
+      "error": "",
+      "name": "ruff check",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--help"
+      ],
+      "error": "",
+      "name": "ruff format capability",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--check",
+       "src/a.py",
+       "src/pkg/b.py"
+      ],
+      "error": "",
+      "name": "ruff format",
+      "path": "<tools>/ruff",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  },
+  "two-files-one-format": {
+   "files": {
+    "src/a.py": "x=1\n",
+    "src/b.py": "y = 2\n"
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "WARN",
+    "summary": "0 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "File requires reformatting (PEP 8 style mismatch)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Format:Style"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "<tools>/ruff",
+       "check",
+       "--no-fix",
+       "--no-fix-only",
+       "--no-unsafe-fixes",
+       "src/a.py",
+       "src/b.py",
+       "--output-format=json"
+      ],
+      "error": "",
+      "name": "ruff check",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--help"
+      ],
+      "error": "",
+      "name": "ruff format capability",
+      "path": "<tools>/ruff",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "<tools>/ruff",
+       "format",
+       "--check",
+       "src/a.py",
+       "src/b.py"
+      ],
+      "error": "",
+      "name": "ruff format",
+      "path": "<tools>/ruff",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
+    ]
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "Python 3.10.21",
+ "ruff_sha256": "92f4ebc9e41cdbad8603265ec71b7b871e3018dc6f5b4d386d91c1ff4f8aef7c",
+ "ruff_version": "ruff 0.5.7"
+}
