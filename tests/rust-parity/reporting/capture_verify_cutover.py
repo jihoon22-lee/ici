@@ -29,6 +29,8 @@ RISKY = {
         "def run(cmd):\n    return eval(cmd)\n"
     ),
 }
+# No ici.toml: the stable (legacy) verify path, whose --publish needs GitHub Actions.
+LEGACY = {"main.py": RISKY["main.py"]}
 CASES = {
     "plain": (RISKY, [["verify"]]),
     "report": (RISKY, [["verify", "--report"]]),
@@ -36,6 +38,7 @@ CASES = {
     "html": (RISKY, [["verify", "--html", "page.html"]]),
     "max_findings_default": (RISKY, [["verify", "--max-findings", "5"]]),
     "fail_on_new": (RISKY, [["verify", "--fail-on-new", "--baseline", "b.json"]]),
+    "legacy_publish_outside_actions": (LEGACY, [["verify", "--publish"]]),
     "stable_only": (
         RISKY,
         [["verify", "--verbose", "--group-by", "file", "--write-baseline", "b.json"]],

@@ -30,15 +30,18 @@ fn workspace_verify_runs_the_next_path_and_composes_outputs_like_frozen_cutover(
     ))
     .unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 7);
+    assert_eq!(cases.len(), 8);
     for (name, case) in cases {
         let home = tempfile::tempdir().unwrap();
         let directory = tempfile::tempdir().unwrap();
         let base = directory.path().canonicalize().unwrap().join("project");
         materialize(&base, &case["tree"]);
+        // A repository and token are present, so only the missing Actions marker skips publish.
         let environment = BTreeMap::from([
             ("HOME".to_owned(), home.path().display().to_string()),
             ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+            ("GITHUB_REPOSITORY".to_owned(), "team/repo".to_owned()),
+            ("GITHUB_TOKEN".to_owned(), "unused-test-token".to_owned()),
         ]);
         let step = &case["steps"][0];
         let argv: Vec<&str> = std::iter::once("ici")
@@ -52,6 +55,23 @@ fn workspace_verify_runs_the_next_path_and_composes_outputs_like_frozen_cutover(
             .collect();
         let invocation = registry::parse(argv.iter().copied()).unwrap();
         let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+        if name == "legacy_publish_outside_actions" {
+            // Stable path: frozen skips publishing outside GitHub Actions with this notice, still
+            // writes the page, and the verify exit is the run's own (native INCOMPLETE rule).
+            let notice = "[publish] --publish requires a GitHub Actions environment; skipping.";
+            assert!(step["stdout"].as_str().unwrap().contains(notice));
+            assert!(output.stdout.contains(notice), "{}", output.stdout);
+            assert!(base.join("verify_report.html").is_file());
+            assert!(!base.join(".ici/rust-v1/publish.json").exists());
+            let plain = commands::dispatch(
+                &registry::parse(["ici", "verify"]).unwrap(),
+                &base,
+                &environment,
+            )
+            .unwrap();
+            assert_eq!(output.exit_code, plain.exit_code);
+            continue;
+        }
         let root = base.display().to_string();
         let stdout = output
             .stdout

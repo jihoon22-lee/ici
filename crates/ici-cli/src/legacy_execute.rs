@@ -384,7 +384,14 @@ pub fn command(
             exit_code = 2;
         }
     }
+    // Frozen ReportPublisher._publish_single: outside GitHub Actions the publish step is skipped
+    // with this notice and never touches the verify exit.
+    let actions = environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true");
+    if invocation.flag("publish") && !actions {
+        stdout.push_str("[publish] --publish requires a GitHub Actions environment; skipping.\n");
+    }
     if invocation.flag("publish")
+        && actions
         && let Some(path) = &page_path
     {
         let publish = crate::registry::parse([
