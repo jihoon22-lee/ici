@@ -31,6 +31,25 @@ NON_ELF_MAKE = (
     "\tprintf 'MZ-not-elf' > build/ici-make/tool.exe\n\tchmod +x build/ici-make/tool.exe\n"
 )
 NOTHING_MAKE = "all:\n\tmkdir -p build/ici-make\n\ttouch build/ici-make/notes.txt\n"
+# A binary that needs libstdc++ (GLIBCXX 3.4.x, CXXABI 1.3.x) besides libc.
+ABI_SOURCE = (
+    "#include <stdexcept>\n#include <string>\nint main(int argc, char **) {\n"
+    "  std::string text(static_cast<unsigned>(argc) + 40U, 'x');\n"
+    "  try { if (argc > 5) throw std::runtime_error(text); }\n"
+    "  catch (const std::exception &error) { return static_cast<int>(error.what()[0]); }\n"
+    "  return static_cast<int>(text.size() % 2U);\n}\n"
+)
+ABI_MAKE = "all:\n\tmkdir -p build/ici-make\n\tg++ src/abi.cpp -o build/ici-make/app\n"
+ABI = {"src/abi.cpp": ABI_SOURCE, "Makefile": ABI_MAKE}
+# One absolute vendor loader path and one inside the project (a build root).
+RPATH_MAKE = (
+    "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app"
+    " -Wl,-rpath,/opt/vendor/lib -Wl,-rpath,$(CURDIR)/build/ici-make\n"
+)
+TWO_MAKE = (
+    "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n"
+    "\tg++ src/main.cpp -o build/ici-make/tool\n"
+)
 CASES = {
     "pass": {},
     "violations": {
@@ -51,6 +70,43 @@ CASES = {
     "unpublished-selection": {"ici.toml": BASE + ENABLE + "artifacts=['release:shadow:nope']\n"},
     "missing-readelf": {},
     "truncated-readelf": {},
+    # One case per remaining engines.binary_compat key (config_key rows); each differs from a
+    # reference case only in that key.
+    "disabled": {
+        "ici.toml": BASE + "[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=false\n"
+    },
+    "mode-pass-warn": {
+        "ici.toml": BASE + ENABLE + "mode='pass_warn'\nforbidden_needed=['libc.so.6']\n"
+    },
+    "mode-pass-warn-fail": {
+        "ici.toml": BASE + ENABLE + "mode='pass_warn_fail'\nforbidden_needed=['libc.so.6']\n"
+    },
+    "expected-class-machine-match": {
+        "ici.toml": BASE
+        + ENABLE
+        + "expected_class='ELF64'\nexpected_machine='Advanced Micro Devices X86-64'\n"
+    },
+    "expected-class-mismatch": {"ici.toml": BASE + ENABLE + "expected_class='ELF32'\n"},
+    "expected-machine-mismatch": {"ici.toml": BASE + ENABLE + "expected_machine='AArch64'\n"},
+    "abi-reference": ABI,
+    "max-glibcxx": ABI | {"ici.toml": BASE + ENABLE + "max_glibcxx='3.4'\n"},
+    "max-glibcxx-ok": ABI | {"ici.toml": BASE + ENABLE + "max_glibcxx='3.4.99'\n"},
+    "max-cxxabi": ABI | {"ici.toml": BASE + ENABLE + "max_cxxabi='1.2'\n"},
+    "max-cxxabi-ok": ABI | {"ici.toml": BASE + ENABLE + "max_cxxabi='1.3.99'\n"},
+    "allowed-needed": ABI | {"ici.toml": BASE + ENABLE + "allowed_needed=['libc.so.6']\n"},
+    "require-static": {"ici.toml": BASE + ENABLE + "require_static=true\n"},
+    "require-static-off": {"ici.toml": BASE + ENABLE + "require_static=false\n"},
+    "rpath-default": {"Makefile": RPATH_MAKE},
+    "rpath-absolute-allowed": {
+        "Makefile": RPATH_MAKE,
+        "ici.toml": BASE + ENABLE + "forbid_absolute_rpath=false\n",
+    },
+    "rpath-all-allowed": {
+        "Makefile": RPATH_MAKE,
+        "ici.toml": BASE + ENABLE + "forbid_absolute_rpath=false\nforbid_build_paths=false\n",
+    },
+    "max-artifacts-reference": {"Makefile": TWO_MAKE},
+    "max-artifacts": {"Makefile": TWO_MAKE, "ici.toml": BASE + ENABLE + "max_artifacts=1\n"},
 }
 # Executables hidden from PATH per case: PATH becomes a symlink farm of every other entry.
 HIDDEN = {"missing-readelf": ["readelf"], "truncated-readelf": ["readelf"]}
@@ -113,6 +169,7 @@ def run(changes: dict, hidden: list[str], replaced: dict | None = None) -> dict:
                 "targets": [
                     {key: target.get(key) for key in FIELDS} for target in engine["targets"]
                 ],
+                "rules": sorted(finding["rule_id"] for finding in engine.get("findings", [])),
             }
     return engines
 
@@ -137,3 +194,19 @@ cases = {
     encoding="utf-8",
 )
 print(f"{len(cases)} binary compatibility cases")
+# Each key case must differ from its reference exactly where the key has an effect.
+EFFECT = {
+    "disabled": "pass",
+    "mode-pass-warn": "mode-pass-warn-fail",
+    "expected-class-mismatch": "expected-class-machine-match",
+    "expected-machine-mismatch": "expected-class-machine-match",
+    "max-glibcxx": "max-glibcxx-ok",
+    "max-cxxabi": "max-cxxabi-ok",
+    "allowed-needed": "abi-reference",
+    "require-static": "require-static-off",
+    "rpath-absolute-allowed": "rpath-default",
+    "rpath-all-allowed": "rpath-absolute-allowed",
+    "max-artifacts": "max-artifacts-reference",
+}
+same = [name for name, other in EFFECT.items() if cases[name]["frozen"] == cases[other]["frozen"]]
+assert not same, same

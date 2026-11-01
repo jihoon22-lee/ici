@@ -1577,6 +1577,21 @@ fn legacy_binary_selection(
             Some("readelf capability is unavailable"),
         ));
     }
+    // Frozen `_records`: more selected artifacts than `max_artifacts` (bound_binary rejects an
+    // empty selection before planning, and the schema bounds the key to 1..=64).
+    if reason.starts_with("binary compatibility requires 1..max_artifacts") {
+        let maximum = component
+            .settings
+            .pointer("/engines/binary_compat/max_artifacts")
+            .and_then(Value::as_u64)
+            .unwrap_or(64);
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            Some(&format!(
+                "binary artifact count exceeds configured maximum {maximum}"
+            )),
+        ));
+    }
     let unpublished = [
         "is not an observed output",
         "is not in the linked build inventory",

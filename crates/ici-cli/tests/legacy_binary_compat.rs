@@ -48,14 +48,28 @@ fn engines(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> 
                 })
             })
             .collect();
+        let mut rules: Vec<String> = engine["findings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|finding| finding["rule_id"].as_str().map(str::to_owned))
+            .collect();
+        rules.sort();
         engines.insert(
             name.into(),
-            json!({"status":engine["status"],"summary":engine["summary"],"targets":targets}),
+            json!({"status":engine["status"],"summary":engine["summary"],"targets":targets,"rules":rules}),
         );
     }
     Value::Object(engines)
 }
 
+/// Positive: every `engines.binary_compat` key (enabled, mode, expected_class/machine,
+/// max_glibc/glibcxx/cxxabi, require_static, forbid_absolute_rpath, forbid_build_paths,
+/// forbidden/allowed_needed, allow_non_elf, artifacts, max_artifacts, required) changes the
+/// native view exactly as frozen's; the capture asserts each key case differs from its
+/// reference. Negative: in-policy values (matching class/machine, higher floors) PASS.
+/// Failure: missing/truncated readelf, unpublished selections and max_artifacts overflow are
+/// the frozen AnalysisUnavailable ERROR.
 #[test]
 #[ignore = "explicit actual GNU Make, g++ and readelf deep legacy run (ICI_TEST_MAKE, ICI_TEST_CXX)"]
 fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
@@ -73,7 +87,7 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
         .join(":");
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 9);
+    assert_eq!(cases.len(), 28);
     for (name, case) in cases {
         // A case may hide executables: PATH becomes a symlink farm of every other entry.
         let farm = tempfile::tempdir().unwrap();
@@ -114,6 +128,16 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
         };
         let environment = BTreeMap::from([("PATH".to_string(), search)]);
         let actual = engines(case, base, &environment);
+        // `disabled`: engines.binary_compat.enabled=false leaves no binary_compat result.
+        assert_eq!(
+            actual.as_object().unwrap().keys().collect::<Vec<_>>(),
+            case["frozen"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .collect::<Vec<_>>(),
+            "{name}: engine set"
+        );
         for (engine, frozen) in case["frozen"].as_object().unwrap() {
             let actual = actual[engine].clone();
             // Open: a Make build without linked outputs stops at artifact preparation
