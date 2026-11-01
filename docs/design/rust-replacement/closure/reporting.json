@@ -60,7 +60,7 @@
    "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 46,419 B for the budget fixture at the fragment commit). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read). HTML layout: one page with sections and native labels (saved field names in generic tables) instead of frozen tabs, emoji labels and Korean help text; frozen hard-coded thresholds (cognitive warn 30/fail 60, coverage Min 80%/90%) and badge colours are not repeated because they are not saved facts. Decision on SKIP engines: native previously rendered every SKIP engine as a full family section; frozen shows it as a dimmed N/A summary row with the reason collapsed and omits it from the dedicated tabs. Native now collapses it (reason one click away, nothing hidden) because a full section per not-applicable engine is noise under AGENTS.md §5 and carries no additional fact. In >2,000-finding pages the axis filters are not offered; the text filter and pager over the complete inventory remain."
   },
   "capability:legacy-command-config-result-projection": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-reporting/src/projection.rs",
@@ -92,13 +92,15 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 7 passed; the saved suite tem_score equals the test engine score (frozen engines/verify.py); /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the same run on the previous projection fails twice with suite tem_score null against 1.17 and 1.78; /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem-before.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null).",
+   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null). Complete for the reporting area's result-v3 reader/migration facet only; other facets stay with their areas' fragments.",
    "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
   },
   "capability:execution-cancel-save-redact": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/safe.rs",
     "crates/ici-reporting/src/migration.rs",
@@ -118,13 +120,15 @@
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Report-boundary redaction facet only. Reviewed core/redaction_values.py (all six patterns, redact_data key-collision suffixes) and core/redaction.py engine/finding/delta/capability/argv redaction. Fixed: values after --token/--password/--secret/--api-key flags in any argv array were not hidden; identity now derives from redacted target text as the frozen serializer did. Cancellation, saving and process cleanup facets belong to the runtime area.",
+   "comparison": "Report-boundary redaction facet only. Reviewed core/redaction_values.py (all six patterns, redact_data key-collision suffixes) and core/redaction.py engine/finding/delta/capability/argv redaction. Fixed: values after --token/--password/--secret/--api-key flags in any argv array were not hidden; identity now derives from redacted target text as the frozen serializer did. Cancellation, saving and process cleanup facets belong to the runtime area. Complete for the reporting area's report-boundary redaction facet only; other facets stay with their areas' fragments.",
    "difference_reason": "Native output redaction is stricter: values under credential-named keys and URL user:password@ credentials are also masked. Compilation argv path relativization (_redact_compilation_*) is applied by the producer, not re-derived at report time."
   },
   "capability:suppression": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-application/src/suppressions.rs",
     "crates/ici-reporting/src/render.rs",
@@ -143,12 +147,14 @@
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Config suppression application and report preservation facet. Frozen application/suppressions.py (conjunctive fingerprint/rule-prefix/component/path selectors, first declaration wins, kind=config with reason and origin, basename vs anchored fnmatchcase) maps one-to-one to SuppressionPolicy; reports keep suppressed findings, counts, reasons/origins and SARIF suppressions. Inline source suppressions are produced by analysis areas."
+   "comparison": "Config suppression application and report preservation facet. Frozen application/suppressions.py (conjunctive fingerprint/rule-prefix/component/path selectors, first declaration wins, kind=config with reason and origin, basename vs anchored fnmatchcase) maps one-to-one to SuppressionPolicy; reports keep suppressed findings, counts, reasons/origins and SARIF suppressions. Inline source suppressions are produced by analysis areas. Complete for the reporting area's config-suppression application and report preservation facet only; other facets stay with their areas' fragments."
   },
   "capability:identity-cache-baseline": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-application/src/baseline.rs",
     "crates/ici-reporting/src/baseline_delta.rs",
@@ -182,9 +188,11 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-reporting -p ici-cli -p ici-domain --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 309 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity test fails on the previous attribution (envelope fingerprint sha256:0257d1… with unit app.cpp vs frozen sha256:223305… with no unit); /tmp/ici-rust-replacement-20261028/w-reporting-identity-before.log",
     "`cargo clippy -p ici-application -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-clippy.log",
-    "manual probe (not a fixture): a python component run through frozen `python -I -m ici next verify --no-cache` and native `target/debug/ici next verify --no-cache` gives identical envelope fingerprints for internal checks with no unit (12 dup.type2-clone, security.evalexec) and for tool findings with unit core.python (3 ruff.SIM102); the remaining differences are outside identity (metrics.complexity carries columns, pytest location and collection-error, python.type uses ty); /tmp/ici-rust-replacement-20261028/w-reporting-identity-python-probe.log"
+    "manual probe (not a fixture): a python component run through frozen `python -I -m ici next verify --no-cache` and native `target/debug/ici next verify --no-cache` gives identical envelope fingerprints for internal checks with no unit (12 dup.type2-clone, security.evalexec) and for tool findings with unit core.python (3 ruff.SIM102); the remaining differences are outside identity (metrics.complexity carries columns, pytest location and collection-error, python.type uses ty); /tmp/ici-rust-replacement-20261028/w-reporting-identity-python-probe.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Baseline facet closed under the root decision (all four conditions proven by legacy_baseline_gate.rs). Identity: internal-check findings carry no analysis unit or variant (frozen finding_identity.attribute) and their check records name the component unit with its build variant (frozen check_scope), so envelope fingerprints equal frozen's (tests/rust-parity/reporting/artifact-identity.json, captured by capture_artifact_identity.py; the binary-compat per-artifact task expansion is a cpp-area difference outside this contract); the cache facet was not reviewed by the reporting area, so this row stays verified rather than complete.",
+   "comparison": "Baseline facet closed under the root decision (all four conditions proven by legacy_baseline_gate.rs). Identity: internal-check findings carry no analysis unit or variant (frozen finding_identity.attribute) and their check records name the component unit with its build variant (frozen check_scope), so envelope fingerprints equal frozen's (tests/rust-parity/reporting/artifact-identity.json, captured by capture_artifact_identity.py; the binary-compat per-artifact task expansion is a cpp-area difference outside this contract); the cache facet was not reviewed by the reporting area, so this fragment claims the identity and baseline facet only. Complete for the reporting area's identity and baseline (the observation cache is the runtime facet) facet only; other facets stay with their areas' fragments.",
    "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "wire_schema:ici-result-v3.schema.json": {
@@ -972,11 +980,11 @@
    "reason": "Complete 76-line module reviewed in this pass. Every behaviour is ported (overview::delta_order including the location tiebreak, 20 changed / 3 unchanged bounds with omission counts, severity_transition with '—', enum labels) and pinned by suite_overview.rs against frozen captures; disposition stays open only because its requirement row is verified, not complete."
   },
   "src/ici/core/redaction_values.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:execution-cancel-save-redact"
    ],
-   "reason": "Complete 74-line module reviewed: the six credential patterns and redact_data key-collision suffixes map to ici_execution::redaction and safe::redact_plain/redact; native adds URL-credential and credential-key masking. Open until the shared redaction row is complete."
+   "reason": "Complete 74-line module reviewed: the six credential patterns and redact_data key-collision suffixes map to ici_execution::redaction and safe::redact_plain/redact (capability:execution-cancel-save-redact, reporting redaction facet complete); native additionally masks URL credentials and credential-named keys (stricter, recorded on the row). Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/reporting/view_model.py": {
    "disposition": "unreviewed",
@@ -1003,25 +1011,25 @@
    "reason": "Complete 899-line module reviewed. Migration/intake behaviour is captured and fixed (migration_edges.rs). Serializer validation (_serialize_delta presence/relationship/flag checks, support-matrix rules, artifact manifest/analysis-context serializers) is producer-side and was not mapped to native writers in this pass."
   },
   "src/ici/application/baseline.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:identity-cache-baseline"
    ],
-   "reason": "Reviewed; the modern comparison maps to ici_application::baseline and the frozen delta/gate to ici_reporting::baseline_delta (legacy_baseline_gate.rs). Open while capability:identity-cache-baseline is verified."
+   "reason": "Complete 171-line module reviewed; the modern comparison maps to ici_application::baseline (incompatibility reasons now use the frozen texts verbatim, analyze_text.rs) and the frozen delta/gate to ici_reporting::baseline_delta (legacy_baseline_gate.rs); capability:identity-cache-baseline is complete for the identity+baseline facet. Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/application/suppressions.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:suppression"
    ],
-   "reason": "Complete module reviewed and mapped one-to-one to SuppressionPolicy (conjunctive selectors, first reason wins, fnmatchcase paths); open until capability:suppression is complete (currently verified)."
+   "reason": "Complete 85-line module reviewed and mapped one-to-one to ici_application SuppressionPolicy (conjunctive selectors, first reason wins, fnmatchcase paths) pinned by crates/ici-application/tests/suppressions.rs; capability:suppression is complete for the reporting facet. Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/application/finding_identity.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:identity-cache-baseline"
    ],
-   "reason": "Not read in this pass; identity behaviour is only covered indirectly through crates/ici-application/tests/identity.rs."
+   "reason": "Complete 71-line module read. attribute -> ici_application::verification::evaluate (crates/ici-application/src/verification.rs:84-120): single declared unit/variant stamps the finding, a finding unit outside several declared units is cleared, task_id set; _fingerprint -> ici_domain::identity::attributed_fingerprint (same 13-field ASCII-JSON payload, sorted unit tuple appended for >1 unit) pinned to the frozen digest by crates/ici-domain/tests/wire.rs fingerprint_unicode_matches_frozen_python_oracle (tests/rust-parity/domain/fingerprint.json) and cross-component aliasing by crates/ici-application/tests/verification.rs. Frozen's untouched pass-through (no owner, unit, variant or units) is unreachable from the frozen CLI because cli/next_path.py:602 maps every planned task to its component; native always stamps the planned component. Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/application/gates.py": {
    "disposition": "unreviewed",
@@ -1038,7 +1046,7 @@
    "reason": "Reviewed all 3 symbols. build_result -> crates/ici-application/src/assemble.rs: run_id, producer, identity (fingerprint_version), scope (selected/required/omitted, full_required_satisfied only for a complete full scope; native also requires every required component selected and none omitted), execution (blocked ids only when incomplete, failed ids, reused ids from cache hits), gate, findings, metrics = observation measurements then the TEM tuple, limitations = observation, run and TEM limitations in frozen order (native drops repeated strings), baseline, checks. tem_metrics -> ici_domain::tem::run_metrics (tests/rust-parity/reporting/tem-metrics.json, 9 frozen cases, exact). digest_of -> ici_domain::sha256 'sha256:<hex>' of UTF-8 text."
   },
   "src/ici/core/baseline.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:identity-cache-baseline",
     "finding_site:src/ici/core/baseline.py:284:11",
@@ -1049,7 +1057,7 @@
     "finding_site:src/ici/core/baseline.py:527:11",
     "finding_site:src/ici/core/baseline.py:541:11"
    ],
-   "reason": "Complete module reviewed against the root ADR-0008 decision; all seven finding sites are complete. Stays unreviewed only because capability:identity-cache-baseline is verified (its cache facet is outside reporting)."
+   "reason": "Complete 714-line module reviewed against the root ADR-0008 decision; all seven finding sites are complete and the baseline behaviour maps to capability:identity-cache-baseline (identity+baseline facet complete; the observation cache facet is not in this module). Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/core/findings.py": {
    "disposition": "mapped",
@@ -1067,11 +1075,11 @@
    "reason": "Engine/finding/delta/capability/argv redaction reviewed (redaction.py:491 complete); open because redaction.py:360/447 are only verified and the compilation argv helpers are producer-side."
   },
   "src/ici/core/result_keys.py": {
-   "disposition": "unreviewed",
+   "disposition": "retired",
    "requirements": [
     "capability:legacy-command-config-result-projection"
    ],
-   "reason": "Not read in this pass."
+   "reason": "Unreachable from ici.__main__ (static import closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src src/ici/core/result_keys.py -> UNREACHABLE, /tmp/ici-rust-replacement-20261028/w-reporting2-import-closure.log); no product module references result_keys/EXTRA_KEYS (only tests/test_result_key_contract.py). It is a Python-side typo tripwire for EngineResult.extra keys; native readers parse extra keys explicitly and keep unknown keys (legacy_pipeline/stored tests)."
   },
   "src/ici/engines/publish.py": {
    "disposition": "unreviewed",
@@ -1092,7 +1100,7 @@
    "requirements": [
     "capability:legacy-command-config-result-projection"
    ],
-   "reason": "Not read in this pass."
+   "reason": "Outline read: legacy VerifyOrchestrator (engine scheduling, compilation-context preparation, baseline apply/write). Baseline apply/write is covered by legacy_baseline_gate.rs; engine scheduling and compilation context belong to the runtime and C++ areas and were not mapped in this pass."
   },
   "src/ici/reporters/console.py": {
    "disposition": "unreviewed",
@@ -1125,7 +1133,7 @@
   "src/ici/reporting/__init__.py": {
    "disposition": "unreviewed",
    "requirements": [],
-   "reason": "Not read in this pass (package export surface)."
+   "reason": "Read: docstring-only package marker (no executable statements). Its rule — reporters only read a stored RunResult and never run providers — is the report row's boundary (ici-reporting has no ici-execution/provider dependency); open with capability:report-console-markdown-json-html-sarif (verified)."
   },
   "src/ici/reporters/issue_view.py": {
    "disposition": "unreviewed",
