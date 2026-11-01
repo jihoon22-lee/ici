@@ -1,0 +1,1143 @@
+{
+ "cases": {
+  "crlf-and-formfeed": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed",
+      "name": "test_a",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_b",
+      "passed": true
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed",
+      "name": "test_a",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_b",
+      "passed": true
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed",
+      "name": "test_a",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_b",
+      "passed": true
+     }
+    ],
+    "xunit": []
+   },
+   "returncode": 2,
+   "transcript": "./test_a\r\nmake: *** [x] Error 1\f./test_b\r"
+  },
+  "doctype": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check exited non-zero after this test started",
+      "name": "test_a",
+      "passed": false
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check exited non-zero after this test started",
+      "name": "test_a",
+      "passed": false
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check exited non-zero after this test started",
+      "name": "test_a",
+      "passed": false
+     }
+    ],
+    "xunit": []
+   },
+   "returncode": 2,
+   "transcript": "./test_a\n<!DOCTYPE x>\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"B\">\n  <testcase name=\"bad\" classname=\"B\">\n    <failure type=\"fail\" message=\"&apos;x&apos; &amp; &lt;y&gt; returned FALSE. ()\"/>\n  </testcase>\n  <testcase name=\"err\" classname=\"B\"><error message=\"\">trace\n text </error></testcase>\n  <testcase name=\"two\" classname=\"B\"><failure message=\"m1\"/><error message=\"m2\"/></testcase>\n</testsuite>\n"
+  },
+  "empty": {
+   "frozen": {
+    "attached": [],
+    "make": [],
+    "qmake": [],
+    "xunit": []
+   },
+   "returncode": 0,
+   "transcript": ""
+  },
+  "long-message": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — L::long: yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy...",
+      "name": "test_l",
+      "passed": false
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed",
+      "name": "test_l",
+      "passed": false
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — L::long: yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy...",
+      "name": "test_l",
+      "passed": false
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy...",
+      "name": "L::long",
+      "passed": false
+     }
+    ]
+   },
+   "returncode": 2,
+   "transcript": "./test_l\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"L\">\n  <testcase name=\"long\"><failure message=\"yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy\"/></testcase>\n</testsuite>\nmake: *** [check] Error 1\n"
+  },
+  "malformed-block": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     }
+    ],
+    "make": [],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     }
+    ]
+   },
+   "returncode": 1,
+   "transcript": "<testsuite name='M'><testcase name='a'></testsuite>\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"B\">\n  <testcase name=\"bad\" classname=\"B\">\n    <failure type=\"fail\" message=\"&apos;x&apos; &amp; &lt;y&gt; returned FALSE. ()\"/>\n  </testcase>\n  <testcase name=\"err\" classname=\"B\"><error message=\"\">trace\n text </error></testcase>\n  <testcase name=\"two\" classname=\"B\"><failure message=\"m1\"/><error message=\"m2\"/></testcase>\n</testsuite>\n"
+  },
+  "nonzero-no-error-line": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check exited non-zero after this test started",
+      "name": "test_b",
+      "passed": false
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check exited non-zero after this test started",
+      "name": "test_b",
+      "passed": false
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check exited non-zero after this test started",
+      "name": "test_b",
+      "passed": false
+     }
+    ],
+    "xunit": []
+   },
+   "returncode": 1,
+   "transcript": "./test_a\n./test_b\nsome output\n"
+  },
+  "plain-pass": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "A::one",
+      "passed": true
+     }
+    ]
+   },
+   "returncode": 0,
+   "transcript": "./test_a -xunitxml\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"A\">\n  <testcase name=\"one\" classname=\"A\"/>\n</testsuite>\n"
+  },
+  "repeated-name": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "xunit": []
+   },
+   "returncode": 0,
+   "transcript": "./test_a\n./test_a -x\n(cd sub && ./test_x)\n"
+  },
+  "sanitized-xunit": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "boom\n\n==1==ERROR: LeakSanitizer: detected memory leaks",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "LeakSanitizer diagnostic",
+      "name": "Z::leak",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "SUMMARY: UndefinedBehaviorSanitizer: x",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "UndefinedBehaviorSanitizer diagnostic",
+      "name": "Z::quiet",
+      "passed": false
+     }
+    ],
+    "make": [],
+    "qmake": [
+     {
+      "diagnostic_output": "boom\n\n==1==ERROR: LeakSanitizer: detected memory leaks",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "LeakSanitizer diagnostic",
+      "name": "Z::leak",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "SUMMARY: UndefinedBehaviorSanitizer: x",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "UndefinedBehaviorSanitizer diagnostic",
+      "name": "Z::quiet",
+      "passed": false
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "boom\n\n==1==ERROR: LeakSanitizer: detected memory leaks",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "LeakSanitizer diagnostic",
+      "name": "Z::leak",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "SUMMARY: UndefinedBehaviorSanitizer: x",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "UndefinedBehaviorSanitizer diagnostic",
+      "name": "Z::quiet",
+      "passed": false
+     }
+    ]
+   },
+   "returncode": 1,
+   "transcript": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"Z\">\n  <testcase name=\"leak\"><failure message=\"boom\"/><system-out>==1==ERROR: LeakSanitizer: detected memory leaks</system-out></testcase>\n  <testcase name=\"quiet\"><system-err>SUMMARY: UndefinedBehaviorSanitizer: x</system-err></testcase>\n</testsuite>\n"
+  },
+  "sanitizer-no-case": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "==9==WARNING: ThreadSanitizer: data race\n",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "ThreadSanitizer diagnostic",
+      "name": "sanitizer-process",
+      "passed": false
+     }
+    ],
+    "make": [],
+    "qmake": [],
+    "xunit": []
+   },
+   "returncode": 66,
+   "transcript": "==9==WARNING: ThreadSanitizer: data race\n"
+  },
+  "sanitizer-transcript-pass": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "./test_a\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"A\">\n  <testcase name=\"one\" classname=\"A\"/>\n</testsuite>\n==9==ERROR: AddressSanitizer: heap-use-after-free on x\n",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "AddressSanitizer diagnostic",
+      "name": "test_a",
+      "passed": false
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "A::one",
+      "passed": true
+     }
+    ]
+   },
+   "returncode": 0,
+   "transcript": "./test_a\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"A\">\n  <testcase name=\"one\" classname=\"A\"/>\n</testsuite>\n==9==ERROR: AddressSanitizer: heap-use-after-free on x\n"
+  },
+  "second-never-ran": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — B::bad: 'x' & <y> returned FALSE. (); B::err: trace\n text; B::two: m1; m2",
+      "name": "test_b",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_c",
+      "passed": true
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed",
+      "name": "test_b",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_c",
+      "passed": true
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_a",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — B::bad: 'x' & <y> returned FALSE. (); B::err: trace\n text; B::two: m1; m2",
+      "name": "test_b",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "test_c",
+      "passed": true
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "A::one",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     }
+    ]
+   },
+   "returncode": 2,
+   "transcript": "./test_a -xunitxml\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"A\">\n  <testcase name=\"one\" classname=\"A\"/>\n</testsuite>\n./test_b -xunitxml\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"B\">\n  <testcase name=\"bad\" classname=\"B\">\n    <failure type=\"fail\" message=\"&apos;x&apos; &amp; &lt;y&gt; returned FALSE. ()\"/>\n  </testcase>\n  <testcase name=\"err\" classname=\"B\"><error message=\"\">trace\n text </error></testcase>\n  <testcase name=\"two\" classname=\"B\"><failure message=\"m1\"/><error message=\"m2\"/></testcase>\n</testsuite>\nmake: *** [check] Error 1\n./test_c\n"
+  },
+  "test-qmake": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+      "name": "test_unit",
+      "passed": false
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed",
+      "name": "test_unit",
+      "passed": false
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+      "name": "test_unit",
+      "passed": false
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "Unit::initTestCase",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "Unit::passes",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'1 + 1 == 3' returned FALSE. ()",
+      "name": "Unit::fails",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'true' returned TRUE unexpectedly. ()",
+      "name": "Unit::unexpectedlyPasses",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "not on this host",
+      "name": "Unit::skipped",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "Unit::cleanupTestCase",
+      "passed": true
+     }
+    ]
+   },
+   "returncode": 2,
+   "transcript": "cd tests/ && ( test -e Makefile || /usr/bin/qmake6 -o Makefile <ROOT>/src/tests/tests.pro ) && make -f Makefile check\nmake[1]: Entering directory '<ROOT>/build/tests'\ncd <ROOT>/build/tests/.. && <ROOT>/build/tests/target_wrapper.sh  ./test_unit -xunitxml\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"Unit\" timestamp=\"2026&#x002D;11&#x002D;02T04:55:37\" hostname=\"Main\" tests=\"6\" failures=\"2\" errors=\"0\" skipped=\"1\" time=\"0.000\">\n  <properties>\n    <property name=\"QTestVersion\" value=\"6.10.2\"/>\n    <property name=\"QtVersion\" value=\"6.10.2\"/>\n    <property name=\"QtBuild\" value=\"Qt 6.10.2 (x86_64&#x002D;little_endian&#x002D;lp64 shared (dynamic) release build; by GCC 15.2.0)\"/>\n  </properties>\n  <testcase name=\"initTestCase\" classname=\"Unit\" time=\"0.000\"/>\n  <testcase name=\"passes\" classname=\"Unit\" time=\"0.000\"/>\n  <testcase name=\"fails\" classname=\"Unit\" time=\"0.000\">\n    <failure type=\"fail\" message=\"&apos;1 + 1 == 3&apos; returned FALSE. ()\"/>\n  </testcase>\n  <testcase name=\"unexpectedlyPasses\" classname=\"Unit\" time=\"0.000\">\n    <failure type=\"xpass\" message=\"&apos;true&apos; returned TRUE unexpectedly. ()\"/>\n  </testcase>\n  <testcase name=\"skipped\" classname=\"Unit\" time=\"0.000\">\n    <skipped message=\"not on this host\"/>\n  </testcase>\n  <testcase name=\"cleanupTestCase\" classname=\"Unit\" time=\"0.000\"/>\n</testsuite>\nmake[1]: Leaving directory '<ROOT>/build/tests'\nWARNING: xunitxml is deprecated. Please use junitxml.\nmake[1]: *** [Makefile:322: check] Error 2\nmake: *** [Makefile:207: sub-tests-check] Error 2\n"
+  },
+  "unnamed-suite": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "f",
+      "name": "bare",
+      "passed": false
+     }
+    ],
+    "make": [],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "f",
+      "name": "bare",
+      "passed": false
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "f",
+      "name": "bare",
+      "passed": false
+     }
+    ]
+   },
+   "returncode": 1,
+   "transcript": "<testsuite><testcase name=\"bare\"><failure message=\"f\"/></testcase></testsuite>"
+  },
+  "wrapper-fail": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — B::bad: 'x' & <y> returned FALSE. (); B::err: trace\n text; B::two: m1; m2",
+      "name": "test_b",
+      "passed": false
+     }
+    ],
+    "make": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed",
+      "name": "test_b",
+      "passed": false
+     }
+    ],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "make check failed — B::bad: 'x' & <y> returned FALSE. (); B::err: trace\n text; B::two: m1; m2",
+      "name": "test_b",
+      "passed": false
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     }
+    ]
+   },
+   "returncode": 2,
+   "transcript": "cd /w/.. && /w/target_wrapper.sh  ./test_b -xunitxml\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"B\">\n  <testcase name=\"bad\" classname=\"B\">\n    <failure type=\"fail\" message=\"&apos;x&apos; &amp; &lt;y&gt; returned FALSE. ()\"/>\n  </testcase>\n  <testcase name=\"err\" classname=\"B\"><error message=\"\">trace\n text </error></testcase>\n  <testcase name=\"two\" classname=\"B\"><failure message=\"m1\"/><error message=\"m2\"/></testcase>\n</testsuite>\nmake[1]: *** [Makefile:322: check] Error 2\nmake: *** [Makefile:207: sub-tests-check] Error 2\n"
+  },
+  "xunit-only": {
+   "frozen": {
+    "attached": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "A::one",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "S::xf",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "QtTest reported result 'xpass'",
+      "name": "S::xp",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "QtTest reported result 'weird'",
+      "name": "S::odd",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "QtTest reported result 'BLACKLISTED'",
+      "name": "S::bl",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "ctest reported status 'notrun'",
+      "name": "S::notrun",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "test framework reported unknown status \"flaky's\"",
+      "name": "S::unk",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "test was skipped",
+      "name": "S::sk",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "reason text",
+      "name": "S::sk2",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "S::spaced",
+      "passed": true
+     }
+    ],
+    "make": [],
+    "qmake": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "A::one",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "S::xf",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "QtTest reported result 'xpass'",
+      "name": "S::xp",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "QtTest reported result 'weird'",
+      "name": "S::odd",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "QtTest reported result 'BLACKLISTED'",
+      "name": "S::bl",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "ctest reported status 'notrun'",
+      "name": "S::notrun",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "test framework reported unknown status \"flaky's\"",
+      "name": "S::unk",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "test was skipped",
+      "name": "S::sk",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "reason text",
+      "name": "S::sk2",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "S::spaced",
+      "passed": true
+     }
+    ],
+    "xunit": [
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "A::one",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "'x' & <y> returned FALSE. ()",
+      "name": "B::bad",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "trace\n text",
+      "name": "B::err",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "m1; m2",
+      "name": "B::two",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "S::xf",
+      "passed": true
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "QtTest reported result 'xpass'",
+      "name": "S::xp",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "QtTest reported result 'weird'",
+      "name": "S::odd",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "QtTest reported result 'BLACKLISTED'",
+      "name": "S::bl",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "ctest reported status 'notrun'",
+      "name": "S::notrun",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "test framework reported unknown status \"flaky's\"",
+      "name": "S::unk",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "test was skipped",
+      "name": "S::sk",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": false,
+      "message": "reason text",
+      "name": "S::sk2",
+      "passed": false
+     },
+     {
+      "diagnostic_output": "",
+      "diagnostic_output_truncated": false,
+      "executed": true,
+      "message": "",
+      "name": "S::spaced",
+      "passed": true
+     }
+    ]
+   },
+   "returncode": 1,
+   "transcript": "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"A\">\n  <testcase name=\"one\" classname=\"A\"/>\n</testsuite>\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"B\">\n  <testcase name=\"bad\" classname=\"B\">\n    <failure type=\"fail\" message=\"&apos;x&apos; &amp; &lt;y&gt; returned FALSE. ()\"/>\n  </testcase>\n  <testcase name=\"err\" classname=\"B\"><error message=\"\">trace\n text </error></testcase>\n  <testcase name=\"two\" classname=\"B\"><failure message=\"m1\"/><error message=\"m2\"/></testcase>\n</testsuite>\n<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<testsuite name=\"S\">\n  <testcase name=\"xf\" result=\"xfail\"/>\n  <testcase name=\"xp\" result=\"xpass\"/>\n  <testcase name=\"odd\" result=\"weird\"/>\n  <testcase name=\"bl\" result=\"BLACKLISTED\"/>\n  <testcase name=\"notrun\" status=\"notrun\"/>\n  <testcase name=\"unk\" status=\"flaky&apos;s\"/>\n  <testcase name=\"sk\"><skipped/></testcase>\n  <testcase name=\"sk2\"><skipped>  reason text  </skipped></testcase>\n  <testcase name=\"  spaced  \" result=\" Pass \"/>\n</testsuite>\n"
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "qmake": "qmake6"
+}

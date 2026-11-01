@@ -990,6 +990,7 @@ dependencies = [
  "ici-execution",
  "ici-providers",
  "nix",
+ "quick-xml",
  "regex",
  "serde",
  "serde_json",
