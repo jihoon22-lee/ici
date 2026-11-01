@@ -24,12 +24,20 @@
   빈 결과 댓글 대신 오류로 끝납니다.
 - **분석 캐시**: 캐시는 `.ici/rust-v1/` 아래에 새로 만들어지며 이전 버전의 캐시 파일은 읽지 않습니다. 첫
   실행에서 한 번 다시 분석할 뿐 결과는 달라지지 않습니다.
-- **PR 리포트 경로**: `pull_request` 이벤트에서 게시 경로와 viewer URL의 commit이 v0.13.0의 합성 merge
-  commit(`GITHUB_SHA`) 대신 PR head commit이 됩니다. v0.13.0은 이 때문에 PR 실행을 항상 오래된 실행으로
-  보고 sticky 댓글을 갱신하지 못했습니다.
+- **PR 리포트 경로**: `ici next publish`는 `pull_request` 이벤트에서 게시 경로와 viewer URL의 commit으로
+  v0.13.0의 합성 merge commit(`GITHUB_SHA`) 대신 PR head commit을 씁니다. v0.13.0은 이 때문에 PR 실행을 항상
+  오래된 실행으로 보고 sticky 댓글을 갱신하지 못했습니다. 레거시 `ici publish`/`verify --publish`는 v0.13.0과
+  같은 gh-pages 경로(`pr/<n>/`, `main/`, `branch/<ref>/`)를 그대로 씁니다.
 
 ### 변경
 
+- 레거시 `ici publish`/`verify --publish`가 v0.13.0의 gh-pages 경로(`pr/<n>`, `main`, `branch/<ref>`, hub 모드의
+  프로젝트 접두어)와 댓글 경로·실패 안내·게시 순서를 그대로 사용해 `main/index.html` 같은 고정 주소가 유지됩니다.
+- 모든 테스트가 skip된 pytest 스위트를 v0.13.0과 같이 판정합니다(레거시: 필수면 ERROR, 선택이면 SKIP·종료 코드 2;
+  새 결과: "no test ran green" 제한 사항). `ici next verify`는 요청하지 않은 HTML 파일을 쓰지 않습니다.
+- 프로세스 메시지가 `exit 2` 또는 `terminated by signal N`으로 종료 상태를 표시합니다. Python 커버리지 비율은 소수
+  첫째 자리로 반올림하고, 통합 검사의 통과 개수와 요구 사항 문구, 숨겨진 이슈가 있을 때의
+  `Re-run with: ici verify --verbose` 안내가 v0.13.0과 같습니다.
 - 레거시 CMake `ici verify`가 실행되지 않은 CTest 케이스(DISABLED, SKIP_RETURN_CODE)를 v0.13.0과 같은 케이스별
   ERROR/SKIP으로 보고하고 나머지 케이스를 계속 실행해, 종료 코드 3 대신 v0.13.0과 같은 1로 끝납니다. 실패한
   sanitizer 빌드는 `C++Sanitizer` ERROR, 프로젝트 위치가 없는 sanitizer 보고는 `[external]` ERROR로 표시합니다.
