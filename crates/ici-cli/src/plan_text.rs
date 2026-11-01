@@ -13,18 +13,23 @@
 //! their advisory marker, and owned C++ preparations / release effects / source-identity
 //! probes keep their lines between `builds:` and the coverage gaps.
 use crate::planning::PreparedPlan;
-use ici_providers::resolver::ResolutionError;
 use serde_json::Value;
 
-/// Frozen next-path tool lookup refusal (`ruff is not available`, `clang-tidy is not available`):
-/// a tool found nowhere is named that way in the plan, its JSON `blocked` reason and the gate.
-/// Other resolution failures (checksum mismatch, escaping pack, unusable explicit executable)
-/// keep their native reason.
-pub(crate) fn tool_blocked_reason(error: &ResolutionError) -> String {
-    if error.reason.starts_with("not found") {
-        format!("{} is not available", error.id)
-    } else {
-        error.to_string()
+/// Frozen next-path tool lookup refusal in the plan text (`ruff is not available`,
+/// `clang-tidy is not available`): a native `<tool>: not found …` resolution reason is named the
+/// frozen way. Only the human plan is rewritten; the check summary, `--json` and gate keep the
+/// native reason the legacy views and other consumers read. Other resolution failures (checksum
+/// mismatch, escaping pack, unusable explicit executable) keep their native reason.
+pub(crate) fn tool_blocked_reason(reason: &str) -> std::borrow::Cow<'_, str> {
+    match reason.split_once(": ") {
+        Some((tool, rest))
+            if rest.starts_with("not found")
+                && !tool.is_empty()
+                && !tool.contains(char::is_whitespace) =>
+        {
+            format!("{tool} is not available").into()
+        }
+        _ => reason.into(),
     }
 }
 
@@ -148,7 +153,7 @@ impl PreparedPlan {
             .map(String::as_str)
             .or_else(|| check.blocked())
         {
-            return format!("blocked — {reason}");
+            return format!("blocked — {}", tool_blocked_reason(reason));
         }
         let tasks: Vec<_> = self
             .probes

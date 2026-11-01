@@ -546,7 +546,7 @@ fn prepare_resolved_omitting(
                     Ok(tool) => tool,
                     Err(error) => {
                         return Ok(Work::Blocked {
-                            reason: crate::plan_text::tool_blocked_reason(&error),
+                            reason: error.to_string(),
                         });
                     }
                 }
