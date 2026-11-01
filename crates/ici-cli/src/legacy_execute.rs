@@ -492,6 +492,19 @@ fn shape_engine(
         ici_reporting::legacy_no_sources(value, status, evidence, &summary, target)
             .map_err(error)?;
         replaced = true;
+    } else if family == "python_compat" && legacy_schema {
+        let settings = prepared
+            .project
+            .components
+            .iter()
+            .find_map(|component| {
+                component
+                    .settings
+                    .pointer("/engines/python_compat")
+                    .cloned()
+            })
+            .unwrap_or_default();
+        replaced = crate::legacy_python_compat::shape(value, &settings).map_err(error)?;
     } else if family == "lint" && legacy_schema && ruff_unavailable(value) {
         // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
         // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under
@@ -874,6 +887,12 @@ fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) ->
                 "DeadCode",
                 "No applicable source files were selected; dead-code analysis was not run",
             )),
+        ),
+        "python_compat" => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Python compatibility analysis skipped: no Python source files".into(),
+            Some(("PythonRuntime:NotApplicable", none)),
         ),
         "dup" => (
             "SKIP",

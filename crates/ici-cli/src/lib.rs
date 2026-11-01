@@ -10,6 +10,7 @@ pub mod inputs;
 pub mod legacy;
 pub mod legacy_execute;
 pub mod legacy_lines;
+mod legacy_python_compat;
 pub mod planning;
 pub mod preparation;
 pub mod publish;
