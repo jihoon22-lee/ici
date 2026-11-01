@@ -234,8 +234,11 @@ pub fn command(
     }
     // Frozen `ici verify` exits 1 for a FAIL/ERROR suite. A legacy verdict the native gate keeps
     // advisory (e.g. a coverage minimum the frozen TestEngine turns into FAIL) never exits 0;
-    // a higher native exit (incomplete 3) is kept.
-    if engine(&invocation.command()).is_none()
+    // a higher native exit (incomplete 3) is kept. Only the legacy schema has that frozen suite
+    // exit: frozen v0.13.0 rejects schema_version=2 and next [engines] keys (exit 2), so a
+    // modern-schema verify keeps the native gate's exit.
+    if legacy_schema
+        && engine(&invocation.command()).is_none()
         && let StoredResult::Legacy(legacy) = &stored
         && matches!(
             legacy.as_value()["suite_status"].as_str(),
