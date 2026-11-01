@@ -9,6 +9,98 @@ use std::collections::BTreeMap;
 pub enum Capability {
     Available(String),
     Missing,
+    /// Frozen legacy `_find_coverage_cmd` tool error: the probe failed without the exact
+    /// missing-module diagnostic, so the plain suite runs and the engine reports this text.
+    Failed(String),
+}
+/// Frozen `engines/test_interpreter.py::_find_coverage_cmd` tool-error texts.
+pub const LEGACY_PROBE_ERRORS: [&str; 4] = [
+    "Coverage probe timed out",
+    "Coverage probe output was truncated",
+    "Coverage probe process terminated before reporting results",
+    "Coverage module probe failed with exit code ",
+];
+/// Frozen legacy probe bounds (`run_process` defaults: 300 s, 1,000,000 output characters).
+pub const LEGACY_PROBE_TIMEOUT_SECONDS: f64 = 300.0;
+pub const LEGACY_PROBE_OUTPUT_LIMIT: usize = 1_000_000;
+/// Frozen `coverage_support.module_unavailable`: a positive exit whose only nonblank output
+/// line is the interpreter-level `No module named <module>` diagnostic.
+pub fn legacy_module_unavailable(outcome: &TaskOutcome, module: &str) -> bool {
+    if outcome.timed_out || outcome.truncated || !outcome.exit_code.is_some_and(|code| code > 0) {
+        return false;
+    }
+    let text = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&outcome.stdout),
+        String::from_utf8_lossy(&outcome.stderr)
+    );
+    let lines: Vec<_> = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+    let [line] = lines.as_slice() else {
+        return false;
+    };
+    let module = regex::escape(module);
+    let missing = format!(r#"No module named ['"]?{module}['"]?"#);
+    regex::Regex::new(&format!(
+        r"^(?:{missing}|(?:python(?:3(?:\.\d+)?)?(?:\.exe)?|(?:[A-Za-z]:[\\/]|/)[^\n]*python(?:3(?:\.\d+)?)?(?:\.exe)?)\s*:\s*{missing})$"
+    ))
+    .expect("escaped module regex")
+    .is_match(line)
+}
+fn legacy_capability(outcome: &TaskOutcome) -> Result<Capability, ValidationError> {
+    if outcome.cancelled {
+        return Err(ValidationError(
+            "coverage capability probe was cancelled".into(),
+        ));
+    }
+    Ok(
+        if outcome.exit_code == Some(0) && planning::completed(outcome) {
+            let text = format!(
+                "{}\n{}",
+                String::from_utf8_lossy(&outcome.stdout),
+                String::from_utf8_lossy(&outcome.stderr)
+            );
+            // Frozen accepts any exit 0; the version is evidence only when it is recognizable.
+            Capability::Available(
+                regex::Regex::new(r"(?i)\bcoverage(?:\.py)?,?\s+version\s+([0-9][0-9A-Za-z.+-]*)")
+                    .expect("constant regex")
+                    .captures(&text)
+                    .map(|capture| capture[1].to_owned())
+                    .unwrap_or_default(),
+            )
+        } else if outcome.timed_out {
+            Capability::Failed(LEGACY_PROBE_ERRORS[0].into())
+        } else if outcome.truncated {
+            Capability::Failed(LEGACY_PROBE_ERRORS[1].into())
+        } else if !outcome.exit_code.is_some_and(|code| code >= 0) || outcome.signal.is_some() {
+            Capability::Failed(LEGACY_PROBE_ERRORS[2].into())
+        } else if legacy_module_unavailable(outcome, "coverage") {
+            Capability::Missing
+        } else {
+            Capability::Failed(format!(
+                "{}{}",
+                LEGACY_PROBE_ERRORS[3],
+                outcome.exit_code.unwrap_or_default()
+            ))
+        },
+    )
+}
+/// Legacy only: the plain-suite fallback's probe prerequisite is met by any probe outcome that
+/// selects it (frozen falls through to plain pytest on every non-success).
+pub(crate) fn legacy_fallback_accepts(
+    plan: &ValidationPlan,
+    prerequisite: &str,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+) -> bool {
+    plan.context.options.legacy_coverage_probe
+        && probe_id(plan).as_deref() == Some(prerequisite)
+        && matches!(
+            capability(plan, outcomes),
+            Ok(Some(Capability::Missing | Capability::Failed(_)))
+        )
 }
 pub fn suite_id(plan: &ValidationPlan) -> String {
     plan.context
@@ -49,6 +141,9 @@ pub fn capability(
     let Some(outcome) = outcomes.get(&id) else {
         return Ok(None);
     };
+    if plan.context.options.legacy_coverage_probe && outcome.task_id == id {
+        return legacy_capability(outcome).map(Some);
+    }
     if outcome.task_id != id || !planning::completed(outcome) {
         return Err(ValidationError(
             "coverage capability probe did not complete under its bounded contract".into(),
@@ -124,6 +219,10 @@ pub fn configure(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         query.kind = TaskKind::Probe;
         query.timeout_seconds = Some(30.0);
         query.output_limit_bytes = Some(8192);
+        if plan.context.options.legacy_coverage_probe {
+            query.timeout_seconds = Some(LEGACY_PROBE_TIMEOUT_SECONDS);
+            query.output_limit_bytes = Some(LEGACY_PROBE_OUTPUT_LIMIT);
+        }
         plan.prerequisites.insert(
             suite.clone(),
             vec![StepPrerequisite {
@@ -220,7 +319,7 @@ pub fn actual_suite_id(
 ) -> Result<String, ValidationError> {
     let suite = suite_id(plan);
     match capability(plan, outcomes)? {
-        Some(Capability::Missing) => {
+        Some(Capability::Missing | Capability::Failed(_)) => {
             if outcomes.contains_key(&suite) {
                 return Err(ValidationError(
                     "covered suite executed despite missing coverage capability".into(),
@@ -260,11 +359,16 @@ pub fn annotate(
     };
     let state = match capability(plan, outcomes) {
         Ok(Some(Capability::Available(version))) => {
-            output
-                .observation
-                .tool_versions
-                .push(("coverage".into(), version.clone()));
+            if !version.is_empty() {
+                output
+                    .observation
+                    .tool_versions
+                    .push(("coverage".into(), version.clone()));
+            }
             json!({"availability":"available","version":version})
+        }
+        Ok(Some(Capability::Failed(reason))) => {
+            json!({"availability":"failed","reason":reason,"coverage_evidence":"NOT_RUN"})
         }
         Ok(Some(Capability::Missing)) => {
             json!({"availability":"missing","coverage_evidence":"NOT_RUN"})

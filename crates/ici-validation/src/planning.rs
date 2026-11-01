@@ -583,6 +583,10 @@ pub fn ready_steps(
             {
                 continue;
             }
+            if crate::python_coverage::legacy_fallback_accepts(plan, &requirement.task_id, outcomes)
+            {
+                continue;
+            }
             if !completed(outcome)
                 || !requirement
                     .accepted_exits

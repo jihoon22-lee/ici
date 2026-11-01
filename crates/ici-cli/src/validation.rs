@@ -153,7 +153,19 @@ pub fn bind(
             Ok(selected) => {
                 selection_note = selected.note;
                 prepend_bin = selected.prepend_bin;
-                selected.tool
+                match legacy_pytest_interpreter(project, &cwd, &selected.tool, environment).filter(
+                    |_| {
+                        legacy_command
+                            && matches!(
+                                kind,
+                                ValidationKind::PythonTest | ValidationKind::PythonCoverage
+                            )
+                    },
+                ) {
+                    Some(Ok(sibling)) => sibling,
+                    Some(Err(reason)) => return Some(blocked(reason)),
+                    None => selected.tool,
+                }
             }
             Err(reason) => return Some(blocked(reason)),
         }
@@ -260,6 +272,8 @@ pub fn bind(
         .and_then(|value| value.get("timeout"))
         .and_then(Value::as_f64)
         .unwrap_or(300.0);
+    // Frozen legacy `_find_coverage_cmd` probe bounds and fall-through (test_interpreter.py).
+    options.legacy_coverage_probe = legacy_command;
     options.max_slow_tests = quality
         .and_then(|value| value.get("max_slow_tests"))
         .and_then(Value::as_u64)
@@ -622,6 +636,27 @@ fn strings(value: Option<&Value>) -> Vec<String> {
         .map(str::to_owned)
         .collect()
 }
+/// Frozen legacy `_interpreter_from_command`: an `engines.test.python` naming a `pytest`
+/// executable runs coverage (and so the suite) through the `python` beside it.
+fn legacy_pytest_interpreter(
+    project: &ResolvedProject,
+    cwd: &Path,
+    tool: &ResolvedTool,
+    environment: &BTreeMap<String, String>,
+) -> Option<Result<ResolvedTool, String>> {
+    let name = tool.path.file_name()?.to_str()?;
+    if !name.ends_with("pytest") {
+        return None;
+    }
+    let sibling = tool.path.parent()?.join("python");
+    Some(configured_python(
+        project,
+        cwd,
+        &sibling.to_string_lossy(),
+        environment,
+    ))
+}
+
 fn configured_python(
     project: &ResolvedProject,
     cwd: &Path,

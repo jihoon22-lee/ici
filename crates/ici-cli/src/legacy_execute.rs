@@ -667,6 +667,16 @@ fn shape_engine(
         replaced = true;
     } else if family == "test"
         && legacy_schema
+        && let Some(reason) = legacy_coverage_probe_error(value)
+    {
+        // Frozen `_find_coverage_cmd`: a failed probe is a tool error; the plain suite still ran
+        // (its case targets stay) and `_result_status`/`_result_summary` report the error.
+        value["status"] = serde_json::json!("ERROR");
+        value["evidence"] = serde_json::json!("NOT_RUN");
+        value["summary"] = serde_json::json!(reason);
+        replaced = true;
+    } else if family == "test"
+        && legacy_schema
         && !coverage_required
         && let Some(reason) = optional_coverage_missing(value)
     {
@@ -674,8 +684,12 @@ fn shape_engine(
         // test verdict (FAIL still wins). Native never invents the frozen estimate.
         let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
         value["status"] = serde_json::json!(status);
-        let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
-        let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
+        // The engine aggregate stops at the unmeasured coverage half; frozen `_result_summary`
+        // counts the plain suite that ran, which the python.test check measured.
+        let (passed, total) = python_test_counts(value).unwrap_or((
+            value["extra"]["passed_tests"].as_u64().unwrap_or(0),
+            value["extra"]["total_tests"].as_u64().unwrap_or(0),
+        ));
         value["summary"] = serde_json::json!(format!(
             "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
         ));
@@ -1226,6 +1240,38 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         && coverage["state"] == "FAILED"
         && (reason.starts_with("coverage module is unavailable")
             || reason.starts_with("pytest module is unavailable; fallback unittest")))
+    .then(|| reason.to_owned())
+}
+
+/// Passed/total cases the legacy python.test check measured (its own extra block).
+fn python_test_counts(engine: &serde_json::Value) -> Option<(u64, u64)> {
+    let test = engine["extra"]["native_checks"]
+        .as_array()?
+        .iter()
+        .find(|check| check["check_id"] == "python.test" && check["state"] == "SUCCEEDED")?;
+    test["extra"].as_object()?.values().find_map(|extra| {
+        Some((
+            extra["passed_tests"].as_u64()?,
+            extra["total_tests"].as_u64()?,
+        ))
+    })
+}
+
+/// The frozen coverage-probe tool error a legacy python.coverage check failed with
+/// (`ici_validation::python_coverage::LEGACY_PROBE_ERRORS`).
+fn legacy_coverage_probe_error(engine: &serde_json::Value) -> Option<String> {
+    let coverage = engine["extra"]["native_checks"]
+        .as_array()?
+        .iter()
+        .find(|check| check["check_id"] == "python.coverage")?;
+    let reason = coverage["summary"].as_str()?;
+    let [timed_out, truncated, terminated, exit] =
+        ici_validation::python_coverage::LEGACY_PROBE_ERRORS;
+    (coverage["state"] == "FAILED"
+        && ([timed_out, truncated, terminated].contains(&reason)
+            || reason
+                .strip_prefix(exit)
+                .is_some_and(|code| code.parse::<i32>().is_ok())))
     .then(|| reason.to_owned())
 }
 
