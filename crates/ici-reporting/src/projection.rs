@@ -247,6 +247,54 @@ pub fn legacy_projection(
                 .as_array_mut()
                 .expect("array")
                 .extend(scopes);
+            // Frozen `ici.artifacts/v2` manifests of a compiled build session, bound to the run
+            // identity (`AnalysisIdentity`: source commit, configuration and toolchain digests).
+            if let Some(manifests) = output
+                .extra
+                .get("legacy_artifact_manifests")
+                .and_then(Value::as_array)
+            {
+                let identity = &run.identity;
+                for manifest in manifests {
+                    let artifacts = manifest["artifacts"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default();
+                    let producer_metadata = artifacts.iter().any(|artifact| {
+                        ["id", "target"].iter().any(|key| {
+                            artifact[*key]
+                                .as_str()
+                                .is_some_and(|value| !value.is_empty())
+                        }) || artifact["command"]
+                            .as_array()
+                            .is_some_and(|argv| !argv.is_empty())
+                    });
+                    let artifacts: Vec<Value> = artifacts
+                        .into_iter()
+                        .map(|mut artifact| {
+                            if !producer_metadata && let Some(object) = artifact.as_object_mut() {
+                                for key in ["id", "target", "command"] {
+                                    object.remove(key);
+                                }
+                            }
+                            artifact
+                        })
+                        .collect();
+                    engine["artifact_manifests"]
+                        .as_array_mut()
+                        .expect("array")
+                        .push(json!({
+                            "schema_version": if producer_metadata { "ici.artifacts/v2" } else { "ici.artifacts/v1" },
+                            "project_root": ".",
+                            "shadow_root": manifest["shadow_root"],
+                            "variant": manifest["variant"],
+                            "source_commit": identity.source.commit,
+                            "config_digest": identity.policy_digest,
+                            "toolchain_digest": identity.toolchain_digest,
+                            "artifacts": artifacts,
+                        }));
+                }
+            }
             // Historical engines carry their process evidence; adapted targets name its first tool.
             if let Some(items) = output.extra.get("tool_evidence").and_then(Value::as_array) {
                 engine["tool_evidence"]
@@ -420,7 +468,11 @@ fn project_extra(engine: &mut Value) -> Result<()> {
             for (key, value) in extra {
                 if !matches!(
                     key.as_str(),
-                    "native_checks" | "target_scopes" | "tool_evidence" | "legacy_findings"
+                    "native_checks"
+                        | "target_scopes"
+                        | "tool_evidence"
+                        | "legacy_findings"
+                        | "legacy_artifact_manifests"
                 ) {
                     engine["extra"][key] = value.clone();
                 }

@@ -1,16 +1,29 @@
 {
   "requirements": {
     "capability:build-artifact-abi": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/build.py:1, src/ici/engines/binary_compat.py:1, src/ici/analysis/_elf.py:1, src/ici/analysis/binary_abi.py:1) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/cmake-manifests-oracle.json captured by development-only tests/rust-parity/cpp/capture_cmake_manifests.py (oracle 6fe3e40, cmake 4.2.3, g++ 15.2.0, git checkout of parity-fixtures/cpp/test-cmake suite/broken-build); /tmp/ici-rust-replacement-20261028/w-cpp7-manifests-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-manifests-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp7-manifests-regress.log"
+      ],
+      "comparison": "C++ facet, compiled build artifact manifests only (frozen core/cmake._capture_artifact_manifest + reporters/json_rep._serialize_artifact_manifest): legacy `ici verify` on a CMake project now carries the frozen `artifact_manifests` on the test (variant coverage) and sanitize (variant sanitize) engines: schema ici.artifacts/v2, project_root '.', the shadow tree's linked outputs (ELF/PE/Mach-O magic or `!<arch>` archives, objects and coverage notes excluded, symlinks skipped, Path order, CMake's own CMakeFiles probe binaries included as frozen does) with frozen path, scope shadow, kind, mode, producer cmake.build, id <variant>:shadow:<path> and derived target, plus the run's source commit and sha256 digests; equal to frozen field by field except the recorded differences. Standalone `ici test` (no analysis context) and a failed CMake build publish none, as frozen.",
+      "difference_reason": "Recorded: native owned shadow trees are .ici/rust-v1/build/legacy-<digest>/<variant> (frozen build/ici-cmake[-asan]), so shadow_root and the build command's directory and `--parallel <jobs>` differ; config_digest/toolchain_digest are the native run policy/toolchain digests (frozen hashes its own effective config dict and capability inventory) and artifact sha256/size are the native build's bytes. Open: Make/qmake build session manifests (producer make.build/qmake.build), thread-sanitize and the suite-level analysis_context.artifact_manifests (native legacy reports carry analysis_context null); the other capability facets (ELF/ABI/linker, declared ownership) stay with their own rows."
     },
     "capability:compile-context-export": {
       "status": "not_started",
