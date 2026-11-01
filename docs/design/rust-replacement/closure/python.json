@@ -899,42 +899,6 @@
    ],
    "status": "complete"
   },
-  "finding_site:src/ici/analysis/_exception_rules.py:801:12": {
-   "comparison": "C++-only analyze_cpp_exceptions DestructorThrow target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
-   "difference_reason": null,
-   "evidence": [],
-   "fixtures": {
-    "failure": [],
-    "negative": [],
-    "positive": []
-   },
-   "rust_paths": [],
-   "status": "not_started"
-  },
-  "finding_site:src/ici/analysis/_exception_rules.py:811:12": {
-   "comparison": "C++-only analyze_cpp_exceptions CatchAllSwallowed target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
-   "difference_reason": null,
-   "evidence": [],
-   "fixtures": {
-    "failure": [],
-    "negative": [],
-    "positive": []
-   },
-   "rust_paths": [],
-   "status": "not_started"
-  },
-  "finding_site:src/ici/analysis/_exception_rules.py:820:8": {
-   "comparison": "C++-only CppExceptionSafety summary target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
-   "difference_reason": null,
-   "evidence": [],
-   "fixtures": {
-    "failure": [],
-    "negative": [],
-    "positive": []
-   },
-   "rust_paths": [],
-   "status": "not_started"
-  },
   "finding_site:src/ici/analysis/_python_compatibility.py:299:11": {
    "comparison": "Compatibility:<rule> API floor targets match compat-static.json.",
    "difference_reason": "Parser-specific floor locations and Unicode columns are explicit corrections.",
@@ -2341,18 +2305,6 @@
     "crates/ici-analysis/src/lib.rs"
    ],
    "status": "complete"
-  },
-  "finding_site:src/ici/languages/cycles.py:98:12": {
-   "comparison": "C++-only modern C++ include-cycle (_measure_cpp) finding: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
-   "difference_reason": null,
-   "evidence": [],
-   "fixtures": {
-    "failure": [],
-    "negative": [],
-    "positive": []
-   },
-   "rust_paths": [],
-   "status": "not_started"
   },
   "finding_site:src/ici/languages/deadcode.py:87:11": {
    "comparison": "Modern dead.<rule> findings (rule id, message, severity, confidence, category, evidence, location and the original attributed fingerprint recomputed from the native raw fingerprint) match modern-findings.json.",
