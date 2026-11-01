@@ -471,11 +471,7 @@ pub fn command_with_transport(
     }
     destination.validate().map_err(CliError)?;
     let (pr, event_head) = event(environment)?;
-    let head = if event_head.is_empty() {
-        get("GITHUB_SHA")
-    } else {
-        event_head
-    };
+    let head = run_head(event_head, get("GITHUB_SHA"));
     let own_repo = get("GITHUB_REPOSITORY");
     let comments = if pr.is_some() && !own_repo.is_empty() && own_repo != repo {
         Some(Target {
@@ -539,6 +535,16 @@ pub fn command_with_transport(
         stderr: String::new(),
         exit_code: if record["state"] == "SUCCESS" { 0 } else { 1 },
     })
+}
+/// The commit a run reports on. A `pull_request` event names the PR head, which the ordering
+/// guard compares with the PR's current head; `GITHUB_SHA` there is the synthetic merge commit,
+/// which never equals it (frozen preferred it, so every PR run looked stale).
+fn run_head(event_head: String, github_sha: String) -> String {
+    if event_head.is_empty() {
+        github_sha
+    } else {
+        event_head
+    }
 }
 fn event(environment: &BTreeMap<String, String>) -> Result<(Option<u64>, String)> {
     let Some(path) = environment
@@ -618,4 +624,47 @@ fn save_record(path: &Path, record: &Value) -> Result<()> {
         },
     )
     .map_err(|error| CliError(error.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn with_event(payload: &str) -> (tempfile::TempDir, BTreeMap<String, String>) {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("event.json");
+        std::fs::write(&path, payload).unwrap();
+        let environment = BTreeMap::from([(
+            "GITHUB_EVENT_PATH".to_owned(),
+            path.to_string_lossy().into_owned(),
+        )]);
+        (dir, environment)
+    }
+
+    #[test]
+    fn pull_request_runs_report_on_the_pr_head_not_the_merge_commit() {
+        let (_dir, environment) =
+            with_event(r#"{"pull_request":{"number":7,"head":{"sha":"head-sha"}}}"#);
+        let (pr, event_head) = event(&environment).unwrap();
+        assert_eq!(pr, Some(7));
+        assert_eq!(run_head(event_head, "merge-sha".into()), "head-sha");
+    }
+
+    #[test]
+    fn runs_without_a_pull_request_head_report_on_github_sha() {
+        let (_dir, environment) = with_event(r#"{"issue":{"number":3}}"#);
+        let (pr, event_head) = event(&environment).unwrap();
+        assert_eq!(pr, Some(3));
+        assert_eq!(run_head(event_head, "push-sha".into()), "push-sha");
+        assert_eq!(run_head(String::new(), "push-sha".into()), "push-sha");
+    }
+
+    #[test]
+    fn a_malformed_event_payload_is_refused() {
+        let (_dir, environment) = with_event("{not json");
+        let Err(error) = event(&environment) else {
+            panic!("malformed event accepted")
+        };
+        assert_eq!(error.0, "GitHub event is not valid JSON");
+    }
 }
