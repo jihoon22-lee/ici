@@ -512,19 +512,25 @@
    "status": "complete"
   },
   "command:ici init": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Options without a behaviour test in this facet: cpp, python.",
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Frozen `ici init` is next_path.cmd_init registered at the top level (__main__.py `app.command(\"init\")(next_path.cmd_init)`) and native dispatches `init` and `next init` to the same function (commands.rs `\"init\" | \"next init\"`), so the 8 frozen init cases in cli-selection-oracle.json (fresh, --preview, --cpp/--python previews, an existing file refused with exit 2, --force over an existing or broken file) cover every option; their recorded differences are asserted by the same test.",
    "difference_reason": null,
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
+    "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (config_oracle.rs included); /tmp/ici-rust-replacement-20261028/w-config-cli-full3.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-cli/tests/config_oracle.rs::next_init_keeps_the_frozen_preview_refusal_and_force_contract"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/config_oracle.rs::next_init_keeps_the_frozen_preview_refusal_and_force_contract"
+    ],
     "positive": [
      "crates/ici-cli/tests/config_commands.rs::init_preview_is_read_only_and_written_defaults_keep_discovered_scope",
      "crates/ici-cli/tests/config_commands.rs::native_binary_can_init_with_python_and_tools_absent_from_path",
      "crates/ici-cli/tests/native_validation_extra.rs::native_git_version_is_visible_and_resolved_before_any_release_write",
-     "crates/ici-cli/tests/vcs.rs::actual_git_clean_dirty_untracked_states_are_observed_without_plan_execution"
+     "crates/ici-cli/tests/vcs.rs::actual_git_clean_dirty_untracked_states_are_observed_without_plan_execution",
+     "crates/ici-cli/tests/config_oracle.rs::next_init_keeps_the_frozen_preview_refusal_and_force_contract"
     ]
    },
    "rust_paths": [
@@ -532,7 +538,7 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici line": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. From a checkout subdirectory, with or without a configuration at the root, `ici line` analyses the working directory with its own (or default) configuration and writes line_report.json there, as frozen (rooted cases equal, stdout byte for byte). Native-only: below a native schema_version = 2 root the historical command also reads only its working directory (pending root decision, cli-gaps-differences.json global.native_v2_subdirectory).",
@@ -8931,7 +8937,7 @@
     "crates/ici-config/src/legacy-defaults.json",
     "crates/ici-cli/src/legacy_execute.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "config_key:legacy:engines.python_compat": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.python_compat:table, engines.python_compat:failure0, engines.python_compat:unknown replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
@@ -10782,11 +10788,12 @@
    "status": "complete"
   },
   "config_key:legacy:engines.type.mypy_profile": {
-   "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.type.mypy_profile:positive, engines.type.mypy_profile:failure0, engines.type.mypy_profile:failure1 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts. OPEN: no native runtime consumer reads this key (frozen engines/type_check.py:344 adds the ici overlay argv when mypy_profile=\"ici\"); the effect belongs to the owning check area.",
+   "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.type.mypy_profile:positive, engines.type.mypy_profile:failure0, engines.type.mypy_profile:failure1 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts. Runtime consumer: crates/ici-cli/src/planning.rs reads /engines/type/mypy_profile and adds the frozen ici overlay argv (--check-untyped-defs --warn-redundant-casts --warn-unused-ignores, frozen engines/type_check.py:344) to the legacy mypy run; tests/rust-parity/python/legacy-engines.json tool case type/profile-ici (frozen MEASURED findings) is replayed with pinned mypy by crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views.",
    "difference_reason": null,
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
-    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log"
+    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_engines -- --include-ignored (2 passed, pinned ruff/mypy); /tmp/ici-rust-replacement-20261028/w-config-tool-policy.log"
    ],
    "fixtures": {
     "failure": [
@@ -10798,16 +10805,18 @@
     ],
     "positive": [
      "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
-     "crates/ici-config/tests/legacy_schema_oracle.rs::sparse_v2_gives_legacy_tables_the_same_native_verdicts"
+     "crates/ici-config/tests/legacy_schema_oracle.rs::sparse_v2_gives_legacy_tables_the_same_native_verdicts",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
     ]
    },
    "rust_paths": [
     "crates/ici-config/src/schema.rs",
     "crates/ici-config/src/schema_keys.rs",
     "crates/ici-config/src/resolve.rs",
-    "crates/ici-config/src/legacy-defaults.json"
+    "crates/ici-config/src/legacy-defaults.json",
+    "crates/ici-cli/src/planning.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "config_key:legacy:engines.type.mypy_required": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.type.mypy_required:positive, engines.type.mypy_required:failure0 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts. Runtime consumer: crates/ici-cli/src/legacy_execute.rs reads the key; with Mypy absent the legacy type view is ERROR / NOT_RUN 'Mypy is required but was not found' as frozen engines/type_check.py:164 (tests/rust-parity/python/legacy-engines.json tool case type/mypy-missing-required, replayed by crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views with --include-ignored); frozen exit 1 becomes 3 under the accepted incomplete-run exit policy. OPEN: frozen core/support.py:608 also promotes mypy to a required doctor tool; native doctor lists its native plan tools instead (ty for the type scope) and does not promote mypy (capability:doctor-env-cache).",
