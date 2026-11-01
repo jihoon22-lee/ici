@@ -422,6 +422,9 @@ pub(crate) fn reshape(kind: &str, request: &AnalysisRequest, output: &mut Analys
                             scan,
                         );
                     }
+                    // Frozen counted every read Python source before parsing it.
+                    let parsed = output.extra["files_checked"].as_u64().unwrap_or(0);
+                    output.extra["files_checked"] = serde_json::json!(parsed + syntax.len() as u64);
                     let (path, line, _) = &syntax[0];
                     let detail = if kind == "security" {
                         "syntax prevents security analysis"

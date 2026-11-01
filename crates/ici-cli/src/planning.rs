@@ -1081,13 +1081,18 @@ fn prepare_resolved_omitting(
             plan.limitations.push(format!("{} uses verified published or typed artifact bytes without a linked build producer", check.task_id));
         }
     }
-    let legacy_lines =
+    let mut legacy_lines =
         crate::legacy_lines::collect(&project, &plan, invocation, generated_outputs)?;
+    legacy_lines.extend(crate::legacy_scan_tests::collect(
+        &project, &plan, invocation,
+    )?);
     // Frozen `LineEngine` counted a tree with no in-scope source (documentation only, sources
     // outside `source_dirs`) as a measured empty scope with its repository extras.
     for check in &mut plan.checks {
-        if matches!(check.check.id.as_str(), "python.line" | "cpp.line")
-            && matches!(&check.work, Work::Blocked { reason } if reason.starts_with("no sources in scope"))
+        if matches!(
+            check.check.id.as_str(),
+            "python.line" | "cpp.line" | "python.security"
+        ) && matches!(&check.work, Work::Blocked { reason } if reason.starts_with("no sources in scope"))
             && legacy_lines
                 .get(&check.task_id)
                 .is_some_and(|scope| !scope.inputs.is_empty())

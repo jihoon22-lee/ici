@@ -9747,32 +9747,40 @@
    "status": "complete"
   },
   "config_key:legacy:engines.security.scan_tests": {
-   "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.security.scan_tests:positive, engines.security.scan_tests:failure0 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts. OPEN: no native runtime consumer reads this key (frozen engines/security.py:25 includes test sources in the security scan); the effect belongs to the owning check area.",
+   "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.security.scan_tests:positive, engines.security.scan_tests:failure0 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Runtime consumer (closure sweep): frozen engines/security.py:25 `_test_python_files` adds every `.py` below <root>/tests (frozen _iter_project_files: no symlinked file or directory, .venv/venv/build/__pycache__/.git/.pytest_cache/.ruff_cache and v0./v1. parts skipped) to the selected Python sources; native historical commands (`ici security`, `ici verify`, crate::legacy::is_legacy) give the python.security task that per-task input scope (crates/ici-cli/src/legacy_scan_tests.rs) and unblock a check whose source_dirs selected no Python when tests/ supplies some. 12 frozen `ici security --report` cases (tests/rust-parity/python/legacy-sweep-oracle.json: on/default/explicit false, only-tests, no tests dir, tests is a file, nothing at all, ignored parts, symlinks, syntax error, source_dirs overlap, allowlist) replay equal: exit code, status, summary, evidence, targets, findings with fingerprints, files_checked/calls_checked/secret_literals_checked/excluded_source_counts. Rust defect fixed with it: legacy security/resource files_checked omitted a Python file the parser rejected (frozen counted every read source). The `ici verify` path uses the same planning hook but no frozen verify case was captured for this key.",
    "difference_reason": null,
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
-    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log"
+    "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/capture_legacy_sweep.py (12 frozen v0.13.0 `ici security --report` cases, CPython 3.10.21); /tmp/ici-rust-replacement-20261028/w-sweep-scan-tests-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_sweep --test legacy_python_engines --test legacy_python_limits -- --include-ignored (all passed); cargo test -p ici-analysis --locked (65 passed); cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-scan-tests.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
-     "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key"
+     "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key",
+     "crates/ici-cli/tests/legacy_sweep.rs::scan_tests_syntax_error_and_empty_scope_keep_frozen_failure_verdicts"
     ],
     "negative": [
-     "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_defaults_match_frozen_default_policy_leaf_for_leaf"
+     "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_defaults_match_frozen_default_policy_leaf_for_leaf",
+     "crates/ici-cli/tests/legacy_sweep.rs::scan_tests_off_and_frozen_discovery_exclusions_leave_test_files_out"
     ],
     "positive": [
      "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
-     "crates/ici-config/tests/legacy_schema_oracle.rs::sparse_v2_gives_legacy_tables_the_same_native_verdicts"
+     "crates/ici-config/tests/legacy_schema_oracle.rs::sparse_v2_gives_legacy_tables_the_same_native_verdicts",
+     "crates/ici-cli/tests/legacy_sweep.rs::scan_tests_adds_frozen_test_python_files_to_the_security_scope"
     ]
    },
    "rust_paths": [
     "crates/ici-config/src/schema.rs",
     "crates/ici-config/src/schema_keys.rs",
     "crates/ici-config/src/resolve.rs",
-    "crates/ici-config/src/legacy-defaults.json"
+    "crates/ici-config/src/legacy-defaults.json",
+    "crates/ici-cli/src/legacy_scan_tests.rs",
+    "crates/ici-cli/src/planning.rs",
+    "crates/ici-analysis/src/legacy.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "config_key:legacy:engines.security.secret_name_allowlist": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.security.secret_name_allowlist:positive, engines.security.secret_name_allowlist:failure0, engines.security.secret_name_allowlist:failure1, engines.security.secret_name_allowlist:failure2, engines.security.secret_name_allowlist:failure3 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
