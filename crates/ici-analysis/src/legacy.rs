@@ -244,6 +244,20 @@ fn owned(request: &AnalysisRequest, excluding: bool) -> Vec<&SourceInput> {
     inputs
 }
 
+/// Frozen `DuplicateEngine` (dup.py:330) and `DeadCodeEngine` (dead.py:394) report a completed
+/// Python scan as ESTIMATED evidence, whatever it found; the modern view keeps the native
+/// measurement's own evidence.
+pub(crate) fn frozen_evidence(kind: &str, output: &mut AnalysisOutput) {
+    if !matches!(kind, "dup" | "dead") || output.observation.state != TaskState::Succeeded {
+        return;
+    }
+    for measurement in &mut output.observation.measurements {
+        if measurement.evidence == ici_domain::EvidenceLevel::Measured {
+            measurement.evidence = ici_domain::EvidenceLevel::Estimated;
+        }
+    }
+}
+
 pub(crate) fn reshape(kind: &str, request: &AnalysisRequest, output: &mut AnalysisOutput) {
     if !matches!(
         kind,

@@ -271,8 +271,30 @@ pub fn command(
             // A legacy class never lowers the run's own exit (an incomplete run keeps 3).
             exit_code.max(ici_reporting::legacy_exit_code(status))
         };
+        // Frozen `_run_engine_command`: this engine's rows under the configured profile.
+        let inputs = crate::legacy_support::inputs(
+            &prepared,
+            &crate::legacy_support::profile_name(prepared.project.profile),
+        );
+        value["support_matrix"] = ici_reporting::legacy_support_matrix(
+            &inputs,
+            std::slice::from_ref(&value),
+            Some(&[family]),
+        );
         value["native_run"] = run.result.to_value().map_err(error)?;
         stored = StoredResult::from_value(value).map_err(error)?;
+    } else if let StoredResult::Legacy(legacy) = &stored {
+        // Frozen `engines/verify.py`: the suite matrix over the selected profile's results.
+        let profile = invocation.value("profile").map_or_else(
+            || crate::legacy_support::profile_name(prepared.project.profile),
+            str::to_owned,
+        );
+        let mut document = legacy.as_value().clone();
+        crate::legacy_support::attach_suite(
+            &mut document,
+            &crate::legacy_support::inputs(&prepared, &profile),
+        );
+        stored = StoredResult::from_value(document).map_err(error)?;
     }
     let options = RenderOptions {
         verbose: invocation.flag("verbose"),
