@@ -32,28 +32,65 @@ impl CommandOutput {
     }
 }
 
+/// Frozen `cmd_plan` / `run_checks(plan_only=True)`: the `root:`/`scope:` announcement precedes
+/// the plan (on stderr under `--json`). `ici analyze --plan` announces before a nothing-selected
+/// refusal; `ici next plan` refuses first and prints no announcement.
+fn plan(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    static_only: bool,
+) -> Result<CommandOutput> {
+    let json_mode = invocation.flag("json_mode");
+    let place = |announcement: Option<String>, mut output: CommandOutput| {
+        if let Some(announcement) = announcement {
+            if json_mode {
+                output.stderr.insert_str(0, &announcement);
+            } else {
+                output.stdout.insert_str(0, &announcement);
+            }
+        }
+        output
+    };
+    let prepared = match crate::planning::prepare(invocation, cwd, environment, static_only) {
+        Ok(prepared) => prepared,
+        Err(failure) if static_only => {
+            return match crate::planning::announcement(invocation, cwd, environment) {
+                Some(announcement) => Ok(place(
+                    Some(announcement),
+                    CommandOutput {
+                        stdout: String::new(),
+                        stderr: format!(
+                            "ici: {}\n",
+                            ici_execution::redaction::redact_text(&failure.to_string())
+                        ),
+                        exit_code: 2,
+                    },
+                )),
+                None => Err(failure),
+            };
+        }
+        Err(failure) => return Err(failure),
+    };
+    let output = if json_mode {
+        CommandOutput::json(&prepared.document())?
+    } else {
+        CommandOutput::text(prepared.text())
+    };
+    Ok(place(
+        crate::planning::announcement(invocation, cwd, environment),
+        output,
+    ))
+}
+
 pub fn dispatch(
     invocation: &Invocation,
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
     match invocation.command().as_str() {
-        "next plan" => {
-            let prepared = crate::planning::prepare(invocation, cwd, environment, false)?;
-            if invocation.flag("json_mode") {
-                CommandOutput::json(&prepared.document())
-            } else {
-                Ok(CommandOutput::text(prepared.text()))
-            }
-        }
-        "analyze" if invocation.flag("plan") => {
-            let prepared = crate::planning::prepare(invocation, cwd, environment, true)?;
-            if invocation.flag("json_mode") {
-                CommandOutput::json(&prepared.document())
-            } else {
-                Ok(CommandOutput::text(prepared.text()))
-            }
-        }
+        "next plan" => plan(invocation, cwd, environment, false),
+        "analyze" if invocation.flag("plan") => plan(invocation, cwd, environment, true),
         "analyze" => crate::execute::command(invocation, cwd, environment, true),
         "next verify" => crate::execute::command(invocation, cwd, environment, false),
         command if command == "verify" || crate::legacy::engine(command).is_some() => {

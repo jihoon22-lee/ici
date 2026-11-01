@@ -19,6 +19,9 @@ pub fn command(
     if crate::cutover::applies(invocation, cwd, environment) {
         return crate::cutover::verify(invocation, cwd, environment);
     }
+    if let Some(refusal) = crate::cutover::refuse_engine(invocation, cwd, environment) {
+        return Ok(refusal);
+    }
     if invocation.flag("fail_on_new") && invocation.value("baseline").is_none() {
         return Err(CliError("--fail-on-new requires --baseline".into()));
     }
@@ -345,17 +348,22 @@ pub fn command(
         stdout.push_str(&format!("wrote baseline {}\n", path.display()));
     }
     if invocation.flag("github_summary") {
-        let markdown = ici_reporting::render_markdown(&stored, &options).map_err(error)?;
+        // Frozen write_github_step_summary: append the historical suite's bounded Markdown to
+        // $GITHUB_STEP_SUMMARY when it is set; without it nothing is written or printed.
         if let Some(path) = summary_path {
+            let markdown = match ici_reporting::legacy_summary_markdown(&stored).map_err(error)? {
+                Some(markdown) => markdown,
+                None => ici_reporting::render_markdown(&stored, &options).map_err(error)?,
+            };
             let mut bytes = if path.exists() {
                 crate::report::read_bounded(&path, 8 * 1024 * 1024)?
             } else {
                 vec![]
             };
-            bytes.extend_from_slice(markdown.as_bytes());
-            if bytes.len() > 8 * 1024 * 1024 {
-                return Err(CliError("GitHub summary exceeds 8 MiB".into()));
-            }
+            let remaining = ici_reporting::MAX_SUMMARY_BYTES.saturating_sub(bytes.len());
+            bytes.extend_from_slice(
+                ici_reporting::bounded_summary_payload(&markdown, remaining).as_bytes(),
+            );
             ici_execution::storage::atomic_write(
                 &path,
                 &bytes,
@@ -366,8 +374,6 @@ pub fn command(
                 },
             )
             .map_err(error)?;
-        } else {
-            stdout.push_str(&markdown);
         }
         // Frozen: workflow commands only inside GitHub Actions, built from the suite's targets.
         if environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true") {
@@ -389,14 +395,9 @@ pub fn command(
             exit_code = 2;
         }
     }
-    // Frozen ReportPublisher._publish_single: outside GitHub Actions the publish step is skipped
-    // with this notice and never touches the verify exit.
-    let actions = environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true");
-    if invocation.flag("publish") && !actions {
-        stdout.push_str("[publish] --publish requires a GitHub Actions environment; skipping.\n");
-    }
+    // Frozen engines/verify.py: `--publish` prints the publisher's `[publish]` lines (its own
+    // Actions/target guards included) and never changes the verify exit.
     if invocation.flag("publish")
-        && actions
         && let Some(path) = &page_path
     {
         let publish = crate::registry::parse([
@@ -415,16 +416,8 @@ pub fn command(
             Ok(published) => {
                 stdout.push_str(&published.stdout);
                 stderr.push_str(&published.stderr);
-                if exit_code == 0 {
-                    exit_code = published.exit_code;
-                }
             }
-            Err(reason) => {
-                stderr.push_str(&format!("publish: {reason}\n"));
-                if exit_code == 0 {
-                    exit_code = 2;
-                }
-            }
+            Err(reason) => stderr.push_str(&format!("publish: {reason}\n")),
         }
     }
     if single.is_none() {
@@ -467,8 +460,9 @@ fn shape_engine(
     let mut exit_code = 0;
     if family == "test"
         && legacy_schema
-        && let Some(languages) =
-            no_tests_collected(&root, value).or_else(|| empty_pytest_suite(value))
+        && let Some(languages) = no_tests_collected(&root, value)
+            .or_else(|| empty_pytest_suite(value))
+            .or_else(|| python_without_tests_dir(&root, value))
     {
         // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
         ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
@@ -978,6 +972,27 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
         && checks.iter().any(empty)
         && checks.iter().all(|check| empty(check) || dependent(check)))
     .then(|| vec!["Python"])
+}
+
+/// Frozen `TestEngine._run_project_tests`: a Python project without a `tests/` directory is
+/// marked "No tests collected" without running pytest (so no project interpreter is needed).
+/// Native keeps a completed pytest run's own evidence; only a test check that did not succeed
+/// takes the frozen verdict.
+fn python_without_tests_dir(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let id = |check: &serde_json::Value| check["check_id"].as_str().unwrap_or("").to_owned();
+    let python_only =
+        !checks.is_empty() && checks.iter().all(|check| id(check).starts_with("python."));
+    let test_not_run = checks
+        .iter()
+        .any(|check| id(check) == "python.test" && check["state"] != "SUCCEEDED");
+    let no_sources = checks.iter().any(|check| {
+        check["summary"]
+            .as_str()
+            .is_some_and(|summary| summary.starts_with("no sources in scope"))
+    });
+    (python_only && test_not_run && !no_sources && !root.join("tests").exists())
+        .then(|| vec!["Python"])
 }
 
 /// The legacy coverage half failed only because the project interpreter has no coverage module,

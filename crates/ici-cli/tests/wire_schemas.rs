@@ -638,13 +638,16 @@ fn native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_
     // so the historical suite comes from a configless (automatic) project.
     let work = python_project();
     let config = work.path().join("ici.toml");
-    let workspace = fs::read(&config).unwrap();
     fs::remove_file(&config).unwrap();
     let suite = legacy(work.path(), "verify");
-    fs::write(&config, workspace).unwrap();
     assert_eq!(suite["schema_version"], "ici.result/v3");
     assert!(suite["results"].as_array().unwrap().len() > 3);
     sample("ici-result-v3", "native-verify-suite", &suite, true);
+    // Frozen also refuses engine subcommands on a `[workspace]` root (plan_engines.rs), so the
+    // engine reports come from a configless project; its automatic scope reads `src/`
+    // (a root-level module is outside it, as in frozen).
+    fs::create_dir(work.path().join("src")).unwrap();
+    fs::copy(work.path().join("main.py"), work.path().join("src/main.py")).unwrap();
     for command in ["line", "complexity", "security"] {
         let engine = legacy(work.path(), command);
         assert!(

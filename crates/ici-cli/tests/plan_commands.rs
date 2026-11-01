@@ -21,7 +21,9 @@ fn native_plan_names_real_argv_without_spawning_installing_or_writing_state() {
         &BTreeMap::from([("PATH".into(), String::new())]),
     )
     .unwrap();
-    assert!(output.stderr.is_empty());
+    // Frozen `_announce` under --json: root and scope go to stderr, the plan to stdout.
+    assert!(output.stderr.starts_with("root: "), "{}", output.stderr);
+    assert_eq!(output.stderr.lines().count(), 2, "{}", output.stderr);
     let document: Value = serde_json::from_str(&output.stdout).unwrap();
     assert_eq!(document["schema_id"], "ici.next.plan");
     assert_eq!(

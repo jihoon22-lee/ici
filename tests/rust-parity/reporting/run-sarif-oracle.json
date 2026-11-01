@@ -1,0 +1,2118 @@
+{
+ "cases": {
+  "run-cancelled.json": {
+   "input": {
+    "execution": {
+     "blocked_task_ids": [
+      "analyze-gui"
+     ],
+     "cancelled": true,
+     "failed_task_ids": [],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [
+      "run was cancelled by the user after 2 of 5 tasks"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "NOT_EVALUATED"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [
+     "partial result preserved on cancellation; not comparable to a full run"
+    ],
+    "metrics": [],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000005",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": false,
+     "kind": "partial",
+     "omitted_components": [
+      "gui"
+     ],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": false,
+        "exitCode": 3,
+        "properties": {
+         "limitations": [
+          "partial result preserved on cancellation; not comparable to a full run"
+         ]
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "state": "none"
+       },
+       "gate": "INCOMPLETE",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "partial",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-code-fail.json": {
+   "input": {
+    "execution": {
+     "blocked_task_ids": [],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": true,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "required check 'lint' reported 1 violation"
+     ],
+     "selected": "FAIL",
+     "workspace": "FAIL"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [],
+    "metrics": [
+     {
+      "denominator": 500,
+      "evidence": "MEASURED",
+      "name": "line-coverage",
+      "numerator": 446,
+      "unit": "percent",
+      "value": 89.2
+     }
+    ],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000002",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": true,
+        "exitCode": 1,
+        "properties": {
+         "limitations": []
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "state": "none"
+       },
+       "gate": "FAIL",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-code-fail.json+baseline-comparable": {
+   "input": {
+    "baseline": {
+     "carried": [
+      "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+     ],
+     "new": [
+      "f8a1c3"
+     ],
+     "origin": "base.json",
+     "reason": "",
+     "resolved": [
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+     ],
+     "state": "comparable",
+     "unchanged": []
+    },
+    "execution": {
+     "blocked_task_ids": [],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": true,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "required check 'lint' reported 1 violation"
+     ],
+     "selected": "FAIL",
+     "workspace": "FAIL"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [],
+    "metrics": [
+     {
+      "denominator": 500,
+      "evidence": "MEASURED",
+      "name": "line-coverage",
+      "numerator": 446,
+      "unit": "percent",
+      "value": 89.2
+     }
+    ],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000002",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": true,
+        "exitCode": 1,
+        "properties": {
+         "limitations": []
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "counts": {
+         "carried": 1,
+         "new": 1,
+         "resolved": 1,
+         "unchanged": 0
+        },
+        "origin": "base.json",
+        "state": "comparable"
+       },
+       "gate": "FAIL",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "baselineState": "new",
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-code-fail.json+baseline-incompatible": {
+   "input": {
+    "baseline": {
+     "carried": [],
+     "new": [],
+     "origin": "base.json",
+     "reason": "policy changed since the baseline",
+     "resolved": [],
+     "state": "incompatible",
+     "unchanged": []
+    },
+    "execution": {
+     "blocked_task_ids": [],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": true,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "required check 'lint' reported 1 violation"
+     ],
+     "selected": "FAIL",
+     "workspace": "FAIL"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [],
+    "metrics": [
+     {
+      "denominator": 500,
+      "evidence": "MEASURED",
+      "name": "line-coverage",
+      "numerator": 446,
+      "unit": "percent",
+      "value": 89.2
+     }
+    ],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000002",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": true,
+        "exitCode": 1,
+        "properties": {
+         "limitations": []
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "origin": "base.json",
+        "reason": "policy changed since the baseline",
+        "state": "incompatible"
+       },
+       "gate": "FAIL",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-code-fail.json+suppressed-bare-span-unknown-severity": {
+   "input": {
+    "execution": {
+     "blocked_task_ids": [],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": true,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     },
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "unheard-of",
+      "suppression": {
+       "kind": "config",
+       "origin": "ici.toml",
+       "reason": "accepted <risk>",
+       "suppressed": true
+      },
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "required check 'lint' reported 1 violation"
+     ],
+     "selected": "FAIL",
+     "workspace": "FAIL"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [],
+    "metrics": [
+     {
+      "denominator": 500,
+      "evidence": "MEASURED",
+      "name": "line-coverage",
+      "numerator": 446,
+      "unit": "percent",
+      "value": 89.2
+     }
+    ],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000002",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": true,
+        "exitCode": 1,
+        "properties": {
+         "limitations": []
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "state": "none"
+       },
+       "gate": "FAIL",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       },
+       {
+        "level": "warning",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "unheard-of",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001",
+        "suppressions": [
+         {
+          "justification": "accepted <risk>",
+          "kind": "external",
+          "properties": {
+           "origin": "ici.toml"
+          }
+         }
+        ]
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-partial-selection.json": {
+   "input": {
+    "execution": {
+     "blocked_task_ids": [],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": true,
+     "reused_task_ids": []
+    },
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "NOT_EVALUATED"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [
+     "gui was not selected; its findings from an earlier run are not represented here"
+    ],
+    "metrics": [
+     {
+      "denominator": 500,
+      "evidence": "MEASURED",
+      "name": "line-coverage",
+      "numerator": 446,
+      "unit": "percent",
+      "value": 89.2
+     },
+     {
+      "evidence": "ESTIMATED",
+      "name": "cpp-cognitive",
+      "unit": "score",
+      "value": 17.0
+     }
+    ],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000004",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": false,
+     "kind": "partial",
+     "omitted_components": [
+      "gui"
+     ],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "tool-a"
+     ],
+     "selected_languages": [
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": true,
+        "exitCode": 0,
+        "properties": {
+         "limitations": [
+          "gui was not selected; its findings from an earlier run are not represented here"
+         ]
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "state": "none"
+       },
+       "gate": "PASS",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "partial",
+       "selectedComponents": [
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-required-incomplete.json": {
+   "input": {
+    "execution": {
+     "blocked_task_ids": [
+      "prepare-native"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [
+      "analyze-gui"
+     ],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "prepare-native was blocked; gui was never compiled",
+      "required check 'lint' reported 1 violation before the block"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "INCOMPLETE"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [
+     "cpp coverage was not measured because the coverage build never ran"
+    ],
+    "metrics": [],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000003",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": false,
+        "exitCode": 3,
+        "properties": {
+         "limitations": [
+          "cpp coverage was not measured because the coverage build never ran"
+         ]
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "state": "none"
+       },
+       "gate": "INCOMPLETE",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-required-incomplete.json+baseline-comparable": {
+   "input": {
+    "baseline": {
+     "carried": [
+      "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+     ],
+     "new": [
+      "f8a1c3"
+     ],
+     "origin": "base.json",
+     "reason": "",
+     "resolved": [
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+     ],
+     "state": "comparable",
+     "unchanged": []
+    },
+    "execution": {
+     "blocked_task_ids": [
+      "prepare-native"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [
+      "analyze-gui"
+     ],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "prepare-native was blocked; gui was never compiled",
+      "required check 'lint' reported 1 violation before the block"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "INCOMPLETE"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [
+     "cpp coverage was not measured because the coverage build never ran"
+    ],
+    "metrics": [],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000003",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": false,
+        "exitCode": 3,
+        "properties": {
+         "limitations": [
+          "cpp coverage was not measured because the coverage build never ran"
+         ]
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "counts": {
+         "carried": 1,
+         "new": 1,
+         "resolved": 1,
+         "unchanged": 0
+        },
+        "origin": "base.json",
+        "state": "comparable"
+       },
+       "gate": "INCOMPLETE",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "baselineState": "new",
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-required-incomplete.json+baseline-incompatible": {
+   "input": {
+    "baseline": {
+     "carried": [],
+     "new": [],
+     "origin": "base.json",
+     "reason": "policy changed since the baseline",
+     "resolved": [],
+     "state": "incompatible",
+     "unchanged": []
+    },
+    "execution": {
+     "blocked_task_ids": [
+      "prepare-native"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [
+      "analyze-gui"
+     ],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "prepare-native was blocked; gui was never compiled",
+      "required check 'lint' reported 1 violation before the block"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "INCOMPLETE"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [
+     "cpp coverage was not measured because the coverage build never ran"
+    ],
+    "metrics": [],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000003",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": false,
+        "exitCode": 3,
+        "properties": {
+         "limitations": [
+          "cpp coverage was not measured because the coverage build never ran"
+         ]
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "origin": "base.json",
+        "reason": "policy changed since the baseline",
+        "state": "incompatible"
+       },
+       "gate": "INCOMPLETE",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-required-incomplete.json+suppressed-bare-span-unknown-severity": {
+   "input": {
+    "execution": {
+     "blocked_task_ids": [
+      "prepare-native"
+     ],
+     "cancelled": false,
+     "failed_task_ids": [
+      "analyze-gui"
+     ],
+     "required_complete": false,
+     "reused_task_ids": []
+    },
+    "findings": [
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "f8a1c3",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "end_line": 12,
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_column": 1,
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "high",
+      "task_id": "analyze-tool-a"
+     },
+     {
+      "analysis_unit_id": "tool-a-python",
+      "category": "correctness",
+      "component_id": "tool-a",
+      "confidence": "exact",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "message": "unused import shadows a project module",
+      "native_rule_id": "F401",
+      "primary_location": {
+       "label": "demo.main",
+       "path": "python/tool-a/demo.py",
+       "start_line": 12
+      },
+      "provider": "ruff",
+      "rule_id": "ICI-LINT-001",
+      "rule_version": "0.15.8",
+      "severity": "unheard-of",
+      "suppression": {
+       "kind": "config",
+       "origin": "ici.toml",
+       "reason": "accepted <risk>",
+       "suppressed": true
+      },
+      "task_id": "analyze-tool-a"
+     }
+    ],
+    "gate": {
+     "has_violations": true,
+     "reasons": [
+      "prepare-native was blocked; gui was never compiled",
+      "required check 'lint' reported 1 violation before the block"
+     ],
+     "selected": "INCOMPLETE",
+     "workspace": "INCOMPLETE"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [
+     "cpp coverage was not measured because the coverage build never ran"
+    ],
+    "metrics": [],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000003",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": false,
+        "exitCode": 3,
+        "properties": {
+         "limitations": [
+          "cpp coverage was not measured because the coverage build never ran"
+         ]
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "state": "none"
+       },
+       "gate": "INCOMPLETE",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [
+       {
+        "level": "error",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "endLine": 12,
+            "startColumn": 1,
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "f8a1c3"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "high",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001"
+       },
+       {
+        "level": "warning",
+        "locations": [
+         {
+          "physicalLocation": {
+           "artifactLocation": {
+            "uri": "python/tool-a/demo.py",
+            "uriBaseId": "SRCROOT"
+           },
+           "region": {
+            "startLine": 12
+           }
+          }
+         }
+        ],
+        "message": {
+         "text": "unused import shadows a project module"
+        },
+        "partialFingerprints": {
+         "ici.fingerprint": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "properties": {
+         "analysisUnitId": "tool-a-python",
+         "category": "correctness",
+         "componentId": "tool-a",
+         "confidence": "exact",
+         "evidence": "MEASURED",
+         "limitations": [],
+         "nativeRuleId": "F401",
+         "provider": "ruff",
+         "severity": "unheard-of",
+         "tags": [],
+         "taskId": "analyze-tool-a",
+         "variant": null
+        },
+        "ruleId": "ICI-LINT-001",
+        "suppressions": [
+         {
+          "justification": "accepted <risk>",
+          "kind": "external",
+          "properties": {
+           "origin": "ici.toml"
+          }
+         }
+        ]
+       }
+      ],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [
+         {
+          "defaultConfiguration": {
+           "level": "error"
+          },
+          "id": "ICI-LINT-001",
+          "properties": {
+           "nativeRuleId": "F401",
+           "provider": "ruff",
+           "tags": []
+          }
+         }
+        ],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  },
+  "run-success.json": {
+   "input": {
+    "execution": {
+     "blocked_task_ids": [],
+     "cancelled": false,
+     "failed_task_ids": [],
+     "required_complete": true,
+     "reused_task_ids": []
+    },
+    "findings": [],
+    "gate": {
+     "has_violations": false,
+     "reasons": [],
+     "selected": "PASS",
+     "workspace": "PASS"
+    },
+    "identity": {
+     "fingerprint_version": "",
+     "policy_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+     "source": {
+      "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "dirty": false,
+      "files": [
+       "apps/gui/widget.cpp",
+       "python/tool-a/demo.py"
+      ],
+      "generated": [
+       "build/ici-default/moc_widget.cpp"
+      ]
+     },
+     "toolchain_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "limitations": [],
+    "metrics": [
+     {
+      "denominator": 500,
+      "evidence": "MEASURED",
+      "name": "line-coverage",
+      "numerator": 446,
+      "unit": "percent",
+      "value": 89.2
+     }
+    ],
+    "producer": {
+     "bundle_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+     "ici_version": "0.11.0"
+    },
+    "publication": {
+     "detail": "",
+     "state": "NOT_CONFIGURED"
+    },
+    "run_id": "run-20260913-000001",
+    "schema_id": "ici.next.run",
+    "schema_version": 1,
+    "scope": {
+     "full_required_satisfied": true,
+     "kind": "full",
+     "omitted_components": [],
+     "required_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_components": [
+      "gui",
+      "tool-a"
+     ],
+     "selected_languages": [
+      "cpp",
+      "python"
+     ]
+    }
+   },
+   "sarif": {
+    "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+    "runs": [
+     {
+      "columnKind": "utf16CodeUnits",
+      "invocations": [
+       {
+        "executionSuccessful": true,
+        "exitCode": 0,
+        "properties": {
+         "limitations": []
+        }
+       }
+      ],
+      "properties": {
+       "baseline": {
+        "state": "none"
+       },
+       "gate": "PASS",
+       "ici.schemaId": "ici.next.run",
+       "policyDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+       "scopeKind": "full",
+       "selectedComponents": [
+        "gui",
+        "tool-a"
+       ],
+       "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+       "toolchainDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "results": [],
+      "tool": {
+       "driver": {
+        "informationUri": "https://github.com/jihoon22-lee/ici",
+        "name": "ici",
+        "rules": [],
+        "version": "0.11.0"
+       }
+      }
+     }
+    ],
+    "version": "2.1.0"
+   }
+  }
+ }
+}

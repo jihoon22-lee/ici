@@ -120,6 +120,15 @@ fn explicit_browser_and_github_summary_use_saved_outputs_and_preserve_existing_s
     let summary = fs::read_to_string(summary).unwrap();
     assert!(summary.starts_with("earlier job\n"));
     assert!(summary.contains("line"));
+    // The frozen historical layout, appended as `\n<markdown>\n` (legacy_summary.rs pins bytes).
+    let appended = &summary["earlier job\n".len()..];
+    assert!(appended.starts_with("\n## "), "{appended}");
+    assert!(appended.contains("`ici` Verification Report — **`"));
+    assert!(
+        appended.contains("| Engine | Status | Summary | Score / Metrics | Cache | Duration |")
+    );
+    assert!(appended.contains("Detailed Targets & Locations"));
+    assert!(appended.ends_with("\n"));
 }
 #[test]
 fn output_aliases_and_unowned_destinations_are_refused_before_native_state() {

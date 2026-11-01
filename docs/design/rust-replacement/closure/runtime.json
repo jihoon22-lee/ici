@@ -179,36 +179,43 @@
    "difference_reason": "Explicit unsupported disposition: native Windows execution is out of the approved Linux/WSL support scope; WSL is the supported route on Windows hosts. Not a silent removal: the refusal is tested."
   },
   "capability:wire-result-events": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-domain/src/event.rs",
     "crates/ici-domain/src/result.rs",
     "crates/ici-cli/src/events.rs",
-    "crates/ici-execution/src/storage.rs"
+    "crates/ici-execution/src/storage.rs",
+    "crates/ici-cli/src/run_text.rs",
+    "crates/ici-cli/src/execute.rs"
    ],
    "fixtures": {
     "positive": [
      "crates/ici-domain/tests/wire.rs::published_result_goldens_roundtrip_without_lost_information",
      "crates/ici-cli/tests/execution.rs::rerun_replaces_its_previous_event_stream_but_never_an_unrelated_file",
-     "crates/ici-cli/tests/wire_schemas.rs::native_runs_and_events_validate_against_the_frozen_next_schemas"
+     "crates/ici-cli/tests/wire_schemas.rs::native_runs_and_events_validate_against_the_frozen_next_schemas",
+     "crates/ici-cli/tests/analyze_text.rs::native_analyze_prints_the_frozen_frame_on_the_same_projects"
     ],
     "negative": [
      "crates/ici-domain/tests/wire.rs::event_identifiers_and_sequence_notes_match_frozen_oracle",
-     "crates/ici-cli/tests/wire_schemas.rs::published_v1_runs_validate_and_roundtrip_through_the_native_reader_as_v1"
+     "crates/ici-cli/tests/wire_schemas.rs::published_v1_runs_validate_and_roundtrip_through_the_native_reader_as_v1",
+     "crates/ici-cli/tests/analyze_text.rs::frozen_results_render_the_frozen_verdict_block_byte_for_byte"
     ],
     "failure": [
      "crates/ici-domain/tests/wire.rs::refuse_unknown_or_inconsistent_evidence",
      "crates/ici-cli/tests/wire_schemas.rs::schema_invalid_runs_and_events_are_refused_by_the_schema_and_the_native_reader",
-     "crates/ici-execution/tests/storage.rs::event_stream_validates_run_and_sequence_before_appending_and_redacts_message"
+     "crates/ici-execution/tests/storage.rs::event_stream_validates_run_and_sequence_before_appending_and_redacts_message",
+     "crates/ici-cli/tests/analyze_text.rs::verdict_block_failure_modes_cover_incompatible_baseline_reuse_and_unit_notes"
     ]
    },
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/domain/capture_events.py tests/rust-parity/domain/events-oracle.json (frozen RunEvent id validation and events_from_jsonl notes)",
     "Oracle vs native `ici analyze --json --events ev.jsonl --result r.json` on the same ESLint/tsc/Clippy project: identical event kinds per task, same run_id in every event, stdout is exactly the saved result, seq numbered from 0; /tmp/ici-rust-replacement-20261028/w-runtime-events-compare.log",
-    "cargo test -p ici-domain; cargo test -p ici-execution --test storage; cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --include-ignored: all passed; strict Clippy ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log"
+    "cargo test -p ici-domain; cargo test -p ici-execution --test storage; cargo test -p ici-cli --test execution --test wire_schemas --test ecosystem_oracle --include-ignored: all passed; strict Clippy ici-domain/ici-providers/ici-cli passed; /tmp/ici-rust-replacement-20261028/w-runtime-wire.log",
+    "Rendering gap closed by the reporting worker (commit c639aee, merged): `ici analyze` text mode prints the frozen root/scope announcement and verdict block, and `--json` writes the two announce lines to stderr with only the result on stdout; 13 frozen captures in tests/rust-parity/reporting/analyze-text-oracle.json (capture_analyze_text.py; /tmp/ici-rust-replacement-20261028/w-reporting2-analyze-capture.log).",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock` `cargo test -p ici-domain --locked -j2 --test wire`, `cargo test -p ici-execution --locked -j2 --test storage`, `cargo test -p ici-cli --locked -j2 --test execution --test wire_schemas --test ecosystem_oracle --test analyze_text --test report_commands --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 7 binaries, 43 passed, 0 failed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-reporting3-wire-events.log"
    ],
-   "comparison": "Runtime facet: run v2 write/read v1, event v1 envelope, event order, run_id and stdout/stderr split. Reviewed frozen domain/events.py, eventstream.py, _codec.py and cli/next_events.py. Defects fixed: the native writer numbered events from 1 while the frozen writer starts every run at seq 0; the reader reported a repeated seq as a jump instead of the frozen 'duplicate seq N' note. Event id validation itself is the config worker's guard (9d31027) and the oracle fixture now pins it against frozen acceptance.",
-   "difference_reason": "Open (not complete): frozen `ici analyze --json` writes 'root:'/'scope:' context lines (next_common.py) to stderr and its text mode prints the verdict summary (next_render.verify_text); native writes nothing to stderr under --json and its text mode prints ici-reporting render.rs JSON blocks. stdout under --json is the saved result in both. Reported to the root (SendMessage, w-runtime-events-compare.log) as a user-visible rendering gap. Timestamps use 'Z' instead of '+00:00' (both RFC 3339 and accepted by the frozen schema)."
+   "comparison": "Runtime facet: run v2 write/read v1, event v1 envelope, event order, run_id and stdout/stderr split. Reviewed frozen domain/events.py, eventstream.py, _codec.py and cli/next_events.py. Defects fixed: the native writer numbered events from 1 while the frozen writer starts every run at seq 0; the reader reported a repeated seq as a jump instead of the frozen 'duplicate seq N' note. Event id validation itself is the config worker's guard (9d31027) and the oracle fixture now pins it against frozen acceptance. The stream split is now closed too: under `--json` stdout is exactly the saved result and stderr carries the frozen `root:`/`scope:` announcement; text mode prints the frozen verdict block (reporting fixtures analyze_text.rs, linked above).",
+   "difference_reason": "The earlier open rendering gap (no --json stderr announcement, raw JSON text mode) is fixed and pinned by analyze_text.rs against frozen captures. Remaining intended differences: timestamps use 'Z' instead of '+00:00' (both RFC 3339 and accepted by the frozen schema); after the frozen text block native adds `HTML: <page>` and at most five unsuppressed findings, and error lines use the native `ici:` prefix instead of `config:` (recorded on the reporting fragment's facet of this row)."
   },
   "check:javascript.lint": {
    "status": "complete",

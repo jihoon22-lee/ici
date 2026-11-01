@@ -389,10 +389,14 @@ fn caller_preserves_historical_destination_and_credential_precedence() {
             "<!doctype html>saved",
         )
         .unwrap();
-        let environment = values
+        let mut environment: BTreeMap<String, String> = values
             .into_iter()
             .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect();
+        if !modern {
+            // Frozen historical publish only runs inside GitHub Actions (legacy_publish.rs).
+            environment.insert("GITHUB_ACTIONS".into(), "true".into());
+        }
         let invocation = if modern {
             registry::parse([
                 "ici",

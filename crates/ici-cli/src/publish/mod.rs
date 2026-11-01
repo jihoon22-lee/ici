@@ -57,6 +57,98 @@ pub fn publish_with_transport<
     }
     ici_execution::redaction::redact_value(&record)
 }
+/// Where a page lands on the publication branch.
+fn remote_path(publication: &Publication, label: &str) -> String {
+    let revision: String = if publication.head.is_empty() {
+        format!("unversioned-{}.{}", publication.run, publication.attempt)
+    } else {
+        publication.head.chars().take(12).collect()
+    };
+    let reference = publication
+        .pr
+        .map_or_else(|| slug(&publication.reference), |pr| format!("pr-{pr}"));
+    format!("ici/{}/{reference}/{revision}/index.html", slug(label))
+}
+/// Frozen `cmd_publish` output: `[publish] <message>` and the PR comment line.
+fn legacy_output(message: String, comment: Option<&str>, exit_code: i32) -> CommandOutput {
+    let mut stdout = format!("[publish] {message}\n");
+    if let Some(url) = comment {
+        stdout.push_str(&format!("[publish] PR comment: {url}\n"));
+    }
+    CommandOutput {
+        stdout: ici_execution::redaction::redact_text(&stdout),
+        stderr: String::new(),
+        exit_code,
+    }
+}
+/// Frozen `_publish_single`/`_publish_multi` messages over the native publication record.
+/// A failure before any upload (the branch could not be prepared) reads as an upload failure,
+/// as frozen's unready branch does; the record keeps the native detail.
+fn legacy_message(publication: &Publication, record: &Value, repo: &str) -> (String, bool) {
+    let branch = &publication.destination.branch;
+    let rows = record["reports"].as_array().cloned().unwrap_or_default();
+    let uploaded = |label: &str| {
+        rows.iter()
+            .any(|row| row["label"] == label && row["uploaded"] == true)
+    };
+    let failed: Vec<&str> = publication
+        .pages
+        .iter()
+        .map(|page| page.label.as_str())
+        .filter(|label| !uploaded(label))
+        .collect();
+    let success = record["state"] == "SUCCESS";
+    let single = publication
+        .legacy
+        .as_ref()
+        .is_some_and(|legacy| legacy.unlabeled);
+    if single {
+        let path = remote_path(publication, &publication.pages[0].label);
+        return if !failed.is_empty() {
+            (
+                format!(
+                    "--publish failed to upload {path} to {repo} ({branch}). Check token permissions (contents: write) and branch availability."
+                ),
+                false,
+            )
+        } else if !success {
+            (
+                format!(
+                    "--publish uploaded {path}, but failed to update the PR comment. Check token permissions (pull-requests: write)."
+                ),
+                false,
+            )
+        } else if let Some(url) = record["viewer_url"].as_str() {
+            (format!("HTML report published: {url}"), true)
+        } else {
+            (
+                format!(
+                    "HTML report pushed to {repo}:{branch}/{path}. Pages is not enabled — enable it once: Settings → Pages → Source: gh-pages."
+                ),
+                true,
+            )
+        };
+    }
+    if !failed.is_empty() {
+        (
+            format!("--publish failed to upload: {}", failed.join(", ")),
+            false,
+        )
+    } else if !success {
+        (
+            "--publish uploaded every report, but failed to update the PR comment. Check token permissions (pull-requests: write).".into(),
+            false,
+        )
+    } else {
+        (
+            format!(
+                "Published {} report(s) to {repo}:{branch}",
+                publication.pages.len()
+            ),
+            true,
+        )
+    }
+}
 fn perform<F: FnMut(&Request) -> std::result::Result<Response, TransportError>>(
     publication: &Publication,
     send: &mut F,
@@ -122,15 +214,7 @@ fn perform<F: FnMut(&Request) -> std::result::Result<Response, TransportError>>(
     let mut errors = vec![];
     for page in &publication.pages {
         let label = slug(&page.label);
-        let revision = if publication.head.is_empty() {
-            format!("unversioned-{}.{}", publication.run, publication.attempt)
-        } else {
-            publication.head.chars().take(12).collect()
-        };
-        let reference = publication
-            .pr
-            .map_or_else(|| slug(&publication.reference), |pr| format!("pr-{pr}"));
-        let path = format!("ici/{label}/{reference}/{revision}/index.html");
+        let path = remote_path(publication, &page.label);
         let uploaded = client.put(&path, &page.bytes);
         let viewer = site
             .as_ref()
@@ -332,6 +416,15 @@ pub fn command_with_transport(
     )
     .map_err(|error| CliError(error.to_string()))?;
     let modern = invocation.command() == "next publish";
+    // Frozen engines/publish.ReportPublisher: the historical command skips (exit 0) outside
+    // GitHub Actions and when no repository or token resolves; only a real failure exits 1.
+    if !modern && environment.get("GITHUB_ACTIONS").map(String::as_str) != Some("true") {
+        return Ok(legacy_output(
+            "--publish requires a GitHub Actions environment; skipping.".into(),
+            None,
+            0,
+        ));
+    }
     let get = |key: &str| environment.get(key).cloned().unwrap_or_default();
     let declared = config.publish.as_ref();
     let repo = declared
@@ -391,6 +484,23 @@ pub fn command_with_transport(
         branch,
         token,
     };
+    if !modern && (repo.is_empty() || destination.token.is_empty()) {
+        return Ok(legacy_output(
+            "--publish skipped: GITHUB_REPOSITORY or a publish token is unavailable.".into(),
+            None,
+            0,
+        ));
+    }
+    if !modern && invocation.values("report_dir").is_empty() {
+        let page = invocation.value("html").unwrap_or("verify_report.html");
+        if !under(&config.root, page).exists() {
+            return Ok(legacy_output(
+                format!("--publish skipped: HTML report not found at {page}."),
+                None,
+                1,
+            ));
+        }
+    }
     let mut pages = vec![];
     if modern {
         pages.push(load_page(
@@ -526,6 +636,14 @@ pub fn command_with_transport(
     };
     let record = publish_with_transport(&publication, send);
     save_record(&record_path, &record)?;
+    if !modern {
+        let (message, success) = legacy_message(&publication, &record, &repo);
+        return Ok(legacy_output(
+            message,
+            record["comment_url"].as_str(),
+            if success { 0 } else { 1 },
+        ));
+    }
     Ok(CommandOutput {
         stdout: format!(
             "publish: {}\nRecord: {}\n",
