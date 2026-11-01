@@ -112,6 +112,7 @@ fn test_facts(result: &Value) -> Value {
         .find(|item| item["check_id"] == "python.test")
         .unwrap();
     serde_json::json!({
+        "gate": result["gate"]["selected"],
         "state": check["state"],
         "evidence_complete": check["evidence_complete"],
         "limitations": result["limitations"].as_array().unwrap().iter()
@@ -126,6 +127,7 @@ fn test_facts(result: &Value) -> Value {
 }
 fn frozen_facts(frozen: &Value) -> Value {
     serde_json::json!({
+        "gate": frozen["gate"],
         "state": frozen["test_check"]["state"],
         "evidence_complete": frozen["test_check"]["evidence_complete"],
         "limitations": frozen["limitations"],
@@ -148,28 +150,7 @@ fn green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract() {
         "only an exact missing-pytest diagnostic activates",
     ];
     // Reviewed differences: (scenario, fact, native value, reason).
-    let corrections: [(&str, &str, Value, &str); 7] = [
-        (
-            "all-skipped",
-            "state",
-            "FAILED".into(),
-            "Policy difference for root review: native refuses a suite whose every case skipped as incomplete evidence (FAILED) where frozen kept the check SUCCEEDED with only a limitation; frozen's own provider comment says nothing was verified.",
-        ),
-        (
-            "all-skipped",
-            "evidence_complete",
-            false.into(),
-            "Follows the FAILED state above.",
-        ),
-        (
-            "all-skipped",
-            "limitations",
-            serde_json::json!([
-                "all pytest cases skipped; nothing was verified",
-                "prerequisite project.python.test has no complete evidence"
-            ]),
-            "Native wording of the same fact, plus the blocked coverage prerequisite.",
-        ),
+    let corrections: [(&str, &str, Value, &str); 4] = [
         (
             "no-tests",
             "limitations",

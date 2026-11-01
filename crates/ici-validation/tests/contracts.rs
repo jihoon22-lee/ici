@@ -108,7 +108,7 @@ fn pytest_preserves_parameter_spaces_last_verdicts_and_source_facts() {
     assert_eq!(output.observation.measurements[0].denominator, Some(2));
 }
 #[test]
-fn no_tests_collection_usage_all_skipped_and_malformed_are_incomplete() {
+fn no_tests_collection_usage_and_malformed_are_incomplete() {
     let root = tempfile::tempdir().unwrap();
     let planned = plan(&request(root.path(), ValidationKind::PythonTest)).unwrap();
     let id = planned.tasks[0].id.clone();
@@ -116,7 +116,6 @@ fn no_tests_collection_usage_all_skipped_and_malformed_are_incomplete() {
         ("no tests ran", 5),
         ("garbage", 0),
         ("ERROR collecting tests/test_bad.py\n", 2),
-        ("tests/test_main.py::test_x SKIPPED\n", 0),
         ("tests/test_main.py::test_x PASSED\n", 4),
         ("tests/test_main.py::test_x PASSED\n", 1),
     ] {
@@ -136,6 +135,51 @@ fn no_tests_collection_usage_all_skipped_and_malformed_are_incomplete() {
                 "pytest.collection-error"
             );
         }
+    }
+}
+/// Root decision D2 (frozen `adapters/providers/pytest.py`): a collected suite in which no case
+/// passed is an answer with the frozen limitation, never a refusal and never silent.
+#[test]
+fn all_skipped_suite_succeeds_with_the_frozen_no_green_limitation() {
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::PythonTest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    for (text, limitation) in [
+        (
+            "tests/test_main.py::test_x SKIPPED\n",
+            Some("no test ran green (1 skipped of 1 collected)"),
+        ),
+        (
+            "tests/test_main.py::test_x SKIPPED\ntests/test_main.py::test_y XFAIL\n",
+            Some("no test ran green (1 skipped of 2 collected)"),
+        ),
+        ("tests/test_main.py::test_x PASSED\n", None),
+    ] {
+        let output = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(&id, text, 0))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{text}: {output:?}"
+        );
+        let named: Vec<_> = output
+            .observation
+            .limitations
+            .iter()
+            .filter(|text| text.starts_with("no test ran green"))
+            .cloned()
+            .collect();
+        assert_eq!(
+            named,
+            limitation
+                .map(str::to_owned)
+                .into_iter()
+                .collect::<Vec<_>>(),
+            "{text}"
+        );
     }
 }
 #[test]

@@ -363,14 +363,22 @@ fn observe_suite(
                 .map_or_else(|| "none".to_owned(), |code| code.to_string())
         )));
     }
-    if passed == 0
-        && evidence
+    // Frozen `adapters/providers/pytest.py` `_parse`: a collected suite in which no case passed
+    // (every case skipped, xfailed or errored) is still an answer, but nothing was verified green,
+    // so the run says so instead of presenting the check as verified evidence (root decision D2).
+    let green = evidence
+        .cases
+        .values()
+        .filter(|case| case.verdict == "PASSED")
+        .count();
+    if green == 0 {
+        let skipped = evidence
             .cases
             .values()
-            .all(|case| case.verdict == "SKIPPED")
-    {
-        return Err(ValidationError(
-            "all pytest cases skipped; nothing was verified".into(),
+            .filter(|case| case.verdict == "SKIPPED")
+            .count();
+        output.observation.limitations.push(format!(
+            "no test ran green ({skipped} skipped of {total} collected)"
         ));
     }
     if outcome.exit_code == Some(1) && output.observation.findings.is_empty() {

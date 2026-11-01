@@ -457,3 +457,80 @@ fn deep_verify_keeps_frozen_slow_and_flaky_targets_order_and_identities() {
         );
     }
 }
+
+/// A suite whose every collected case skipped: frozen `engines/test.py` `no_tests_executed`
+/// is ERROR (required) or SKIP (`required = false`) with `0/N Tests Executed; every collected
+/// test was skipped`; one failing case beside a skipped one is an ordinary FAIL.
+#[test]
+#[ignore = "explicit project pytest legacy test-engine acceptance"]
+fn all_skipped_suites_keep_the_frozen_not_executed_verdict_and_a_failure_still_fails() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let mut wrong = vec![];
+    for scenario in ["all_skipped", "all_skipped_optional", "skipped_and_failing"] {
+        let frozen = &oracle["runs"][scenario];
+        let (exit, native) = run(&oracle, scenario);
+        let facts = |engine: &Value, targets: &Value, exit: i64| {
+            json!({"exit": exit, "status": engine["status"], "summary": engine["summary"],
+                "evidence": engine["evidence"], "required": engine["required"],
+                "cases": targets.as_array().unwrap().iter()
+                    .filter(|target| target["target_name"].as_str().is_some_and(|name| name.starts_with("tests/")))
+                    .map(|target| json!([target["target_name"], target["status"], target["message"]]))
+                    .collect::<Vec<_>>()})
+        };
+        let mut expected = facts(
+            &frozen["engine"],
+            &frozen["targets"],
+            frozen["exit_code"].as_i64().unwrap(),
+        );
+        let mut actual = facts(&native, &native["targets"], i64::from(exit));
+        // Reviewed differences: native lists a suite's cases in node-id order where frozen kept
+        // pytest's execution order (identities and verdicts are equal), and an empty branch
+        // denominator reads `n/a` instead of frozen's vacuous 100.0% (projection.rs).
+        for facts in [&mut actual, &mut expected] {
+            facts["cases"]
+                .as_array_mut()
+                .unwrap()
+                .sort_by_key(|case| case[0].as_str().unwrap().to_owned());
+        }
+        if scenario == "skipped_and_failing" {
+            expected["summary"] = json!(
+                expected["summary"]
+                    .as_str()
+                    .unwrap()
+                    .replace("Branch: 100.0%", "Branch: n/a")
+            );
+        } else {
+            // Reviewed differences: frozen's score 0.0 is `calculate_tem`'s fallback for a
+            // None score (no coverage evidence) — the same fabricated TEM the empty suite has —
+            // so native leaves it absent; frozen recorded no coverage data for a source no
+            // executed case imported and listed no coverage/threshold rows, while native keeps
+            // its measured rows (never a PASS) beside the replaced verdict.
+            assert_eq!(frozen["engine"]["score"], 0.0);
+            assert_eq!(native["score"], Value::Null, "{scenario}");
+            assert!(
+                native["targets"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .all(|target| target["status"] != "PASS"),
+                "{scenario}: {:#}",
+                native["targets"]
+            );
+        }
+        if actual != expected {
+            wrong.push(format!("{scenario}\nnative {actual}\nfrozen {expected}"));
+        }
+        let native_findings = findings(&native);
+        for finding in frozen["findings"].as_array().unwrap() {
+            if finding["message"] == "Test was collected but not executed"
+                || finding["message"] == "Test assertion failed"
+            {
+                assert!(
+                    native_findings.contains(finding),
+                    "{scenario}: {finding:#} {native_findings:#?}"
+                );
+            }
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}

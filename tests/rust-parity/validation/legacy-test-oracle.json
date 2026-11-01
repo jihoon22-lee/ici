@@ -1,6 +1,120 @@
 {
   "config": "[ici]\nprofile = \"standard\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
   "runs": {
+    "all_skipped": {
+      "engine": {
+        "evidence": "NOT_RUN",
+        "max_score": 5.0,
+        "required": true,
+        "score": 0.0,
+        "status": "ERROR",
+        "summary": "0/1 Tests Executed; every collected test was skipped"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 95.0,
+        "line_coverage": null,
+        "metrics_summary": "TEM: 0.00/5.0 (Line: 85%, Func: 95%, PassRate: 0%)",
+        "pass_rate": 0.0,
+        "passed_tests": 0,
+        "quality_enabled": false,
+        "skipped_tests": 1,
+        "tem_score": 0.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 0,
+            "skipped": 1,
+            "tests": [
+              {
+                "message": "Test was collected but not executed",
+                "name": "tests/test_calc.py::test_later",
+                "status": "SKIP"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 1
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:9ea2593c76c1939e18e28df658d375719ed8f46712de7187249d2aaadf928543",
+          "message": "Test was collected but not executed",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test was collected but not executed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "tests/test_calc.py::test_later"
+        }
+      ]
+    },
+    "all_skipped_optional": {
+      "engine": {
+        "evidence": "ESTIMATED",
+        "max_score": 5.0,
+        "required": false,
+        "score": 0.0,
+        "status": "SKIP",
+        "summary": "0/1 Tests Executed; every collected test was skipped"
+      },
+      "exit_code": 2,
+      "extra": {
+        "function_coverage": 95.0,
+        "line_coverage": null,
+        "metrics_summary": "TEM: 0.00/5.0 (Line: 85%, Func: 95%, PassRate: 0%)",
+        "pass_rate": 0.0,
+        "passed_tests": 0,
+        "quality_enabled": false,
+        "skipped_tests": 1,
+        "tem_score": 0.0,
+        "test_suites": [
+          {
+            "failed": 0,
+            "file": "tests/test_calc.py",
+            "passed": 0,
+            "skipped": 1,
+            "tests": [
+              {
+                "message": "Test was collected but not executed",
+                "name": "tests/test_calc.py::test_later",
+                "status": "SKIP"
+              }
+            ],
+            "total": 1
+          }
+        ],
+        "total_tests": 1
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:9ea2593c76c1939e18e28df658d375719ed8f46712de7187249d2aaadf928543",
+          "message": "Test was collected but not executed",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test was collected but not executed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "tests/test_calc.py::test_later"
+        }
+      ]
+    },
     "changed_invalid": {
       "engine": {
         "evidence": "NOT_RUN",
@@ -818,6 +932,145 @@
         }
       ]
     },
+    "skipped_and_failing": {
+      "engine": {
+        "evidence": "MEASURED",
+        "max_score": 5.0,
+        "required": true,
+        "score": 0.0,
+        "status": "FAIL",
+        "summary": "0/2 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0"
+      },
+      "exit_code": 1,
+      "extra": {
+        "function_coverage": 100.0,
+        "line_coverage": 100.0,
+        "metrics_summary": "TEM: 0.00/5.0 (Line: 100%, Func: 100%, PassRate: 0%)",
+        "pass_rate": 0.0,
+        "passed_tests": 0,
+        "quality_enabled": false,
+        "skipped_tests": 1,
+        "tem_score": 0.0,
+        "test_suites": [
+          {
+            "failed": 1,
+            "file": "tests/test_calc.py",
+            "passed": 0,
+            "skipped": 1,
+            "tests": [
+              {
+                "message": "Test was collected but not executed",
+                "name": "tests/test_calc.py::test_later",
+                "status": "SKIP"
+              },
+              {
+                "message": "Test assertion failed",
+                "name": "tests/test_calc.py::test_bad",
+                "status": "FAIL"
+              }
+            ],
+            "total": 2
+          }
+        ],
+        "total_tests": 2
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+          "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:6274c406116baeaacd21f4951c36a802523df357f7eea3a9b1d4af3f8da311af",
+          "message": "Function add was exercised by the aggregate project test suite",
+          "path": "src/calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:9ea2593c76c1939e18e28df658d375719ed8f46712de7187249d2aaadf928543",
+          "message": "Test was collected but not executed",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:a8257ab25fe5314c164ffb2db104998c4fa170a00fd8aac306455b06fdd824e7",
+          "message": "Test assertion failed",
+          "path": "tests/test_calc.py",
+          "rule_id": "ici.legacy.test.target"
+        },
+        {
+          "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+          "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+          "path": ".",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "targets": [
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test was collected but not executed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "tests/test_calc.py::test_later"
+        },
+        {
+          "end_line": null,
+          "file_path": "tests/test_calc.py",
+          "message": "Test assertion failed",
+          "metrics": {},
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "tests/test_calc.py::test_bad"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+          "metrics": {
+            "actual": 100.0,
+            "covered_lines": 2,
+            "executable_lines": 2,
+            "gated": true,
+            "threshold": 80.0
+          },
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Coverage:Overall line"
+        },
+        {
+          "end_line": null,
+          "file_path": ".",
+          "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+          "metrics": {
+            "actual": 100.0,
+            "covered_functions": 1,
+            "functions": 1,
+            "gated": true,
+            "threshold": 90.0
+          },
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Coverage:Functions"
+        },
+        {
+          "end_line": 2,
+          "file_path": "src/calc.py",
+          "message": "Function add was exercised by the aggregate project test suite",
+          "metrics": {
+            "covered": true,
+            "gated": false,
+            "symbol": "add",
+            "test_scope": "aggregate-project-suite"
+          },
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Coverage:Function:add"
+        }
+      ]
+    },
     "unittest": {
       "engine": {
         "evidence": "ESTIMATED",
@@ -937,6 +1190,15 @@
     }
   },
   "scenarios": {
+    "all_skipped": {
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n"
+    },
+    "all_skipped_optional": {
+      "extra_config": "required = false\n",
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n"
+    },
     "changed_invalid": {
       "extra_config": "changed_lines = [\"src/calc.py:1-2\", \"src/calc.py:2\"]\n",
       "src/calc.py": "def add(a, b):\n    return a + b\n",
@@ -964,6 +1226,10 @@
       "extra_config": "changed_lines = [\"src/calc.py:2-4\"]\n",
       "src/calc.py": "def classify(value):\n    if value > 0:\n        return 'positive'\n    return 'other'\n\n\ndef unused(value):\n    total = value + 1\n    return total\n",
       "tests/test_calc.py": "from calc import classify\n\n\ndef test_positive():\n    assert classify(1) == 'positive'\n"
+    },
+    "skipped_and_failing": {
+      "src/calc.py": "def add(a, b):\n    return a + b\n",
+      "tests/test_calc.py": "import pytest\nfrom calc import add\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n\n\ndef test_bad():\n    assert add(1, 1) == 3\n"
     },
     "unittest": {
       "interpreter": "without-pytest",
