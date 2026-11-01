@@ -128,30 +128,10 @@ fn observed(oracle: &Value, case: &Value) -> Value {
     })
 }
 
-/// The frozen finding as the native provider reports it. Two recorded differences:
-/// the native message omits the frozen `<kind>: ` prefix (the kind is the finding severity),
-/// so the frozen fingerprint formula (provider, rule, path, line, column, message) is applied
-/// to that message; and a diagnostic outside the project is omitted with a limitation
-/// instead of the frozen `[external]` pseudo-path finding the provider meant to drop.
-fn native_view(frozen: &Value) -> Value {
-    let mut finding = frozen.clone();
-    let message = frozen["message"].as_str().unwrap();
-    let message = message.split_once(": ").map_or(message, |(_, rest)| rest);
-    finding["message"] = json!(message);
-    finding["fingerprint"] = json!(sha256(
-        [
-            "clang-tidy",
-            frozen["native_rule_id"].as_str().unwrap(),
-            frozen["path"].as_str().unwrap(),
-            &frozen["start_line"].to_string(),
-            &frozen["start_column"].to_string(),
-            message,
-        ]
-        .join("\0")
-    ));
-    finding
-}
-
+/// Native findings equal the frozen ones field by field, including the frozen
+/// `<kind>: <message>` text and its fingerprint (root ruling R1). One recorded correction: a
+/// diagnostic outside the project is omitted with a limitation instead of the frozen
+/// `[external]` pseudo-path finding the frozen `_relative` filter meant to drop.
 #[test]
 fn frozen_next_clang_tidy_provider_parse_matches_native_findings_and_parse_failures() {
     let oracle: Value = serde_json::from_str(include_str!(
@@ -173,7 +153,7 @@ fn frozen_next_clang_tidy_provider_parse_matches_native_findings_and_parse_failu
             .unwrap()
             .iter()
             .filter(|finding| finding["path"] != "[external]")
-            .map(native_view)
+            .cloned()
             .collect();
         let external = frozen["findings"]
             .as_array()
@@ -185,6 +165,19 @@ fn frozen_next_clang_tidy_provider_parse_matches_native_findings_and_parse_failu
             .unwrap()
             .iter()
             .any(|item| item == "external compiler diagnostic omitted from project locations");
+        // Correction (root ruling R2): the real multi-source transcript carries clang-tidy 21
+        // `[n/N] Processing file` progress lines on stderr. Frozen rejects it; native ignores
+        // exactly those lines and yields the same finding as the stdout alone.
+        let expected = if name == "real" {
+            assert!(frozen_failed);
+            cases["real-stdout"]["frozen"]["findings"]
+                .as_array()
+                .unwrap()
+                .to_vec()
+        } else {
+            expected
+        };
+        let frozen_failed = frozen_failed && name != "real";
         if actual["failed"] != json!(frozen_failed)
             || (!frozen_failed && actual["findings"] != json!(expected))
             || external != omitted
@@ -193,13 +186,179 @@ fn frozen_next_clang_tidy_provider_parse_matches_native_findings_and_parse_failu
             mismatches.push(name.clone());
         }
     }
-    // Both parsers reject a real multi-source clang-tidy 21 transcript whose stderr carries
-    // `[n/N] Processing file` progress lines; the stdout alone yields the finding.
     assert_eq!(cases["real"]["frozen"]["findings"], json!([]));
-    assert!(observed(&oracle, &cases["real"])["failed"] == json!(true));
+    assert!(
+        cases["real"]["stderr"]
+            .as_str()
+            .unwrap()
+            .contains("[1/3] Processing file <ROOT>/src/clean.cpp.")
+    );
+    let real = observed(&oracle, &cases["real"]);
+    assert_eq!(real["failed"], json!(false), "{real}");
+    assert_eq!(real["findings"][0]["message"], "warning: Division by zero");
     assert_eq!(
-        observed(&oracle, &cases["real-stdout"])["findings"][0]["start_column"],
-        18
+        real["findings"][0]["fingerprint"],
+        cases["real-stdout"]["frozen"]["findings"][0]["fingerprint"]
     );
     assert!(mismatches.is_empty(), "{mismatches:?}");
+}
+
+/// One real `clang-tidy -p build <sources>` run planned by the native provider over a copy of
+/// `parity-fixtures/cpp/lint-tidy` (optionally with the sources replaced), with the observation.
+fn real_run(
+    sources: &[(&str, &str)],
+) -> (tempfile::TempDir, TaskOutcome, ici_providers::ProviderPlan) {
+    let tidy = std::env::var("ICI_TEST_CLANG_TIDY").expect("explicit clang-tidy 21 is required");
+    let root = tempfile::tempdir().unwrap();
+    copy_tree(
+        &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/lint-tidy"),
+        root.path(),
+    );
+    let mut targets = vec![];
+    if sources.is_empty() {
+        for name in ["clean.cpp", "qt.cpp", "tidy.cpp"] {
+            targets.push(format!("src/{name}"));
+        }
+    } else {
+        fs::remove_dir_all(root.path().join("src")).unwrap();
+        fs::create_dir(root.path().join("src")).unwrap();
+        for (name, text) in sources {
+            fs::write(root.path().join("src").join(name), text).unwrap();
+            targets.push(format!("src/{name}"));
+        }
+    }
+    fs::create_dir(root.path().join("build")).unwrap();
+    let database: Vec<Value> = targets
+        .iter()
+        .map(|source| json!({"directory":root.path(),"file":source,"arguments":["g++","-std=c++17","-Iinclude","-c",source]}))
+        .collect();
+    fs::write(
+        root.path().join("build/compile_commands.json"),
+        Value::Array(database).to_string(),
+    )
+    .unwrap();
+    let tool = ici_providers::resolver::ToolRequest {
+        id: "clang-tidy".into(),
+        explicit: Some(tidy.into()),
+        project_root: root.path().into(),
+        pack_root: None,
+        path_env: None,
+    }
+    .resolve()
+    .unwrap();
+    let mut request = ProviderRequest::new(
+        ProviderKind::ClangTidy,
+        tool,
+        root.path(),
+        root.path(),
+        targets.clone(),
+        "app.cpp.tidy",
+    );
+    request.options.database_dir = Some("build".into());
+    let mut planned = plan(&request).unwrap();
+    let inputs: Vec<_> = targets
+        .iter()
+        .map(|path| ici_domain::SourceInput {
+            path: path.clone(),
+            bytes: fs::read(root.path().join(path)).unwrap(),
+        })
+        .collect();
+    ici_providers::attach_sources(&mut planned, ici_providers::source_coordinates(&inputs));
+    let mut environment = std::collections::BTreeMap::new();
+    environment.insert("PATH".to_owned(), "/usr/bin:/bin".to_owned());
+    environment.insert("LC_ALL".to_owned(), "C".to_owned());
+    if let Ok(libraries) = std::env::var("ICI_TEST_CPP_LIBRARY_PATH") {
+        environment.insert("LD_LIBRARY_PATH".into(), libraries);
+    }
+    let outcome = ici_execution::Runner::with_environment(environment)
+        .run(&planned.task, &ici_execution::Cancellation::default());
+    (root, outcome, planned)
+}
+
+/// Root ruling R2 (correction of a defect shared with frozen): a real clang-tidy 21 run over
+/// several sources prints `[n/N] Processing file <source>.` on stderr. Native accepts and
+/// ignores exactly those lines: findings are parsed (positive), a clean multi-source run is a
+/// clean observation (negative), and output that is not a genuine progress line, or a progress
+/// line that does not belong to this run, still fails the parse (failure).
+#[test]
+#[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
+fn real_multi_source_clang_tidy_progress_lines_are_ignored_and_everything_else_stays_strict() {
+    let (_project, outcome, planned) = real_run(&[]);
+    let stderr = String::from_utf8(outcome.stderr.clone()).unwrap();
+    let root = planned.context.workspace_root.display().to_string();
+    for (index, name) in ["clean.cpp", "qt.cpp", "tidy.cpp"].iter().enumerate() {
+        assert!(
+            stderr.contains(&format!(
+                "[{}/3] Processing file {root}/src/{name}.",
+                index + 1
+            )),
+            "{stderr}\n{outcome:?}"
+        );
+    }
+    let output = observe_full(&planned, &outcome);
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    let findings: Vec<_> = output
+        .observation
+        .findings
+        .iter()
+        .map(|finding| {
+            (
+                finding.rule_id.as_str(),
+                finding.message.as_str(),
+                finding.primary_location.path.as_str(),
+                finding.primary_location.start_line,
+                finding.primary_location.start_column,
+            )
+        })
+        .collect();
+    assert_eq!(
+        findings,
+        [(
+            "clang_tidy.clang-analyzer-core.DivideZero",
+            "warning: Division by zero",
+            "src/tidy.cpp",
+            7,
+            Some(18)
+        )]
+    );
+    // Failure: strictness is kept for anything that is not this run's progress output.
+    let mutated = |extra: &str| {
+        let mut changed = outcome.clone();
+        changed.stderr = format!("{stderr}{extra}\n").into_bytes();
+        let observation = observe_full(&planned, &changed).observation;
+        (observation.state, observation.limitations.first().cloned())
+    };
+    for extra in [
+        "Processing file src/tidy.cpp".to_owned(),
+        format!("[4/4] Processing file {root}/src/tidy.cpp."),
+        format!("[5/3] Processing file {root}/src/tidy.cpp."),
+        format!("[4/3] Processing file {root}/src/other.cpp."),
+        "[4/3] Processing file /usr/include/stdio.h.".to_owned(),
+        "clang-tidy: error: unexpected output".to_owned(),
+    ] {
+        let (state, limitation) = mutated(&extra);
+        assert_eq!(state, TaskState::Failed, "{extra}");
+        assert!(
+            limitation
+                .as_deref()
+                .is_some_and(|text| text.starts_with("cannot parse clang-tidy diagnostics: ")),
+            "{extra}: {limitation:?}"
+        );
+    }
+    // A further command for an already processed source continues the counter past N.
+    let (state, _) = mutated(&format!("[4/3] Processing file {root}/src/tidy.cpp."));
+    assert_eq!(state, TaskState::Succeeded);
+
+    // Negative: a clean multi-source run prints only progress lines and is a clean pass.
+    let (_clean, outcome, planned) = real_run(&[
+        ("one.cpp", "int one() { return 1; }\n"),
+        ("two.cpp", "int two() { return 2; }\n"),
+    ]);
+    let stderr = String::from_utf8(outcome.stderr.clone()).unwrap();
+    assert!(stderr.starts_with("[1/2] Processing file "), "{stderr}");
+    assert!(outcome.stdout.is_empty());
+    let output = observe_full(&planned, &outcome);
+    assert_eq!(output.observation.state, TaskState::Succeeded, "{output:?}");
+    assert!(output.observation.findings.is_empty());
+    assert_eq!(output.status, "PASS");
 }

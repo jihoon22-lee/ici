@@ -26,7 +26,9 @@ pub(super) fn parse(
         .filter(|text| !text.is_empty())
         .collect::<Vec<_>>()
         .join("\n");
-    let mut parsed = if joined.starts_with(['[', '{']) {
+    // Frozen clang-tidy parsing is text-only; a clang-tidy transcript may open with a
+    // `[n/N] Processing file` progress line, which is not a JSON document.
+    let mut parsed = if plan.kind != ProviderKind::ClangTidy && joined.starts_with(['[', '{']) {
         parse_json(&joined, plan)?
     } else {
         parse_text(&joined, plan)?
@@ -46,11 +48,36 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
     // Frozen _TEXT_CONTEXT_HEADER_RE / _TEXT_REQUIRED_FROM_RE ancillary GCC context lines.
     let frozen_context = Regex::new(r"^(?:.+:\s+(?:At global scope|In (?:function|member function|constructor|destructor|lambda function|instantiation of)(?: .*)?):|.+:[1-9]\d*(?::[1-9]\d*)?:\s+required (?:from|by)\s+\S.*)$").expect("constant regex");
     let context = Regex::new(r"^(?:In file included from |\s+from |.*: In (?:function|member function|instantiation)|\d+ warnings? generated\.|\d+ errors? generated\.|Suppressed \d+ warnings?|Use -header-filter=|Error while processing |compilation terminated\.)").expect("constant regex");
+    // clang-tidy 18+ prints `[n/N] Processing file <absolute source>.` on stderr before each
+    // compile command when it is given several sources. The counter rises by one per command
+    // (it can exceed N when the database holds several commands for one file); N is the number
+    // of sources on the command line and the path is one of them.
+    let progress =
+        Regex::new(r"^\[([1-9]\d*)/([1-9]\d*)\] Processing file (/.+)\.$").expect("constant regex");
+    let mut last_progress: Option<u32> = None;
     let mut parsed = Parsed::default();
     let mut saw_diagnostic = false;
     let mut fixit_owner = false;
     let mut count = 0;
     for line in output.lines().filter(|line| !line.trim().is_empty()) {
+        if plan.kind == ProviderKind::ClangTidy
+            && let Some(captures) = progress.captures(line)
+        {
+            let index = number(&captures[1])?;
+            let total = number(&captures[2])? as usize;
+            let source = relative_location(&captures[3], &plan.context).ok();
+            if total < 2
+                || total != plan.context.targets.len()
+                || index != last_progress.map_or(1, |last| last + 1)
+                || !source.is_some_and(|source| plan.context.targets.contains(&source))
+            {
+                return Err(ProviderError(format!(
+                    "unexpected clang-tidy progress line: {line}"
+                )));
+            }
+            last_progress = Some(index);
+            continue;
+        }
         if let Some(captures) = diagnostic.captures(line) {
             count += 1;
             if count > MAX_DIAGNOSTICS {
@@ -95,20 +122,27 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
                 continue;
             }
             let rule = captures.get(6).map_or("diagnostic", |value| value.as_str());
+            // Frozen `ici next` ClangTidyProvider keeps the shared parser's `<kind>: <message>`
+            // target message as the finding message, and its fingerprint covers that text.
+            let message = if plan.kind == ProviderKind::ClangTidy && !plan.context.legacy {
+                format!("{}: {}", &captures[4], &captures[5])
+            } else {
+                captures[5].to_owned()
+            };
             let current = finding(
                 plan,
                 &captures[1],
                 row,
                 column,
                 rule,
-                &captures[5],
+                &message,
                 if captures[4].contains("error") {
                     "high"
                 } else {
                     "medium"
                 },
             )?;
-            append(&mut parsed, plan, current, &captures[4])?;
+            append_raw(&mut parsed, current, &captures[4], &captures[5])?;
         } else if let Some(captures) = fixit.captures(line.trim()) {
             if saw_diagnostic && !fixit_owner {
                 parsed
@@ -186,6 +220,17 @@ fn append(
     current: ici_domain::Finding,
     kind: &str,
 ) -> Result<(), ProviderError> {
+    let raw = current.message.clone();
+    append_raw(parsed, current, kind, &raw)
+}
+/// Appends a primary diagnostic or attaches a note; `raw` is the tool's message without the
+/// severity kind (the legacy message and the note label add it once).
+fn append_raw(
+    parsed: &mut Parsed,
+    current: ici_domain::Finding,
+    kind: &str,
+    raw: &str,
+) -> Result<(), ProviderError> {
     if current.message.chars().count() > 8192 || parsed.findings.len() >= MAX_DIAGNOSTICS {
         return Err(ProviderError(
             "C++ diagnostic count/message exceeds bounds".into(),
@@ -193,7 +238,7 @@ fn append(
     }
     if kind == "note" && !parsed.findings.is_empty() {
         let mut location = current.primary_location;
-        location.label = format!("note: {}", current.message);
+        location.label = format!("note: {raw}");
         parsed
             .findings
             .last_mut()
@@ -203,7 +248,7 @@ fn append(
     } else {
         parsed.details.insert(
             current.fingerprint.clone(),
-            json!({"legacy_message":format!("{kind}: {}",current.message)}),
+            json!({"legacy_message":format!("{kind}: {raw}")}),
         );
         parsed.findings.push(current);
     }
