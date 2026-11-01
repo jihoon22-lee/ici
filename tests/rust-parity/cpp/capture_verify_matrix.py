@@ -164,7 +164,12 @@ FULL_DATABASE = (
     )
     + "]\n"
 )
-DATABASE_CASES = {"discovered": ""}
+DATABASE_CASES = {
+    "discovered": "",
+    "flag_policy": (
+        "[engines.compile_db]\nrequired_flags=['-Wall']\nforbidden_flags=['-std=c++17']\n"
+    ),
+}
 
 
 def run(config: str, binary: str | None = None, database: bool = False) -> dict:

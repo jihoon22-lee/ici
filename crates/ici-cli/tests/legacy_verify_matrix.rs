@@ -592,17 +592,18 @@ fn legacy_python_only_suite_keeps_the_frozen_cpp_not_applicable_engines() {
 }
 
 /// `ici verify` with a discovered root compile_commands.json naming every production unit.
-/// The source engines, the compiler-traced cycle verdict and the not-applicable engines equal
-/// frozen. Open (recorded on their rows): the exact-context legacy projections of lint
-/// (C++Syntax:<configuration> targets), compile_db (coverage/configuration targets and summary)
-/// and dead (C++UnusedFunctionError) still report native modern shapes.
+/// Cases: the discovered database alone and with compile_db required/forbidden flags. The source
+/// engines, the compiler-traced cycle verdict, compile_db (coverage, configuration and flag-policy
+/// targets, summary, coverage score) and the not-applicable engines equal frozen. Open (recorded
+/// on their rows): the exact-context legacy projections of lint (C++Syntax:<configuration>
+/// targets) and dead (C++UnusedFunctionError) still report native modern shapes.
 #[test]
 #[ignore = "explicit actual g++ legacy verify with a compilation database: ICI_TEST_CXX must be the oracle g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"]
 fn legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines() {
     let oracle = oracle();
     let environment = compiler_environment(&oracle);
     let base = oracle["base"].as_str().unwrap();
-    const OPEN: [&str; 3] = ["lint", "compile_db", "dead"];
+    const OPEN: [&str; 2] = ["lint", "dead"];
     let mut mismatches = Vec::new();
     for (name, frozen) in oracle["database_cases"].as_object().unwrap() {
         let config = format!(
