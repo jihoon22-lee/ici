@@ -18,6 +18,7 @@ use ici_providers::{
     ProviderKind, ProviderPlan, ProviderRequest,
     resolver::{ResolvedTool, ToolRequest},
 };
+pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
 use serde_json::{Value, json};
 use std::{
@@ -417,6 +418,7 @@ impl CppPlans {
                     // one is an error or the replay command is rejected.
                     let mut replayed = vec![];
                     for unit in selected {
+                        let source = unit.source.clone();
                         let (before, error) = legacy_syntax::unit_targets(&unit);
                         let replay = match error {
                             Some(error) => Err((None, error)),
@@ -440,7 +442,11 @@ impl CppPlans {
                         if replay.is_ok() {
                             replayed.push(unit);
                         }
-                        notes.push(legacy_syntax::UnitNote { before, replay });
+                        notes.push(legacy_syntax::UnitNote {
+                            source,
+                            before,
+                            replay,
+                        });
                     }
                     self.legacy_syntax_units
                         .insert(component.id.clone(), replayed.clone());
@@ -1678,17 +1684,27 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
         available.evidence = ici_domain::EvidenceLevel::Estimated;
         output.observation.measurements.push(available);
     }
-    // Frozen `_ready_tool` records the unavailable tool as evidence without a command.
+    // Frozen `_ready_tool` records the unavailable tool as evidence without a command, and
+    // `_validated_context` without an analysis context records the missing context.
     output.extra["tool_evidence"] = json!(
         unavailable
             .iter()
-            .filter(|(_, message, _)| message.ends_with("is unavailable or incompletely probed"))
-            .map(|(label, _, _)| json!({
-                "name": if *label == "ClazyUnavailable" { "clazy" } else { "clang-tidy" },
-                "path": "", "argv": [], "version": "", "returncode": null,
-                "error": "tool not found or capability probe incomplete; no command was executed",
-                "timed_out": false, "truncated": false,
-            }))
+            .filter_map(|(label, message, _)| {
+                let error = if message.ends_with("is unavailable or incompletely probed") {
+                    "tool not found or capability probe incomplete; no command was executed"
+                } else if message.ends_with(
+                    "requires an approved capability inventory and exact compilation context",
+                ) {
+                    "analysis context unavailable"
+                } else {
+                    return None;
+                };
+                Some(json!({
+                    "name": if *label == "ClazyUnavailable" { "clazy" } else { "clang-tidy" },
+                    "path": "", "argv": [], "version": "", "returncode": null,
+                    "error": error, "timed_out": false, "truncated": false,
+                }))
+            })
             .collect::<Vec<_>>()
     );
     for (label, message, required) in unavailable {
@@ -3452,29 +3468,60 @@ impl CppPlans {
                 .iter()
                 .map(|provider| provider.task.clone())
                 .collect();
-            let schedule = match scheduler.run_with_start(&tasks, cancellation, |task| {
+            let start = |task: &TaskSpec| {
                 events.emit(
                     "task.started",
                     Some(&task.id),
                     Some(&component.id),
                     "recorded compiler diagnostics",
                 )
-            }) {
-                Ok(schedule) => schedule,
+            };
+            let legacy_notes = self
+                .legacy_unit_notes
+                .get(&request.task_id)
+                .filter(|_| self.legacy_projection && request.check_id == "cpp.diagnostics");
+            let scheduled = if let Some(notes) = legacy_notes {
+                // Frozen `_run_exact`: one unit at a time under the global time budget.
+                let units: Vec<_> = notes
+                    .iter()
+                    .map(|note| {
+                        let task = note
+                            .replay
+                            .as_ref()
+                            .ok()
+                            .and_then(|id| tasks.iter().find(|task| &task.id == id).cloned());
+                        (note.source.clone(), task)
+                    })
+                    .collect();
+                legacy_syntax::run_budgeted(&units, |task| {
+                    scheduler
+                        .run_with_start(&[task], cancellation, start)
+                        .map_err(|error| error.to_string())
+                        .map(|schedule| schedule.outcomes.into_iter().next().expect("one outcome"))
+                })
+            } else {
+                scheduler
+                    .run_with_start(&tasks, cancellation, start)
+                    .map(|schedule| (schedule.outcomes, None))
+                    .map_err(|error| error.to_string())
+            };
+            let (scheduled, budget_stop) = match scheduled {
+                Ok(scheduled) => scheduled,
                 Err(error) => {
-                    return failed(
-                        AnalysisOutput::new(&request.task_id, "compiler"),
-                        &error.to_string(),
-                    );
+                    return failed(AnalysisOutput::new(&request.task_id, "compiler"), &error);
                 }
             };
+            let executed: BTreeSet<String> = scheduled
+                .iter()
+                .map(|outcome| outcome.task_id.clone())
+                .collect();
             let mut outputs = vec![];
             let mut unused_observations = vec![];
             let mut unused_runs = vec![];
             let mut legacy_tool_runs = vec![];
             let mut replayed = BTreeSet::new();
             let mut syntax_errors = vec![];
-            for outcome in schedule.outcomes {
+            for outcome in scheduled {
                 events.emit(
                     "task.completed",
                     Some(&outcome.task_id),
@@ -3629,7 +3676,12 @@ impl CppPlans {
                     .collect();
                 let mut errors: BTreeMap<String, String> = syntax_errors.drain(..).collect();
                 outputs = vec![];
-                for note in notes {
+                for (index, note) in notes.iter().enumerate() {
+                    if let Some(stop) = budget_stop.as_ref().filter(|stop| stop.index == index) {
+                        outputs.push(legacy_syntax::budget_output(&request.task_id, stop));
+                        syntax_errors.push((String::new(), stop.error.clone()));
+                        break;
+                    }
                     match &note.replay {
                         Ok(task) => {
                             if let Some(mut output) = by_task.remove(task) {
@@ -3694,6 +3746,7 @@ impl CppPlans {
                     output.extra["concrete_tasks"] = json!(
                         tasks
                             .iter()
+                            .filter(|task| executed.contains(&task.id))
                             .map(|task| {
                                 let version = task
                                     .argv
