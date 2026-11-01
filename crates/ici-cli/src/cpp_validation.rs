@@ -608,6 +608,20 @@ pub(crate) fn abi_scope(
                 let eligible = linked_elf_header(&project.root.join(&path))?;
                 records.push((alias, path, eligible));
             }
+            // Frozen legacy manifests select shadow PE/Mach-O outputs too; the ABI check
+            // reports them as non-ELF (allowed SKIP or FAIL), never as published artifacts.
+            for relative in strings(build.settings.get("legacy_non_elf_artifacts")) {
+                let path = format!(
+                    "{}/{relative}",
+                    build
+                        .directory
+                        .as_deref()
+                        .unwrap_or(".")
+                        .trim_end_matches('/')
+                );
+                regular_file(&project.root, &project.root.join(&path))?;
+                records.push((path.clone(), path, true));
+            }
         }
     }
     for (path, kind) in crate::artifact_build::published_artifacts(&project.root)? {

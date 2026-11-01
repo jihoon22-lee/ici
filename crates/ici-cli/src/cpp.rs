@@ -1514,6 +1514,8 @@ pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&Analys
         };
         let kind = legacy.split(": ").next().unwrap_or_default();
         let mut primary = target.clone();
+        // Frozen `_cpp_diagnostics` text diagnostics end on their own line.
+        primary.end_line = primary.end_line.or(Some(primary.start_line));
         primary.message = legacy.into();
         primary.status = if kind.contains("error") || kind == "sorry, unimplemented" {
             "FAIL"
@@ -1532,6 +1534,7 @@ pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&Analys
                 continue;
             }
             let mut related = InspectionTarget::at(&note.path, note.start_line);
+            related.end_line = Some(note.start_line);
             related.start_column = note.start_column;
             related.target_name = "C++Syntax".into();
             related.status = "WARN".into();
@@ -2021,6 +2024,11 @@ impl CppPlans {
             }
             if let Some(required) = self.legacy_unavailable.get(&planned.task_id) {
                 planned.check.needs.clear();
+                // Frozen `DeadCodeEngine._engine_required`: an unavailable automatic C++ policy
+                // does not make the engine required (a Python dead check keeps it required).
+                if !*required {
+                    planned.check.required = false;
+                }
                 plan.limitations.push(format!(
                     "{}: {LEGACY_UNUSED_UNAVAILABLE}; the legacy projection reports it as {} like the frozen pyz, without running the compiler",
                     planned.task_id,
@@ -2113,6 +2121,28 @@ impl CppPlans {
             let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
             output.status = "SKIP".into();
             output.summary = reason.clone();
+            if self.legacy_projection
+                && project.schema_family == ici_config::SchemaFamily::Legacy
+                && let Some(frozen) = legacy_not_applicable(&request.check_id, &request.inputs)
+            {
+                output.summary = frozen.summary.into();
+                output.observation.measurements.push(Measurement {
+                    name: "applicability".into(),
+                    value: 0.0,
+                    evidence: ici_domain::EvidenceLevel::NotApplicable,
+                    unit: "checks".into(),
+                    numerator: None,
+                    denominator: None,
+                });
+                for (path, message) in frozen.targets {
+                    let mut target = InspectionTarget::at(&path, 1);
+                    target.target_name = frozen.target_name.into();
+                    target.status = "SKIP".into();
+                    target.message = message.into();
+                    output.targets.push(target);
+                }
+                return output;
+            }
             output.observation.measurements.push(Measurement {
                 name: "applicability".into(),
                 value: 0.0,
@@ -2726,6 +2756,70 @@ pub fn type_not_applicable_check() -> CheckDefinition {
     }
 }
 
+struct LegacyNotApplicable {
+    summary: &'static str,
+    target_name: &'static str,
+    targets: Vec<(String, &'static str)>,
+}
+
+/// Frozen applicability results of the Python-only legacy engines on C/C++ sources:
+/// `TypeCheckEngine._mark_cpp_type_check_skipped` (one target per C/C++ translation unit) and
+/// the single project-root target of resource/security/python_compat `_not_applicable`.
+fn legacy_not_applicable(
+    check_id: &str,
+    inputs: &[ici_domain::SourceInput],
+) -> Option<LegacyNotApplicable> {
+    const NO_PYTHON: &str = "No applicable Python source files were selected";
+    let root = |summary, target_name| LegacyNotApplicable {
+        summary,
+        target_name,
+        targets: vec![(".".into(), NO_PYTHON)],
+    };
+    Some(match check_id {
+        "cpp.type" => {
+            let mut targets: Vec<(String, &'static str)> = inputs
+                .iter()
+                .filter(|source| {
+                    [".cpp", ".cc", ".cxx", ".c"]
+                        .iter()
+                        .any(|suffix| source.path.ends_with(suffix))
+                })
+                .map(|source| {
+                    (
+                        source.path.clone(),
+                        "C++ type checking is not implemented; source was not type-checked",
+                    )
+                })
+                .collect();
+            targets.sort();
+            if targets.is_empty() {
+                targets.push((
+                    ".".into(),
+                    "No applicable C++ source files were selected; type checking was not run",
+                ));
+            }
+            LegacyNotApplicable {
+                summary: "Type checking not applicable: no Python sources; C++ is unsupported",
+                target_name: "C++TypeCheck",
+                targets,
+            }
+        }
+        "cpp.resource" => root(
+            "Resource analysis skipped: no Python source files",
+            "Resource:NotApplicable",
+        ),
+        "cpp.security" => root(
+            "Security analysis skipped: no Python source files",
+            "Security:NotApplicable",
+        ),
+        "cpp.python-compat" => root(
+            "Python compatibility analysis skipped: no Python source files",
+            "PythonRuntime:NotApplicable",
+        ),
+        _ => return None,
+    })
+}
+
 /// These legacy descriptors inspect Python scope and still owe C++ callers an applicability result.
 pub fn legacy_not_applicable_checks() -> Vec<CheckDefinition> {
     [
@@ -2741,6 +2835,8 @@ pub fn legacy_not_applicable_checks() -> Vec<CheckDefinition> {
     .map(|(id, title)| CheckDefinition {
         id: id.into(),
         title: title.into(),
+        // Frozen TypeCheckEngine defaults `required` to true even with nothing type-checkable.
+        required: id == "cpp.type",
         ..type_not_applicable_check()
     })
     .collect()

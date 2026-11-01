@@ -249,6 +249,7 @@ fn prepare_resolved_omitting(
         require_full: invocation.flag("require_full"),
         static_only,
         checks: selected_checks,
+        legacy_profiles: crate::legacy::is_legacy(invocation),
     };
     let mut cpp = crate::cpp::CppPlans::default();
     cpp.legacy_projection = crate::legacy::is_legacy(invocation);

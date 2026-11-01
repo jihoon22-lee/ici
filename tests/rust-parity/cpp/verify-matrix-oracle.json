@@ -1,0 +1,4062 @@
+{
+ "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "cases": {
+  "defaults": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "1 Errors, 7 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:fallback"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/3 production units covered, 0 configurations, 0 failures, 3 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    {
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++] Tests"
+      }
+     ]
+    },
+    {
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cycle",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "WARN",
+     "summary": "Dependency cycles: 1 found",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "C++ include cycle (2 files): a.hpp -> b.hpp -> a.hpp",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppCycle:2"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 15) across 18 functions (0 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 11, Nesting: 3",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "sanitize",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++Sanitizer"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "required": false,
+     "status": "SKIP",
+     "summary": "C++ dead-code analysis not run: exact native context unavailable",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Exact C++ unused-function analysis requires a compilation database",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/b.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ]
+    },
+    {
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "5 Critical Exception Violations, 0 Warnings",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 9,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 8,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 10,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ exception constructs were inspected",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      }
+     ]
+    }
+   ],
+   "exit_code": 1,
+   "suite_status": "ERROR"
+  },
+  "disabled": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "1 Errors, 7 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:fallback"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/3 production units covered, 0 configurations, 0 failures, 3 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    {
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++] Tests"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 15) across 18 functions (0 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 11, Nesting: 3",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "required": false,
+     "status": "SKIP",
+     "summary": "C++ dead-code analysis not run: exact native context unavailable",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Exact C++ unused-function analysis requires a compilation database",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    }
+   ],
+   "exit_code": 1,
+   "suite_status": "FAIL"
+  },
+  "modes": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "1 Errors, 7 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:fallback"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "Compilation DB: 0/3 production units covered, 0 configurations, 0 failures, 3 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    {
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++] Tests"
+      }
+     ]
+    },
+    {
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cycle",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "FAIL",
+     "summary": "Dependency cycles: 1 found",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "C++ include cycle (2 files): a.hpp -> b.hpp -> a.hpp",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppCycle:2"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 5) across 18 functions (1 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "High complexity: 11 (limit 5), Max Nesting: 3 (limit 4)",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "sanitize",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++Sanitizer"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "required": false,
+     "status": "SKIP",
+     "summary": "C++ dead-code analysis not run: exact native context unavailable",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Exact C++ unused-function analysis requires a compilation database",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/b.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ]
+    },
+    {
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "WARN",
+     "summary": "5 Critical Exception Violations, 0 Warnings",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 9,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 8,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 10,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ exception constructs were inspected",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      }
+     ]
+    }
+   ],
+   "exit_code": 1,
+   "suite_status": "ERROR"
+  },
+  "modes_warn_fail": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "1 Errors, 7 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:fallback"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/3 production units covered, 0 configurations, 0 failures, 3 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    {
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++] Tests"
+      }
+     ]
+    },
+    {
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cycle",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "WARN",
+     "summary": "Dependency cycles: 1 found",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "C++ include cycle (2 files): a.hpp -> b.hpp -> a.hpp",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppCycle:2"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 5) across 18 functions (1 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "High complexity: 11 (limit 5), Max Nesting: 3 (limit 4)",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "sanitize",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++Sanitizer"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "required": false,
+     "status": "SKIP",
+     "summary": "C++ dead-code analysis not run: exact native context unavailable",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Exact C++ unused-function analysis requires a compilation database",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/b.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ]
+    },
+    {
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "5 Critical Exception Violations, 0 Warnings",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 9,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 8,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 10,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ exception constructs were inspected",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      }
+     ]
+    }
+   ],
+   "exit_code": 1,
+   "suite_status": "ERROR"
+  },
+  "profile_deep": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "1 Errors, 7 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:fallback"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/3 production units covered, 0 configurations, 0 failures, 3 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    {
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++] Tests"
+      }
+     ]
+    },
+    {
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cognitive",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "PASS",
+     "summary": "Max cognitive complexity: 23 across 18 functions",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "Cognitive 23 (control nesting 3, estimated C++ metric)",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "branchy"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Cognitive 6 (control nesting 3, estimated C++ metric)",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Cognitive 0 (control nesting 0, estimated C++ metric)",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two"
+      }
+     ]
+    },
+    {
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cycle",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "WARN",
+     "summary": "Dependency cycles: 1 found",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "C++ include cycle (2 files): a.hpp -> b.hpp -> a.hpp",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppCycle:2"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 15) across 18 functions (0 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 11, Nesting: 3",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "sanitize",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++Sanitizer"
+      }
+     ]
+    },
+    {
+     "engine_name": "thread_sanitize",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "SKIP",
+     "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++Sanitizer"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "required": false,
+     "status": "SKIP",
+     "summary": "C++ dead-code analysis not run: exact native context unavailable",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Exact C++ unused-function analysis requires a compilation database",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/b.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ]
+    },
+    {
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "5 Critical Exception Violations, 0 Warnings",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 9,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 8,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 10,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ exception constructs were inspected",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      }
+     ]
+    }
+   ],
+   "exit_code": 1,
+   "suite_status": "ERROR"
+  },
+  "profile_fast": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "1 Errors, 7 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:fallback"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/3 production units covered, 0 configurations, 0 failures, 3 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    {
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cycle",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "WARN",
+     "summary": "Dependency cycles: 1 found",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "C++ include cycle (2 files): a.hpp -> b.hpp -> a.hpp",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppCycle:2"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 15) across 18 functions (0 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 11, Nesting: 3",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "required": false,
+     "status": "SKIP",
+     "summary": "C++ dead-code analysis not run: exact native context unavailable",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Exact C++ unused-function analysis requires a compilation database",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/b.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ]
+    },
+    {
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "required": true,
+     "status": "FAIL",
+     "summary": "5 Critical Exception Violations, 0 Warnings",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 9,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 8,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 10,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ exception constructs were inspected",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      }
+     ]
+    }
+   ],
+   "exit_code": 1,
+   "suite_status": "FAIL"
+  },
+  "required_flipped": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "required": false,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "FAIL",
+     "summary": "1 Errors, 7 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:fallback"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "WARN",
+     "summary": "Compilation DB: 0/3 production units covered, 0 configurations, 0 failures, 3 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "No compilation database is available for this production translation unit.",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ici.compile-db.coverage"
+      }
+     ]
+    },
+    {
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++] Tests"
+      }
+     ]
+    },
+    {
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "required": true,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cycle",
+     "evidence": "ESTIMATED",
+     "required": true,
+     "status": "WARN",
+     "summary": "Dependency cycles: 1 found",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "C++ include cycle (2 files): a.hpp -> b.hpp -> a.hpp",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppCycle:2"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 15) across 18 functions (0 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 11, Nesting: 3",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "sanitize",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++Sanitizer"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "required": false,
+     "status": "SKIP",
+     "summary": "C++ dead-code analysis not run: exact native context unavailable",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Exact C++ unused-function analysis requires a compilation database",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++UnusedFunctionsUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "required": false,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/b.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ]
+    },
+    {
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "required": false,
+     "status": "FAIL",
+     "summary": "5 Critical Exception Violations, 0 Warnings",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 9,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 8,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 10,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ exception constructs were inspected",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      }
+     ]
+    }
+   ],
+   "exit_code": 0,
+   "suite_status": "WARN"
+  }
+ },
+ "configs": {
+  "defaults": "",
+  "disabled": "[engines.cycle]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.type]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.dup]\nenabled=false\n",
+  "modes": "[engines.exception]\nmode='pass_warn'\n[engines.cycle]\nmode='pass_fail'\n[engines.lint]\nmode='pass_warn'\n[engines.compile_db]\nmode='pass_fail'\n[engines.complexity]\nmode='pass_fail'\nwarn_cc=5\n",
+  "modes_warn_fail": "[engines.exception]\nmode='pass_warn_fail'\n[engines.cycle]\nmode='pass_warn'\n[engines.lint]\nmode='pass_fail'\n[engines.compile_db]\nmode='pass_warn'\n[engines.complexity]\nmode='pass_warn'\nwarn_cc=5\n",
+  "profile_deep": "[ici]\nprofile='deep'\n",
+  "profile_fast": "[ici]\nprofile='fast'\n",
+  "required_flipped": "[engines.cycle]\nrequired=true\n[engines.exception]\nrequired=false\n[engines.type]\nrequired=false\n[engines.resource]\nrequired=true\n[engines.security]\nrequired=true\n[engines.python_compat]\nrequired=true\n[engines.sanitize]\nrequired=false\n[engines.test]\nrequired=false\n[engines.lint]\nrequired=false\n[engines.line]\nrequired=false\n[engines.compile_db]\nrequired=false\n[engines.complexity]\nrequired=false\n[engines.dup]\nrequired=false\n"
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

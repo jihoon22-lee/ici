@@ -43,12 +43,22 @@ pub struct PreparedContext {
     pub context: CompilationContext,
     /// Workspace-relative measured ELF outputs of an otherwise undeclared legacy build.
     pub artifacts: Vec<String>,
+    /// Workspace-relative PE/Mach-O outputs: legacy ABI inventory only, never published.
+    pub non_elf: Vec<String>,
     pub test_executable: Option<String>,
     /// Actual source-to-executable mapping for descriptor-free native test suites.
     pub test_executables: BTreeMap<String, String>,
     pub evidence: Option<Value>,
     _lease: Arc<BuildLease>,
 }
+
+const NON_ELF_MAGICS: [&[u8]; 5] = [
+    b"MZ",
+    b"\xfe\xed\xfa\xce",
+    b"\xfe\xed\xfa\xcf",
+    b"\xce\xfa\xed\xfe",
+    b"\xcf\xfa\xed\xfe",
+];
 
 pub fn plan_preparation(
     project: &ResolvedProject,
@@ -484,6 +494,7 @@ fn execute_native_preparation(
         )));
     }
     let mut artifacts = vec![];
+    let mut non_elf = vec![];
     let mut executables = vec![];
     for entry in crate::files::tree(&plan.root, &shadow).map_err(incomplete)? {
         if build_metadata_path(&entry.relative, &plan.build.shadow) {
@@ -500,9 +511,23 @@ fn execute_native_preparation(
         {
             continue;
         }
-        let mut bytes = [0u8; 20];
-        let mut file = fs::File::open(&path).map_err(incomplete)?;
-        if file.read_exact(&mut bytes).is_ok() && &bytes[..4] == b"\x7fELF" {
+        let mut bytes = Vec::with_capacity(20);
+        fs::File::open(&path)
+            .map_err(incomplete)?
+            .take(20)
+            .read_to_end(&mut bytes)
+            .map_err(incomplete)?;
+        // Frozen `_linked_artifact_paths` also lists PE (MZ) and Mach-O outputs; they stay a
+        // legacy ABI inventory and never become published build artifacts.
+        if NON_ELF_MAGICS.iter().any(|magic| bytes.starts_with(magic))
+            && ![".o", ".obj", ".gcno", ".gcda"]
+                .iter()
+                .any(|suffix| entry.relative.ends_with(suffix))
+        {
+            non_elf.push(entry.relative.clone());
+            continue;
+        }
+        if bytes.len() == 20 && &bytes[..4] == b"\x7fELF" {
             let kind = match bytes[5] {
                 1 => u16::from_le_bytes([bytes[16], bytes[17]]),
                 2 => u16::from_be_bytes([bytes[16], bytes[17]]),
@@ -539,6 +564,7 @@ fn execute_native_preparation(
         plan: plan.clone(),
         context,
         artifacts,
+        non_elf,
         test_executable,
         test_executables: BTreeMap::new(),
         evidence: None,
@@ -659,6 +685,17 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                         .map(str::to_owned)
                 })
                 .collect();
+            let non_elf: Vec<_> = context
+                .non_elf
+                .iter()
+                .filter_map(|path| {
+                    path.strip_prefix(&format!("{}/", plan.build.shadow))
+                        .map(str::to_owned)
+                })
+                .collect();
+            if !non_elf.is_empty() {
+                build.settings["legacy_non_elf_artifacts"] = json!(non_elf);
+            }
         }
         if let Some(executable) = &context.test_executable {
             let relative = executable

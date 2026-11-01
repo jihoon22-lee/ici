@@ -184,6 +184,17 @@ pub fn legacy_projection(
                         .all(|measurement| measurement.evidence == EvidenceLevel::NotApplicable)
                 {
                     EvidenceLevel::NotApplicable
+                } else if output.observation.findings.is_empty()
+                    && !output.observation.measurements.is_empty()
+                    && output
+                        .observation
+                        .measurements
+                        .iter()
+                        .all(|measurement| measurement.evidence == EvidenceLevel::NotRun)
+                {
+                    // A producer that only records that nothing ran (frozen C++ dead code without
+                    // an exact native context) keeps NOT_RUN evidence beside its SKIP class.
+                    EvidenceLevel::NotRun
                 } else if output.observation.state == TaskState::Succeeded {
                     EvidenceLevel::Measured
                 } else {
