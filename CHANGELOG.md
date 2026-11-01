@@ -30,6 +30,19 @@
 
 ### 변경
 
+- 레거시 엔진 리포트(`<engine>_report.json`)와 `verify_report.json`의 엔진 항목에 v0.13.0과 같은 `support_matrix`,
+  `cache_hit`/`cache_key`, `artifact_manifests`, Ruff/mypy `tool_evidence`를 다시 기록합니다. `cache_key`는 새
+  캐시의 키라 값은 v0.13.0과 다릅니다.
+- JSON 출력이 없는 구버전 Ruff(0.5.7로 확인)의 `ruff format` 텍스트 출력을 v0.13.0처럼 해석합니다.
+- `ici resource`의 AST 한도 초과와 `ici dup`의 비교 한도 초과를 v0.13.0과 같은 `Resource:AnalysisUnavailable`/
+  `DuplicateComparisonLimit` 대상으로 보고합니다. 레거시 `ici dup`은 v0.13.0의 `CloneGroup#N` 결과 옆에 별도의
+  중복 결과를 더 붙이지 않습니다.
+- `ici dead` 요약이 분석 계열별 개수를 표시하고, Python 라인 요약은 천 단위 구분 기호를 씁니다. 레거시 C++ 구문
+  검사는 v0.13.0과 같은 단위별 제한(120초, 출력 1,000,000바이트)을 쓰며, 재생할 수 없는 컴파일 명령은 해당 단위만
+  `C++SyntaxReplayError`로 남기고 나머지를 계속 검사합니다.
+- 생산 소스 명령이 없는 컴파일 데이터베이스는 `C++SyntaxContextError`, 2048개를 넘는 단위는
+  `C++SyntaxBudgetError`로 보고하고, 없는 `-I`/`-isystem`/`-iquote` 디렉터리는 경고로 기록합니다. 한 소스의 여러
+  컴파일 구성은 각자의 식별자로 보고합니다.
 - 레거시 `ici lint`/`ici verify`가 Qt moc/uic/rcc 생성 코드 연결과 Qt 5/6 주 버전 근거를 Rust에서 직접
   검증합니다(v0.13.0 캡처 14건과 일치). clang-tidy·Clazy 결과 행은 도구 이름과 실제 확인한 버전을 기록합니다.
 - 컴파일 데이터베이스에 오류 진단이 있으면 재실행 없이 `C++SyntaxContextDiagnostic`과 v0.13.0 메시지로 중단하고,
