@@ -30,6 +30,13 @@
 
 ### 변경
 
+- 레거시 CMake `ici verify`가 실행되지 않은 CTest 케이스(DISABLED, SKIP_RETURN_CODE)를 v0.13.0과 같은 케이스별
+  ERROR/SKIP으로 보고하고 나머지 케이스를 계속 실행해, 종료 코드 3 대신 v0.13.0과 같은 1로 끝납니다. 실패한
+  sanitizer 빌드는 `C++Sanitizer` ERROR, 프로젝트 위치가 없는 sanitizer 보고는 `[external]` ERROR로 표시합니다.
+- 빌드 기술자가 없거나 지원하지 않는 Makefile만 있는 C++ 프로젝트의 테스트를 `verify`가 직접 g++로 빌드해 실행하며
+  v0.13.0과 같은 종료 코드를 반환합니다.
+- 레거시 `verify` 보고서에 v0.13.0의 최상위 `analysis_context`(`ici.analysis-context/v1`)가 다시 포함되고, deep
+  프로필의 thread-sanitize 산출물 목록이 v0.13.0과 필드 단위로 같습니다.
 - 레거시 `security`가 `engines.security.scan_tests` 설정 시 `tests/` 아래 Python 파일도 검사하며, 거부된 파일의
   대상 순서와 `files_checked`가 v0.13.0과 같습니다.
 - 레거시·설정 없는 `ici doctor`가 v0.13.0의 지원 매트릭스와 도구 정책(`mypy_required` 등)을 평가합니다.
