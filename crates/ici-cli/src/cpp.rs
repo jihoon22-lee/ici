@@ -607,6 +607,10 @@ impl CppPlans {
                     "-fdiagnostics-column-origin=1".into(),
                 ]);
             }
+            if self.legacy_projection {
+                // Frozen `compiler_diagnostic_command` requests GCC JSON diagnostics (ranges).
+                provider.task.argv.push("-fdiagnostics-format=json".into());
+            }
             bind_inputs(project, component, context, unit, &mut provider.task);
             providers.push(provider);
         }
@@ -1623,6 +1627,164 @@ pub fn legacy_fallback_lint(
 /// no related locations, and the target name as its label only when that name is unique in its
 /// file. Notes have no native finding of their own, so their frozen findings are supplied whole
 /// (`legacy_findings`). The adapted targets name the first compiler invocation as their tool.
+/// Frozen `DeadCodeEngine` over `run_cpp_unused_functions` with a selected database. Exact
+/// evidence is atomic: the first configuration that fails (in database order) yields one
+/// `C++UnusedFunctionError` and every source observed before it a discarded-observation target;
+/// otherwise each source gets `C++UnusedFunctions` or one `Compiler:-Wunused-function` per
+/// agreed diagnostic. Only a context-complete native run is projected.
+fn legacy_unused_projection(
+    output: &mut AnalysisOutput,
+    observations: &[ici_cpp::CompilerConfigurationObservation],
+    runs: &[(usize, Option<i32>, bool)],
+    compiler: &str,
+) {
+    if output.targets.iter().any(|target| {
+        !matches!(
+            target.target_name.as_str(),
+            "UnusedInternalFunctions" | "UnusedInternalFunction" | "incomplete-unused-probe"
+        )
+    }) {
+        return;
+    }
+    let tool = Path::new(compiler)
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| compiler.to_string());
+    let mut order: Vec<_> = observations.iter().zip(runs).collect();
+    order.sort_by_key(|(_, (index, _, _))| *index);
+    let scope_tool = format!("{tool} unused-function");
+    let scope = |target: &InspectionTarget, severity: &str, confidence: &str, remediation: &str| {
+        json!({"rule_id":"ici.legacy.dead.target","category":"maintainability","severity":severity,
+            "confidence":confidence,"primary_location":{"path":target.file_path,"start_line":target.start_line,
+            "end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,
+            "label":target.target_name},"related_locations":[],"message":target.message,
+            "explanation":"This target records the bounded TU-local compiler unused-function scope.",
+            "remediation":remediation,"fixes":[],"tool_rule_id":"","tool_name":scope_tool,"tool_version":"",
+            "metrics":target.metrics.iter().map(|(key, value)| (key.clone(), json!({"value":value,"unit":""}))).collect::<serde_json::Map<_, _>>(),
+            "snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}})
+    };
+    let tool_evidence: Vec<_> = order
+        .iter()
+        .map(|(_, (_, code, _))| json!({"name":scope_tool,"path":compiler,"returncode":code}))
+        .collect();
+    if let Some(position) = order
+        .iter()
+        .position(|(observation, _)| !observation.complete)
+    {
+        let (observation, (_, code, timed_out)) = order[position];
+        let failure = match code {
+            _ if *timed_out => "compiler timed out".to_string(),
+            Some(code) if *code > 0 => format!("compiler exited with code {code}"),
+            _ => "compiler terminated unexpectedly".to_string(),
+        };
+        let message = format!("C++ unused-function {failure}: {}", observation.source);
+        let mut error = InspectionTarget::at(&observation.source, 1);
+        error.target_name = "C++UnusedFunctionError".into();
+        error.status = "ERROR".into();
+        error.message = message.clone();
+        let mut targets = vec![error];
+        let observed: BTreeSet<_> = order[..position]
+            .iter()
+            .map(|(observation, _)| observation.source.clone())
+            .collect();
+        for source in observed {
+            let mut target = InspectionTarget::at(&source, 1);
+            target.target_name = "C++UnusedFunctionsInvalidated".into();
+            target.status = "SKIP".into();
+            target.message = "Compiler observations were discarded because the exact C++ unused-function scope did not complete atomically".into();
+            targets.push(target);
+        }
+        let remediation =
+            "Restore a complete, safe compilation context when exact analysis did not run.";
+        output.extra["legacy_findings"] = json!(
+            targets
+                .iter()
+                .map(|target| scope(
+                    target,
+                    if target.status == "ERROR" {
+                        "critical"
+                    } else {
+                        "info"
+                    },
+                    "low",
+                    remediation
+                ))
+                .collect::<Vec<_>>()
+        );
+        output.extra["tool_evidence"] = json!(tool_evidence[..=position]);
+        // Frozen exact evidence is atomic: the agreed findings of other sources are discarded.
+        output.observation.findings.clear();
+        output.targets = targets;
+        output.status = "ERROR".into();
+        output.summary = message;
+        return;
+    }
+    let mut findings = vec![];
+    let mut details = serde_json::Map::new();
+    let mut issues = 0;
+    let native = output.observation.findings.clone();
+    for target in &mut output.targets {
+        let configurations = target
+            .metrics
+            .get("configurations")
+            .and_then(Value::as_array)
+            .map_or(0, Vec::len);
+        let count = if configurations == 0 {
+            observations
+                .iter()
+                .filter(|item| item.source == target.file_path)
+                .count()
+        } else {
+            configurations
+        };
+        target.metrics.clear();
+        target
+            .metrics
+            .insert("configurations_checked".into(), json!(count));
+        if target.target_name == "UnusedInternalFunctions" {
+            target.target_name = "C++UnusedFunctions".into();
+            target.status = "PASS".into();
+            target.message = format!(
+                "Compiler found no unused internal-linkage function in {count} analyzed configuration(s)"
+            );
+            findings.push(scope(target, "info", "exact", ""));
+        } else {
+            issues += 1;
+            target.target_name = "Compiler:-Wunused-function".into();
+            target.status = "WARN".into();
+            target.message = format!(
+                "Compiler reports {} in all {count} analyzed configuration(s)",
+                target.message.trim_start_matches("warning: ")
+            );
+            // The native consensus finding becomes the frozen exact `_cpp_findings` entry.
+            for finding in native.iter().filter(|finding| {
+                finding.primary_location.path == target.file_path
+                    && finding.primary_location.start_line == target.start_line
+                    && finding.primary_location.start_column == target.start_column
+            }) {
+                details.insert(finding.fingerprint.clone(), json!({
+                    "legacy_rule_id":"ici.legacy.dead.target","legacy_message":target.message,
+                    "legacy_label":"Compiler:-Wunused-function","legacy_category":"maintainability",
+                    "legacy_confidence":"exact","legacy_severity":"medium","tool_name":tool,
+                    "tool_rule_id":"-Wunused-function","tool_version":"",
+                    "explanation":"The selected compiler reported -Wunused-function for this internal-linkage definition in every exact configuration of its production translation unit. This is not whole-program or linker reachability evidence.",
+                    "remediation":"Remove the function or add a real reference in every affected configuration; retain it explicitly with [[maybe_unused]] only when the inactive use is intentional.",
+                    "metrics":{"configurations_checked":{"value":count,"unit":"configurations"}},
+                    "related_locations":[]}));
+            }
+        }
+    }
+    output.extra["legacy_findings"] = json!(findings);
+    output.extra["finding_details"] = Value::Object(details);
+    output.extra["tool_evidence"] = json!(tool_evidence);
+    output.summary = if issues == 0 {
+        "No dead-code findings detected in the analyzed scopes".into()
+    } else {
+        format!(
+            "{issues} dead-code finding(s): 0 heuristic Python, {issues} compiler-local C/C++, 0 target-local GNU ELF"
+        )
+    };
+}
 fn legacy_fallback_findings(
     output: &mut AnalysisOutput,
     primaries: &[(usize, String)],
@@ -2667,6 +2829,7 @@ impl CppPlans {
             };
             let mut outputs = vec![];
             let mut unused_observations = vec![];
+            let mut unused_runs = vec![];
             for outcome in schedule.outcomes {
                 events.emit(
                     "task.completed",
@@ -2691,6 +2854,7 @@ impl CppPlans {
                             && output.observation.evidence_is_complete(),
                         findings: output.observation.findings.clone(),
                     });
+                    unused_runs.push((index, outcome.exit_code, outcome.timed_out));
                 }
                 outputs.push(output);
             }
@@ -2714,6 +2878,14 @@ impl CppPlans {
                         .observation
                         .limitations
                         .extend(probe.observation.limitations.clone());
+                }
+                if self.legacy_projection {
+                    legacy_unused_projection(
+                        &mut output,
+                        &unused_observations,
+                        &unused_runs,
+                        &providers[0].task.argv[0],
+                    );
                 }
                 return output;
             }

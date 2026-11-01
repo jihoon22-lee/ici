@@ -603,7 +603,7 @@ fn legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines()
     let oracle = oracle();
     let environment = compiler_environment(&oracle);
     let base = oracle["base"].as_str().unwrap();
-    const OPEN: [&str; 2] = ["lint", "dead"];
+    const OPEN: [&str; 1] = ["lint"];
     let mut mismatches = Vec::new();
     for (name, frozen) in oracle["database_cases"].as_object().unwrap() {
         let config = format!(
@@ -623,6 +623,11 @@ fn legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines()
             oracle["database"].as_str().unwrap(),
         )
         .unwrap();
+        if let Some(files) = oracle["database_files"][name].as_object() {
+            for (path, text) in files {
+                fs::write(root.join(path), text.as_str().unwrap()).unwrap();
+            }
+        }
         let invocation = registry::parse(["ici", "verify", "--report"]).unwrap();
         commands::dispatch(&invocation, &root, &environment).unwrap();
         let report: Value =

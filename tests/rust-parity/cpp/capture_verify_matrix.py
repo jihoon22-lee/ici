@@ -169,16 +169,31 @@ DATABASE_CASES = {
     "flag_policy": (
         "[engines.compile_db]\nrequired_flags=['-Wall']\nforbidden_flags=['-std=c++17']\n"
     ),
+    "unused_clean": "",
+}
+# Per-case source overrides written into the copied project (the fixture is never edited):
+# a compiling extra.cc lets the exact unused-function scope complete.
+DATABASE_FILES = {
+    "unused_clean": {
+        "src/extra.cc": (FIXTURE / "src/extra.cc")
+        .read_text(encoding="utf-8")
+        .replace("~Guard()", "~CcGuard()"),
+    },
 }
 
 
-def run(config: str, binary: str | None = None, database: bool = False) -> dict:
+def run(
+    config: str,
+    binary: str | None = None,
+    database: bool = False,
+    files: dict[str, str] | None = None,
+) -> dict:
     exit_code, report = execute(
         ["verify", "--report"],
         BASE + config,
         "verify_report.json",
         binary,
-        {"compile_commands.json": FULL_DATABASE} if database else {},
+        ({"compile_commands.json": FULL_DATABASE} if database else {}) | (files or {}),
     )
     return {
         "exit_code": exit_code,
@@ -374,7 +389,10 @@ if __name__ == "__main__":
         compare(sys.argv[2])
     else:
         cases = {name: run(config) for name, config in CASES.items()}
-        database_cases = {name: run(config, None, True) for name, config in DATABASE_CASES.items()}
+        database_cases = {
+            name: run(config, None, True, DATABASE_FILES.get(name))
+            for name, config in DATABASE_CASES.items()
+        }
         commands = {command: single(command) for command in COMMANDS}
         # `analyze` needs no config (a legacy ici.toml is refused); `next verify` needs a root.
         next_cases = {
@@ -394,6 +412,7 @@ if __name__ == "__main__":
             "cases": cases,
             "database": FULL_DATABASE,
             "database_configs": DATABASE_CASES,
+            "database_files": DATABASE_FILES,
             "database_cases": database_cases,
             "commands": commands,
             "next_config": NEXT_CONFIG,
