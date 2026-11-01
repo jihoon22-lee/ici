@@ -205,3 +205,30 @@ fn green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract() {
     }
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
 }
+
+#[test]
+#[ignore = "explicit project pytest provider identity acceptance"]
+fn an_escaping_node_id_keeps_its_verdict_at_the_tests_scope_where_frozen_crashed() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["runs"]["escaping-node"];
+    // Frozen `_node_location` meant to keep the verdict at `tests`, but its short-summary
+    // collection match produced a `../outside` span and the run ended in an internal error.
+    assert!(
+        frozen["limitations"][0]
+            .as_str()
+            .unwrap()
+            .contains("span path must be relative and contained")
+    );
+    assert_eq!(frozen["checks"]["python.test"], "FAILED");
+    let result = run(frozen, oracle["config"].as_str().unwrap());
+    let native = pytest_findings(&result);
+    assert_eq!(state(&result, "python.test"), "SUCCEEDED", "{result:#}");
+    assert_eq!(native.len(), 1, "{native:?}");
+    assert_eq!(native[0]["rule_id"], "pytest.failed");
+    assert_eq!(
+        native[0]["message"],
+        "../outside/test_g.py::test_bad failed"
+    );
+    assert_eq!(native[0]["primary_location"]["path"], "tests");
+    assert_eq!(native[0]["primary_location"]["start_line"], 1);
+}
