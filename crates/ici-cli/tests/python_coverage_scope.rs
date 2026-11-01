@@ -98,6 +98,16 @@ fn never_imported_declared_source_is_measured_zero_instead_of_omitted() {
 fn unmeasurable_declared_source_keeps_coverage_incomplete_and_the_legacy_line_says_why() {
     // coverage.py cannot parse this declared file, so its denominator is genuinely unknown.
     let root = fixture("def main(:\n    return 1\n");
+    // Frozen refuses stable subcommands on a `[workspace]` root (plan_engines.rs); the legacy
+    // `ici test` view runs on the same component declared without a workspace.
+    fs::write(
+        root.path().join("ici.toml"),
+        format!(
+            "schema_version=2\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable={}\n",
+            serde_json::to_string(&python()).unwrap()
+        ),
+    )
+    .unwrap();
     let output = call(root.path(), &["ici", "test"]);
     // Frozen single-engine console: one `✘ <summary>` line (rich-wrapped at 80 columns).
     let line = output

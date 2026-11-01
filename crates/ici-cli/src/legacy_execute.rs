@@ -19,6 +19,9 @@ pub fn command(
     if crate::cutover::applies(invocation, cwd, environment) {
         return crate::cutover::verify(invocation, cwd, environment);
     }
+    if let Some(refusal) = crate::cutover::refuse_engine(invocation, cwd, environment) {
+        return Ok(refusal);
+    }
     if invocation.flag("fail_on_new") && invocation.value("baseline").is_none() {
         return Err(CliError("--fail-on-new requires --baseline".into()));
     }
@@ -457,8 +460,9 @@ fn shape_engine(
     let mut exit_code = 0;
     if family == "test"
         && legacy_schema
-        && let Some(languages) =
-            no_tests_collected(&root, value).or_else(|| empty_pytest_suite(value))
+        && let Some(languages) = no_tests_collected(&root, value)
+            .or_else(|| empty_pytest_suite(value))
+            .or_else(|| python_without_tests_dir(&root, value))
     {
         // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
         ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
@@ -968,6 +972,27 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
         && checks.iter().any(empty)
         && checks.iter().all(|check| empty(check) || dependent(check)))
     .then(|| vec!["Python"])
+}
+
+/// Frozen `TestEngine._run_project_tests`: a Python project without a `tests/` directory is
+/// marked "No tests collected" without running pytest (so no project interpreter is needed).
+/// Native keeps a completed pytest run's own evidence; only a test check that did not succeed
+/// takes the frozen verdict.
+fn python_without_tests_dir(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let id = |check: &serde_json::Value| check["check_id"].as_str().unwrap_or("").to_owned();
+    let python_only =
+        !checks.is_empty() && checks.iter().all(|check| id(check).starts_with("python."));
+    let test_not_run = checks
+        .iter()
+        .any(|check| id(check) == "python.test" && check["state"] != "SUCCEEDED");
+    let no_sources = checks.iter().any(|check| {
+        check["summary"]
+            .as_str()
+            .is_some_and(|summary| summary.starts_with("no sources in scope"))
+    });
+    (python_only && test_not_run && !no_sources && !root.join("tests").exists())
+        .then(|| vec!["Python"])
 }
 
 /// The legacy coverage half failed only because the project interpreter has no coverage module,

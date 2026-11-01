@@ -464,22 +464,16 @@ fn modern_commands_and_schemas_never_fall_back_to_the_launcher() {
         .env("PATH", &paths.values["<VENV_BIN>"])
         .output()
         .unwrap();
+    // Frozen refuses stable subcommands on a `[workspace]` root (plan_engines.rs), before
+    // anything could launch: no interpreter runs and no report is written.
     assert_eq!(
         output.status.code(),
-        Some(3),
+        Some(2),
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let report: Value =
-        serde_json::from_slice(&fs::read(root.path().join("test_report.json")).unwrap()).unwrap();
-    for check in report["extra"]["native_checks"].as_array().unwrap() {
-        assert_eq!(check["state"], "BLOCKED", "{check:#}");
-        assert!(
-            check["summary"]
-                .as_str()
-                .unwrap()
-                .ends_with("declare [python] executable or provide a .venv inside the component"),
-            "{check:#}"
-        );
-    }
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("which stable subcommands cannot read")
+    );
+    assert!(!root.path().join("test_report.json").exists());
 }

@@ -28,14 +28,29 @@ const STABLE_ONLY: [(&str, Option<&str>); 6] = [
 ];
 
 /// Frozen `find_workspace_root(cwd) is not None`: the resolved root config is a next workspace.
+fn workspace(cwd: &Path, environment: &BTreeMap<String, String>) -> bool {
+    ici_config::resolve_with_environment(cwd, None, None, environment)
+        .is_ok_and(|project| project.schema_family == ici_config::SchemaFamily::NextV1)
+}
 pub fn applies(
     invocation: &Invocation,
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> bool {
-    invocation.command() == "verify"
-        && ici_config::resolve_with_environment(cwd, None, None, environment)
-            .is_ok_and(|project| project.schema_family == ici_config::SchemaFamily::NextV1)
+    invocation.command() == "verify" && workspace(cwd, environment)
+}
+/// Frozen `__main__.main` callback: a historical engine subcommand on a `[workspace]` root is
+/// refused before anything runs, because the stable configuration reader cannot read it.
+pub fn refuse_engine(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Option<CommandOutput> {
+    (invocation.command() != "verify" && workspace(cwd, environment)).then(|| CommandOutput {
+        stdout: String::new(),
+        stderr: "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n".into(),
+        exit_code: EXIT_CONFIG,
+    })
 }
 
 fn parse(argv: &[&str]) -> Result<Invocation> {

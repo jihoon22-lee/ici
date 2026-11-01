@@ -161,6 +161,24 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
         if suppressed(finding) {
             entry["suppressions"] = json!([{"kind":if finding["suppression"]["kind"]=="inline"{"inSource"}else{"external"},"justification":finding["suppression"]["reason"],"properties":{"origin":finding["suppression"]["origin"]}}]);
         }
+        if view.run.is_some() {
+            // Frozen `reporting/sarif._result` property names, beside the saved record's own.
+            let properties = &mut entry["properties"];
+            for (frozen, saved) in [
+                ("nativeRuleId", "native_rule_id"),
+                ("componentId", "component_id"),
+                ("analysisUnitId", "analysis_unit_id"),
+                ("variant", "variant"),
+                ("taskId", "task_id"),
+            ] {
+                properties[frozen] = finding.get(saved).cloned().unwrap_or(Value::Null);
+            }
+            for key in ["tags", "limitations"] {
+                if properties.get(key).is_none_or(Value::is_null) {
+                    properties[key] = json!([]);
+                }
+            }
+        }
         let (exported, limitations) = fixes(finding)?;
         if !exported.is_empty() {
             entry["fixes"] = json!(exported);
@@ -211,8 +229,19 @@ pub fn sarif_document(stored: &StoredResult, options: &RenderOptions) -> Result<
         "columnKind":"unicodeCodePoints",
         "results":results,"properties":{"ici.schemaId":stored.schema(),"axes":axes,"baseline":view.baseline(),"metrics":view.metrics(),"supportingEvidence":supporting}
     }]});
-    if view.run.is_some() {
-        document["runs"][0]["invocations"] = json!([{"executionSuccessful":axes["execution"]["required_complete"]==true,"exitCode":axes["exit_code"]}]);
+    if let Some(run) = &view.run {
+        document["runs"][0]["invocations"] = json!([{"executionSuccessful":axes["execution"]["required_complete"]==true,"exitCode":axes["exit_code"],
+            "properties":{"limitations":run["limitations"].as_array().cloned().unwrap_or_default()}}]);
+        // Frozen `reporting/sarif.document` run properties for a stored run result.
+        let target = &mut document["runs"][0];
+        target["tool"]["driver"]["informationUri"] = json!("https://github.com/jihoon22-lee/ici");
+        let properties = &mut target["properties"];
+        properties["policyDigest"] = run["identity"]["policy_digest"].clone();
+        properties["toolchainDigest"] = run["identity"]["toolchain_digest"].clone();
+        properties["sourceDigest"] = run["identity"]["source"]["digest"].clone();
+        properties["scopeKind"] = run["scope"]["kind"].clone();
+        properties["selectedComponents"] = run["scope"]["selected_components"].clone();
+        properties["gate"] = run["gate"]["selected"].clone();
     }
     Ok(document)
 }
