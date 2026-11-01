@@ -41,6 +41,9 @@ pub struct ExecutedRun {
     /// Frozen-shaped legacy `baseline_comparison` of a comparable baseline (severity regressions
     /// and fail-on-new gate entries); `None` without a comparable baseline.
     pub legacy_baseline: Option<serde_json::Value>,
+    /// The saved legacy suite (`results`, `analysis_metadata`) of a comparable baseline that a
+    /// native `--write-baseline` wrote, for the frozen legacy-space comparison.
+    pub legacy_baseline_suite: Option<serde_json::Value>,
     /// Gated new findings and gated severity regressions against a comparable baseline.
     pub baseline_gate_failures: Vec<String>,
     /// Frozen `_announce` lines for the resolved root and scope.
@@ -1128,6 +1131,7 @@ pub fn execute(
     let given_baseline = invocation.value("baseline").unwrap_or_default().to_owned();
     let regenerate = regenerate_baseline_command(&invocation.command(), &given_baseline);
     let mut legacy_baseline = None;
+    let mut legacy_baseline_suite = None;
     let mut baseline_gate_failures = vec![];
     if let Some(baseline) = baseline {
         let comparison = ici_application::baseline::compare(
@@ -1179,6 +1183,15 @@ pub fn execute(
             }
             baseline_gate_failures =
                 ici_reporting::baseline_gate_failures(&result, &baseline, comparison);
+            if legacy_baseline.is_some()
+                && let Some(ici_reporting::StoredResult::Legacy(document)) = &baseline_document
+            {
+                let document = document.as_value();
+                legacy_baseline_suite = Some(serde_json::json!({
+                    "results": document["results"],
+                    "analysis_metadata": document["analysis_metadata"],
+                }));
+            }
         }
     } else if let Some(ici_reporting::StoredResult::Legacy(legacy)) = baseline_document {
         let previous = legacy
@@ -1269,6 +1282,7 @@ pub fn execute(
         project_name: prepared.project.workspace_name.clone(),
         duration_seconds: started.elapsed().as_secs_f64(),
         legacy_baseline,
+        legacy_baseline_suite,
         baseline_gate_failures,
     };
     crate::report::save_details(&prepared.project.root, &executed)?;

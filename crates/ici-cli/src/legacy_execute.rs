@@ -166,6 +166,11 @@ pub fn command(
     // An incompatible baseline under --fail-on-new fails like the frozen gate (exit 1, never a
     // silent pass) with the exact command that regenerates it; nothing is reported as new.
     let mut incompatible_baseline = None;
+    // A legacy-schema `verify` against a baseline a native `--write-baseline` saved compares in
+    // frozen legacy space (see `frozen_baseline`), and that comparison decides the gate.
+    let frozen_space = legacy_schema
+        && engine(&invocation.command()).is_none()
+        && run.legacy_baseline_suite.is_some();
     if invocation.flag("fail_on_new") {
         match &run.result.baseline {
             Some(delta) if delta.state == ici_domain::BaselineState::Comparable => {
@@ -176,7 +181,8 @@ pub fn command(
                     )));
                 }
                 // Gated new findings and gated severity regressions (frozen FindingDelta.gated).
-                if !run.baseline_gate_failures.is_empty()
+                if !frozen_space
+                    && !run.baseline_gate_failures.is_empty()
                     && run.result.gate.selected != GateVerdict::Incomplete
                 {
                     regressed = true;
@@ -234,6 +240,17 @@ pub fn command(
             };
             stored = StoredResult::from_value(document).map_err(error)?;
         }
+    }
+    // Frozen `_write_baseline`: the written baseline has no comparison and the suite status before
+    // the gate.
+    let mut pre_gate_status = None;
+    if frozen_space && let StoredResult::Legacy(legacy) = &stored {
+        let mut document = legacy.as_value().clone();
+        pre_gate_status = Some(document["suite_status"].clone());
+        if frozen_baseline(&mut document, &run)? {
+            exit_code = exit_code.max(1);
+        }
+        stored = StoredResult::from_value(document).map_err(error)?;
     }
     // Frozen `ici verify` exits 1 for a FAIL/ERROR suite. A legacy verdict the native gate keeps
     // advisory (e.g. a coverage minimum the frozen TestEngine turns into FAIL) never exits 0;
@@ -372,7 +389,16 @@ pub fn command(
             invocation.value("baseline").unwrap_or_default()
         ));
     } else if let Some(path) = baseline_output {
-        write_result_export(&path, &stored, &run.result_path)?;
+        match (&stored, pre_gate_status) {
+            (StoredResult::Legacy(legacy), Some(status)) => {
+                let mut document = legacy.as_value().clone();
+                document["baseline_comparison"] = serde_json::Value::Null;
+                document["suite_status"] = status;
+                let written = StoredResult::from_value(document).map_err(error)?;
+                write_result_export(&path, &written, &run.result_path)?;
+            }
+            _ => write_result_export(&path, &stored, &run.result_path)?,
+        }
         stdout.push_str(&format!("wrote baseline {}\n", path.display()));
     }
     if invocation.flag("github_summary") {
@@ -734,6 +760,9 @@ fn shape_engine(
         ));
         exit_code = exit_code.max(code);
         replaced = true;
+    }
+    if legacy_schema {
+        crate::legacy_python_inventory::shape(family, value, &root)?;
     }
     Ok((replaced, exit_code))
 }
@@ -1292,6 +1321,79 @@ fn refused_policy(engine: &serde_json::Value) -> Option<String> {
         })
         .next()
         .map(str::to_owned)
+}
+
+/// Frozen `VerifyEngine._apply_baseline` over the shaped legacy suite: the legacy findings of every
+/// engine (PASS inventory included) and the run's coverage regressions, compared with the legacy
+/// suite the baseline saved (`ici_reporting::frozen_baseline_comparison`). A failed
+/// `--fail-on-new` gate turns a passing suite FAIL; returns whether the gate failed.
+fn frozen_baseline(
+    document: &mut serde_json::Value,
+    run: &crate::execute::ExecutedRun,
+) -> Result<bool> {
+    let (Some(native), Some(saved)) = (&run.legacy_baseline, &run.legacy_baseline_suite) else {
+        return Ok(false);
+    };
+    let mut current = ici_reporting::legacy_records(&document["results"]);
+    for finding in &run.result.findings {
+        let Some(kind) = finding
+            .rule_id
+            .strip_prefix(ici_reporting::COVERAGE_REGRESSION_RULE)
+        else {
+            continue;
+        };
+        let path = &finding.primary_location.path;
+        let name = format!("Coverage regression:{kind}");
+        let metrics = run
+            .outputs
+            .values()
+            .flat_map(|output| &output.targets)
+            .find(|target| target.target_name == name && &target.file_path == path)
+            .map(|target| &target.metrics);
+        let number = |key: &str| metrics.and_then(|metrics| metrics.get(key)?.as_f64());
+        if let (Some(actual), Some(before), Some(drop)) =
+            (number("actual"), number("baseline"), number("allowed_drop"))
+        {
+            current.push(
+                ici_reporting::coverage_regression_record(kind, path, actual, before, drop)
+                    .map_err(error)?,
+            );
+        }
+    }
+    let statuses = document["results"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|engine| {
+            (
+                engine["engine_name"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_owned(),
+                engine["status"].as_str().unwrap_or_default().to_owned(),
+            )
+        })
+        .collect();
+    let comparison = ici_reporting::frozen_baseline_comparison(
+        &current,
+        &ici_reporting::legacy_records(&saved["results"]),
+        &statuses,
+        native["source_path"].as_str().unwrap_or_default(),
+        native["warnings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|warning| warning.as_str().map(str::to_owned))
+            .collect(),
+        saved["analysis_metadata"].clone(),
+        native["fail_on_new"] == true,
+    );
+    let failed = comparison["gate_failed"] == true;
+    document["baseline_comparison"] = comparison;
+    if failed && !matches!(document["suite_status"].as_str(), Some("FAIL" | "ERROR")) {
+        document["suite_status"] = serde_json::json!("FAIL");
+    }
+    Ok(failed)
 }
 
 /// Frozen optional-coverage verdict: a measured FAIL/ERROR target wins over the coverage WARN,

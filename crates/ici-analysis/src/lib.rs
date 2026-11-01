@@ -36,7 +36,10 @@ mod stateful;
 mod unicode_codecs;
 pub use source::exclusion_reasons as source_exclusion_reasons;
 pub mod unicode;
+mod walk_order;
 mod wheel;
+/// CPython `ast.walk` order of function definitions (frozen legacy complexity target order).
+pub use walk_order::python_function_walk_order;
 mod wheel_zip;
 mod xid_table;
 
