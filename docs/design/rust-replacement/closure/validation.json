@@ -209,9 +209,10 @@
   },
   "check:python.coverage": {
    "comparison": "Validation facet (closure sweep): the modern python.coverage check is coverage.py run/json evidence over the declared sources (adapters/providers/coverage.py, engines/coverage_policy.py thresholds). Declared-source measurement is replayed against frozen (tests/rust-parity/validation/python-coverage-scope-oracle.json) with the actual project CPython 3.10.21 + pytest + coverage; coverage-policy finding sites coverage_policy.py:165/198/218/247/264/297/316 are complete in this fragment; a missing coverage tool keeps real pytest evidence and follows the legacy/explicit required policy.",
-   "difference_reason": "Frozen defect corrected: a declared Python source that the tests never imported was omitted from frozen's coverage (silently raising the percentage); native measures it at 0% (python_coverage_scope.rs never_imported_declared_source_is_measured_zero_instead_of_omitted), and an unmeasurable declared source keeps coverage incomplete with the reason on the legacy line.",
+   "difference_reason": "Frozen defect corrected: a declared Python source that the tests never imported was omitted from frozen's coverage (silently raising the percentage); native measures it at 0% (python_coverage_scope.rs never_imported_declared_source_is_measured_zero_instead_of_omitted), and an unmeasurable declared source keeps coverage incomplete with the reason on the legacy line. Decisions-worker audit of adapters/providers/coverage.py: native percentages now use the frozen round(percent, 1) (python.rs::coverage_percent_tests); frozen always emitted `coverage.branches` (0.0 % without counts when nothing was measured) and `coverage.lines` (0.0 with 0/0 for an empty scope), native emits a percentage only when its denominator is positive and carries numerator/denominator on branches too (python_coverage_scope.rs asserts the frozen 0.0 and the native absence).",
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-cli --locked -j2 --test coverage_regression --test legacy_test_metrics --test legacy_test_parity --test python_coverage_scope --test run_tem --test pytest_next_parity -- --include-ignored`, `cargo test -p ici-validation --locked -j2 --test contracts --test native_python --test quality_details -- --include-ignored` and `--lib coverage_percent` passed with ICI_TEST_PYTHON (CPython 3.10.21 + pytest + coverage); clippy -D warnings clean (log /tmp/ici-rust-replacement-20261028/w-dec-coverage.log)."
    ],
    "fixtures": {
     "failure": [
@@ -221,7 +222,8 @@
      "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy"
     ],
     "positive": [
-     "crates/ici-cli/tests/python_coverage_scope.rs::never_imported_declared_source_is_measured_zero_instead_of_omitted"
+     "crates/ici-cli/tests/python_coverage_scope.rs::never_imported_declared_source_is_measured_zero_instead_of_omitted",
+     "crates/ici-validation/src/python.rs::coverage_percent_tests::coverage_percentages_round_to_one_decimal_like_python"
     ]
    },
    "rust_paths": [
@@ -232,11 +234,12 @@
    "status": "complete"
   },
   "check:python.test": {
-   "comparison": "Validation facet (closure sweep): the modern python.test check's behaviour is the frozen next pytest provider (adapters/providers/pytest.py + analysis/pytest_output.py) and the project-interpreter selection (application/tooling.py resolve_python). Frozen `next verify` pytest identities (tests/rust-parity/validation/pytest-next-oracle.json: failed-case node findings with frozen raw identity, collection errors keeping the suite incomplete) and the frozen interpreter selection (interpreter-selection-oracle.json: declared [python] executable, else only the component .venv; missing declared interpreter blocks; legacy bare names are PATH lookups) replay through the native CLI with the actual project CPython 3.10.21 + pytest; unittest fallback, skip/fail/empty states and baseline carry-over are native actual-tool tests. Finding sites pytest.py:138/156 and test_output.py:83/146/195/226 are complete in this fragment. Provider exit contract and limitations replayed against frozen next verify: a green suite is SUCCEEDED with pytest.cases 1/1 in both; nothing collected (exit 5) is FAILED/incomplete in both (native words it `pytest did not report a completed nonempty suite (exit 5)`; the exit was Rust Debug `Some(5)` before this sweep, fixed in ici-validation python.rs and the legacy empty-suite matcher).",
-   "difference_reason": "Frozen defect not reproduced: frozen next verify added a spurious summary collection-error finding beside a failed case (pytest_next_parity.rs failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone). For root review: a suite whose every case skipped is FAILED/incomplete in native ('all pytest cases skipped; nothing was verified') where frozen kept python.test SUCCEEDED with the limitation 'no test ran green (1 skipped of 1 collected)' and complete evidence; this changes the check state and the gate. Frozen defect not reproduced: pytest.exit(returncode=2) after collecting a test was SUCCEEDED with 'pytest collected no tests' in frozen; native refuses the aborted run (FAILED, exit 2 named).",
+   "comparison": "Validation facet (closure sweep): the modern python.test check's behaviour is the frozen next pytest provider (adapters/providers/pytest.py + analysis/pytest_output.py) and the project-interpreter selection (application/tooling.py resolve_python). Frozen `next verify` pytest identities (tests/rust-parity/validation/pytest-next-oracle.json: failed-case node findings with frozen raw identity, collection errors keeping the suite incomplete) and the frozen interpreter selection (interpreter-selection-oracle.json: declared [python] executable, else only the component .venv; missing declared interpreter blocks; legacy bare names are PATH lookups) replay through the native CLI with the actual project CPython 3.10.21 + pytest; unittest fallback, skip/fail/empty states and baseline carry-over are native actual-tool tests. All-skipped suite (root decision D2, 2026-11-02): modern view now equals frozen next verify exactly (python.test SUCCEEDED, evidence complete, run limitation `no test ran green (1 skipped of 1 collected)`, same gate and exit; the limitation fires on frozen's condition `total and passed == 0`, so all-xfail mixes carry it too); the legacy view equals frozen engines/test.py `no_tests_executed`: ERROR/NOT_RUN exit 1 when required, SKIP/ESTIMATED exit 2 with `required = false`, summary `0/N Tests Executed; every collected test was skipped`, the skipped case target and its identity (new frozen captures all_skipped, all_skipped_optional, skipped_and_failing in legacy-test-oracle.json; the existing scenarios recaptured byte-identical). Finding sites pytest.py:138/156 and test_output.py:83/146/195/226 are complete in this fragment. Provider exit contract and limitations replayed against frozen next verify: a green suite is SUCCEEDED with pytest.cases 1/1 in both; nothing collected (exit 5) is FAILED/incomplete in both (native words it `pytest did not report a completed nonempty suite (exit 5)`; the exit was Rust Debug `Some(5)` before this sweep, fixed in ici-validation python.rs and the legacy empty-suite matcher).",
+   "difference_reason": "Frozen defect not reproduced: frozen next verify added a spurious summary collection-error finding beside a failed case (pytest_next_parity.rs failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone). Frozen defect not reproduced: pytest.exit(returncode=2) after collecting a test was SUCCEEDED with 'pytest collected no tests' in frozen; native refuses the aborted run (FAILED, exit 2 named). Root decision D2 implemented: the earlier native refusal of an all-skipped suite is gone (modern view SUCCEEDED plus the frozen limitation, legacy view frozen's not-executed ERROR/SKIP). The root brief said the legacy view PASSed with a note; the frozen capture shows frozen legacy `ici test`/`ici verify` report ERROR (required) or SKIP, so native follows the frozen capture, not the brief (reported to the root). Reviewed legacy-view differences in the all-skipped captures (legacy_test_parity.rs all_skipped_suites_...): frozen's score 0.0 is calculate_tem's fallback for a None score, so native leaves it absent (the same no-fabricated-TEM decision as the empty suite); frozen listed no coverage/threshold rows because no executed case imported the source, native keeps its measured non-PASS rows; native lists a suite's cases in node-id order where frozen kept pytest execution order (same identities and verdicts; open cross-area note: TestEvidence.cases is a BTreeMap); an empty branch denominator reads `n/a` (existing projection decision).",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log",
-    "source opus-env.sh (ICI_TEST_PYTHON=/home/jihoon/projects/ici/.venv/bin/python, pytest 9.1.1, coverage 7.15.4); frozen capture tests/rust-parity/validation/capture_pytest_next.py (green, all-skipped, no-tests, pytest.exit(2) added; earlier scenarios byte-identical); cargo test -p ici-cli --locked -j2 --no-fail-fast --test pytest_next_parity --test legacy_test_metrics --test legacy_commands --test native_validation_extra -- --include-ignored (3+2+7+27 passed); cargo test -p ici-validation and the five empty-suite CLI binaries: 23 binaries ok; /tmp/ici-rust-replacement-20261028/w-sweep-pytest.log, /tmp/ici-rust-replacement-20261028/w-sweep-pytest-regress.log"
+    "source opus-env.sh (ICI_TEST_PYTHON=/home/jihoon/projects/ici/.venv/bin/python, pytest 9.1.1, coverage 7.15.4); frozen capture tests/rust-parity/validation/capture_pytest_next.py (green, all-skipped, no-tests, pytest.exit(2) added; earlier scenarios byte-identical); cargo test -p ici-cli --locked -j2 --no-fail-fast --test pytest_next_parity --test legacy_test_metrics --test legacy_commands --test native_validation_extra -- --include-ignored (3+2+7+27 passed); cargo test -p ici-validation and the five empty-suite CLI binaries: 23 binaries ok; /tmp/ici-rust-replacement-20261028/w-sweep-pytest.log, /tmp/ici-rust-replacement-20261028/w-sweep-pytest-regress.log",
+    "source opus-env.sh; cargo fmt --check; cargo clippy -p ici-validation -p ici-cli --all-targets --locked -j2 -- -D warnings; cargo test -p ici-cli --locked -j2 --no-fail-fast --test pytest_next_parity --test legacy_test_parity --test native_validation_extra --test legacy_test_metrics --test legacy_commands -- --include-ignored (3+8+27+2+7 passed); cargo test -p ici-validation --locked -j2 -- --include-ignored (all passed after contracts.rs update); frozen recapture: tests/rust-parity/validation/capture_legacy_test.py --oracle <frozen 6fe3e405> (all earlier scenarios byte-identical); /tmp/ici-rust-replacement-20261028/w-dec-d2.log, /tmp/ici-rust-replacement-20261028/w-dec-legacy-test-capture.log"
    ],
    "fixtures": {
     "failure": [
@@ -244,27 +247,32 @@
      "crates/ici-cli/tests/interpreter_selection.rs::declared_interpreter_that_is_missing_blocks_without_using_the_venv"
     ],
     "negative": [
-     "crates/ici-cli/tests/interpreter_selection.rs::undeclared_interpreter_is_only_the_component_venv_never_path_python"
+     "crates/ici-cli/tests/interpreter_selection.rs::undeclared_interpreter_is_only_the_component_venv_never_path_python",
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "positive": [
      "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone",
      "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
-     "crates/ici-cli/tests/pytest_next_parity.rs::green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract"
+     "crates/ici-cli/tests/pytest_next_parity.rs::green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract",
+     "crates/ici-cli/tests/legacy_test_parity.rs::all_skipped_suites_keep_the_frozen_not_executed_verdict_and_a_failure_still_fails",
+     "crates/ici-validation/tests/contracts.rs::all_skipped_suite_succeeds_with_the_frozen_no_green_limitation"
     ]
    },
    "rust_paths": [
     "crates/ici-validation/src/python.rs",
     "crates/ici-validation/src/python_unittest.rs",
-    "crates/ici-cli/src/validation.rs"
+    "crates/ici-cli/src/validation.rs",
+    "crates/ici-cli/src/legacy_execute.rs"
    ],
-   "status": "difference_review"
+   "status": "complete"
   },
   "finding_site:src/ici/adapters/providers/integration.py:143:12": {
-   "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding.",
-   "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen next emits one finding per failed aspect (integration.{exit,stdout,stderr,output}, process_fingerprint over absolute argv, machine-dependent); native modern runs emit one case-level finding with native rule ids, and the legacy view uses ici.legacy.integration.target with the frozen legacy fingerprints. Accepted by the root (22:35, item 4): legacy ids in the legacy view, native ids in the modern view. Baselines saved by frozen `next verify` integration results do not carry over.",
+   "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding. Decisions-worker audit of the complete frozen module: the `integration.assertions` measurement now carries the frozen value (passed checks, not the check count) with unit `assertions` and numerator/denominator over every declared check, and a declared `requires` list is echoed as the frozen limitation `case '<name>' declares external requirements: a, b` (both pinned in cpp_contracts.rs). A run that did not finish yields no finding and an incomplete check, as frozen; stale, missing, non-regular and undersized outputs fail the output assertion.",
+   "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen next emits one finding per failed aspect (integration.{exit,stdout,stderr,output}, process_fingerprint over absolute argv, machine-dependent); native modern runs emit one case-level finding with native rule ids, and the legacy view uses ici.legacy.integration.target with the frozen legacy fingerprints. Accepted by the root (22:35, item 4): legacy ids in the legacy view, native ids in the modern view. Baselines saved by frozen `next verify` integration results do not carry over. Per-check detail wording differs and stays in extra.assertions: native `stdout must contain \"x\"` / one output message with the capture error versus frozen `missing 'x' in stdout` and four distinct output messages (not produced / not a regular file / size / predates this run); the case-level finding message is the accepted public text.",
    "evidence": [
     "Frozen `ici next verify --profile deep` on a modern config with one case (expected_exit=3, stdout must/never) emitted integration.exit and two integration.stdout findings with messages \"integration case 'X': expected exit 3, got 0\" / \"missing 'missing' in stdout\" / \"forbidden 'actual' in stdout\"; observed manually 2026-10-29, temp project removed",
-    "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
+    "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-validation --locked -j2 --test cpp_contracts integration -- --include-ignored` and `cargo test -p ici-cli --locked -j2 --test integration_binding --test integration_legacy --test legacy_exit_policy --test native_validation_extra -- --include-ignored` passed; clippy -D warnings clean (log /tmp/ici-rust-replacement-20261028/w-dec-integration.log)."
    ],
    "fixtures": {
     "failure": [
@@ -329,15 +337,18 @@
    "status": "complete"
   },
   "finding_site:src/ici/adapters/providers/pytest.py:138:12": {
-   "comparison": "Reviewed adapters/providers/pytest.py and analysis/pytest_output.py. Last verdict per node wins, ANSI stripped, parameter ids with spaces preserved; pytest.failed/pytest.error findings keep the frozen raw identity sha256(pytest\\0node\\0VERDICT), message '<node> <verdict>', high severity, and after application attribution the final fingerprint, rule id and message equal the frozen next golden; pytest.cases keeps the numerator/denominator.",
-   "difference_reason": "XPASS is also a pytest.xpass finding and XFAIL counts as a passed tool case, following the frozen legacy TestEngine contract (frozen next counted only PASSED); unfinished, truncated or collection-failed suites stay incomplete instead of measured.",
+   "comparison": "Reviewed adapters/providers/pytest.py and analysis/pytest_output.py. Last verdict per node wins, ANSI stripped, parameter ids with spaces preserved; pytest.failed/pytest.error findings keep the frozen raw identity sha256(pytest\\0node\\0VERDICT), message '<node> <verdict>', high severity, and after application attribution the final fingerprint, rule id and message equal the frozen next golden; pytest.cases keeps the numerator/denominator. Decisions-worker audit of analysis/pytest_output.py: a malformed, escaping or absolute node path now keeps its verdict at the frozen `tests`:1 scope instead of failing the whole parse (checked against frozen pytest_node_location; contracts.rs).",
+   "difference_reason": "XPASS is also a pytest.xpass finding and XFAIL counts as a passed tool case, following the frozen legacy TestEngine contract (frozen next counted only PASSED); unfinished, truncated or collection-failed suites stay incomplete instead of measured. Location rule shared with the legacy view (accepted on test_output.py:195:16): a node id without an explicit line is located at its collected test definition line instead of frozen's line 1; fingerprints exclude the line. Frozen defect not reproduced: with a plugin reporting `../outside/...` node ids frozen next ended in `internal error: ValueError: span path must be relative and contained` (its short-summary collection match built an escaping span); native keeps the verdict at the frozen `_node_location` scope `tests`:1 and the check succeeds (pytest-next-oracle.json escaping-node, pytest_next_parity.rs).",
    "evidence": [
     "python3 -I tests/rust-parity/validation/capture_pytest_next.py (frozen `next verify --python --no-cache`) -> tests/rust-parity/validation/pytest-next-oracle.json",
-    "cargo test -p ici-cli --test pytest_next_parity --test python_compat_cli --locked -- --include-ignored; ici-validation all + native_python --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log"
+    "cargo test -p ici-cli --test pytest_next_parity --test python_compat_cli --locked -- --include-ignored; ici-validation all + native_python --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-validation --locked -j2 --test contracts --test native_python --test quality_details -- --include-ignored` and `cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test legacy_test_parity -- --include-ignored` passed; frozen _pytest_duration_summary/pytest_node_location outputs for the same text recorded in /tmp/ici-rust-replacement-20261028/w-dec-pytest-output.log.",
+    "decisions worker 2026-11-02: frozen escaping-node scenario captured with tests/rust-parity/validation/capture_pytest_next.py (earlier six scenarios byte-identical; log /tmp/ici-rust-replacement-20261028/w-dec-pytest-next-capture.log); `cargo test -p ici-cli --locked -j2 --test pytest_next_parity -- --include-ignored` passed (4 tests)."
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete",
+     "crates/ici-cli/tests/pytest_next_parity.rs::an_escaping_node_id_keeps_its_verdict_at_the_tests_scope_where_frozen_crashed",
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete",
      "crates/ici-validation/tests/native_python.rs::timed_out_suite_cannot_unlock_coverage_or_become_clean_evidence"
     ],
     "negative": [
@@ -362,7 +373,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone"
@@ -1439,7 +1450,8 @@
    "comparison": "'Coverage:Changed lines' over start..end of the selection with requested/covered/executable/non_executable line metrics and default threshold 100; the passing golden (src/calc.py:2-4 -> 66.7%) matches target, metrics and fingerprint; overlapping or out-of-scope selections are refused at plan time.",
    "evidence": [
     "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
-    "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log"
+    "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-validation --locked -j2 --test contracts coverage_policy -- --include-ignored` passed (log /tmp/ici-rust-replacement-20261028/w-dec-coverage-policy.log); legacy_test_parity.rs passed with ICI_TEST_PYTHON in /tmp/ici-rust-replacement-20261028/w-dec-coverage.log."
    ],
    "fixtures": {
     "failure": [
@@ -1456,7 +1468,8 @@
     "crates/ici-validation/src/policy.rs",
     "crates/ici-reporting/src/projection.rs"
    ],
-   "status": "complete"
+   "status": "complete",
+   "difference_reason": "Decisions-worker audit: native changed-line selections must name a file of the captured source scope with a canonical path:line[-line]; frozen accepted any regular project file (an out-of-scope one became a 'no executable measured lines' ERROR target) and worded its refusals differently ('must use canonical path:line…', 'duplicates or overlaps an earlier entry', 'range is reversed'). Native refuses all of these at plan time; the legacy view keeps frozen's 'Coverage:Policy configuration' identity and ERROR/exit 1 (legacy_test_parity.rs changed_invalid). Pinned in contracts.rs::coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominators."
   },
   "finding_site:src/ici/engines/integration.py:233:24": {
    "comparison": "Empty optional scope: SKIP status, summary 'Integration analysis not applicable: no cases configured', located Integration:NotApplicable target at the declaring file line 1, extra.integration {state NOT_APPLICABLE, cases []}, NOT_APPLICABLE evidence; required empty scope stays incomplete (frozen: required engine has no cases -> error).",
@@ -1692,7 +1705,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected",
@@ -1770,7 +1783,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone"
@@ -1819,7 +1832,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates"
@@ -2144,20 +2157,23 @@
  },
  "source_files": {
   "src/ici/adapters/providers/coverage.py": {
-   "disposition": "unreviewed",
-   "reason": "Not read in full; next coverage.py provider (coverage json export/parse) feeding coverage_policy rows. No finding site of its own in this area.",
-   "requirements": []
+   "disposition": "mapped",
+   "reason": "Complete 152-line module read (decisions worker 2026-11-02). plan (coverage json over the shared run's data file, report path and its directory declared, never cached, 300 s bound, declared sources channel) maps to the python.coverage `.report` step planned by ici_validation::python; parse (did-not-finish refusal, absent/unreadable/inconsistent JSON refused rather than a zero verdict, coverage.lines/branches percentages, coverage.functions over the declared .py sources where any body line ran) maps to python::observe_coverage with coverage::parse_python, the producer/digest check and function facts. Rounding now equals frozen; the omitted 0 % branch value and the never-imported-source correction are recorded on check:python.coverage. Log: /tmp/ici-rust-replacement-20261028/w-dec-coverage.log.",
+   "requirements": [
+    "check:python.coverage"
+   ]
   },
   "src/ici/adapters/providers/integration.py": {
-   "disposition": "unreviewed",
-   "reason": "Reviewed; per-aspect next finding family is an open difference (finding_site 143:12).",
+   "disposition": "mapped",
+   "reason": "Complete 251-line module read (decisions worker). plan (contract env, never cached, TEST task, requires, output specs, timeout, every non-expected exit is a finding) maps to ici_validation::integration::plan plus the CLI case binding; parse (did-not-finish refusal, exit/stream/never/output checks, required high vs advisory medium, case source location falling back to ici.toml, measurement, requires limitation) maps to integration::observe/observe_named_case. Rule ids, fingerprints and per-check wording are the accepted case-level difference on the finding row; measurement and limitation now equal frozen. Log: /tmp/ici-rust-replacement-20261028/w-dec-integration.log.",
    "requirements": [
+    "check:integration",
     "finding_site:src/ici/adapters/providers/integration.py:143:12"
    ]
   },
   "src/ici/adapters/providers/pycompat.py": {
    "disposition": "unreviewed",
-   "reason": "Finding sites 109:20 (runtime-version) and 222:12 (compile-failure) are complete against the frozen next golden. The rest of the provider (import smoke parsing, limitation wording) is not audited line by line.",
+   "reason": "Finding sites 109:20 (runtime-version) and 222:12 (compile-failure) are complete against the frozen next golden. The rest of the provider (import smoke parsing, limitation wording) is not audited line by line. Blocked (decisions worker 2026-11-02 merge check): capability:runtime-integration (validation=verified).",
    "requirements": [
     "finding_site:src/ici/adapters/providers/pycompat.py:109:20",
     "finding_site:src/ici/adapters/providers/pycompat.py:222:12",
@@ -2182,7 +2198,7 @@
   },
   "src/ici/analysis/_python_packaging.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding sites 98:11, 121:11, 294:12, 312:16, 323:12, 378:12 complete; 394:16 difference_review (ZIP-structure corrections). Part of capability:python-packaging-wheel.",
+   "reason": "Not read in full. Finding sites 98:11, 121:11, 294:12, 312:16, 323:12, 378:12 complete; 394:16 difference_review (ZIP-structure corrections). Part of capability:python-packaging-wheel. Blocked (decisions worker 2026-11-02 merge check): capability:python-packaging-wheel (validation=verified).",
    "requirements": [
     "finding_site:src/ici/analysis/_python_packaging.py:98:11",
     "finding_site:src/ici/analysis/_python_packaging.py:121:11",
@@ -2196,7 +2212,7 @@
   },
   "src/ici/analysis/_python_wheel.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. All 9 finding sites (118:11, 462:8, 510:8, 534:8, 566:8, 592:8, 625:12, 638:8, 680:16) are complete; the whole-file branch audit (bounds, tag parsing) is pending. Part of capability:python-packaging-wheel.",
+   "reason": "Not read in full. All 9 finding sites (118:11, 462:8, 510:8, 534:8, 566:8, 592:8, 625:12, 638:8, 680:16) are complete; the whole-file branch audit (bounds, tag parsing) is pending. Part of capability:python-packaging-wheel. Blocked (decisions worker 2026-11-02 merge check): capability:python-packaging-wheel (validation=verified).",
    "requirements": [
     "finding_site:src/ici/analysis/_python_wheel.py:118:11",
     "finding_site:src/ici/analysis/_python_wheel.py:462:8",
@@ -2212,7 +2228,7 @@
   },
   "src/ici/analysis/_sanitize_python_scope.py": {
    "disposition": "unreviewed",
-   "reason": "Lines 1-263 reviewed. PASS scope (143), located (238) and unlocated (155) ResourceWarning targets, every _missing_python_scope variant (219: missing tests dir, no test files, pytest unavailable, 0 collected, no executed count, required and not-required) and the tool-failure scope error are captured against the frozen engine and replayed (legacy_python_sanitize.rs, legacy_python_sanitize_scopes.rs); _resolve_python order is the legacy launcher rule (legacy_launcher_interpreter.rs, capability:runtime-integration). Open: process-incomplete scope errors (timeout/truncation/signal, frozen _incomplete_message) and 'Pytest could not execute' are mapped in python_sanitize.rs but not captured against a frozen run; _has_python_tests (any *.py under tests) is the scope-applicability input of engines/sanitize.py _analysis_scopes (shared sanitize engine, audited there).",
+   "reason": "Lines 1-263 reviewed. PASS scope (143), located (238) and unlocated (155) ResourceWarning targets, every _missing_python_scope variant (219: missing tests dir, no test files, pytest unavailable, 0 collected, no executed count, required and not-required) and the tool-failure scope error are captured against the frozen engine and replayed (legacy_python_sanitize.rs, legacy_python_sanitize_scopes.rs); _resolve_python order is the legacy launcher rule (legacy_launcher_interpreter.rs, capability:runtime-integration). Open: process-incomplete scope errors (timeout/truncation/signal, frozen _incomplete_message) and 'Pytest could not execute' are mapped in python_sanitize.rs but not captured against a frozen run; _has_python_tests (any *.py under tests) is the scope-applicability input of engines/sanitize.py _analysis_scopes (shared sanitize engine, audited there). Blocked (decisions worker 2026-11-02 merge check): capability:legacy-python-sanitize (cpp=not_started, validation=implemented).",
    "requirements": [
     "capability:legacy-python-sanitize",
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:155:20",
@@ -2221,16 +2237,18 @@
   },
   "src/ici/analysis/coverage_support.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full; coverage evidence helpers under capability:test-quality-tem (open composite).",
+   "reason": "Not read in full; coverage evidence helpers under capability:test-quality-tem (open composite). Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "capability:test-quality-tem"
    ]
   },
   "src/ici/analysis/pytest_output.py": {
    "disposition": "unreviewed",
-   "reason": "Read through the pytest provider rows: last verdict per node, ANSI stripping and parameter ids with spaces (pytest.py 138:12, contracts.rs) and pytest_node_location. Not every helper branch audited line by line.",
+   "reason": "Complete 173-line module read (decisions worker 2026-11-02). parse_pytest_outcomes (ANSI strip, last verdict wins, parameter ids with spaces, sorted) maps to ici_validation::python::parse_pytest; _node_location maps to python::node_location, now with the frozen `tests`:1 fallback for malformed/escaping/absolute node paths (contracts.rs, and end to end in pytest_next_parity.rs::an_escaping_node_id_keeps_its_verdict_at_the_tests_scope_where_frozen_crashed); _pytest_duration_summary maps to python_quality slow rows, now with ANSI stripping and the frozen (-duration, path, line, node, phase) order, 32-character token bound, threshold, dedup by (node, phase) keeping the slowest and max_slow_tests truncation (quality_details.rs::slow_rows_strip_ansi_and_keep_the_frozen_duration_path_line_order, checked against the frozen function in w-dec-pytest-output.log). Still open: (1) the slow/flaky rows it feeds (test_quality.py:196:16/355:20/502:16, capability:test-quality-tem) are blocked by the cpp.json not_started placeholder facet; (2) the definition-line location for a node without an explicit line is the accepted difference of test_output.py:195:16, also recorded on pytest.py:138:12 (not a blocker); (3) frozen validated threshold/max_items types (ValueError), native receives them already validated by config, not re-proven here.",
    "requirements": [
-    "finding_site:src/ici/adapters/providers/pytest.py:138:12"
+    "capability:test-quality-tem",
+    "finding_site:src/ici/adapters/providers/pytest.py:138:12",
+    "finding_site:src/ici/engines/test_quality.py:502:16"
    ]
   },
   "src/ici/application/integration.py": {
@@ -2242,28 +2260,28 @@
   },
   "src/ici/application/tem.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full; TEM formula under capability:test-quality-tem (open composite). Legacy TEM summary values are compared through legacy test parity goldens, formula boundaries not audited line by line.",
+   "reason": "Not read in full; TEM formula under capability:test-quality-tem (open composite). Legacy TEM summary values are compared through legacy test parity goldens, formula boundaries not audited line by line. Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "capability:test-quality-tem"
    ]
   },
   "src/ici/application/testing.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full; next test/coverage application wiring under capability:test-quality-tem (open composite).",
+   "reason": "Not read in full; next test/coverage application wiring under capability:test-quality-tem (open composite). Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "capability:test-quality-tem"
    ]
   },
   "src/ici/engines/binary_compat.py": {
    "disposition": "unreviewed",
-   "reason": "Error aggregation (lines 225-260) reviewed: unpublished explicit selection -> AnalysisUnavailable ERROR now equal to frozen (247:16 verified). Other sites are re-proven C++ facets. Open: readelf missing/incomplete evidence (cpp worker).",
+   "reason": "Error aggregation (lines 225-260) reviewed: unpublished explicit selection -> AnalysisUnavailable ERROR now equal to frozen (247:16 verified). Other sites are re-proven C++ facets. Open: readelf missing/incomplete evidence (cpp worker). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/binary_compat.py:247:16 (cpp=verified, validation=verified).",
    "requirements": [
     "finding_site:src/ici/engines/binary_compat.py:247:16"
    ]
   },
   "src/ici/engines/build.py": {
    "disposition": "unreviewed",
-   "reason": "run() (lines 40-150) reviewed: BuildArtifacts FAIL (92:16 complete, Python facet) and summaries. _package_python (lines 296-380) reviewed in full: PythonLibrary/PythonLauncher targets and the collision/entrypoint/unsafe-name/missing-module BuildErrors map to 338:16/373:16 (complete, Python facet; symlinked sources never selected); the remaining target sites are re-proven C++ facets (verified). Open: outside-root and launcher write-failure branches not captured, _prepare_output_tree side effects (frozen creates an empty <version>/x86_64 tree, accepted), env-script write failure (686:16).",
+   "reason": "run() (lines 40-150) reviewed: BuildArtifacts FAIL (92:16 complete, Python facet) and summaries. _package_python (lines 296-380) reviewed in full: PythonLibrary/PythonLauncher targets and the collision/entrypoint/unsafe-name/missing-module BuildErrors map to 338:16/373:16 (complete, Python facet; symlinked sources never selected); the remaining target sites are re-proven C++ facets (verified). Open: outside-root and launcher write-failure branches not captured, _prepare_output_tree side effects (frozen creates an empty <version>/x86_64 tree, accepted), env-script write failure (686:16). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/build.py:92:16 (cpp=not_started); finding_site:src/ici/engines/build.py:338:16 (cpp=verified); finding_site:src/ici/engines/build.py:373:16 (cpp=verified).",
    "requirements": [
     "finding_site:src/ici/engines/build.py:92:16",
     "finding_site:src/ici/engines/build.py:338:16",
@@ -2272,7 +2290,7 @@
   },
   "src/ici/engines/coverage_policy.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding sites 165:11, 198:12, 218:16, 264:12, 316:16 complete; 247:12 and 297:20 difference_review.",
+   "reason": "Read in full but not mapped: the row bound differs. Complete 335-line module read (decisions worker 2026-11-02). parse_changed_lines maps to ici_validation::policy::changed_lines (canonical path:line[-line], 10 000-line bound, overlap/reversed refusal; scope narrowing and wording recorded on 316:16); build_changed_line_status (executed lines never downgraded, missing lines executable-but-uncovered, positive non-bool integers only) maps to coverage::parse_python/gcov line maps; _number/min_file_statements validation maps to the config schema rows; evaluate_coverage_policy (Overall line, per-file >= min_file_statements, Functions aggregate, per-function targets in (file, line, column, name) order, Changed lines with the no-executable case) maps to policy::evaluate_suite and threshold_target, pinned field-for-field by the legacy goldens on rows 165:11/198:12/218:16/247:12/264:12/297:20/316:16. Logs: /tmp/ici-rust-replacement-20261028/w-dec-coverage-policy.log, w-dec-coverage.log. Bound difference: frozen refused more than 10 000 coverage-file or function rows ('coverage inventory exceeds the bounded 10000-row limit'); native bounds the decoded coverage report at 16 384 files (coverage.rs 'coverage file limit exceeded') and has no separate function-row bound — not pinned by a fixture.",
    "requirements": [
     "finding_site:src/ici/engines/coverage_policy.py:165:11",
     "finding_site:src/ici/engines/coverage_policy.py:198:12",
@@ -2296,7 +2314,7 @@
   },
   "src/ici/engines/python_compat.py": {
    "disposition": "unreviewed",
-   "reason": "Whole file read. run/_not_applicable/_check_runtimes/_check_runtime/_configured_runtimes (empty -> launcher-selected interpreter, legacy_launcher_interpreter.rs)/_process_problem/counters/extra map to finding sites 75:11, 141:24, 161:20 (complete) and 214:16 (difference_review: unparseable pyproject.toml refused by native config discovery), replayed in legacy_python_compat_parity.rs. Open before mapping: the aggregate AST bound (1,000,000 nodes) and the 128 compileall-target bound errors, and -VV/compileall/import-smoke timeout or truncation problems are mapped in code but not captured against a frozen run; _resolve_interpreter symlink resolution only affects frozen tool-evidence argv.",
+   "reason": "Whole file read. run/_not_applicable/_check_runtimes/_check_runtime/_configured_runtimes (empty -> launcher-selected interpreter, legacy_launcher_interpreter.rs)/_process_problem/counters/extra map to finding sites 75:11, 141:24, 161:20 (complete) and 214:16 (difference_review: unparseable pyproject.toml refused by native config discovery), replayed in legacy_python_compat_parity.rs. Open before mapping: the aggregate AST bound (1,000,000 nodes) and the 128 compileall-target bound errors, and -VV/compileall/import-smoke timeout or truncation problems are mapped in code but not captured against a frozen run; _resolve_interpreter symlink resolution only affects frozen tool-evidence argv. Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/python_compat.py:214:16 (validation=difference_review); capability:runtime-integration (validation=verified).",
    "requirements": [
     "finding_site:src/ici/engines/python_compat.py:75:11",
     "finding_site:src/ici/engines/python_compat.py:141:24",
@@ -2307,7 +2325,7 @@
   },
   "src/ici/engines/sanitize.py": {
    "disposition": "unreviewed",
-   "reason": "Python-scope dispatch read (lines 100-135 _analysis_scopes; _missing_python_scope/_append_scope_error/_incomplete_message/_tool_failure_message/_process_incomplete helpers 790-905 used by the Python scope, see _sanitize_python_scope.py). Finding sites 200:16, 385:24, 566:12, 630:21, 669:16, 838:12, 865:12 are not_started; the C++ sanitizer flow is the C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
+   "reason": "Python-scope dispatch read (lines 100-135 _analysis_scopes; _missing_python_scope/_append_scope_error/_incomplete_message/_tool_failure_message/_process_incomplete helpers 790-905 used by the Python scope, see _sanitize_python_scope.py). Finding sites 200:16, 385:24, 566:12, 630:21, 669:16, 838:12, 865:12 are not_started; the C++ sanitizer flow is the C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker. Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/sanitize.py:385:24 (cpp=verified); finding_site:src/ici/engines/sanitize.py:566:12 (cpp=verified); finding_site:src/ici/engines/sanitize.py:630:21 (cpp=verified); finding_site:src/ici/engines/sanitize.py:838:12 (cpp=implemented); finding_site:src/ici/engines/sanitize.py:865:12 (cpp=implemented); capability:legacy-python-sanitize (cpp=not_started, validation=implemented).",
    "requirements": [
     "finding_site:src/ici/engines/sanitize.py:200:16",
     "finding_site:src/ici/engines/sanitize.py:385:24",
@@ -2321,7 +2339,7 @@
   },
   "src/ici/engines/test.py": {
    "disposition": "unreviewed",
-   "reason": "Python facets read where they touch closed rows: _resolve_python (legacy launcher rule, capability:runtime-integration), empty-suite verdict 352:12 (difference_review, root-accepted). Finding sites 611:20, 632:20, 643:20, 654:20, 716:20, 774:16, 811:16, 821:12, 839:12 are not_started C++ halves. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
+   "reason": "Python facets read where they touch closed rows: _resolve_python (legacy launcher rule, capability:runtime-integration), empty-suite verdict 352:12 (difference_review, root-accepted). Finding sites 611:20, 632:20, 643:20, 654:20, 716:20, 774:16, 811:16, 821:12, 839:12 are not_started C++ halves. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker. Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/test.py:611:20 (cpp=verified); finding_site:src/ici/engines/test.py:632:20 (cpp=verified); finding_site:src/ici/engines/test.py:654:20 (cpp=verified); finding_site:src/ici/engines/test.py:839:12 (cpp=verified); capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "finding_site:src/ici/engines/test.py:352:12",
     "finding_site:src/ici/engines/test.py:611:20",
@@ -2338,21 +2356,21 @@
   },
   "src/ici/engines/test_coverage.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding site 384:16 difference_review (native overlap reason wording).",
+   "reason": "Not read in full. Finding site 384:16 difference_review (native overlap reason wording). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/test_coverage.py:384:16 (cpp=not_started).",
    "requirements": [
     "finding_site:src/ici/engines/test_coverage.py:384:16"
    ]
   },
   "src/ici/engines/test_interpreter.py": {
    "disposition": "unreviewed",
-   "reason": "Whole file read. _resolve_python order (engines.test.python as given, project .venv/bin/python, .venv/Scripts/python.exe, sys.executable = pyz launcher choice) maps to native validation::project_python for legacy commands (crates/ici-cli/tests/legacy_launcher_interpreter.rs, interpreter_selection.rs::declared_bare_interpreter_name_is_a_path_lookup_for_legacy_commands, ::legacy_project_without_a_launcher_candidate_is_blocked_with_the_legacy_hint); _build_python_test_env PATH prepend (none for a bare name) and PYTHONPATH source dirs map to bind(). Open: _find_coverage_cmd probe error texts (timed out / truncated / terminated / exit N) and _interpreter_from_command pytest-argv normalisation are not compared with a frozen legacy capture.",
+   "reason": "Whole file read. _resolve_python order (engines.test.python as given, project .venv/bin/python, .venv/Scripts/python.exe, sys.executable = pyz launcher choice) maps to native validation::project_python for legacy commands (crates/ici-cli/tests/legacy_launcher_interpreter.rs, interpreter_selection.rs::declared_bare_interpreter_name_is_a_path_lookup_for_legacy_commands, ::legacy_project_without_a_launcher_candidate_is_blocked_with_the_legacy_hint); _build_python_test_env PATH prepend (none for a bare name) and PYTHONPATH source dirs map to bind(). Open: _find_coverage_cmd probe error texts (timed out / truncated / terminated / exit N) and _interpreter_from_command pytest-argv normalisation are not compared with a frozen legacy capture. Blocked (decisions worker 2026-11-02 merge check): capability:runtime-integration (validation=verified).",
    "requirements": [
     "capability:runtime-integration"
    ]
   },
   "src/ici/engines/test_output.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding site 226:24 complete (root-accepted summary-count exit 3); 83:20, 146:16, 195:16 difference_review (root-accepted fabricated-coverage and location differences, not yet moved to complete).",
+   "reason": "Complete 235-line module read (decisions worker 2026-11-02). Mapped behaviours: per-node targets and messages (195:16), summary-count fallback refused as incomplete (226:24, accepted), unittest case targets (146:16), the located 'No tests collected' FAIL for exit 5 / exit 0 without cases (83:20), and the all-skipped exception (skipped >= total is not a tool error) now equal to frozen in both views (check:python.test, D2). Open: the frozen legacy ERROR summaries of _parse_pytest_result are not pinned — frozen 'Pytest returned success without parseable test results' (exit 0, no evidence), 'Pytest failed with exit code N' (exit outside 0/1) and 'Pytest returned failure without parseable diagnostics' (exit 1 without a failure) versus native 'pytest exit1 carried no attributable failure' and the generic contract refusals (only python_sanitize.rs reuses the first frozen text); the `collected N items` total fallback is likewise not compared. Needs a frozen capture of these three legacy `ici test` ERROR summaries or a recorded wording difference.",
    "requirements": [
     "finding_site:src/ici/engines/test_output.py:83:20",
     "finding_site:src/ici/engines/test_output.py:146:16",
@@ -2362,7 +2380,7 @@
   },
   "src/ici/engines/test_quality.py": {
    "disposition": "unreviewed",
-   "reason": "Partially reviewed (lines 225-593: settings parsing, repeat/flaky/mutation paths). Sites 196/355/502/87 difference_review, 405/418/434/550/580 complete (405/418/434 with distinct failure-mode fixtures timeout_third/signal/quiet_failing_repeat), 381 difference_review (summary-count base run). Open before mapping: settings clamping (repeat_runs/timeout/slow threshold/max_slow_tests bounds, invalid mutation tool -> auto) are not compared with a frozen capture; lines 1-224 (report/warn mode verdicts) not re-read in this pass.",
+   "reason": "Partially reviewed (lines 225-593: settings parsing, repeat/flaky/mutation paths). Sites 196/355/502/87 difference_review, 405/418/434/550/580 complete (405/418/434 with distinct failure-mode fixtures timeout_third/signal/quiet_failing_repeat), 381 difference_review (summary-count base run). Open before mapping: settings clamping (repeat_runs/timeout/slow threshold/max_slow_tests bounds, invalid mutation tool -> auto) are not compared with a frozen capture; lines 1-224 (report/warn mode verdicts) not re-read in this pass. Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified); finding_site:src/ici/engines/test_quality.py:381:16 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:405:24 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:418:24 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:434:24 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:550:16 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:580:12 (cpp=not_started).",
    "requirements": [
     "capability:test-quality-tem",
     "finding_site:src/ici/engines/test_quality.py:381:16",

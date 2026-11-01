@@ -249,6 +249,29 @@ def import_closure(source: Source) -> dict[str, Any]:
     }
 
 
+def validate_fixture_references(fragments: dict[str, dict[str, Any]], root: Path = ROOT) -> None:
+    """Every fixture names an existing file and, after `::`, a name that file still contains."""
+    texts: dict[Path, str] = {}
+    for name, fragment in fragments.items():
+        for identifier, claim in fragment["requirements"].items():
+            for fixture in (item for kind in claim["fixtures"].values() for item in kind):
+                path, _, rest = fixture.partition("::")
+                target = root / path
+                if not target.exists():
+                    raise ValueError(
+                        f"fragment {name}: fixture file missing for {identifier}: {fixture}"
+                    )
+                if not rest or target.is_dir():
+                    continue
+                if target not in texts:
+                    texts[target] = target.read_text(encoding="utf-8", errors="replace")
+                label = rest.split("::")[-1].split("[", 1)[0]
+                if label not in texts[target]:
+                    raise ValueError(
+                        f"fragment {name}: fixture name not found for {identifier}: {fixture}"
+                    )
+
+
 def validate_unreachable_claims(effective: dict[str, Any], closure: dict[str, Any]) -> None:
     """A row or audit may only claim unreachability for a module the closure proves unreachable."""
     unreachable = {item["path"] for item in closure["unreachable"]}
@@ -1241,6 +1264,31 @@ def markdown(document: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def fixture_reference_self_test() -> None:
+    """A renamed test or a deleted fixture file is refused; a present name is accepted."""
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "t.rs").write_text("fn kept_case() {}\n", encoding="utf-8")
+
+        def fragment(fixture: str) -> dict[str, dict[str, Any]]:
+            claim = {"fixtures": {"positive": [fixture], "negative": [], "failure": []}}
+            return {"area": {"requirements": {"row": claim}, "source_files": {}}}
+
+        validate_fixture_references(fragment("t.rs::kept_case"), root)
+        for fixture, message in (
+            ("t.rs::renamed_case", "name not found"),
+            ("gone.rs::x", "file missing"),
+        ):
+            try:
+                validate_fixture_references(fragment(fixture), root)
+            except ValueError as error:
+                assert message in str(error)
+            else:
+                raise AssertionError(f"stale fixture accepted: {fixture}")
+
+
 def import_closure_self_test() -> None:
     """unreachable_module_listed, reachable_module_not_listed, unreachable_claim_refused."""
     source = Source(
@@ -1424,9 +1472,10 @@ def self_test() -> None:
         raise AssertionError("evidence deletion accepted")
     merge_self_test(document)
     import_closure_self_test()
+    fixture_reference_self_test()
     print(
         "PASS: command/option aliases, source location, open/false closure, evidence preservation/deletion,"
-        " conjunctive fragment merge, import closure"
+        " conjunctive fragment merge, import closure, fixture references"
     )
 
 
@@ -1451,6 +1500,7 @@ def main() -> int:
         preserve_evidence(document, json.loads(target.read_text(encoding="utf-8")))
     validate(document)
     fragments = read_fragments(args.output_dir / CLOSURE_DIR)
+    validate_fixture_references(fragments)
     effective = merge_fragments(document, fragments)
     validate(effective, require_closed=args.require_closed)
     closure = import_closure(source)

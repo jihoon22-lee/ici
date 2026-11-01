@@ -8167,7 +8167,7 @@
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
         ],
         "failure": [
-          "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete",
+          "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete",
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
         ]
       },

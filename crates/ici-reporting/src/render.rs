@@ -109,6 +109,10 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
         projection.total_findings - visible,
         projection.groups.len() - visible_groups
     );
+    // Frozen console: the inventory panel names the command that shows the hidden rest.
+    if projection.total_findings > visible || projection.groups.len() > visible_groups {
+        let _ = writeln!(out, "Re-run with: ici verify --verbose");
+    }
     for limitation in &projection.limitations {
         let _ = writeln!(out, "Display limitation: {limitation}");
     }
@@ -264,10 +268,11 @@ fn group_bucket(group: &Value, by: crate::ConsoleGroupBy) -> String {
                 .collect();
             (
                 "File",
-                if paths.len() == 1 {
-                    paths.into_iter().next().expect("one path")
-                } else {
-                    "(multiple files)".into()
+                // Frozen `issue_bucket`: one path, `(multiple files)`, or `(no location)`.
+                match paths.len() {
+                    0 => "(no location)".into(),
+                    1 => paths.into_iter().next().expect("one path"),
+                    _ => "(multiple files)".into(),
                 },
             )
         }

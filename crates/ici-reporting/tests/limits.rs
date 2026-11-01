@@ -113,6 +113,7 @@ fn console_caps_per_engine_verbose_and_unicode_width_preserve_original_inventory
             .join(" ")
             .contains("2 hidden finding(s), 2 hidden group(s)")
     );
+    assert!(console.contains("Re-run with: ici verify --verbose"));
     assert!(
         console
             .lines()
@@ -130,6 +131,7 @@ fn console_caps_per_engine_verbose_and_unicode_width_preserve_original_inventory
     .unwrap();
     assert!(verbose.contains("alpha-2"));
     assert!(verbose.contains("Category:"));
+    assert!(!verbose.contains("Re-run with:"));
     assert_eq!(stored.to_value().unwrap(), value);
 }
 #[test]

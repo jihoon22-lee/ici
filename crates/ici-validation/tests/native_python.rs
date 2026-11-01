@@ -139,6 +139,22 @@ fn one_real_suite_feeds_test_and_coverage_with_missing_one_line_function_not_cov
         (Some(2), Some(4)),
         "{output:?}"
     );
+    // Frozen coverage provider: every percentage is `round(covered / total * 100, 1)`.
+    for metric in &output.observation.measurements {
+        if let (true, Some(covered), Some(total)) = (
+            metric.name.starts_with("coverage."),
+            metric.numerator,
+            metric.denominator,
+        ) {
+            let percent = covered as f64 / total as f64 * 100.0;
+            assert_eq!(
+                metric.value,
+                format!("{percent:.1}").parse::<f64>().unwrap(),
+                "{metric:?}"
+            );
+            eprintln!("coverage metric {metric:?}");
+        }
+    }
     assert_eq!(
         output.extra["test_execution"]["canonical_suite_id"],
         test_output.extra["test_execution"]["canonical_suite_id"]

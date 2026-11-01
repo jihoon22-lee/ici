@@ -199,3 +199,53 @@ fn explicit_fail_on_new_keeps_warning_actionable_without_failing_ordinary_gate()
         baseline
     );
 }
+
+/// Frozen `ici line --report` on a documentation-only project and on a monorepo whose sources
+/// sit below subprojects (`tests/rust-parity/line/capture_line_scope.py`): no source is gated,
+/// every counted file is an extra with frozen's language and counts, and the run passes.
+#[test]
+fn documentation_only_and_monorepo_root_extras_match_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/line/line-scope-oracle.json"
+    ))
+    .unwrap();
+    for (name, frozen) in oracle["runs"].as_object().unwrap() {
+        let tree = tempfile::tempdir().unwrap();
+        fs::create_dir(tree.path().join(".git")).unwrap();
+        for (path, text) in oracle["scenarios"][name].as_object().unwrap() {
+            let path = tree.path().join(path);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, text.as_str().unwrap()).unwrap();
+        }
+        let home = tempfile::tempdir().unwrap();
+        let output = dispatch(
+            &parse(["ici", "line", "--report"]).unwrap(),
+            tree.path(),
+            &BTreeMap::from([
+                ("PATH".into(), "/usr/bin:/bin".into()),
+                ("HOME".into(), home.path().display().to_string()),
+            ]),
+        )
+        .unwrap();
+        let engine: Value =
+            serde_json::from_slice(&fs::read(tree.path().join("line_report.json")).unwrap())
+                .unwrap();
+        let keys = [
+            "path", "scope", "lang", "code", "comment", "blank", "total", "status",
+        ];
+        let native = serde_json::json!({
+            "exit_code": output.exit_code,
+            "status": engine["status"],
+            "summary": engine["summary"],
+            "evidence": engine["evidence"],
+            "targets": engine["targets"].as_array().unwrap().iter()
+                .map(|t| serde_json::json!([t["file_path"], t["status"], t["message"]]))
+                .collect::<Vec<_>>(),
+            "all": engine["extra"]["all"],
+            "files": engine["extra"]["files_data"].as_array().unwrap().iter()
+                .map(|row| keys.iter().map(|key| row[*key].clone()).collect::<Vec<_>>())
+                .collect::<Vec<_>>(),
+        });
+        assert_eq!(&native, frozen, "{name}");
+    }
+}

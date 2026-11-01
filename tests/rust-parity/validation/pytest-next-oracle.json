@@ -56,6 +56,29 @@
         "state": "SUCCEEDED"
       }
     },
+    "escaping-node": {
+      "checks": {
+        "python.test": "FAILED"
+      },
+      "exit_code": 3,
+      "files": {
+        "tests/conftest.py": "def pytest_collection_modifyitems(items):\n    for item in items:\n        item._nodeid = '../outside/' + item.nodeid.rsplit('/', 1)[-1]\n",
+        "tests/test_g.py": "def test_bad():\n    assert 1 == 2\n\n\ndef test_ok():\n    pass\n"
+      },
+      "findings": [],
+      "gate": "INCOMPLETE",
+      "limitations": [
+        "internal error: ValueError: span path must be relative and contained: '../outside/test_g.py'",
+        "prerequisite project.python.test did not run"
+      ],
+      "metrics": [],
+      "test_check": {
+        "evidence_complete": false,
+        "limitations": null,
+        "reason": null,
+        "state": "FAILED"
+      }
+    },
     "failing": {
       "checks": {
         "python.test": "SUCCEEDED"

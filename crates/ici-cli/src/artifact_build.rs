@@ -1304,7 +1304,7 @@ pub fn apply_version_probe(
             (normalize_version(text)?, "git-describe".to_string())
         }
     } else {
-        result.limitations.push(format!("Git describe did not complete successfully (state {:?}, exit {:?}); the historical default v1.0.0 is used",outcome.state,outcome.exit_code));
+        result.limitations.push(format!("Git describe did not complete successfully (state {}, {}); the historical default v1.0.0 is used",outcome.state_label(),outcome.ending()));
         ("v1.0.0".into(), "fallback:git-failed".to_string())
     };
     let output_root = relative(

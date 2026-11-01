@@ -289,6 +289,15 @@ fn integration_checks_declared_streams_exit_and_fresh_output_without_touching_us
     let stale = observe(&planned, &outcomes, &artifacts);
     assert_eq!(stale.observation.state, TaskState::Succeeded);
     assert_eq!(stale.observation.findings.len(), 1);
+    // Frozen `integration.assertions`: passed checks over every declared check
+    // (exit + stdout must + stderr never + output = 4, the stale output failed).
+    let metric = &stale.observation.measurements[0];
+    assert_eq!(metric.name, "integration.assertions");
+    assert_eq!(
+        (metric.value, metric.numerator, metric.denominator),
+        (3.0, Some(3), Some(4))
+    );
+    assert_eq!(metric.unit, "assertions");
     assert_eq!(
         std::fs::read(root.path().join("result.bin")).unwrap(),
         b"old"
@@ -325,6 +334,16 @@ fn integration_checks_declared_streams_exit_and_fresh_output_without_touching_us
         );
         assert!(observed.observation.findings.is_empty(), "{failure}");
     }
+    // A declared requirement is echoed with the frozen wording; ici never probes it.
+    let mut declared = request.clone();
+    declared.options.requires = vec!["postgres".into(), "redis".into()];
+    declared.options.integration_case_name = Some("smoke".into());
+    assert!(
+        plan(&declared)
+            .unwrap()
+            .limitations
+            .contains(&"case 'smoke' declares external requirements: postgres, redis".to_string())
+    );
 }
 #[test]
 fn native_binary_header_policy_distinguishes_non_elf_from_tool_failure_and_honors_limits() {

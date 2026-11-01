@@ -3330,9 +3330,9 @@ impl CppPlans {
                         &probe.unit.source,
                         &outcome,
                         &format!(
-                            "compiler boundary probe {} did not complete (exit {:?}, timed_out={}, truncated={}): {}",
+                            "compiler boundary probe {} did not complete ({}, timed_out={}, truncated={}): {}",
                             outcome.task_id,
-                            outcome.exit_code,
+                            outcome.ending(),
                             outcome.timed_out,
                             outcome.truncated,
                             outcome.error.as_deref().unwrap_or("")
@@ -3466,7 +3466,7 @@ impl CppPlans {
                             })
                     } else {
                         Err(outcome.error.clone().unwrap_or_else(|| {
-                            format!("include probe exited {:?}", outcome.exit_code)
+                            format!("include probe ended with {}", outcome.ending())
                         }))
                     };
                     match trace {

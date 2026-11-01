@@ -112,6 +112,7 @@ fn test_facts(result: &Value) -> Value {
         .find(|item| item["check_id"] == "python.test")
         .unwrap();
     serde_json::json!({
+        "gate": result["gate"]["selected"],
         "state": check["state"],
         "evidence_complete": check["evidence_complete"],
         "limitations": result["limitations"].as_array().unwrap().iter()
@@ -126,6 +127,7 @@ fn test_facts(result: &Value) -> Value {
 }
 fn frozen_facts(frozen: &Value) -> Value {
     serde_json::json!({
+        "gate": frozen["gate"],
         "state": frozen["test_check"]["state"],
         "evidence_complete": frozen["test_check"]["evidence_complete"],
         "limitations": frozen["limitations"],
@@ -148,28 +150,7 @@ fn green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract() {
         "only an exact missing-pytest diagnostic activates",
     ];
     // Reviewed differences: (scenario, fact, native value, reason).
-    let corrections: [(&str, &str, Value, &str); 7] = [
-        (
-            "all-skipped",
-            "state",
-            "FAILED".into(),
-            "Policy difference for root review: native refuses a suite whose every case skipped as incomplete evidence (FAILED) where frozen kept the check SUCCEEDED with only a limitation; frozen's own provider comment says nothing was verified.",
-        ),
-        (
-            "all-skipped",
-            "evidence_complete",
-            false.into(),
-            "Follows the FAILED state above.",
-        ),
-        (
-            "all-skipped",
-            "limitations",
-            serde_json::json!([
-                "all pytest cases skipped; nothing was verified",
-                "prerequisite project.python.test has no complete evidence"
-            ]),
-            "Native wording of the same fact, plus the blocked coverage prerequisite.",
-        ),
+    let corrections: [(&str, &str, Value, &str); 4] = [
         (
             "no-tests",
             "limitations",
@@ -223,4 +204,31 @@ fn green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract() {
         }
     }
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}
+
+#[test]
+#[ignore = "explicit project pytest provider identity acceptance"]
+fn an_escaping_node_id_keeps_its_verdict_at_the_tests_scope_where_frozen_crashed() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["runs"]["escaping-node"];
+    // Frozen `_node_location` meant to keep the verdict at `tests`, but its short-summary
+    // collection match produced a `../outside` span and the run ended in an internal error.
+    assert!(
+        frozen["limitations"][0]
+            .as_str()
+            .unwrap()
+            .contains("span path must be relative and contained")
+    );
+    assert_eq!(frozen["checks"]["python.test"], "FAILED");
+    let result = run(frozen, oracle["config"].as_str().unwrap());
+    let native = pytest_findings(&result);
+    assert_eq!(state(&result, "python.test"), "SUCCEEDED", "{result:#}");
+    assert_eq!(native.len(), 1, "{native:?}");
+    assert_eq!(native[0]["rule_id"], "pytest.failed");
+    assert_eq!(
+        native[0]["message"],
+        "../outside/test_g.py::test_bad failed"
+    );
+    assert_eq!(native[0]["primary_location"]["path"], "tests");
+    assert_eq!(native[0]["primary_location"]["start_line"], 1);
 }

@@ -54,6 +54,96 @@ def stub(branch_ok, comment_ok, pages):
     )
 
 
+# Gh-pages layout cases (frozen _resolve_target): name -> (environment, argv, pages, branch ok,
+# extra files). Uploads and comments are recorded, so the remote path, viewer URL and the
+# sticky comment body of each case are captured exactly.
+HUB = {"ICI_PUBLISH_REPO": "hub/pages", "ICI_PUBLISH_TOKEN": "h"}
+DIRS = ["--report-dir", "Svc/API=a", "--report-dir", "b"]
+LAYOUT = {
+    "self_no_ref_pages": (ACTIONS, ["publish"], 1, 1, {}),
+    "self_main": ({**ACTIONS, "GITHUB_REF_NAME": "main"}, ["publish"], 1, 1, {}),
+    "self_master": ({**ACTIONS, "GITHUB_REF_NAME": "master"}, ["publish"], 0, 1, {}),
+    "self_branch": ({**ACTIONS, "GITHUB_REF_NAME": "feature/x-Y"}, ["publish"], 1, 1, {}),
+    "self_pr_with_ref": (
+        {**ACTIONS, "GITHUB_REF_NAME": "main", "PR": "7", "GITHUB_SERVER_URL": "https://gh.test"}
+        | {"GITHUB_RUN_ID": "42"},
+        ["publish"],
+        1,
+        1,
+        {},
+    ),
+    "self_pr_upload_failure": ({**ACTIONS, "PR": "7"}, ["publish"], 1, 0, {}),
+    "hub_publish": ({**ACTIONS, **HUB, "PR": "7"}, ["publish"], 1, 1, {}),
+    "hub_publish_branch": (
+        {**ACTIONS, **HUB, "GITHUB_REF_NAME": "release/1.0"},
+        ["publish"],
+        0,
+        1,
+        {},
+    ),
+    "hub_verify_project_name": (
+        {**ACTIONS, **HUB, "PR": "7"},
+        ["verify", "--html", "verify_report.html", "--publish"],
+        1,
+        1,
+        {"pyproject.toml": "[project]\nname = 'demo-app'\n"},
+    ),
+    "self_verify_main": (
+        {**ACTIONS, "GITHUB_REF_NAME": "main"},
+        ["verify", "--html", "verify_report.html", "--publish"],
+        1,
+        1,
+        {},
+    ),
+    "self_report_dirs": ({**ACTIONS, "PR": "7"}, ["publish", *DIRS], 1, 1, {}),
+    "hub_report_dirs": (
+        {**ACTIONS, **HUB, "GITHUB_REF_NAME": "main"},
+        ["publish", *DIRS],
+        0,
+        1,
+        {},
+    ),
+    "self_report_dir_missing_page": (
+        {**ACTIONS, "PR": "7"},
+        ["publish", "--report-dir", "a", "--report-dir", "c"],
+        1,
+        1,
+        {},
+    ),
+}
+
+
+def recording_stub(pages, branch_ok, record):
+    publishing.ReportPublisher._ensure_branch = lambda *_: bool(branch_ok)
+
+    def put(_self, _api, repo, _token, branch, path, payload):
+        record["uploads"].append(
+            {"repo": repo, "branch": branch, "path": path, "bytes": len(payload)}
+        )
+        return True
+
+    def comment(_self, _api, repo, _token, pr_number, body):
+        record["comments"].append({"repo": repo, "pr": pr_number, "body": body})
+        return f"https://github.com/{repo}/pull/{pr_number}#issuecomment-1"
+
+    publishing.ReportPublisher._put_file = put
+    publishing.ReportPublisher._check_pages = lambda *_: (
+        (True, "https://team.github.io/repo") if pages else (False, None)
+    )
+    publishing.ReportPublisher._upsert_comment = comment
+
+
+def layout_project(base, files):
+    legacy_project(base, True)
+    for directory in ("a", "b", "c"):
+        (base / directory).mkdir()
+        (base / directory / "verify_report.json").write_text(json.dumps(SUITE))
+        if directory != "c":
+            (base / directory / "verify_report.html").write_text("<!doctype html>saved")
+    for relative, text in files.items():
+        (base / relative).write_text(text)
+
+
 def environment(base, values):
     env = {key: None for key in os.environ if key.startswith(SCRUB)}
     env.update({key: value for key, value in values.items() if key != "PR"})
@@ -108,6 +198,19 @@ def main():
                 ]
                 del case["stdout"]
                 out["verify"][name] = case
+    out["layout"] = {}
+    for name, (values, argv, pages, branch_ok, files) in LAYOUT.items():
+        record = {"uploads": [], "comments": []}
+        recording_stub(pages, branch_ok, record)
+        with tempfile.TemporaryDirectory() as scratch:
+            base = Path(scratch).resolve()
+            layout_project(base, files)
+            case = invoke(base, argv, environment(base, values))
+            case["publish_lines"] = [
+                line for line in case["stdout"].splitlines() if line.startswith("[publish]")
+            ]
+            del case["stdout"]
+            out["layout"][name] = {**case, **record}
     with tempfile.TemporaryDirectory() as scratch:
         base = Path(scratch).resolve()
         (base / ".git").mkdir()

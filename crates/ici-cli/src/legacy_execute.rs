@@ -434,7 +434,7 @@ pub fn command(
                 .ok_or_else(|| CliError("page path is not UTF-8".into()))?,
         ])
         .map_err(error)?;
-        match crate::publish::command(&publish, &root, environment) {
+        match crate::publish::command_named(&publish, &root, environment, &run.project_name) {
             Ok(published) => {
                 stdout.push_str(&published.stdout);
                 stderr.push_str(&published.stderr);
@@ -488,6 +488,19 @@ fn shape_engine(
     {
         // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
         ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
+        replaced = true;
+    } else if family == "test"
+        && legacy_schema
+        && let Some(total) = python_tests_not_executed(value)
+    {
+        // Frozen `TestEngine.run` `no_tests_executed`: every collected case skipped is ERROR
+        // (NOT_RUN) for a required engine and SKIP (ESTIMATED) otherwise, never a pass.
+        let required = value["required"].as_bool().unwrap_or(true);
+        value["status"] = serde_json::json!(if required { "ERROR" } else { "SKIP" });
+        value["evidence"] = serde_json::json!(if required { "NOT_RUN" } else { "ESTIMATED" });
+        value["summary"] = serde_json::json!(format!(
+            "0/{total} Tests Executed; every collected test was skipped"
+        ));
         replaced = true;
     } else if family == "build" && legacy_schema && python_sources_unselected(value) {
         // Frozen `BuildEngine.run`: a Python project without a selected source creates no
@@ -1134,6 +1147,40 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
         && checks.iter().any(empty)
         && checks.iter().all(|check| empty(check) || dependent(check)))
     .then(|| vec!["Python"])
+}
+
+/// Frozen `no_tests_executed` (`total_tests > 0`, no failure, every case skipped) over the
+/// completed native Python test check; the count of collected cases. C++ suites keep their own
+/// verdicts (cpp facet).
+fn python_tests_not_executed(engine: &serde_json::Value) -> Option<u64> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let test = checks
+        .iter()
+        .find(|check| check["check_id"] == "python.test" && check["state"] == "SUCCEEDED")?;
+    if checks.iter().any(|check| {
+        check["check_id"]
+            .as_str()
+            .is_some_and(|id| id.starts_with("cpp."))
+    }) {
+        return None;
+    }
+    let counts = test["extra"].as_object()?.values().find(|value| {
+        value
+            .get("total_tests")
+            .is_some_and(serde_json::Value::is_u64)
+    })?;
+    let total = counts["total_tests"].as_u64()?;
+    let failed = engine["targets"].as_array()?.iter().any(|target| {
+        target["target_name"]
+            .as_str()
+            .is_some_and(|name| name.contains("::"))
+            && matches!(target["status"].as_str(), Some("FAIL" | "ERROR"))
+    });
+    (total > 0
+        && counts["passed_tests"].as_u64() == Some(0)
+        && counts["skipped_tests"].as_u64()? >= total
+        && !failed)
+        .then_some(total)
 }
 
 /// Frozen `TestEngine._run_project_tests`: a Python project without a `tests/` directory is

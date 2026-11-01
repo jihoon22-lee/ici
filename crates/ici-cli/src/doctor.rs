@@ -346,10 +346,9 @@ fn probe_error(outcome: &TaskOutcome) -> String {
             })
             .unwrap_or_default();
         format!(
-            "version probe did not complete successfully (state {:?}, exit {:?}, signal {:?}){suffix}",
-            outcome.state,
-            outcome.exit_code,
-            outcome.signal,
+            "version probe did not complete successfully (state {}, {}){suffix}",
+            outcome.state_label(),
+            outcome.ending(),
             suffix = if detail.is_empty() {
                 String::new()
             } else {

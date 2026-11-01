@@ -226,6 +226,57 @@ fn ordinary_analyze_points_to_complete_offline_html_and_json_keeps_machine_outpu
     assert_eq!(output.stderr.lines().count(), 2);
 }
 
+/// Root decision D4: frozen `next verify` (cli/next_path.cmd_verify) saves only the result and
+/// its text ends at `saved <result>`; the page is `next report`'s job, so the native command
+/// creates no file the user did not ask for.
+#[test]
+fn next_verify_text_writes_only_the_result_and_ends_at_the_saved_line() {
+    let dir = fixture();
+    let output = commands::dispatch(
+        &call(&["ici", "next", "verify", "--result", "out/base.json"]),
+        dir.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert_eq!(output.exit_code, 0, "{}", output.stdout);
+    let saved = dir.path().join("out/base.json");
+    assert!(saved.is_file());
+    assert!(
+        output
+            .stdout
+            .ends_with(&format!("\nsaved {}\n", saved.display())),
+        "{}",
+        output.stdout
+    );
+    assert!(!output.stdout.contains("HTML: "), "{}", output.stdout);
+    // The native details store (`out/.ici/`, the saved rich evidence `next report` renders) is
+    // the R0 result namespace, outside this decision; no page is written anywhere.
+    let mut written: Vec<_> = fs::read_dir(dir.path().join("out"))
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+        .filter(|name| name != ".ici")
+        .collect();
+    written.sort();
+    assert_eq!(written, ["base.json"]);
+    let mut pending = vec![dir.path().to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for entry in fs::read_dir(directory).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                pending.push(path);
+            } else {
+                assert_ne!(
+                    path.extension().and_then(|value| value.to_str()),
+                    Some("html"),
+                    "{}",
+                    path.display()
+                );
+            }
+        }
+    }
+    assert!(!dir.path().join(ici_cli::DEFAULT_PAGE).exists());
+}
+
 #[test]
 fn historical_v2_reports_render_without_overwriting_or_inventing_native_evidence() {
     let dir = tempfile::tempdir().unwrap();
