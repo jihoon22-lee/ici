@@ -223,11 +223,23 @@ fn prepare_resolved_omitting(
         .find(|check| check.id == "cpp.binary-compat")
         .expect("built-in ABI check");
     let cpp_binary_selected = project.components.iter().any(|component| {
-        component.languages.iter().any(|language|language=="cpp")
-            && (invocation.values("component").is_empty() || invocation.values("component").contains(&component.id))
-            && (languages.is_empty() || languages.iter().any(|language|language=="cpp"))
+        component.languages.iter().any(|language| language == "cpp")
+            && (invocation.values("component").is_empty()
+                || invocation.values("component").contains(&component.id))
+            && (languages.is_empty() || languages.iter().any(|language| language == "cpp"))
             && ici_application::plan::configured_check(&project, component, cpp_binary).0
-            && matches!(crate::cpp_validation::abi_scope(&project,component),Ok(Some(scope)) if !scope.targets.is_empty())
+            && match crate::cpp_validation::abi_scope(&project, component) {
+                Ok(Some(scope)) => !scope.targets.is_empty(),
+                // Frozen: an explicit `engines.binary_compat.artifacts` selection that names no
+                // published artifact is the C++ engine's own AnalysisUnavailable ERROR, not the
+                // Python fallback's skip.
+                Err(_) => component
+                    .settings
+                    .pointer("/engines/binary_compat/artifacts")
+                    .and_then(Value::as_array)
+                    .is_some_and(|selected| !selected.is_empty()),
+                Ok(None) => false,
+            }
     });
     let mut supplemental = crate::validation::supplemental_checks(&project);
     supplemental.extend(crate::cpp::supplemental_checks(&project));
@@ -290,6 +302,16 @@ fn prepare_resolved_omitting(
                 project.root.join(&component.root)
             };
             if let Some(work) = cpp.bind(&project, component, check, task_id, environment) {
+                // A rebound ABI check whose explicit shadow selection names no observed output
+                // is the frozen engine's own ERROR, exactly as for the validation binding below.
+                if crate::legacy::is_legacy(invocation)
+                    && check.id == "cpp.binary-compat"
+                    && let Work::Blocked { reason } = &work
+                    && let Some(output) = legacy_binary_selection(component, task_id, reason)
+                {
+                    cpp.fail_preparation(task_id, output);
+                    return Ok(Work::Internal);
+                }
                 return Ok(work);
             }
             if let Some(bound) = crate::cpp_validation::bind(

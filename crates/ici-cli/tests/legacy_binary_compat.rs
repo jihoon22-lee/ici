@@ -87,13 +87,6 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
                     assert_eq!(actual["targets"].as_array().unwrap().len(), 1, "{name}");
                     continue;
                 }
-                // Open: an unpublished selection falls back to the python.binary-compat entry,
-                // which stays blocked instead of the frozen AnalysisUnavailable ERROR.
-                ("unpublished-selection", "binary_compat") => {
-                    assert_eq!(frozen["status"], "ERROR");
-                    assert_eq!(actual["status"], "SKIP", "{name}");
-                    continue;
-                }
                 // Open: a Make build without linked outputs stops at artifact preparation
                 // (SKIP) instead of the frozen BuildAdapter PASS (0) + BuildArtifacts FAIL.
                 ("no-artifacts" | "no-artifacts-required", "build") => {

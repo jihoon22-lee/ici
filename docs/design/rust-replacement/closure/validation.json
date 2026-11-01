@@ -831,15 +831,30 @@
       "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
     },
     "finding_site:src/ici/engines/binary_compat.py:247:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/validation.rs"
+      ],
+      "evidence": [
+        "Frozen golden tests/rust-parity/cpp/binary-compat-oracle.json case unpublished-selection (frozen deep `ici verify --report`, artifacts=['release:shadow:nope'] on parity-fixtures/cpp/package-make)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_binary_compat --locked -- --include-ignored: 1 passed, all 7 cases incl. unpublished-selection byte-equal (/tmp/ici-rust-replacement-20261028/w-validation-binary-unpublished.log); published_abi/native_cpp/python_binary_scope/integration_legacy/legacy_build_targets/native_cpp_direct --include-ignored passed (/tmp/ici-rust-replacement-20261028/w-validation-binary-neighbours.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/integration_legacy.rs::shadow_identity_selects_one_binary_compat_target_from_the_linked_build_inventory"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
+      "comparison": "Validation facet (selection/identity). Frozen: an explicit engines.binary_compat.artifacts identity that the release build did not publish is `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' line 1 'configured artifact was not published: <id>' with summary 'Binary compatibility analysis incomplete: configured artifact was not published: <id>'. Native previously dropped cpp.binary-compat when abi_scope refused the selection (the python.binary-compat fallback then stayed SKIP) and the rebound C++ binding returned a raw block; an explicit selection now keeps the C++ check and the legacy view maps the post-build 'is not an observed output' refusal to the frozen ERROR target and summary (engine status, summary and every target equal the golden). A published selection still binds exactly one target (negative).",
+      "difference_reason": "Open (C++ facet, cpp worker): readelf missing/incomplete evidence (frozen RuntimeError -> the same AnalysisUnavailable ERROR) is not captured against a frozen run."
     },
     "finding_site:src/ici/engines/build.py:230:16": {
       "status": "not_started",
