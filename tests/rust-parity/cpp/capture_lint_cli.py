@@ -45,6 +45,8 @@ MAKE = "[build.make]\nenabled=true\nbuild_argv=['make','all']\n"
 CASES = {
     "lint": ("lint-fixture", "lint", "", {}),
     "lint-warnings-only": ("lint-warnings", "lint", "", {}),
+    # No selected Python or C++ source: frozen LintEngine reports LintScope SKIP (lint.py:92).
+    "lint-no-sources": ("lint-empty", "lint", "", {}),
     "lint-tidy-off": ("lint-fixture", "lint", "[engines.lint]\nclang_tidy='off'\n", {}),
     "lint-clazy-required": ("lint-warnings", "lint", "[engines.lint]\nclazy='required'\n", {}),
     "verify": ("lint-fixture", "verify", "", {}),
@@ -114,6 +116,7 @@ def run(
         "summary": engine["summary"],
         "evidence": engine["evidence"],
         "targets": [{key: target.get(key) for key in FIELDS} for target in engine["targets"]],
+        "findings": engine["findings"],
     }
     if command != "verify":
         captured["exit_code"] = result.returncode

@@ -87,6 +87,7 @@ fn run(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> Valu
         "summary": engine["summary"],
         "evidence": engine["evidence"],
         "targets": targets,
+        "findings": engine["findings"],
     });
     if command != "verify" {
         captured["exit_code"] = json!(output.exit_code);
@@ -129,13 +130,15 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
     let environment = BTreeMap::from([("PATH".to_string(), format!("{directory}:/usr/bin:/bin"))]);
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 8);
+    assert_eq!(cases.len(), 9);
+    let mut mismatches = vec![];
     for (name, case) in cases {
         let actual = run(case, base, &environment);
         let frozen = &case["frozen"];
         // Frozen tool errors: ERROR with NOT_RUN evidence and exit 1, compared exactly.
-        assert_eq!(&actual, frozen, "{name}");
+        mismatch(name, &actual, frozen, &mut mismatches);
     }
+    assert!(mismatches.is_empty(), "{mismatches:?}");
 }
 
 /// The capture script's temporary bin directory: `clang-tidy` symlinked to ICI_TEST_CLANG_TIDY,
@@ -201,6 +204,7 @@ fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summar
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["tool_cases"].as_object().unwrap();
     assert_eq!(cases.len(), 12);
+    let mut mismatches = vec![];
     for (name, case) in cases {
         let tools = tempfile::tempdir().unwrap();
         tool_bin(&tools.path().join("bin"), case["tools"].as_array().unwrap());
@@ -238,6 +242,19 @@ fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summar
             );
             frozen = cases["clazy-only"]["frozen"].clone();
         }
-        assert_eq!(actual, frozen, "{name}");
+        mismatch(name, &actual, &frozen, &mut mismatches);
+    }
+    assert!(mismatches.is_empty(), "{mismatches:?}");
+}
+
+/// Records a case that differs from frozen, printing both sides as single JSON lines.
+fn mismatch(name: &str, actual: &Value, frozen: &Value, mismatches: &mut Vec<String>) {
+    if actual != frozen {
+        eprintln!(
+            "== {name}\nactual: {}\nfrozen: {}",
+            serde_json::to_string(actual).unwrap(),
+            serde_json::to_string(frozen).unwrap()
+        );
+        mismatches.push(name.to_owned());
     }
 }

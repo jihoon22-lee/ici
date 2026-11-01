@@ -898,18 +898,25 @@ impl CppPlans {
             let resolved = request.resolve().map_err(|error| error.to_string());
             // Frozen capability probe (D-A): a resolvable tool whose `--version` probe fails in
             // the run environment is the frozen `<Tool>Unavailable`, not an execution error.
+            // The probed banner is the frozen capability version of the tool's findings.
             let resolved = match resolved {
-                Ok(tool)
-                    if self.legacy_projection
-                        && !legacy_tooling::legacy_capability_probe(
-                            &tool.path,
-                            &project.root,
-                            environment,
-                            kind == ProviderKind::Clazy,
-                        ) =>
-                {
-                    Err("capability probe failed".to_owned())
-                }
+                Ok(tool) if self.legacy_projection => match legacy_tooling::legacy_version_banner(
+                    &tool.path,
+                    &project.root,
+                    environment,
+                    if kind == ProviderKind::Clazy {
+                        "clazy"
+                    } else {
+                        "clang-tidy"
+                    },
+                ) {
+                    Some(banner) => {
+                        self.compiler_versions
+                            .insert(tool.path.to_string_lossy().into_owned(), banner);
+                        Ok(tool)
+                    }
+                    None => Err("capability probe failed".to_owned()),
+                },
                 other => other,
             };
             match resolved {
@@ -3475,6 +3482,32 @@ impl CppPlans {
                         findings: output.observation.findings.clone(),
                     });
                     unused_runs.push((index, outcome.exit_code, outcome.timed_out));
+                }
+                if self.legacy_projection && request.check_id == "cpp.tidy" {
+                    // Frozen clang tool findings name the tool (`clang-tidy` / `clazy`) and its
+                    // probed capability version.
+                    let name = if provider.kind == ProviderKind::Clazy {
+                        "clazy"
+                    } else {
+                        "clang-tidy"
+                    };
+                    let version = provider
+                        .task
+                        .argv
+                        .first()
+                        .and_then(|path| self.compiler_versions.get(path))
+                        .cloned()
+                        .unwrap_or_default();
+                    if let Some(details) = output
+                        .extra
+                        .get_mut("finding_details")
+                        .and_then(Value::as_object_mut)
+                    {
+                        for detail in details.values_mut() {
+                            detail["tool_name"] = json!(name);
+                            detail["tool_version"] = json!(version);
+                        }
+                    }
                 }
                 if self.legacy_projection
                     && request.check_id == "cpp.tidy"

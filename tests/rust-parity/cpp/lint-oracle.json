@@ -9,6 +9,248 @@
    "frozen": {
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:20e3d5a702c82650bce071e19b795204189345742db27f35f286951bbbadf460",
+      "fixes": [],
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wdeprecated-declarations",
+       "path": "src/noted.cpp",
+       "start_column": 30,
+       "start_line": 13
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wdeprecated-declarations",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:a0041bf0aea4a25ab85146e71e7f7f562d22d15a1a246c95d92f522726c6c30a",
+      "fixes": [],
+      "message": "note: declared here",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/noted.cpp",
+       "start_column": 33,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:ca9765a80c3dc19bba38b6f9bdadebcf30bfc83ead331c512da6012c95e83435",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/broken.cpp",
+       "start_column": 9,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fa74bba97328439e537b0e80be251aedfc651eeb0c60119f3b95ba495f7aeb25",
+      "fixes": [],
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wsign-compare",
+       "path": "src/noted.cpp",
+       "start_column": 31,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wsign-compare",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fe43a2b44d1c5e1771964196fa5fdcc23e0c3b7fdf8d85b47a9fffb3b104738f",
+      "fixes": [],
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/broken.cpp",
+       "start_column": 12,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
     "status": "FAIL",
     "summary": "1 Errors, 7 Warnings Found",
     "targets": [
@@ -87,6 +329,128 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:af32076a9ee177a6b4575c3633ea569e47a6deeb5e8fc0ffe35b832104a74c9a",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/warned.cpp",
+       "start_column": 9,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
     "status": "ERROR",
     "summary": "clazy requires an approved capability inventory and exact compilation context",
     "targets": [
@@ -136,6 +500,248 @@
     "built": false,
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:20e3d5a702c82650bce071e19b795204189345742db27f35f286951bbbadf460",
+      "fixes": [],
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wdeprecated-declarations",
+       "path": "src/noted.cpp",
+       "start_column": 30,
+       "start_line": 13
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wdeprecated-declarations",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:a0041bf0aea4a25ab85146e71e7f7f562d22d15a1a246c95d92f522726c6c30a",
+      "fixes": [],
+      "message": "note: declared here",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/noted.cpp",
+       "start_column": 33,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:ca9765a80c3dc19bba38b6f9bdadebcf30bfc83ead331c512da6012c95e83435",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/broken.cpp",
+       "start_column": 9,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fa74bba97328439e537b0e80be251aedfc651eeb0c60119f3b95ba495f7aeb25",
+      "fixes": [],
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wsign-compare",
+       "path": "src/noted.cpp",
+       "start_column": 31,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wsign-compare",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fe43a2b44d1c5e1771964196fa5fdcc23e0c3b7fdf8d85b47a9fffb3b104738f",
+      "fixes": [],
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/broken.cpp",
+       "start_column": 12,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
     "status": "FAIL",
     "summary": "1 Errors, 7 Warnings Found",
     "targets": [
@@ -217,6 +823,248 @@
     "built": false,
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:20e3d5a702c82650bce071e19b795204189345742db27f35f286951bbbadf460",
+      "fixes": [],
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wdeprecated-declarations",
+       "path": "src/noted.cpp",
+       "start_column": 30,
+       "start_line": 13
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wdeprecated-declarations",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:a0041bf0aea4a25ab85146e71e7f7f562d22d15a1a246c95d92f522726c6c30a",
+      "fixes": [],
+      "message": "note: declared here",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/noted.cpp",
+       "start_column": 33,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:ca9765a80c3dc19bba38b6f9bdadebcf30bfc83ead331c512da6012c95e83435",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/broken.cpp",
+       "start_column": 9,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fa74bba97328439e537b0e80be251aedfc651eeb0c60119f3b95ba495f7aeb25",
+      "fixes": [],
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wsign-compare",
+       "path": "src/noted.cpp",
+       "start_column": 31,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wsign-compare",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fe43a2b44d1c5e1771964196fa5fdcc23e0c3b7fdf8d85b47a9fffb3b104738f",
+      "fixes": [],
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/broken.cpp",
+       "start_column": 12,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
     "status": "FAIL",
     "summary": "1 Errors, 7 Warnings Found",
     "targets": [
@@ -287,6 +1135,60 @@
     ]
    }
   },
+  "lint-no-sources": {
+   "command": "lint",
+   "config": "",
+   "files": {},
+   "fixture": "lint-empty",
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e3a654d09f5f4b969b1f7764a301be6d434adfdf4728359425aa07e13fcbb1d8",
+      "fixes": [],
+      "message": "No applicable source files were selected; lint analysis was not run",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "LintScope",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Lint analysis skipped: no applicable source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable source files were selected; lint analysis was not run",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "LintScope"
+     }
+    ]
+   }
+  },
   "lint-tidy-off": {
    "command": "lint",
    "config": "[engines.lint]\nclang_tidy='off'\n",
@@ -295,6 +1197,218 @@
    "frozen": {
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:20e3d5a702c82650bce071e19b795204189345742db27f35f286951bbbadf460",
+      "fixes": [],
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wdeprecated-declarations",
+       "path": "src/noted.cpp",
+       "start_column": 30,
+       "start_line": 13
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wdeprecated-declarations",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:a0041bf0aea4a25ab85146e71e7f7f562d22d15a1a246c95d92f522726c6c30a",
+      "fixes": [],
+      "message": "note: declared here",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/noted.cpp",
+       "start_column": 33,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:ca9765a80c3dc19bba38b6f9bdadebcf30bfc83ead331c512da6012c95e83435",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/broken.cpp",
+       "start_column": 9,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fa74bba97328439e537b0e80be251aedfc651eeb0c60119f3b95ba495f7aeb25",
+      "fixes": [],
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wsign-compare",
+       "path": "src/noted.cpp",
+       "start_column": 31,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wsign-compare",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fe43a2b44d1c5e1771964196fa5fdcc23e0c3b7fdf8d85b47a9fffb3b104738f",
+      "fixes": [],
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/broken.cpp",
+       "start_column": 12,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
     "status": "FAIL",
     "summary": "1 Errors, 6 Warnings Found",
     "targets": [
@@ -365,6 +1479,128 @@
    "frozen": {
     "evidence": "ESTIMATED",
     "exit_code": 0,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:af32076a9ee177a6b4575c3633ea569e47a6deeb5e8fc0ffe35b832104a74c9a",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/warned.cpp",
+       "start_column": 9,
+       "start_line": 2
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
     "status": "WARN",
     "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy requires an approved capability inventory and exact compilation context",
     "targets": [
@@ -414,6 +1650,248 @@
     "built": false,
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:20e3d5a702c82650bce071e19b795204189345742db27f35f286951bbbadf460",
+      "fixes": [],
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wdeprecated-declarations",
+       "path": "src/noted.cpp",
+       "start_column": 30,
+       "start_line": 13
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wdeprecated-declarations",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:a0041bf0aea4a25ab85146e71e7f7f562d22d15a1a246c95d92f522726c6c30a",
+      "fixes": [],
+      "message": "note: declared here",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/noted.cpp",
+       "start_column": 33,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:ca9765a80c3dc19bba38b6f9bdadebcf30bfc83ead331c512da6012c95e83435",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/broken.cpp",
+       "start_column": 9,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy requires an approved capability inventory and exact compilation context",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fa74bba97328439e537b0e80be251aedfc651eeb0c60119f3b95ba495f7aeb25",
+      "fixes": [],
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Compiler:-Wsign-compare",
+       "path": "src/noted.cpp",
+       "start_column": 31,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wsign-compare",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fe43a2b44d1c5e1771964196fa5fdcc23e0c3b7fdf8d85b47a9fffb3b104738f",
+      "fixes": [],
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax",
+       "path": "src/broken.cpp",
+       "start_column": 12,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
     "status": "FAIL",
     "summary": "1 Errors, 7 Warnings Found",
     "targets": [
@@ -491,6 +1969,248 @@
    "fixture": "lint-fixture",
    "frozen": {
     "evidence": "ESTIMATED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:20e3d5a702c82650bce071e19b795204189345742db27f35f286951bbbadf460",
+      "fixes": [],
+      "message": "warning: 'int retired()' is deprecated: use noted",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 31,
+       "end_line": 13,
+       "label": "Compiler:-Wdeprecated-declarations",
+       "path": "src/noted.cpp",
+       "start_column": 30,
+       "start_line": 13
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wdeprecated-declarations",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:a0041bf0aea4a25ab85146e71e7f7f562d22d15a1a246c95d92f522726c6c30a",
+      "fixes": [],
+      "message": "note: declared here",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 39,
+       "end_line": 11,
+       "label": "C++Syntax",
+       "path": "src/noted.cpp",
+       "start_column": 33,
+       "start_line": 11
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:ca9765a80c3dc19bba38b6f9bdadebcf30bfc83ead331c512da6012c95e83435",
+      "fixes": [],
+      "message": "warning: unused variable 'unused_value'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 20,
+       "end_line": 4,
+       "label": "Compiler:-Wunused-variable",
+       "path": "src/broken.cpp",
+       "start_column": 9,
+       "start_line": 4
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wunused-variable",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fa74bba97328439e537b0e80be251aedfc651eeb0c60119f3b95ba495f7aeb25",
+      "fixes": [],
+      "message": "warning: comparison of integer expressions of different signedness: 'int' and 'unsigned int'",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 37,
+       "end_line": 5,
+       "label": "Compiler:-Wsign-compare",
+       "path": "src/noted.cpp",
+       "start_column": 31,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "-Wsign-compare",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "correctness",
+      "confidence": "medium",
+      "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+      "fingerprint": "sha256:fe43a2b44d1c5e1771964196fa5fdcc23e0c3b7fdf8d85b47a9fffb3b104738f",
+      "fixes": [],
+      "message": "error: 'missing_symbol' was not declared in this scope",
+      "metrics": {},
+      "primary_location": {
+       "end_column": 25,
+       "end_line": 5,
+       "label": "C++Syntax",
+       "path": "src/broken.cpp",
+       "start_column": 12,
+       "start_line": 5
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "FAIL",
     "summary": "1 Errors, 7 Warnings Found",
     "targets": [
@@ -578,6 +2298,218 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:4281b29326338e0fc9f3de515f54f2be262df09dd530b6260f8cb7b773b9446d",
+      "fixes": [],
+      "message": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/tidy.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyExecutionError",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:500b199c19f5d6c2184376eac0848705f5979adb990843c921db6aaf3454a864",
+      "fixes": [],
+      "message": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/qt.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyExecutionError",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:6d9204326c73cd24c2b0deb4cd772be3bd95b9e00e68da89a1a72b64f964366d",
+      "fixes": [],
+      "message": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/clean.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyExecutionError",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "ERROR",
     "summary": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/clean.cpp; clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/qt.cpp; clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/tidy.cpp",
     "targets": [
@@ -653,6 +2585,218 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:43fadc4e34c0cb177c54cf7934a1c34f40b2c03925f1f628bd96d10da2c2260f",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:9e8f919012b29203834360dae7db0d03cad473dd1f9247b678998111e3a0fb1c",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fb8b41d5b3cd7d4c125b702d1de5a58916eacf7dc2710ac024495c01fd6048f0",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "WARN",
     "summary": "clang-tidy is unavailable or incompletely probed",
     "targets": [
@@ -728,6 +2872,158 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "ERROR",
     "summary": "clazy is unavailable or incompletely probed",
     "targets": [
@@ -787,6 +3083,218 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:4281b29326338e0fc9f3de515f54f2be262df09dd530b6260f8cb7b773b9446d",
+      "fixes": [],
+      "message": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/tidy.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyExecutionError",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:500b199c19f5d6c2184376eac0848705f5979adb990843c921db6aaf3454a864",
+      "fixes": [],
+      "message": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/qt.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyExecutionError",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:6d9204326c73cd24c2b0deb4cd772be3bd95b9e00e68da89a1a72b64f964366d",
+      "fixes": [],
+      "message": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/clean.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyExecutionError",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "ERROR",
     "summary": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/clean.cpp; clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/qt.cpp; clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/tidy.cpp",
     "targets": [
@@ -862,6 +3370,158 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "WARN",
     "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed",
     "targets": [
@@ -918,6 +3578,158 @@
    "fixture": "lint-tidy",
    "frozen": {
     "evidence": "ESTIMATED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an exact compilation database",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:9507298e1149fd8a1dba327a811e9ac22af9eff2540e2a593e16a800c69ed476",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:ef12db1f496302dd40153b36954f569ad8228b2df11a6b2f8d3bf0d798420516",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "WARN",
     "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy requires an exact compilation database",
     "targets": [
@@ -978,6 +3790,325 @@
    "frozen": {
     "built": false,
     "evidence": "MEASURED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:28af2f7e523a82a0433bd33581f13c1028fb65925b0744629e4b3e85efbca3a6",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:43fadc4e34c0cb177c54cf7934a1c34f40b2c03925f1f628bd96d10da2c2260f",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "exact",
+      "explanation": "clang-tidy diagnostic.",
+      "fingerprint": "sha256:608a13c3588c66f8b732be9c1d6d8205748aa9ab8b10b556999622ea3bf3a6f3",
+      "fixes": [],
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:performance-unnecessary-value-param",
+       "path": "src/tidy.cpp",
+       "start_column": 41,
+       "start_line": 3
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "performance-unnecessary-value-param",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:9e8f919012b29203834360dae7db0d03cad473dd1f9247b678998111e3a0fb1c",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:b672038d92797f34cc3d7bc5ad185610cb5dd96ea4e8579ff5860bbae84b08c1",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Clang Static Analyzer diagnostic.",
+      "fingerprint": "sha256:c9abbbefde6490535139338035eca51d673526adbeaa9afc27d4babd0719c4e7",
+      "fixes": [],
+      "message": "warning: Division by zero",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangAnalyzer:clang-analyzer-core.DivideZero",
+       "path": "src/tidy.cpp",
+       "start_column": 18,
+       "start_line": 7
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "note: 'zero' initialized to 0",
+        "path": "src/tidy.cpp",
+        "start_column": 5,
+        "start_line": 6
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "note: Division by zero",
+        "path": "src/tidy.cpp",
+        "start_column": 18,
+        "start_line": 7
+       }
+      ],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "clang-analyzer-core.DivideZero",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fb8b41d5b3cd7d4c125b702d1de5a58916eacf7dc2710ac024495c01fd6048f0",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "WARN",
     "summary": "0 Errors, 2 Warnings Found",
     "targets": [
@@ -1078,6 +4209,505 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:0a99587fe921f8a2712ae355fd6e52a6ac19c38afb6c9a2b5c66bcbdb7c3f268",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:1f9f9d4835b3",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:1f9f9d4835b3",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "compatibility",
+      "confidence": "high",
+      "explanation": "Qt major compatibility could not be proved from a successful exact compile replay.",
+      "fingerprint": "sha256:1999d933807921c45dafc8886ad91d870236c4a7814de65b91e7014c5b1d70c2",
+      "fixes": [],
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtCompatibility:UnknownMajor",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.qt.compatibility",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:4a202438ab11844d002af21fde71726f5bfc45c06d806019a3559c3308f63c4d",
+      "fixes": [],
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtCompatibility:UnknownMajor",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "QtCompatibility:UnknownMajor",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:4f516c07f51ba86ea3ce2b4c591be005881a6fb734699c3b0102acd69346d886",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:60c08aaf72fd",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:60c08aaf72fd",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "exact",
+      "explanation": "clang-tidy diagnostic.",
+      "fingerprint": "sha256:608a13c3588c66f8b732be9c1d6d8205748aa9ab8b10b556999622ea3bf3a6f3",
+      "fixes": [],
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:performance-unnecessary-value-param",
+       "path": "src/tidy.cpp",
+       "start_column": 41,
+       "start_line": 3
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "performance-unnecessary-value-param",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:78942bff3dd511fb3ecd7b488886203a5e99bdbe7768384382f19433aa5bf146",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:53b4219812e7",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:53b4219812e7",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:895d3d0c7834e1773ebc8ab2789c4c981aad305022a2f784fd770f7409ed74e7",
+      "fixes": [],
+      "message": "clazy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:53b4219812e7",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "Clazy:53b4219812e7",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "exact",
+      "explanation": "Qt-aware clazy diagnostic.",
+      "fingerprint": "sha256:960e164cfc8275ef6a43406a343efe4a43ed5f8002273038cbd8f7d0495ffc79",
+      "fixes": [],
+      "message": "warning: qgetenv().isEmpty() allocates. Use qEnvironmentVariableIsEmpty() instead",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "Clazy:clazy-qgetenv",
+       "path": "src/qt.cpp",
+       "start_column": 28,
+       "start_line": 3
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clazy",
+      "tool_rule_id": "clazy-qgetenv",
+      "tool_version": "clazy version 1.17"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:978034de02808bb4b9bb476589e19fee17a1c1dff4650b469cbc30d1cacc8113",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:53b4219812e7",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:53b4219812e7",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:ae3e1297bacbca6c680786ff5ce2a44ace55d0ccc5f87f0c67cbe52dfc3f3909",
+      "fixes": [],
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtCompatibility:UnknownMajor",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "QtCompatibility:UnknownMajor",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "compatibility",
+      "confidence": "high",
+      "explanation": "Qt major compatibility could not be proved from a successful exact compile replay.",
+      "fingerprint": "sha256:b986a94f67a1149ace3ae95e516f772de0619b33e30a090b720bc45e8b393297",
+      "fixes": [],
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtCompatibility:UnknownMajor",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.qt.compatibility",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Clang Static Analyzer diagnostic.",
+      "fingerprint": "sha256:c9abbbefde6490535139338035eca51d673526adbeaa9afc27d4babd0719c4e7",
+      "fixes": [],
+      "message": "warning: Division by zero",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangAnalyzer:clang-analyzer-core.DivideZero",
+       "path": "src/tidy.cpp",
+       "start_column": 18,
+       "start_line": 7
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "note: 'zero' initialized to 0",
+        "path": "src/tidy.cpp",
+        "start_column": 5,
+        "start_line": 6
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "note: Division by zero",
+        "path": "src/tidy.cpp",
+        "start_column": 18,
+        "start_line": 7
+       }
+      ],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "clang-analyzer-core.DivideZero",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d43538404e303774e3839838bf7f45bb373bed139a446ff1573beeaadfd83aa2",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:1f9f9d4835b3",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:1f9f9d4835b3",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:dd6dbc9ea3d985a6ca9cae1b6900d0b8a8d3b2a4afe7c6941c6406e0e5f7667d",
+      "fixes": [],
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtCompatibility:UnknownMajor",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "QtCompatibility:UnknownMajor",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "compatibility",
+      "confidence": "high",
+      "explanation": "Qt major compatibility could not be proved from a successful exact compile replay.",
+      "fingerprint": "sha256:f5d51c70328cf5c514f3433e7eef6a27cbb23058cbf25a9b798ba007ca6184e2",
+      "fixes": [],
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtCompatibility:UnknownMajor",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.qt.compatibility",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fab61bf2d9e989066dfbdd8dd614e963ffc11cc137d7663c4238bdd6c7dd25d9",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:60c08aaf72fd",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:60c08aaf72fd",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "WARN",
     "summary": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.; Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
     "targets": [
@@ -1202,6 +4832,158 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "WARN",
     "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed",
     "targets": [
@@ -1261,6 +5043,265 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:28af2f7e523a82a0433bd33581f13c1028fb65925b0744629e4b3e85efbca3a6",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "exact",
+      "explanation": "clang-tidy diagnostic.",
+      "fingerprint": "sha256:608a13c3588c66f8b732be9c1d6d8205748aa9ab8b10b556999622ea3bf3a6f3",
+      "fixes": [],
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:performance-unnecessary-value-param",
+       "path": "src/tidy.cpp",
+       "start_column": 41,
+       "start_line": 3
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "performance-unnecessary-value-param",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:b672038d92797f34cc3d7bc5ad185610cb5dd96ea4e8579ff5860bbae84b08c1",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "correctness",
+      "confidence": "exact",
+      "explanation": "Clang Static Analyzer diagnostic.",
+      "fingerprint": "sha256:c9abbbefde6490535139338035eca51d673526adbeaa9afc27d4babd0719c4e7",
+      "fixes": [],
+      "message": "warning: Division by zero",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangAnalyzer:clang-analyzer-core.DivideZero",
+       "path": "src/tidy.cpp",
+       "start_column": 18,
+       "start_line": 7
+      },
+      "related_locations": [
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "note: 'zero' initialized to 0",
+        "path": "src/tidy.cpp",
+        "start_column": 5,
+        "start_line": 6
+       },
+       {
+        "end_column": null,
+        "end_line": null,
+        "label": "note: Division by zero",
+        "path": "src/tidy.cpp",
+        "start_column": 18,
+        "start_line": 7
+       }
+      ],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "clang-analyzer-core.DivideZero",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "medium",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "WARN",
     "summary": "clazy is unavailable or incompletely probed",
     "targets": [
@@ -1344,6 +5385,218 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:28af2f7e523a82a0433bd33581f13c1028fb65925b0744629e4b3e85efbca3a6",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:2b231cdcdbe2d334fefbc0af7035257cd3db7ed67583df1e8d23d2b888c1b777",
+      "fixes": [],
+      "message": "No exact translation-unit command covers this production source.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextMissing",
+       "path": "src/noted.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:4001845b8da56bf31f7f4b7f61973d63250b14be25d9d28587cbe66c6fd04f82",
+      "fixes": [],
+      "message": "No exact translation-unit command covers this production source.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextMissing",
+       "path": "src/broken.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:729678ed660626d82db7d306994257f0634b3a697cda2811ad22b111df52897d",
+      "fixes": [],
+      "message": "No exact translation-unit command covers this production source.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyContextMissing",
+       "path": "src/noted.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d72d34216bff1614ce3c4527a93b9641bab7eab2082d8628fc5a321772fef550",
+      "fixes": [],
+      "message": "No exact translation-unit command covers this production source.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyContextMissing",
+       "path": "src/broken.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "ERROR",
     "summary": "Compilation context is missing 2 production source command(s); clang-tidy context is missing 2 production source command(s)",
     "targets": [
@@ -1416,6 +5669,158 @@
    "fixture": "lint-tidy",
    "frozen": {
     "evidence": "NOT_RUN",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:19bf0251eb3b193421e44eadb750ac7fee247f0d8c941afca2b40bb24deb69ed",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+      "fixes": [],
+      "message": "clang-tidy requires an exact compilation database",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:9507298e1149fd8a1dba327a811e9ac22af9eff2540e2a593e16a800c69ed476",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+      "fixes": [],
+      "message": "clazy is unavailable or incompletely probed",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyUnavailable",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:ef12db1f496302dd40153b36954f569ad8228b2df11a6b2f8d3bf0d798420516",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:fallback",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:fallback",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
     "status": "ERROR",
     "summary": "clang-tidy requires an exact compilation database",
     "targets": [
