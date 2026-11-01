@@ -90,7 +90,19 @@ fn legacy_comment_bodies_equal_the_frozen_single_and_multi_project_layouts() {
 fn unreadable_suites_and_inconsistent_baselines_render_like_the_frozen_loader() {
     let oracle = oracle();
     let cases = oracle["negative"].as_object().unwrap();
-    assert_eq!(cases.len(), 7);
+    // 7 loader cases plus 16 frozen parse_baseline_summary faults (15 dropped, 1 escaped).
+    assert_eq!(cases.len(), 23);
+    for (name, expected) in cases
+        .iter()
+        .filter(|(name, _)| name.starts_with("baseline-"))
+    {
+        let kept = expected.as_str().unwrap().contains("Baseline delta");
+        assert_eq!(
+            kept,
+            name.as_str() == "baseline-multiline-warning",
+            "{name}"
+        );
+    }
     for (name, expected) in cases {
         let suite = legacy_comment::suite(&oracle["negative_suites"][name]);
         assert_eq!(
