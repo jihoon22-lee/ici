@@ -30,6 +30,16 @@
 
 ### 변경
 
+- 레거시 `ici publish`/`verify --publish`가 v0.13.0처럼 GitHub Actions 밖이나 저장소/토큰이 없을 때 건너뛰고
+  (종료 코드 0), 페이지 누락·업로드·댓글 실패만 `[publish] …` 메시지와 종료 코드 1로 알립니다.
+  `verify --publish`는 검증 종료 코드를 바꾸지 않습니다.
+- `verify --github-summary`가 v0.13.0의 GitHub 요약 레이아웃(상태/TEM 헤더, 엔진 표, 도구 스냅샷, baseline 변화,
+  이슈 그룹, 엔진별 최대 100행의 대상/관련 위치, 실패 발췌)을 900,000바이트 한도로 덧붙입니다.
+- `ici next plan`/`ici analyze --plan`이 root/scope 안내를 출력하고(`--json`에서는 stderr), `[workspace]` 루트의
+  레거시 엔진 명령은 v0.13.0처럼 실행 전에 거부합니다(종료 코드 2).
+- `tests/`가 없는 Python 프로젝트의 레거시 `ici test`가 인터프리터 없이도 v0.13.0의 "No tests collected" FAIL
+  대상을 보고합니다. 저장된 실행 결과의 SARIF에는 v0.13.0의 필드(digest, 범위, gate, 제한 사항, 결과별 속성)를
+  함께 기록합니다.
 - `ici analyze` 텍스트 출력이 v0.13.0과 같은 root/scope 안내, 판정, 사유, baseline, `saved` 형식을 따르며,
   `--json`에서는 안내를 stderr로 보냅니다. 저장 경로 뒤에 HTML 경로와 최대 5개의 결과 미리보기를 덧붙입니다.
 - `[workspace]` 설정 루트의 `ici verify`가 v0.13.0처럼 next 경로로 실행되고, stable 전용 옵션은 같은 목록으로
