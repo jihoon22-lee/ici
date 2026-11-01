@@ -86,7 +86,20 @@ fn write_inputs(root: &Path, oracle: &Value, case: &Value, markers: &[(String, S
 }
 
 fn run(oracle: &Value, case: &Value, markers: &[(String, String)], path: &str) -> Value {
+    run_at(oracle, case, markers, path, false)
+}
+
+/// `via_link` dispatches through a symlink to the project directory, so the CLI working
+/// directory and the resolved project root are different paths.
+fn run_at(
+    oracle: &Value,
+    case: &Value,
+    markers: &[(String, String)],
+    path: &str,
+    via_link: bool,
+) -> Value {
     let root = tempfile::tempdir().unwrap();
+    let links = tempfile::tempdir().unwrap();
     copy_tree(
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity-fixtures/cpp/qt-codegen"),
         root.path(),
@@ -104,7 +117,14 @@ fn run(oracle: &Value, case: &Value, markers: &[(String, String)], path: &str) -
     let command = case["command"].as_str().unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
     let environment = BTreeMap::from([("PATH".to_string(), path.to_owned())]);
-    let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
+    let cwd = if via_link {
+        let link = links.path().join("project");
+        std::os::unix::fs::symlink(root.path(), &link).unwrap();
+        link
+    } else {
+        root.path().to_path_buf()
+    };
+    let output = commands::dispatch(&invocation, &cwd, &environment).unwrap();
     let report: Value = serde_json::from_slice(
         &fs::read(root.path().join(format!("{command}_report.json"))).unwrap(),
     )
@@ -195,4 +215,41 @@ fn legacy_qt_codegen_and_major_evidence_match_frozen_lint_targets_and_findings()
         }
     }
     assert!(mismatches.is_empty(), "{mismatches:?}");
+}
+
+/// Frozen `_qt_codegen.py:876` (`QtCodegenContextError`, "analysis context belongs to another
+/// project root") is a CLI-unreachable branch: frozen `engines/verify.py` builds the analysis
+/// context and the lint engine from the same project root. The native request has a single
+/// `QtCodegenRequest::root` and `QtContext` carries no root of its own, so no mismatch can be
+/// constructed; this fixture also dispatches through a symlinked working directory (the only
+/// way two spellings of one root reach the CLI) and still equals the frozen direct capture.
+#[test]
+#[ignore = "explicit actual g++ and Qt 5/6 headers: ICI_TEST_CXX (the oracle g++), ICI_TEST_QMAKE and ICI_TEST_QMAKE6 (QT_INSTALL_HEADERS); /usr/bin must lack clang-tidy/clazy-standalone"]
+fn legacy_qt_codegen_through_a_symlinked_root_never_reports_a_foreign_context_root() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/qt-codegen-oracle.json"
+    ))
+    .unwrap();
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
+    let markers = vec![
+        (
+            "{qt5}".to_owned(),
+            query("ICI_TEST_QMAKE", "QT_INSTALL_HEADERS"),
+        ),
+        (
+            "{qt6}".to_owned(),
+            query("ICI_TEST_QMAKE6", "QT_INSTALL_HEADERS"),
+        ),
+    ];
+    let directory = Path::new(&compiler).parent().unwrap().display().to_string();
+    let path = format!("{directory}:/usr/bin:/bin");
+    for name in ["qt5-linked", "qt6-linked", "qt-context-error"] {
+        let case = &oracle["cases"][name];
+        let actual = run_at(&oracle, case, &markers, &path, true);
+        assert!(
+            !actual.to_string().contains("QtCodegenContextError"),
+            "{name}: {actual}"
+        );
+        assert_eq!(actual, case["frozen"], "{name}");
+    }
 }

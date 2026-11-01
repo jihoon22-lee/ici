@@ -1,6 +1,7 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
 mod config_scope;
 mod fallback;
+mod legacy_syntax;
 mod legacy_tests;
 mod legacy_tooling;
 mod linker;
@@ -78,8 +79,12 @@ pub struct CppPlans {
     /// Legacy lint syntax units: the component's units plus Qt generated `moc_*` / `qrc_*` /
     /// `mocs_compilation.cpp` units of the database (frozen `_cpp_lint._selected_units`).
     legacy_syntax_units: BTreeMap<String, Vec<CompilationUnit>>,
-    /// Legacy `cpp.diagnostics` tasks whose compilation context has error diagnostics.
-    legacy_context_errors: BTreeMap<String, CompilationContext>,
+    /// Legacy `cpp.diagnostics` tasks that stop before any replay (frozen `_run_exact`: error
+    /// context diagnostics, no replayable production unit, the selected-unit budget).
+    legacy_context_errors: BTreeMap<String, legacy_syntax::Terminal>,
+    /// Legacy `cpp.diagnostics` selected units in frozen order with their diagnostic targets
+    /// and replay task (or the error that replaced the replay), by task.
+    legacy_unit_notes: BTreeMap<String, Vec<legacy_syntax::UnitNote>>,
     /// Frozen capability version banners of the legacy lint replay compilers (by path).
     compiler_versions: BTreeMap<String, String>,
 }
@@ -373,30 +378,79 @@ impl CppPlans {
                         },
                     );
                 }
+                let selected = if self.legacy_projection {
+                    // Frozen `load_compilation_context` orders units by (source, directory,
+                    // configuration digest).
+                    let mut units = self.legacy_lint_units(&component.id, &context);
+                    units.sort_by_cached_key(|unit| {
+                        (
+                            unit.source.clone(),
+                            unit.directory.clone(),
+                            legacy_configuration_key(unit),
+                        )
+                    });
+                    units
+                } else {
+                    vec![]
+                };
+                // Frozen `_run_exact`: error context diagnostics, no replayable production
+                // unit or too many selected units stop before any replay.
+                if self.legacy_projection
+                    && (context.database_path.is_some()
+                        || context
+                            .diagnostics
+                            .iter()
+                            .any(|diagnostic| diagnostic.level == "error"))
+                    && let Some(terminal) = legacy_syntax::terminal(&context, selected.len())
+                {
+                    self.legacy_context_errors.insert(id.into(), terminal);
+                    return Some(Work::Internal);
+                }
                 if context.units.is_empty() {
                     return Some(blocked(
                         "no usable recorded compilation units; provide the declared build's compilation database",
                     ));
                 }
-                // Frozen `_run_exact`: an error context diagnostic stops before any replay.
-                if self.legacy_projection
-                    && context
-                        .diagnostics
-                        .iter()
-                        .any(|diagnostic| diagnostic.level == "error")
-                {
-                    self.legacy_context_errors
-                        .insert(id.into(), context.clone());
-                    return Some(Work::Internal);
-                }
+                let mut notes = vec![];
                 let units = if self.legacy_projection {
-                    let units = self.legacy_lint_units(&component.id, &context);
+                    // Frozen per-unit order: the unit's diagnostics, then its replay unless
+                    // one is an error or the replay command is rejected.
+                    let mut replayed = vec![];
+                    for unit in selected {
+                        let (before, error) = legacy_syntax::unit_targets(&unit);
+                        let replay = match error {
+                            Some(error) => Err((None, error)),
+                            None => match self.compiler(project, &unit, environment) {
+                                Err(reason) => return Some(blocked(reason)),
+                                Ok(tool) => match ici_cpp::replay_command(
+                                    &project.root,
+                                    &unit,
+                                    &tool.path,
+                                    ReplayPurpose::Diagnostics,
+                                ) {
+                                    Ok(_) => Ok(format!("{id}.unit{}", replayed.len())),
+                                    Err(error) => {
+                                        let (target, message) =
+                                            legacy_syntax::replay_error(&unit, &error);
+                                        Err((Some(target), message))
+                                    }
+                                },
+                            },
+                        };
+                        if replay.is_ok() {
+                            replayed.push(unit);
+                        }
+                        notes.push(legacy_syntax::UnitNote { before, replay });
+                    }
                     self.legacy_syntax_units
-                        .insert(component.id.clone(), units.clone());
-                    units
+                        .insert(component.id.clone(), replayed.clone());
+                    replayed
                 } else {
                     context.units.clone()
                 };
+                if self.legacy_projection {
+                    self.legacy_unit_notes.insert(id.into(), notes);
+                }
                 let mut providers = vec![];
                 for (index, unit) in units.iter().enumerate() {
                     let tool = match self.compiler(project, unit, environment) {
@@ -462,6 +516,9 @@ impl CppPlans {
                         Ok(provider) => provider,
                         Err(error) => return Some(blocked(error.to_string())),
                     };
+                    if self.legacy_projection {
+                        legacy_syntax_limits(&mut provider.task);
+                    }
                     provider.scope_complete = false;
                     provider.limitations.push(
                         "compiler header/module dependency closure has not been proven reusable"
@@ -872,7 +929,8 @@ impl CppPlans {
         if context.units.is_empty() {
             return Err("clang tooling requires usable recorded compilation units".into());
         }
-        if context.units.len() > 2048 {
+        // Legacy: unresolvable clang tools are reported unavailable whatever the unit count.
+        if context.units.len() > 2048 && !self.legacy_projection {
             return Err("clang tooling exceeds 2048 selected compilation units".into());
         }
         let mut selected = vec![];
@@ -950,6 +1008,9 @@ impl CppPlans {
             self.preparation_failures
                 .insert(id.into(), legacy_tooling_unavailable(id, &missing));
             return Ok(Work::Internal);
+        }
+        if context.units.len() > 2048 {
+            return Err("clang tooling exceeds 2048 selected compilation units".into());
         }
         if selected.is_empty() {
             return Err("clang-tidy and Clazy are disabled or unavailable".into());
@@ -1562,12 +1623,21 @@ pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
 
 /// Frozen `compile_db` configuration identity of one recorded unit (`canonical_digest` of the
 /// recorded directory, argv and output; first 12 hex digits).
-fn legacy_configuration_digest(unit: &CompilationUnit) -> Option<String> {
-    let canonical = ici_domain::canonical_json(
+/// Internal target metric carrying a replayed unit's frozen configuration digest to the lint
+/// projection; removed before the target is reported.
+const LEGACY_CONFIGURATION: &str = "ici.legacy_configuration";
+
+fn legacy_configuration_key(unit: &CompilationUnit) -> String {
+    ici_domain::canonical_json(
         &json!({"directory":unit.directory,"argv":unit.argv,"output":unit.output}),
     )
-    .ok()?;
-    Some(ici_domain::sha256(canonical).trim_start_matches("sha256:")[..12].to_string())
+    .map(ici_domain::sha256)
+    .unwrap_or_default()
+}
+
+fn legacy_configuration_digest(unit: &CompilationUnit) -> Option<String> {
+    let key = legacy_configuration_key(unit);
+    (!key.is_empty()).then(|| key.trim_start_matches("sha256:")[..12].to_string())
 }
 
 /// Frozen `_unavailable` targets of clang-tidy and Clazy in a legacy lint run.
@@ -1608,6 +1678,19 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
         available.evidence = ici_domain::EvidenceLevel::Estimated;
         output.observation.measurements.push(available);
     }
+    // Frozen `_ready_tool` records the unavailable tool as evidence without a command.
+    output.extra["tool_evidence"] = json!(
+        unavailable
+            .iter()
+            .filter(|(_, message, _)| message.ends_with("is unavailable or incompletely probed"))
+            .map(|(label, _, _)| json!({
+                "name": if *label == "ClazyUnavailable" { "clazy" } else { "clang-tidy" },
+                "path": "", "argv": [], "version": "", "returncode": null,
+                "error": "tool not found or capability probe incomplete; no command was executed",
+                "timed_out": false, "truncated": false,
+            }))
+            .collect::<Vec<_>>()
+    );
     for (label, message, required) in unavailable {
         output.observation.limitations.push(message.clone());
         let mut target = InspectionTarget::at(".", 1);
@@ -1660,11 +1743,14 @@ pub fn legacy_fallback_lint(
             let mut clean = target.clone();
             // Frozen `_evaluate_process`: the clean unit is named by its configuration digest,
             // `fallback` when no compilation database recorded one.
+            let own = clean.metrics.remove(LEGACY_CONFIGURATION);
             clean.target_name = format!(
                 "C++Syntax:{}",
-                configurations
-                    .and_then(|items| items.get(&target.file_path))
-                    .map_or("fallback", String::as_str)
+                own.as_ref()
+                    .and_then(Value::as_str)
+                    .unwrap_or_else(|| configurations
+                        .and_then(|items| items.get(&target.file_path))
+                        .map_or("fallback", String::as_str))
             );
             clean.message = "Compiler syntax analysis completed without diagnostics.".into();
             targets.push(clean);
@@ -1745,6 +1831,13 @@ pub fn legacy_fallback_lint(
 /// a timed-out, truncated, unparseable or exit-inconsistent run becomes one
 /// `C++SyntaxExecutionError` target for its source and a LintEngine tool error. Returns the
 /// frozen error message after replacing the unit output; a cancelled run is left untouched.
+/// Frozen `_cpp_lint` per-unit process limits: `_TIMEOUT_SECONDS` (120 s) and
+/// `_OUTPUT_CHARS` (1,000,000 bytes captured per stream, `core/runner._BoundedCapture`).
+pub(crate) fn legacy_syntax_limits(task: &mut TaskSpec) {
+    task.timeout_seconds = Some(120.0);
+    task.output_limit_bytes = Some(1_000_000);
+}
+
 pub(crate) fn legacy_syntax_execution_error(
     output: &mut AnalysisOutput,
     outcome: &ici_execution::TaskOutcome,
@@ -1811,56 +1904,10 @@ pub(crate) fn legacy_syntax_execution_error(
 /// Frozen `compile_db._RowError` messages for the row-shape codes; other codes keep the
 /// native message.
 pub(crate) fn legacy_context_message(code: &str, message: &str) -> String {
-    let frozen = match code {
-        "invalid-entry" => "A compilation database entry is not an object.",
-        "missing-file" => "A compilation database entry has no file field.",
-        "missing-directory" if message.contains("field") => {
-            "A compilation database entry has no directory field."
-        }
-        "missing-directory" => "The compilation working directory does not exist.",
-        "invalid-file" => "The compilation file field is not a string.",
-        "invalid-directory" => "The compilation directory field is not a string.",
-        "directory-outside-project" => "The compilation working directory is outside the project.",
-        "source-outside-project" => "The compilation source resolves outside the project.",
-        "invalid-source-path" => "The compilation source does not identify a file path.",
-        "stale-source" => "The compilation source no longer exists.",
-        _ => message,
-    };
-    format!("{code}: {frozen}")
-}
-
-/// Frozen `_run_exact` with error context diagnostics: one `C++SyntaxContextDiagnostic` per
-/// context diagnostic (ERROR/WARN/PASS by level) and the LintEngine tool error, no replay.
-fn legacy_context_error_output(
-    request: &AnalysisRequest,
-    context: &CompilationContext,
-) -> AnalysisOutput {
-    let mut output = AnalysisOutput::new(&request.task_id, "compiler");
-    for diagnostic in &context.diagnostics {
-        let path = if diagnostic.source.is_empty() {
-            context.database_path.as_deref().unwrap_or(".")
-        } else {
-            &diagnostic.source
-        };
-        let mut target = InspectionTarget::at(path, 1);
-        target.target_name = "C++SyntaxContextDiagnostic".into();
-        target.status = match diagnostic.level.as_str() {
-            "error" => "ERROR",
-            "warning" => "WARN",
-            _ => "PASS",
-        }
-        .into();
-        target.message = legacy_context_message(&diagnostic.code, &diagnostic.message);
-        output.targets.push(target);
-    }
-    output.observation.state = TaskState::Succeeded;
-    output.extra["legacy_replayed_sources"] = json!([]);
-    output.extra["concrete_tasks"] = json!([]);
-    legacy_record_syntax_errors(
-        &mut output,
-        vec!["Compilation context contains error diagnostics".into()],
-    );
-    output
+    format!(
+        "{code}: {}",
+        ici_cpp::legacy_diagnostic_message(code, message)
+    )
 }
 
 /// Appends frozen syntax execution errors after the context errors already recorded.
@@ -2866,6 +2913,15 @@ impl CppPlans {
     }
     pub fn finalize_plan(&self, plan: &mut ici_application::plan::Plan) {
         for planned in &mut plan.checks {
+            // Frozen `_run_exact` stops (context errors, no replayable unit, unit budget) are
+            // lint results of their own; they never wait for the compile_db evidence.
+            if self.legacy_context_errors.contains_key(&planned.task_id)
+                || (self.legacy_projection
+                    && planned.check.id == "cpp.tidy"
+                    && self.preparation_failures.contains_key(&planned.task_id))
+            {
+                planned.check.needs.clear();
+            }
             if self.fallbacks.contains_key(&planned.task_id) {
                 planned.check.needs.clear();
                 plan.limitations.push(format!("{}: legacy c++17 heuristic fallback; ordered pkg-config probes resolve only the declared package flags at execution; no recorded compilation or reusable header closure is claimed",planned.task_id));
@@ -2916,8 +2972,8 @@ impl CppPlans {
         if self.fallbacks.contains_key(&request.task_id) {
             return self.run_fallback(project, component, request, scheduler, cancellation, events);
         }
-        if let Some(context) = self.legacy_context_errors.get(&request.task_id) {
-            return legacy_context_error_output(request, context);
+        if let Some(terminal) = self.legacy_context_errors.get(&request.task_id) {
+            return legacy_syntax::terminal_output(request, terminal);
         }
         if self.linkers.contains_key(&request.task_id) {
             let linker_output =
@@ -3431,7 +3487,7 @@ impl CppPlans {
                     .expect("outcome from declared compiler");
                 let mut output = ici_providers::observe_full(provider, &outcome);
                 if self.legacy_projection && request.check_id == "cpp.diagnostics" {
-                    let source = providers
+                    let unit = providers
                         .iter()
                         .position(|item| item.task.id == outcome.task_id)
                         .and_then(|index| {
@@ -3439,18 +3495,29 @@ impl CppPlans {
                                 .get(&component.id)
                                 .and_then(|units| units.get(index))
                         })
-                        .map(|unit| unit.source.clone());
-                    if let Some(source) = source
+                        .cloned();
+                    if let Some(unit) = &unit
                         && let Some(error) = legacy_syntax_execution_error(
                             &mut output,
                             &outcome,
-                            &source,
+                            &unit.source,
                             provider.task.argv.first().map_or("", String::as_str),
                         )
                     {
-                        syntax_errors.push(error);
+                        syntax_errors.push((outcome.task_id.clone(), error));
                     }
                     legacy_clean_only_without_diagnostics(&mut output);
+                    // Frozen `_evaluate_process` names a clean unit by its own configuration,
+                    // also when one source has several.
+                    if let Some(digest) = unit.as_ref().and_then(legacy_configuration_digest) {
+                        for target in &mut output.targets {
+                            if target.status == "PASS" && target.target_name.is_empty() {
+                                target
+                                    .metrics
+                                    .insert(LEGACY_CONFIGURATION.into(), json!(digest));
+                            }
+                        }
+                    }
                 }
                 // Frozen `_successful_cpp_replays`: an exit-0 syntax replay with parseable output.
                 if self.legacy_projection
@@ -3549,6 +3616,37 @@ impl CppPlans {
                 }
                 return output;
             }
+            if self.legacy_projection
+                && request.check_id == "cpp.diagnostics"
+                && let Some(notes) = self.legacy_unit_notes.get(&request.task_id)
+            {
+                // Frozen unit order: each unit's diagnostic targets precede its replay targets;
+                // a unit that is not replayed keeps its place with its error target, and the
+                // tool errors follow the same order.
+                let mut by_task: BTreeMap<String, AnalysisOutput> = outputs
+                    .into_iter()
+                    .map(|output| (output.observation.task_id.clone(), output))
+                    .collect();
+                let mut errors: BTreeMap<String, String> = syntax_errors.drain(..).collect();
+                outputs = vec![];
+                for note in notes {
+                    match &note.replay {
+                        Ok(task) => {
+                            if let Some(mut output) = by_task.remove(task) {
+                                output.targets.splice(0..0, note.before.iter().cloned());
+                                outputs.push(output);
+                            }
+                            syntax_errors
+                                .extend(errors.remove(task).map(|error| (task.clone(), error)));
+                        }
+                        Err((_, error)) => {
+                            outputs.extend(legacy_syntax::skipped_output(&request.task_id, note));
+                            syntax_errors.push((String::new(), error.clone()));
+                        }
+                    }
+                }
+                outputs.extend(by_task.into_values());
+            }
             let mut output = merge(
                 &request.task_id,
                 if request.check_id == "cpp.tidy" {
@@ -3583,7 +3681,15 @@ impl CppPlans {
             if request.check_id == "cpp.diagnostics" {
                 self.preserve_diagnostic_scope(&component.id, &mut output);
                 if self.legacy_projection {
-                    legacy_record_syntax_errors(&mut output, syntax_errors);
+                    if let Some(context) = self.contexts.get(&component.id) {
+                        output
+                            .targets
+                            .splice(0..0, legacy_syntax::context_targets(context));
+                    }
+                    legacy_record_syntax_errors(
+                        &mut output,
+                        syntax_errors.into_iter().map(|(_, error)| error).collect(),
+                    );
                     // Frozen lint tool evidence: one compiler run per recorded configuration.
                     output.extra["concrete_tasks"] = json!(
                         tasks
@@ -3897,4 +4003,37 @@ pub fn legacy_not_applicable_checks() -> Vec<CheckDefinition> {
         ..type_not_applicable_check()
     })
     .collect()
+}
+
+#[cfg(test)]
+mod context_message_tests {
+    /// The shared `missing-directory` code projects to the two frozen `compile_db` texts from
+    /// the two distinct native messages (ici-cpp `context.rs`): an absent field and a gone cwd.
+    #[test]
+    fn missing_directory_projects_absent_field_and_gone_directory_to_distinct_frozen_texts() {
+        assert_eq!(
+            super::legacy_context_message(
+                "missing-directory",
+                "compile entry has no directory field"
+            ),
+            "missing-directory: A compilation database entry has no directory field."
+        );
+        assert_eq!(
+            super::legacy_context_message("missing-directory", "compile cwd no longer exists"),
+            "missing-directory: The compilation working directory does not exist."
+        );
+        assert_eq!(
+            super::legacy_context_message("missing-file", "compile entry has no file field"),
+            "missing-file: A compilation database entry has no file field."
+        );
+        assert_eq!(
+            super::legacy_context_message("invalid-entry", "compile entry is not an object"),
+            "invalid-entry: A compilation database entry is not an object."
+        );
+        // Codes without a frozen text keep the native message.
+        assert_eq!(
+            super::legacy_context_message("response-file-cycle", "cycle"),
+            "response-file-cycle: cycle"
+        );
+    }
 }

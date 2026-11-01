@@ -438,3 +438,84 @@ fn a_unity_filename_does_not_prove_that_an_unrelated_selected_source_was_compile
     assert_eq!(context.uncovered_sources, ["main.cpp"]);
     assert!(!context.complete());
 }
+/// Shared row-shape codes keep distinct native wording: an absent `directory` field and a
+/// recorded directory that no longer exists both use `missing-directory`, but only the
+/// first says "field" (the legacy projection keys on that word), and the second is a unit
+/// diagnostic rather than a rejected row.
+#[test]
+fn absent_directory_field_and_gone_directory_share_a_code_but_never_a_native_message() {
+    let root = tempfile::tempdir().unwrap();
+    fs::write(root.path().join("main.cpp"), "int value;\n").unwrap();
+    let rejected = |rows: serde_json::Value| {
+        database(root.path(), rows);
+        let context = load_compilation_context(root.path(), &request());
+        assert!(context.units.is_empty(), "{context:?}");
+        // The only row is rejected, so the database is also reported empty.
+        assert_eq!(context.diagnostics.last().unwrap().code, "database-empty");
+        context
+            .diagnostics
+            .iter()
+            .filter(|d| d.entry_index.is_some())
+            .map(|d| {
+                (
+                    d.code.clone(),
+                    d.message.clone(),
+                    d.level.clone(),
+                    d.entry_index,
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(
+        rejected(json!(["g++ -c main.cpp"])),
+        [(
+            "invalid-entry".into(),
+            "compile entry is not an object".into(),
+            "error".into(),
+            Some(0)
+        )]
+    );
+    assert_eq!(
+        rejected(json!([{"directory":root.path(),"arguments":["g++","main.cpp"]}])),
+        [(
+            "missing-file".into(),
+            "compile entry has no file field".into(),
+            "error".into(),
+            Some(0)
+        )]
+    );
+    let field = rejected(json!([{"file":"main.cpp","arguments":["g++","main.cpp"]}]));
+    assert_eq!(
+        field,
+        [(
+            "missing-directory".into(),
+            "compile entry has no directory field".into(),
+            "error".into(),
+            Some(0)
+        )]
+    );
+    // Both absent: the frozen order reports the file field first.
+    assert_eq!(
+        rejected(json!([{"arguments":["g++","main.cpp"]}]))[0].0,
+        "missing-file"
+    );
+    // A recorded directory that is gone keeps the unit with a unit-level diagnostic.
+    database(
+        root.path(),
+        json!([{"directory":root.path().join("gone"),"file":"../main.cpp","arguments":["g++","../main.cpp"]}]),
+    );
+    let gone = load_compilation_context(root.path(), &request());
+    assert!(gone.diagnostics.is_empty(), "{:?}", gone.diagnostics);
+    assert_eq!(gone.units.len(), 1);
+    let unit: Vec<_> = gone.units[0]
+        .diagnostics
+        .iter()
+        .map(|d| (d.code.as_str(), d.message.as_str(), d.level.as_str()))
+        .collect();
+    assert_eq!(
+        unit,
+        [("missing-directory", "compile cwd no longer exists", "error")]
+    );
+    assert!(!unit[0].1.contains("field"));
+    assert!(!field[0].1.contains("no longer exists"));
+}
