@@ -193,7 +193,20 @@ fn plan_selected_preparation(
         "make" => vec![],
         _ => return Err("build system must be cmake, qmake or make".into()),
     } {
-        let tool = resolve(project, environment, name, None, &directory)?;
+        let tool = if name == "qmake"
+            && project.schema_family == ici_config::SchemaFamily::Legacy
+            && !project.tools.contains_key("qmake")
+        {
+            // Frozen `_configure_qmake`: `shutil.which("qmake6") or shutil.which("qmake")`.
+            resolve(project, environment, "qmake6", None, &directory)
+                .map(|mut tool| {
+                    tool.id = "qmake".into();
+                    tool
+                })
+                .or_else(|_| resolve(project, environment, name, None, &directory))?
+        } else {
+            resolve(project, environment, name, None, &directory)?
+        };
         tools.insert(name.into(), tool);
     }
     let make = make_table(project, component);
@@ -207,6 +220,14 @@ fn plan_selected_preparation(
             "Make preparation requires build.make.enabled=true and explicit shell-free argv".into(),
         );
     }
+    // Frozen `prepare_cmake_compilation_context` configures the release analysis database with
+    // `-DCMAKE_UNITY_BUILD=OFF` (cmake.py `analysis_database`); its BuildEngine release build
+    // does not. A legacy release preparation that also publishes release artifacts keeps the
+    // project's own unity setting.
+    let analysis_database = project.schema_family == ici_config::SchemaFamily::Legacy
+        && system == "cmake"
+        && variant == "release"
+        && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true));
     let mut request = BuildRequest {
         id: build_id.clone(),
         system: system.clone(),
@@ -215,6 +236,11 @@ fn plan_selected_preparation(
         jobs: 2,
         ici_binary: Some(ici_binary.into()),
         environment: BTreeMap::new(),
+        extra_cmake_args: if analysis_database {
+            vec!["-DCMAKE_UNITY_BUILD=OFF".into()]
+        } else {
+            vec![]
+        },
         ..Default::default()
     };
     if system == "make" {

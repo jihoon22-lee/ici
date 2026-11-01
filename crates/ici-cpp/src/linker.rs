@@ -56,6 +56,9 @@ pub fn plan_linker_build(root: &Path, request: &BuildRequest) -> Result<BuildPla
     // only ask its declared build to expose function sections and a non-PIE GNU GC link.
     request.extra_cmake_args.extend([
         "-DCMAKE_BUILD_TYPE=Release".into(),
+        // Frozen `_cpp_linker_dead_symbols` configures with `analysis_database=True`: one object
+        // per source, so a unity project cannot merge function sections across sources.
+        "-DCMAKE_UNITY_BUILD=OFF".into(),
         "-DCMAKE_C_FLAGS=-g -ffunction-sections -fno-lto -fno-pie".into(),
         "-DCMAKE_CXX_FLAGS=-g -ffunction-sections -fno-lto -fno-pie".into(),
         "-DCMAKE_EXE_LINKER_FLAGS=-Wl,--gc-sections -Wl,--print-gc-sections -fno-lto -no-pie"
