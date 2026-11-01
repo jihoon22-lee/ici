@@ -190,6 +190,7 @@ fn public_payload_retains_opaque_semantics_duplicates_and_fatal_context_refusal(
         version: "v1.2.3".into(),
         project_type: "cpp".into(),
         generator: Some("Ninja".into()),
+        unity_build: None,
     };
     let mut duplicate = context.clone();
     duplicate.units.push(duplicate.units[0].clone());
@@ -265,6 +266,8 @@ fn frozen_python_v1_compilation_payload_corpus_agrees() {
         version: "v1.2.3".into(),
         project_type: "cpp".into(),
         generator: Some("Ninja".into()),
+        // The frozen corpus contexts declare unity_build=False like a prepared CMake cache.
+        unity_build: Some(false),
     };
     for case in corpus["cases"].as_array().unwrap() {
         let unit: ici_cpp::CompilationUnit = serde_json::from_value(case["unit"].clone()).unwrap();

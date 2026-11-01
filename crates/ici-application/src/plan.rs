@@ -244,12 +244,11 @@ pub fn plan_with_checks(
                 continue;
             }
             let (enabled, mut required) = configured_check(project, component, definition);
-            if request.legacy_profiles
-                && request.checks.is_empty()
-                && legacy_required_omitted(project, component, definition)
-            {
-                // Frozen `ici verify` engines read `cfg.get("required", False)`; only lowers, so
-                // sub-tool checks that are optional natively (cpp.tidy) stay optional.
+            if request.legacy_profiles && legacy_required_omitted(project, component, definition) {
+                // Frozen engines read `cfg.get("required", False)` under `ici verify` and under
+                // their own single-engine command alike (only `ici build` forces its subject,
+                // which then names `required`); only lowers, so sub-tool checks that are
+                // optional natively (cpp.tidy) stay optional.
                 required = false;
             }
             let omitted = if !check_profiles(request, &catalog, definition).contains(&profile) {
@@ -537,10 +536,10 @@ pub fn engine_name(check_id: &str) -> Option<&'static str> {
         "python.resource" | "cpp.resource" => Some("resource"),
         "python.security" | "cpp.security" => Some("security"),
         "python.dead" | "cpp.dead" => Some("dead"),
-        "cpp.compile" => Some("compile_db"),
+        "cpp.compile" | "python.compile-db" => Some("compile_db"),
         "cpp.artifact" | "python.artifact" => Some("build"),
         "cpp.sanitize" | "python.sanitize" => Some("sanitize"),
-        "cpp.tsan" => Some("thread_sanitize"),
+        "cpp.tsan" | "python.tsan" => Some("thread_sanitize"),
         "cpp.binary-compat" | "python.binary-compat" => Some("binary_compat"),
         "integration" => Some("integration"),
         _ => None,

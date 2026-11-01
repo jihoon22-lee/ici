@@ -92,15 +92,42 @@ pub fn analyze_compile_context(
             output.observation.measurements.push(item);
         }
         output.status = if required { "FAIL" } else { "WARN" }.into();
+        // Frozen `CompileDbEngine._result` wording and coverage score for a missing database.
+        let count = |status: &str| {
+            output
+                .targets
+                .iter()
+                .filter(|target| target.status == status)
+                .count()
+        };
         output.summary = format!(
-            "Compilation DB: 0/{} production units covered; no database selected",
-            production.len()
+            "Compilation DB: 0/{} production units covered, 0 configurations, {} failures, {} warnings.",
+            production.len(),
+            count("FAIL"),
+            count("WARN")
         );
+        output.score = Some(0.0);
+        output.max_score = Some(100.0);
         output.extra = json!({"context":context,"database_path":null,"production_units":production.len(),"covered_units":0,"configurations":0,"coverage_percent":0.0});
         return output;
     }
     let required_flags = string_options(&request.options, "required_flags");
     let forbidden_flags = string_options(&request.options, "forbidden_flags");
+    if context.database_path.is_some()
+        && context.complete()
+        && request.options["legacy_projection"]
+            .as_bool()
+            .unwrap_or(false)
+    {
+        return legacy_database_output(
+            output,
+            request,
+            context,
+            &production,
+            &required_flags,
+            &forbidden_flags,
+        );
+    }
     for unit in &context.units {
         let mut target = InspectionTarget::at(&unit.source, 1);
         target.target_name = "CompilationInput".into();
@@ -241,6 +268,225 @@ pub fn analyze_compile_context(
     );
     output
 }
+/// Frozen `CompileDatabaseEngine.run` with a selected database: one coverage target per
+/// production translation unit, the context diagnostics, then per recorded configuration an
+/// inspected target, its diagnostics and the required/forbidden flag violations.
+fn legacy_database_output(
+    mut output: AnalysisOutput,
+    request: &AnalysisRequest,
+    context: &CompilationContext,
+    production: &BTreeSet<String>,
+    required_flags: &[String],
+    forbidden_flags: &[String],
+) -> AnalysisOutput {
+    fn target(path: &str, rule: &str, status: &str, message: &str) -> InspectionTarget {
+        let mut target = InspectionTarget::at(path, 1);
+        target.end_line = Some(1);
+        target.target_name = format!("ici.compile-db.{rule}");
+        target.status = status.into();
+        target.message = message.into();
+        target
+    }
+    fn diagnostic(item: &crate::model::ContextDiagnostic, fallback: &str) -> InspectionTarget {
+        let status =
+            if item.level == "error" || LEGACY_FAIL_DIAGNOSTICS.contains(&item.code.as_str()) {
+                "FAIL"
+            } else if item.level == "warning" {
+                "WARN"
+            } else {
+                "PASS"
+            };
+        let path = if item.source.is_empty() {
+            fallback
+        } else {
+            &item.source
+        };
+        let mut target = target(path, &item.code, status, &item.message);
+        if let Some(index) = item.entry_index {
+            target.metrics.insert("entry_index".into(), json!(index));
+        }
+        target
+    }
+    let configurations = |source: &str| {
+        context
+            .units
+            .iter()
+            .filter(|unit| unit.source == source)
+            .count()
+    };
+    for source in production {
+        let count = configurations(source);
+        let mut item = if count > 0 {
+            target(
+                source,
+                "coverage",
+                "PASS",
+                "Production translation unit is covered by the compilation database.",
+            )
+        } else {
+            target(
+                source,
+                "coverage",
+                "FAIL",
+                "Production translation unit is missing from the compilation database.",
+            )
+        };
+        item.metrics.insert("configurations".into(), json!(count));
+        output.targets.push(item);
+    }
+    let fallback = context.database_path.as_deref().unwrap_or(".");
+    output.targets.extend(
+        context
+            .diagnostics
+            .iter()
+            .map(|item| diagnostic(item, fallback)),
+    );
+    for unit in &context.units {
+        output.targets.push(target(
+            &unit.source,
+            "configuration",
+            "PASS",
+            "Compilation configuration was inspected.",
+        ));
+        output.targets.extend(
+            unit.diagnostics
+                .iter()
+                .map(|item| diagnostic(item, &unit.source)),
+        );
+        for (rule, flags, present, message) in [
+            (
+                "required-flag",
+                required_flags,
+                false,
+                "A required compiler flag is absent from this configuration.",
+            ),
+            (
+                "forbidden-flag",
+                forbidden_flags,
+                true,
+                "A forbidden compiler flag is present in this configuration.",
+            ),
+        ] {
+            for flag in flags
+                .iter()
+                .filter(|flag| unit.argv.contains(flag) == present)
+            {
+                let item = target(&unit.source, rule, "FAIL", message);
+                // The same policy finding identity as the native projection keeps the gate.
+                finding(
+                    &mut output,
+                    request,
+                    &item,
+                    &format!("ici.compile-db.{rule}"),
+                    "high",
+                    false,
+                );
+                let policy = output
+                    .observation
+                    .findings
+                    .last_mut()
+                    .expect("new policy finding");
+                policy.analysis_unit_id = Some(format!(
+                    "{}.cpp:{}",
+                    request.component_id, unit.configuration
+                ));
+                policy.variant = Some(unit.variant.clone());
+                policy.fingerprint = ici_domain::sha256(format!(
+                    "compile-policy:{}:{rule}:{}",
+                    unit.configuration,
+                    ici_domain::sha256(flag)
+                ));
+                output.targets.push(item);
+            }
+        }
+    }
+    let count = |status: &str| {
+        output
+            .targets
+            .iter()
+            .filter(|item| item.status == status)
+            .count()
+    };
+    let (failures, warnings) = (count("FAIL"), count("WARN"));
+    let covered = production
+        .iter()
+        .filter(|source| configurations(source) > 0)
+        .count();
+    let coverage = if production.is_empty() {
+        100.0
+    } else {
+        100.0 * covered as f64 / production.len() as f64
+    };
+    output.status = if failures > 0 {
+        "FAIL"
+    } else if warnings > 0 {
+        "WARN"
+    } else {
+        "PASS"
+    }
+    .into();
+    output.summary = format!(
+        "Compilation DB: {covered}/{} production units covered, {} configurations, {failures} failures, {warnings} warnings.",
+        production.len(),
+        context.units.len()
+    );
+    output.score = Some(coverage);
+    output.max_score = Some(100.0);
+    measurement(
+        &mut output,
+        "compilation_units",
+        context.units.len() as u64,
+        false,
+    );
+    measurement(
+        &mut output,
+        "uncovered_sources",
+        (production.len() - covered) as u64,
+        false,
+    );
+    output.extra = json!({"context":context,"database_path":context.database_path,"production_units":production.len(),"covered_units":covered,"configurations":context.units.len(),"issues_count":failures + warnings,"coverage_percent":coverage});
+    output
+}
+/// Frozen `compile_db._FAIL_DIAGNOSTICS`: context codes that fail regardless of their level.
+const LEGACY_FAIL_DIAGNOSTICS: [&str; 37] = [
+    "database-changed",
+    "database-malformed",
+    "database-missing",
+    "database-not-array",
+    "database-not-file",
+    "database-outside-project",
+    "database-too-large",
+    "database-too-many-entries",
+    "database-unreadable",
+    "directory-outside-project",
+    "foreign-path-syntax",
+    "invalid-arguments",
+    "invalid-command",
+    "invalid-database-setting",
+    "invalid-entry",
+    "invalid-entry-value",
+    "invalid-file",
+    "invalid-path",
+    "invalid-source-path",
+    "missing-command",
+    "missing-directory",
+    "missing-file",
+    "missing-flag-value",
+    "missing-include-dir",
+    "response-file-changed",
+    "response-file-cycle",
+    "response-file-depth",
+    "response-file-invalid",
+    "response-file-malformed",
+    "response-file-missing",
+    "response-file-not-file",
+    "response-file-outside-project",
+    "response-file-too-large",
+    "response-file-unreadable",
+    "source-mismatch",
+    "source-outside-project",
+    "stale-source",
+];
 fn string_options(options: &serde_json::Value, key: &str) -> Vec<String> {
     options[key]
         .as_array()
@@ -1067,7 +1313,7 @@ pub fn analyze_compiler_include_cycles(
         let mut target = InspectionTarget::at(&observation.source, 1);
         target.target_name = "CppIncludeTrace".into();
         target.message =
-            "Compiler include tracing completed for this translation-unit configuration".into();
+            "Compiler include tracing completed for this translation-unit configuration.".into();
         target.metrics = BTreeMap::from([
             ("configuration".into(), json!(observation.configuration)),
             ("resolved_edges".into(), json!(seen.len())),
@@ -1125,9 +1371,27 @@ pub fn analyze_compiler_include_cycles(
     }
     if output.observation.state == TaskState::Succeeded {
         output.status = if cycles.is_empty() { "PASS" } else { "WARN" }.into();
+        // Frozen `CycleEngine` wording for a completed compiler-traced include graph.
+        output.summary = if cycles.is_empty() {
+            "No cyclic dependencies detected".into()
+        } else {
+            format!("Dependency cycles: {} found", cycles.len())
+        };
     }
     measurement(&mut output, "cycles_found", cycles.len() as u64, false);
     output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit)});
+    if request.options["legacy_projection"].as_bool() == Some(true) {
+        // Frozen `CycleEngine` names each trace process "compiler include trace"; adapted legacy
+        // findings take their tool name from the first one. Only the observed compiler path is
+        // recorded: the trace argv and return code are not carried by the observation.
+        let tools: Vec<_> = context
+            .units
+            .iter()
+            .filter(|unit| actual.contains(&(unit.source.clone(), unit.configuration.clone())))
+            .map(|unit| json!({"name":"compiler include trace","path":unit.compiler}))
+            .collect();
+        output.extra["tool_evidence"] = json!(tools);
+    }
     output
 }
 

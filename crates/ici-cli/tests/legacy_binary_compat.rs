@@ -71,11 +71,38 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
         .chain(["/usr/bin".into(), "/bin".into()])
         .collect::<Vec<_>>()
         .join(":");
-    let environment = BTreeMap::from([("PATH".to_string(), path)]);
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 7);
+    assert_eq!(cases.len(), 8);
     for (name, case) in cases {
+        // A case may hide executables: PATH becomes a symlink farm of every other entry.
+        let farm = tempfile::tempdir().unwrap();
+        let hidden: Vec<&str> = case["hidden"]
+            .as_array()
+            .map(|items| items.iter().filter_map(Value::as_str).collect())
+            .unwrap_or_default();
+        let search = if hidden.is_empty() {
+            path.clone()
+        } else {
+            for directory in path.split(':') {
+                let mut entries: Vec<_> = fs::read_dir(directory)
+                    .unwrap()
+                    .map(|entry| entry.unwrap().file_name())
+                    .collect();
+                entries.sort();
+                for entry in entries {
+                    let link = farm.path().join(&entry);
+                    if !hidden.contains(&entry.to_string_lossy().as_ref())
+                        && fs::symlink_metadata(&link).is_err()
+                    {
+                        std::os::unix::fs::symlink(Path::new(directory).join(&entry), link)
+                            .unwrap();
+                    }
+                }
+            }
+            farm.path().display().to_string()
+        };
+        let environment = BTreeMap::from([("PATH".to_string(), search)]);
         let actual = engines(case, base, &environment);
         for (engine, frozen) in case["frozen"].as_object().unwrap() {
             let actual = actual[engine].clone();

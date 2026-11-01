@@ -20,10 +20,11 @@ use std::{
 fn error(value: impl std::fmt::Display) -> CliError {
     CliError(ici_execution::redaction::redact_text(&value.to_string()))
 }
+/// Frozen `compilation_export_cli`: every refusal is `Compilation export error: <reason>`.
 fn failure(value: impl std::fmt::Display, code: i32) -> CommandOutput {
     CommandOutput {
         stderr: format!(
-            "{}\n",
+            "Compilation export error: {}\n",
             ici_execution::redaction::redact_text(&value.to_string())
         ),
         exit_code: code,
@@ -220,6 +221,7 @@ fn metadata(view: &ConfigurationInspection) -> std::result::Result<ExportMetadat
         version: version.unwrap_or_else(|| "v1.0.0".into()),
         project_type,
         generator: None,
+        unity_build: None,
     })
 }
 fn output_path(
@@ -391,15 +393,20 @@ pub fn command(
         )
         .map_err(error)?;
         metadata.backend = Some(plan.build.system.clone());
-        metadata.generator = if plan.build.system == "qmake" {
-            Some("qmake".into())
+        let cache = if plan.build.system == "qmake" {
+            None
         } else {
             read_text(
                 &project.root.join(&plan.build.shadow).join("CMakeCache.txt"),
                 4 * 1024 * 1024,
             )
             .map_err(error)?
-            .and_then(|text| {
+        };
+        metadata.unity_build = cache.as_deref().and_then(export_context::cmake_unity_build);
+        metadata.generator = if plan.build.system == "qmake" {
+            Some("qmake".into())
+        } else {
+            cache.clone().and_then(|text| {
                 text.lines().find_map(|line| {
                     line.strip_prefix("CMAKE_GENERATOR:INTERNAL=")
                         .map(str::to_owned)
@@ -416,6 +423,10 @@ pub fn command(
             return Ok(failure(
                 error,
                 if context.database_digest.is_none()
+                    || context
+                        .diagnostics
+                        .iter()
+                        .any(|item| item.code == "database-malformed")
                     || context.units.is_empty()
                         && !context.diagnostics.iter().any(|item| item.level == "error")
                 {

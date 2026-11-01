@@ -214,12 +214,10 @@ pub(crate) fn analyze(
         target.status = "WARN".into();
         target.message = format!("include cycle: {} -> {}", members.join(" -> "), members[0]);
         finding(output, request, &target, "cycle.include", "medium", true);
-        output
-            .observation
-            .findings
-            .last_mut()
-            .unwrap()
-            .related_locations = members
+        let issue = output.observation.findings.last_mut().unwrap();
+        // Frozen `languages/cycles.py`: a path-suffix include cycle is low-confidence evidence.
+        issue.confidence = "low".into();
+        issue.related_locations = members
             .iter()
             .skip(1)
             .map(|path| SourceSpan::line(path, 1))

@@ -11,7 +11,9 @@ use ici_domain::sha256;
 use ici_execution::{Cancellation, Scheduler};
 use ici_providers::resolver::{ResolvedTool, ToolRequest};
 pub use preparation_failure::{PreparationFailure, PreparationUnavailable};
-pub use public_export::{ExportMetadata, compilation_export_payload, render_compilation_export};
+pub use public_export::{
+    ExportMetadata, cmake_unity_build, compilation_export_payload, render_compilation_export,
+};
 use serde_json::{Value, json};
 use std::{
     collections::BTreeMap,

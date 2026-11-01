@@ -215,9 +215,26 @@ fn modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs() {
         .map(|target| target.start_line)
         .collect::<Vec<_>>();
     // Frozen legacy lines: [3, 4, 10, 17, 22, 25, 27, 32, 37]. Modern: the lambda throw (10) is
-    // not a destructor throw, `~Spec() throw()` (27) is a non-throwing specification, and each
-    // throw statement on lines 4 and 37 is its own located target.
-    assert_eq!(lines, [3, 4, 4, 17, 22, 25, 32, 37, 37]);
+    // not a destructor throw and `~Spec() throw()` (27) is a non-throwing specification. Like
+    // frozen next (`languages/hygiene.py`), each rule reports a source line once, so the two
+    // throws on lines 4 and 37 keep one frozen `hygiene-<path:line:rule:message>` identity.
+    assert_eq!(lines, [3, 4, 17, 22, 25, 32, 37]);
+    for finding in &output.observation.findings {
+        assert!(finding.fingerprint.starts_with("hygiene-"));
+        assert_eq!(finding.primary_location.start_column, None);
+        assert_eq!(finding.primary_location.label, "");
+    }
+    let catch_all = output
+        .observation
+        .findings
+        .iter()
+        .position(|finding| finding.rule_id == "exception.catchallswallowed");
+    // Every destructor throw precedes every catch-all, as frozen orders its line rules.
+    assert!(catch_all.is_none_or(|index| {
+        output.observation.findings[index..]
+            .iter()
+            .all(|finding| finding.rule_id == "exception.catchallswallowed")
+    }));
 }
 #[test]
 fn include_cycles_resolve_direct_paths_and_report_ambiguous_and_self_edges() {

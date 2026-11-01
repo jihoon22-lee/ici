@@ -21,8 +21,9 @@ fn provider(
     unit: &CompilationUnit,
     compiler: &ResolvedTool,
     id: &str,
+    json_diagnostics: bool,
 ) -> Result<ProviderPlan, String> {
-    let replay = ici_cpp::replay_command(
+    let mut replay = ici_cpp::replay_command(
         &project.root,
         unit,
         &compiler.path,
@@ -40,6 +41,11 @@ fn provider(
     request.component_id = Some(component.id.clone());
     request.analysis_unit_ids = vec![unit_id(component, unit)];
     request.variant = Some("legacy-c++17-fallback".into());
+    // Frozen `ici verify` replays the fallback with GCC JSON diagnostics (source ranges);
+    // standalone `ici lint` parses its text diagnostics.
+    if json_diagnostics {
+        replay.argv.push("-fdiagnostics-format=json".into());
+    }
     request.options.compiler_argv = replay.argv;
     request.options.source_token = Some(replay.source.to_string_lossy().into_owned());
     let mut planned = ici_providers::plan(&request).map_err(|error| error.to_string())?;
@@ -121,6 +127,7 @@ impl CppPlans {
                 &unit,
                 &compiler,
                 &format!("{id}.unit{index}"),
+                !self.legacy_standalone,
             )?;
             if !probes.is_empty() {
                 planned.task.argv.push(MARKER.into());
@@ -201,6 +208,7 @@ impl CppPlans {
                 &unit,
                 &plan.compiler,
                 &plan.providers[index].task.id,
+                !self.legacy_standalone,
             ) {
                 Ok(provider) => provider,
                 Err(error) => {

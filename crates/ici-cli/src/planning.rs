@@ -249,10 +249,12 @@ fn prepare_resolved_omitting(
     }
     if crate::legacy::is_legacy(invocation) {
         supplemental.extend(crate::cpp::legacy_not_applicable_checks());
+        supplemental.extend(crate::cpp::legacy_cpp_absent_checks(&project));
     }
     definitions.extend(supplemental.iter().cloned());
     crate::validation::apply_legacy_coverage_defaults(invocation, &mut project);
-    crate::legacy::apply_descriptor_profile(invocation, &mut project, profile);
+    // The legacy descriptor cost profile is applied once, in planning (`check_profiles`), which
+    // omits out-of-profile checks with the honest "not in profile" reason.
     let selected_checks = crate::legacy::select(invocation, &mut project, &definitions);
     let request = RunRequest {
         components: invocation.values("component").to_vec(),
@@ -1357,6 +1359,14 @@ fn legacy_binary_selection(
         return Some(crate::cpp::legacy_binary_compat_unavailable(
             task_id,
             required.then_some("no published executable or shared-library artifacts"),
+        ));
+    }
+    // Frozen `BinaryCompatEngine._readelf`: selected artifacts with no resolvable readelf
+    // raise "readelf capability is unavailable" (ERROR, NOT_RUN) instead of a blocked check.
+    if reason.starts_with("readelf: ") {
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            Some("readelf capability is unavailable"),
         ));
     }
     let unpublished = [

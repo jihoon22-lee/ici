@@ -49,10 +49,26 @@ CASES = {
         "ici.toml": BASE + ENABLE + "required=true\n",
     },
     "unpublished-selection": {"ici.toml": BASE + ENABLE + "artifacts=['release:shadow:nope']\n"},
+    "missing-readelf": {},
 }
+# Executables hidden from PATH per case: PATH becomes a symlink farm of every other entry.
+HIDDEN = {"missing-readelf": ["readelf"]}
 
 
-def run(changes: dict) -> dict:
+def search_path(hidden: list[str]) -> str:
+    directories = [*TOOLS, "/usr/bin", "/bin"]
+    if not hidden:
+        return os.pathsep.join(directories)
+    farm = WORK / "path"
+    farm.mkdir()
+    for directory in directories:
+        for entry in sorted(os.listdir(directory)):
+            if entry not in hidden and not (farm / entry).exists():
+                (farm / entry).symlink_to(Path(directory) / entry)
+    return str(farm)
+
+
+def run(changes: dict, hidden: list[str]) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -65,7 +81,7 @@ def run(changes: dict) -> dict:
             [PYTHON, "-m", "ici", "verify", "--profile", "deep", "--report"],
             cwd=project,
             env={
-                "PATH": os.pathsep.join([*TOOLS, "/usr/bin", "/bin"]),
+                "PATH": search_path(hidden),
                 "HOME": str(WORK),
                 "PYTHONPATH": str(ORACLE / "src"),
             },
@@ -90,7 +106,11 @@ def run(changes: dict) -> dict:
     return engines
 
 
-cases = {name: {"changes": changes, "frozen": run(changes)} for name, changes in CASES.items()}
+cases = {
+    name: {"changes": changes, "frozen": run(changes, HIDDEN.get(name, []))}
+    | ({"hidden": HIDDEN[name]} if name in HIDDEN else {})
+    for name, changes in CASES.items()
+}
 (ROOT / "tests/rust-parity/cpp/binary-compat-oracle.json").write_text(
     json.dumps(
         {"oracle": EXPECTED, "base": BASE + ENABLE, "cases": cases},

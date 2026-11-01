@@ -234,46 +234,6 @@ pub fn select(
     }
     selected.into_iter().collect()
 }
-/// Frozen `apply_analysis_profile`: a historical command disables every engine whose descriptor
-/// is not in the selected cost profile (`--profile`, else the configured `ici.profile`, default
-/// standard), e.g. `verify --profile fast` runs no test or cognitive engine.
-pub fn apply_descriptor_profile(
-    invocation: &Invocation,
-    project: &mut ici_config::ResolvedProject,
-    requested: Option<Profile>,
-) {
-    if !is_legacy(invocation) || project.schema_family != ici_config::SchemaFamily::Legacy {
-        return;
-    }
-    let profile = requested.unwrap_or(project.profile);
-    let excluded: Vec<String> = ici_domain::builtin_catalog()
-        .legacy
-        .into_iter()
-        .filter(|descriptor| !descriptor.profiles.contains(&profile))
-        .map(|descriptor| descriptor.name)
-        .collect();
-    for component in &mut project.components {
-        let Some(settings) = component.settings.as_object_mut() else {
-            continue;
-        };
-        let Some(engines) = settings
-            .entry("engines")
-            .or_insert_with(|| serde_json::json!({}))
-            .as_object_mut()
-        else {
-            continue;
-        };
-        for name in &excluded {
-            if let Some(engine) = engines
-                .entry(name.clone())
-                .or_insert_with(|| serde_json::json!({}))
-                .as_object_mut()
-            {
-                engine.insert("enabled".into(), false.into());
-            }
-        }
-    }
-}
 pub fn individual_profile(invocation: &Invocation) -> Option<Profile> {
     engine(&invocation.command()).map(|_| Profile::Deep)
 }

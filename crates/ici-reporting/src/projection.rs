@@ -384,7 +384,10 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     if checks.len() == 1 {
         if let Some(extra) = check_extra(&checks[0]).as_object() {
             for (key, value) in extra {
-                if key != "native_checks" && key != "target_scopes" && key != "tool_evidence" {
+                if !matches!(
+                    key.as_str(),
+                    "native_checks" | "target_scopes" | "tool_evidence" | "legacy_findings"
+                ) {
                     engine["extra"][key] = value.clone();
                 }
             }
@@ -1134,6 +1137,21 @@ fn normalize_findings(engine: &mut Value) -> Result<()> {
             let native = crate::migration::canonical_finding(&native)?;
             mappings.push(json!({"legacy_fingerprint":native["fingerprint"],"modern_fingerprint":original_fp,"raw_fingerprint":raw_fp,"task_id":task}));
             explicit.push(native);
+        }
+    }
+    // A producer may supply a frozen finding whole when the native observation has no finding
+    // of its own for that historical target (a C++ note in the heuristic lint fallback).
+    for check in engine["extra"]["native_checks"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+    {
+        for finding in check_extra(check)["legacy_findings"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+        {
+            explicit.push(crate::migration::canonical_finding(finding)?);
         }
     }
     let mut by_fingerprint = BTreeMap::<String, std::collections::VecDeque<usize>>::new();

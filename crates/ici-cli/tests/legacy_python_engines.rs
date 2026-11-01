@@ -26,7 +26,7 @@ const SYNTAX_WORDING: [(&str, &str); 2] = [
     ("'(' was never closed", "unexpected EOF while parsing"),
 ];
 
-fn corrected(frozen: &Value) -> Value {
+fn corrected(name: &str, frozen: &Value) -> Value {
     let mut text = serde_json::to_string(frozen).unwrap();
     for (cpython, ruff) in SYNTAX_WORDING {
         text = text.replace(
@@ -35,8 +35,19 @@ fn corrected(frozen: &Value) -> Value {
         );
     }
     let mut value: Value = serde_json::from_str(&text).unwrap();
-    // Accepted exit-code policy: an incomplete legacy run exits 3 where frozen exited 1.
-    if value["exit_code"] == 1 && value["status"] == "ERROR" {
+    // Accepted exit-code policy: an incomplete legacy run exits 3 where frozen exited 1. An
+    // engine frozen does not require by default (`cfg.get("required", False)`) leaves the run's
+    // required scope complete, so its ERROR keeps the frozen exit 1.
+    let optional = [
+        "cognitive",
+        "cycle",
+        "resource",
+        "security",
+        "python-compat",
+    ]
+    .iter()
+    .any(|command| name.split('/').next() == Some(command));
+    if value["exit_code"] == 1 && value["status"] == "ERROR" && !optional {
         value["exit_code"] = json!(3);
     }
     value
@@ -139,7 +150,7 @@ fn legacy_python_engine_targets_match_frozen_intake_syntax_and_scope_shapes() {
             assert!(actual.is_some(), "{name}: native wrote no report");
             continue;
         }
-        assert_eq!(actual.unwrap(), corrected(frozen), "{name}");
+        assert_eq!(actual.unwrap(), corrected(name, frozen), "{name}");
         compared += 1;
     }
     assert_eq!(compared, 63);
@@ -183,6 +194,6 @@ fn legacy_python_tool_engines_match_frozen_mypy_and_ruff_views() {
             "/usr/bin:/bin"
         };
         let actual = run_with_path(case, base, path).unwrap_or_else(|| panic!("{name}: no report"));
-        assert_eq!(actual, corrected(&case["frozen"]), "{name}");
+        assert_eq!(actual, corrected(name, &case["frozen"]), "{name}");
     }
 }

@@ -95,9 +95,12 @@ pub(crate) fn lines(
             (*path).to_owned()
         };
         target.end_line = Some((fc + fm + fb).max(1) as u32);
-        target.metrics.insert("code_lines".into(), json!(fc));
-        target.metrics.insert("comment_lines".into(), json!(fm));
-        target.metrics.insert("blank_lines".into(), json!(fb));
+        // Frozen legacy line rows name their counts code/comment/blank/total only.
+        if !legacy {
+            target.metrics.insert("code_lines".into(), json!(fc));
+            target.metrics.insert("comment_lines".into(), json!(fm));
+            target.metrics.insert("blank_lines".into(), json!(fb));
+        }
         if legacy {
             target.metrics.extend([
                 ("code".into(), json!(fc)),
@@ -504,7 +507,16 @@ pub(crate) fn metrics(
                 ("function_origin", json!("source-spelled")),
                 ("metric_source", json!("bounded-cpp-source")),
             ] {
-                target.metrics.insert(key.into(), value);
+                // Frozen legacy rows carry only their own engine's numeric facts: complexity has
+                // no cognitive/sequence/unbraced counts, cognitive no cyclomatic value.
+                let foreign = if complexity {
+                    ["cognitive", "logical_sequences", "unbraced_controls"].contains(&key)
+                } else {
+                    key == "complexity"
+                };
+                if !(legacy && foreign) {
+                    target.metrics.insert(key.into(), value);
+                }
             }
             if over_fail || over_warn {
                 finding(
@@ -542,6 +554,23 @@ fn exception_finding(
     issue.native_rule_id = target.target_name.clone();
     issue.confidence = "medium".into();
     issue.category = "correctness".into();
+    // Frozen `languages/hygiene.py`: the next finding is the line-rule target's start line
+    // (no columns or label) with the `hygiene-` provider identity.
+    issue.primary_location = ici_domain::SourceSpan {
+        path: target.file_path.clone(),
+        start_line: target.start_line,
+        end_line: None,
+        start_column: None,
+        end_column: None,
+        label: String::new(),
+    };
+    issue.fingerprint = ici_analysis::sha1_short(
+        "hygiene-",
+        &format!(
+            "{}:{}:{}:{}",
+            target.file_path, target.start_line, target.target_name, target.message
+        ),
+    );
     output.targets.push(target);
 }
 pub(crate) fn exceptions(
@@ -587,6 +616,8 @@ pub(crate) fn exceptions(
         } else {
             source::nodes(file.tree.root_node())?
         };
+        // Frozen `analyze_cpp_exceptions` order: every destructor throw, then every catch-all.
+        let (mut throws, mut catch_alls) = (vec![], vec![]);
         for node in nodes {
             if node.kind() == "function_definition"
                 && source::function_name(file, node)
@@ -606,8 +637,7 @@ pub(crate) fn exceptions(
                         target.status = "FAIL".into();
                         target.message =
                             "C++ destructor throws an exception and may call std::terminate".into();
-                        exception_finding(output, request, target);
-                        issues += 1;
+                        throws.push(target);
                     }
                     for i in 0..inner.named_child_count() {
                         pending.push(inner.named_child(i as u32).unwrap());
@@ -636,10 +666,18 @@ pub(crate) fn exceptions(
                         target.status = "FAIL".into();
                         target.message =
                             "Silent catch(...) block without logging or re-throw".into();
-                        exception_finding(output, request, target);
-                        issues += 1;
+                        catch_alls.push(target);
                     }
                 }
+            }
+        }
+        // One finding per source line and rule, like the frozen line rules.
+        for mut group in [throws, catch_alls] {
+            group.sort_by_key(|target| (target.start_line, target.start_column));
+            group.dedup_by_key(|target| target.start_line);
+            for target in group {
+                exception_finding(output, request, target);
+                issues += 1;
             }
         }
         let mut target = InspectionTarget::at(&file.path, 1);
@@ -653,5 +691,10 @@ pub(crate) fn exceptions(
         output.targets.push(target);
     }
     output.observation.limitations.push("C++ exception checks inspect source syntax without preprocessing or path-sensitive exception semantics".into());
+    // Frozen `languages/hygiene.py` measurements.
+    let checked = legacy_source_scope(request, files).len() as u64;
+    let found = output.observation.findings.len() as u64;
+    measurement(output, "files_checked", checked, false);
+    measurement(output, "issues_found", found, false);
     Ok(())
 }

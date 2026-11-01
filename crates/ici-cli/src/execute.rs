@@ -484,7 +484,11 @@ pub fn execute(
                         Some(&planned.component_id),
                         "native analysis",
                     );
-                    let mut output = if let Some(output) = crate::validation::internal(
+                    let mut output = if let Some(output) =
+                        crate::cpp::legacy_cpp_absent_output(&planned.check.id, id)
+                    {
+                        output
+                    } else if let Some(output) = crate::validation::internal(
                         &prepared.project,
                         inputs::component(&prepared, planned),
                         &planned.check.id,
@@ -537,9 +541,13 @@ pub fn execute(
                             cancellation,
                             &events,
                         );
+                        let configurations = prepared
+                            .cpp
+                            .legacy_lint_configurations(&planned.component_id)
+                            .filter(|_| !prepared.cpp.is_fallback(id));
                         if prepared.legacy_projection
                             && planned.check.id == "cpp.diagnostics"
-                            && prepared.cpp.is_fallback(id)
+                            && (prepared.cpp.is_fallback(id) || configurations.is_some())
                         {
                             let tooling = prepared
                                 .plan
@@ -550,7 +558,12 @@ pub fn execute(
                                         && check.check.id == "cpp.tidy"
                                 })
                                 .and_then(|check| prepared.cpp.planned(&check.task_id));
-                            crate::cpp::legacy_fallback_lint(&mut output, tooling);
+                            crate::cpp::legacy_fallback_lint(
+                                &mut output,
+                                tooling,
+                                prepared.cpp.legacy_standalone,
+                                configurations.as_ref(),
+                            );
                         }
                         output
                     } else if let Some(plans) = prepared.validations.get(id) {
