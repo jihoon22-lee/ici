@@ -30,6 +30,15 @@
 
 ### 변경
 
+- `[workspace]` 루트에서 `publish`/`doctor`/`export-compilation-context`도 v0.13.0과 같은 메시지로 거부합니다.
+  레거시 명령(엔진·`verify`·`doctor`·export·`publish`)은 현재 디렉터리의 설정만 읽고 그 디렉터리를 루트로
+  사용합니다.
+- 파싱할 수 없는 `pyproject.toml`이 실행 전체를 막지 않고 v0.13.0처럼 python_compat의 `AnalysisUnavailable`
+  ERROR(종료 코드 1)로 보고됩니다. 설정·범위 오류는 v0.13.0과 같은 `config:`/`Configuration error:`/`report:`/
+  `diff:` 접두어로 출력됩니다.
+- 레거시 `ici type`은 PATH→`.venv` mypy, `ici verify`는 `.venv` 또는 pyz launcher 인터프리터의 `-m mypy`,
+  레거시 lint는 PATH→`.venv` ruff 순서로 도구를 고릅니다. `source_dirs = ["."]`에서 레거시 mypy 계획이 실패하던
+  문제를 고쳤습니다.
 - 레거시 C++ lint가 실제 clang-tidy·Clazy 실행 결과를 v0.13.0 대상 형태(`ClangTidy:`/`ClangAnalyzer:`/`Clazy:`
   진단, 단위별 PASS, `ContextMissing`·`ExecutionError`)로 보고합니다. 두 도구 중 하나만 찾으면 나머지 도구의
   `Unavailable` 대상을 유지하고, 컴파일 데이터베이스가 일부 소스를 빠뜨리면 `C++SyntaxContextMissing` 경고와
