@@ -825,11 +825,13 @@ pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) ->
 fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
     let checks = engine["extra"]["native_checks"].as_array()?;
     // Only "no runnable suite exists" blocks qualify; any other block (interpreter, config,
-    // tool) stays incomplete evidence.
+    // tool) stays incomplete evidence. A CMake project without `enable_testing()` writes no
+    // CTest inventory; with no `tests/**/*.cpp` frozen never reaches ctest either.
     let no_suite = |check: &serde_json::Value| {
         check["summary"].as_str().is_some_and(|summary| {
             summary.starts_with("no sources in scope")
                 || summary == "C++ runtime checks require a declared component build"
+                || summary.starts_with("CTest inventory is unavailable: ")
         })
     };
     if checks.is_empty()

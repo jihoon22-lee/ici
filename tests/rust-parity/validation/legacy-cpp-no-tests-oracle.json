@@ -1,6 +1,29 @@
 {
   "fixtures": "parity-fixtures/cpp/legacy-no-tests",
   "runs": {
+    "cmake-no-ctest": {
+      "evidence": "ESTIMATED",
+      "exit_code": 1,
+      "findings": [
+        {
+          "fingerprint": "sha256:d6a228f045ac92514a5c50aac1b294c535702d984c1f34ec9406ead59c66c7b2",
+          "message": "No tests collected",
+          "path": "tests",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "status": "FAIL",
+      "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "No tests collected",
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "[C++] Tests"
+        }
+      ]
+    },
     "root-main": {
       "evidence": "ESTIMATED",
       "exit_code": 1,
