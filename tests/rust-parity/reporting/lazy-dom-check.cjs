@@ -102,13 +102,26 @@ async function main() {
     atob, Blob, Response, DecompressionStream, JSON, Promise, Uint8Array, Number, String, Object, Array, Set, Math, Error};
   for (const script of scripts) vm.runInNewContext(script.textContent, context);
   const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+  // The page's toggle listeners start hydration without returning its promise, and inflation runs
+  // on DecompressionStream's own schedule. Wait for the observable completion state instead of a
+  // fixed number of ticks (a busy host can need more than a handful). The deadline only turns a
+  // genuine hang into a failure; it never decides what the page shows.
+  const until = async (done, what) => {
+    const deadline = Date.now() + 120000;
+    while (!done()) {
+      if (Date.now() > deadline) throw new Error('timed out waiting for ' + what);
+      await settle();
+    }
+  };
   const sections = [];
   const lazy = root.querySelectorAll('details[data-lazy]');
   for (const details of lazy) { details.open = true; await details.dispatch('toggle'); }
   for (const list of root.querySelectorAll('[data-lazy-findings]')) {
     const details = list.closest('details'); if (details) { details.open = true; await details.dispatch('toggle'); }
   }
-  for (let round = 0; round < 5; round++) await settle();
+  const pending = () => [...lazy, ...root.querySelectorAll('[data-lazy-findings]')]
+    .filter(element => element.attributes['data-hydrated'] === 'pending');
+  await until(() => pending().length === 0, 'on-demand sections to hydrate');
   for (const details of lazy) {
     sections.push({pointer: details.attributes['data-lazy'], indices: details.attributes['data-indices'] === undefined ? null : details.attributes['data-indices'],
       state: details.attributes['data-hydrated'], text: details.childNodes.slice(1).map(child => child.textContent).join('')});
@@ -116,7 +129,11 @@ async function main() {
   const cards = root.querySelectorAll('[data-lazy-findings]').map(list => ({pointers: JSON.parse(list.attributes['data-lazy-findings']),
     state: list.attributes['data-hydrated'], texts: list.childNodes.map(child => child.textContent)}));
   const raw = document.getElementById('raw-result'); let saved = null;
-  if (raw) { raw.closest('details').open = true; await raw.closest('details').dispatch('toggle'); for (let round = 0; round < 5; round++) await settle(); saved = JSON.parse(raw.textContent); }
+  if (raw) {
+    raw.closest('details').open = true; await raw.closest('details').dispatch('toggle');
+    await until(() => raw.textContent !== '', 'the complete saved result to inflate');
+    saved = JSON.parse(raw.textContent);
+  }
   let filtered = null;
   const filter = document.getElementById('finding-filter');
   if (filter && query !== undefined) {
