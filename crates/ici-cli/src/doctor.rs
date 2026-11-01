@@ -395,13 +395,25 @@ pub fn collect(
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|path| under(cwd, path));
-    let inspection = ici_config::inspect_configuration_with_environment(
+    let inspection = crate::cutover::inspect(
+        invocation,
         cwd,
         explicit.as_deref(),
         local.as_deref(),
         environment,
     )
-    .map_err(|error| CliError(redact_text(&error.to_string())))?;
+    .map_err(|error| {
+        // Frozen `next doctor` reads the workspace through `_workspace` (`config: `); the
+        // historical `doctor` is refused earlier by the stable loader gate.
+        crate::commands::classed(
+            if invocation.command() == "next doctor" {
+                crate::commands::CONFIG_PREFIX
+            } else {
+                crate::commands::STABLE_CONFIG_PREFIX
+            },
+            redact_text(&error.to_string()),
+        )
+    })?;
     let (prepared, scope_error) = match planning::prepare(invocation, cwd, environment, false) {
         Ok(prepared) => (Some(prepared), None),
         Err(error)

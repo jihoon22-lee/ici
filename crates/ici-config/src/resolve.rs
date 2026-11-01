@@ -321,6 +321,16 @@ pub fn inspect_configuration_with_environment(
 ) -> Result<ConfigurationInspection, ConfigError> {
     Ok(load_settings(cwd, explicit, local, environment, false)?.inspection)
 }
+/// [`inspect_configuration_with_environment`] for the historical commands: the frozen stable
+/// loader read only the working directory's configuration (`load_config(base=cwd)`).
+pub fn inspect_legacy_command_with_environment(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+) -> Result<ConfigurationInspection, ConfigError> {
+    Ok(load_settings(cwd, explicit, local, environment, true)?.inspection)
+}
 struct LoadedSettings {
     parsed: Parsed,
     inspection: ConfigurationInspection,
@@ -337,7 +347,7 @@ fn load_settings(
         .get("ICI_CONFIG")
         .filter(|s| !s.is_empty())
         .map(PathBuf::from);
-    let selected = discovery::select(cwd, explicit.or(env_config.as_deref()))?;
+    let selected = discovery::select(cwd, explicit.or(env_config.as_deref()), !legacy_command)?;
     let root = selected.root;
     let config_source = selected.document.as_ref().map(|p| p.path.clone());
     let parsed = match selected.document {

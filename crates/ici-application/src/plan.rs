@@ -146,6 +146,10 @@ pub fn plan(
     plan_with_checks(project, request, &[], bind)
 }
 /// Historical behaviors outside the frozen 36-check registry use the same execution boundary.
+/// The request selected no check at all: a scope refusal (frozen `config: `), not a failed run.
+pub const NOTHING_SELECTED: &str =
+    "no component selected a check; a run that checks nothing cannot pass";
+
 pub fn plan_with_checks(
     project: &ResolvedProject,
     request: &RunRequest,
@@ -362,9 +366,7 @@ pub fn plan_with_checks(
         }
     }
     if result.checks.is_empty() {
-        return Err(ApplicationError(
-            "no component selected a check; a run that checks nothing cannot pass".into(),
-        ));
+        return Err(ApplicationError(NOTHING_SELECTED.into()));
     }
     Ok(result)
 }

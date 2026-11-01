@@ -106,10 +106,7 @@ pub fn command(
                     announcement,
                     CommandOutput {
                         stdout: String::new(),
-                        stderr: format!(
-                            "ici: {}\n",
-                            ici_execution::redaction::redact_text(&failure.to_string())
-                        ),
+                        stderr: crate::commands::diagnostic(&failure),
                         exit_code: 2,
                     },
                 )),

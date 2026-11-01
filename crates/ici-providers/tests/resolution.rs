@@ -81,8 +81,13 @@ fn native_type_configuration_is_respected() {
         type_provider(dir.path(), Some("mypy")).unwrap(),
         TypeProvider::Mypy
     );
+    // pyproject.toml belongs to its packaging tools (frozen never read it for ici): one that
+    // does not parse declares no native intent, so the default stays and the selected checker
+    // (and python.compat) report the broken file instead of a configuration refusal.
     fs::write(&path, "[invalid").unwrap();
-    assert!(type_provider(dir.path(), None).is_err());
+    assert_eq!(type_provider(dir.path(), None).unwrap(), TypeProvider::Ty);
+    fs::write(dir.path().join("mypy.ini"), "[mypy]\n").unwrap();
+    assert_eq!(type_provider(dir.path(), None).unwrap(), TypeProvider::Mypy);
 }
 #[test]
 fn symlink_invocation_name_is_preserved_for_multicall_dispatch() {

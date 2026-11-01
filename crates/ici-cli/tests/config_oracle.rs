@@ -408,10 +408,12 @@ fn recorded_plan_differences_are_native_behaviour_not_silent_drift() {
         "a full selection reports no unselected component"
     );
 
+    // No longer a recorded difference: frozen's own text for a bare --local-config interpreter
+    // is captured in cli-gaps-oracle.json (`bare_local_interpreter_plan`, cli_gaps.rs).
     assert!(
         differences
             .get("next_plan:bare_local_interpreter")
-            .is_some()
+            .is_none()
     );
     let mut tree = golden["workspace"].clone();
     tree["local.toml"] =

@@ -55,8 +55,11 @@ pub fn discover_type_provider(
             ty.push(ty_path);
         }
         let pyproject = directory.join("pyproject.toml");
-        if pyproject.is_file() {
-            let native = Parsed::read(&pyproject, false, "discovered")?;
+        // The file is owned by its tools: one that does not parse declares no native intent
+        // here, and the checks that read it (python.compat, the type checker) report it.
+        if pyproject.is_file()
+            && let Ok(native) = Parsed::read(&pyproject, false, "discovered")
+        {
             if native.value.pointer("/tool/mypy").is_some() {
                 mypy.push(pyproject.clone());
             }
