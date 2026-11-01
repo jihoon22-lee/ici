@@ -101,6 +101,7 @@ pub fn bind(
             id,
             environment,
             run_label,
+            request.legacy_profiles && project.schema_family == ici_config::SchemaFamily::Legacy,
         ));
     }
     let kind = match check.id.as_str() {
@@ -123,9 +124,27 @@ pub fn bind(
     } else {
         vec![]
     };
+    let legacy_command =
+        request.legacy_profiles && project.schema_family == ici_config::SchemaFamily::Legacy;
+    let mut selection_note = None;
+    let mut prepend_bin = true;
     let tool = if matrix.is_empty() {
-        match project_python(project, component, &cwd, environment) {
-            Ok(tool) => tool,
+        let selected = if kind == ValidationKind::PythonRuntime && legacy_command {
+            launcher_only_python(
+                project,
+                environment,
+                "frozen legacy python_compat checks ici's own launcher-selected interpreter when engines.python_compat.interpreters is empty",
+                "engines.python_compat.interpreters",
+            )
+        } else {
+            project_python(project, component, &cwd, environment, legacy_command)
+        };
+        match selected {
+            Ok(selected) => {
+                selection_note = selected.note;
+                prepend_bin = selected.prepend_bin;
+                selected.tool
+            }
             Err(reason) => return Some(blocked(reason)),
         }
     } else if let Some(tool) = matrix.iter().find_map(|runtime| runtime.tool.clone()) {
@@ -296,7 +315,7 @@ pub fn bind(
             | ValidationKind::PythonSanitize
     ) {
         // These are project-runtime search paths. They do not expose an ici tool pack to the suite.
-        if let Some(directory) = tool.path.parent() {
+        if let Some(directory) = tool.path.parent().filter(|_| prepend_bin) {
             match std::env::join_paths(
                 std::iter::once(directory.to_path_buf()).chain(
                     environment
@@ -374,6 +393,9 @@ pub fn bind(
         Ok(plan) => vec![plan],
         Err(failure) => return Some(blocked(failure.to_string())),
     };
+    if let Some(note) = &selection_note {
+        plans[0].limitations.push(note.clone());
+    }
     if kind == ValidationKind::PythonRuntime {
         let modules: Vec<_> = component
             .settings
@@ -624,41 +646,305 @@ fn configured_python(
     tool.id = "python".into();
     Ok(tool)
 }
-fn project_python(
+/// The selected project interpreter and how it was chosen.
+pub(crate) struct ProjectPython {
+    pub tool: ResolvedTool,
+    /// A visible note when a legacy fallback (not a declaration or `.venv`) chose it.
+    pub note: Option<String>,
+    /// Frozen legacy prepends the interpreter's directory to the suite PATH unless the declared
+    /// interpreter is a bare name (`Path("python3").parent == "."`).
+    pub prepend_bin: bool,
+}
+impl ProjectPython {
+    fn declared(tool: ResolvedTool) -> Self {
+        Self {
+            tool,
+            note: None,
+            prepend_bin: true,
+        }
+    }
+}
+/// Frozen pyz `scripts/launcher.sh` candidates after `$ICI_PYTHON`, in order.
+pub(crate) const LAUNCHER_CANDIDATES: [&str; 6] = [
+    "python3.14",
+    "python3.13",
+    "python3.12",
+    "python3.11",
+    "python3.10",
+    "python3",
+];
+const LAUNCHER_PROBE_SECONDS: f64 = 5.0;
+const LAUNCHER_PROBE_BYTES: usize = 64 * 1024;
+
+/// Frozen `command -v`: a name with a separator is that file; a bare name is the first executable
+/// regular file on PATH. Empty PATH components (the shell's cwd) are never searched.
+fn command_v(candidate: &str, root: &Path, path_env: &str) -> Option<PathBuf> {
+    let executable = |path: &Path| {
+        use std::os::unix::fs::PermissionsExt;
+        path.metadata()
+            .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+    };
+    if candidate.contains('/') {
+        let path = if Path::new(candidate).is_absolute() {
+            PathBuf::from(candidate)
+        } else {
+            root.join(candidate)
+        };
+        return executable(&path).then_some(path);
+    }
+    std::env::split_paths(path_env)
+        .filter(|directory| !directory.as_os_str().is_empty())
+        .map(|directory| directory.join(candidate))
+        .find(|path| executable(path))
+}
+
+/// The launcher's `sys.version_info >= (3, 10)` check, run as the allowlisted read-only runtime
+/// metadata probe (`-I`, argv only, no shell, bounded time and output).
+fn launcher_version(
+    path: &Path,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<(u64, u64), String> {
+    let mut task = ici_domain::TaskSpec::command(
+        "legacy-launcher.version",
+        "python-runtime",
+        vec![
+            path.to_string_lossy().into_owned(),
+            "-I".into(),
+            "-c".into(),
+            ici_validation::planning::METADATA_SCRIPT.into(),
+        ],
+        root.to_string_lossy(),
+    );
+    task.kind = ici_domain::TaskKind::Probe;
+    task.timeout_seconds = Some(LAUNCHER_PROBE_SECONDS);
+    task.output_limit_bytes = Some(LAUNCHER_PROBE_BYTES);
+    task.env_overlay
+        .insert("PYTHONDONTWRITEBYTECODE".into(), "1".into());
+    let outcome = ici_execution::process::Runner::with_environment(environment.clone())
+        .run(&task, &ici_execution::process::Cancellation::default());
+    if outcome.timed_out {
+        return Err(format!(
+            "version probe exceeded {LAUNCHER_PROBE_SECONDS} seconds"
+        ));
+    }
+    if outcome.truncated {
+        return Err("version probe output exceeded its bound".into());
+    }
+    if let Some(error) = outcome.error {
+        return Err(error);
+    }
+    if outcome.exit_code != Some(0) {
+        return Err(match outcome.exit_code {
+            Some(code) => format!("version probe exit {code}"),
+            None => "version probe was terminated by a signal".into(),
+        });
+    }
+    let version = serde_json::from_slice::<Value>(&outcome.stdout)
+        .ok()
+        .and_then(|value| {
+            let parts = value.get("version")?.as_array()?;
+            Some((parts.first()?.as_u64()?, parts.get(1)?.as_u64()?))
+        })
+        .ok_or_else(|| "version probe printed no runtime version".to_string())?;
+    Ok(version)
+}
+
+/// Frozen legacy engines ran under `sys.executable`, which under the released pyz is the
+/// interpreter `scripts/launcher.sh` chose: the first of `$ICI_PYTHON`, python3.14 ... python3.10,
+/// python3 found on the run's PATH that passes a Python >= 3.10 check. Only legacy-schema
+/// historical commands use this; it is reported, never silent.
+fn launcher_python(
+    project: &ResolvedProject,
+    environment: &BTreeMap<String, String>,
+) -> Result<(ResolvedTool, String), Vec<String>> {
+    let path_env = environment.get("PATH").cloned().unwrap_or_default();
+    let ici_python = environment
+        .get("ICI_PYTHON")
+        .filter(|value| !value.is_empty());
+    let mut looked = vec![match ici_python {
+        Some(value) => format!("ICI_PYTHON={value}"),
+        None => "ICI_PYTHON (unset)".into(),
+    }];
+    looked.extend(LAUNCHER_CANDIDATES.iter().map(|name| (*name).to_string()));
+    let mut skipped = vec![];
+    for candidate in ici_python
+        .map(String::as_str)
+        .into_iter()
+        .chain(LAUNCHER_CANDIDATES)
+    {
+        let Some(path) = command_v(candidate, &project.root, &path_env) else {
+            continue;
+        };
+        match launcher_version(&path, &project.root, environment) {
+            Ok((major, minor)) if (major, minor) >= (3, 10) => {
+                let resolved = ToolRequest {
+                    id: "python".into(),
+                    explicit: Some(path.clone()),
+                    project_root: project.root.clone(),
+                    pack_root: None,
+                    path_env: None,
+                }
+                .resolve();
+                match resolved {
+                    Ok(mut tool) => {
+                        if !candidate.contains('/') {
+                            tool.source = ici_providers::resolver::ToolSource::Path;
+                        }
+                        let mut note = format!(
+                            "legacy pyz launcher rule selected {} ({candidate}, Python {major}.{minor})",
+                            path.display()
+                        );
+                        if !skipped.is_empty() {
+                            note.push_str(&format!("; skipped {}", skipped.join(", ")));
+                        }
+                        return Ok((tool, note));
+                    }
+                    Err(failure) => {
+                        skipped.push(format!("{} ({})", path.display(), failure.reason))
+                    }
+                }
+            }
+            Ok((major, minor)) => {
+                skipped.push(format!(
+                    "{} (Python {major}.{minor} < 3.10)",
+                    path.display()
+                ));
+            }
+            Err(reason) => skipped.push(format!("{} ({reason})", path.display())),
+        }
+    }
+    looked.extend(skipped.into_iter().map(|item| format!("skipped {item}")));
+    Err(looked)
+}
+
+/// The configuration key that names the component's interpreter, as frozen next spells it.
+fn python_key(project: &ResolvedProject, component: &Component) -> String {
+    match project.schema_family {
+        ici_config::SchemaFamily::Legacy => "engines.test.python".into(),
+        ici_config::SchemaFamily::SparseV2 | ici_config::SchemaFamily::Automatic => {
+            "python.executable".into()
+        }
+        ici_config::SchemaFamily::NextV1 => component
+            .python_executable_key
+            .clone()
+            .unwrap_or_else(|| format!("components.{}.python.executable", component.id)),
+    }
+}
+
+/// `legacy` is a historical command (`ici verify`, `ici <engine>`) on a legacy-schema project:
+/// the frozen legacy engines' interpreter rules apply instead of frozen next's.
+pub(crate) fn project_python(
     project: &ResolvedProject,
     component: &Component,
     cwd: &Path,
     environment: &BTreeMap<String, String>,
-) -> Result<ResolvedTool, String> {
+    legacy: bool,
+) -> Result<ProjectPython, String> {
     if let Some(declared) = component.python_executable.as_deref() {
-        // A declared interpreter is checked and never replaced by the convention; a bare name is
-        // the user's own PATH lookup (frozen `_anchor`), not a fallback.
-        return configured_python(project, cwd, declared, environment);
+        if !declared.contains('/') {
+            if legacy {
+                // Frozen legacy `[configured]` argv: the subprocess looks the name up on the run's
+                // PATH and the suite PATH gains no directory.
+                let path = command_v(
+                    declared,
+                    &project.root,
+                    environment.get("PATH").map_or("", String::as_str),
+                )
+                .ok_or_else(|| format!("project Python {declared:?}: not found on PATH"))?;
+                let mut tool =
+                    configured_python(project, cwd, &path.to_string_lossy(), environment)?;
+                tool.source = ici_providers::resolver::ToolSource::Path;
+                return Ok(ProjectPython {
+                    tool,
+                    note: None,
+                    prepend_bin: false,
+                });
+            }
+            // Frozen next checks the declared value as a file and never searches PATH for it.
+            return Err(format!(
+                "no project interpreter \u{2014} no such file: {declared}; set {} to change it",
+                python_key(project, component)
+            ));
+        }
+        // A declared interpreter is checked and never replaced by the convention.
+        return configured_python(project, cwd, declared, environment).map(ProjectPython::declared);
     }
     // Frozen `resolve_python`: the only undeclared candidate is the component's `.venv`. ici's
     // own runtime, `venv/`, the tool pack and PATH `python` are never the project interpreter.
-    let convention = cwd.join(".venv/bin/python");
-    ToolRequest {
-        id: "python".into(),
-        explicit: Some(convention.clone()),
-        project_root: cwd.into(),
-        pack_root: None,
-        path_env: None,
+    // Frozen legacy `_resolve_python` also accepts the Windows layout, then `sys.executable`.
+    let mut conventions = vec![cwd.join(".venv/bin/python")];
+    if legacy {
+        conventions.push(cwd.join(".venv/Scripts/python.exe"));
     }
-    .resolve()
-    .map_err(|_| {
-        // Frozen legacy engines fell back to ici's own interpreter here (`sys.executable`); the
-        // native product has none, so a legacy project names its key instead.
-        let declare = if project.schema_family == ici_config::SchemaFamily::Legacy {
-            "set engines.test.python or provide a .venv in the project"
-        } else {
-            "declare [python] executable or provide a .venv inside the component"
+    for convention in &conventions {
+        if !legacy || convention.is_file() {
+            let resolved = ToolRequest {
+                id: "python".into(),
+                explicit: Some(convention.clone()),
+                project_root: cwd.into(),
+                pack_root: None,
+                path_env: None,
+            }
+            .resolve();
+            match resolved {
+                Ok(tool) => return Ok(ProjectPython::declared(tool)),
+                Err(failure) if legacy => return Err(format!("project Python: {failure}")),
+                Err(_) => {}
+            }
+        }
+    }
+    let looked = conventions
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>();
+    if legacy {
+        return match launcher_python(project, environment) {
+            Ok((tool, note)) => Ok(ProjectPython {
+                tool,
+                note: Some(format!(
+                    "{note}: neither engines.test.python nor a project .venv was available"
+                )),
+                prepend_bin: true,
+            }),
+            Err(launcher) => Err(format!(
+                "no project interpreter \u{2014} none of {} candidate(s) could be used; looked at {}; set engines.test.python, provide a .venv in the project, or set ICI_PYTHON to a Python 3.10+ interpreter (legacy pyz launcher rule)",
+                conventions.len() + 1 + LAUNCHER_CANDIDATES.len(),
+                looked
+                    .into_iter()
+                    .chain(launcher)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )),
         };
-        format!(
-            "no project interpreter \u{2014} none of 1 candidate(s) could be used; looked at {}; {declare}",
-            convention.display()
-        )
-    })
+    }
+    Err(format!(
+        "no project interpreter \u{2014} none of 1 candidate(s) could be used; looked at {}; declare [python] executable or provide a .venv inside the component",
+        looked.join(", ")
+    ))
+}
+/// Frozen legacy `python_compat` with no `interpreters` checks `sys.executable` alone (required),
+/// and frozen legacy integration `{python:current}` is `Path(sys.executable).resolve()`: the pyz
+/// launcher's choice, ignoring `engines.test.python` and the project `.venv`.
+pub(crate) fn launcher_only_python(
+    project: &ResolvedProject,
+    environment: &BTreeMap<String, String>,
+    purpose: &str,
+    key: &str,
+) -> Result<ProjectPython, String> {
+    launcher_python(project, environment)
+        .map(|(tool, note)| ProjectPython {
+            tool,
+            note: Some(format!("{note}: {purpose}")),
+            prepend_bin: true,
+        })
+        .map_err(|looked| {
+            format!(
+                "no project interpreter \u{2014} none of {} candidate(s) could be used; looked at {}; set {key} or ICI_PYTHON to a Python 3.10+ interpreter (legacy pyz launcher rule)",
+                1 + LAUNCHER_CANDIDATES.len(),
+                looked.join(", ")
+            )
+        })
 }
 fn runtime_matrix(
     project: &ResolvedProject,
@@ -773,6 +1059,7 @@ fn bind_integration(
     id: &str,
     environment: &BTreeMap<String, String>,
     run_label: &str,
+    legacy_command: bool,
 ) -> BoundValidation {
     if empty_optional_integration(project, component) {
         return BoundValidation {
@@ -781,7 +1068,14 @@ fn bind_integration(
             tool: None,
         };
     }
-    match integration_plans(project, component, id, environment, run_label) {
+    match integration_plans(
+        project,
+        component,
+        id,
+        environment,
+        run_label,
+        legacy_command,
+    ) {
         Ok((plans, tool)) => {
             let tasks = plans
                 .iter()
@@ -805,6 +1099,7 @@ fn integration_plans(
     id: &str,
     environment: &BTreeMap<String, String>,
     run_label: &str,
+    legacy_command: bool,
 ) -> Result<(Vec<ValidationPlan>, Option<ResolvedTool>), String> {
     let settings = component.settings.pointer("/engines/integration");
     let cases = integration_cases(project, component);
@@ -857,6 +1152,7 @@ fn integration_plans(
         let mut references = vec![];
         let mut argv = vec![];
         let mut executable = None;
+        let mut notes = vec![];
         for (position, token) in strings(case.get("argv")).iter().enumerate() {
             if let Some(placeholder) = token
                 .strip_prefix('{')
@@ -868,8 +1164,34 @@ fn integration_plans(
                 let tool = match kind {
                     "python" => match targets.get(identity) {
                         Some(tool) => tool.clone(),
+                        // Frozen legacy `current` is `Path(sys.executable).resolve()`, the pyz
+                        // launcher's interpreter with symlinks resolved.
+                        None if identity == "current" && legacy_command => {
+                            let selected = launcher_only_python(
+                                project,
+                                environment,
+                                "frozen legacy integration {python:current} is ici's own launcher-selected interpreter, symlinks resolved",
+                                "engines.integration.python_targets.current",
+                            )?;
+                            let real = selected.tool.path.canonicalize().map_err(|failure| {
+                                format!("legacy {{python:current}} interpreter: {failure}")
+                            })?;
+                            notes.extend(selected.note);
+                            ToolRequest {
+                                id: "python".into(),
+                                explicit: Some(real),
+                                project_root: cwd.clone(),
+                                pack_root: None,
+                                path_env: None,
+                            }
+                            .resolve()
+                            .map_err(|failure| {
+                                format!("legacy {{python:current}} interpreter: {failure}")
+                            })?
+                        }
                         None if matches!(identity, "current" | "declared") => {
-                            project_python(project, component, &cwd, environment)?
+                            project_python(project, component, &cwd, environment, legacy_command)?
+                                .tool
                         }
                         None => return Err(format!("unknown Python target {identity:?}")),
                     },
@@ -984,6 +1306,7 @@ fn integration_plans(
             },
         };
         let mut plan = ici_validation::plan(&context).map_err(|failure| failure.to_string())?;
+        plan.limitations.extend(notes);
         for task in &mut plan.tasks {
             task.env_inherit = Some(strings(case.get("inherit_env")));
             task.input_refs.extend(references.clone());

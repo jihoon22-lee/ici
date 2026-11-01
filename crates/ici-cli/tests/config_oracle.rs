@@ -432,11 +432,12 @@ fn recorded_plan_differences_are_native_behaviour_not_silent_drift() {
         !reasons.is_empty(),
         "the overlay interpreter reaches the plan"
     );
+    // Root decision D2 (2026-11-01): a declared bare name on a modern schema blocks with frozen
+    // next's resolver text instead of a PATH lookup, so this recorded difference is closed.
     for reason in reasons {
-        assert!(reason.contains("not found"), "{reason}");
-        assert!(
-            !reason.contains("no such file"),
-            "a bare name is a PATH lookup: {reason}"
+        assert_eq!(
+            reason,
+            "no project interpreter \u{2014} no such file: ici-parity-missing-python; set components.app.python.executable to change it",
         );
     }
 }
