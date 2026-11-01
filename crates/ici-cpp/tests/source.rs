@@ -409,3 +409,78 @@ fn active_line_count_cancellation_returns_within_the_shared_two_second_budget() 
     assert!(start.elapsed() < Duration::from_secs(2));
     assert_eq!(output.observation.state, TaskState::Cancelled);
 }
+/// Qt access-specifier extensions and meta-object markers parse like their expansion: the
+/// qmake QTest fixture and a Qt class using every form have no recovery region, so complexity,
+/// cognitive and exception complete (frozen reads the same files lexically and passes).
+#[test]
+fn qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error() {
+    let qtest = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../parity-fixtures/cpp/test-qmake/tests/test_unit.cpp"
+    ))
+    .unwrap();
+    let widget = "#include <QObject>\nclass W : public QObject {\n    Q_OBJECT\n    Q_PROPERTY(int value READ value NOTIFY changed)\npublic:\n    Q_INVOKABLE int value() const { return v ? 1 : 0; }\npublic slots:\n    void set(int x) { if (x) v = x; }\nprotected Q_SLOTS:\n    void reset() {}\nsignals:\n    void changed();\nQ_SIGNALS:\n    void other();\nprivate:\n    int v = 0;\n};\nQ_DECLARE_METATYPE(W*)\nint use(W& w) { emit w.changed(); return w.value(); }\n";
+    let mut session = CppAnalysisSession::new();
+    for kind in ["complexity", "cognitive", "exception"] {
+        let output = session.analyze(&request(
+            kind,
+            vec![("tests/test_unit.cpp", &qtest), ("src/w.cpp", widget)],
+        ));
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{kind}: {:?} {:?}",
+            output.observation.limitations,
+            output.targets
+        );
+        assert_ne!(output.status, "ERROR", "{kind}: {:?}", output.targets);
+        assert!(
+            output
+                .targets
+                .iter()
+                .all(|target| target.target_name != "source-syntax"),
+            "{kind}: {:?}",
+            output.targets
+        );
+        if kind == "complexity" {
+            let names: Vec<_> = output
+                .targets
+                .iter()
+                .map(|target| (target.target_name.as_str(), target.start_line))
+                .collect();
+            for expected in [
+                ("passes", 6),
+                ("fails", 7),
+                ("unexpectedlyPasses", 8),
+                ("skipped", 12),
+                ("value", 6),
+                ("set", 8),
+                ("reset", 10),
+                ("use", 19),
+            ] {
+                assert!(names.contains(&expected), "{expected:?} in {names:?}");
+            }
+            // `private slots:`/`signals:` are not misread as functions named after the keyword.
+            assert_eq!(names.len(), 8, "{names:?}");
+        }
+    }
+}
+/// A real syntax error is still a recovery region: the Qt normalization does not hide it.
+#[test]
+fn genuine_syntax_errors_in_a_qt_class_still_error() {
+    let mut session = CppAnalysisSession::new();
+    let output = session.analyze(&request(
+        "exception",
+        vec![(
+            "src/broken.cpp",
+            "class W : public QObject {\n    Q_OBJECT\npublic slots:\n    void f( { }\n};\n",
+        )],
+    ));
+    assert_eq!(output.status, "ERROR");
+    assert!(
+        output
+            .targets
+            .iter()
+            .any(|target| target.target_name == "source-syntax")
+    );
+}

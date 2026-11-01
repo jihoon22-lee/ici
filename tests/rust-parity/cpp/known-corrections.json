@@ -23,6 +23,18 @@
       "previous": "A unity-like translation-unit filename could suppress all uncovered-source checks without proving original source membership.",
       "expected": "Original selected sources remain uncovered until complete compiler include traces establish their TU/configuration membership.",
       "evidence": "Actual CMake unity build and an unrelated unity_empty.cpp counterexample."
+    },
+    {
+      "case": "base-clause-members",
+      "previous": "The frozen brace scanner (analysis/cpp_complexity.py _cpp_function_inventory) reads a class head with a base clause (`class U : public QObject {`) as an expression and drops every inline member function of that class, so a QObject/QTest class reports 0 functions to complexity and cognitive.",
+      "expected": "Inline member functions of a derived class are measured like any other source-spelled function (the qmake QTest fixture reports passes/fails/unexpectedlyPasses/skipped).",
+      "evidence": "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error; frozen vs native over the same file in /tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log (frozen 3 functions, native 4 with passes() of the derived class)."
+    },
+    {
+      "case": "access-label-start-line",
+      "previous": "The frozen scanner accumulates a pending signature from the previous `;`/`{`/`}`, so a member function directly after `private:`/`private slots:`/`signals:` starts on the access-label line.",
+      "expected": "A function target starts at its own declaration line (the grammar's function_definition start); the end line, complexity and nesting are unchanged.",
+      "evidence": "/tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log (frozen s() 5-6, native 6-6; t() 9-10 vs 10-10)."
     }
   ]
 }

@@ -183,19 +183,22 @@
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cpp/src/compiler.rs",
-        "crates/ici-cli/src/inputs.rs"
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
           "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis",
+          "crates/ici-cpp/tests/source.rs::genuine_syntax_errors_in_a_qt_class_still_error"
         ]
       },
       "evidence": [
@@ -203,9 +206,10 @@
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
         "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "cargo test -p ici-cpp -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log"
       ],
-      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
+      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json. Qt access-specifier extensions and meta-object markers parse like their expansion (see check:cpp.complexity); the base-clause-members correction applies to cognitive the same way.",
       "difference_reason": ""
     },
     "check:cpp.compile": {
@@ -238,19 +242,23 @@
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cpp/src/compiler.rs",
-        "crates/ici-cli/src/inputs.rs"
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
           "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/src/source.rs::tests::look_alike_identifiers_scopes_literals_and_directives_are_not_rewritten"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis",
+          "crates/ici-cpp/tests/source.rs::genuine_syntax_errors_in_a_qt_class_still_error"
         ]
       },
       "evidence": [
@@ -258,9 +266,10 @@
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
         "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "cargo test -p ici-cpp -j2 -- --include-ignored (all suites pass, incl. source.rs Qt cases and source::tests mask unit tests); /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log. Frozen 6fe3e40 vs native `ici complexity|exception --report` over a Qt class with private slots/signals/public Q_SLOTS: both exit 0, PASS; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log"
       ],
-      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
+      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json. Qt access-specifier extensions (signals:, Q_SIGNALS:, public/protected/private slots:, Q_SLOTS) and meta-object markers (Q_OBJECT, Q_PROPERTY(...), Q_INVOKABLE, QTEST_*_MAIN(...), statement-leading emit/Q_EMIT, ...) are normalized length-preserving in the grammar copy only (ici_cpp::source::mask_qt_extensions, parser id source-v2-qt), so a QObject/QTest class no longer reads as a syntax-recovery ERROR (frozen reads the text lexically and passes). Recorded known corrections (tests/rust-parity/cpp/known-corrections.json base-clause-members, access-label-start-line): frozen drops every inline member of a class with a base clause and starts a function on a preceding access label; native measures those members and starts at the declaration.",
       "difference_reason": ""
     },
     "check:cpp.coverage": {
@@ -350,12 +359,14 @@
       "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
-        "crates/ici-cpp/src/legacy_exceptions.rs"
+        "crates/ici-cpp/src/legacy_exceptions.rs",
+        "crates/ici-cpp/src/source.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+          "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
@@ -363,15 +374,17 @@
           "crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs"
         ],
         "failure": [
-          "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
+          "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax",
+          "crates/ici-cpp/tests/source.rs::genuine_syntax_errors_in_a_qt_class_still_error"
         ]
       },
       "evidence": [
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
-        "Frozen exception corpus oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici exception --report`) into exception-oracle.json over parity-fixtures/cpp/exception-fixture (one-line, multi-throw, split declaration/definition, lambda-in-destructor, noexcept(false) on its own line, try/catch inside a destructor, rethrow, comment/string throw, `throw()` specification, defaulted destructor, nested local class, template out-of-class destructor, raw strings, a line-splice comment, char-literal braces, escaped string quotes and a CRLF file); cargo test -p ici-cli --test legacy_cpp_metrics (5 passed) and -p ici-cpp --test source (11 passed); /tmp/ici-rust-replacement-20261028/w-cpp-exception.log, w-cpp-exception2.log, w-cpp-exception3.log"
+        "Frozen exception corpus oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici exception --report`) into exception-oracle.json over parity-fixtures/cpp/exception-fixture (one-line, multi-throw, split declaration/definition, lambda-in-destructor, noexcept(false) on its own line, try/catch inside a destructor, rethrow, comment/string throw, `throw()` specification, defaulted destructor, nested local class, template out-of-class destructor, raw strings, a line-splice comment, char-literal braces, escaped string quotes and a CRLF file); cargo test -p ici-cli --test legacy_cpp_metrics (5 passed) and -p ici-cpp --test source (11 passed); /tmp/ici-rust-replacement-20261028/w-cpp-exception.log, w-cpp-exception2.log, w-cpp-exception3.log",
+        "cargo test -p ici-cpp -j2 -- --include-ignored; frozen vs native `ici exception --report` over a Qt slots/signals class: both PASS/MEASURED 'Exception Handling Safety Clean', exit 0; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log"
       ],
-      "comparison": "Legacy C++ exception projection matches the frozen CLI byte-for-byte on two oracle corpora (status, exit 1, every target name/status/message/line/file): sources only (.cpp/.cc/.cxx/.c, headers excluded), the frozen _mask_cpp_literals blanking ported exactly (comments, line splices, string/char/raw literals), destructor bodies tracked by brace depth with every line spelling `throw` reported once (so the lambda throw on line 10 and the two throws on lines 4 and 37 keep exactly the frozen targets: no frozen finding is lost), empty catch(...) found by the frozen first-`}` regex, start-line-only targets, per-file order destructor throws then catch-alls then CppExceptionSafety PASS.",
+      "comparison": "Legacy C++ exception projection matches the frozen CLI byte-for-byte on two oracle corpora (status, exit 1, every target name/status/message/line/file): sources only (.cpp/.cc/.cxx/.c, headers excluded), the frozen _mask_cpp_literals blanking ported exactly (comments, line splices, string/char/raw literals), destructor bodies tracked by brace depth with every line spelling `throw` reported once (so the lambda throw on line 10 and the two throws on lines 4 and 37 keep exactly the frozen targets: no frozen finding is lost), empty catch(...) found by the frozen first-`}` regex, start-line-only targets, per-file order destructor throws then catch-alls then CppExceptionSafety PASS. A Qt class (private slots:, signals:, Q_OBJECT, QTEST_APPLESS_MAIN) is no longer a source-syntax ERROR (frozen PASS); a genuine syntax error in a Qt class still errors.",
       "difference_reason": "Modern analyze path only (legacy has no difference): it keeps syntax-tree semantics. A throw inside a lambda in a destructor is not a destructor throw, a `throw()` dynamic exception specification is not a throw (the frozen heuristic reports it), and each throw statement is its own located target with end line and columns (two throws on one line give two targets). Fixture: crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs on the same oracle corpus (frozen lines [3,4,10,17,22,25,27,32,37] versus modern [3,4,4,17,22,25,32,37,37])."
     },
     "check:cpp.line": {
