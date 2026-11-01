@@ -796,6 +796,18 @@ fn prepare_resolved_omitting(
                     .and_then(Value::as_str)
                     .unwrap_or("off")
                     != "off"
+                // Frozen GNU ELF reachability needs the root CMake backend; a legacy project
+                // without one reports the linker scope as unavailable without preparing.
+                && !(cpp.legacy_projection
+                    && component
+                        .settings
+                        .pointer("/engines/dead/cpp_unused")
+                        .and_then(Value::as_str)
+                        .unwrap_or("auto")
+                        != "off"
+                    && !crate::files::under(&project.root, &component.root)
+                        .join("CMakeLists.txt")
+                        .is_file())
             {
                 variants.insert("link-reachability");
             }
@@ -816,6 +828,11 @@ fn prepare_resolved_omitting(
                     && (selected.contains("cpp.artifact") || selected.contains("cpp.binary-compat"))
                 {
                     selected_component.settings["native_release_artifacts"] = json!(true);
+                }
+                // Frozen `ici verify` configures the release analysis database
+                // (`-DCMAKE_UNITY_BUILD=OFF`) before its deep BuildEngine reuses that shadow.
+                if variant == "release" && cpp.legacy_projection && !cpp.legacy_standalone {
+                    selected_component.settings["native_analysis_database"] = json!(true);
                 }
                 let binary =
                     std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
@@ -854,17 +871,34 @@ fn prepare_resolved_omitting(
                             format!("declared {variant} build cannot be prepared: {configuration}");
                         plan.limitations
                             .push(format!("{} {variant}: {reason}", component.id));
+                        let legacy_projection = cpp.legacy_projection;
                         for check in plan.checks.iter_mut().filter(|check| {
                             check.component_id == component.id
                                 && check.check.language == "cpp"
-                                && crate::cpp::preparation_dependent(
+                                && (crate::cpp::preparation_dependent(
                                     &check.check.id,
                                     variant,
                                     !check.tasks().is_empty(),
-                                )
+                                ) || (legacy_projection
+                                    && variant == "coverage"
+                                    && check.check.id == "cpp.test"))
                         }) {
                             // Context preparation is planned only for legacy commands.
-                            if variant == "release" && check.check.id == "cpp.artifact" {
+                            if check.check.id == "cpp.test" {
+                                // Frozen TestEngine `_run_cpp_tests_via_adapter`: a coverage
+                                // configure refusal is the engine's tool error (ERROR, NOT_RUN,
+                                // no targets); no test runs.
+                                cpp.fail_preparation(
+                                    &check.task_id,
+                                    crate::cpp::legacy_test_configuration_error(
+                                        &check.task_id,
+                                        &configuration,
+                                    ),
+                                );
+                                validations.remove(&check.task_id);
+                                check.check.needs.clear();
+                                check.work = Work::Internal;
+                            } else if variant == "release" && check.check.id == "cpp.artifact" {
                                 // Frozen BuildEngine: FAIL, "Build did not produce a complete
                                 // artifact set", one adapter target at the descriptor.
                                 cpp.fail_preparation(
@@ -1541,6 +1575,21 @@ fn legacy_binary_selection(
         return Some(crate::cpp::legacy_binary_compat_unavailable(
             task_id,
             Some("readelf capability is unavailable"),
+        ));
+    }
+    // Frozen `_records`: more selected artifacts than `max_artifacts` (bound_binary rejects an
+    // empty selection before planning, and the schema bounds the key to 1..=64).
+    if reason.starts_with("binary compatibility requires 1..max_artifacts") {
+        let maximum = component
+            .settings
+            .pointer("/engines/binary_compat/max_artifacts")
+            .and_then(Value::as_u64)
+            .unwrap_or(64);
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            Some(&format!(
+                "binary artifact count exceeds configured maximum {maximum}"
+            )),
         ));
     }
     let unpublished = [

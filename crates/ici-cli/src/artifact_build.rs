@@ -71,6 +71,9 @@ pub struct ArtifactBuildPlan {
     pub lead_targets: Vec<InspectionTarget>,
     /// Legacy direct g++ release: the frozen `CppBinary` PASS message for the published binary.
     pub legacy_binary_message: Option<String>,
+    /// Linked outputs a frozen adapter build (CMake, qmake, Make) measured in its shadow; they
+    /// are the release's artifacts even though only the environment loaders are written.
+    adapter_artifacts: usize,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -523,6 +526,7 @@ fn describe_internal(
         declared,
         lead_targets: vec![],
         legacy_binary_message: None,
+        adapter_artifacts: measured_adapter_artifacts,
     })
 }
 
@@ -1322,7 +1326,10 @@ pub fn apply_version_probe(
     for path in excluded {
         result.inputs.remove(&path);
     }
+    // Frozen `BuildEngine.run` counts adapter-linked outputs as artifacts, so a pure C++ adapter
+    // release versioned by `git describe` keeps its environment loaders.
     if result.declarations.is_empty()
+        && result.adapter_artifacts == 0
         && !result.files.iter().any(|file| {
             matches!(file.content, Content::Source(_)) || file.kind == "python-launcher"
         })

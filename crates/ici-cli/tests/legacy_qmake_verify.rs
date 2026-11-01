@@ -86,7 +86,7 @@ fn run(oracle: &Value, case: &Value, capture: &str) -> (Value, Value) {
         root.join("ici.toml"),
         format!(
             "{}{}",
-            oracle["base"].as_str().unwrap(),
+            case["base"].as_str().or(oracle["base"].as_str()).unwrap(),
             case["config"].as_str().unwrap()
         ),
     )
@@ -105,6 +105,10 @@ fn run(oracle: &Value, case: &Value, capture: &str) -> (Value, Value) {
             ])
             .args(args)
             .current_dir(&root)
+            // The capture's fixed dates give the same commit id (a deep build's version).
+            .env("GIT_AUTHOR_DATE", "2026-01-01T00:00:00+00:00")
+            .env("GIT_COMMITTER_DATE", "2026-01-01T00:00:00+00:00")
+            .env("HOME", work.path())
             .status()
             .unwrap();
         assert!(status.success());
@@ -258,6 +262,41 @@ fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
         view["engines"]["test"]["summary"] = Value::Null;
         view["engines"]["test"]["score"] = Value::Null;
         view["counters"]["tem_score"] = Value::Null;
+    }
+    if case == "verify-shared-shadow-sanitize" {
+        // Intended difference: every legacy Make variant shares the one configured shadow, so
+        // the sanitize build after the coverage build is a no-op and frozen "sanitizes" the
+        // uninstrumented coverage binaries (identical sha256 in both manifests) and reports
+        // "Memory Safety & Sanitize Clean". Rust probes the declared executables for their
+        // sanitizer runtime and refuses that claim: the engine stays SKIP/NOT_RUN and the
+        // required evidence incomplete (suite ERROR, exit 3). Everything else matches.
+        let sanitize = view["engines"]["sanitize"].take();
+        if frozen {
+            assert_eq!(sanitize["status"], "PASS");
+            let manifests = view["analysis_context"]["artifact_manifests"]
+                .as_array()
+                .unwrap();
+            let digests = |variant: &str| {
+                manifests
+                    .iter()
+                    .find(|manifest| manifest["variant"] == variant)
+                    .map(|manifest| manifest["artifacts"][0]["sha256"].clone())
+            };
+            assert_eq!(digests("coverage"), digests("sanitize"));
+        } else {
+            assert_eq!(sanitize["status"], "SKIP");
+            assert_eq!(sanitize["evidence"], "NOT_RUN");
+            assert_eq!(
+                sanitize["summary"],
+                "declared sanitizer variant lacks its native runtime symbols"
+            );
+            assert_eq!(view["exit_code"], 3);
+            assert_eq!(view["counters"]["suite_status"], "ERROR");
+        }
+        view["exit_code"] = Value::Null;
+        for key in ["suite_status", "passed_count", "skipped_count"] {
+            view["counters"][key] = Value::Null;
+        }
     }
     if view["analysis_context"].is_object() {
         view["analysis_context"] = context(view["analysis_context"].take(), frozen);
@@ -431,11 +470,21 @@ fn legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes() {
         oracle["make"].as_str()
     );
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 5);
+    assert_eq!(cases.len(), 23);
     let mut mismatches = vec![];
+    // Each legacy engine-key case changes the frozen engine view of the case it varies, so the
+    // byte-equal native replay below proves the key is consumed (not merely accepted).
+    for (name, case) in cases {
+        if let Some(reference) = case["reference"].as_str() {
+            assert_ne!(
+                case["frozen"]["engines"], cases[reference]["frozen"]["engines"],
+                "{name}: no frozen effect"
+            );
+        }
+    }
     for (name, case) in cases {
         let (actual, gate) = run(&oracle, case, "/tmp/ici-cpp-make-test/project");
-        if gate["selected"] == "INCOMPLETE" {
+        if gate["selected"] == "INCOMPLETE" && name != "verify-shared-shadow-sanitize" {
             eprintln!("== {name}: incomplete gate {gate}");
             mismatches.push(name.clone());
         }

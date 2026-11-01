@@ -1,10 +1,801 @@
 {
  "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\n",
  "cases": {
+  "abi-reference": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/abi.cpp -o build/ici-make/app\n",
+    "src/abi.cpp": "#include <stdexcept>\n#include <string>\nint main(int argc, char **) {\n  std::string text(static_cast<unsigned>(argc) + 40U, 'x');\n  try { if (argc > 5) throw std::runtime_error(text); }\n  catch (const std::exception &error) { return static_cast<int>(error.what()[0]); }\n  return static_cast<int>(text.size() % 2U);\n}\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "allowed-needed": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/abi.cpp -o build/ici-make/app\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nallowed_needed=['libc.so.6']\n",
+    "src/abi.cpp": "#include <stdexcept>\n#include <string>\nint main(int argc, char **) {\n  std::string text(static_cast<unsigned>(argc) + 40U, 'x');\n  try { if (argc > 5) throw std::runtime_error(text); }\n  catch (const std::exception &error) { return static_cast<int>(error.what()[0]); }\n  return static_cast<int>(text.size() % 2U);\n}\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libgcc_s.so.1, libstdc++.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      }
+     ],
+     "rules": [
+      "ici.binary.forbidden-dependency",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "disabled": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=false\n"
+   },
+   "frozen": {
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "expected-class-machine-match": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nexpected_class='ELF64'\nexpected_machine='Advanced Micro Devices X86-64'\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "expected-class-mismatch": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nexpected_class='ELF32'\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:24beb4accba13943b4d674a67aa8ec9c71009f1f4ab2dd099eb7e5bb87f76165",
+       "message": "ELF class 'ELF64' does not match expected 'ELF32'",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.class-mismatch",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.header.class"
+      }
+     ],
+     "rules": [
+      "ici.binary.class-mismatch",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "expected-machine-mismatch": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nexpected_machine='AArch64'\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:16f64960af9017661bb8cba48c6c1264bbd5231983c69b5d32224f095fb9ba5c",
+       "message": "ELF machine 'Advanced Micro Devices X86-64' does not match expected 'AArch64'",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.machine-mismatch",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.header.machine"
+      }
+     ],
+     "rules": [
+      "ici.binary.machine-mismatch",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "max-artifacts": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n\tg++ src/main.cpp -o build/ici-make/tool\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nmax_artifacts=1\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "ERROR",
+     "summary": "Binary compatibility analysis incomplete: binary artifact count exceeds configured maximum 1",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "binary artifact count exceeds configured maximum 1",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "BinaryCompatibility:AnalysisUnavailable"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "max-artifacts-reference": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app\n\tg++ src/main.cpp -o build/ici-make/tool\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 2 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      },
+      {
+       "file_path": "tool",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:tool"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "max-cxxabi": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/abi.cpp -o build/ici-make/app\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nmax_cxxabi='1.2'\n",
+    "src/abi.cpp": "#include <stdexcept>\n#include <string>\nint main(int argc, char **) {\n  std::string text(static_cast<unsigned>(argc) + 40U, 'x');\n  try { if (argc > 5) throw std::runtime_error(text); }\n  catch (const std::exception &error) { return static_cast<int>(error.what()[0]); }\n  return static_cast<int>(text.size() % 2U);\n}\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:ca19d9623e93d82075bc977761570302d0d8c0126b8ca38441d30bd9d895c822",
+       "message": "Maximum required CXXABI 1.3.9 exceeds configured 1.2",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.cxxabi-floor",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.version.cxxabi"
+      }
+     ],
+     "rules": [
+      "ici.binary.cxxabi-floor",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "max-cxxabi-ok": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/abi.cpp -o build/ici-make/app\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nmax_cxxabi='1.3.99'\n",
+    "src/abi.cpp": "#include <stdexcept>\n#include <string>\nint main(int argc, char **) {\n  std::string text(static_cast<unsigned>(argc) + 40U, 'x');\n  try { if (argc > 5) throw std::runtime_error(text); }\n  catch (const std::exception &error) { return static_cast<int>(error.what()[0]); }\n  return static_cast<int>(text.size() % 2U);\n}\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "max-glibcxx": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/abi.cpp -o build/ici-make/app\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nmax_glibcxx='3.4'\n",
+    "src/abi.cpp": "#include <stdexcept>\n#include <string>\nint main(int argc, char **) {\n  std::string text(static_cast<unsigned>(argc) + 40U, 'x');\n  try { if (argc > 5) throw std::runtime_error(text); }\n  catch (const std::exception &error) { return static_cast<int>(error.what()[0]); }\n  return static_cast<int>(text.size() % 2U);\n}\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:66a53c0b2072c4b4d8b56dfd18db088c03858aeb61e89dea2822853860bfce6e",
+       "message": "Maximum required GLIBCXX 3.4.21 exceeds configured 3.4",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.glibcxx-floor",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.version.glibcxx"
+      }
+     ],
+     "rules": [
+      "ici.binary.glibcxx-floor",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "max-glibcxx-ok": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/abi.cpp -o build/ici-make/app\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nmax_glibcxx='3.4.99'\n",
+    "src/abi.cpp": "#include <stdexcept>\n#include <string>\nint main(int argc, char **) {\n  std::string text(static_cast<unsigned>(argc) + 40U, 'x');\n  try { if (argc > 5) throw std::runtime_error(text); }\n  catch (const std::exception &error) { return static_cast<int>(error.what()[0]); }\n  return static_cast<int>(text.size() % 2U);\n}\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
   "missing-readelf": {
    "changes": {},
    "frozen": {
     "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "ERROR",
      "summary": "Binary compatibility analysis incomplete: readelf capability is unavailable",
      "targets": [
@@ -18,6 +809,12 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "PASS",
      "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
      "targets": [
@@ -49,12 +846,170 @@
     "readelf"
    ]
   },
+  "mode-pass-warn": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nmode='pass_warn'\nforbidden_needed=['libc.so.6']\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libc.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      }
+     ],
+     "rules": [
+      "ici.binary.forbidden-dependency",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "WARN",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "mode-pass-warn-fail": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nmode='pass_warn_fail'\nforbidden_needed=['libc.so.6']\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libc.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      }
+     ],
+     "rules": [
+      "ici.binary.forbidden-dependency",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
   "no-artifacts": {
    "changes": {
     "Makefile": "all:\n\tmkdir -p build/ici-make\n\ttouch build/ici-make/notes.txt\n"
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "SKIP",
      "summary": "Binary compatibility not applicable: no selected manifest artifacts",
      "targets": [
@@ -68,6 +1023,11 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "FAIL",
      "summary": "Build did not produce a complete artifact set",
      "targets": [
@@ -96,6 +1056,10 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "ERROR",
      "summary": "Binary compatibility analysis incomplete: no published executable or shared-library artifacts",
      "targets": [
@@ -109,6 +1073,11 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "FAIL",
      "summary": "Build did not produce a complete artifact set",
      "targets": [
@@ -137,6 +1106,11 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target",
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "PASS",
      "summary": "ELF compatibility: 1 checked, 0 violation(s), 1 skipped",
      "targets": [
@@ -157,6 +1131,12 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "PASS",
      "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
      "targets": [
@@ -191,6 +1171,31 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:4419a2dc0b77986d251b11abaa260183417308adf27157858e800a733d4b1c93",
+       "message": "Selected binary manifest artifact is not an ELF object",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "tool.exe",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.non-elf",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.magic"
+      }
+     ],
+     "rules": [
+      "ici.binary.non-elf",
+      "ici.legacy.binary-compat.target",
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "FAIL",
      "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
      "targets": [
@@ -211,6 +1216,12 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "PASS",
      "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
      "targets": [
@@ -243,6 +1254,10 @@
    "changes": {},
    "frozen": {
     "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "PASS",
      "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
      "targets": [
@@ -256,6 +1271,378 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "require-static": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nrequire_static=true\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:99f60be64d9d95f0c7caed95709fb9c4ce115e4f0ab06865dfca095f6be12992",
+       "message": "Artifact is dynamically linked but the policy requires static linkage",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.dynamic-linkage",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.linkage.dynamic"
+      }
+     ],
+     "rules": [
+      "ici.binary.dynamic-linkage",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "require-static-off": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nrequire_static=false\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "rpath-absolute-allowed": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app -Wl,-rpath,/opt/vendor/lib -Wl,-rpath,$(CURDIR)/build/ici-make\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nforbid_absolute_rpath=false\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:daa11608e681b0b01ad20374f5b7c854304d3acdadde5ffc09d68039ce900648",
+       "message": "ELF loader path exposes build roots: <project>/build/ici-make",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.build-path-leak",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.rpath.build-path"
+      }
+     ],
+     "rules": [
+      "ici.binary.build-path-leak",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 1 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "1 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "rpath-all-allowed": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app -Wl,-rpath,/opt/vendor/lib -Wl,-rpath,$(CURDIR)/build/ici-make\n",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\n[engines.build]\nenabled=true\n[engines.binary_compat]\nenabled=true\nforbid_absolute_rpath=false\nforbid_build_paths=false\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 1 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 1 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v2.3.4/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ]
+    }
+   }
+  },
+  "rpath-default": {
+   "changes": {
+    "Makefile": "all:\n\tmkdir -p build/ici-make\n\tg++ src/main.cpp -o build/ici-make/app -Wl,-rpath,/opt/vendor/lib -Wl,-rpath,$(CURDIR)/build/ici-make\n"
+   },
+   "frozen": {
+    "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:daa11608e681b0b01ad20374f5b7c854304d3acdadde5ffc09d68039ce900648",
+       "message": "ELF loader path exposes build roots: <project>/build/ici-make",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.build-path-leak",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.rpath.build-path"
+      },
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:1f78cd5c9222132140cf7785cd379b55f76b80762593da6c6c29742c97062ca2",
+       "message": "ELF loader path contains absolute entries: /opt/vendor/lib, <project>/build/ici-make",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-rpath",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.rpath.forbidden"
+      }
+     ],
+     "rules": [
+      "ici.binary.build-path-leak",
+      "ici.binary.forbidden-rpath",
+      "ici.legacy.binary-compat.target"
+     ],
+     "status": "FAIL",
+     "summary": "ELF compatibility: 1 checked, 2 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "2 binary compatibility violation(s)",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      }
+     ]
+    },
+    "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "PASS",
      "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
      "targets": [
@@ -288,6 +1675,10 @@
    "changes": {},
    "frozen": {
     "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "ERROR",
      "summary": "Binary compatibility analysis incomplete: readelf output is missing ELF header facts",
      "targets": [
@@ -301,6 +1692,12 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "PASS",
      "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
      "targets": [
@@ -341,6 +1738,10 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "ERROR",
      "summary": "Binary compatibility analysis incomplete: configured artifact was not published: release:shadow:nope",
      "targets": [
@@ -354,6 +1755,12 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "PASS",
      "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
      "targets": [
@@ -388,6 +1795,49 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libc.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      },
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:ebfe282efb4da487355cc8b7e94a956e142eff4639c029f0cc0640f3197239c2",
+       "message": "Maximum required GLIBC 2.34 exceeds configured 2.0",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.glibc-floor",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.version.glibc"
+      }
+     ],
+     "rules": [
+      "ici.binary.forbidden-dependency",
+      "ici.binary.glibc-floor",
+      "ici.legacy.binary-compat.target"
+     ],
      "status": "FAIL",
      "summary": "ELF compatibility: 1 checked, 2 violation(s), 0 skipped",
      "targets": [
@@ -401,6 +1851,12 @@
      ]
     },
     "build": {
+     "findings": [],
+     "rules": [
+      "ici.legacy.build.target",
+      "ici.legacy.build.target",
+      "ici.legacy.build.target"
+     ],
      "status": "PASS",
      "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
      "targets": [

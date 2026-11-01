@@ -42,7 +42,10 @@ fn run(oracle: &Value, name: &str) -> Value {
     }
     fs::write(
         root.join("ici.toml"),
-        format!("[project]\ntype='{kind}'\nsource_dirs=['src']\n"),
+        format!(
+            "[project]\ntype='{kind}'\nsource_dirs=['src']\n{}",
+            oracle["case_configs"][name].as_str().unwrap_or_default()
+        ),
     )
     .unwrap();
     for args in [
@@ -172,7 +175,7 @@ fn legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid() {
         oracle["cmake"].as_str()
     );
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 4);
+    assert_eq!(cases.len(), 5);
     assert_eq!(cases["cpp-unity"]["compilation"]["unity_build"], false);
     assert_eq!(
         cases["cpp-unity"]["compilation"]["units"]

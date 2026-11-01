@@ -1482,6 +1482,13 @@ pub fn legacy_refresh_suite(document: &mut Value) -> Result<String> {
     document["error_count"] = json!(count("ERROR"));
     document["skipped_count"] = json!(count("SKIP"));
     document["total_count"] = json!(results.len());
+    // The suite TEM stays the legacy `test` engine's own score after shaping.
+    if let Some(score) = results
+        .iter()
+        .find(|engine| engine["engine_name"] == "test" && engine["score"].is_number())
+    {
+        document["tem_score"] = score["score"].clone();
+    }
     Ok(status.into())
 }
 

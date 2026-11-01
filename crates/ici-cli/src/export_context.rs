@@ -222,12 +222,14 @@ fn plan_selected_preparation(
     }
     // Frozen `prepare_cmake_compilation_context` configures the release analysis database with
     // `-DCMAKE_UNITY_BUILD=OFF` (cmake.py `analysis_database`); its BuildEngine release build
-    // does not. A legacy release preparation that also publishes release artifacts keeps the
-    // project's own unity setting.
+    // does not. A legacy release preparation that only publishes release artifacts (`ici
+    // build`) keeps the project's own unity setting; under `ici verify` the analysis database is
+    // configured first and the deep BuildEngine reuses its cached setting.
     let analysis_database = project.schema_family == ici_config::SchemaFamily::Legacy
         && system == "cmake"
         && variant == "release"
-        && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true));
+        && (component.settings.get("native_release_artifacts") != Some(&Value::Bool(true))
+            || component.settings.get("native_analysis_database") == Some(&Value::Bool(true)));
     let mut request = BuildRequest {
         id: build_id.clone(),
         shadow_owner_id: declared
@@ -394,10 +396,33 @@ pub fn execute_preparation_typed(
     cancellation: &Cancellation,
     events: &crate::events::EventLog,
 ) -> Result<PreparedContext, PreparationFailure> {
+    execute_preparation_shared(plan, scheduler, cancellation, events, None)
+}
+/// [`execute_preparation_typed`] inside a build transaction an earlier context already holds.
+pub fn execute_preparation_shared(
+    plan: &ContextPreparationPlan,
+    scheduler: &Scheduler,
+    cancellation: &Cancellation,
+    events: &crate::events::EventLog,
+    shared: Option<Arc<BuildLease>>,
+) -> Result<PreparedContext, PreparationFailure> {
     if plan.direct.is_some() {
         direct::execute(plan, scheduler, cancellation, events)
     } else {
-        execute_native_preparation(plan, scheduler, cancellation, events)
+        execute_native_preparation(plan, scheduler, cancellation, events, shared)
+    }
+}
+
+impl PreparedContext {
+    /// Frozen `make_plan` gives every legacy Make variant the one configured shadow. A later
+    /// variant of the same run builds inside the transaction this context already holds (the
+    /// earlier variant's consumers keep it alive), instead of waiting for its own lock.
+    pub fn shared_make_lease(&self, plan: &ContextPreparationPlan) -> Option<Arc<BuildLease>> {
+        (plan.build.system == "make"
+            && self.plan.build.system == "make"
+            && self.plan.root == plan.root
+            && self.plan.build.shadow == plan.build.shadow)
+            .then(|| self._lease.clone())
     }
 }
 fn execute_native_preparation(
@@ -405,14 +430,20 @@ fn execute_native_preparation(
     scheduler: &Scheduler,
     cancellation: &Cancellation,
     events: &crate::events::EventLog,
+    shared: Option<Arc<BuildLease>>,
 ) -> Result<PreparedContext, PreparationFailure> {
-    let lease = BuildLease::acquire(
-        &plan.root,
-        &plan.build,
-        cancellation,
-        Duration::from_secs(120),
-    )
-    .map_err(incomplete)?;
+    let lease = match shared {
+        Some(lease) => lease,
+        None => Arc::new(
+            BuildLease::acquire(
+                &plan.root,
+                &plan.build,
+                cancellation,
+                Duration::from_secs(120),
+            )
+            .map_err(incomplete)?,
+        ),
+    };
     let shadow = lease.prepare(&plan.build).map_err(incomplete)?;
     // Only this verified leased shadow is eligible for resetting accumulated runtime counters.
     for entry in crate::files::tree(&plan.root, &shadow).map_err(incomplete)? {
@@ -513,7 +544,7 @@ fn execute_native_preparation(
                             test_compile_failures: BTreeMap::new(),
                             evidence: None,
                             build_failure: Some(detail),
-                            _lease: Arc::new(lease),
+                            _lease: lease.clone(),
                         });
                     }
                 }
@@ -640,7 +671,7 @@ fn execute_native_preparation(
         test_compile_failures: BTreeMap::new(),
         evidence: None,
         build_failure: None,
-        _lease: Arc::new(lease),
+        _lease: lease.clone(),
     })
 }
 
@@ -808,10 +839,10 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 component.settings["native_build_variants"][&plan.build.variant]["plan"] =
                     json!(plan.build);
             }
-            // A legacy direct test/sanitizer compile is never the analysis context: frozen
-            // compiles those executables per engine and keeps lint/compile_db/dead on the
-            // project's own (absent) database.
-            let direct_runtime = plan.direct.is_some() && !primary;
+            // A legacy direct compile (test, sanitizer or the BuildEngine release binary) is
+            // never the analysis context: frozen compiles those executables per engine and
+            // keeps lint/compile_db/dead on the project's own (absent) database.
+            let direct_runtime = plan.direct.is_some();
             if (primary || component.build.is_none()) && !direct_runtime {
                 component.build = Some(id.clone());
                 // A handwritten Make backend need not write a compilation database; only an

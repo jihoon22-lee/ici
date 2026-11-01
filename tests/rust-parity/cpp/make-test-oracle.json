@@ -73,6 +73,127 @@
     "exit_code": 1
    }
   },
+  "sanitize-mode": {
+   "command": "sanitize",
+   "config": "test_argv=['make','check']\nsanitize_test_argv=['make','check-all']\n[engines.sanitize]\nmode='pass_warn'\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:3ac38bba6b07ea79e98ae47948d7d2961918ff21ef9f02e2ded0ec09b67a27f6",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_calc",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:51cdd867ee5dd2222fc3d07a76c02ebf01841dc1feda72bf5c5c672da8c09183",
+        "message": "Sanitizer run failed: make check failed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_limit",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": null,
+      "status": "WARN",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] test_calc"
+       },
+       {
+        "file_path": "Makefile",
+        "message": "Sanitizer run failed: make check failed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_limit"
+       }
+      ]
+     }
+    },
+    "exit_code": 0
+   },
+   "reference": "sanitize-argv"
+  },
+  "sanitize-no-sanitize-build-argv": {
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\ncoverage_build_argv=['make','all','VARIANT=coverage']\n",
+   "command": "sanitize",
+   "config": "test_argv=['make','check']\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "sanitize": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:6109940740971d9e90aab757b6823b1160ff2f5dcba5f110a9d33805c7a0feed",
+        "message": "Make configuration failed: build.make.sanitize_build_argv is required for sanitize",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": null,
+      "status": "ERROR",
+      "summary": "Make configuration failed: build.make.sanitize_build_argv is required for sanitize",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Make configuration failed: build.make.sanitize_build_argv is required for sanitize",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
   "sanitize-pass": {
    "command": "sanitize",
    "config": "test_argv=['make','check']\n",
@@ -512,6 +633,1167 @@
     "exit_code": 1
    }
   },
+  "test-min-branch": {
+   "command": "test",
+   "config": "test_argv=['make','check']\n[engines.test]\nmin_branch_cov=50.0\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "PASS",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       }
+      ]
+     }
+    },
+    "exit_code": 0
+   },
+   "reference": "test-pass"
+  },
+  "test-min-file": {
+   "command": "test",
+   "config": "test_argv=['make','check']\n[engines.test]\nmin_file_cov=90.0\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% is below the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% is below the configured minimum 90.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "reference": "test-pass"
+  },
+  "test-min-file-statements": {
+   "command": "test",
+   "config": "test_argv=['make','check']\n[engines.test]\nmin_file_cov=90.0\nmin_file_statements=50\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "reference": "test-min-file"
+  },
+  "test-min-func": {
+   "command": "test",
+   "config": "test_argv=['make','check']\n[engines.test]\nmin_func_cov=100.0\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 100.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 100.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 100.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "reference": "test-pass"
+  },
+  "test-min-line": {
+   "command": "test",
+   "config": "test_argv=['make','check']\n[engines.test]\nmin_line_cov=90.0\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% is below the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% is below the configured minimum 90.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "reference": "test-pass"
+  },
+  "test-mode": {
+   "command": "test",
+   "config": "test_argv=['make','check']\n[engines.test]\nmode='pass_warn'\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "WARN",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     }
+    },
+    "exit_code": 0
+   },
+   "reference": "test-pass"
+  },
+  "test-no-coverage-build-argv": {
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\nsanitize_build_argv=['make','all','VARIANT=sanitize']\n",
+   "command": "test",
+   "config": "test_argv=['make','check']\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "NOT_RUN",
+      "findings": [],
+      "score": 0.0,
+      "status": "ERROR",
+      "summary": "Make configuration failed: build.make.coverage_build_argv is required for coverage",
+      "targets": []
+     }
+    },
+    "exit_code": 1
+   }
+  },
   "test-pass": {
    "command": "test",
    "config": "test_argv=['make','check']\n",
@@ -706,6 +1988,1687 @@
         "target_name": "Threshold: Branch coverage"
        }
       ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "thread-sanitize-argv": {
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\ncoverage_build_argv=['make','all','VARIANT=coverage']\nsanitize_build_argv=['make','all','VARIANT=sanitize']\nthread_sanitize_build_argv=['make','all','VARIANT=thread']\n",
+   "command": "thread-sanitize",
+   "config": "test_argv=['make','check']\nthread_sanitize_test_argv=['make','check-race']\n",
+   "fixture": "tsan-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "thread_sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:bc6d5597595866da06d62df7946a7d88d09588bbbb1ffb93cd878cff9f22e6eb",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_counter",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "exact",
+        "fingerprint": "sha256:d2f9c4d301392e5ceb2623cf8b0daf2e87c4f48b66b610e967c5a61a83de2922",
+        "message": "ThreadSanitizer detected data race",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "TSan Error",
+         "path": "tests/test_race.cpp",
+         "start_column": null,
+         "start_line": 18
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "high",
+        "tool_name": "ThreadSanitizer"
+       }
+      ],
+      "score": null,
+      "status": "FAIL",
+      "summary": "1 Thread Safety Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ TSan] test_counter"
+       },
+       {
+        "file_path": "tests/test_race.cpp",
+        "message": "ThreadSanitizer detected data race",
+        "metrics": {
+         "frames_observed": 11,
+         "process_evidence_index": 2,
+         "project_frames": 2
+        },
+        "start_line": 18,
+        "status": "FAIL",
+        "target_name": "TSan Error"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "thread-sanitize-mode": {
+   "command": "thread-sanitize",
+   "config": "test_argv=['make','check-race']\n[engines.thread_sanitize]\nmode='pass_warn'\n",
+   "fixture": "tsan-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "thread_sanitize": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:1b12777e8c4699a20def011de65d2ae9ab5f9552ee2a912deb8db7989111ce0d",
+        "message": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": null,
+      "status": "ERROR",
+      "summary": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   },
+   "reference": "thread-sanitize-race"
+  },
+  "thread-sanitize-no-build-argv": {
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\ncoverage_build_argv=['make','all','VARIANT=coverage']\nsanitize_build_argv=['make','all','VARIANT=sanitize']\n",
+   "command": "thread-sanitize",
+   "config": "test_argv=['make','check']\n",
+   "fixture": "tsan-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "thread_sanitize": {
+      "evidence": "NOT_RUN",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "low",
+        "fingerprint": "sha256:1b12777e8c4699a20def011de65d2ae9ab5f9552ee2a912deb8db7989111ce0d",
+        "message": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "C++Sanitizer",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "critical",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": null,
+      "status": "ERROR",
+      "summary": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
+        "metrics": {},
+        "start_line": 1,
+        "status": "ERROR",
+        "target_name": "C++Sanitizer"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "thread-sanitize-pass": {
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\ncoverage_build_argv=['make','all','VARIANT=coverage']\nsanitize_build_argv=['make','all','VARIANT=sanitize']\nthread_sanitize_build_argv=['make','all','VARIANT=thread']\n",
+   "command": "thread-sanitize",
+   "config": "test_argv=['make','check']\n",
+   "fixture": "tsan-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "thread_sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:bc6d5597595866da06d62df7946a7d88d09588bbbb1ffb93cd878cff9f22e6eb",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_counter",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": null,
+      "status": "PASS",
+      "summary": "Thread Safety & TSan Clean (0 Defects)",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ TSan] test_counter"
+       }
+      ]
+     }
+    },
+    "exit_code": 0
+   }
+  },
+  "thread-sanitize-race": {
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\ncoverage_build_argv=['make','all','VARIANT=coverage']\nsanitize_build_argv=['make','all','VARIANT=sanitize']\nthread_sanitize_build_argv=['make','all','VARIANT=thread']\n",
+   "command": "thread-sanitize",
+   "config": "test_argv=['make','check-race']\n",
+   "fixture": "tsan-make",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "thread_sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:bc6d5597595866da06d62df7946a7d88d09588bbbb1ffb93cd878cff9f22e6eb",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ TSan] test_counter",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "correctness",
+        "confidence": "exact",
+        "fingerprint": "sha256:d2f9c4d301392e5ceb2623cf8b0daf2e87c4f48b66b610e967c5a61a83de2922",
+        "message": "ThreadSanitizer detected data race",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "TSan Error",
+         "path": "tests/test_race.cpp",
+         "start_column": null,
+         "start_line": 18
+        },
+        "rule_id": "ici.legacy.thread-sanitize.target",
+        "severity": "high",
+        "tool_name": "ThreadSanitizer"
+       }
+      ],
+      "score": null,
+      "status": "FAIL",
+      "summary": "1 Thread Safety Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ TSan] test_counter"
+       },
+       {
+        "file_path": "tests/test_race.cpp",
+        "message": "ThreadSanitizer detected data race",
+        "metrics": {
+         "frames_observed": 11,
+         "process_evidence_index": 2,
+         "project_frames": 2
+        },
+        "start_line": 18,
+        "status": "FAIL",
+        "target_name": "TSan Error"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "verify": {
+   "command": "verify",
+   "config": "test_argv=['make','check']\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": {
+     "artifact_manifests": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=coverage"
+         ],
+         "id": "coverage:shadow:test_calc",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_calc",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:3c69f01f20f3b37896be1075b4facaaebb0a9d21ccd51acd39a4516adf977502",
+         "size": 27384,
+         "target": "test_calc"
+        },
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=coverage"
+         ],
+         "id": "coverage:shadow:test_limit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_limit",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:b2e07b289d2ce9e7dc92d57569ad391dc77ba4894418e91c84d5cede9abb9606",
+         "size": 27392,
+         "target": "test_limit"
+        }
+       ],
+       "config_digest": "sha256:5bbece02a0f4a735fae6c5d414922dee722009f5ed15055aaec7cbfdbb621d61",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-make",
+       "source_commit": "71a9383f11e6b62c0290d831f83d30fdf785e395",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "coverage"
+      }
+     ],
+     "compilation": {
+      "database_path": null,
+      "diagnostics": [],
+      "generator": "",
+      "origin": "",
+      "units": [],
+      "unity_build": null
+     },
+     "identity": {
+      "config_digest": "sha256:5bbece02a0f4a735fae6c5d414922dee722009f5ed15055aaec7cbfdbb621d61",
+      "source_commit": "71a9383f11e6b62c0290d831f83d30fdf785e395",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+     },
+     "profile": "standard",
+     "project": {
+      "backend": "make",
+      "backend_descriptor": "Makefile",
+      "backend_reason": "Makefile at the project root selected the configured Make backend",
+      "compilable_cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "cpp_headers": [
+       "src/calc.h"
+      ],
+      "cpp_include_flags": [],
+      "cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "external_cpp_dirs": [],
+      "name": "project",
+      "python_sources": [],
+      "source_dirs": [
+       "src"
+      ],
+      "type": "cpp",
+      "version": "v71a9383"
+     },
+     "requested_variants": [
+      "coverage"
+     ],
+     "schema_version": "ici.analysis-context/v1"
+    },
+    "counters": {
+     "error_count": 0,
+     "failed_count": 1,
+     "max_tem_score": 5.0,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "FAIL",
+     "tem_score": 5.0,
+     "total_count": 13,
+     "warned_count": 2
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 2.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 1 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 12 lines (10 code, 0 comment, 2 blank) across 2 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-deep": {
+   "command": "verify",
+   "config": "test_argv=['make','check']\n[ici]\nprofile='deep'\n[engines.build]\nenabled=true\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": {
+     "artifact_manifests": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=coverage"
+         ],
+         "id": "coverage:shadow:test_calc",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_calc",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:698dea034b73c749c18412bf917d8d00cf2775a738ab09a13c3660d81d3fa4be",
+         "size": 27384,
+         "target": "test_calc"
+        },
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=coverage"
+         ],
+         "id": "coverage:shadow:test_limit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_limit",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:f3125dce9afcfd81b3c14b8b118d6dc21a51f15710200f78d27839c211c9d933",
+         "size": 27392,
+         "target": "test_limit"
+        }
+       ],
+       "config_digest": "sha256:b0c3333ba71d47508769b41ad4c020361daa2592fc774344d02ff7471cdc9d6f",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-make",
+       "source_commit": "67d97b7389afcce8aea428f16b0fb71d42641966",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "coverage"
+      },
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "all"
+         ],
+         "id": "release:shadow:test_calc",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_calc",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:698dea034b73c749c18412bf917d8d00cf2775a738ab09a13c3660d81d3fa4be",
+         "size": 27384,
+         "target": "test_calc"
+        },
+        {
+         "command": [
+          "make",
+          "all"
+         ],
+         "id": "release:shadow:test_limit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_limit",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:f3125dce9afcfd81b3c14b8b118d6dc21a51f15710200f78d27839c211c9d933",
+         "size": 27392,
+         "target": "test_limit"
+        }
+       ],
+       "config_digest": "sha256:b0c3333ba71d47508769b41ad4c020361daa2592fc774344d02ff7471cdc9d6f",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-make",
+       "source_commit": "67d97b7389afcce8aea428f16b0fb71d42641966",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "release"
+      }
+     ],
+     "compilation": {
+      "database_path": null,
+      "diagnostics": [],
+      "generator": "",
+      "origin": "",
+      "units": [],
+      "unity_build": null
+     },
+     "identity": {
+      "config_digest": "sha256:b0c3333ba71d47508769b41ad4c020361daa2592fc774344d02ff7471cdc9d6f",
+      "source_commit": "67d97b7389afcce8aea428f16b0fb71d42641966",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+     },
+     "profile": "deep",
+     "project": {
+      "backend": "make",
+      "backend_descriptor": "Makefile",
+      "backend_reason": "Makefile at the project root selected the configured Make backend",
+      "compilable_cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "cpp_headers": [
+       "src/calc.h"
+      ],
+      "cpp_include_flags": [],
+      "cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "external_cpp_dirs": [],
+      "name": "project",
+      "python_sources": [],
+      "source_dirs": [
+       "src"
+      ],
+      "type": "cpp",
+      "version": "v67d97b7"
+     },
+     "requested_variants": [
+      "release",
+      "coverage"
+     ],
+     "schema_version": "ici.analysis-context/v1"
+    },
+    "counters": {
+     "error_count": 0,
+     "failed_count": 1,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 5,
+     "suite_status": "FAIL",
+     "tem_score": 5.0,
+     "total_count": 15,
+     "warned_count": 2
+    },
+    "engines": {
+     "build": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Build Completed: project v67d97b7 into v67d97b7/x86_64"
+     },
+     "cognitive": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Max cognitive complexity: 1 across 1 functions"
+     },
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 2.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 1 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 12 lines (10 code, 0 comment, 2 blank) across 2 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-no-coverage-build-argv": {
+   "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.make]\nenabled=true\nbuild_argv=['make','all']\nsanitize_build_argv=['make','all','VARIANT=sanitize']\n",
+   "command": "verify",
+   "config": "test_argv=['make','check']\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": {
+     "artifact_manifests": [],
+     "compilation": {
+      "database_path": null,
+      "diagnostics": [],
+      "generator": "",
+      "origin": "",
+      "units": [],
+      "unity_build": null
+     },
+     "identity": {
+      "config_digest": "sha256:8c512b84c6d5db313772314c06b0f14d77e4791873cfef1541ccf5a181b0ef0e",
+      "source_commit": "441bde4d434f0831a8a4d0ad121743477c0d3f88",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+     },
+     "profile": "standard",
+     "project": {
+      "backend": "make",
+      "backend_descriptor": "Makefile",
+      "backend_reason": "Makefile at the project root selected the configured Make backend",
+      "compilable_cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "cpp_headers": [
+       "src/calc.h"
+      ],
+      "cpp_include_flags": [],
+      "cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "external_cpp_dirs": [],
+      "name": "project",
+      "python_sources": [],
+      "source_dirs": [
+       "src"
+      ],
+      "type": "cpp",
+      "version": "v441bde4"
+     },
+     "requested_variants": [
+      "coverage"
+     ],
+     "schema_version": "ici.analysis-context/v1"
+    },
+    "counters": {
+     "error_count": 1,
+     "failed_count": 1,
+     "max_tem_score": 5.0,
+     "passed_count": 5,
+     "skipped_count": 5,
+     "suite_status": "ERROR",
+     "tem_score": 0.0,
+     "total_count": 13,
+     "warned_count": 2
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 2.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 1 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 12 lines (10 code, 0 comment, 2 blank) across 2 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "NOT_RUN",
+      "findings": [],
+      "score": 0.0,
+      "status": "ERROR",
+      "summary": "Make configuration failed: build.make.coverage_build_argv is required for coverage",
+      "targets": []
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-shared-shadow-sanitize": {
+   "command": "verify",
+   "config": "test_argv=['make','check']\n",
+   "fixture": "test-make",
+   "frozen": {
+    "analysis_context": {
+     "artifact_manifests": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=coverage"
+         ],
+         "id": "coverage:shadow:test_calc",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_calc",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:b996307e33a4104f788966720a1b2fbc21a3e98059f740496d99622260ffe533",
+         "size": 27384,
+         "target": "test_calc"
+        },
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=coverage"
+         ],
+         "id": "coverage:shadow:test_limit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_limit",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:0ec717fd7adc9b86e220692849d05143404ff4dabe1e86870f1c29ee7dfa0a49",
+         "size": 27392,
+         "target": "test_limit"
+        }
+       ],
+       "config_digest": "sha256:ee63c637b8677eab67cddd95a96d631ae70746bbbd39f052746163df8731d24c",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-make",
+       "source_commit": "48991e9a9fa369f5ddbfa68ea43cec5a9a307737",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "coverage"
+      },
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=sanitize"
+         ],
+         "id": "sanitize:shadow:test_calc",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_calc",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:b996307e33a4104f788966720a1b2fbc21a3e98059f740496d99622260ffe533",
+         "size": 27384,
+         "target": "test_calc"
+        },
+        {
+         "command": [
+          "make",
+          "all",
+          "VARIANT=sanitize"
+         ],
+         "id": "sanitize:shadow:test_limit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_limit",
+         "producer": "make.build",
+         "scope": "shadow",
+         "sha256": "sha256:0ec717fd7adc9b86e220692849d05143404ff4dabe1e86870f1c29ee7dfa0a49",
+         "size": 27392,
+         "target": "test_limit"
+        }
+       ],
+       "config_digest": "sha256:ee63c637b8677eab67cddd95a96d631ae70746bbbd39f052746163df8731d24c",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-make",
+       "source_commit": "48991e9a9fa369f5ddbfa68ea43cec5a9a307737",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "sanitize"
+      }
+     ],
+     "compilation": {
+      "database_path": null,
+      "diagnostics": [],
+      "generator": "",
+      "origin": "",
+      "units": [],
+      "unity_build": null
+     },
+     "identity": {
+      "config_digest": "sha256:ee63c637b8677eab67cddd95a96d631ae70746bbbd39f052746163df8731d24c",
+      "source_commit": "48991e9a9fa369f5ddbfa68ea43cec5a9a307737",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+     },
+     "profile": "standard",
+     "project": {
+      "backend": "make",
+      "backend_descriptor": "Makefile",
+      "backend_reason": "Makefile at the project root selected the configured Make backend",
+      "compilable_cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "cpp_headers": [
+       "src/calc.h"
+      ],
+      "cpp_include_flags": [],
+      "cpp_sources": [
+       "src/calc.cpp"
+      ],
+      "external_cpp_dirs": [],
+      "name": "project",
+      "python_sources": [],
+      "source_dirs": [
+       "src"
+      ],
+      "type": "cpp",
+      "version": "v48991e9"
+     },
+     "requested_variants": [
+      "coverage",
+      "sanitize"
+     ],
+     "schema_version": "ici.analysis-context/v1"
+    },
+    "counters": {
+     "error_count": 0,
+     "failed_count": 1,
+     "max_tem_score": 5.0,
+     "passed_count": 6,
+     "skipped_count": 5,
+     "suite_status": "FAIL",
+     "tem_score": 5.0,
+     "total_count": 14,
+     "warned_count": 2
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 2.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 1 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 12 lines (10 code, 0 comment, 2 blank) across 2 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:3ac38bba6b07ea79e98ae47948d7d2961918ff21ef9f02e2ded0ec09b67a27f6",
+        "message": "Sanitizers reported no diagnostics",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_calc",
+         "path": "Makefile",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": null,
+      "status": "PASS",
+      "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+      "targets": [
+       {
+        "file_path": "Makefile",
+        "message": "Sanitizers reported no diagnostics",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++ ASan/UBSan] test_calc"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:0d492bab579c18bd99129bb07593083fa1e46e67d685f7efd040147a68fc2052",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "src/calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:5f752e17c8aa5f6a709bd9691caafb236055c53b04400eeca78dc5c2a0d49b29",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_calc",
+         "path": "tests/test_calc.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6ad1311c3ff4029355bbbb8205ee02efd24eae9e2fdf681e4ba494ab19c2183f",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 9,
+         "label": "Coverage:Function:clamp_add(int, int, int)",
+         "path": "src/calc.cpp",
+         "start_column": 5,
+         "start_line": 3
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:d31246cfbe13ec336a34c513b04a6115ff97792377c5ec93870d574267c1fef1",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Threshold: Branch coverage",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "medium",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend"
+       }
+      ],
+      "score": 5.0,
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 80.0%, Func: 100.0%, Branch: 50.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_calc.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_calc"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "File line coverage 80.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 80.0,
+         "covered_lines": 4,
+         "executable_lines": 5,
+         "gated": true,
+         "missed_lines": 1,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/calc.cpp",
+        "message": "Function clamp_add(int, int, int) was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z9clamp_addiii",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 3,
+        "status": "PASS",
+        "target_name": "Coverage:Function:clamp_add(int, int, int)"
+       },
+       {
+        "file_path": ".",
+        "message": "Branch coverage 50.0% is below the configured minimum 80.0%",
+        "metrics": {
+         "actual": 50.0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "WARN",
+        "target_name": "Threshold: Branch coverage"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
      }
     },
     "exit_code": 1
