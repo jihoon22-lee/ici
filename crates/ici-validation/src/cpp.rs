@@ -113,7 +113,11 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                     "gcov requires explicit notes and source scopes".into(),
                 ));
             }
-            let mut args = vec!["--json-format".into(), "-b".into(), "-p".into()];
+            // `-x` names each report `<notes>##<md5 of the full path>`: unique like `-p`, but
+            // never longer than NAME_MAX. `-p` mangled the whole absolute notes path into the
+            // report name, so gcov exited 6 ("Cannot open JSON output file") once a project
+            // lived about 100 characters deep.
+            let mut args = vec!["--json-format".into(), "-b".into(), "-x".into()];
             args.extend(
                 request
                     .targets
