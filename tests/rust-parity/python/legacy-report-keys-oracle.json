@@ -1,5 +1,174 @@
 {
  "base": "[project]\nsource_dirs=['src']\n",
+ "build": {
+  "config": "type='python'\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.build]\nenabled = true\n[build.python]\nentrypoint = 'app.main:run'\n",
+  "files": {
+   "pyproject.toml": "[project]\nname = 'pkg'\nversion = '2.3.4'\n",
+   "src/app/__init__.py": "",
+   "src/app/main.py": "def run():\n    return 0\n"
+  },
+  "frozen": {
+   "context_manifests": [],
+   "exit_code": 0,
+   "results": {
+    "build": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "cognitive": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "compile_db": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "NOT_APPLICABLE",
+     "language_evidence": null,
+     "status": "SKIP",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "complexity": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "cycle": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "dead": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "ESTIMATED",
+     "language_evidence": {
+      "cpp": "NOT_APPLICABLE",
+      "python": "ESTIMATED"
+     },
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "dup": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "ESTIMATED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "exception": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "python_compat": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "WARN",
+     "support_matrix": null,
+     "tool_evidence": [
+      {
+       "argv": [
+        "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+        "-VV"
+       ],
+       "error": "",
+       "name": "python -VV",
+       "path": "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false,
+       "version": "3.10.21"
+      },
+      {
+       "argv": [
+        "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+        "-B",
+        "-m",
+        "compileall",
+        "-q",
+        "-f",
+        "<project>/src"
+       ],
+       "error": "",
+       "name": "python -m compileall",
+       "path": "/home/jihoon/.local/share/uv/python/cpython-3.10.21-linux-x86_64-gnu/bin/python3.10",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false,
+       "version": ""
+      }
+     ]
+    },
+    "resource": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "security": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "MEASURED",
+     "language_evidence": null,
+     "status": "PASS",
+     "support_matrix": null,
+     "tool_evidence": []
+    },
+    "thread_sanitize": {
+     "artifact_manifests": [],
+     "cache_hit": false,
+     "cache_key": null,
+     "evidence": "NOT_APPLICABLE",
+     "language_evidence": null,
+     "status": "SKIP",
+     "support_matrix": null,
+     "tool_evidence": []
+    }
+   }
+  }
+ },
  "cases": {
   "cmake-qt/line": {
    "command": "line",
@@ -1559,7 +1728,7 @@
       "compile_db": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:f129060871b3aa0099ea4f46eb4bac0af4e625056292c6df1e6b954082ca1e2e",
+       "cache_key": "sha256:94051a23333b00f88bac4b04b453cd501195bb132fe3c651735b60f55a0c27b1",
        "evidence": "NOT_APPLICABLE",
        "language_evidence": null,
        "status": "SKIP",
@@ -1569,7 +1738,7 @@
       "complexity": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:8fad82583b683c49988383143c36cd63778d5b5b6958e0f2ee11d1a6f25b7253",
+       "cache_key": "sha256:f7b2feca92809fb5bdf082a486b9768c292e87f7caef379445df835981d3669a",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -1579,7 +1748,7 @@
       "cycle": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:7e95780679d556edbab2375452ed23499235ab501ad93d02883fca5c285f3b0c",
+       "cache_key": "sha256:cc270c9e549232a4be069e9cdbee9b69ddf012b728c5b1c97888a3932e4607d3",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -1602,7 +1771,7 @@
       "dup": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:d2e37045afdfbeeab2945b9d8fdb8be0ff7213ac55aa5edb5fb9242d0d1a1b90",
+       "cache_key": "sha256:4abaff947cbbcd2e7309f595c6ee923b5bf6e5d06c6105dd38800983e40ede38",
        "evidence": "ESTIMATED",
        "language_evidence": null,
        "status": "PASS",
@@ -1612,7 +1781,7 @@
       "exception": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:238da2f6ea2eda6bc890f5fb69c18f6bdb8c054e933e81b4b5d935f488ebbe6c",
+       "cache_key": "sha256:964dcf699f0326dea8a2d5e2be2f7ae284b917f8c94f022ec379899708431f46",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -1622,7 +1791,7 @@
       "line": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:2dacb68ec32b94d415f842904290794ce654c89e902b4e43af8cf078721300be",
+       "cache_key": "sha256:1000828b2dbf0588548c9a4569bb94de3e984753ae409f48de018bad55691c5b",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -1632,7 +1801,7 @@
       "lint": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:5ad3aeaee503e1d71ff3db5c7ef2e295f4cdd5078f950fe0c6e0e223c1c2d709",
+       "cache_key": "sha256:6395af522ae49c69ae227a342aaf45b14570bcc5a89cf7156ba1d90cd9643d4a",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "FAIL",
@@ -1733,7 +1902,7 @@
       "resource": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:99c5c28d6f50083b5fd6a913d23c70ef3d1e723611c7f2d7f770610be0716df0",
+       "cache_key": "sha256:f208b2a03b5399189eab7d614e77c428b239248eb27e03f228798c71ec4121ce",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -1743,7 +1912,7 @@
       "security": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:17fcc5e05414fb2944e65d1d16190f9556831ccbfa69f701a2f298f57b15d8a8",
+       "cache_key": "sha256:2a9c5866f1d748e601a47ea130a8f54c8bb2d6f50d735e63aeb4e68fe90a05ca",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -1753,7 +1922,7 @@
       "type": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:0970c11129c76e368cffaf7b1ddc634f97a0ccb68514ed86c400b3e60fe730cb",
+       "cache_key": "sha256:536af8eac39deec20b7447967d028b12a49144dcbe143dba1b83ddc22be47b68",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -3613,7 +3782,7 @@
       "compile_db": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:f129060871b3aa0099ea4f46eb4bac0af4e625056292c6df1e6b954082ca1e2e",
+       "cache_key": "sha256:94051a23333b00f88bac4b04b453cd501195bb132fe3c651735b60f55a0c27b1",
        "evidence": "NOT_APPLICABLE",
        "language_evidence": null,
        "status": "SKIP",
@@ -3623,7 +3792,7 @@
       "complexity": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:8fad82583b683c49988383143c36cd63778d5b5b6958e0f2ee11d1a6f25b7253",
+       "cache_key": "sha256:f7b2feca92809fb5bdf082a486b9768c292e87f7caef379445df835981d3669a",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -3633,7 +3802,7 @@
       "cycle": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:7e95780679d556edbab2375452ed23499235ab501ad93d02883fca5c285f3b0c",
+       "cache_key": "sha256:cc270c9e549232a4be069e9cdbee9b69ddf012b728c5b1c97888a3932e4607d3",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -3656,7 +3825,7 @@
       "dup": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:d2e37045afdfbeeab2945b9d8fdb8be0ff7213ac55aa5edb5fb9242d0d1a1b90",
+       "cache_key": "sha256:4abaff947cbbcd2e7309f595c6ee923b5bf6e5d06c6105dd38800983e40ede38",
        "evidence": "ESTIMATED",
        "language_evidence": null,
        "status": "PASS",
@@ -3666,7 +3835,7 @@
       "exception": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:238da2f6ea2eda6bc890f5fb69c18f6bdb8c054e933e81b4b5d935f488ebbe6c",
+       "cache_key": "sha256:964dcf699f0326dea8a2d5e2be2f7ae284b917f8c94f022ec379899708431f46",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -3676,7 +3845,7 @@
       "line": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:2dacb68ec32b94d415f842904290794ce654c89e902b4e43af8cf078721300be",
+       "cache_key": "sha256:1000828b2dbf0588548c9a4569bb94de3e984753ae409f48de018bad55691c5b",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -3686,7 +3855,7 @@
       "lint": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:5ad3aeaee503e1d71ff3db5c7ef2e295f4cdd5078f950fe0c6e0e223c1c2d709",
+       "cache_key": "sha256:6395af522ae49c69ae227a342aaf45b14570bcc5a89cf7156ba1d90cd9643d4a",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "FAIL",
@@ -3787,7 +3956,7 @@
       "resource": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:99c5c28d6f50083b5fd6a913d23c70ef3d1e723611c7f2d7f770610be0716df0",
+       "cache_key": "sha256:f208b2a03b5399189eab7d614e77c428b239248eb27e03f228798c71ec4121ce",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -3797,7 +3966,7 @@
       "security": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:17fcc5e05414fb2944e65d1d16190f9556831ccbfa69f701a2f298f57b15d8a8",
+       "cache_key": "sha256:2a9c5866f1d748e601a47ea130a8f54c8bb2d6f50d735e63aeb4e68fe90a05ca",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -3807,7 +3976,7 @@
       "type": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:0970c11129c76e368cffaf7b1ddc634f97a0ccb68514ed86c400b3e60fe730cb",
+       "cache_key": "sha256:536af8eac39deec20b7447967d028b12a49144dcbe143dba1b83ddc22be47b68",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -4649,7 +4818,7 @@
       "compile_db": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:a1dacc0a44ae9ff11ec0af04360c2d78f05e71d9ddc2a030b7d2171b8f05b50b",
+       "cache_key": "sha256:471c38479ada42f77e21d2d35d1ec216d9cf2c49e7c7c4d3a7218a63d9b11966",
        "evidence": "NOT_APPLICABLE",
        "language_evidence": null,
        "status": "SKIP",
@@ -4659,7 +4828,7 @@
       "complexity": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:669683b33e3fc238099db76022072e683ec4bcf738efb94e4b42a3dfe5ad68a1",
+       "cache_key": "sha256:f5ab733b904004e620bd939f0ff35f265ae62fd4ec0b0b0cd9ef690fe44f532d",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -4669,7 +4838,7 @@
       "cycle": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:79009f67497884064dcfa03203aa17352fca14c9fa72367d65050e2219740d76",
+       "cache_key": "sha256:72de25bcf5dd6f68380d361c28f8138340ec38065cf6f7a224a5c4e6f30159b2",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -4692,7 +4861,7 @@
       "dup": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:2675c04f0cbb19043ff8761940c9912ab2096812fc957df116a07b9bb420c9d5",
+       "cache_key": "sha256:46086c9df7af0ca9257a10c9d53cf947af256cf7d507e19591650d76d488ecf9",
        "evidence": "ESTIMATED",
        "language_evidence": null,
        "status": "PASS",
@@ -4702,7 +4871,7 @@
       "exception": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:084361a8ef11db3b675ad437c793ebf03c1f64a5126f63ef65190ff952e871d3",
+       "cache_key": "sha256:79fca01f2873cfe5675c1d7797705e3e7c571314f6e468b77d2814908bc1560f",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -4712,7 +4881,7 @@
       "line": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:371cb5b6e6c280a742e022a125565a626424f51674371b99495c0bcd81180c0c",
+       "cache_key": "sha256:a81199eccb2194d89b5eb5c94d3bcfee801dc84b9606ed863b8dffb5bc613bf9",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -4722,7 +4891,7 @@
       "lint": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:d3af72bfc0b26cad51e2f96b49268bb97afdba8065e33df9e017e434ca6c1c27",
+       "cache_key": "sha256:405eb4863358641231099be807e264eae43ab9595210d92c6b146fc7d22143a8",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "FAIL",
@@ -4823,7 +4992,7 @@
       "resource": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:f4d3b9138700598480426939228d58e3461577a171971b397fc72383d1816918",
+       "cache_key": "sha256:5eb2ee7355b84547bf79cc6d7a15c502f516d4257c5cc48a85827fe2f2f78a9c",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -4833,7 +5002,7 @@
       "security": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:730134fe1a507a5693ee2aafb361726b60ccff0c659b845b496f43f736dd1fcc",
+       "cache_key": "sha256:91ce0bf235f8ef357007ec4f3579984499134114756d30f6125219757f95df42",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -4843,7 +5012,7 @@
       "type": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:1284490283843ba8797db0813ac657e417141826022ac4470bc842f98c8f6b06",
+       "cache_key": "sha256:ad9caeb3d6a09795ff71ecdb471280e9d7c2aead3b4966910fb9974e4406994e",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -6703,7 +6872,7 @@
       "compile_db": {
        "artifact_manifests": [],
        "cache_hit": false,
-       "cache_key": "sha256:a1dacc0a44ae9ff11ec0af04360c2d78f05e71d9ddc2a030b7d2171b8f05b50b",
+       "cache_key": "sha256:471c38479ada42f77e21d2d35d1ec216d9cf2c49e7c7c4d3a7218a63d9b11966",
        "evidence": "NOT_APPLICABLE",
        "language_evidence": null,
        "status": "SKIP",
@@ -6713,7 +6882,7 @@
       "complexity": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:669683b33e3fc238099db76022072e683ec4bcf738efb94e4b42a3dfe5ad68a1",
+       "cache_key": "sha256:f5ab733b904004e620bd939f0ff35f265ae62fd4ec0b0b0cd9ef690fe44f532d",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -6723,7 +6892,7 @@
       "cycle": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:79009f67497884064dcfa03203aa17352fca14c9fa72367d65050e2219740d76",
+       "cache_key": "sha256:72de25bcf5dd6f68380d361c28f8138340ec38065cf6f7a224a5c4e6f30159b2",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -6746,7 +6915,7 @@
       "dup": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:2675c04f0cbb19043ff8761940c9912ab2096812fc957df116a07b9bb420c9d5",
+       "cache_key": "sha256:46086c9df7af0ca9257a10c9d53cf947af256cf7d507e19591650d76d488ecf9",
        "evidence": "ESTIMATED",
        "language_evidence": null,
        "status": "PASS",
@@ -6756,7 +6925,7 @@
       "exception": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:084361a8ef11db3b675ad437c793ebf03c1f64a5126f63ef65190ff952e871d3",
+       "cache_key": "sha256:79fca01f2873cfe5675c1d7797705e3e7c571314f6e468b77d2814908bc1560f",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -6766,7 +6935,7 @@
       "line": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:371cb5b6e6c280a742e022a125565a626424f51674371b99495c0bcd81180c0c",
+       "cache_key": "sha256:a81199eccb2194d89b5eb5c94d3bcfee801dc84b9606ed863b8dffb5bc613bf9",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -6776,7 +6945,7 @@
       "lint": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:d3af72bfc0b26cad51e2f96b49268bb97afdba8065e33df9e017e434ca6c1c27",
+       "cache_key": "sha256:405eb4863358641231099be807e264eae43ab9595210d92c6b146fc7d22143a8",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "FAIL",
@@ -6877,7 +7046,7 @@
       "resource": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:f4d3b9138700598480426939228d58e3461577a171971b397fc72383d1816918",
+       "cache_key": "sha256:5eb2ee7355b84547bf79cc6d7a15c502f516d4257c5cc48a85827fe2f2f78a9c",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -6887,7 +7056,7 @@
       "security": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:730134fe1a507a5693ee2aafb361726b60ccff0c659b845b496f43f736dd1fcc",
+       "cache_key": "sha256:91ce0bf235f8ef357007ec4f3579984499134114756d30f6125219757f95df42",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",
@@ -6897,7 +7066,7 @@
       "type": {
        "artifact_manifests": [],
        "cache_hit": true,
-       "cache_key": "sha256:1284490283843ba8797db0813ac657e417141826022ac4470bc842f98c8f6b06",
+       "cache_key": "sha256:ad9caeb3d6a09795ff71ecdb471280e9d7c2aead3b4966910fb9974e4406994e",
        "evidence": "MEASURED",
        "language_evidence": null,
        "status": "PASS",

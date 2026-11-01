@@ -379,3 +379,51 @@ fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+/// Frozen BuildEngine publishes artifact manifests only for compiled C++ build sessions; a
+/// Python release build under verify carries `artifact_manifests: []` on every engine.
+#[test]
+#[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
+fn python_build_under_verify_publishes_no_legacy_artifact_manifest_like_frozen() {
+    let oracle = oracle();
+    let tools = tool_dir(&oracle);
+    let with_tools = format!("{}:/usr/bin:/bin", tools.path().display());
+    let case = &oracle["build"];
+    let root = project(&oracle, case);
+    let (_, report) = run(
+        root.path(),
+        &with_tools,
+        &["verify", "--report", "--no-cache"],
+    );
+    let frozen = &case["frozen"];
+    let mut failures = vec![];
+    let results = report["results"].as_array().unwrap();
+    assert!(
+        results
+            .iter()
+            .any(|result| result["engine_name"] == "build")
+    );
+    for result in results {
+        let engine = result["engine_name"].as_str().unwrap();
+        if result["artifact_manifests"] != serde_json::json!([]) {
+            failures.push(format!("{engine}: {}", result["artifact_manifests"]));
+        }
+        if result["cache_key"] != Value::Null || result["cache_hit"] != false {
+            failures.push(format!("{engine}: --no-cache keeps a cache key"));
+        }
+    }
+    let build = results
+        .iter()
+        .find(|result| result["engine_name"] == "build")
+        .unwrap();
+    for key in ["status", "evidence"] {
+        if build[key] != frozen["results"]["build"][key] {
+            failures.push(format!(
+                "build {key}: {} != {}",
+                build[key], frozen["results"]["build"][key]
+            ));
+        }
+    }
+    assert_eq!(frozen["context_manifests"], serde_json::json!([]));
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}

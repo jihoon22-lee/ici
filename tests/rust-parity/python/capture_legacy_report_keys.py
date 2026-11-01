@@ -86,6 +86,24 @@ VERIFY = {
 }
 
 
+# A Python release build under verify (frozen BuildEngine publishes no artifact manifest for it;
+# only compiled C++ build sessions do).
+BUILD = {
+    "files": {
+        "pyproject.toml": "[project]\nname = 'pkg'\nversion = '2.3.4'\n",
+        "src/app/__init__.py": "",
+        "src/app/main.py": "def run():\n    return 0\n",
+    },
+    "config": T
+    + "[ici]\nprofile = 'deep'\n"
+    + "".join(
+        f"[engines.{engine}]\nenabled = false\n"
+        for engine in ("line", "lint", "test", "type", "sanitize")
+    )
+    + "[engines.build]\nenabled = true\n[build.python]\nentrypoint = 'app.main:run'\n",
+}
+
+
 def write(project: Path, files: dict) -> None:
     for name, text in files.items():
         path = project / name
@@ -188,6 +206,24 @@ def main() -> None:
         }
         for name, (files, config, profile) in VERIFY.items()
     }
+    work, bin_dir, project, path = prepare(BUILD["files"], BUILD["config"], True)
+    try:
+        code = oracle(project, path, work, "verify", "--report", "--no-cache")
+        report = json.loads((project / "verify_report.json").read_text(encoding="utf-8"))
+        build = {
+            "files": BUILD["files"],
+            "config": BUILD["config"],
+            "frozen": {
+                "exit_code": code,
+                "results": {
+                    result["engine_name"]: keys(result, bin_dir, project)
+                    for result in report["results"]
+                },
+                "context_manifests": report["analysis_context"]["artifact_manifests"],
+            },
+        }
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
     versions = {
         name: subprocess.check_output([target, "--version"], text=True).strip()
         for name, target in TOOLS.items()
@@ -201,6 +237,7 @@ def main() -> None:
                 "tool_versions": versions,
                 "cases": cases,
                 "verify": verify_cases,
+                "build": build,
             },
             indent=1,
             sort_keys=True,
