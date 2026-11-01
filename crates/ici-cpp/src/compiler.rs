@@ -92,10 +92,22 @@ pub fn analyze_compile_context(
             output.observation.measurements.push(item);
         }
         output.status = if required { "FAIL" } else { "WARN" }.into();
+        // Frozen `CompileDbEngine._result` wording and coverage score for a missing database.
+        let count = |status: &str| {
+            output
+                .targets
+                .iter()
+                .filter(|target| target.status == status)
+                .count()
+        };
         output.summary = format!(
-            "Compilation DB: 0/{} production units covered; no database selected",
-            production.len()
+            "Compilation DB: 0/{} production units covered, 0 configurations, {} failures, {} warnings.",
+            production.len(),
+            count("FAIL"),
+            count("WARN")
         );
+        output.score = Some(0.0);
+        output.max_score = Some(100.0);
         output.extra = json!({"context":context,"database_path":null,"production_units":production.len(),"covered_units":0,"configurations":0,"coverage_percent":0.0});
         return output;
     }

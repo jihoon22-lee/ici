@@ -359,14 +359,153 @@ impl CppAnalysisSession {
             }
             .into();
         }
-        output.summary = format!(
-            "{}: {} inspected targets, {} findings",
-            request.check_id,
-            output.targets.len(),
-            output.observation.findings.len()
-        );
+        output.summary = if output.observation.state == TaskState::Succeeded {
+            frozen_summary(kind, request, &mut output)
+        } else {
+            None
+        }
+        .unwrap_or_else(|| {
+            format!(
+                "{}: {} inspected targets, {} findings",
+                request.check_id,
+                output.targets.len(),
+                output.observation.findings.len()
+            )
+        });
         output.extra["parser_identity"] = json!(source::PARSER_ID);
         output
+    }
+}
+/// Python `{value:,}` grouping for the frozen line summary.
+fn grouped(value: u64) -> String {
+    let digits = value.to_string();
+    let mut out = String::new();
+    for (index, digit) in digits.chars().enumerate() {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(digit);
+    }
+    out
+}
+fn measured(output: &AnalysisOutput, name: &str) -> u64 {
+    output
+        .observation
+        .measurements
+        .iter()
+        .find(|item| item.name == name)
+        .map_or(0, |item| item.value as u64)
+}
+/// The frozen engine summary (and score) of a completed C++ source check, as the historical
+/// LineCount/Complexity/Cognitive/Cycle/Duplicate/ExceptionSafety engines word it for a C++
+/// scope.
+fn frozen_summary(
+    kind: &str,
+    request: &AnalysisRequest,
+    output: &mut AnalysisOutput,
+) -> Option<String> {
+    let count = |status: &str| {
+        output
+            .targets
+            .iter()
+            .filter(|target| target.status == status)
+            .count()
+    };
+    let (fails, warns) = (count("FAIL"), count("WARN"));
+    match kind {
+        "line" => Some(format!(
+            "Total {} lines ({} code, {} comment, {} blank) across {} files",
+            grouped(measured(output, "lines_total")),
+            grouped(measured(output, "lines_code")),
+            grouped(measured(output, "lines_comment")),
+            grouped(measured(output, "lines_blank")),
+            output.targets.len()
+        )),
+        "complexity" | "cognitive" => {
+            let rows: Vec<u64> = output
+                .targets
+                .iter()
+                .filter_map(|target| target.metrics.get(kind).and_then(|v| v.as_u64()))
+                .collect();
+            let peak = rows.iter().copied().max().unwrap_or(0);
+            if kind == "complexity" {
+                output.score = Some(peak as f64);
+                let warn = request
+                    .options
+                    .get("warn_cc")
+                    .and_then(|value| value.as_u64())
+                    .unwrap_or_else(|| option(request, "warn_limit", 15));
+                Some(format!(
+                    "Max Cyclomatic Complexity: {peak} (limit {warn}) across {} functions ({} issues)",
+                    rows.len(),
+                    fails + warns
+                ))
+            } else {
+                let threshold = |frozen: &str, default| {
+                    request
+                        .options
+                        .get(frozen)
+                        .and_then(|value| value.as_u64())
+                        .unwrap_or(default)
+                };
+                let base = format!(
+                    "Max cognitive complexity: {peak} across {} functions",
+                    rows.len()
+                );
+                Some(if fails > 0 {
+                    format!(
+                        "{base}; fail threshold {} exceeded",
+                        threshold("fail", option(request, "fail_limit", 60))
+                    )
+                } else if warns > 0 {
+                    format!(
+                        "{base}; warn threshold {} or nesting threshold {} reached",
+                        threshold("warn", option(request, "warn_limit", 30)),
+                        option(request, "warn_nesting", 4)
+                    )
+                } else {
+                    base
+                })
+            }
+        }
+        "cycle" => {
+            let cycles = output.extra["cycles"].as_array().map_or(0, Vec::len);
+            let mut summary = if cycles > 0 {
+                format!("Dependency cycles: {cycles} found")
+            } else {
+                "No cyclic dependencies detected".into()
+            };
+            let ambiguous = output.extra["ambiguous_cpp_includes"].as_u64().unwrap_or(0);
+            let unresolved = output.extra["unresolved_cpp_includes"]
+                .as_u64()
+                .unwrap_or(0);
+            if ambiguous + unresolved > 0 {
+                summary.push_str(&format!(
+                    "; C++ include graph incomplete: {ambiguous} ambiguous, {unresolved} unresolved"
+                ));
+            }
+            Some(summary)
+        }
+        "dup" => {
+            let total = output.extra["total_code_lines"].as_u64().unwrap_or(0);
+            let duplicated = output.extra["duplicated_lines"].as_u64().unwrap_or(0);
+            let percent = if total > 0 {
+                duplicated as f64 / total as f64 * 100.0
+            } else {
+                0.0
+            };
+            output.score = Some(percent);
+            Some(format!(
+                "Code Duplication Rate: {percent:.1}% ({} distinct clone groups found, 0 from Python AST shapes)",
+                measured(output, "clone_groups")
+            ))
+        }
+        "exception" => Some(if fails + warns == 0 {
+            "Exception Handling Safety Clean".into()
+        } else {
+            format!("{fails} Critical Exception Violations, {warns} Warnings")
+        }),
+        _ => None,
     }
 }
 pub(crate) fn cancelled(output: &mut AnalysisOutput, cancellation: Option<&AtomicBool>) -> bool {
@@ -435,6 +574,18 @@ pub(crate) fn finding(
 }
 pub(crate) fn measurement(output: &mut AnalysisOutput, name: &str, value: u64, estimated: bool) {
     let mut measurement = Measurement::measured(name, value as f64);
+    // Frozen next measurement units (languages/{lines,metrics,cycles,hygiene}.py).
+    measurement.unit = match name {
+        "lines_total" | "lines_code" | "lines_comment" | "lines_blank" => "lines",
+        "files_counted" | "files_checked" => "files",
+        "functions_measured" => "functions",
+        "max_complexity" => "complexity",
+        "max_cognitive" => "cognitive",
+        "cycles_found" => "cycles",
+        "issues_found" => "issues",
+        _ => "",
+    }
+    .into();
     if estimated {
         measurement.evidence = EvidenceLevel::Estimated;
     }

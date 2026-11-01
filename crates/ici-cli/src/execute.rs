@@ -550,7 +550,11 @@ pub fn execute(
                                         && check.check.id == "cpp.tidy"
                                 })
                                 .and_then(|check| prepared.cpp.planned(&check.task_id));
-                            crate::cpp::legacy_fallback_lint(&mut output, tooling);
+                            crate::cpp::legacy_fallback_lint(
+                                &mut output,
+                                tooling,
+                                prepared.cpp.legacy_standalone,
+                            );
                         }
                         output
                     } else if let Some(plans) = prepared.validations.get(id) {

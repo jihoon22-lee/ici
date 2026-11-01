@@ -95,9 +95,12 @@ pub(crate) fn lines(
             (*path).to_owned()
         };
         target.end_line = Some((fc + fm + fb).max(1) as u32);
-        target.metrics.insert("code_lines".into(), json!(fc));
-        target.metrics.insert("comment_lines".into(), json!(fm));
-        target.metrics.insert("blank_lines".into(), json!(fb));
+        // Frozen legacy line rows name their counts code/comment/blank/total only.
+        if !legacy {
+            target.metrics.insert("code_lines".into(), json!(fc));
+            target.metrics.insert("comment_lines".into(), json!(fm));
+            target.metrics.insert("blank_lines".into(), json!(fb));
+        }
         if legacy {
             target.metrics.extend([
                 ("code".into(), json!(fc)),
@@ -504,7 +507,16 @@ pub(crate) fn metrics(
                 ("function_origin", json!("source-spelled")),
                 ("metric_source", json!("bounded-cpp-source")),
             ] {
-                target.metrics.insert(key.into(), value);
+                // Frozen legacy rows carry only their own engine's numeric facts: complexity has
+                // no cognitive/sequence/unbraced counts, cognitive no cyclomatic value.
+                let foreign = if complexity {
+                    ["cognitive", "logical_sequences", "unbraced_controls"].contains(&key)
+                } else {
+                    key == "complexity"
+                };
+                if !(legacy && foreign) {
+                    target.metrics.insert(key.into(), value);
+                }
             }
             if over_fail || over_warn {
                 finding(

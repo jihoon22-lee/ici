@@ -1473,7 +1473,11 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
 /// `Compiler:<rule>` / `C++Syntax` targets with kind-prefixed messages (errors FAIL, warnings and
 /// notes WARN, notes as their own targets), `C++Syntax:fallback` PASS for clean files, and the
 /// frozen LintEngine summary over these targets, the clang tooling targets and tool warnings.
-pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&AnalysisOutput>) {
+pub fn legacy_fallback_lint(
+    output: &mut AnalysisOutput,
+    tooling: Option<&AnalysisOutput>,
+    standalone: bool,
+) {
     const FALLBACK: &str = "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback";
     if !matches!(output.status.as_str(), "PASS" | "FAIL")
         || !output.observation.evidence_is_complete()
@@ -1487,6 +1491,7 @@ pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&Analys
         .unwrap_or_default();
     let findings = output.observation.findings.clone();
     let mut targets = vec![];
+    let (mut primaries, mut notes) = (vec![], vec![]);
     for target in &output.targets {
         if target.status == "PASS" && target.target_name.is_empty() {
             let mut clean = target.clone();
@@ -1514,8 +1519,14 @@ pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&Analys
         };
         let kind = legacy.split(": ").next().unwrap_or_default();
         let mut primary = target.clone();
-        // Frozen `_cpp_diagnostics` text diagnostics end on their own line.
-        primary.end_line = primary.end_line.or(Some(primary.start_line));
+        // Frozen standalone `ici lint` parses g++ text diagnostics (a start line and column
+        // only); under `ici verify` its JSON diagnostics end on their own line.
+        if standalone {
+            primary.end_line = None;
+            primary.end_column = None;
+        } else {
+            primary.end_line = primary.end_line.or(Some(primary.start_line));
+        }
         primary.message = legacy.into();
         primary.status = if kind.contains("error") || kind == "sorry, unimplemented" {
             "FAIL"
@@ -1529,20 +1540,26 @@ pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&Analys
             "C++Syntax".into()
         };
         targets.push(primary);
+        primaries.push((targets.len() - 1, finding.fingerprint.clone()));
         for note in &finding.related_locations {
             if !note.label.starts_with("note: ") {
                 continue;
             }
             let mut related = InspectionTarget::at(&note.path, note.start_line);
-            related.end_line = Some(note.start_line);
+            if !standalone {
+                related.end_line = note.end_line.or(Some(note.start_line));
+                related.end_column = note.end_column;
+            }
             related.start_column = note.start_column;
             related.target_name = "C++Syntax".into();
             related.status = "WARN".into();
             related.message = note.label.clone();
             targets.push(related);
+            notes.push((targets.len() - 1, finding.fingerprint.clone()));
         }
     }
     output.targets = targets;
+    legacy_fallback_findings(output, &primaries, &notes);
     let all: Vec<&InspectionTarget> = output
         .targets
         .iter()
@@ -1584,6 +1601,82 @@ pub fn legacy_fallback_lint(output: &mut AnalysisOutput, tooling: Option<&Analys
     } else {
         format!("{fail} Errors, {warn} Warnings Found")
     };
+}
+
+/// Frozen `LintEngine._cpp_findings` in the heuristic fallback: every text diagnostic, each note
+/// included, is its own compiler finding with medium confidence (only an exact replay is exact),
+/// no related locations, and the target name as its label only when that name is unique in its
+/// file. Notes have no native finding of their own, so their frozen findings are supplied whole
+/// (`legacy_findings`). The adapted targets name the first compiler invocation as their tool.
+fn legacy_fallback_findings(
+    output: &mut AnalysisOutput,
+    primaries: &[(usize, String)],
+    notes: &[(usize, String)],
+) {
+    let mut counts = BTreeMap::<(&str, &str), usize>::new();
+    for target in &output.targets {
+        *counts
+            .entry((&target.file_path, target.target_name.trim()))
+            .or_default() += 1;
+    }
+    let label = |target: &InspectionTarget| {
+        if counts[&(target.file_path.as_str(), target.target_name.trim())] == 1 {
+            target.target_name.clone()
+        } else {
+            String::new()
+        }
+    };
+    let details = &output.extra["finding_details"];
+    let tool = |fingerprint: &str, key: &str| {
+        details[fingerprint][key]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned()
+    };
+    let mut explicit = vec![];
+    let mut patches = vec![];
+    for (index, fingerprint) in primaries {
+        patches.push((fingerprint.clone(), label(&output.targets[*index])));
+    }
+    for (index, parent) in notes {
+        let target = &output.targets[*index];
+        explicit.push(json!({"rule_id":"ici.legacy.lint.target","category":"correctness","severity":"medium",
+            "confidence":"medium","primary_location":{"path":target.file_path,"start_line":target.start_line,
+            "end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,"label":label(target)},
+            "related_locations":[],"message":target.message,
+            "explanation":"Compiler diagnostic from a sanitized translation-unit replay.","remediation":"",
+            "fixes":[],"tool_rule_id":"","tool_name":tool(parent,"tool_name"),"tool_version":tool(parent,"tool_version"),
+            "metrics":{},"snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}}));
+    }
+    let tool_name = primaries
+        .first()
+        .map(|(_, fingerprint)| tool(fingerprint, "tool_name"))
+        .filter(|name| !name.is_empty());
+    for (fingerprint, label) in patches {
+        let detail = &mut output.extra["finding_details"][&fingerprint];
+        detail["legacy_confidence"] = json!("medium");
+        detail["legacy_label"] = json!(label);
+        detail["related_locations"] = json!([]);
+    }
+    output.extra["legacy_findings"] = json!(explicit);
+    // Frozen tool evidence lists one compiler run per source; adapted targets take the first.
+    let runs: Vec<Value> = output.extra["concrete_tasks"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|task| task["argv"].as_array())
+        .filter_map(|argv| {
+            let path = argv.first()?.as_str()?;
+            let name = tool_name
+                .clone()
+                .unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path).to_owned());
+            Some(
+                json!({"name":name,"path":path,"argv":argv,"version":"","returncode":null,
+                "error":"","timed_out":false,"truncated":false}),
+            )
+        })
+        .collect();
+    output.extra["tool_evidence"] = json!(runs);
 }
 
 /// Frozen SanitizeEngine / ThreadSanitizeEngine direct g++ projection. Each instrumented test
@@ -2090,7 +2183,14 @@ impl CppPlans {
             let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
             let status = if *required { "ERROR" } else { "SKIP" };
             output.status = status.into();
-            output.summary = LEGACY_UNUSED_UNAVAILABLE.into();
+            // Frozen `DeadCodeEngine._result_state`: a required policy reports its analysis
+            // error, an automatic one the not-run SKIP summary.
+            output.summary = if *required {
+                LEGACY_UNUSED_UNAVAILABLE
+            } else {
+                "C++ dead-code analysis not run: exact native context unavailable"
+            }
+            .into();
             output.observation.measurements.push(Measurement {
                 name: "cpp_unused_configurations_checked".into(),
                 value: 0.0,
@@ -2114,6 +2214,16 @@ impl CppPlans {
             target.target_name = "C++UnusedFunctionsUnavailable".into();
             target.status = status.into();
             target.message = LEGACY_UNUSED_UNAVAILABLE.into();
+            // Frozen `DeadCodeEngine._scope_finding` for the not-run compiler scope.
+            output.extra["legacy_findings"] = json!([{"rule_id":"ici.legacy.dead.target",
+                "category":"maintainability","severity":if *required {"critical"} else {"info"},
+                "confidence":"low","primary_location":{"path":path,"start_line":1,"end_line":null,
+                "start_column":null,"end_column":null,"label":target.target_name},"related_locations":[],
+                "message":target.message,
+                "explanation":"This target records the bounded TU-local compiler unused-function scope.",
+                "remediation":"Restore a complete, safe compilation context when exact analysis did not run.",
+                "fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"","metrics":{},"snippet":"",
+                "suppression":{"kind":"none","reason":"","suppressed":false}}]);
             output.targets.push(target);
             return output;
         }
