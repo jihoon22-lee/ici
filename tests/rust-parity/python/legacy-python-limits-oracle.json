@@ -31,6 +31,36 @@
     ]
    }
   },
+  "dead/no-python-source": {
+   "command": "dead",
+   "files": {
+    "src/readme.txt": "notes\n"
+   },
+   "frozen": {
+    "evidence": "NOT_APPLICABLE",
+    "exit_code": 2,
+    "findings": [
+     {
+      "fingerprint": "sha256:e37d9d9dddbc355356cb3f205157dac24fa727bbb94aa54c2fa29a2bba53a823",
+      "message": "No applicable source files were selected; dead-code analysis was not run",
+      "rule_id": "ici.legacy.dead.target",
+      "severity": "info"
+     }
+    ],
+    "status": "SKIP",
+    "summary": "Dead-code analysis skipped: no owned source files",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "No applicable source files were selected; dead-code analysis was not run",
+      "start_column": null,
+      "start_line": 1,
+      "status": "SKIP",
+      "target_name": "DeadCode"
+     }
+    ]
+   }
+  },
   "dead/nul-input": {
    "command": "dead",
    "files": {

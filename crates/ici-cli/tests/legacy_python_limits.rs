@@ -63,7 +63,7 @@ fn legacy_bounded_stops_line_grouping_and_dup_dead_shapes_match_frozen() {
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 14);
+    assert_eq!(cases.len(), 15);
     for (name, case) in cases {
         let root = tempfile::tempdir().unwrap();
         let config = format!(
