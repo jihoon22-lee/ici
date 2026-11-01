@@ -853,6 +853,41 @@ fn project_executable(root: &Path, name: &str) -> Option<PathBuf> {
         })
 }
 
+/// The ruff a legacy-schema historical command runs (frozen `LintEngine._find_ruff_command`,
+/// the same for `ici lint` and `ici verify`): `shutil.which("ruff")`, then the project `.venv`
+/// ruff. `None` when neither exists keeps the native resolution and its absence report.
+pub(crate) fn legacy_ruff(
+    project: &ResolvedProject,
+    environment: &BTreeMap<String, String>,
+) -> Option<std::result::Result<(ResolvedTool, String), String>> {
+    use ici_providers::resolver::ToolSource;
+    let root = &project.root;
+    let path_env = environment.get("PATH").map_or("", String::as_str);
+    let (path, source, note) = if let Some(path) = command_v("ruff", root, path_env) {
+        let note = format!("legacy lint selected PATH ruff {}", path.display());
+        (path, ToolSource::Path, note)
+    } else {
+        let path = project_executable(root, "ruff")?;
+        let note = format!("legacy lint selected the project ruff {}", path.display());
+        (path, ToolSource::Project, note)
+    };
+    Some(
+        ToolRequest {
+            id: "ruff".into(),
+            explicit: Some(path),
+            project_root: root.clone(),
+            pack_root: None,
+            path_env: None,
+        }
+        .resolve()
+        .map(|mut tool| {
+            tool.source = source;
+            (tool, note)
+        })
+        .map_err(|failure| failure.reason),
+    )
+}
+
 /// The mypy a legacy-schema historical command runs (frozen `TypeCheckEngine._find_mypy_cmd`).
 /// A standalone `ici type` has no analysis context: `shutil.which("mypy")`, then the project
 /// `.venv` mypy. `ici verify` probes mypy as a Python module (`core/toolchain` `python_module`):

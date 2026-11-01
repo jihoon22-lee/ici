@@ -4,8 +4,9 @@
 //! PATH mypy, then the project `.venv` mypy; `ici verify` runs `<interpreter> -m mypy` with the
 //! project `.venv` python or else the pyz launcher rule's interpreter (frozen `sys.executable`,
 //! type_check.py:176 / toolchain.py:449), and falls back to the estimated AST scan when that
-//! module is not importable. The engine verdict matches frozen and the selected executable is
-//! recorded in the run's limitations.
+//! module is not importable. Legacy lint (`ici lint` and `ici verify` alike, frozen
+//! `LintEngine._find_ruff_command`) uses PATH ruff, then the project `.venv` ruff. The engine
+//! verdict matches frozen and the selected executable is recorded in the run's limitations.
 use serde_json::Value;
 use std::{fs, path::Path, process::Command};
 
@@ -19,7 +20,7 @@ fn directory(variable: &str) -> String {
 
 #[test]
 #[ignore = "explicit ICI_TEST_PYTHON (venv with mypy) and ICI_TEST_PYTHON_BARE (no mypy)"]
-fn legacy_type_and_verify_select_mypy_like_the_frozen_engine() {
+fn legacy_type_lint_and_verify_select_mypy_and_ruff_like_the_frozen_engines() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let values = [
         ("<VENV_BIN>", directory("ICI_TEST_PYTHON")),
@@ -31,7 +32,7 @@ fn legacy_type_and_verify_select_mypy_like_the_frozen_engine() {
         })
     };
     let runs = oracle["runs"].as_object().unwrap();
-    assert_eq!(runs.len(), 7);
+    assert_eq!(runs.len(), 11);
     for (name, frozen) in runs {
         let work = tempfile::tempdir().unwrap();
         let home = work.path().join("home");
@@ -39,7 +40,13 @@ fn legacy_type_and_verify_select_mypy_like_the_frozen_engine() {
         let root = work.path().join("project");
         fs::create_dir(&root).unwrap();
         let root = root.canonicalize().unwrap();
-        fs::write(root.join("ici.toml"), oracle["config"].as_str().unwrap()).unwrap();
+        fs::write(root.join("ici.toml"), frozen["config"].as_str().unwrap()).unwrap();
+        let engine_name = frozen["engine_name"].as_str().unwrap();
+        let tool = if engine_name == "lint" {
+            "ruff"
+        } else {
+            "mypy"
+        };
         fs::write(root.join("app.py"), oracle["app"].as_str().unwrap()).unwrap();
         for entry in frozen["venv"].as_array().unwrap() {
             let entry = entry.as_str().unwrap();
@@ -90,7 +97,7 @@ fn legacy_type_and_verify_select_mypy_like_the_frozen_engine() {
                 .as_array()
                 .unwrap()
                 .iter()
-                .find(|engine| engine["engine_name"] == "type")
+                .find(|engine| engine["engine_name"] == engine_name)
                 .unwrap()
                 .clone()
         } else {
@@ -118,7 +125,9 @@ fn legacy_type_and_verify_select_mypy_like_the_frozen_engine() {
         let selected = expected["tool_evidence"][0]["path"].as_str().unwrap();
         if selected.is_empty() {
             assert!(
-                !result.contains("runs mypy as") && !result.contains("selected PATH mypy"),
+                !result.contains("runs mypy as")
+                    && !result.contains(&format!("selected PATH {tool}"))
+                    && !result.contains(&format!("selected the project {tool}")),
                 "{name}"
             );
         } else {
@@ -128,6 +137,8 @@ fn legacy_type_and_verify_select_mypy_like_the_frozen_engine() {
                 format!("legacy `ici type` selected the project mypy {selected}\""),
                 format!("module of the project interpreter {selected}\""),
                 format!("legacy pyz launcher rule selected {selected} ("),
+                format!("legacy lint selected PATH ruff {selected}\""),
+                format!("legacy lint selected the project ruff {selected}\""),
             ];
             assert!(
                 notes.iter().any(|note| result.contains(note.as_str())),

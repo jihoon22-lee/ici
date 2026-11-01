@@ -1,4 +1,4 @@
-"""Development-only capture: which mypy the frozen legacy type engine ran.
+"""Development-only capture: which mypy and ruff the frozen legacy type/lint engines ran.
 
 Frozen ``engines/type_check.py`` ``_find_mypy_cmd``: a standalone ``ici type`` has no analysis
 context, so it runs ``shutil.which("mypy")`` and then the project ``.venv`` mypy
@@ -8,6 +8,9 @@ the project ``.venv`` python or else ``sys.executable`` (``_resolve_python_modul
 toolchain.py:449, type_check.py:176). Under the released ``dist/ici.pyz`` ``sys.executable`` is
 the interpreter ``scripts/launcher.sh`` chose, so each scenario runs a private copy of the pyz
 (sha256 and the 283 bundled ``ici/`` sources are checked against the frozen tree first).
+
+``engines/lint.py`` ``_find_ruff_command`` is the same for ``ici lint`` and ``ici verify``:
+``shutil.which("ruff")``, then the project ``.venv`` ruff; the ``lint_*`` scenarios record it.
 
     python capture_legacy_type_interpreter.py --oracle <oracle> --pyz <dist/ici.pyz>
         --python <venv python with mypy> --bare <CPython without mypy> --out <json>
@@ -47,13 +50,21 @@ ENGINES = (
     "python_compat",
 )
 APP = 'def f(x: int) -> int:\n    return x + "1"\n'
-CONFIG = (
-    '[ici]\nprofile = "standard"\n[project]\ntype = "python"\nsource_dirs = ["."]\n[engines]\n'
-    + "".join(
-        f"[engines.{name}]\nenabled = {'true' if name == 'type' else 'false'}\n" for name in ENGINES
+
+
+def config(engine: str) -> str:
+    return (
+        '[ici]\nprofile = "standard"\n[project]\ntype = "python"\nsource_dirs = ["."]\n'
+        "[engines]\n"
+        + "".join(
+            f"[engines.{name}]\nenabled = {'true' if name == engine else 'false'}\n"
+            for name in ENGINES
+        )
     )
-)
-# scenario: (command, PATH dirs, project .venv entries)
+
+
+CONFIG = config("type")
+# scenario: (command, PATH dirs, project .venv entries[, engine])
 SCENARIOS = {
     "type_path_mypy": ("type", ["<VENV_BIN>"], ()),
     "type_venv_mypy": ("type", ["<BARE_BIN>"], ("mypy",)),
@@ -62,6 +73,10 @@ SCENARIOS = {
     "verify_launcher_module": ("verify", ["<VENV_BIN>"], ()),
     "verify_launcher_without_mypy": ("verify", ["<BARE_BIN>"], ()),
     "verify_venv_python_module": ("verify", ["<BARE_BIN>"], ("python",)),
+    "lint_path_before_venv": ("lint", ["<VENV_BIN>"], ("ruff-broken",), "lint"),
+    "lint_venv_ruff": ("lint", ["<BARE_BIN>"], ("ruff",), "lint"),
+    "lint_no_ruff": ("lint", ["<BARE_BIN>"], (), "lint"),
+    "verify_lint_path_before_venv": ("verify", ["<VENV_BIN>"], ("ruff-broken",), "lint"),
 }
 
 
@@ -90,11 +105,13 @@ def wrapper(target: Path) -> str:
 
 
 def capture(pyz: Path, values: dict[str, str], home: Path, scenario: tuple) -> dict:
-    command, path_dirs, venv = scenario
+    command, path_dirs, venv = scenario[:3]
+    engine_name = scenario[3] if len(scenario) > 3 else "type"
+    tool = "ruff" if engine_name == "lint" else "mypy"
     venv_bin = Path(values["<VENV_BIN>"])
     with tempfile.TemporaryDirectory(prefix="ici-type-") as temporary:
         root = Path(temporary).resolve()
-        (root / "ici.toml").write_text(CONFIG, encoding="utf-8")
+        (root / "ici.toml").write_text(config(engine_name), encoding="utf-8")
         (root / "app.py").write_text(APP, encoding="utf-8")
         for entry in venv:
             target = root / ".venv/bin" / entry.replace("-broken", "")
@@ -118,7 +135,7 @@ def capture(pyz: Path, values: dict[str, str], home: Path, scenario: tuple) -> d
 
         report = json.loads((root / f"{command}_report.json").read_text(encoding="utf-8"))
         engine = (
-            next(e for e in report["results"] if e["engine_name"] == "type")
+            next(e for e in report["results"] if e["engine_name"] == engine_name)
             if command == "verify"
             else report
         )
@@ -126,11 +143,13 @@ def capture(pyz: Path, values: dict[str, str], home: Path, scenario: tuple) -> d
         view["tool_evidence"] = [
             {key: item.get(key) for key in ("name", "path", "argv", "error")}
             for item in engine.get("tool_evidence", [])
-            if item.get("name") == "mypy"
+            if (item.get("name") or "").split(" ")[0] == tool
         ]
         view["targets"] = sorted({target["target_name"] for target in engine["targets"]})
         return {
             "command": command,
+            "engine_name": engine_name,
+            "config": config(engine_name),
             "path": path_dirs,
             "venv": list(venv),
             "exit_code": completed.returncode,

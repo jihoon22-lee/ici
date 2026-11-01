@@ -486,8 +486,9 @@ fn prepare_resolved_omitting(
                 .get(tool_id)
                 .and_then(|setting| setting.path.as_deref())
                 .map(|path| under(&project.root, path));
-            // Frozen legacy engines found mypy their own way (`validation::legacy_mypy`).
-            let mut mypy_module = None;
+            // Frozen legacy engines found mypy and ruff their own way (`validation::legacy_mypy`,
+            // `validation::legacy_ruff`); the selection is recorded in the run limitations.
+            let mut legacy_tool = None;
             let tool = if tool_id == "mypy"
                 && explicit.is_none()
                 && crate::legacy::is_legacy(invocation)
@@ -499,7 +500,21 @@ fn prepare_resolved_omitting(
                     environment,
                 ) {
                     Ok((tool, module, note)) => {
-                        mypy_module = Some((module, note));
+                        legacy_tool = Some((module, note));
+                        tool
+                    }
+                    Err(reason) => return Ok(Work::Blocked { reason }),
+                }
+            } else if let Some(selected) = (tool_id == "ruff"
+                && explicit.is_none()
+                && crate::legacy::is_legacy(invocation)
+                && project.schema_family == ici_config::SchemaFamily::Legacy)
+                .then(|| crate::validation::legacy_ruff(&project, environment))
+                .flatten()
+            {
+                match selected {
+                    Ok((tool, note)) => {
+                        legacy_tool = Some((false, note));
                         tool
                     }
                     Err(reason) => return Ok(Work::Blocked { reason }),
@@ -596,7 +611,7 @@ fn prepare_resolved_omitting(
                     .map(String::from)
                     .to_vec();
                 }
-                if mypy_module.as_ref().is_some_and(|(module, _)| *module) {
+                if legacy_tool.as_ref().is_some_and(|(module, _)| *module) {
                     provider_request
                         .options
                         .legacy_args
@@ -625,7 +640,7 @@ fn prepare_resolved_omitting(
                 });
             let mut provider = ici_providers::plan(&provider_request)
                 .map_err(|e| ApplicationError(e.to_string()))?;
-            if let Some((_, note)) = mypy_module {
+            if let Some((_, note)) = legacy_tool {
                 provider.limitations.push(note);
             }
             provider.scope_complete = evidence.complete;

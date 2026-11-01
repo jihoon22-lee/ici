@@ -3,8 +3,147 @@
   "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
   "pyz_sha256": "9e5f5751df033a2d51e9d09457bb35b7e81b05bf7cb750e93e31e62e61bef44f",
   "runs": {
+    "lint_no_ruff": {
+      "command": "lint",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = true\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "ESTIMATED",
+        "status": "WARN",
+        "summary": "Ruff is unavailable; AST syntax fallback is ESTIMATED",
+        "targets": [
+          "ASTSyntaxFallback"
+        ],
+        "tool_evidence": [
+          {
+            "argv": [],
+            "error": "tool not found; no command was executed",
+            "name": "ruff",
+            "path": ""
+          }
+        ]
+      },
+      "engine_name": "lint",
+      "exit_code": 0,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": []
+    },
+    "lint_path_before_venv": {
+      "command": "lint",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = true\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "PASS",
+        "summary": "0 Violations Found",
+        "targets": [],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<VENV_BIN>/ruff",
+              "check",
+              "--no-fix",
+              "--no-fix-only",
+              "--no-unsafe-fixes",
+              "app.py",
+              "--output-format=json"
+            ],
+            "error": "",
+            "name": "ruff check",
+            "path": "<VENV_BIN>/ruff"
+          },
+          {
+            "argv": [
+              "<VENV_BIN>/ruff",
+              "format",
+              "--help"
+            ],
+            "error": "",
+            "name": "ruff format capability",
+            "path": "<VENV_BIN>/ruff"
+          },
+          {
+            "argv": [
+              "<VENV_BIN>/ruff",
+              "format",
+              "--check",
+              "--output-format=json",
+              "app.py"
+            ],
+            "error": "",
+            "name": "ruff format",
+            "path": "<VENV_BIN>/ruff"
+          }
+        ]
+      },
+      "engine_name": "lint",
+      "exit_code": 0,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": [
+        "ruff-broken"
+      ]
+    },
+    "lint_venv_ruff": {
+      "command": "lint",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = true\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "PASS",
+        "summary": "0 Violations Found",
+        "targets": [],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<ROOT>/.venv/bin/ruff",
+              "check",
+              "--no-fix",
+              "--no-fix-only",
+              "--no-unsafe-fixes",
+              "app.py",
+              "--output-format=json"
+            ],
+            "error": "",
+            "name": "ruff check",
+            "path": "<ROOT>/.venv/bin/ruff"
+          },
+          {
+            "argv": [
+              "<ROOT>/.venv/bin/ruff",
+              "format",
+              "--help"
+            ],
+            "error": "",
+            "name": "ruff format capability",
+            "path": "<ROOT>/.venv/bin/ruff"
+          },
+          {
+            "argv": [
+              "<ROOT>/.venv/bin/ruff",
+              "format",
+              "--check",
+              "--output-format=json",
+              "app.py"
+            ],
+            "error": "",
+            "name": "ruff format",
+            "path": "<ROOT>/.venv/bin/ruff"
+          }
+        ]
+      },
+      "engine_name": "lint",
+      "exit_code": 0,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": [
+        "ruff"
+      ]
+    },
     "type_no_mypy": {
       "command": "type",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
       "engine": {
         "evidence": "ESTIMATED",
         "status": "WARN",
@@ -19,6 +158,7 @@
           }
         ]
       },
+      "engine_name": "type",
       "exit_code": 0,
       "path": [
         "<BARE_BIN>"
@@ -27,6 +167,7 @@
     },
     "type_path_before_venv": {
       "command": "type",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
       "engine": {
         "evidence": "MEASURED",
         "status": "WARN",
@@ -46,6 +187,7 @@
           }
         ]
       },
+      "engine_name": "type",
       "exit_code": 0,
       "path": [
         "<VENV_BIN>"
@@ -56,6 +198,7 @@
     },
     "type_path_mypy": {
       "command": "type",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
       "engine": {
         "evidence": "MEASURED",
         "status": "WARN",
@@ -75,6 +218,7 @@
           }
         ]
       },
+      "engine_name": "type",
       "exit_code": 0,
       "path": [
         "<VENV_BIN>"
@@ -83,6 +227,7 @@
     },
     "type_venv_mypy": {
       "command": "type",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
       "engine": {
         "evidence": "MEASURED",
         "status": "WARN",
@@ -102,6 +247,7 @@
           }
         ]
       },
+      "engine_name": "type",
       "exit_code": 0,
       "path": [
         "<BARE_BIN>"
@@ -112,6 +258,7 @@
     },
     "verify_launcher_module": {
       "command": "verify",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
       "engine": {
         "evidence": "MEASURED",
         "status": "WARN",
@@ -133,6 +280,7 @@
           }
         ]
       },
+      "engine_name": "type",
       "exit_code": 0,
       "path": [
         "<VENV_BIN>"
@@ -141,6 +289,7 @@
     },
     "verify_launcher_without_mypy": {
       "command": "verify",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
       "engine": {
         "evidence": "ESTIMATED",
         "status": "WARN",
@@ -155,14 +304,72 @@
           }
         ]
       },
+      "engine_name": "type",
       "exit_code": 0,
       "path": [
         "<BARE_BIN>"
       ],
       "venv": []
     },
+    "verify_lint_path_before_venv": {
+      "command": "verify",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = true\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "PASS",
+        "summary": "0 Violations Found",
+        "targets": [],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<VENV_BIN>/ruff",
+              "check",
+              "--no-fix",
+              "--no-fix-only",
+              "--no-unsafe-fixes",
+              "app.py",
+              "--output-format=json"
+            ],
+            "error": "",
+            "name": "ruff check",
+            "path": "<VENV_BIN>/ruff"
+          },
+          {
+            "argv": [
+              "<VENV_BIN>/ruff",
+              "format",
+              "--help"
+            ],
+            "error": "",
+            "name": "ruff format capability",
+            "path": "<VENV_BIN>/ruff"
+          },
+          {
+            "argv": [
+              "<VENV_BIN>/ruff",
+              "format",
+              "--check",
+              "--output-format=json",
+              "app.py"
+            ],
+            "error": "",
+            "name": "ruff format",
+            "path": "<VENV_BIN>/ruff"
+          }
+        ]
+      },
+      "engine_name": "lint",
+      "exit_code": 0,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": [
+        "ruff-broken"
+      ]
+    },
     "verify_venv_python_module": {
       "command": "verify",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
       "engine": {
         "evidence": "MEASURED",
         "status": "WARN",
@@ -184,6 +391,7 @@
           }
         ]
       },
+      "engine_name": "type",
       "exit_code": 0,
       "path": [
         "<BARE_BIN>"
