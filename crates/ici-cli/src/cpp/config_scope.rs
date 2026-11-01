@@ -134,7 +134,11 @@ impl CppPlans {
                 let mut target = InspectionTarget::at(path, 1);
                 target.target_name = "C++SyntaxContextDiagnostic".into();
                 target.status = "ERROR".into();
-                target.message = format!("{}: {}", diagnostic.code, diagnostic.message);
+                target.message = if self.legacy_projection {
+                    super::legacy_context_message(&diagnostic.code, &diagnostic.message)
+                } else {
+                    format!("{}: {}", diagnostic.code, diagnostic.message)
+                };
                 output.targets.push(target);
             }
         }

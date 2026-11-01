@@ -538,14 +538,27 @@ pub fn execute(
                         || matches!(planned.check.id.as_str(), "cpp.compile" | "cpp.artifact")
                     {
                         let component = inputs::component(&prepared, planned).clone();
-                        prepared.cpp.run(
+                        let mut output = prepared.cpp.run(
                             &prepared.project,
                             &component,
                             &request,
                             &scheduler,
                             cancellation,
                             &events,
-                        )
+                        );
+                        // A legacy context-error syntax check runs no process (frozen
+                        // `_run_exact`) but keeps the frozen lint projection.
+                        if prepared.cpp.is_legacy_context_error(id) {
+                            legacy_lint_projection(
+                                &prepared,
+                                planned,
+                                &component,
+                                &mut output,
+                                &outputs,
+                                &mut projected_lint,
+                            );
+                        }
+                        output
                     } else if planned.check.language == "python" {
                         python.analyze_cancellable(&request, &cancellation.flag())
                     } else {
@@ -580,35 +593,14 @@ pub fn execute(
                             cancellation,
                             &events,
                         );
-                        let configurations = prepared
-                            .cpp
-                            .legacy_lint_configurations(&planned.component_id)
-                            .filter(|_| !prepared.cpp.is_fallback(id));
-                        if prepared.legacy_projection
-                            && planned.check.id == "cpp.diagnostics"
-                            && (prepared.cpp.is_fallback(id) || configurations.is_some())
-                        {
-                            let tooling = prepared
-                                .plan
-                                .checks
-                                .iter()
-                                .find(|check| {
-                                    check.component_id == planned.component_id
-                                        && check.check.id == "cpp.tidy"
-                                })
-                                .and_then(|check| prepared.cpp.planned(&check.task_id));
-                            let tooling = tooling.or_else(|| {
-                                tidy_task(&prepared, planned).and_then(|task| outputs.get(&task))
-                            });
-                            if crate::cpp::legacy_fallback_lint(
-                                &mut output,
-                                tooling,
-                                prepared.cpp.legacy_standalone,
-                                configurations.as_ref(),
-                            ) {
-                                projected_lint.insert(id.clone(), configurations.is_none());
-                            }
-                        }
+                        legacy_lint_projection(
+                            &prepared,
+                            planned,
+                            &component,
+                            &mut output,
+                            &outputs,
+                            &mut projected_lint,
+                        );
                         if prepared.legacy_projection && planned.check.id == "cpp.tidy" {
                             // Frozen LintEngine verdict over the syntax targets already observed.
                             if let Some((diagnostics, fallback)) = prepared
@@ -1609,6 +1601,49 @@ fn state_label(state: ici_domain::TaskState) -> String {
 
 /// The build system of the planned C++ check's linked component build (`direct-gcc`, `cmake`...).
 /// The `cpp.tidy` task of a check's component.
+/// Frozen LintEngine projection of a legacy `cpp.diagnostics` output: the syntax targets, the
+/// clang tooling of the same component and the Qt generated-code verification.
+fn legacy_lint_projection(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+    component: &ici_config::Component,
+    output: &mut AnalysisOutput,
+    outputs: &BTreeMap<String, AnalysisOutput>,
+    projected_lint: &mut BTreeMap<String, bool>,
+) {
+    let id = &planned.task_id;
+    let configurations = prepared
+        .cpp
+        .legacy_lint_configurations(&planned.component_id)
+        .filter(|_| !prepared.cpp.is_fallback(id));
+    if !(prepared.legacy_projection
+        && planned.check.id == "cpp.diagnostics"
+        && (prepared.cpp.is_fallback(id) || configurations.is_some()))
+    {
+        return;
+    }
+    let tooling = prepared
+        .plan
+        .checks
+        .iter()
+        .find(|check| check.component_id == planned.component_id && check.check.id == "cpp.tidy")
+        .and_then(|check| prepared.cpp.planned(&check.task_id));
+    let tooling =
+        tooling.or_else(|| tidy_task(prepared, planned).and_then(|task| outputs.get(&task)));
+    let qt = prepared
+        .cpp
+        .legacy_qt_codegen(&prepared.project, component, output);
+    if crate::cpp::legacy_fallback_lint(
+        output,
+        tooling,
+        prepared.cpp.legacy_standalone,
+        configurations.as_ref(),
+        Some(&qt),
+    ) {
+        projected_lint.insert(id.clone(), configurations.is_none());
+    }
+}
+
 fn tidy_task(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,

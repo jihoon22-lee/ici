@@ -1,9 +1,13 @@
 //! Frozen `LintEngine` clang-tidy / Clazy targets (analysis/_clang_tidy.py, analysis/_clazy.py)
 //! over the native `cpp.tidy` provider runs of a legacy `ici verify` with an exact context.
-use ici_domain::{AnalysisOutput, InspectionTarget, Measurement};
-use ici_execution::TaskOutcome;
+use ici_domain::{AnalysisOutput, InspectionTarget, Measurement, TaskKind, TaskSpec};
+use ici_execution::{
+    TaskOutcome,
+    process::{Cancellation, Runner},
+};
 use regex::Regex;
 use serde_json::{Value, json};
+use std::{collections::BTreeMap, path::Path};
 
 /// One tool run on one recorded translation unit, projected as frozen targets.
 pub struct LegacyToolRun {
@@ -15,6 +19,90 @@ pub struct LegacyToolRun {
 
 fn tool(clazy: bool) -> &'static str {
     if clazy { "clazy" } else { "clang-tidy" }
+}
+
+/// Frozen `core/toolchain.py` capability probe of one resolved clang tool: `<tool> --version`
+/// (5 s, 65 536 output bytes) must exit 0 untruncated and report a parseable version
+/// (`parse_tool_version`: clazy needs its own `clazy[-standalone] [version] N.N` banner,
+/// clang-tidy a compiler or generic dotted version). A tool that fails the probe is the frozen
+/// `<Tool>Unavailable`, never a per-source execution error.
+///
+/// Known frozen defect, corrected: frozen probes with the full environment and then runs the
+/// tool with a replaced minimal one, so a tool needing `LD_LIBRARY_PATH` passes the probe and
+/// fails every run. The probe here uses exactly the run tasks' environment (inherited runner
+/// environment plus the replay overlay).
+pub fn legacy_capability_probe(
+    executable: &Path,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    clazy: bool,
+) -> bool {
+    legacy_version_banner(executable, cwd, environment, tool(clazy)).is_some()
+}
+
+/// The frozen capability `version` of one probed tool (`<tool> --version` in the run
+/// environment): the first output line matching its `parse_tool_version` patterns, at most 200
+/// characters, or `None` when the probe fails or reports no version.
+pub fn legacy_version_banner(
+    executable: &Path,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    name: &str,
+) -> Option<String> {
+    let mut task = TaskSpec::command(
+        format!("legacy-lint.{name}.version"),
+        name,
+        vec![
+            executable.to_string_lossy().into_owned(),
+            "--version".into(),
+        ],
+        cwd.to_string_lossy(),
+    );
+    task.kind = TaskKind::Probe;
+    task.timeout_seconds = Some(5.0);
+    task.output_limit_bytes = Some(65_536);
+    task.env_overlay = ici_cpp::replay_environment();
+    let outcome =
+        Runner::with_environment(environment.clone()).run(&task, &Cancellation::default());
+    if outcome.timed_out
+        || outcome.truncated
+        || outcome.error.is_some()
+        || outcome.exit_code != Some(0)
+    {
+        return None;
+    }
+    let text = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&outcome.stdout),
+        String::from_utf8_lossy(&outcome.stderr)
+    );
+    version_line(name == "clazy", &text)
+}
+
+/// Frozen `parse_tool_version`: pattern by pattern, the first line holding a version (clazy only
+/// its own banner; compilers and clang tools a compiler banner, then any dotted version).
+fn version_line(clazy: bool, text: &str) -> Option<String> {
+    let patterns: &[&str] = if clazy {
+        &[r"(?i)\bclazy(?:-standalone)?\s+(?:version\s*:?\s*)?\d+(?:\.\d+)+\b"]
+    } else {
+        &[
+            r"(?i)\b(?:Apple\s+|Ubuntu\s+)?(?:gcc|g\+\+|clang(?:\+\+)?)(?:\s+version)?(?:\s+\([^)]*\))?\s+\d+(?:\.\d+)+",
+            // `(?<![A-Za-z0-9_])\d+(?:\.\d+)+`: existence is the same with a consumed boundary.
+            r"(?:^|[^A-Za-z0-9_])\d+(?:\.\d+)+",
+        ]
+    };
+    let lines: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+    patterns.iter().find_map(|pattern| {
+        let pattern = Regex::new(pattern).expect("constant regex");
+        lines
+            .iter()
+            .find(|line| pattern.is_match(line))
+            .map(|line| line.chars().take(200).collect())
+    })
 }
 
 /// Frozen clazy `_failure_summary`: diagnostic kinds, processing error and output presence.

@@ -211,8 +211,24 @@ fn parse_row(
     variant: &str,
     responses: &mut ResponseCache,
 ) -> Result<CompilationUnit, CppError> {
-    let directory_value = required(row, "directory")?;
+    // Frozen row order: a non-object entry, an absent file, an absent directory, then an
+    // invalid file/directory.
+    if !row.is_object() {
+        return Err(CppError::new(
+            "invalid-entry",
+            "compile entry is not an object",
+        ));
+    }
+    for key in ["file", "directory"] {
+        if row.get(key).is_none() {
+            return Err(CppError::new(
+                format!("missing-{key}"),
+                format!("compile entry has no {key} field"),
+            ));
+        }
+    }
     let file = required(row, "file")?;
+    let directory_value = required(row, "directory")?;
     let (directory, directory_scope, cwd) = scoped(root, database_parent, directory_value)?;
     if directory_scope != "project" {
         return Err(CppError::new(
