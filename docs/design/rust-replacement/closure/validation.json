@@ -265,11 +265,12 @@
    "status": "complete"
   },
   "finding_site:src/ici/adapters/providers/integration.py:143:12": {
-   "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding.",
-   "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen next emits one finding per failed aspect (integration.{exit,stdout,stderr,output}, process_fingerprint over absolute argv, machine-dependent); native modern runs emit one case-level finding with native rule ids, and the legacy view uses ici.legacy.integration.target with the frozen legacy fingerprints. Accepted by the root (22:35, item 4): legacy ids in the legacy view, native ids in the modern view. Baselines saved by frozen `next verify` integration results do not carry over.",
+   "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding. Decisions-worker audit of the complete frozen module: the `integration.assertions` measurement now carries the frozen value (passed checks, not the check count) with unit `assertions` and numerator/denominator over every declared check, and a declared `requires` list is echoed as the frozen limitation `case '<name>' declares external requirements: a, b` (both pinned in cpp_contracts.rs). A run that did not finish yields no finding and an incomplete check, as frozen; stale, missing, non-regular and undersized outputs fail the output assertion.",
+   "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen next emits one finding per failed aspect (integration.{exit,stdout,stderr,output}, process_fingerprint over absolute argv, machine-dependent); native modern runs emit one case-level finding with native rule ids, and the legacy view uses ici.legacy.integration.target with the frozen legacy fingerprints. Accepted by the root (22:35, item 4): legacy ids in the legacy view, native ids in the modern view. Baselines saved by frozen `next verify` integration results do not carry over. Per-check detail wording differs and stays in extra.assertions: native `stdout must contain \"x\"` / one output message with the capture error versus frozen `missing 'x' in stdout` and four distinct output messages (not produced / not a regular file / size / predates this run); the case-level finding message is the accepted public text.",
    "evidence": [
     "Frozen `ici next verify --profile deep` on a modern config with one case (expected_exit=3, stdout must/never) emitted integration.exit and two integration.stdout findings with messages \"integration case 'X': expected exit 3, got 0\" / \"missing 'missing' in stdout\" / \"forbidden 'actual' in stdout\"; observed manually 2026-10-29, temp project removed",
-    "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
+    "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-validation --locked -j2 --test cpp_contracts integration -- --include-ignored` and `cargo test -p ici-cli --locked -j2 --test integration_binding --test integration_legacy --test legacy_exit_policy --test native_validation_extra -- --include-ignored` passed; clippy -D warnings clean (log /tmp/ici-rust-replacement-20261028/w-dec-integration.log)."
    ],
    "fixtures": {
     "failure": [
@@ -2154,9 +2155,10 @@
    "requirements": []
   },
   "src/ici/adapters/providers/integration.py": {
-   "disposition": "unreviewed",
-   "reason": "Reviewed; per-aspect next finding family is an open difference (finding_site 143:12).",
+   "disposition": "mapped",
+   "reason": "Complete 251-line module read (decisions worker). plan (contract env, never cached, TEST task, requires, output specs, timeout, every non-expected exit is a finding) maps to ici_validation::integration::plan plus the CLI case binding; parse (did-not-finish refusal, exit/stream/never/output checks, required high vs advisory medium, case source location falling back to ici.toml, measurement, requires limitation) maps to integration::observe/observe_named_case. Rule ids, fingerprints and per-check wording are the accepted case-level difference on the finding row; measurement and limitation now equal frozen. Log: /tmp/ici-rust-replacement-20261028/w-dec-integration.log.",
    "requirements": [
+    "check:integration",
     "finding_site:src/ici/adapters/providers/integration.py:143:12"
    ]
   },

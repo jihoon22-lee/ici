@@ -51,8 +51,15 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
     }
     plan.tasks.push(task);
     if !request.options.requires.is_empty() {
+        // Frozen adapters/providers/integration.py: `case {case!r} declares external requirements`.
+        let case = request
+            .options
+            .integration_case_name
+            .as_deref()
+            .unwrap_or(&request.task_id);
         plan.limitations.push(format!(
-            "case depended on declared services/resources: {}",
+            "case {} declares external requirements: {}",
+            repr(case),
             request.options.requires.join(", ")
         ));
     }
@@ -164,10 +171,10 @@ pub(crate) fn observe(
             ));
         }
     }
-    let mut metric = Measurement::measured("integration.assertions", checks.len() as f64);
-    metric.numerator = Some(checks.iter().filter(|(_, passed, _)| *passed).count() as u64);
-    metric.denominator = Some(checks.len() as u64);
-    output.observation.measurements.push(metric);
+    output
+        .observation
+        .measurements
+        .push(assertion_measurement(&checks));
     output.extra["assertions"] = json!(checks);
     output.summary = format!(
         "{} process contract assertions evaluated",
@@ -256,11 +263,21 @@ fn observe_named_case(
         usize::from(!failed.is_empty())
     );
     output.targets.push(target);
-    let mut metric = Measurement::measured("integration.assertions", assertions.len() as f64);
-    metric.numerator = Some(assertions.values().filter(|value| **value).count() as u64);
-    metric.denominator = Some(assertions.len() as u64);
-    output.observation.measurements.push(metric);
+    output
+        .observation
+        .measurements
+        .push(assertion_measurement(checks));
     Ok(())
+}
+
+/// Frozen `integration.assertions`: the value is the passed count over every declared check.
+fn assertion_measurement(checks: &[(String, bool, String)]) -> Measurement {
+    let passed = checks.iter().filter(|(_, passed, _)| *passed).count() as u64;
+    let mut metric = Measurement::measured("integration.assertions", passed as f64);
+    metric.unit = "assertions".into();
+    metric.numerator = Some(passed);
+    metric.denominator = Some(checks.len() as u64);
+    metric
 }
 pub(crate) fn repr(value: &str) -> String {
     let quote = if value.contains('\'') && !value.contains('"') {
