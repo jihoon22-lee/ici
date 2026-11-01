@@ -200,8 +200,18 @@ fn ordinary_analyze_points_to_complete_offline_html_and_json_keeps_machine_outpu
     let output =
         commands::dispatch(&call(&["ici", "analyze"]), dir.path(), &BTreeMap::new()).unwrap();
     assert_eq!(output.exit_code, 0);
-    assert!(output.stdout.contains("HTML:"));
-    assert!(output.stdout.contains("Result:"));
+    // Frozen `verify_text` ends at `saved <result>`; the native page location follows it.
+    let saved = dir.path().join(ici_cli::DEFAULT_RESULT);
+    let page = dir.path().join(ici_cli::DEFAULT_PAGE);
+    assert!(
+        output.stdout.contains(&format!(
+            "\nsaved {}\nHTML: {}\n",
+            saved.display(),
+            page.display()
+        )),
+        "{}",
+        output.stdout
+    );
     assert!(dir.path().join(ici_cli::DEFAULT_PAGE).is_file());
     let output = commands::dispatch(
         &call(&["ici", "analyze", "--json"]),
@@ -211,6 +221,9 @@ fn ordinary_analyze_points_to_complete_offline_html_and_json_keeps_machine_outpu
     .unwrap();
     let json: serde_json::Value = serde_json::from_str(&output.stdout).unwrap();
     assert_eq!(json["schema_id"], "ici.next.run");
+    // Under --json the root/scope announcement is a diagnostic on stderr.
+    assert!(output.stderr.starts_with("root: "), "{}", output.stderr);
+    assert_eq!(output.stderr.lines().count(), 2);
 }
 
 #[test]

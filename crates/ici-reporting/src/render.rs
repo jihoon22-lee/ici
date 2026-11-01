@@ -650,6 +650,106 @@ pub fn github_annotations(stored: &StoredResult, options: &RenderOptions) -> Res
         .collect())
 }
 
+/// Frozen `markdown.emit_github_actions_annotations` over a historical suite: every FAIL/ERROR/
+/// WARN/SKIP target (not findings), new/regressed baseline locations first, then FAIL/ERROR,
+/// then report order; at most `max_annotations` lines plus the omitted-count notice. Text is
+/// redacted at this boundary like the frozen `redact_suite`.
+pub fn legacy_github_annotations(
+    stored: &StoredResult,
+    options: &RenderOptions,
+) -> Result<Vec<String>> {
+    let data = |text: &str| {
+        ici_execution::redaction::redact_text(text)
+            .replace('%', "%25")
+            .replace('\r', "%0D")
+            .replace('\n', "%0A")
+    };
+    let property = |text: &str| data(text).replace(':', "%3A").replace(',', "%2C");
+    let StoredResult::Legacy(legacy) = stored else {
+        return github_annotations(stored, options);
+    };
+    let document = legacy.as_value();
+    let mut changed = std::collections::BTreeSet::<(String, u64)>::new();
+    for entry in document["baseline_comparison"]["entries"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+    {
+        if (entry["state"] == "new" || entry["regressed"] == true)
+            && let (Some(path), Some(line)) = (
+                entry["current_location"]["path"].as_str(),
+                entry["current_location"]["start_line"].as_u64(),
+            )
+        {
+            changed.insert((path.to_owned(), line));
+        }
+    }
+    let mut candidates = vec![];
+    for (result_index, result) in document["results"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .enumerate()
+    {
+        for (target_index, target) in result["targets"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .enumerate()
+        {
+            let status = target["status"].as_str().unwrap_or("");
+            if !matches!(status, "FAIL" | "ERROR" | "WARN" | "SKIP") {
+                continue;
+            }
+            let path = target["file_path"].as_str().unwrap_or("").to_owned();
+            let line = target["start_line"].as_u64().unwrap_or(1);
+            let key = (
+                !changed.contains(&(path.clone(), line)),
+                !matches!(status, "FAIL" | "ERROR"),
+                result_index,
+                target_index,
+            );
+            candidates.push((
+                key,
+                status,
+                path,
+                line,
+                plain(&result["engine_name"]),
+                plain(&target["message"]),
+            ));
+        }
+    }
+    candidates.sort_by_key(|candidate| candidate.0);
+    let mut lines: Vec<String> = candidates
+        .iter()
+        .take(options.max_annotations)
+        .map(|(_, status, path, line, engine, message)| {
+            format!(
+                "::{} file={},line={}::[{}] {}",
+                if matches!(*status, "FAIL" | "ERROR") {
+                    "error"
+                } else {
+                    "warning"
+                },
+                property(path),
+                property(&line.to_string()),
+                data(engine),
+                data(message)
+            )
+        })
+        .collect();
+    let omitted = candidates.len() - candidates.len().min(options.max_annotations);
+    if omitted > 0 {
+        lines.push(format!(
+            "::notice::{}",
+            data(&format!("{omitted} additional ici annotation(s) omitted from this bounded workflow view; the JSON and HTML reports retain the full inventory"))
+        ));
+    }
+    Ok(lines)
+}
+
 pub(crate) fn rich(value: &Value, out: &mut String) -> Result<()> {
     match value {
         Value::Object(items) => {
@@ -786,22 +886,52 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         projection.total_findings,
         projection.groups.len()
     );
-    out.push_str("<div id=issue-groups>");
     let lazy = projection.total_findings > 2_000;
-    for group in projection
+    let engine_rows = engine_issue_rows(&view, &projection);
+    if !lazy {
+        axis_controls(&projection, &engine_rows, &mut out);
+    }
+    out.push_str("<div id=issue-groups>");
+    for (order, group) in projection
         .groups
         .iter()
         .take(if lazy { 50 } else { usize::MAX })
+        .enumerate()
     {
+        issue_axes(
+            &mut out,
+            order,
+            [
+                plain_or_empty(&group.view["engine_name"]),
+                plain_or_empty(&group.view["severity"]),
+                plain_or_empty(&group.view["category"]),
+                plain_or_empty(&group.view["confidence"]),
+                plain_or_empty(&group.view["rule_id"]),
+                plain_or_empty(&group.view["primary_location"]["path"]),
+            ],
+        );
         group_card(group, &mut out)?;
+        out.push_str("</div>");
     }
-    for (engine, status, summary) in engine_issue_rows(&view, &projection) {
+    for (index, (engine, status, summary)) in engine_rows.iter().enumerate() {
+        issue_axes(
+            &mut out,
+            projection.groups.len() + index,
+            [
+                engine.clone(),
+                status.clone(),
+                String::new(),
+                String::new(),
+                "engine".into(),
+                String::new(),
+            ],
+        );
         let _ = write!(
             out,
-            "<article class=finding data-search-row data-engine-issue><h3>engine · {}</h3><p>[{}] <span class=muted>engine result</span></p><p>{}</p></article>",
-            html(&status),
-            html(&engine),
-            html(&summary)
+            "<article class=finding data-search-row data-engine-issue><h3>engine · {}</h3><p>[{}] <span class=muted>engine result</span></p><p>{}</p></article></div>",
+            html(status),
+            html(engine),
+            html(summary)
         );
     }
     out.push_str("</div>");
@@ -890,7 +1020,14 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     ] {
         if !view.document[key].is_null() {
             let _ = write!(out, "<h2>{}</h2>", html(key));
-            rich(&view.document[key], &mut out)?;
+            if key == "support_matrix" {
+                rich(
+                    &support_attention_first(&view.document[key], &mut out),
+                    &mut out,
+                )?;
+            } else {
+                rich(&view.document[key], &mut out)?;
+            }
         }
     }
     for document in &options.auxiliary {
@@ -933,6 +1070,103 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         ));
     }
     Ok(out)
+}
+/// Frozen `sections/support._needs_attention`: an applicable entry that is disabled or not
+/// MEASURED is listed first (stable order otherwise) under an attention count.
+fn support_attention_first(matrix: &Value, out: &mut String) -> Value {
+    let attention = |entry: &Value| {
+        entry["applicable"] == true && (entry["enabled"] != true || entry["evidence"] != "MEASURED")
+    };
+    let mut ordered = matrix.clone();
+    let mut count = 0;
+    if let Some(entries) = ordered["entries"].as_array_mut() {
+        count = entries.iter().filter(|entry| attention(entry)).count();
+        entries.sort_by_key(|entry| !attention(entry));
+    }
+    let _ = write!(
+        out,
+        "<p data-support-attention>{}</p>",
+        if count > 0 {
+            format!("{count} item(s) need attention")
+        } else {
+            "No active capability caveats".into()
+        }
+    );
+    ordered
+}
+fn plain_or_empty(value: &Value) -> String {
+    if value.is_null() {
+        String::new()
+    } else {
+        plain(value)
+    }
+}
+const AXES: [(&str, &str); 5] = [
+    ("engine", "Engine"),
+    ("severity", "Severity"),
+    ("category", "Category"),
+    ("confidence", "Confidence"),
+    ("rule", "Rule"),
+];
+/// Frozen `sections/issues._render_axis_controls`: per-axis filters whose options are the values
+/// present (never an empty filter), a path filter and a sort over the rendered inventory. JSON and
+/// baseline inventories are untouched.
+fn axis_controls(
+    projection: &crate::IssueProjection,
+    engine_rows: &[(String, String, String)],
+    out: &mut String,
+) {
+    if projection.groups.is_empty() && engine_rows.is_empty() {
+        return;
+    }
+    let mut values: [std::collections::BTreeSet<String>; 5] = Default::default();
+    for group in &projection.groups {
+        for (index, key) in [
+            "engine_name",
+            "severity",
+            "category",
+            "confidence",
+            "rule_id",
+        ]
+        .iter()
+        .enumerate()
+        {
+            values[index].insert(plain_or_empty(&group.view[*key]));
+        }
+    }
+    for (engine, status, _) in engine_rows {
+        values[0].insert(engine.clone());
+        values[1].insert(status.clone());
+        values[4].insert("engine".into());
+    }
+    out.push_str("<div class=filters data-issue-filters>");
+    for ((axis, label), present) in AXES.iter().zip(values) {
+        let _ = write!(
+            out,
+            "<label>{label} <select data-issue-axis={axis}><option value=\"\">All</option>"
+        );
+        for value in present.iter().filter(|value| !value.is_empty()) {
+            let _ = write!(out, "<option>{}</option>", html(value));
+        }
+        out.push_str("</select></label> ");
+    }
+    out.push_str("<label>File <input type=search data-issue-file placeholder=\"path contains\" aria-label=\"File path contains\"></label> <label>Sort <select data-issue-sort><option value=order>Report order</option><option value=severity>Severity</option><option value=engine>Engine</option><option value=file>File</option></select></label> <span data-issue-count aria-live=polite></span></div>");
+}
+fn issue_axes(
+    out: &mut String,
+    order: usize,
+    [engine, severity, category, confidence, rule, file]: [String; 6],
+) {
+    let _ = write!(
+        out,
+        "<div data-issue data-order={order} data-engine=\"{}\" data-severity=\"{}\" data-category=\"{}\" data-confidence=\"{}\" data-rule=\"{}\" data-file=\"{}\">",
+        html(&engine),
+        html(&severity),
+        html(&category),
+        html(&confidence),
+        html(&rule),
+        html(&file)
+    );
 }
 /// A closed section whose content the page builds from the embedded saved result.
 pub(crate) fn lazy(out: &mut String, pointer: &str, indices: Option<&[usize]>, summary: &str) {
@@ -1157,6 +1391,27 @@ fn group_card(group: &crate::IssueGroup, out: &mut String) -> Result<()> {
     Ok(())
 }
 
+/// Frozen `sections/issues._related_location_label` without the path: the span's extent when it
+/// covers more than its start (`L13-L31`, `L4:C5-C10`); `None` for a single point.
+fn range_label(span: &Value) -> Option<String> {
+    let start = span["start_line"].as_u64()?;
+    let end = span["end_line"].as_u64().unwrap_or(start);
+    let (start_column, end_column) = (span["start_column"].as_u64(), span["end_column"].as_u64());
+    let mut label = format!("L{start}");
+    if let Some(column) = start_column {
+        label.push_str(&format!(":C{column}"));
+    }
+    if end > start {
+        label.push_str(&format!("-L{end}"));
+        if let Some(column) = end_column {
+            label.push_str(&format!(":C{column}"));
+        }
+    } else {
+        let column = end_column.filter(|column| Some(*column) != start_column)?;
+        label.push_str(&format!("-C{column}"));
+    }
+    Some(label)
+}
 fn copy_location(path: &str, line: u64, column: Option<u64>) -> String {
     let text = format!(
         "{path}:{line}{}",
@@ -1195,7 +1450,7 @@ fn markdown_location(finding: &Value, options: &RenderOptions) -> Result<String>
 fn finding_card(finding: &Value, out: &mut String) -> Result<()> {
     let _ = write!(
         out,
-        "<article class=finding data-search-row><h3>{} · {}</h3><p>{} {}</p><p>{}</p><p class=muted>{}</p>",
+        "<article class=finding data-search-row><h3>{} · {}</h3><p>{}{} {}</p><p>{}</p><p class=muted>{}</p>",
         html(&plain(&finding["rule_id"])),
         html(&plain(&finding["severity"])),
         copy_location(
@@ -1207,6 +1462,10 @@ fn finding_card(finding: &Value, out: &mut String) -> Result<()> {
                 .unwrap_or(1),
             finding["primary_location"]["start_column"].as_u64()
         ),
+        range_label(&finding["primary_location"]).map_or_else(String::new, |range| format!(
+            " <span class=muted>{}</span>",
+            html(&range)
+        )),
         html(&plain(&finding["message"])),
         html(&plain(&finding["explanation"])),
         html(&marks(finding))

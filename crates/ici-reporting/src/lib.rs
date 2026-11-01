@@ -22,7 +22,8 @@ mod facets;
 mod render;
 mod view;
 pub use render::{
-    bounded_summary, github_annotations, render_console, render_html, render_json, render_markdown,
+    bounded_summary, github_annotations, legacy_github_annotations, render_console, render_html,
+    render_json, render_markdown,
 };
 pub use view::{ConsoleGroupBy, RenderOptions};
 mod sarif;

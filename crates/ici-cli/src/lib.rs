@@ -2,6 +2,7 @@ pub mod artifact_build;
 pub mod commands;
 pub mod compilation_command;
 pub mod coverage_regression;
+pub mod cutover;
 pub mod doctor;
 pub mod events;
 pub mod execute;
@@ -16,6 +17,7 @@ pub mod preparation;
 pub mod publish;
 pub mod registry;
 pub mod report;
+pub mod run_text;
 pub mod setup;
 pub mod vcs;
 

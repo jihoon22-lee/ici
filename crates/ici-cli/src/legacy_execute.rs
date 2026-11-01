@@ -16,6 +16,9 @@ pub fn command(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
+    if crate::cutover::applies(invocation, cwd, environment) {
+        return crate::cutover::verify(invocation, cwd, environment);
+    }
     if invocation.flag("fail_on_new") && invocation.value("baseline").is_none() {
         return Err(CliError("--fail-on-new requires --baseline".into()));
     }
@@ -366,9 +369,14 @@ pub fn command(
         } else {
             stdout.push_str(&markdown);
         }
-        for annotation in ici_reporting::github_annotations(&stored, &options).map_err(error)? {
-            stdout.push_str(&annotation);
-            stdout.push('\n');
+        // Frozen: workflow commands only inside GitHub Actions, built from the suite's targets.
+        if environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true") {
+            for annotation in
+                ici_reporting::legacy_github_annotations(&stored, &options).map_err(error)?
+            {
+                stdout.push_str(&annotation);
+                stdout.push('\n');
+            }
         }
     }
     let mut stderr = String::new();
@@ -381,7 +389,14 @@ pub fn command(
             exit_code = 2;
         }
     }
+    // Frozen ReportPublisher._publish_single: outside GitHub Actions the publish step is skipped
+    // with this notice and never touches the verify exit.
+    let actions = environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true");
+    if invocation.flag("publish") && !actions {
+        stdout.push_str("[publish] --publish requires a GitHub Actions environment; skipping.\n");
+    }
     if invocation.flag("publish")
+        && actions
         && let Some(path) = &page_path
     {
         let publish = crate::registry::parse([
@@ -632,7 +647,11 @@ fn shape_engine(
     Ok((replaced, exit_code))
 }
 
-fn open_page(path: &Path, root: &Path, environment: &BTreeMap<String, String>) -> Result<()> {
+pub(crate) fn open_page(
+    path: &Path,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<()> {
     let tool = ici_providers::resolver::ToolRequest {
         id: "xdg-open".into(),
         explicit: None,

@@ -71,6 +71,17 @@
     if (typeof value === 'string' && /[\r\n]/.test(value)) return node('pre', value);
     return document.createTextNode(plain(value));
   };
+  // Same extent label as the server's range_label (frozen _related_location_label without path).
+  const rangeLabel = span => {
+    if (!Number.isInteger(span.start_line)) return null;
+    const start = span.start_line, end = Number.isInteger(span.end_line) ? span.end_line : start;
+    const startColumn = Number.isInteger(span.start_column) ? span.start_column : null;
+    const endColumn = Number.isInteger(span.end_column) ? span.end_column : null;
+    let label = `L${start}` + (startColumn !== null ? `:C${startColumn}` : '');
+    if (end > start) return label + `-L${end}` + (endColumn !== null ? `:C${endColumn}` : '');
+    if (endColumn !== null && endColumn !== startColumn) return label + `-C${endColumn}`;
+    return null;
+  };
   const card = finding => {
     const article = node('article'); article.className = 'finding'; article.dataset.searchRow = '';
     const span = finding.primary_location || {};
@@ -78,6 +89,8 @@
     const where = node('p');
     where.appendChild(copyLocation(typeof span.path === 'string' ? span.path : 'unknown',
       Number.isInteger(span.start_line) && span.start_line >= 0 ? span.start_line : 1, span.start_column));
+    const range = rangeLabel(span);
+    if (range) { const extent = node('span', range); extent.className = 'muted'; where.appendChild(document.createTextNode(' ')); where.appendChild(extent); }
     where.appendChild(document.createTextNode(' ' + plain(finding.message)));
     article.appendChild(where); article.appendChild(node('p', plain(finding.explanation)));
     const marks = [];
@@ -147,6 +160,43 @@
       }
       if (count) count.textContent = ` ${shown} of ${rows.length} rows shown`;
     });
+  }
+  // Frozen issue axis filters and sort: exact axis values, a path substring, and a stable order.
+  const bar = document.querySelectorAll('[data-issue-filters]')[0];
+  if (bar) {
+    const list = document.getElementById('issue-groups');
+    const items = [...list.querySelectorAll('[data-issue]')];
+    const axes = [...bar.querySelectorAll('[data-issue-axis]')];
+    const file = bar.querySelector('[data-issue-file]'), sort = bar.querySelector('[data-issue-sort]');
+    const count = bar.querySelector('[data-issue-count]');
+    const rank = {critical: 0, high: 1, medium: 2, low: 3, info: 4, ERROR: 0, SKIP: 5};
+    const key = {
+      severity: item => [rank[item.dataset.severity] ?? 6, Number(item.dataset.order)],
+      engine: item => [item.dataset.engine, Number(item.dataset.order)],
+      file: item => [item.dataset.file, Number(item.dataset.order)],
+      order: item => [Number(item.dataset.order)],
+    };
+    const compare = (left, right) => {
+      for (let index = 0; index < left.length; index++) {
+        if (left[index] < right[index]) return -1;
+        if (left[index] > right[index]) return 1;
+      }
+      return 0;
+    };
+    const apply = () => {
+      let shown = 0;
+      const needle = file.value.toLocaleLowerCase();
+      for (const item of items) {
+        item.hidden = !axes.every(select => !select.value || item.dataset[select.dataset.issueAxis] === select.value) ||
+          !item.dataset.file.toLocaleLowerCase().includes(needle);
+        if (!item.hidden) shown++;
+      }
+      const by = key[sort.value] || key.order;
+      list.replaceChildren(...[...items].sort((left, right) => compare(by(left), by(right))));
+      count.textContent = `${shown} of ${items.length} issues shown`;
+    };
+    [...axes, sort].forEach(control => control.addEventListener('change', apply));
+    file.addEventListener('input', apply);
   }
   document.querySelectorAll('[data-scope-toggle]').forEach(select => select.addEventListener('change', () => {
     select.closest('[data-line-scope]').querySelectorAll('[data-source-scope]').forEach(row => {
