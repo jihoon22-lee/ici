@@ -323,7 +323,8 @@ pub fn command(
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|value| cwd.join(value));
-    let view = ici_config::inspect_configuration_with_environment(
+    let view = crate::cutover::inspect(
+        invocation,
         cwd,
         explicit.as_deref(),
         local.as_deref(),
@@ -351,7 +352,8 @@ pub fn command(
         && context.database_path.is_none()
         && context.diagnostics.is_empty()
     {
-        let project = ici_config::resolve_with_environment(
+        let project = crate::cutover::resolve(
+            invocation,
             cwd,
             explicit.as_deref(),
             local.as_deref(),

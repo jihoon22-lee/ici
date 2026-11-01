@@ -121,6 +121,22 @@ fn expect(name: &str, stream: &str, rule: &Value, native: &str, frozen: &str) {
             let head = |text: &str| text.lines().take(count).collect::<Vec<_>>().join("\n");
             assert_eq!(head(native), head(frozen), "{name}: {stream}");
         }
+        Value::Object(rule) if rule.contains_key("json") => {
+            let native: Value = serde_json::from_str(native).unwrap();
+            let frozen: Value = serde_json::from_str(frozen).unwrap();
+            for pointer in rule["json"].as_array().unwrap() {
+                let pointer = pointer.as_str().unwrap();
+                assert!(
+                    frozen.pointer(pointer).is_some(),
+                    "{name}: frozen lacks {pointer}"
+                );
+                assert_eq!(
+                    native.pointer(pointer),
+                    frozen.pointer(pointer),
+                    "{name}: {stream} {pointer}"
+                );
+            }
+        }
         Value::Object(rule) if rule.contains_key("contains") => {
             for needle in rule["contains"].as_array().unwrap() {
                 assert!(
@@ -133,7 +149,7 @@ fn expect(name: &str, stream: &str, rule: &Value, native: &str, frozen: &str) {
     }
 }
 
-const GROUPS: [(&str, &[&str]); 6] = [
+const GROUPS: [(&str, &[&str]); 7] = [
     ("workspace", &["workspace_"]),
     (
         "refusal",
@@ -164,6 +180,7 @@ const GROUPS: [(&str, &[&str]); 6] = [
         ],
     ),
     ("interpreter", &["bare_local_interpreter_"]),
+    ("subdirectory", &["subdir_"]),
 ];
 
 fn group_of(name: &str) -> Option<&'static str> {
@@ -185,12 +202,22 @@ fn replay(group: &str) -> usize {
         }
         count += 1;
         let native = run(frozen);
+        let frozen_exit = frozen["exit_code"].as_i64().unwrap();
+        let expected_exit = match recorded
+            .get(name)
+            .and_then(|difference| difference.get("exit"))
+        {
+            Some(exit) => {
+                let exit = exit.as_i64().unwrap();
+                assert_ne!(exit, frozen_exit, "{name}: exit difference is stale");
+                exit
+            }
+            None => frozen_exit,
+        };
         assert_eq!(
-            native.exit,
-            frozen["exit_code"].as_i64().unwrap(),
+            native.exit, expected_exit,
             "{name}: {}{}",
-            native.stdout,
-            native.stderr
+            native.stdout, native.stderr
         );
         let frozen_written: Vec<String> = frozen["written"]
             .as_array()
@@ -254,7 +281,7 @@ fn every_frozen_case_and_recorded_difference_belongs_to_a_replayed_group() {
     let oracle = fixture("cli-gaps-oracle.json");
     let differences = fixture("cli-gaps-differences.json");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 75);
+    assert_eq!(cases.len(), 81);
     for name in cases.keys() {
         assert!(group_of(name).is_some(), "{name}: not replayed");
     }
@@ -394,4 +421,12 @@ fn the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_throu
             "{command}: not a stable-loader subcommand"
         );
     }
+}
+
+/// Frozen `doctor` (`collect_diagnostics(Path.cwd())`), `export-compilation-context`
+/// (`root = Path.cwd()`) and `publish` (cwd-relative report paths) read only the working
+/// directory's configuration: a root file above it, valid or invalid, is not consulted.
+#[test]
+fn doctor_export_and_publish_read_only_the_working_directory_configuration() {
+    assert_eq!(replay("subdirectory"), 6);
 }

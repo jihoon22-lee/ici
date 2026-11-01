@@ -40,11 +40,41 @@ pub fn applies(invocation: &Invocation, cwd: &Path) -> bool {
 /// except the next path (`next`, `analyze`, `report`, `diff`, `init`, `import-report`), the
 /// read-only `env`/`cache`, and `verify` on a `[workspace]` root (the cutover). Native-only
 /// commands (`setup`) are not frozen subcommands and read no project configuration.
-fn stable(command: &str) -> bool {
+pub fn stable(command: &str) -> bool {
     matches!(
         command,
         "verify" | "doctor" | "publish" | "export-compilation-context"
     ) || crate::legacy::engine(command).is_some()
+}
+/// Frozen historical commands read `load_config(base=cwd)` and root at the working directory
+/// (`collect_diagnostics(Path.cwd())`, `compilation_export_cli` `root = Path.cwd()`, publish
+/// paths relative to cwd); every other command discovers its configuration upwards.
+pub fn inspect(
+    invocation: &Invocation,
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+) -> std::result::Result<ici_config::ConfigurationInspection, ici_config::ConfigError> {
+    if stable(&invocation.command()) {
+        ici_config::inspect_legacy_command_with_environment(cwd, explicit, local, environment)
+    } else {
+        ici_config::inspect_configuration_with_environment(cwd, explicit, local, environment)
+    }
+}
+/// [`inspect`] for the resolved project.
+pub fn resolve(
+    invocation: &Invocation,
+    cwd: &Path,
+    explicit: Option<&Path>,
+    local: Option<&Path>,
+    environment: &BTreeMap<String, String>,
+) -> std::result::Result<ici_config::ResolvedProject, ici_config::ConfigError> {
+    if stable(&invocation.command()) {
+        ici_config::resolve_legacy_command_with_environment(cwd, explicit, local, environment)
+    } else {
+        ici_config::resolve_with_environment(cwd, explicit, local, environment)
+    }
 }
 /// Frozen `main_callback`: the stable configuration is read from the working directory before
 /// the subcommand runs, and a configuration error stops it with exit 2 — named as the

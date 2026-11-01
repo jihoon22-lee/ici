@@ -94,7 +94,8 @@ pub fn prepare_with_contexts(
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|path| under(cwd, path));
-    let resolve = if crate::legacy::is_legacy(invocation) {
+    // Historical commands (engines, verify, doctor, publish, export) root at the working directory.
+    let resolve = if crate::cutover::stable(&invocation.command()) {
         ici_config::resolve_legacy_command_with_environment
     } else {
         ici_config::resolve_with_environment

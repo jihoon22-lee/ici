@@ -395,7 +395,8 @@ pub fn collect(
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|path| under(cwd, path));
-    let inspection = ici_config::inspect_configuration_with_environment(
+    let inspection = crate::cutover::inspect(
+        invocation,
         cwd,
         explicit.as_deref(),
         local.as_deref(),

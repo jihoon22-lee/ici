@@ -11,6 +11,8 @@ wrote, with the project root as `<root>` and HOME as `<home>`:
 - the stderr prefix of configuration errors across commands (next schema problem,
   unparseable TOML, invalid legacy value, unknown scope) and of report/publish/diff refusals;
 - `ici line` from a subdirectory of a checkout, with and without a root configuration;
+- `doctor`, `export-compilation-context` and `publish` from a subdirectory below a root
+  configuration (frozen reads only the working directory's file and roots there);
 - a bare `--local-config` interpreter name in `ici next plan`;
 - an unparseable `pyproject.toml` beside a legacy or next configuration.
 """
@@ -49,6 +51,12 @@ SUBDIRECTORY = {
 LEGACY_ROOT = {
     **SUBDIRECTORY,
     "ici.toml": '[project]\ntype = "python"\nsource_dirs = ["."]\n',
+}
+LEGACY_INVALID_ROOT = {**LEGACY_INVALID, "sub/inner.py": "def inner():\n    return 1\n"}
+DOCTOR_ROOT = {
+    **SUBDIRECTORY,
+    "ici.toml": '[project]\ntype = "python"\nsource_dirs = ["."]\n'
+    '[doctor]\nrequired_tools = ["ruff"]\n',
 }
 BARE_LOCAL = {
     **WORKSPACE_TREE,
@@ -132,6 +140,16 @@ CASES = {
     "configless_root_line": (SUBDIRECTORY, ".", ["line"]),
     "legacy_root_subdir_line": (LEGACY_ROOT, "sub", ["line"]),
     "legacy_root_line": (LEGACY_ROOT, ".", ["line"]),
+    "subdir_doctor_root_config_json": (DOCTOR_ROOT, "sub", ["doctor", "--json"]),
+    "subdir_doctor_at_root_json": (DOCTOR_ROOT, ".", ["doctor", "--json"]),
+    "subdir_doctor_workspace_json": (
+        {**WORKSPACE_TREE, "pkg/src/b.py": "B = 1\n"},
+        "pkg",
+        ["doctor", "--json"],
+    ),
+    "subdir_doctor_invalid_root_json": (LEGACY_INVALID_ROOT, "sub", ["doctor", "--json"]),
+    "subdir_export_invalid_root": (LEGACY_INVALID_ROOT, "sub", ["export-compilation-context"]),
+    "subdir_publish_invalid_root": (LEGACY_INVALID_ROOT, "sub", ["publish"]),
     "bare_local_interpreter_plan": (
         BARE_LOCAL,
         ".",
