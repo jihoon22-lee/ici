@@ -663,7 +663,15 @@ fn prepare_resolved_omitting(
                 }) {
                     cpp.fail_preparation(
                         &check.task_id,
-                        crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id),
+                        if crate::cpp::legacy_sanitizer_without_scope(
+                            &project.root,
+                            component,
+                            check_id,
+                        ) {
+                            crate::cpp::legacy_sanitizer_no_scope(&check.task_id, check_id)
+                        } else {
+                            crate::cpp::legacy_sanitizer_skip(&check.task_id, check_id)
+                        },
                     );
                     validations.remove(&check.task_id);
                     check.check.needs.clear();

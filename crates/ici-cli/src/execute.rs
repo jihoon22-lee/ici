@@ -582,9 +582,13 @@ pub fn execute(
                                 &planned.component_id,
                             );
                             crate::cpp::append_test_compile_failures(&mut output, &failures);
-                            if prepared.legacy_projection && direct_gcc(&prepared, planned) {
+                            let system = build_system(&prepared, planned);
+                            if prepared.legacy_projection && system.as_deref() == Some("direct-gcc")
+                            {
                                 crate::cpp::legacy_direct_tests(&mut output, &failures);
-                            } else if prepared.legacy_projection {
+                            } else if prepared.legacy_projection
+                                && system.as_deref() == Some("cmake")
+                            {
                                 crate::cpp::legacy_ctest_tests(
                                     &mut output,
                                     &prepared.project.root,
@@ -605,9 +609,19 @@ pub fn execute(
                         }
                         if prepared.legacy_projection
                             && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
-                            && direct_gcc(&prepared, planned)
                         {
-                            crate::cpp::legacy_direct_sanitizer(&mut output, &planned.check.id);
+                            match build_system(&prepared, planned).as_deref() {
+                                Some("direct-gcc") => crate::cpp::legacy_direct_sanitizer(
+                                    &mut output,
+                                    &planned.check.id,
+                                ),
+                                Some("cmake") => crate::cpp::legacy_ctest_sanitizer(
+                                    &mut output,
+                                    &planned.check.id,
+                                    "CMakeLists.txt",
+                                ),
+                                _ => {}
+                            }
                         }
                         output
                     } else {
@@ -1491,16 +1505,16 @@ fn state_label(state: ici_domain::TaskState) -> String {
     wire_label(&state)
 }
 
-/// Whether the planned C++ check's component is linked to a descriptor-free direct g++ build.
-fn direct_gcc(
+/// The build system of the planned C++ check's linked component build (`direct-gcc`, `cmake`...).
+fn build_system(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,
-) -> bool {
+) -> Option<String> {
     prepared
         .project
         .components
         .iter()
         .find(|component| component.id == planned.component_id)
         .and_then(|component| crate::cpp::linked_build(&prepared.project, component))
-        .is_some_and(|build| build.system.as_deref() == Some("direct-gcc"))
+        .and_then(|build| build.system.clone())
 }

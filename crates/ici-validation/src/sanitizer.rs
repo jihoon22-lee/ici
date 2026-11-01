@@ -128,7 +128,16 @@ pub fn parse_diagnostics(
             } else {
                 "sanitizer diagnostic".into()
             };
-            let path = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd).ok();
+            let path = planning::relative(&capture[1], &plan.context.root, &plan.context.cwd)
+                .ok()
+                .filter(|path| {
+                    // A build-directory-relative frame that names no confirmed project line and
+                    // escapes the project from its root (`../../../../src/libsanitizer/...`,
+                    // the runtime's own sources) is an external frame, as frozen records it.
+                    plan.source_coordinates.contains_line(path, row) == Some(true)
+                        || planning::relative(&capture[1], &plan.context.root, &plan.context.root)
+                            .is_ok()
+                });
             let mut span = if let Some(path) = path {
                 if plan.source_coordinates.contains_line(&path, row) != Some(true) {
                     limitations.push(
@@ -239,19 +248,11 @@ fn frame_label(line: &str, location: &regex::Captures<'_>, frame: &Regex) -> Str
         .and_then(|capture| capture.get(1))
         .map_or("?", |index| index.as_str());
     let prefix = line[..location.get(1).expect("matched source path").start()].trim();
-    let function = if let Some((_, function)) = prefix.rsplit_once(" in ") {
-        function.trim().to_string()
-    } else {
-        let rest = frame.replace(prefix, "");
-        let rest = rest.trim();
-        if rest.starts_with("0x") {
-            rest.split_once(' ')
-                .map_or("", |(_, rest)| rest.trim())
-                .to_string()
-        } else {
-            rest.to_string()
-        }
-    };
+    // Frozen `_function_label`: only an ASan/UBSan/LSan "... in <function>" frame names its
+    // function; a TSan frame ("#0 free <path>:<line> (lib+0x..)") is just "frame #<n>".
+    let function = prefix
+        .rsplit_once(" in ")
+        .map_or_else(String::new, |(_, function)| function.trim().to_string());
     let addresses = Regex::new(r"(?i)\b0x[0-9a-f]+\b").expect("constant regex");
     let function = addresses
         .replace_all(&function, "address")

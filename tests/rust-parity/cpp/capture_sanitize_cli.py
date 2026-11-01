@@ -27,7 +27,26 @@ CONFIGS = {
     # Direct g++ runs: one clean test, and one clean plus one heap use-after-free test.
     "direct-clean": ("sanitize-direct-clean", ""),
     "direct-defect": ("sanitize-direct", ""),
+    # No C++ source, no C++ test, no Python source or tests/**/*.py: the no-scope verdict.
+    "noscope": ("sanitize-noscope", ""),
+    # CMake/ctest adapter runs: a failing test without a report, and a heap use-after-free.
+    "cmake-plain": ("test-cmake/plain", ""),
+    "cmake-defect": ("test-cmake/sanitize", ""),
 }
+DIAGNOSTIC = "Normalized from a bounded runtime-sanitizer report"
+FINDING_FIELDS = (
+    "rule_id",
+    "category",
+    "severity",
+    "confidence",
+    "message",
+    "primary_location",
+    "related_locations",
+    "explanation",
+    "remediation",
+    "tool_name",
+    "tool_rule_id",
+)
 
 
 def run(fixture: Path, command: str, config: str) -> dict:
@@ -60,7 +79,15 @@ def run(fixture: Path, command: str, config: str) -> dict:
         "summary": report["summary"],
         "evidence": report["evidence"],
         "built": built,
-        "targets": [{key: target.get(key) for key in FIELDS} for target in report["targets"]],
+        "targets": sorted(
+            ({key: target.get(key) for key in FIELDS} for target in report["targets"]),
+            key=lambda target: (target["target_name"], target["file_path"]),
+        ),
+        "diagnostic_findings": [
+            {key: finding.get(key) for key in FINDING_FIELDS}
+            for finding in report["findings"]
+            if finding.get("explanation", "").startswith(DIAGNOSTIC)
+        ],
     }
 
 

@@ -288,3 +288,127 @@ pub fn legacy_ctest_tests(output: &mut AnalysisOutput, root: &Path, descriptor: 
         };
     }
 }
+
+/// Frozen SanitizeEngine/ThreadSanitizeEngine `_analysis_scopes`: without a selected C++
+/// source (`.cpp/.cc/.cxx/.c`) or C++ test, and (for `sanitize`) without a Python source or
+/// `tests/**/*.py`, the engine has no scope at all.
+pub fn legacy_sanitizer_without_scope(root: &Path, component: &Component, check_id: &str) -> bool {
+    let has = |extensions: &[&str]| {
+        component.files.iter().any(|path| {
+            Path::new(path)
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .is_some_and(|extension| extensions.contains(&extension))
+        })
+    };
+    if has(&["cpp", "cc", "cxx", "c"]) {
+        return false;
+    }
+    if check_id == "cpp.tsan" {
+        return true;
+    }
+    let python_tests = root.join("tests").is_dir()
+        && crate::files::tree(root, &root.join("tests"))
+            .map(|entries| {
+                entries
+                    .iter()
+                    .any(|entry| entry.file && entry.relative.ends_with(".py"))
+            })
+            .unwrap_or(true);
+    !has(&["py"]) && !python_tests
+}
+
+/// The frozen no-scope verdict: one SKIP target at "." and NOT_APPLICABLE evidence.
+pub fn legacy_sanitizer_no_scope(id: &str, check_id: &str) -> AnalysisOutput {
+    let (name, message, summary) = if check_id == "cpp.tsan" {
+        (
+            "ThreadSanitizer",
+            "No applicable C++ sources were selected; ThreadSanitizer was not run",
+            "ThreadSanitizer skipped: no applicable C++ checks were executed",
+        )
+    } else {
+        (
+            "Sanitize",
+            "No applicable Python or C++ sources were selected; sanitize was not run",
+            "Sanitize skipped: no applicable checks were executed",
+        )
+    };
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    output.status = "SKIP".into();
+    output.summary = summary.into();
+    output.observation.measurements.push(Measurement {
+        name: "applicability".into(),
+        value: 0.0,
+        evidence: ici_domain::EvidenceLevel::NotApplicable,
+        unit: "checks".into(),
+        numerator: None,
+        denominator: None,
+    });
+    output.observation.limitations.push(message.into());
+    let mut target = InspectionTarget::at(".", 1);
+    target.target_name = name.into();
+    target.status = "SKIP".into();
+    target.message = message.into();
+    output.targets.push(target);
+    output
+}
+
+/// Frozen SanitizeEngine/ThreadSanitizeEngine adapter (CMake/ctest) targets: a case without a
+/// diagnostic is `[C++ <label>] <name>` at the descriptor ("Sanitizers reported no
+/// diagnostics" / "Sanitizer run failed: <message>"), a case whose run printed a sanitizer report
+/// is replaced by the located diagnostic targets, and the summary is the frozen clean or
+/// "<n> <noun> Defect(s) Detected" text.
+pub fn legacy_ctest_sanitizer(output: &mut AnalysisOutput, check_id: &str, descriptor: &str) {
+    if !matches!(output.status.as_str(), "PASS" | "FAIL")
+        || !output.observation.evidence_is_complete()
+    {
+        return;
+    }
+    let (label, summary, noun) = if check_id == "cpp.tsan" {
+        (
+            "TSan",
+            "Thread Safety & TSan Clean (0 Defects)",
+            "Thread Safety",
+        )
+    } else {
+        (
+            "ASan/UBSan",
+            "Memory Safety & Sanitize Clean (0 Defects)",
+            "Memory / Resource",
+        )
+    };
+    let case = |target: &InspectionTarget| target.file_path.ends_with("CTestTestfile.cmake");
+    let diagnostics = output.targets.iter().any(|target| !case(target));
+    let mut reshaped = vec![];
+    for target in &output.targets {
+        if !case(target) {
+            reshaped.push(target.clone());
+            continue;
+        }
+        if target.target_name == "Instrumented suite" || (diagnostics && target.status == "FAIL") {
+            continue;
+        }
+        let mut projected = InspectionTarget::at(descriptor, 1);
+        projected.target_name = format!("[C++ {label}] {}", target.target_name);
+        projected.status = target.status.clone();
+        projected.message = match target.status.as_str() {
+            "PASS" => "Sanitizers reported no diagnostics".into(),
+            "FAIL" => format!("Sanitizer run failed: {}", junit_message(&target.message)),
+            _ => format!(
+                "Sanitizer test was not executed: {}",
+                junit_message(&target.message)
+            ),
+        };
+        reshaped.push(projected);
+    }
+    let issues = reshaped
+        .iter()
+        .filter(|target| matches!(target.status.as_str(), "WARN" | "FAIL"))
+        .count();
+    output.targets = reshaped;
+    output.summary = if output.status == "PASS" {
+        summary.into()
+    } else {
+        format!("{issues} {noun} Defect(s) Detected")
+    };
+}
