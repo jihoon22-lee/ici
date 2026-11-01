@@ -63,7 +63,7 @@ fn legacy_bounded_stops_line_grouping_and_dup_dead_shapes_match_frozen() {
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 12);
+    assert_eq!(cases.len(), 14);
     for (name, case) in cases {
         let root = tempfile::tempdir().unwrap();
         let config = format!(
@@ -98,9 +98,10 @@ fn legacy_bounded_stops_line_grouping_and_dup_dead_shapes_match_frozen() {
             );
             continue;
         }
-        // Accepted exit policy: `dup` is required by default, so its ERROR leaves the native run
-        // incomplete (exit 3) where frozen exited 1; `resource` is optional and keeps exit 1.
-        let exit = if frozen["status"] == "ERROR" && command == "dup" {
+        // Accepted exit policy: `dup` and `dead` are required by default, so their ERROR leaves
+        // the native run incomplete (exit 3) where frozen exited 1; `resource` is optional and
+        // keeps exit 1.
+        let exit = if frozen["status"] == "ERROR" && matches!(command, "dup" | "dead") {
             json!(3)
         } else {
             frozen["exit_code"].clone()

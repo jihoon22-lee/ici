@@ -6,9 +6,10 @@ bounded comparison limit (engines/dup.py:207, `DuplicateComparisonLimit`); `ici 
 file past 1,000 lines shows the summary's `{:,}` grouping (engines/line.py). The remaining
 cases replay the legacy dup/dead target shapes end to end: `DuplicateScan` (dup.py:279),
 `PythonSemanticShapeError` under `python_semantic='required'` (dup.py:401), AST-shape and
-lexical `CloneGroup#N` (dup.py:569, dup.py:721) and a WARN dead-code target with its finding
-severity (dead.py:885). The fixtures are generated from the parameters recorded beside each case
-so the native test rebuilds the same bytes without checking in large trees.
+lexical `CloneGroup#N` (dup.py:569, dup.py:721) and the dead-code finding severities
+(dead.py:885: PASS info, WARN medium, ERROR critical). The fixtures are generated from the
+parameters recorded beside each case so the native test rebuilds the same bytes without checking
+in large trees.
 """
 
 import json
@@ -102,6 +103,8 @@ CASES = {
         {"src/a.py": "def f(a):\n    return eval(a)\n"},
         "[engines.dup]\npython_semantic='required'\n",
     ),
+    "dead/clean": ("dead", {"src/a.py": "def f():\n    return 1\n\n\nf()\n"}),
+    "dead/nul-input": ("dead", {"src/a.py": "x = 1\x00\n"}),
     "dead/unreachable-statement": (
         "dead",
         {"src/a.py": "def f():\n    return 1\n    x = 2\n\n\nf()\n"},

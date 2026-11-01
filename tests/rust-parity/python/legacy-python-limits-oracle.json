@@ -1,6 +1,66 @@
 {
  "base": "[project]\ntype='python'\nsource_dirs=['src']\n",
  "cases": {
+  "dead/clean": {
+   "command": "dead",
+   "files": {
+    "src/a.py": "def f():\n    return 1\n\n\nf()\n"
+   },
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "exit_code": 0,
+    "findings": [
+     {
+      "fingerprint": "sha256:18040bb3d4d638442659ce359866e294a6103bd28efb0c4e00e8d351bdbad51d",
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "rule_id": "ici.legacy.dead.target",
+      "severity": "info"
+     }
+    ],
+    "status": "PASS",
+    "summary": "No dead-code findings detected in the analyzed scopes",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python source was parsed and no dead-code findings were identified",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "DeadCode"
+     }
+    ]
+   }
+  },
+  "dead/nul-input": {
+   "command": "dead",
+   "files": {
+    "src/a.py": "x = 1\u0000\n"
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "findings": [
+     {
+      "fingerprint": "sha256:6b833edcdb2b6958255c325799a5447233fcaacfbde71ddef37a248b503a63a2",
+      "message": "invalid-text: Analysis source contains a NUL character",
+      "rule_id": "ici.legacy.dead.target",
+      "severity": "critical"
+     }
+    ],
+    "status": "ERROR",
+    "summary": "Analysis source contains a NUL character",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "invalid-text: Analysis source contains a NUL character",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "SourceInputError"
+     }
+    ]
+   }
+  },
   "dead/unreachable-statement": {
    "command": "dead",
    "files": {
