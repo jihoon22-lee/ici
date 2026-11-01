@@ -561,13 +561,30 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     engine["summary"] = json!(format!(
         "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {source_count} files"
     ));
-    if let Some(targets) = engine["targets"].as_array_mut() {
-        targets.sort_by(|left, right| {
+    if let Some(targets) = engine["targets"].as_array().cloned() {
+        let mut order: Vec<usize> = (0..targets.len()).collect();
+        order.sort_by(|left, right| {
             frozen_line_order(
-                &json!({"path":left["file_path"],"scope":"source"}),
-                &json!({"path":right["file_path"],"scope":"source"}),
+                &json!({"path":targets[*left]["file_path"],"scope":"source"}),
+                &json!({"path":targets[*right]["file_path"],"scope":"source"}),
             )
         });
+        // Each target keeps its owning check: the scope rows follow the same permutation.
+        let mut position = vec![0usize; targets.len()];
+        for (new, old) in order.iter().enumerate() {
+            position[*old] = new;
+        }
+        engine["targets"] = json!(order.iter().map(|old| &targets[*old]).collect::<Vec<_>>());
+        if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
+            for scope in scopes.iter_mut() {
+                if let Some(old) = scope["target_index"].as_u64().map(|index| index as usize)
+                    && let Some(new) = position.get(old)
+                {
+                    scope["target_index"] = json!(new);
+                }
+            }
+            scopes.sort_by_key(|scope| scope["target_index"].as_u64().unwrap_or(u64::MAX));
+        }
     }
     engine["extra"]["files_data"] = json!(rows);
     Ok(())

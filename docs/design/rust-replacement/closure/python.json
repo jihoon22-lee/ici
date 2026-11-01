@@ -858,7 +858,7 @@
    "difference_reason": null
   },
   "finding_site:src/ici/analysis/_exception_rules.py:801:12": {
-   "status": "complete",
+   "status": "verified",
    "rust_paths": [
     "crates/ici-cpp/src/source_rules.rs",
     "crates/ici-cli/src/cpp.rs"
@@ -880,10 +880,10 @@
     "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
    ],
    "comparison": "C++ facet claimed by the cpp area (python.json row): frozen analyze_cpp_exceptions DestructorThrow FAIL target 'C++ destructor throws an exception and may call std::terminate' at each masked destructor-throw line (a lambda throw inside a destructor, two throws on one line reported once, `~Spec() throw()`, CRLF sources) equals the native legacy `ici exception` targets (exit 1, FAIL); throws inside string/raw literals, comments and spliced comment lines are not reported (negative), and the per-case frozen source oracle keeps rule ids, lines and statuses (failure: the false-positive literal/comment shapes).",
-   "difference_reason": null
+   "difference_reason": "Open for complete: the cited failure fixture is the same frozen oracle comparison over literal/comment look-alikes; no failing-input path (undecodable or unreadable C++ source under `ici exception`) is compared with frozen."
   },
   "finding_site:src/ici/analysis/_exception_rules.py:811:12": {
-   "status": "complete",
+   "status": "verified",
    "rust_paths": [
     "crates/ici-cpp/src/source_rules.rs",
     "crates/ici-cli/src/cpp.rs"
@@ -905,10 +905,10 @@
     "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
    ],
    "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CatchAllSwallowed FAIL target 'Silent catch(...) block without logging or re-throw' at every empty masked catch(...) line (including the `/* } */` comment body and catch blocks after literal look-alikes) equals the native legacy `ici exception` targets; a catch(...) that logs or rethrows and catch(...) text inside literals are not reported (negative); the frozen per-case source oracle keeps lines and statuses (failure: literal/comment look-alikes).",
-   "difference_reason": null
+   "difference_reason": "Open for complete: the cited failure fixture is the same frozen oracle comparison over literal/comment look-alikes; no failing-input path (undecodable or unreadable C++ source under `ici exception`) is compared with frozen."
   },
   "finding_site:src/ici/analysis/_exception_rules.py:820:8": {
-   "status": "complete",
+   "status": "verified",
    "rust_paths": [
     "crates/ici-cpp/src/source_rules.rs",
     "crates/ici-cli/src/cpp.rs"
@@ -929,7 +929,7 @@
     "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
    ],
    "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CppExceptionSafety PASS summary target at line 1 of every inspected C++ source, 'C++ exception constructs were inspected' for a clean source (clean.cc, negative) and '...; see findings above' after DestructorThrow/CatchAllSwallowed targets (positive), in frozen target order, equals the native legacy `ici exception` report; the per-case frozen source oracle keeps the summary target after findings (failure cases).",
-   "difference_reason": null
+   "difference_reason": "Open for complete: the cited failure fixture is the same frozen oracle comparison over literal/comment look-alikes; no failing-input path (undecodable or unreadable C++ source under `ici exception`) is compared with frozen."
   },
   "finding_site:src/ici/analysis/_python_compatibility.py:299:11": {
    "status": "complete",

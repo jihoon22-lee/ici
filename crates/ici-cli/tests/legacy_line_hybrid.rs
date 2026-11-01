@@ -38,6 +38,21 @@ fn run(oracle: &Value, case: &Value) -> Value {
     let output = commands::dispatch(&invocation, &root, &environment).unwrap();
     let report: Value =
         serde_json::from_slice(&fs::read(root.join("line_report.json")).unwrap()).unwrap();
+    // Every target keeps the check that measured it (the scope rows follow the target order).
+    let targets = report["targets"].as_array().unwrap();
+    for scope in report["extra"]["target_scopes"]
+        .as_array()
+        .into_iter()
+        .flatten()
+    {
+        let target = &targets[scope["target_index"].as_u64().unwrap() as usize];
+        let check = if target["target_name"] == "C++" {
+            "project.cpp.line"
+        } else {
+            "project.python.line"
+        };
+        assert_eq!(scope["task_id"], check, "{target}");
+    }
     json!({
         "exit_code": output.exit_code,
         "status": report["status"],
