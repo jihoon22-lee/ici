@@ -184,6 +184,64 @@ pub fn command(
         }
     }
     let mut stored = crate::report::load(&run.result_path)?;
+    // Frozen `ici verify` runs the same TestEngine `_mark_zero_tests` verdict as `ici test`: a
+    // project without any test file shows "No tests collected" FAIL in the suite view too.
+    if invocation.command() == "verify"
+        && legacy_schema
+        && let StoredResult::Legacy(legacy) = &stored
+    {
+        let mut document = legacy.to_value();
+        let mut changed = false;
+        if let Some(results) = document["results"].as_array_mut() {
+            for value in results
+                .iter_mut()
+                .filter(|value| value["engine_name"] == "test")
+            {
+                if let Some(languages) = no_tests_collected(&root, value) {
+                    ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
+                    changed = true;
+                }
+            }
+        }
+        if changed {
+            let results = document["results"].as_array().cloned().unwrap_or_default();
+            // The no-test block is a frozen measured verdict; any other incomplete required check
+            // keeps the native ERROR suite and exit 3.
+            let only_no_tests = !run.result.execution.cancelled
+                && results
+                    .iter()
+                    .filter(|engine| engine["engine_name"] != "test")
+                    .flat_map(|engine| {
+                        engine["extra"]["native_checks"]
+                            .as_array()
+                            .cloned()
+                            .unwrap_or_default()
+                    })
+                    .all(|check| check["required"] != true || check["evidence_complete"] == true);
+            if only_no_tests {
+                let suite = frozen_suite_status(&results);
+                let count = |status: &str| {
+                    results
+                        .iter()
+                        .filter(|engine| engine["status"] == status)
+                        .count()
+                };
+                document["suite_status"] = serde_json::json!(suite);
+                document["passed_count"] = serde_json::json!(count("PASS"));
+                document["warned_count"] = serde_json::json!(count("WARN"));
+                document["failed_count"] = serde_json::json!(count("FAIL") + count("ERROR"));
+                document["error_count"] = serde_json::json!(count("ERROR"));
+                document["skipped_count"] = serde_json::json!(count("SKIP"));
+                let verdict = i32::from(matches!(suite, "FAIL" | "ERROR"));
+                exit_code = if regressed {
+                    exit_code.max(verdict)
+                } else {
+                    verdict
+                };
+            }
+            stored = StoredResult::from_value(document).map_err(error)?;
+        }
+    }
     if let Some(family) = engine(&invocation.command())
         && let StoredResult::Legacy(legacy) = &stored
     {
@@ -592,6 +650,36 @@ pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) ->
 /// The frozen legacy test engine attempts a suite only for `tests/**/test_*.py` or
 /// `tests/**/*.cpp`. When no such file exists and every native test/coverage check was blocked
 /// before running, return the languages the frozen engine would report as having no tests.
+/// Frozen `core/models.py` `aggregate_suite_status` over legacy engine results.
+fn frozen_suite_status(results: &[serde_json::Value]) -> &'static str {
+    let required = |engine: &serde_json::Value| engine["required"] == true;
+    let applicable = |engine: &serde_json::Value| engine["evidence"] != "NOT_APPLICABLE";
+    if results.is_empty()
+        || results.iter().any(|engine| {
+            required(engine)
+                && applicable(engine)
+                && (matches!(engine["status"].as_str(), Some("ERROR" | "SKIP"))
+                    || engine["evidence"] == "NOT_RUN")
+        })
+    {
+        "ERROR"
+    } else if results
+        .iter()
+        .any(|engine| required(engine) && engine["status"] == "FAIL")
+    {
+        "FAIL"
+    } else if results.iter().any(|engine| {
+        applicable(engine)
+            && (engine["status"] == "WARN"
+                || !required(engine)
+                    && (engine["status"] != "PASS" || engine["evidence"] != "MEASURED"))
+    }) {
+        "WARN"
+    } else {
+        "PASS"
+    }
+}
+
 fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
     let checks = engine["extra"]["native_checks"].as_array()?;
     // Only "no runnable suite exists" blocks qualify; any other block (interpreter, config,
