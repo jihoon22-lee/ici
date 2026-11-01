@@ -145,11 +145,17 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
                 assert value["branch"] == BRANCH
                 payload = base64.b64decode(value["content"], validate=True)
                 assert payload == PAGE
-                assert relative.endswith("/pr-23/" + state["head"][:12] + "/index.html")
+                if state["marker"] == LEGACY_MARKER:
+                    # Frozen engines/publish._resolve_target: the stable pr/<n>/index.html layout.
+                    assert relative[len("/contents/") :] in state["paths"], relative
+                else:
+                    assert relative.endswith("/pr-23/" + state["head"][:12] + "/index.html")
                 event["uploaded_sha256"] = digest(payload)
                 event["uploaded_path"] = relative
                 self.reply(201, {"content": {"sha": "fixture-blob"}})
         elif relative == f"/pulls/{PR}":
+            # Only the next path's ordering guard reads the PR head.
+            assert state["marker"] != LEGACY_MARKER
             self.reply(200, {"head": {"sha": state["head"]}})
         elif relative == f"/issues/{PR}/comments" and self.command == "GET":
             assert route.query == "per_page=100&page=1"
@@ -168,7 +174,14 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
             assert self.command == ("PATCH" if state["mode"] == "patch" else "POST")
             value = json.loads(body)
             assert value["body"].startswith(state["marker"])
-            assert "head:" + state["head"] + " run:42.2" in value["body"]
+            if state["marker"] == LEGACY_MARKER:
+                # The frozen sticky comment: the footer names the stable path, no trailer.
+                assert all(
+                    "`" in value["body"] and path in value["body"] for path in state["paths"]
+                )
+                assert "<!-- head:" not in value["body"]
+            else:
+                assert "head:" + state["head"] + " run:42.2" in value["body"]
             assert "FAIL" in value["body"]
             assert state["marker"] == LEGACY_MARKER or "Open report" in value["body"]
             assert len(value["body"].encode()) <= 65536
@@ -339,6 +352,7 @@ def main():
             uploads=1,
             branch=None,
             connects=(),
+            paths=(),
         ):
             result_fixture = fixture if result_bytes is None else result_bytes
             project = root / name
@@ -381,6 +395,7 @@ def main():
                 "marker": marker,
                 "comment_repo": comment_repo,
                 "repositories": set(),
+                "paths": list(paths),
             }
             proxy.targets.clear()
             environment = {
@@ -572,6 +587,7 @@ def main():
                 files={"custom.html": PAGE, "custom.json": SUITE},
                 result_name="custom.json",
                 environment_update=legacy_environment,
+                paths=("pr/23/index.html",),
                 **legacy,
             )
             run(
@@ -590,6 +606,7 @@ def main():
                 result_name="a/verify_report.json",
                 environment_update=legacy_environment,
                 uploads=2,
+                paths=("a/pr/23/index.html", "second/pr/23/index.html"),
                 **legacy,
             )
             # Hub: reports go to ICI_PUBLISH_REPO with ICI_PUBLISH_TOKEN; the comment goes to the
@@ -612,6 +629,8 @@ def main():
                 },
                 comment_repo=SOURCE_REPOSITORY,
                 branch=True,
+                # Hub prefix: the analyzed repository's name (`ici publish` names no project).
+                paths=("source/pr/23/index.html",),
                 **legacy,
             )
             # Without GITHUB_API_URL the historical caller targets the public GitHub API; the
@@ -626,10 +645,13 @@ def main():
                 files={"verify_report.html": PAGE, "verify_report.json": SUITE},
                 result_name="verify_report.json",
                 environment_update={**legacy_environment, "GITHUB_API_URL": None},
-                connects=("api.github.com:443",),
+                # Like frozen, publication continues after the refused branch step: the Pages
+                # check and the sticky-comment lookup are refused at the proxy too.
+                connects=("api.github.com:443",) * 3,
+                paths=("pr/23/index.html",),
                 **legacy,
             )
-            assert proxy.unexpected_requests == 1, "Only the refused public-API CONNECT may leave"
+            assert proxy.unexpected_requests == 3, "Only the refused public-API CONNECTs may leave"
         finally:
             server.shutdown()
             server.server_close()

@@ -431,7 +431,7 @@ pub fn command(
                 .ok_or_else(|| CliError("page path is not UTF-8".into()))?,
         ])
         .map_err(error)?;
-        match crate::publish::command(&publish, &root, environment) {
+        match crate::publish::command_named(&publish, &root, environment, &run.project_name) {
             Ok(published) => {
                 stdout.push_str(&published.stdout);
                 stderr.push_str(&published.stderr);

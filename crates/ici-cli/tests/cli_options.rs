@@ -104,12 +104,6 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "Command-line usage errors are reported by the native parser as `error: invalid value ...` (exit 2, nothing written) where frozen typer drew an unclassed usage box; same exit code.",
     ),
     (
-        "legacy-publish/html-upload-refused",
-        "outcome",
-        r#""[publish] --publish failed to upload ici/project/local/unversioned-0.1/index.html to team/repo (gh-pages). Check token permissions (contents: write) and branch availability.""#,
-        "Native keeps its gh-pages layout ici/<label>/<ref>/<revision>/index.html (accepted in reporting.json, legacy_publish.rs normalizes it); the message, exit 1 and the refused real HTTPS connect are frozen's.",
-    ),
-    (
         "legacy-publish/html-without-json",
         "exit_code",
         r#"0"#,
