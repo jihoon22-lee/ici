@@ -66,6 +66,8 @@ pub fn evaluate(
 /// Frozen `coverage_policy.py` targets plus the frozen `_threshold_breaches` TEM/branch gate.
 /// A suite with a failing case already fails; like the frozen engine it does not add a
 /// redundant TEM/branch breach, but every aggregate line/file/function target stays.
+pub const MAX_POLICY_ROWS: usize = 10_000;
+pub const POLICY_ROWS_REFUSAL: &str = "coverage inventory exceeds the bounded 10000-row limit";
 pub fn evaluate_suite(
     plan: &ValidationPlan,
     report: &CoverageReport,
@@ -74,6 +76,24 @@ pub fn evaluate_suite(
     output: &mut AnalysisOutput,
 ) -> Result<(), ValidationError> {
     let options = &plan.context.options;
+    // Frozen `evaluate_coverage_policy`: an evaluated policy over more than 10 000 coverage-file
+    // or function rows is refused before any target (the decoded report's own 16 384-file
+    // bound stays the outer parser limit).
+    let evaluated = [
+        options.min_line_cov,
+        options.min_file_cov,
+        options.min_branch_cov,
+        options.min_func_cov,
+        options.min_tem_score,
+        options.min_changed_line_cov,
+    ]
+    .iter()
+    .any(Option::is_some);
+    if evaluated
+        && (report.files.len() > MAX_POLICY_ROWS || report.function_rows.len() > MAX_POLICY_ROWS)
+    {
+        return Err(ValidationError(POLICY_ROWS_REFUSAL.into()));
+    }
     let mut unavailable = vec![];
     let counts = &report.counts;
     if let Some(threshold) = options.min_line_cov {

@@ -1,0 +1,53 @@
+{
+  "config": "[ici]\nprofile = \"standard\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
+  "runs": {
+    "10000": {
+      "evidence": "MEASURED",
+      "exit_code": 1,
+      "function_rows": 10000,
+      "functions": 10000,
+      "policy_target_count": 10003,
+      "policy_targets": [
+        {
+          "file_path": ".",
+          "message": "Overall line coverage 50.0% is below the configured minimum 80.0%",
+          "status": "WARN",
+          "target_name": "Coverage:Overall line"
+        },
+        {
+          "file_path": "src/many.py",
+          "message": "File line coverage 50.0% is below the configured minimum 80.0%",
+          "status": "WARN",
+          "target_name": "Coverage:File"
+        },
+        {
+          "file_path": ".",
+          "message": "Aggregate function coverage 0.0% is below the configured minimum 90.0%",
+          "status": "WARN",
+          "target_name": "Coverage:Functions"
+        }
+      ],
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 50.0%, Func: 0.0%, Branch: 100.0% -> TEM: 0.00 / 5.0"
+    },
+    "10001": {
+      "evidence": "NOT_RUN",
+      "exit_code": 1,
+      "function_rows": 10001,
+      "functions": 10001,
+      "policy_target_count": 1,
+      "policy_targets": [
+        {
+          "file_path": ".",
+          "message": "Coverage policy could not be evaluated: coverage inventory exceeds the bounded 10000-row limit",
+          "status": "ERROR",
+          "target_name": "Coverage:Policy configuration"
+        }
+      ],
+      "status": "ERROR",
+      "summary": "Coverage policy could not be evaluated: coverage inventory exceeds the bounded 10000-row limit"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "test": "from many import f0\n\n\ndef test_f0():\n    assert f0() == 0\n"
+}

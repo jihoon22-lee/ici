@@ -19,6 +19,9 @@ fn copy(from: &Path, to: &Path) {
     }
 }
 fn run(name: &str, extra: Option<(&str, &str)>) -> (i32, Value) {
+    run_with_path(name, extra, "/usr/bin:/bin")
+}
+fn run_with_path(name: &str, extra: Option<(&str, &str)>, path: &str) -> (i32, Value) {
     let root = tempfile::tempdir().unwrap();
     copy(
         &Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -34,7 +37,7 @@ fn run(name: &str, extra: Option<(&str, &str)>) -> (i32, Value) {
     let result = commands::dispatch(
         &registry::parse(["ici", "test", "--report"]).unwrap(),
         root.path(),
-        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+        &BTreeMap::from([("PATH".into(), path.into())]),
     )
     .unwrap();
     let report =
@@ -42,11 +45,34 @@ fn run(name: &str, extra: Option<(&str, &str)>) -> (i32, Value) {
     (result.exit_code, report)
 }
 
+/// The CMake tree needs a real `cmake` on PATH; frozen captured it with `/usr/bin/cmake`.
+const CMAKE_RUN: &str = "cmake-no-ctest";
+
 #[test]
 fn test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity() {
+    compare_runs(|name| name != CMAKE_RUN, "/usr/bin:/bin");
+}
+
+#[test]
+#[ignore = "explicit actual CMake configure of a test-less tree (ICI_TEST_CMAKE)"]
+fn a_test_less_cmake_tree_keeps_the_frozen_no_tests_verdict_target_and_identity() {
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake");
+    let directory = Path::new(&cmake).parent().unwrap().display().to_string();
+    compare_runs(
+        |name| name == CMAKE_RUN,
+        &format!("{directory}:/usr/bin:/bin"),
+    );
+}
+
+fn compare_runs(select: impl Fn(&str) -> bool, path: &str) {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let mut compared = 0;
     for (name, frozen) in oracle["runs"].as_object().unwrap() {
-        let (exit, native) = run(name, None);
+        if !select(name) {
+            continue;
+        }
+        compared += 1;
+        let (exit, native) = run_with_path(name, None, path);
         assert_eq!(
             i64::from(exit),
             frozen["exit_code"].as_i64().unwrap(),
@@ -83,6 +109,7 @@ fn test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity() {
         assert_eq!(native["summary"], "0/0 Tests Passed; No tests collected");
         assert_eq!(native["score"], Value::Null);
     }
+    assert!(compared > 0, "no frozen run selected");
 }
 
 #[test]

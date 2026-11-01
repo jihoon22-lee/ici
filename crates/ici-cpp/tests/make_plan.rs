@@ -252,7 +252,9 @@ fn execute(
 fn make_shadow_owner_is_the_source_build_not_the_variant_or_projected_id() {
     let root = tempfile::tempdir().unwrap();
     let root_path = root.path().canonicalize().unwrap();
-    project(&root_path);
+    // Planning only: no Make or compiler runs, so the tree needs no explicit tools.
+    fs::create_dir_all(root_path.join("native")).unwrap();
+    fs::write(root_path.join("Makefile"), "all:\n\ttrue\n").unwrap();
     let table = json!({"enabled":true,"shadow_dir":"out","build_argv":["make","all"],"coverage_build_argv":["make","coverage"]});
     let digest = |id: &str, owner: Option<&str>, variant: &str| {
         let request = BuildRequest {
@@ -260,7 +262,7 @@ fn make_shadow_owner_is_the_source_build_not_the_variant_or_projected_id() {
             shadow_owner_id: owner.map(str::to_owned),
             system: "make".into(),
             variant: variant.into(),
-            make: Some(settings(table.clone(), variant)),
+            make: Some(make_settings(Some(&table), variant, "Makefile").unwrap()),
             ..Default::default()
         };
         plan_build(&root_path, &request).unwrap().owner_digest

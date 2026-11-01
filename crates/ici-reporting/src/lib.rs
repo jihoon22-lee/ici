@@ -30,7 +30,11 @@ pub use render::{
 pub use view::{ConsoleGroupBy, RenderOptions};
 mod legacy_markdown;
 pub use legacy_markdown::{MAX_SUMMARY_BYTES, bounded_summary_payload, legacy_summary_markdown};
+mod legacy_sarif;
 mod sarif;
+pub use legacy_sarif::{
+    MAX_LEGACY_SARIF_RESULTS, MAX_LEGACY_SARIF_RULES, legacy_sarif_document, render_legacy_sarif,
+};
 pub use sarif::{render_sarif, sarif_document};
 mod migration;
 pub use migration::migrate_report_payload;

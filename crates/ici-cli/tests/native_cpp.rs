@@ -2071,7 +2071,8 @@ fn legacy_python_only_descriptors_return_cpp_applicability_through_actual_cli_di
         let output = ici_cli::commands::dispatch(&invocation, root.path(), &environment).unwrap();
         // Frozen v0.13.0 exits 2 (SKIP) for these commands without Python sources.
         assert_eq!(output.exit_code, 2, "{}", output.stderr);
-        let stored = ici_cli::report::load(&root.path().join(ici_cli::DEFAULT_RESULT)).unwrap();
+        let stored =
+            ici_cli::report::load(root.path(), &root.path().join(ici_cli::DEFAULT_RESULT)).unwrap();
         let bytes = stored.to_json().unwrap();
         assert!(bytes.contains("NOT_APPLICABLE"));
         assert!(!root.path().join(".ici/rust-v1/build").exists());

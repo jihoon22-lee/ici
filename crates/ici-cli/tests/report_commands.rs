@@ -34,7 +34,7 @@ fn saved_rich_report_survives_deleted_sources_and_no_tools() {
         &Cancellation::default(),
     )
     .unwrap();
-    let details = report::details_path(&run.result_path, &run.result.run_id).unwrap();
+    let details = report::details_path(dir.path(), &run.result_path, &run.result.run_id).unwrap();
     let saved = ici_reporting::StoredResult::from_bytes(&fs::read(&details).unwrap()).unwrap();
     assert!(matches!(saved, ici_reporting::StoredResult::Legacy(_)));
     assert!(
@@ -78,12 +78,12 @@ fn report_rejects_mismatched_details_input_aliases_and_user_files() {
         &Cancellation::default(),
     )
     .unwrap();
-    let details = report::details_path(&run.result_path, &run.result.run_id).unwrap();
+    let details = report::details_path(dir.path(), &run.result_path, &run.result.run_id).unwrap();
     let original = fs::read(&details).unwrap();
     let mut value: serde_json::Value = serde_json::from_slice(&original).unwrap();
     value["native_run"]["run_id"] = "another-run".into();
     fs::write(&details, serde_json::to_vec(&value).unwrap()).unwrap();
-    assert!(report::load(&run.result_path).is_err());
+    assert!(report::load(dir.path(), &run.result_path).is_err());
     fs::write(&details, &original).unwrap();
     fs::hard_link(&run.result_path, dir.path().join("alias.html")).unwrap();
     assert!(
@@ -289,7 +289,7 @@ fn historical_v2_reports_render_without_overwriting_or_inventing_native_evidence
     });
     let original = serde_json::to_vec(&payload).unwrap();
     fs::write(&path, &original).unwrap();
-    let stored = report::load(&path).unwrap();
+    let stored = report::load(dir.path(), &path).unwrap();
     assert_eq!(stored.schema(), "ici.result/v3");
     assert_eq!(stored.to_value().unwrap()["suite_status"], "FAIL");
     assert!(stored.to_value().unwrap().get("native_run").is_none());
@@ -315,10 +315,113 @@ fn historical_v2_reports_render_without_overwriting_or_inventing_native_evidence
         serde_json::json!({"schema_version":"ici.result/v9","engine_name":"lint","status":"PASS"}),
     ] {
         fs::write(&path, serde_json::to_vec(&invalid).unwrap()).unwrap();
-        assert!(report::load(&path).is_err(), "{invalid}");
+        assert!(report::load(dir.path(), &path).is_err(), "{invalid}");
     }
     fs::write(&path, br#"{"schema_version":"ici.result/v2","engine_name":"lint","status":"PASS","status":"FAIL"}"#).unwrap();
-    assert!(report::load(&path).is_err());
+    assert!(report::load(dir.path(), &path).is_err());
+}
+/// Root decision E2: frozen wrote only the result beside an explicit `--result`
+/// (tests/rust-parity/runtime/result-placement-oracle.json), so native keeps its presentation
+/// archive under the project's `.ici/rust-v1/details/` and never creates `.ici` beside a user
+/// path, inside or outside the project; `ici report` still finds the archive there.
+#[test]
+fn explicit_result_paths_gain_no_ici_directory_beside_them() {
+    let oracle: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/runtime/result-placement-oracle.json"
+    ))
+    .unwrap();
+    let cases = &oracle["cases"];
+    assert_eq!(
+        cases["analyze/relative-result"]["project_created"],
+        serde_json::json!(["out/r.json"])
+    );
+    assert_eq!(
+        cases["analyze/outside-result"]["outside_created"],
+        serde_json::json!(["r.json"])
+    );
+    assert_eq!(
+        cases["analyze/outside-result"]["project_created"],
+        serde_json::json!([])
+    );
+    let dir = fixture();
+    let outside = tempfile::tempdir().unwrap();
+    let outside_result = outside.path().join("r.json");
+    for result in ["out/r.json", outside_result.to_str().unwrap()] {
+        let run = execute::execute(
+            &call(&["ici", "analyze", "--result", result]),
+            dir.path(),
+            &BTreeMap::new(),
+            true,
+            &Cancellation::default(),
+        )
+        .unwrap();
+        let details =
+            report::details_path(dir.path(), &run.result_path, &run.result.run_id).unwrap();
+        assert!(details.starts_with(dir.path().join(".ici/rust-v1/details/r.json")));
+        assert!(details.is_file());
+        assert!(matches!(
+            report::load(dir.path(), &run.result_path).unwrap(),
+            ici_reporting::StoredResult::Legacy(_)
+        ));
+    }
+    assert!(!dir.path().join("out/.ici").exists());
+    assert!(!dir.path().join("out/runs").exists());
+    let written: Vec<_> = fs::read_dir(outside.path())
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name())
+        .collect();
+    assert_eq!(written, vec![std::ffi::OsString::from("r.json")]);
+    // `ici report` over the explicit result renders the saved details (targets), not only the run.
+    let rendered = commands::dispatch(
+        &call(&[
+            "ici",
+            "report",
+            "--result",
+            "out/r.json",
+            "--out",
+            "out/page.html",
+        ]),
+        dir.path(),
+        &BTreeMap::new(),
+    )
+    .unwrap();
+    assert_eq!(rendered.exit_code, 0, "{}", rendered.stderr);
+    assert!(
+        fs::read_to_string(dir.path().join("out/page.html"))
+            .unwrap()
+            .contains("main.py")
+    );
+    assert!(!dir.path().join("out/.ici").exists());
+}
+/// Archives that earlier native builds wrote beside an explicit result stay readable (and a
+/// mismatched one is still refused); nothing is moved.
+#[test]
+fn details_written_beside_an_explicit_result_by_earlier_builds_stay_readable() {
+    let dir = fixture();
+    let run = execute::execute(
+        &call(&["ici", "analyze", "--result", "out/r.json"]),
+        dir.path(),
+        &BTreeMap::new(),
+        true,
+        &Cancellation::default(),
+    )
+    .unwrap();
+    let details = report::details_path(dir.path(), &run.result_path, &run.result.run_id).unwrap();
+    let beside = dir
+        .path()
+        .join("out/.ici/rust-v1/details/r.json")
+        .join(&run.result.run_id)
+        .join("details.json");
+    fs::create_dir_all(beside.parent().unwrap()).unwrap();
+    fs::rename(&details, &beside).unwrap();
+    assert!(matches!(
+        report::load(dir.path(), &run.result_path).unwrap(),
+        ici_reporting::StoredResult::Legacy(_)
+    ));
+    let mut value: serde_json::Value = serde_json::from_slice(&fs::read(&beside).unwrap()).unwrap();
+    value["native_run"]["run_id"] = "another-run".into();
+    fs::write(&beside, serde_json::to_vec(&value).unwrap()).unwrap();
+    assert!(report::load(dir.path(), &run.result_path).is_err());
 }
 #[test]
 fn custom_result_details_stay_in_ici_namespace_and_previous_placement_stays_readable() {
@@ -334,7 +437,7 @@ fn custom_result_details_stay_in_ici_namespace_and_previous_placement_stays_read
         &Cancellation::default(),
     )
     .unwrap();
-    let details = report::details_path(&run.result_path, &run.result.run_id).unwrap();
+    let details = report::details_path(dir.path(), &run.result_path, &run.result.run_id).unwrap();
     assert!(details.starts_with(dir.path().join(".ici/rust-v1/details/r.json")));
     assert!(details.is_file());
     let entries: Vec<_> = fs::read_dir(dir.path().join("runs"))
@@ -347,7 +450,8 @@ fn custom_result_details_stay_in_ici_namespace_and_previous_placement_stays_read
         "user data"
     );
     // Default results already live in the namespace and do not nest it again.
-    let default = report::details_path(&dir.path().join(ici_cli::DEFAULT_RESULT), "id").unwrap();
+    let default =
+        report::details_path(dir.path(), &dir.path().join(ici_cli::DEFAULT_RESULT), "id").unwrap();
     assert_eq!(
         default,
         dir.path()
@@ -361,18 +465,18 @@ fn custom_result_details_stay_in_ici_namespace_and_previous_placement_stays_read
         .join("details.json");
     fs::create_dir_all(previous.parent().unwrap()).unwrap();
     fs::rename(&details, &previous).unwrap();
-    let loaded = report::load(&run.result_path).unwrap();
+    let loaded = report::load(dir.path(), &run.result_path).unwrap();
     assert!(matches!(loaded, ici_reporting::StoredResult::Legacy(_)));
     // A mismatched archive at the previous placement is still refused, not ignored.
     let mut value: serde_json::Value =
         serde_json::from_slice(&fs::read(&previous).unwrap()).unwrap();
     value["native_run"]["run_id"] = "another-run".into();
     fs::write(&previous, serde_json::to_vec(&value).unwrap()).unwrap();
-    assert!(report::load(&run.result_path).is_err());
+    assert!(report::load(dir.path(), &run.result_path).is_err());
     // Without any archive the native run itself is reported.
     fs::remove_file(&previous).unwrap();
     assert!(matches!(
-        report::load(&run.result_path).unwrap(),
+        report::load(dir.path(), &run.result_path).unwrap(),
         ici_reporting::StoredResult::Run(_)
     ));
 }

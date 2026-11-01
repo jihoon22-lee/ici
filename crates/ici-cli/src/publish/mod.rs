@@ -758,7 +758,7 @@ pub fn command_for_project(
                     bytes: vec![],
                     result: json
                         .is_file()
-                        .then(|| crate::report::load(&json).ok())
+                        .then(|| crate::report::load(&config.root, &json).ok())
                         .flatten(),
                     result_digest: None,
                 });
@@ -950,7 +950,7 @@ fn load_page(
                     path.display()
                 ))
             })?;
-            let loaded = crate::report::load(path).map_err(|error| {
+            let loaded = crate::report::load(root, path).map_err(|error| {
                 CliError(format!(
                     "publish: {} is not a result this version can read: {error}",
                     path.display()

@@ -2052,14 +2052,25 @@ fn expected_pytest_failure_counts_as_tool_pass_and_carries_a_prior_normal_failur
         actual.outputs
     );
     let output = &actual.outputs["project.python.test"];
+    // Frozen `adapters/providers/pytest.py`: the numerator counts PASSED nodes only, so an
+    // xfail-only suite is 0/1 and says nothing ran green; the legacy counts below still pass it.
     assert!(
         output
             .observation
             .measurements
             .iter()
             .any(|metric| metric.name == "pytest.cases"
-                && metric.numerator == Some(1)
+                && metric.numerator == Some(0)
                 && metric.denominator == Some(1))
+    );
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|limitation| limitation == "no test ran green (0 skipped of 1 collected)"),
+        "{:?}",
+        output.observation.limitations
     );
     let details = output
         .extra

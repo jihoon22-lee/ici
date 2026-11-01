@@ -152,10 +152,11 @@
   },
   "command:ici <global>": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. --version, an unknown command, an unknown global option and a bare `ici` without a command are replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason) (exit 0 / 2 / 2 / 2; native usage wording, reviewed).",
-   "difference_reason": null,
+   "difference_reason": "Reviewed per-fact CORRECTIONS in crates/ici-cli/tests/cli_options.rs, each asserted with its reason against cli-options-oracle.json (every other fact of the case keeps frozen's value; every_reviewed_difference_names_a_captured_case_and_a_reason refuses a correction without a captured case or reason): global/unknown-command and global/unknown-option are native parser usage errors (`error: unrecognized subcommand 'bogus'`, `error: unexpected argument '--bogus' found`, refusal class `error`) where frozen typer drew an unclassed usage box; exit code 2, nothing written, identical.",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -177,11 +178,11 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici analyze": {
-   "comparison": "Selection/config options (--language python/cpp/invalid, --python, --cpp, --component, --profile, --require-full, --config same/alternate/missing, --local-config accepted/policy-refused) are replayed against frozen `ici analyze --plan --json` on configless and configured trees (tests/rust-parity/config/cli-selection-oracle.json): exit code, task-id set, scope.require_full and scope.profile equal. Run/output options are exercised by the named native execution tests only, without a frozen run differential in this facet. Configuration and scope refusals carry frozen's `config: ` prefix on every problem line, after the announcement when scope resolved (analyze_text, plan_engines exact); an unknown --language is refused by name before the announcement (recorded difference); an unparseable pyproject.toml never refuses planning. Refusals are also replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): an unknown --component, an invalid --profile (native usage error, exit 2), an invalid --config file and a missing --baseline (`config: baseline <path> cannot be read: …`, exit 2, before the run).",
-   "difference_reason": null,
+   "comparison": "Selection/config options (--language python/cpp/invalid, --python, --cpp, --component, --profile, --require-full, --config same/alternate/missing, --local-config accepted/policy-refused) are replayed against frozen `ici analyze --plan --json` on configless and configured trees (tests/rust-parity/config/cli-selection-oracle.json): exit code, task-id set, scope.require_full and scope.profile equal. Run/output options: --result placement is compared with frozen (E2, below), --json/text output with frozen analyze captures (analyze_text.rs, reporting facet), --events with the frozen event stream (capability:wire-result-events), --plan by cli-selection-oracle.json and the --baseline refusal by cli_options.rs; --output and --no-cache are exercised by the named native execution tests only, without a frozen run differential in this facet. Configuration and scope refusals carry frozen's `config: ` prefix on every problem line, after the announcement when scope resolved (analyze_text, plan_engines exact); an unknown --language is refused by name before the announcement (recorded difference); an unparseable pyproject.toml never refuses planning. Refusals are also replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): an unknown --component, an invalid --profile (native usage error, exit 2), an invalid --config file and a missing --baseline (`config: baseline <path> cannot be read: …`, exit 2, before the run). Output placement (root decision E2): an explicit `--result out/r.json` or a result outside the project creates only that file, as frozen did (tests/rust-parity/runtime/capture_result_placement.py -> result-placement-oracle.json); the details document is written under <project>/.ici/rust-v1/details/<file>/<run>/ and details written beside the result by earlier native builds stay readable (report_commands.rs). Still open for the config facet (2026-11-02, non-C++ remainder worker): --output and --no-cache have no frozen run differential (native tests only); the C++ facet is cpp.json's (difference_review).",
+   "difference_reason": "Reviewed per-fact CORRECTIONS in crates/ici-cli/tests/cli_options.rs, each asserted with its reason against cli-options-oracle.json (every other fact of the case keeps frozen's value; every_reviewed_difference_names_a_captured_case_and_a_reason refuses a correction without a captured case or reason): analyze/baseline-missing carries Rust's OS error text, analyze/config-invalid the native loader wording, analyze/profile-invalid is a native parser usage error; plus root decision E2 (explicit --result: no out/.ici is created, details stay under <project>/.ici/rust-v1/details/, earlier result-adjacent details stay readable) and the accepted incomplete-exit-3 policy; the C++ facet is cpp.json's.",
    "evidence": [
     ".venv/bin/python -I tests/rust-parity/config/capture_cli_selection.py <oracle> tests/rust-parity/config/cli-selection-oracle.json (frozen v0.13.0: 17 next plan, 17 analyze --plan on configless/configured trees, 8 next init variants)",
     "cargo test -p ici-cli --test config_oracle --locked (6 passed incl. plan selection, next init and recorded-difference replays); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-cli-selection.log",
@@ -189,7 +190,11 @@
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/runtime/capture_result_placement.py (frozen v0.13.0) -> tests/rust-parity/runtime/result-placement-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem-placement-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --test report_commands --test coverage_regression --test cli_options --test legacy_commands --test legacy_baseline_gate -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-e2-placement.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log"
    ],
    "fixtures": {
     "failure": [
@@ -197,12 +202,14 @@
      "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
      "crates/ici-cli/tests/analyze_text.rs::native_analyze_prints_the_frozen_frame_on_the_same_projects",
      "crates/ici-cli/tests/plan_engines.rs::plans_announce_and_workspace_engines_refuse_like_frozen",
-     "crates/ici-cli/tests/cli_options.rs::analyze_missing_baseline_is_refused_before_the_run_as_frozen"
+     "crates/ici-cli/tests/cli_options.rs::analyze_missing_baseline_is_refused_before_the_run_as_frozen",
+     "crates/ici-cli/tests/report_commands.rs::details_written_beside_an_explicit_result_by_earlier_builds_stay_readable"
     ],
     "negative": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
      "crates/ici-cli/tests/cli_gaps.rs::unparseable_pyproject_is_never_a_configuration_refusal",
-     "crates/ici-cli/tests/cli_options.rs::analyze_unknown_component_profile_and_invalid_config_are_refused_as_frozen"
+     "crates/ici-cli/tests/cli_options.rs::analyze_unknown_component_profile_and_invalid_config_are_refused_as_frozen",
+     "crates/ici-cli/tests/report_commands.rs::explicit_result_paths_gain_no_ici_directory_beside_them"
     ],
     "positive": [
      "crates/ici-cli/tests/config_oracle.rs::plan_selection_options_select_the_frozen_task_sets_and_refuse_the_frozen_inputs",
@@ -241,10 +248,11 @@
     ]
    },
    "rust_paths": [
-    "crates/ici-cli/src/registry.rs",
     "crates/ici-cli/src/commands.rs",
+    "crates/ici-cli/src/execute.rs",
     "crates/ici-cli/src/lib.rs",
-    "crates/ici-cli/src/execute.rs"
+    "crates/ici-cli/src/registry.rs",
+    "crates/ici-cli/src/report.rs"
    ],
    "status": "verified"
   },
@@ -399,13 +407,14 @@
    "status": "complete"
   },
   "command:ici diff": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. An unreadable baseline/current result is frozen's `diff: baseline <path> cannot be read: …` / `diff: <path> is not a result this version can read: …` (exit 2; the OS error text is Rust's). The top-level spelling is replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason) (outcome line, missing and non-result baselines).",
-   "difference_reason": null,
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. An unreadable baseline/current result is frozen's `diff: baseline <path> cannot be read: …` / `diff: <path> is not a result this version can read: …` (exit 2; the OS error text is Rust's). The top-level spelling is replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason) (outcome line, missing and non-result baselines). Still open for the config facet (2026-11-02, non-C++ remainder worker): --output and the diff body beyond the self-diff outcome line are not replayed against frozen here.",
+   "difference_reason": "Reviewed per-fact CORRECTIONS in crates/ici-cli/tests/cli_options.rs, each asserted with its reason against cli-options-oracle.json (every other fact of the case keeps frozen's value; every_reviewed_difference_names_a_captured_case_and_a_reason refuses a correction without a captured case or reason): diff/top-missing-baseline carries Rust's OS error text; diff/top-unreadable-baseline is worded by the native stored-result reader (its last tried alternative) where frozen named the found schema_id; same `diff: ` class, exit 2 and named file.",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_cli_gaps.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/config/cli-gaps-oracle.json (81 frozen v0.13.0 cases, empty HOME, PATH=os.defpath; the 6 subdirectory cases added in a second run that left the 75 earlier cases byte-identical); /tmp/ici-rust-replacement-20261028/w-config-gaps-capture2.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -558,11 +567,12 @@
   },
   "command:ici init": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Frozen `ici init` is next_path.cmd_init registered at the top level (__main__.py `app.command(\"init\")(next_path.cmd_init)`) and native dispatches `init` and `next init` to the same function (commands.rs `\"init\" | \"next init\"`), so the 8 frozen init cases in cli-selection-oracle.json (fresh, --preview, --cpp/--python previews, an existing file refused with exit 2, --force over an existing or broken file) cover every option; their recorded differences are asserted by the same test. The top-level `ici init` spelling is replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): a fresh write, --preview (nothing written) and an existing ici.toml refused as `init: <path> already exists — …`, exit 2.",
-   "difference_reason": null,
+   "difference_reason": "Reviewed per-fact CORRECTIONS in crates/ici-cli/tests/cli_options.rs, each asserted with its reason against cli-options-oracle.json (every other fact of the case keeps frozen's value; every_reviewed_difference_names_a_captured_case_and_a_reason refuses a correction without a captured case or reason): init/top-level-existing names the native --force behaviour (sparse schema v2 scaffold with a .before-init backup, command:ici next init); same `init: ` class, exit 2 and named file.",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli -p ici-config -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (config_oracle.rs included); /tmp/ici-rust-replacement-20261028/w-config-cli-full3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -586,7 +596,7 @@
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/lib.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici line": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. Stable loader gate (frozen __main__.main_callback, crates/ici-cli/src/cutover.rs stable_refusal) replayed for this subcommand from frozen captures (cli-gaps-oracle.json): on a [workspace] root it refuses with frozen's exact message, exit 2, nothing written; an invalid legacy value is `Configuration error: ` exit 2 with the same key (native names file:line:column and words the problem itself, cli-gaps-differences.json); a native schema_version = 2 file, a legacy file, and a subdirectory below a next root without its own file are read (gate test). Historical commands read only the working directory's configuration and use it as the root (frozen load_config(base=cwd)). The engine's analysis behaviour belongs to its engine/check rows. From a checkout subdirectory, with or without a configuration at the root, `ici line` analyses the working directory with its own (or default) configuration and writes line_report.json there, as frozen (rooted cases equal, stdout byte for byte). Native-only: below a native schema_version = 2 root the historical command also reads only its working directory (pending root decision, cli-gaps-differences.json global.native_v2_subdirectory).",
@@ -659,12 +669,13 @@
    "status": "complete"
   },
   "command:ici next diff": {
-   "comparison": "Same native dispatch as `ici diff` (commands.rs \"diff\" | \"next diff\"); exercised through the `ici diff` tests. The `next diff` spelling is replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): a stored result against itself (outcome line `0 new, 0 unchanged, 0 resolved, 0 carried (baseline …)`), a missing baseline, a missing --result, and a non-result baseline refused as `diff: `, exit 2.",
-   "difference_reason": null,
+   "comparison": "Same native dispatch as `ici diff` (commands.rs \"diff\" | \"next diff\"); exercised through the `ici diff` tests. The `next diff` spelling is replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): a stored result against itself (outcome line `0 new, 0 unchanged, 0 resolved, 0 carried (baseline …)`), a missing baseline, a missing --result, and a non-result baseline refused as `diff: `, exit 2. Still open for the config facet (2026-11-02, non-C++ remainder worker): --output and the diff body beyond the self-diff outcome line are not replayed against frozen here.",
+   "difference_reason": "Reviewed per-fact CORRECTIONS in crates/ici-cli/tests/cli_options.rs, each asserted with its reason against cli-options-oracle.json (every other fact of the case keeps frozen's value; every_reviewed_difference_names_a_captured_case_and_a_reason refuses a correction without a captured case or reason): diff/next-missing-baseline and diff/next-missing-current carry Rust's OS error text; diff/next-unreadable-baseline is worded by the native stored-result reader; same `diff: ` class, exit 2 and named file.",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -689,11 +700,12 @@
   },
   "command:ici next doctor": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): --component (selected and unknown), --python, --cpp, --profile deep (and an invalid profile: a native usage error, exit 2), --config (alternate file and a missing file), --local-config (path overlay, a policy key refused, a missing file). An invalid next file is refused with frozen's `config: ` prefix, exit 2.",
-   "difference_reason": null,
+   "difference_reason": "Reviewed per-fact CORRECTIONS in crates/ici-cli/tests/cli_options.rs, each asserted with its reason against cli-options-oracle.json (every other fact of the case keeps frozen's value; every_reviewed_difference_names_a_captured_case_and_a_reason refuses a correction without a captured case or reason): doctor/config-missing, doctor/local-config-invalid and doctor/local-config-missing are worded by the native loader (file:line:column: key: problem) instead of the Python exception text; doctor/profile-invalid is a native parser usage error (class `error`); same class/exit code/named file otherwise.",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log"
    ],
    "fixtures": {
     "failure": [
@@ -715,7 +727,7 @@
     "crates/ici-cli/src/lib.rs",
     "crates/ici-config/src/discovery.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici next init": {
    "comparison": "All four options (--python, --cpp, --preview, --force) and the fresh/existing/existing-preview/existing-force/unparseable-force cases are replayed against frozen `ici next init` (tests/rust-parity/config/cli-selection-oracle.json): exit codes, whether an existing ici.toml is left unchanged and the restricted languages line are equal.",
@@ -788,11 +800,12 @@
    "status": "complete"
   },
   "command:ici next publish": {
-   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. --config and --local-config are replayed offline against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): a configured [publish] with a plain-HTTP api_url from --config (with and without --local-config) is a `config: ` refusal, exit 2, before any request; an alternate config without [publish] reports `publish: not_configured — …` (exit 2); a missing config or overlay file is `config: `; a missing page is `publish: no page at <path> — run `ici next report` first`. Successful HTTPS publication is the distribution facet (verify_publish.py).",
-   "difference_reason": null,
+   "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. --config and --local-config are replayed offline against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason): a configured [publish] with a plain-HTTP api_url from --config (with and without --local-config) is a `config: ` refusal, exit 2, before any request; an alternate config without [publish] reports `publish: not_configured — …` (exit 2); a missing config or overlay file is `config: `; a missing page is `publish: no page at <path> — run `ici next report` first`. Successful HTTPS publication is the distribution facet (verify_publish.py). Still open for the config facet (2026-11-02, non-C++ remainder worker): --out/--output/--result are exercised over HTTPS by the distribution facet with native expectations only, not against a frozen offline capture; the distribution facet stays difference_review for the R8 exact-source artifact run.",
+   "difference_reason": "Reviewed per-fact CORRECTIONS in crates/ici-cli/tests/cli_options.rs, each asserted with its reason against cli-options-oracle.json (every other fact of the case keeps frozen's value; every_reviewed_difference_names_a_captured_case_and_a_reason refuses a correction without a captured case or reason): the not_configured detail names publish.repo/publish.api_url/the token variable instead of frozen's short hint and the default page lives in .ici/rust-v1 (publish/* CORRECTIONS); the HTTPS publication facet and its accepted differences are the distribution fragment's (still open there for the R8 exact-source artifact run).",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test <40 cited binaries> -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_options -- --include-ignored (25 passed; 76 frozen cases of tests/rust-parity/config/cli-options-oracle.json, 50 reviewed per-fact CORRECTIONS); /tmp/ici-rust-replacement-20261028/w-sweep-cli-options.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at the fragment commit's source: `cargo test -p ici-cli --locked -j2 --test cli_options --test cli_gaps --test registry --test config_commands -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-rem-cli-options.log"
    ],
    "fixtures": {
     "failure": [

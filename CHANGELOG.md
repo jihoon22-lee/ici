@@ -31,6 +31,20 @@
 
 ### 변경
 
+- 레거시 `ici verify --sarif`가 v0.13.0의 SARIF 문서 형식(`ici/v3` fingerprint, `%SRCROOT%`, run properties,
+  10 000개 rule 한도)을 그대로 만들어 code scanning의 기존 경고 중복 제거가 유지됩니다.
+- `--result`로 결과 경로를 지정해도 그 옆에 `.ici` 디렉터리를 만들지 않고, 세부 기록은 프로젝트의
+  `.ici/rust-v1/details/`에 둡니다.
+- 레거시 `ici test` 화면이 pytest case를 실행 순서대로 보여 주고(XFAIL 포함), v0.13.0과 같은 세 가지 ERROR 요약
+  문구를 사용합니다. coverage 정책이 10 000행을 넘으면 v0.13.0과 같은 문구로 평가를 거부합니다.
+- compat-runtime 검사의 측정 런타임·`requires-python` 판정 문구와 `compileall.checked` 측정값이 v0.13.0과 같습니다.
+- 레거시 qmake 프로젝트가 v0.13.0과 같이 `make check TESTARGS=-xunitxml`로 QtTest를 실행해 xunit 결과를 읽고,
+  `[build.make] test_argv`로 지정한 Make 테스트 스위트도 같은 방식으로 판정합니다.
+- C++ 분석이 Qt의 `signals:`/`public slots:` 같은 접근 지정자를 올바르게 해석해 클래스 멤버를 놓치지 않습니다.
+- 설정한 `source_dirs`가 없으면 v0.13.0과 같은 판정을 보고하고, `analysis_context`에는 실제로 존재하는 디렉터리만
+  나열합니다.
+- 헤더에 있는 함수의 gcov 커버리지를 원래 헤더 위치로 집계하고, 같은 Make 빌드를 공유하는 variant의 shadow 빌드를
+  원본 빌드 기준으로 관리합니다. C++ 작업 완료 이벤트가 wire 상태 단어를 사용합니다.
 - 레거시 `ici publish`/`verify --publish`가 v0.13.0의 gh-pages 경로(`pr/<n>`, `main`, `branch/<ref>`, hub 모드의
   프로젝트 접두어)와 댓글 경로·실패 안내·게시 순서를 그대로 사용해 `main/index.html` 같은 고정 주소가 유지됩니다.
 - 모든 테스트가 skip된 pytest 스위트를 v0.13.0과 같이 판정합니다(레거시: 필수면 ERROR, 선택이면 SKIP·종료 코드 2;
