@@ -31,6 +31,13 @@
 
 ### 변경
 
+- 레거시 qmake 프로젝트가 v0.13.0과 같이 `make check TESTARGS=-xunitxml`로 QtTest를 실행해 xunit 결과를 읽고,
+  `[build.make] test_argv`로 지정한 Make 테스트 스위트도 같은 방식으로 판정합니다.
+- C++ 분석이 Qt의 `signals:`/`public slots:` 같은 접근 지정자를 올바르게 해석해 클래스 멤버를 놓치지 않습니다.
+- 설정한 `source_dirs`가 없으면 v0.13.0과 같은 판정을 보고하고, `analysis_context`에는 실제로 존재하는 디렉터리만
+  나열합니다.
+- 헤더에 있는 함수의 gcov 커버리지를 원래 헤더 위치로 집계하고, 같은 Make 빌드를 공유하는 variant의 shadow 빌드를
+  원본 빌드 기준으로 관리합니다. C++ 작업 완료 이벤트가 wire 상태 단어를 사용합니다.
 - 레거시 `ici publish`/`verify --publish`가 v0.13.0의 gh-pages 경로(`pr/<n>`, `main`, `branch/<ref>`, hub 모드의
   프로젝트 접두어)와 댓글 경로·실패 안내·게시 순서를 그대로 사용해 `main/index.html` 같은 고정 주소가 유지됩니다.
 - 모든 테스트가 skip된 pytest 스위트를 v0.13.0과 같이 판정합니다(레거시: 필수면 ERROR, 선택이면 SKIP·종료 코드 2;
