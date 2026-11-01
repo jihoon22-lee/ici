@@ -3,16 +3,17 @@
   "capability:report-console-markdown-json-html-sarif": {
    "status": "verified",
    "rust_paths": [
-    "crates/ici-reporting/src/render.rs",
-    "crates/ici-reporting/src/overview.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-cli/src/report.rs",
+    "crates/ici-reporting/assets/native.js",
     "crates/ici-reporting/src/facets.rs",
-    "crates/ici-reporting/src/view.rs",
-    "crates/ici-reporting/src/sarif.rs",
     "crates/ici-reporting/src/issues.rs",
     "crates/ici-reporting/src/migration.rs",
+    "crates/ici-reporting/src/overview.rs",
+    "crates/ici-reporting/src/render.rs",
     "crates/ici-reporting/src/safe.rs",
-    "crates/ici-reporting/assets/native.js",
-    "crates/ici-cli/src/report.rs"
+    "crates/ici-reporting/src/sarif.rs",
+    "crates/ici-reporting/src/view.rs"
    ],
    "fixtures": {
     "positive": [
@@ -22,29 +23,41 @@
      "crates/ici-reporting/tests/finding_marks.rs::run_findings_show_provider_and_baseline_state_in_every_view",
      "crates/ici-reporting/tests/facets.rs::all_historical_families_render_their_rich_saved_payload_and_collapsed_normal_inventory",
      "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
-     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools"
+     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools",
+     "crates/ici-reporting/tests/html_sections.rs::issue_axis_filters_offer_only_present_values_and_tag_every_issue",
+     "crates/ici-reporting/tests/html_sections.rs::line_ratio_card_matches_the_frozen_shares_and_handles_an_empty_inventory",
+     "crates/ici-reporting/tests/html_sections.rs::test_suites_keep_failures_visible_and_fold_passing_cases",
+     "crates/ici-reporting/tests/html_sections.rs::support_entries_needing_attention_are_listed_first_with_a_count",
+     "crates/ici-reporting/tests/annotations.rs::frozen_suite_targets_become_the_frozen_annotation_lines"
     ],
     "negative": [
      "crates/ici-reporting/tests/html_budget.rs::every_saved_record_formerly_dumped_in_markup_has_an_on_demand_section",
      "crates/ici-reporting/tests/finding_marks.rs::projected_legacy_findings_keep_the_modern_baseline_state",
      "crates/ici-reporting/tests/rendering.rs::saved_run_renderers_preserve_axes_baseline_suppression_unicode_and_escape_boundaries",
-     "crates/ici-reporting/tests/suite_overview.rs::resolved_historical_deltas_stay_visible_as_sarif_absent_results"
+     "crates/ici-reporting/tests/suite_overview.rs::resolved_historical_deltas_stay_visible_as_sarif_absent_results",
+     "crates/ici-reporting/tests/html_sections.rs::not_applicable_engines_stay_collapsed_with_their_reason",
+     "crates/ici-reporting/tests/html_sections.rs::issue_cards_show_the_frozen_location_extent_only_for_a_range"
     ],
     "failure": [
      "crates/ici-reporting/tests/html_budget.rs::one_file_python_report_fits_the_budget_and_keeps_the_complete_saved_result",
      "crates/ici-reporting/tests/limits.rs::large_html_keeps_100000_records_and_only_fifty_initial_issue_cards",
      "crates/ici-reporting/tests/stored.rs::duplicate_keys_trailing_data_and_embedded_script_closures_are_handled_at_intake_and_output",
-     "crates/ici-cli/tests/report_commands.rs::report_rejects_mismatched_details_input_aliases_and_user_files"
+     "crates/ici-cli/tests/report_commands.rs::report_rejects_mismatched_details_input_aliases_and_user_files",
+     "crates/ici-reporting/tests/html_sections.rs::issue_filters_and_sort_run_in_the_page_script",
+     "crates/ici-reporting/tests/annotations.rs::bounded_changed_first_escaped_and_pass_targets_never_annotate"
     ]
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
     "actual `target/debug/ici report --result result.json --out report-head.html` on the capture_cli_oracle.py one-file project (HTML output has no build-profile dependent code): frozen oracle 7,096 B; native before 165,113 B (root release measurement 165,618/165,097 B); 43,800 B at 9cbbfe4; 46,419 B at the fragment commit after the engine table was added; 49 lazy sections hydrated by `node tests/rust-parity/reporting/lazy-dom-check.cjs`; /tmp/ici-rust-replacement-20261028/w-reporting-html-size.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test report_commands --test publish_commands --test legacy_commands --no-fail-fast -- --include-ignored --test-threads=2`; 17 passed (5+6+6); /tmp/ici-rust-replacement-20261028/w-reporting-head-cli.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log",
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/audit_html_sections.py frozen.html native.html $ICI_TEST_NODE` over a frozen v0.13.0 `ici verify --report --html` page and native `ici report` of the same saved v3 suite (14 engines); after the fixes the only frozen tab tokens absent from the native page are labels/Korean help text and alternative spellings of the same facts (path:Lx-Ly vs path:x + extent label, 11.45 vs 11.45s, key=value vs key/value cells); no absolute URL in either page; /tmp/ici-rust-replacement-20261028/w-reporting2-html-audit.json",
+    "`tests/rust-parity/reporting/capture_legacy_annotations.py` (frozen v0.13.0, GITHUB_ACTIONS=true); 6 annotation lines; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`, `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (incl. Node DOM and the 100,000-record case) and the ici-cli GitHub-summary/cutover/analyze suites; EXIT 0, 24 binaries, 102 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Reporting facet only. Reviewed frozen reporting/view_model.py, reporting/offline_html.py, reporters/baseline_view.py, reporters/console.py, reporters/markdown.py (summary, engine table, capability, baseline, issue projection) and the SARIF resolved/absent path. Native renderers now carry every oracle offline-view fact (scope, execution, checks, gate reasons, findings with provider/baseline marks, measurements, limitations), the legacy engine table (issues, score display, cache, duration), status tally, gate_reason, capability snapshot and issues-first baseline deltas with severity transitions, all pinned to frozen captures (suite-overview.json). HTML is Zero-CDN and verified by DOM/text equality of on-demand sections with the server renderer, not bytes. Open for complete: the 12 legacy html/sections/*.py, html/large.py, html/report.py and markdown target/related/failure-snippet rows were not field-by-field audited in this pass (rich-19 sentinels only), and legacy GitHub annotations come from findings rather than the frozen target list.",
-   "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 46,419 B for the budget fixture at the fragment commit). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read)."
+   "comparison": "Reporting facet only. Reviewed frozen reporting/view_model.py, reporting/offline_html.py, reporters/baseline_view.py, reporters/console.py, reporters/markdown.py (summary, engine table, capability, baseline, issue projection) and the SARIF resolved/absent path. Native renderers now carry every oracle offline-view fact (scope, execution, checks, gate reasons, findings with provider/baseline marks, measurements, limitations), the legacy engine table (issues, score display, cache, duration), status tally, gate_reason, capability snapshot and issues-first baseline deltas with severity transitions, all pinned to frozen captures (suite-overview.json). HTML is Zero-CDN and verified by DOM/text equality of on-demand sections with the server renderer, not bytes. Field-by-field HTML audit (frozen html/report.py, large.py, utils.py and all 12 sections read in full; frozen page vs native page of the same suite, see audit evidence): every frozen fact appears; Zero-CDN holds (CSP default-src 'none', no external URL); escaping is html()/textContent only. Fixed to frozen: issues-tab engine/severity/category/confidence/rule filters with present values only, path filter and sort (report order/severity/engine/file); location extent label (L13-L31, L4:C5-C10); SKIP engines collapse to the frozen `N/A — Not applicable, why?` row instead of a full section (frozen summary row; static_analysis hides them); line ratio shares; test suites keep failing/skipped cases visible and fold passing cases; support entries needing attention first under the frozen count. Large reports keep the frozen 2,000/50 thresholds. Historical GitHub annotations now follow frozen emit_github_actions_annotations (targets, changed-first, 50 + notice, GITHUB_ACTIONS only). Open for complete: the historical `--github-summary` Markdown is the native generic layout (`# ici analysis`, scope, canonical groups, per-engine sections) instead of the frozen generate_markdown_report layout (status/TEM header line, engine table, tool capability snapshot, target/related/failure-snippet rows); the facts are present but the frozen layout and bounds per engine (100 target/related rows) are not reproduced.",
+   "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 46,419 B for the budget fixture at the fragment commit). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read). HTML layout: one page with sections and native labels (saved field names in generic tables) instead of frozen tabs, emoji labels and Korean help text; frozen hard-coded thresholds (cognitive warn 30/fail 60, coverage Min 80%/90%) and badge colours are not repeated because they are not saved facts. Decision on SKIP engines: native previously rendered every SKIP engine as a full family section; frozen shows it as a dimmed N/A summary row with the reason collapsed and omits it from the dedicated tabs. Native now collapses it (reason one click away, nothing hidden) because a full section per not-applicable engine is noise under AGENTS.md §5 and carries no additional fact. In >2,000-finding pages the axis filters are not offered; the text filter and pager over the complete inventory remain."
   },
   "capability:legacy-command-config-result-projection": {
    "status": "verified",
@@ -1065,14 +1078,14 @@
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass; publish engine behaviour is covered only by the publish_commands CLI tests."
+   "reason": "Complete comment/loader half read: _header_line, _report_link_lines, _stats_table, _engine_details, _status_cell/_tem_cell/_link_cell, _multi_report_body, _footer_line, _build_comment_body and load_suite_from_json refusals are replayed byte for byte (publish_comment.rs); the GITHUB_ACTIONS guard of _publish_single is fixed for legacy verify --publish (verify_cutover.rs). Open: with Actions but no repository/token frozen prints `--publish skipped: GITHUB_REPOSITORY or a publish token is unavailable.` and never changes the verify exit, while native publish/mod.rs records NOT_CONFIGURED with exit 2 and legacy_execute lets a non-zero publish exit replace a zero run exit; the upload/branch/pages/comment API half is owned by the publication rows (distribution)."
   },
   "src/ici/engines/publish_baseline.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
-    "capability:identity-cache-baseline"
+    "capability:publish-ca-proxy-ghes"
    ],
-   "reason": "Not read in this pass."
+   "reason": "Complete 190-line module read. parse_baseline_summary (strict non-negative int counts, header types, declared counts equal to entries, flag consistency, gate_failed == fail_on_new && gated>0), _escape_comment_value and baseline_summary_lines map one-to-one to crates/ici-cli/src/publish/legacy_comment.rs::baseline/baseline_lines/escape_comment; publish_comment.rs replays the frozen comment for 2 accepted suites and 23 refused/faulted documents (16 parse_baseline_summary faults) byte for byte (tests/rust-parity/reporting/publish-comment-oracle.json). Native additionally redacts warning text."
   },
   "src/ici/engines/verify.py": {
    "disposition": "unreviewed",
@@ -1093,7 +1106,7 @@
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Summary, engine table, capability, baseline and issue projection reviewed (suite_overview.rs); target/related/failure-snippet sections were not mapped field by field."
+   "reason": "Complete module read. Annotations (emit_github_actions_annotations, escapes, bounds, changed-first order, GITHUB_ACTIONS guard) now match frozen (annotations.rs, legacy-annotations-oracle.json); summary byte bound and truncation match (limits.rs). Open: generate_markdown_report's historical layout (header, engine table, capability snapshot, per-engine target/related/failure-snippet rows with 100-row bounds) is replaced by the native generic Markdown for legacy --github-summary."
   },
   "src/ici/reporters/sarif.py": {
    "disposition": "unreviewed",
@@ -1143,7 +1156,7 @@
     "finding_site:src/ici/reporters/html/utils.py:86:12",
     "finding_site:src/ici/reporters/html/utils.py:110:16"
    ],
-   "reason": "Only the finding-site helpers (utils.py:86/110) were checked via issues.rs; the other helpers were not read."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/schemas/ici-result-v3.schema.json": {
    "disposition": "mapped",
@@ -1157,133 +1170,133 @@
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/report.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/large.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/assets_loader.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/assets/app.js": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/assets/style.css": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/__init__.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/baseline.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/complexity.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/cycles.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/dup.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/issues.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/line.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/static_analysis.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/summary.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/support.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/test.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html/sections/type_check.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/reporters/html_assets.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Stays unreviewed only because capability:report-console-markdown-json-html-sarif is verified (historical Markdown layout open), not complete."
   },
   "src/ici/schemas/ici-compilation-export-v1.schema.json": {
    "disposition": "mapped",
