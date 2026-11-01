@@ -101,3 +101,126 @@ fn collection_error_identity_matches_frozen_but_the_suite_stays_incomplete() {
     assert_eq!(frozen["checks"]["python.test"], "SUCCEEDED");
     assert_ne!(state(&result, "python.test"), "SUCCEEDED");
 }
+
+/// The python.test facts of one run: state, evidence completeness, the test-related run
+/// limitations, the pytest findings' rule ids and the pytest.cases measurement.
+fn test_facts(result: &Value) -> Value {
+    let check = result["checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["check_id"] == "python.test")
+        .unwrap();
+    serde_json::json!({
+        "state": check["state"],
+        "evidence_complete": check["evidence_complete"],
+        "limitations": result["limitations"].as_array().unwrap().iter()
+            .filter(|text| text.as_str().is_some_and(|text| text.contains("pytest") || text.contains("test")))
+            .cloned().collect::<Vec<_>>(),
+        "findings": pytest_findings(result).iter().map(|finding| finding["rule_id"].clone()).collect::<Vec<_>>(),
+        "cases": result["metrics"].as_array().unwrap().iter()
+            .filter(|metric| metric["name"] == "pytest.cases")
+            .map(|metric| serde_json::json!([metric["numerator"], metric["denominator"]]))
+            .collect::<Vec<_>>(),
+    })
+}
+fn frozen_facts(frozen: &Value) -> Value {
+    serde_json::json!({
+        "state": frozen["test_check"]["state"],
+        "evidence_complete": frozen["test_check"]["evidence_complete"],
+        "limitations": frozen["limitations"],
+        "findings": frozen["findings"].as_array().unwrap().iter().map(|finding| finding["rule_id"].clone()).collect::<Vec<_>>(),
+        "cases": frozen["metrics"].as_array().unwrap().iter()
+            .map(|metric| serde_json::json!([metric["numerator"], metric["denominator"]]))
+            .collect::<Vec<_>>(),
+    })
+}
+
+/// Green, all-skipped, nothing-collected and `pytest.exit` runs (frozen
+/// adapters/providers/pytest.py exit contract and limitations) against frozen `next verify`.
+#[test]
+#[ignore = "explicit project pytest provider contract acceptance"]
+fn green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    // Native-only plan notes on every native run (the visible coverage/unittest branch policy).
+    const NOTES: [&str; 2] = [
+        "coverage capability selects one visible suite branch",
+        "only an exact missing-pytest diagnostic activates",
+    ];
+    // Reviewed differences: (scenario, fact, native value, reason).
+    let corrections: [(&str, &str, Value, &str); 7] = [
+        (
+            "all-skipped",
+            "state",
+            "FAILED".into(),
+            "Policy difference for root review: native refuses a suite whose every case skipped as incomplete evidence (FAILED) where frozen kept the check SUCCEEDED with only a limitation; frozen's own provider comment says nothing was verified.",
+        ),
+        (
+            "all-skipped",
+            "evidence_complete",
+            false.into(),
+            "Follows the FAILED state above.",
+        ),
+        (
+            "all-skipped",
+            "limitations",
+            serde_json::json!([
+                "all pytest cases skipped; nothing was verified",
+                "prerequisite project.python.test has no complete evidence"
+            ]),
+            "Native wording of the same fact, plus the blocked coverage prerequisite.",
+        ),
+        (
+            "no-tests",
+            "limitations",
+            serde_json::json!([
+                "pytest did not report a completed nonempty suite (exit 5)",
+                "prerequisite project.python.test has no complete evidence"
+            ]),
+            "Same FAILED state and exit 5; native words the refusal and the blocked coverage prerequisite (the exit was Rust Debug `Some(5)` before this sweep).",
+        ),
+        (
+            "interrupted",
+            "state",
+            "FAILED".into(),
+            "Frozen defect not reproduced: pytest.exit(returncode=2) aborted a collected test and frozen reported SUCCEEDED with 'pytest collected no tests'; native refuses the aborted run as incomplete.",
+        ),
+        (
+            "interrupted",
+            "evidence_complete",
+            false.into(),
+            "Follows the FAILED state above.",
+        ),
+        (
+            "interrupted",
+            "limitations",
+            serde_json::json!([
+                "pytest did not report a completed nonempty suite (exit 2)",
+                "prerequisite project.python.test has no complete evidence"
+            ]),
+            "Native refusal names the real exit instead of frozen's wrong 'collected no tests'.",
+        ),
+    ];
+    let mut wrong = vec![];
+    for name in ["green", "all-skipped", "no-tests", "interrupted"] {
+        let frozen = &oracle["runs"][name];
+        let mut native = test_facts(&run(frozen, oracle["config"].as_str().unwrap()));
+        native["limitations"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|text| {
+                !NOTES
+                    .iter()
+                    .any(|note| text.as_str().unwrap().starts_with(note))
+            });
+        let mut expected = frozen_facts(frozen);
+        for (_, fact, value, reason) in corrections.iter().filter(|(case, ..)| *case == name) {
+            assert!(!reason.is_empty());
+            expected[*fact] = value.clone();
+        }
+        if native != expected {
+            wrong.push(format!("{name}\nnative {native}\nfrozen {expected}"));
+        }
+    }
+    assert!(wrong.is_empty(), "{}", wrong.join("\n"));
+}

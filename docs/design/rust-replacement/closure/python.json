@@ -199,31 +199,32 @@
    "difference_reason": "Parser-specific floor locations and Unicode columns are explicit compat-static.json corrections; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
   },
   "check:python.compat-runtime": {
-   "status": "verified",
-   "rust_paths": [
-    "crates/ici-validation/src",
-    "crates/ici-cli/src/validation.rs"
+   "comparison": "Descriptor facet only (languages/python/checks.py: python.compat-runtime static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules. The behaviour facet is claimed in the validation fragment (closure sweep).",
+   "difference_reason": null,
+   "evidence": [
+    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
    ],
    "fixtures": {
-    "positive": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
-     "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
+    "failure": [
+     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_required_runtime_blocks_and_optional_missing_remains_measured",
+     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
     ],
     "negative": [
      "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
-    "failure": [
-     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_required_runtime_blocks_and_optional_missing_remains_measured",
-     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
+    "positive": [
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
     ]
    },
-   "evidence": [
-    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log"
+   "rust_paths": [
+    "crates/ici-validation/src",
+    "crates/ici-cli/src/validation.rs"
    ],
-   "comparison": "Descriptor facet only (languages/python/checks.py: python.compat-runtime static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules.",
-   "difference_reason": "OPEN: behaviour closure belongs to the validation fragment (engines/test*.py, coverage_policy.py, python_compat runtime); not re-audited here. crates/ici-cli/tests/legacy_test_metrics.rs needs a worktree .venv and failed in this worktree for that environment reason (/tmp/ici-rust-replacement-20261028/w-python-validation-actual.log)."
+   "status": "complete"
   },
   "check:python.complexity": {
    "status": "complete",
@@ -257,31 +258,32 @@
    "difference_reason": "Metric findings now carry the original line-only location (columns stay on targets) so attributed fingerprints match; Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
   },
   "check:python.coverage": {
-   "status": "verified",
-   "rust_paths": [
-    "crates/ici-validation/src",
-    "crates/ici-cli/src/validation.rs"
+   "comparison": "Descriptor facet only (languages/python/checks.py: python.coverage static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules. The behaviour facet is claimed in the validation fragment (closure sweep).",
+   "difference_reason": null,
+   "evidence": [
+    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
    ],
    "fixtures": {
-    "positive": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
-     "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
+    "failure": [
+     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_required_runtime_blocks_and_optional_missing_remains_measured",
+     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
     ],
     "negative": [
      "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
-    "failure": [
-     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_required_runtime_blocks_and_optional_missing_remains_measured",
-     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
+    "positive": [
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
     ]
    },
-   "evidence": [
-    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log"
+   "rust_paths": [
+    "crates/ici-validation/src",
+    "crates/ici-cli/src/validation.rs"
    ],
-   "comparison": "Descriptor facet only (languages/python/checks.py: python.coverage static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules.",
-   "difference_reason": "OPEN: behaviour closure belongs to the validation fragment (engines/test*.py, coverage_policy.py, python_compat runtime); not re-audited here. crates/ici-cli/tests/legacy_test_metrics.rs needs a worktree .venv and failed in this worktree for that environment reason (/tmp/ici-rust-replacement-20261028/w-python-validation-actual.log)."
+   "status": "complete"
   },
   "check:python.cycle": {
    "status": "complete",
@@ -417,30 +419,38 @@
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
   },
   "check:python.format": {
-   "status": "verified",
+   "comparison": "Adapter facet of the frozen adapters/providers/ruff.py and analysis/_ruff_output.py (ruff format --check/--diff) with the pinned actual ruff binary: rule ids, Unicode locations, read-only execution, native exclude/config honoring and malformed-output failure. End-to-end frozen replay of the modern check with the same binaries (closure sweep): 11 frozen `ici analyze --json` projects (tests/rust-parity/python/modern-tools-findings.json; ruff 0.16.4, mypy 2.3.1, ty 0.0.93 linked into one PATH directory for both) replay through the native CLI: check states, every finding (rule id, message, severity, confidence, category, evidence, location), metrics, limitations, gate and exit code, and each native attributed fingerprint recomputed from the provider's raw fingerprint equals frozen's (python_modern_tools_parity.rs: import order, unused imports, Unicode columns, format, mypy errors and notes, two files, explicit ty, syntax errors, missing tools). The legacy `ici lint`/`ici type` targets (Ruff:<code>, Format:Style, SyntaxError, ASTSyntaxFallback, LintScope, MypyError, MypyNote, Mypy, annotation targets) are replayed by legacy_python_engines.rs against 27 frozen tool cases. Rust defects fixed: the ruff.format finding carried category lint-default/native_rule_id `format` instead of frozen's category `format` and no native rule id; modern mypy ran with --show-column-numbers, so the location and the attributed fingerprint (which hashes start_column) differed from frozen for every mypy finding (dropped; frozen identity restored, providers native.rs unicode test row updated); a Python provider's unsupported exit was worded `ruff exited with unsupported code Some(2)` and the incomplete gate named the closure limitation instead of the failure (now frozen's `<task> failed with exit code <n>`, last limitation); the same gate-reason order for unparseable output and invalid coordinates.",
+   "difference_reason": "Reviewed differences (per-case corrections in tests/rust-parity/python/modern-tools-findings.json, each with its reason): (1) native records that it does not enumerate an external tool's configuration/dependency closure: evidence_complete false and the closure limitations (plus mypy's plugin/stub limitation) where frozen reported evidence_complete true; states, findings and gate unchanged; (2) every ty finding keeps its SARIF level as a `native-severity:<level>` tag (decisions.md: original severity preserved); severity/rule/location/fingerprint are frozen's; (3) approved native default (decisions.md 타입 기본값): without mypy/ty configuration python.type runs an advisory ty where frozen defaulted to mypy (gate PASS, exit 0 for that case); explicit type_provider = \"mypy\" or \"ty\" selects frozen's provider; (4) frozen defect corrected: frozen's ty adapter failed on ty 0.0.93's clean-run line 'All checks passed!' (FAILED, exit 3); native accepts the clean run; (5) a missing tool's BLOCKED reason names the resolver failure and remedy ('ruff: not found; prepare the project tool or install the verified native tool pack') instead of frozen's 'ruff is not available', one document limitation per distinct text; states, gate verdict and exit 3 are frozen's.",
+   "evidence": [
+    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/modern_tools_oracle.py --write (11 frozen v0.13.0 `ici analyze --json` projects with ruff 0.16.4, mypy 2.3.1 and ty 0.0.93 linked into one PATH directory; reviewed corrections kept beside the observation); /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools-capture.log",
+    "source opus-env.sh; cargo test -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --test python_modern_tools_parity --test python_modern_parity --test legacy_python_engines --test legacy_lint_branches --test legacy_ruff_text_format --test legacy_type_interpreter --test legacy_report_keys --test legacy_commands --test plan_commands --test doctor_commands --test legacy_python_compat_parity -- --include-ignored (all passed); cargo clippy -p ici-cli -p ici-providers --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools.log"
+   ],
+   "fixtures": {
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
+     "crates/ici-providers/tests/native.rs::native_configuration_failures_do_not_turn_into_clean_observations",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_failures_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/native.rs::ruff_explicit_inventory_proves_included_scope_and_rejects_changed_configuration",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_clean_projects_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-providers/tests/diagnostics.rs::ruff_formats_both_dialects_and_refuses_unattributed_summary",
+     "crates/ici-providers/tests/native.rs::ruff_format_reports_without_writing_or_formatting_excluded_file",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_findings_match_frozen_with_the_same_tools",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
+   },
    "rust_paths": [
     "crates/ici-providers/src/diagnostics/python.rs",
     "crates/ici-providers/src/plan.rs",
-    "crates/ici-providers/src/native_config.rs"
+    "crates/ici-providers/src/native_config.rs",
+    "crates/ici-providers/src/diagnostics/mod.rs",
+    "crates/ici-cli/src/planning.rs"
    ],
-   "fixtures": {
-    "positive": [
-     "crates/ici-providers/tests/diagnostics.rs::ruff_formats_both_dialects_and_refuses_unattributed_summary",
-     "crates/ici-providers/tests/native.rs::ruff_format_reports_without_writing_or_formatting_excluded_file"
-    ],
-    "negative": [
-     "crates/ici-providers/tests/native.rs::ruff_explicit_inventory_proves_included_scope_and_rejects_changed_configuration"
-    ],
-    "failure": [
-     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
-     "crates/ici-providers/tests/native.rs::native_configuration_failures_do_not_turn_into_clean_observations"
-    ]
-   },
-   "evidence": [
-    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log"
-   ],
-   "comparison": "Adapter facet of the frozen adapters/providers/ruff.py and analysis/_ruff_output.py (ruff format --check/--diff) with the pinned actual ruff binary: rule ids, Unicode locations, read-only execution, native exclude/config honoring and malformed-output failure.",
-   "difference_reason": "OPEN: no end-to-end replay of the frozen modern python.lint/python.format check against the same ruff binary (only adapter-level frozen fingerprint parity); the legacy `ici lint` Python target projection (LintScope, Ruff:<code>, Format:Style, ASTSyntaxFallback, SyntaxError targets of engines/lint.py) has no native producer."
+   "status": "complete"
   },
   "check:python.line": {
    "status": "complete",
@@ -484,30 +494,38 @@
    "difference_reason": null
   },
   "check:python.lint": {
-   "status": "verified",
+   "comparison": "Adapter facet of the frozen adapters/providers/ruff.py and analysis/_ruff_output.py (ruff check JSON) with the pinned actual ruff binary: rule ids, Unicode locations, read-only execution, native exclude/config honoring and malformed-output failure. End-to-end frozen replay of the modern check with the same binaries (closure sweep): 11 frozen `ici analyze --json` projects (tests/rust-parity/python/modern-tools-findings.json; ruff 0.16.4, mypy 2.3.1, ty 0.0.93 linked into one PATH directory for both) replay through the native CLI: check states, every finding (rule id, message, severity, confidence, category, evidence, location), metrics, limitations, gate and exit code, and each native attributed fingerprint recomputed from the provider's raw fingerprint equals frozen's (python_modern_tools_parity.rs: import order, unused imports, Unicode columns, format, mypy errors and notes, two files, explicit ty, syntax errors, missing tools). The legacy `ici lint`/`ici type` targets (Ruff:<code>, Format:Style, SyntaxError, ASTSyntaxFallback, LintScope, MypyError, MypyNote, Mypy, annotation targets) are replayed by legacy_python_engines.rs against 27 frozen tool cases. Rust defects fixed: the ruff.format finding carried category lint-default/native_rule_id `format` instead of frozen's category `format` and no native rule id; modern mypy ran with --show-column-numbers, so the location and the attributed fingerprint (which hashes start_column) differed from frozen for every mypy finding (dropped; frozen identity restored, providers native.rs unicode test row updated); a Python provider's unsupported exit was worded `ruff exited with unsupported code Some(2)` and the incomplete gate named the closure limitation instead of the failure (now frozen's `<task> failed with exit code <n>`, last limitation); the same gate-reason order for unparseable output and invalid coordinates.",
+   "difference_reason": "Reviewed differences (per-case corrections in tests/rust-parity/python/modern-tools-findings.json, each with its reason): (1) native records that it does not enumerate an external tool's configuration/dependency closure: evidence_complete false and the closure limitations (plus mypy's plugin/stub limitation) where frozen reported evidence_complete true; states, findings and gate unchanged; (2) every ty finding keeps its SARIF level as a `native-severity:<level>` tag (decisions.md: original severity preserved); severity/rule/location/fingerprint are frozen's; (3) approved native default (decisions.md 타입 기본값): without mypy/ty configuration python.type runs an advisory ty where frozen defaulted to mypy (gate PASS, exit 0 for that case); explicit type_provider = \"mypy\" or \"ty\" selects frozen's provider; (4) frozen defect corrected: frozen's ty adapter failed on ty 0.0.93's clean-run line 'All checks passed!' (FAILED, exit 3); native accepts the clean run; (5) a missing tool's BLOCKED reason names the resolver failure and remedy ('ruff: not found; prepare the project tool or install the verified native tool pack') instead of frozen's 'ruff is not available', one document limitation per distinct text; states, gate verdict and exit 3 are frozen's.",
+   "evidence": [
+    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/modern_tools_oracle.py --write (11 frozen v0.13.0 `ici analyze --json` projects with ruff 0.16.4, mypy 2.3.1 and ty 0.0.93 linked into one PATH directory; reviewed corrections kept beside the observation); /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools-capture.log",
+    "source opus-env.sh; cargo test -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --test python_modern_tools_parity --test python_modern_parity --test legacy_python_engines --test legacy_lint_branches --test legacy_ruff_text_format --test legacy_type_interpreter --test legacy_report_keys --test legacy_commands --test plan_commands --test doctor_commands --test legacy_python_compat_parity -- --include-ignored (all passed); cargo clippy -p ici-cli -p ici-providers --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools.log"
+   ],
+   "fixtures": {
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
+     "crates/ici-providers/tests/native.rs::native_configuration_failures_do_not_turn_into_clean_observations",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_failures_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/native.rs::ruff_explicit_inventory_proves_included_scope_and_rejects_changed_configuration",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_clean_projects_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-providers/tests/diagnostics.rs::ruff_preserves_unicode_location_inclusive_end_and_frozen_fingerprint",
+     "crates/ici-providers/tests/native.rs::ruff_lint_native_exclude_and_fix_configuration_are_honored_read_only",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_findings_match_frozen_with_the_same_tools",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
+   },
    "rust_paths": [
     "crates/ici-providers/src/diagnostics/python.rs",
     "crates/ici-providers/src/plan.rs",
-    "crates/ici-providers/src/native_config.rs"
+    "crates/ici-providers/src/native_config.rs",
+    "crates/ici-providers/src/diagnostics/mod.rs",
+    "crates/ici-cli/src/planning.rs"
    ],
-   "fixtures": {
-    "positive": [
-     "crates/ici-providers/tests/diagnostics.rs::ruff_preserves_unicode_location_inclusive_end_and_frozen_fingerprint",
-     "crates/ici-providers/tests/native.rs::ruff_lint_native_exclude_and_fix_configuration_are_honored_read_only"
-    ],
-    "negative": [
-     "crates/ici-providers/tests/native.rs::ruff_explicit_inventory_proves_included_scope_and_rejects_changed_configuration"
-    ],
-    "failure": [
-     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
-     "crates/ici-providers/tests/native.rs::native_configuration_failures_do_not_turn_into_clean_observations"
-    ]
-   },
-   "evidence": [
-    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log"
-   ],
-   "comparison": "Adapter facet of the frozen adapters/providers/ruff.py and analysis/_ruff_output.py (ruff check JSON) with the pinned actual ruff binary: rule ids, Unicode locations, read-only execution, native exclude/config honoring and malformed-output failure.",
-   "difference_reason": "OPEN: no end-to-end replay of the frozen modern python.lint/python.format check against the same ruff binary (only adapter-level frozen fingerprint parity); the legacy `ici lint` Python target projection (LintScope, Ruff:<code>, Format:Style, ASTSyntaxFallback, SyntaxError targets of engines/lint.py) has no native producer."
+   "status": "complete"
   },
   "check:python.resource": {
    "status": "complete",
@@ -579,85 +597,100 @@
    "difference_reason": "Explicit hygiene.json corrections (alias/closure handling, Unicode inclusive end columns); Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
   },
   "check:python.test": {
-   "status": "verified",
-   "rust_paths": [
-    "crates/ici-validation/src",
-    "crates/ici-cli/src/validation.rs"
+   "comparison": "Descriptor facet only (languages/python/checks.py: python.test static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules. The behaviour facet is claimed in the validation fragment (closure sweep).",
+   "difference_reason": null,
+   "evidence": [
+    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
    ],
    "fixtures": {
-    "positive": [
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
-     "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
+    "failure": [
+     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_required_runtime_blocks_and_optional_missing_remains_measured",
+     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
     ],
     "negative": [
      "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
      "crates/ici-cli/tests/native_validation_extra.rs::optional_runtime_incompatibility_is_advisory_inside_a_required_matrix"
     ],
-    "failure": [
-     "crates/ici-cli/tests/native_validation.rs::one_real_failing_suite_still_feeds_owned_coverage_and_preserves_source_facts",
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_required_runtime_blocks_and_optional_missing_remains_measured",
-     "crates/ici-cli/tests/native_validation.rs::unsupported_core_source_encoding_does_not_suppress_actual_runtime_or_tests"
+    "positive": [
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy",
+     "crates/ici-cli/tests/native_validation_extra.rs::configured_runtime_matrix_is_independent_of_primary_and_preserves_optional_missing"
     ]
    },
-   "evidence": [
-    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log"
+   "rust_paths": [
+    "crates/ici-validation/src",
+    "crates/ici-cli/src/validation.rs"
    ],
-   "comparison": "Descriptor facet only (languages/python/checks.py: python.test static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules.",
-   "difference_reason": "OPEN: behaviour closure belongs to the validation fragment (engines/test*.py, coverage_policy.py, python_compat runtime); not re-audited here. crates/ici-cli/tests/legacy_test_metrics.rs needs a worktree .venv and failed in this worktree for that environment reason (/tmp/ici-rust-replacement-20261028/w-python-validation-actual.log)."
+   "status": "complete"
   },
   "check:python.type": {
-   "status": "verified",
+   "comparison": "mypy/ty adapter facets (adapters/providers/mypy.py, ty.py, analysis/_mypy_output.py) with actual pinned tools and the legacy missing-return-annotation projection (annotations.json, 7 frozen cases). End-to-end frozen replay of the modern check with the same binaries (closure sweep): 11 frozen `ici analyze --json` projects (tests/rust-parity/python/modern-tools-findings.json; ruff 0.16.4, mypy 2.3.1, ty 0.0.93 linked into one PATH directory for both) replay through the native CLI: check states, every finding (rule id, message, severity, confidence, category, evidence, location), metrics, limitations, gate and exit code, and each native attributed fingerprint recomputed from the provider's raw fingerprint equals frozen's (python_modern_tools_parity.rs: import order, unused imports, Unicode columns, format, mypy errors and notes, two files, explicit ty, syntax errors, missing tools). The legacy `ici lint`/`ici type` targets (Ruff:<code>, Format:Style, SyntaxError, ASTSyntaxFallback, LintScope, MypyError, MypyNote, Mypy, annotation targets) are replayed by legacy_python_engines.rs against 27 frozen tool cases. Rust defects fixed: the ruff.format finding carried category lint-default/native_rule_id `format` instead of frozen's category `format` and no native rule id; modern mypy ran with --show-column-numbers, so the location and the attributed fingerprint (which hashes start_column) differed from frozen for every mypy finding (dropped; frozen identity restored, providers native.rs unicode test row updated); a Python provider's unsupported exit was worded `ruff exited with unsupported code Some(2)` and the incomplete gate named the closure limitation instead of the failure (now frozen's `<task> failed with exit code <n>`, last limitation); the same gate-reason order for unparseable output and invalid coordinates.",
+   "difference_reason": "Reviewed differences (per-case corrections in tests/rust-parity/python/modern-tools-findings.json, each with its reason): (1) native records that it does not enumerate an external tool's configuration/dependency closure: evidence_complete false and the closure limitations (plus mypy's plugin/stub limitation) where frozen reported evidence_complete true; states, findings and gate unchanged; (2) every ty finding keeps its SARIF level as a `native-severity:<level>` tag (decisions.md: original severity preserved); severity/rule/location/fingerprint are frozen's; (3) approved native default (decisions.md 타입 기본값): without mypy/ty configuration python.type runs an advisory ty where frozen defaulted to mypy (gate PASS, exit 0 for that case); explicit type_provider = \"mypy\" or \"ty\" selects frozen's provider; (4) frozen defect corrected: frozen's ty adapter failed on ty 0.0.93's clean-run line 'All checks passed!' (FAILED, exit 3); native accepts the clean run; (5) a missing tool's BLOCKED reason names the resolver failure and remedy ('ruff: not found; prepare the project tool or install the verified native tool pack') instead of frozen's 'ruff is not available', one document limitation per distinct text; states, gate verdict and exit 3 are frozen's.",
+   "evidence": [
+    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/modern_tools_oracle.py --write (11 frozen v0.13.0 `ici analyze --json` projects with ruff 0.16.4, mypy 2.3.1 and ty 0.0.93 linked into one PATH directory; reviewed corrections kept beside the observation); /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools-capture.log",
+    "source opus-env.sh; cargo test -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --test python_modern_tools_parity --test python_modern_parity --test legacy_python_engines --test legacy_lint_branches --test legacy_ruff_text_format --test legacy_type_interpreter --test legacy_report_keys --test legacy_commands --test plan_commands --test doctor_commands --test legacy_python_compat_parity -- --include-ignored (all passed); cargo clippy -p ici-cli -p ici-providers --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools.log"
+   ],
+   "fixtures": {
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::mypy_notes_are_preserved_and_unknown_context_is_failed",
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_failures_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/diagnostics.rs::ty_sarif_preserves_native_severity_and_rejects_unmapped_uris",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_clean_projects_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-providers/tests/native.rs::mypy_native_configuration_and_precise_diagnostics_without_cache_write",
+     "crates/ici-providers/tests/native.rs::ty_sarif_keeps_findings_and_native_rules",
+     "crates/ici-analysis/src/tests.rs::explicit_annotation_projection_preserves_optin_and_nested_definitions",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_findings_match_frozen_with_the_same_tools",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
+   },
    "rust_paths": [
     "crates/ici-providers/src/diagnostics/python.rs",
     "crates/ici-providers/src/plan.rs",
     "crates/ici-providers/src/native_config.rs",
-    "crates/ici-analysis/src/annotations.rs"
+    "crates/ici-analysis/src/annotations.rs",
+    "crates/ici-providers/src/diagnostics/mod.rs",
+    "crates/ici-cli/src/planning.rs"
    ],
-   "fixtures": {
-    "positive": [
-     "crates/ici-providers/tests/native.rs::mypy_native_configuration_and_precise_diagnostics_without_cache_write",
-     "crates/ici-providers/tests/native.rs::ty_sarif_keeps_findings_and_native_rules",
-     "crates/ici-analysis/src/tests.rs::explicit_annotation_projection_preserves_optin_and_nested_definitions"
-    ],
-    "negative": [
-     "crates/ici-providers/tests/diagnostics.rs::ty_sarif_preserves_native_severity_and_rejects_unmapped_uris"
-    ],
-    "failure": [
-     "crates/ici-providers/tests/diagnostics.rs::mypy_notes_are_preserved_and_unknown_context_is_failed",
-     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success"
-    ]
-   },
-   "evidence": [
-    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
-    "CPython 3.14.7 tests/rust-parity/python/{metrics,hygiene,exception,cycle,dead,annotations,compat_static,type2,semantic,scope,encoding,package,metadata,unicode,modern}_oracle.py against the frozen 6fe3e405 checkout (packaging 26.3/tomli 2.4.1 on PYTHONPATH where imported): every script verified its recorded original evidence; /tmp/ici-rust-replacement-20261028/w-python-oracles.log"
-   ],
-   "comparison": "mypy/ty adapter facets (adapters/providers/mypy.py, ty.py, analysis/_mypy_output.py) with actual pinned tools and the legacy missing-return-annotation projection (annotations.json, 7 frozen cases).",
-   "difference_reason": "OPEN: no end-to-end frozen replay of modern python.type with the same mypy/ty binaries; legacy `ici type` Mypy/MypyError/MypyNote targets (engines/type_check.py) have no native producer."
+   "status": "complete"
   },
   "finding_site:src/ici/adapters/providers/mypy.py:116:12": {
-   "status": "verified",
+   "comparison": "mypy.<code>/mypy.error rule ids from actual mypy output. Frozen fingerprint parity (closure sweep): mypy.<code>/mypy.error findings from the same pinned binaries through the native CLI equal frozen's rule id, message, severity, category, location and attributed fingerprint (python_modern_tools_parity.rs over tests/rust-parity/python/modern-tools-findings.json). Defect fixed: native passed --show-column-numbers, so the location column and the attributed fingerprint differed from frozen for every mypy finding.",
+   "difference_reason": null,
+   "evidence": [
+    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/modern_tools_oracle.py --write (11 frozen v0.13.0 `ici analyze --json` projects with ruff 0.16.4, mypy 2.3.1 and ty 0.0.93 linked into one PATH directory; reviewed corrections kept beside the observation); /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools-capture.log",
+    "source opus-env.sh; cargo test -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --test python_modern_tools_parity --test python_modern_parity --test legacy_python_engines --test legacy_lint_branches --test legacy_ruff_text_format --test legacy_type_interpreter --test legacy_report_keys --test legacy_commands --test plan_commands --test doctor_commands --test legacy_python_compat_parity -- --include-ignored (all passed); cargo clippy -p ici-cli -p ici-providers --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools.log"
+   ],
+   "fixtures": {
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_failures_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/diagnostics.rs::mypy_notes_are_preserved_and_unknown_context_is_failed",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_clean_projects_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-providers/tests/native.rs::mypy_native_configuration_and_precise_diagnostics_without_cache_write",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_findings_match_frozen_with_the_same_tools",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
+   },
    "rust_paths": [
     "crates/ici-providers/src/diagnostics/python.rs",
     "crates/ici-providers/src/plan.rs",
     "crates/ici-providers/src/native_config.rs"
    ],
-   "fixtures": {
-    "positive": [
-     "crates/ici-providers/tests/native.rs::mypy_native_configuration_and_precise_diagnostics_without_cache_write"
-    ],
-    "negative": [
-     "crates/ici-providers/tests/diagnostics.rs::mypy_notes_are_preserved_and_unknown_context_is_failed"
-    ],
-    "failure": [
-     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success"
-    ]
-   },
-   "evidence": [
-    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log"
-   ],
-   "comparison": "mypy.<code>/mypy.error rule ids from actual mypy output.",
-   "difference_reason": "OPEN: frozen fingerprint parity not separately replayed."
+   "status": "complete"
   },
   "finding_site:src/ici/adapters/providers/ruff.py:228:11": {
    "status": "complete",
@@ -685,52 +718,64 @@
    "difference_reason": null
   },
   "finding_site:src/ici/adapters/providers/ruff.py:304:12": {
-   "status": "verified",
+   "comparison": "ruff.format findings from both ruff dialects with the actual binary. Frozen fingerprint parity (closure sweep): ruff.format findings from the same pinned binaries through the native CLI equal frozen's rule id, message, severity, category, location and attributed fingerprint (python_modern_tools_parity.rs over tests/rust-parity/python/modern-tools-findings.json). Defect fixed: native gave the format finding native_rule_id `format` and no `format` category.",
+   "difference_reason": null,
+   "evidence": [
+    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/modern_tools_oracle.py --write (11 frozen v0.13.0 `ici analyze --json` projects with ruff 0.16.4, mypy 2.3.1 and ty 0.0.93 linked into one PATH directory; reviewed corrections kept beside the observation); /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools-capture.log",
+    "source opus-env.sh; cargo test -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --test python_modern_tools_parity --test python_modern_parity --test legacy_python_engines --test legacy_lint_branches --test legacy_ruff_text_format --test legacy_type_interpreter --test legacy_report_keys --test legacy_commands --test plan_commands --test doctor_commands --test legacy_python_compat_parity -- --include-ignored (all passed); cargo clippy -p ici-cli -p ici-providers --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools.log"
+   ],
+   "fixtures": {
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_failures_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/native.rs::ruff_format_reports_without_writing_or_formatting_excluded_file",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_clean_projects_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-providers/tests/diagnostics.rs::ruff_formats_both_dialects_and_refuses_unattributed_summary",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_findings_match_frozen_with_the_same_tools",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
+   },
    "rust_paths": [
     "crates/ici-providers/src/diagnostics/python.rs",
     "crates/ici-providers/src/plan.rs",
     "crates/ici-providers/src/native_config.rs"
    ],
-   "fixtures": {
-    "positive": [
-     "crates/ici-providers/tests/diagnostics.rs::ruff_formats_both_dialects_and_refuses_unattributed_summary"
-    ],
-    "negative": [
-     "crates/ici-providers/tests/native.rs::ruff_format_reports_without_writing_or_formatting_excluded_file"
-    ],
-    "failure": [
-     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success"
-    ]
-   },
-   "evidence": [
-    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log"
-   ],
-   "comparison": "ruff.format findings from both ruff dialects with the actual binary.",
-   "difference_reason": "OPEN: frozen fingerprint parity not separately replayed."
+   "status": "complete"
   },
   "finding_site:src/ici/adapters/providers/ty.py:100:16": {
-   "status": "verified",
+   "comparison": "ty.<code>/ty.diagnostic rule ids from actual ty SARIF. Frozen fingerprint parity (closure sweep): ty.<code> findings from the same pinned binaries through the native CLI equal frozen's rule id, message, severity, category, location and attributed fingerprint (python_modern_tools_parity.rs over tests/rust-parity/python/modern-tools-findings.json).",
+   "difference_reason": "Every ty finding keeps a `native-severity:<level>` tag (decisions.md); the advisory default ty (no type configuration) is the approved native default.",
+   "evidence": [
+    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/python/modern_tools_oracle.py --write (11 frozen v0.13.0 `ici analyze --json` projects with ruff 0.16.4, mypy 2.3.1 and ty 0.0.93 linked into one PATH directory; reviewed corrections kept beside the observation); /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools-capture.log",
+    "source opus-env.sh; cargo test -p ici-providers --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo test -p ici-cli --locked -j2 --test python_modern_tools_parity --test python_modern_parity --test legacy_python_engines --test legacy_lint_branches --test legacy_ruff_text_format --test legacy_type_interpreter --test legacy_report_keys --test legacy_commands --test plan_commands --test doctor_commands --test legacy_python_compat_parity -- --include-ignored (all passed); cargo clippy -p ici-cli -p ici-providers --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-modern-tools.log"
+   ],
+   "fixtures": {
+    "failure": [
+     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_failures_match_frozen"
+    ],
+    "negative": [
+     "crates/ici-providers/tests/diagnostics.rs::ty_sarif_preserves_native_severity_and_rejects_unmapped_uris",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_clean_projects_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-providers/tests/native.rs::ty_sarif_keeps_findings_and_native_rules",
+     "crates/ici-cli/tests/python_modern_tools_parity.rs::modern_lint_format_and_type_findings_match_frozen_with_the_same_tools",
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+    ]
+   },
    "rust_paths": [
     "crates/ici-providers/src/diagnostics/python.rs",
     "crates/ici-providers/src/plan.rs",
     "crates/ici-providers/src/native_config.rs"
    ],
-   "fixtures": {
-    "positive": [
-     "crates/ici-providers/tests/native.rs::ty_sarif_keeps_findings_and_native_rules"
-    ],
-    "negative": [
-     "crates/ici-providers/tests/diagnostics.rs::ty_sarif_preserves_native_severity_and_rejects_unmapped_uris"
-    ],
-    "failure": [
-     "crates/ici-providers/tests/diagnostics.rs::malformed_missing_and_truncated_native_output_never_becomes_empty_success"
-    ]
-   },
-   "evidence": [
-    "cargo test -p ici-providers --locked -j2 -- --include-ignored --test-threads=2 with pinned ICI_TEST_RUFF/ICI_TEST_MYPY/ICI_TEST_TY from opus-env.sh: 45 passed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-python-providers.log"
-   ],
-   "comparison": "ty.<code>/ty.diagnostic rule ids from actual ty SARIF.",
-   "difference_reason": "OPEN: frozen fingerprint parity not separately replayed."
+   "status": "complete"
   },
   "finding_site:src/ici/analysis/_exception_rules.py:712:16": {
    "status": "complete",
@@ -1156,40 +1201,56 @@
    "difference_reason": null
   },
   "finding_site:src/ici/core/python_rules.py:304:17": {
-   "status": "verified",
-   "rust_paths": [
-    "crates/ici-reporting/src/issues.rs"
+   "comparison": "PythonRuleProvenance: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases. Closure sweep: the frozen canonical_python_rule_identity golden (tests/rust-parity/reporting/python-rule-identity.json, 3161 cases: every alias x engine x context of the frozen registry, which the native alias table equals, plus tool rule ids, bracketed labels, engine fallbacks and 40 unknown/malformed ids) replays through issues.rs identity() with equal canonical rule id and merge group. Rust defects fixed: a punctuation-only or blank token became `ici.python.external.` instead of frozen's `ici.python.external.unknown`, and near-canonical ids failing frozen's `^ici\\.[a-z0-9][a-z0-9.-]*$` (`ici.`, `ici.-x`, `ici..x`) were kept instead of becoming external tokens.",
+   "difference_reason": null,
+   "evidence": [
+    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log",
+    "cd <scratch>; PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/reporting/capture_python_rule_identity.py tests/rust-parity/reporting/python-rule-identity.json (frozen v0.13.0; 3121 earlier cases byte-equal, 40 unknown/malformed cases added); /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity-capture.log",
+    "source opus-env.sh; cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo clippy -p ici-reporting --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity.log"
    ],
    "fixtures": {
-    "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::unknown_and_malformed_rule_ids_keep_frozen_external_identities"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group"
+    ]
    },
-   "evidence": [
-    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log"
+   "rust_paths": [
+    "crates/ici-reporting/src/issues.rs",
+    "crates/ici-reporting/assets/python-rule-aliases.json"
    ],
-   "comparison": "PythonRuleProvenance: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases.",
-   "difference_reason": "OPEN for complete: no dedicated negative/failure fixture for unknown rule ids or unmergeable legacy labels; the full python_rule_registry table was not replayed row by row against the frozen registry."
+   "status": "complete"
   },
   "finding_site:src/ici/core/python_rules.py:368:11": {
-   "status": "verified",
-   "rust_paths": [
-    "crates/ici-reporting/src/issues.rs"
+   "comparison": "canonical_python_rule_identity projection: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases. Closure sweep: the frozen canonical_python_rule_identity golden (tests/rust-parity/reporting/python-rule-identity.json, 3161 cases: every alias x engine x context of the frozen registry, which the native alias table equals, plus tool rule ids, bracketed labels, engine fallbacks and 40 unknown/malformed ids) replays through issues.rs identity() with equal canonical rule id and merge group. Rust defects fixed: a punctuation-only or blank token became `ici.python.external.` instead of frozen's `ici.python.external.unknown`, and near-canonical ids failing frozen's `^ici\\.[a-z0-9][a-z0-9.-]*$` (`ici.`, `ici.-x`, `ici..x`) were kept instead of becoming external tokens.",
+   "difference_reason": null,
+   "evidence": [
+    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log",
+    "cd <scratch>; PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/reporting/capture_python_rule_identity.py tests/rust-parity/reporting/python-rule-identity.json (frozen v0.13.0; 3121 earlier cases byte-equal, 40 unknown/malformed cases added); /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity-capture.log",
+    "source opus-env.sh; cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo clippy -p ici-reporting --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity.log"
    ],
    "fixtures": {
-    "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::unknown_and_malformed_rule_ids_keep_frozen_external_identities"
     ],
-    "negative": [],
-    "failure": []
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
+    "positive": [
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group"
+    ]
    },
-   "evidence": [
-    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log"
+   "rust_paths": [
+    "crates/ici-reporting/src/issues.rs",
+    "crates/ici-reporting/assets/python-rule-aliases.json"
    ],
-   "comparison": "canonical_python_rule_identity projection: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases.",
-   "difference_reason": "OPEN for complete: no dedicated negative/failure fixture for unknown rule ids or unmergeable legacy labels; the full python_rule_registry table was not replayed row by row against the frozen registry."
+   "status": "complete"
   },
   "finding_site:src/ici/engines/cognitive.py:50:20": {
    "status": "complete",

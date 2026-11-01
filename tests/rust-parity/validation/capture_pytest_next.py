@@ -12,7 +12,19 @@ from pathlib import Path
 SOURCE = "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
 FAILING = "def test_bad():\n    assert 1 == 2\n\n\ndef test_ok():\n    pass\n"
 BROKEN = "import nonexistent_mod\n\n\ndef test_x():\n    pass\n"
-SCENARIOS = {"failing": {"tests/test_a.py": FAILING}, "collection": {"tests/test_b.py": BROKEN}}
+SKIPPED = "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n"
+GREEN = "def test_ok():\n    pass\n"
+EMPTY = "X = 1\n"
+INTERRUPTED = "import pytest\n\n\ndef test_stop():\n    pytest.exit('stop', returncode=2)\n"
+SCENARIOS = {
+    "failing": {"tests/test_a.py": FAILING},
+    "collection": {"tests/test_b.py": BROKEN},
+    # The provider limitation and exit-contract paths of adapters/providers/pytest.py.
+    "green": {"tests/test_c.py": GREEN},
+    "all-skipped": {"tests/test_d.py": SKIPPED},
+    "no-tests": {"tests/test_e.py": EMPTY},
+    "interrupted": {"tests/test_f.py": INTERRUPTED},
+}
 
 
 def config(python: str) -> str:
@@ -38,7 +50,7 @@ def main() -> None:
             for path, text in files.items():
                 (root / path).write_text(text, encoding="utf-8")
             (root / "ici.toml").write_text(config(str(args.python)), encoding="utf-8")
-            subprocess.run(
+            completed = subprocess.run(
                 [str(args.python), "-m", "ici", "next", "verify", "--python", "--no-cache"],
                 cwd=root,
                 env=dict(os.environ, PYTHONPATH=str(args.oracle / "src")),
@@ -61,6 +73,17 @@ def main() -> None:
                 if item.get("provider") == "pytest"
             ],
             "metrics": [item for item in result["metrics"] if item["name"] == "pytest.cases"],
+            "test_check": {
+                key: item.get(key)
+                for item in result["checks"]
+                if item["check_id"] == "python.test"
+                for key in ("state", "evidence_complete", "limitations", "reason")
+            },
+            "limitations": [
+                text for text in result["limitations"] if "pytest" in text or "test" in text
+            ],
+            "gate": result["gate"]["selected"],
+            "exit_code": completed.returncode,
         }
     args.out.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 

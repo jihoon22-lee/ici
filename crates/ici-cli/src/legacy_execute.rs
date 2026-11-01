@@ -1058,8 +1058,8 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
         check["check_id"] == "python.test"
             && check["state"] == "FAILED"
             && check["summary"].as_str().is_some_and(|summary| {
-                summary == "pytest did not report a completed nonempty suite (exit Some(5))"
-                    || summary == "pytest did not report a completed nonempty suite (exit Some(0))"
+                summary == "pytest did not report a completed nonempty suite (exit 5)"
+                    || summary == "pytest did not report a completed nonempty suite (exit 0)"
             })
     };
     let dependent = |check: &serde_json::Value| {

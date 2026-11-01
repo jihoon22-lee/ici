@@ -13,7 +13,7 @@ pub struct CliError(pub String);
 pub type Result<T> = std::result::Result<T, CliError>;
 /// Frozen diagnostic classes that carry their own stderr prefix: next-path configuration and
 /// scope refusals (`config: `), the stable loader (`Configuration error: `) and the stored
-/// result readers of `report` (`report: `) and `diff` (`diff: `).
+/// result readers of `report` (`report: `) and `diff` (`diff: `), and `init` (`init: `).
 pub const CONFIG_PREFIX: &str = "config: ";
 pub const STABLE_CONFIG_PREFIX: &str = "Configuration error: ";
 /// A configuration refusal in one frozen diagnostic class: every problem line carries the prefix,
@@ -38,6 +38,7 @@ pub fn diagnostic(error: &CliError) -> String {
         "report: ",
         "diff: ",
         "publish: ",
+        "init: ",
     ]
     .iter()
     .any(|prefix| text.starts_with(prefix))
@@ -176,8 +177,9 @@ fn init(
     }
     if let Some(existing) = &proposal.existing {
         if !invocation.flag("force") {
+            // Frozen `cmd_init`: an `init: ` refusal that names both ways forward.
             return Err(CliError(format!(
-                "{} already exists; use --preview or an explicit migration",
+                "init: {} already exists — pass --force to rewrite it (a .before-init backup is kept) or --preview to inspect",
                 existing.display()
             )));
         }

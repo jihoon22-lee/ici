@@ -423,20 +423,24 @@ fn identity(record: &Record, context: &str) -> (String, bool) {
             ("ici.python.dead.unreachable-statement".into(), true)
         }
         _ => {
-            if rule.starts_with("ici.")
-                && (rule.chars().all(|ch| {
-                    ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '.' | '-')
-                }))
-            {
+            // Frozen `_CANONICAL_RULE_RE` = `^ici\.[a-z0-9][a-z0-9.-]*$`.
+            let canonical = rule.strip_prefix("ici.").is_some_and(|tail| {
+                tail.starts_with(|ch: char| ch.is_ascii_lowercase() || ch.is_ascii_digit())
+                    && tail.chars().all(|ch| {
+                        ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '.' | '-')
+                    })
+            });
+            if canonical {
                 (rule.into(), false)
             } else {
-                (
-                    format!(
-                        "ici.python.external.{}",
-                        norm(candidates.first().map(String::as_str).unwrap_or("unknown"))
-                    ),
-                    false,
-                )
+                // `_normalise(next(iter(candidates), canonical)) or "unknown"`.
+                let token = norm(candidates.first().map(String::as_str).unwrap_or(rule));
+                let token = if token.is_empty() {
+                    "unknown".into()
+                } else {
+                    token
+                };
+                (format!("ici.python.external.{token}"), false)
             }
         }
     }
@@ -861,6 +865,35 @@ mod frozen_rule_identity_tests {
                 || !case[0].as_str().unwrap().starts_with("ici.")
         });
         assert!(checked > 2000, "{checked}");
+        assert!(
+            wrong.is_empty(),
+            "{} of {checked}:\n{}",
+            wrong.len(),
+            wrong.join("\n")
+        );
+    }
+
+    /// Unknown and malformed rule ids (python_rules.py:304/368): punctuation-only and blank
+    /// tokens are `ici.python.external.unknown`, near-canonical `ici.` ids that fail frozen's
+    /// `^ici\.[a-z0-9][a-z0-9.-]*$` become external tokens, and none of them is mergeable.
+    #[test]
+    fn unknown_and_malformed_rule_ids_keep_frozen_external_identities() {
+        const UNKNOWN: [&str; 12] = [
+            "!!!",
+            "  ",
+            "ici.",
+            "ici.-x",
+            "ici..x",
+            "ici.Other",
+            "ICI.python.x",
+            "ici.python.UPPER",
+            "ici.python.",
+            "ici.python.a_b",
+            "x:",
+            "tool: ",
+        ];
+        let (checked, wrong) = disagreements(|case| UNKNOWN.contains(&case[0].as_str().unwrap()));
+        assert_eq!(checked, 36);
         assert!(
             wrong.is_empty(),
             "{} of {checked}:\n{}",

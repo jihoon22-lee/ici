@@ -1,0 +1,2432 @@
+{
+ "cases": {
+  "analyze/baseline-missing": {
+   "argv": [
+    "analyze",
+    "--python",
+    "--baseline",
+    "out/none.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: baseline <root>/out/none.json cannot be read: [Errno 2] No such file or directory: '<root>/out/none.json'",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "analyze/component-unknown": {
+   "argv": [
+    "analyze",
+    "--component",
+    "nope"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: no component 'nope'; declared: app, lib",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "analyze/config-invalid": {
+   "argv": [
+    "analyze",
+    "--config",
+    "bad.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "workspace = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: schema_version: no schema_version (write schema_version = 1)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "analyze/profile-invalid": {
+   "argv": [
+    "analyze",
+    "--profile",
+    "huge"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "diff/next-missing-baseline": {
+   "argv": [
+    "next",
+    "diff",
+    "out/none.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "diff: baseline <root>/out/none.json cannot be read: [Errno 2] No such file or directory: '<root>/out/none.json'",
+    "outcome": null,
+    "refusal": "diff",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "diff/next-missing-current": {
+   "argv": [
+    "next",
+    "diff",
+    "out/base.json",
+    "--result",
+    "out/none.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "diff: <root>/out/none.json cannot be read: [Errno 2] No such file or directory: '<root>/out/none.json'",
+    "outcome": null,
+    "refusal": "diff",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "diff/next-spelling": {
+   "argv": [
+    "next",
+    "diff",
+    "out/base.json",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": "0 new, 0 unchanged, 0 resolved, 0 carried (baseline base.json → base.json)",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "diff/next-unreadable-baseline": {
+   "argv": [
+    "next",
+    "diff",
+    "out/bad.json",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n",
+    "out/bad.json": "{}\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "diff: baseline <root>/out/bad.json is a None document — a baseline must be a stored ici.next.run result",
+    "outcome": null,
+    "refusal": "diff",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "diff/top-missing-baseline": {
+   "argv": [
+    "diff",
+    "out/none.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "diff: baseline <root>/out/none.json cannot be read: [Errno 2] No such file or directory: '<root>/out/none.json'",
+    "outcome": null,
+    "refusal": "diff",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "diff/top-spelling": {
+   "argv": [
+    "diff",
+    "out/base.json",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": "0 new, 0 unchanged, 0 resolved, 0 carried (baseline base.json → base.json)",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "diff/top-unreadable-baseline": {
+   "argv": [
+    "diff",
+    "out/bad.json",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n",
+    "out/bad.json": "{}\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "diff: baseline <root>/out/bad.json is a None document — a baseline must be a stored ici.next.run result",
+    "outcome": null,
+    "refusal": "diff",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "doctor/component": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--component",
+    "lib"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "components": {
+      "lib": [
+       "cpp.artifact",
+       "cpp.binary-compat",
+       "cpp.cognitive",
+       "cpp.compile",
+       "cpp.complexity",
+       "cpp.coverage",
+       "cpp.cycle",
+       "cpp.diagnostics",
+       "cpp.dup",
+       "cpp.exception",
+       "cpp.line",
+       "cpp.test",
+       "cpp.tidy"
+      ]
+     },
+     "profile": "fast"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/component-unknown": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--component",
+    "x"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: no component 'x'; declared: app, lib",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/config": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--config",
+    "alt.toml"
+   ],
+   "env": {},
+   "files": {
+    "alt.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "components": {
+      "app": [
+       "python.cognitive",
+       "python.compat",
+       "python.complexity",
+       "python.cycle",
+       "python.dead",
+       "python.dup",
+       "python.exception",
+       "python.line",
+       "python.resource",
+       "python.security"
+      ]
+     },
+     "profile": "fast"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/config-missing": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--config",
+    "no.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: no.toml: no such file: no.toml",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/cpp": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--cpp"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "components": {
+      "app": [],
+      "lib": [
+       "cpp.artifact",
+       "cpp.binary-compat",
+       "cpp.cognitive",
+       "cpp.compile",
+       "cpp.complexity",
+       "cpp.coverage",
+       "cpp.cycle",
+       "cpp.diagnostics",
+       "cpp.dup",
+       "cpp.exception",
+       "cpp.line",
+       "cpp.test",
+       "cpp.tidy"
+      ]
+     },
+     "profile": "fast"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/default": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "components": {
+      "app": [
+       "python.cognitive",
+       "python.compat",
+       "python.complexity",
+       "python.cycle",
+       "python.dead",
+       "python.dup",
+       "python.exception",
+       "python.line",
+       "python.resource",
+       "python.security"
+      ],
+      "lib": [
+       "cpp.artifact",
+       "cpp.binary-compat",
+       "cpp.cognitive",
+       "cpp.compile",
+       "cpp.complexity",
+       "cpp.coverage",
+       "cpp.cycle",
+       "cpp.diagnostics",
+       "cpp.dup",
+       "cpp.exception",
+       "cpp.line",
+       "cpp.test",
+       "cpp.tidy"
+      ]
+     },
+     "profile": "fast"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/local-config": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--local-config",
+    "local.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n",
+    "local.toml": "components.app.python.executable = \"/usr/bin/python3\"\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "components": {
+      "app": [
+       "python.cognitive",
+       "python.compat",
+       "python.complexity",
+       "python.cycle",
+       "python.dead",
+       "python.dup",
+       "python.exception",
+       "python.line",
+       "python.resource",
+       "python.security"
+      ],
+      "lib": [
+       "cpp.artifact",
+       "cpp.binary-compat",
+       "cpp.cognitive",
+       "cpp.compile",
+       "cpp.complexity",
+       "cpp.coverage",
+       "cpp.cycle",
+       "cpp.diagnostics",
+       "cpp.dup",
+       "cpp.exception",
+       "cpp.line",
+       "cpp.test",
+       "cpp.tidy"
+      ]
+     },
+     "profile": "fast"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/local-config-invalid": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--local-config",
+    "local.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n",
+    "local.toml": "workspace.name = 1\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: local.toml: workspace.name: a local overlay may only adjust paths (allowed: builds.*.directory, builds.*.project, cache, components.*.python.executable, output, tools.*.path)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/local-config-missing": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--local-config",
+    "no.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: [Errno 2] No such file or directory: 'no.toml'",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/profile-deep": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--profile",
+    "deep"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "components": {
+      "app": [
+       "python.cognitive",
+       "python.compat",
+       "python.complexity",
+       "python.cycle",
+       "python.dead",
+       "python.dup",
+       "python.exception",
+       "python.line",
+       "python.resource",
+       "python.security"
+      ],
+      "lib": [
+       "cpp.artifact",
+       "cpp.binary-compat",
+       "cpp.cognitive",
+       "cpp.compile",
+       "cpp.complexity",
+       "cpp.coverage",
+       "cpp.cycle",
+       "cpp.diagnostics",
+       "cpp.dup",
+       "cpp.exception",
+       "cpp.line",
+       "cpp.sanitize",
+       "cpp.test",
+       "cpp.tidy",
+       "cpp.tsan"
+      ]
+     },
+     "profile": "deep"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/profile-invalid": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--profile",
+    "huge"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "doctor/python": {
+   "argv": [
+    "next",
+    "doctor",
+    "--json",
+    "--python"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "components": {
+      "app": [
+       "python.cognitive",
+       "python.compat",
+       "python.complexity",
+       "python.cycle",
+       "python.dead",
+       "python.dup",
+       "python.exception",
+       "python.line",
+       "python.resource",
+       "python.security"
+      ],
+      "lib": []
+     },
+     "profile": "fast"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "global/missing-command": {
+   "argv": [],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "global/unknown-command": {
+   "argv": [
+    "bogus"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "global/unknown-option": {
+   "argv": [
+    "--bogus"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "global/version": {
+   "argv": [
+    "--version"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "init/top-level": {
+   "argv": [
+    "init"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": [
+     "ici.toml"
+    ]
+   },
+   "steps": []
+  },
+  "init/top-level-existing": {
+   "argv": [
+    "init"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "init: <root>/ici.toml already exists — pass --force to overwrite or --preview to inspect",
+    "outcome": null,
+    "refusal": "init",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "init/top-level-preview": {
+   "argv": [
+    "init",
+    "--preview"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/html-default-missing": {
+   "argv": [
+    "publish"
+   ],
+   "env": {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_API_URL": "https://127.0.0.1:9",
+    "GITHUB_REPOSITORY": "team/repo",
+    "GITHUB_TOKEN": "t"
+   },
+   "files": {
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "message": null,
+    "outcome": "[publish] --publish skipped: HTML report not found at verify_report.html.",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/html-missing": {
+   "argv": [
+    "publish",
+    "--html",
+    "custom.html"
+   ],
+   "env": {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_API_URL": "https://127.0.0.1:9",
+    "GITHUB_REPOSITORY": "team/repo",
+    "GITHUB_TOKEN": "t"
+   },
+   "files": {
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "message": null,
+    "outcome": "[publish] --publish skipped: HTML report not found at custom.html.",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/html-outside-actions": {
+   "argv": [
+    "publish",
+    "--html",
+    "custom.html"
+   ],
+   "env": {},
+   "files": {
+    "custom.html": "<html><body>report</body></html>\n",
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": "[publish] --publish requires a GitHub Actions environment; skipping.",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/html-upload-refused": {
+   "argv": [
+    "publish",
+    "--html",
+    "custom.html"
+   ],
+   "env": {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_API_URL": "https://127.0.0.1:9",
+    "GITHUB_REPOSITORY": "team/repo",
+    "GITHUB_TOKEN": "t"
+   },
+   "files": {
+    "custom.html": "<html><body>report</body></html>\n",
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "message": null,
+    "outcome": "[publish] --publish failed to upload index.html to team/repo (gh-pages). Check token permissions (contents: write) and branch availability.",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/html-without-json": {
+   "argv": [
+    "publish",
+    "--html",
+    "custom.html"
+   ],
+   "env": {},
+   "files": {
+    "custom.html": "<html><body>report</body></html>\n",
+    "src/a.py": "x = 1\n"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/json-invalid": {
+   "argv": [
+    "publish",
+    "--json",
+    "r.json"
+   ],
+   "env": {},
+   "files": {
+    "r.json": "{\n",
+    "src/a.py": "x = 1\n"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/json-valid-outside-actions": {
+   "argv": [
+    "publish",
+    "--json",
+    "r.json"
+   ],
+   "env": {},
+   "files": {
+    "r.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n",
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": "[publish] --publish requires a GitHub Actions environment; skipping.",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/report-dir-invalid-json": {
+   "argv": [
+    "publish",
+    "--report-dir",
+    "x=d"
+   ],
+   "env": {},
+   "files": {
+    "d/verify_report.html": "<html><body>report</body></html>\n",
+    "d/verify_report.json": "{\n",
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": "[publish] --publish requires a GitHub Actions environment; skipping.",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/report-dir-missing-html": {
+   "argv": [
+    "publish",
+    "--report-dir",
+    "d"
+   ],
+   "env": {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_API_URL": "https://127.0.0.1:9",
+    "GITHUB_REPOSITORY": "team/repo",
+    "GITHUB_TOKEN": "t"
+   },
+   "files": {
+    "d/verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n",
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "message": null,
+    "outcome": "[publish] --publish failed to upload: d",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/report-dir-outside-actions": {
+   "argv": [
+    "publish",
+    "--report-dir",
+    "d"
+   ],
+   "env": {},
+   "files": {
+    "d/verify_report.html": "<html><body>report</body></html>\n",
+    "d/verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n",
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": "[publish] --publish requires a GitHub Actions environment; skipping.",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "legacy-publish/report-dir-upload-refused": {
+   "argv": [
+    "publish",
+    "--report-dir",
+    "x=d"
+   ],
+   "env": {
+    "GITHUB_ACTIONS": "true",
+    "GITHUB_API_URL": "https://127.0.0.1:9",
+    "GITHUB_REPOSITORY": "team/repo",
+    "GITHUB_TOKEN": "t"
+   },
+   "files": {
+    "d/verify_report.html": "<html><body>report</body></html>\n",
+    "d/verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n",
+    "src/a.py": "x = 1\n",
+    "verify_report.json": "{\"schema_version\": \"ici.result/v3\", \"suite_status\": \"PASS\", \"tem_score\": null, \"max_tem_score\": 5.0, \"results\": [{\"engine_name\": \"line\", \"status\": \"PASS\", \"summary\": \"ok\"}], \"baseline_comparison\": null}\n"
+   },
+   "frozen": {
+    "exit_code": 1,
+    "message": null,
+    "outcome": "[publish] --publish failed to upload: x",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "publish/config-configured-with-page": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "pub.toml",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "local.toml": "output = \"out\"\n",
+    "pub.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nrepo = \"o/r\"\nbranch = \"gh-pages\"\napi_url = \"http://example.invalid\"\ntoken_env = \"PATH\"\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: pub.toml: publish.api_url: publish.api_url must be an https:// URL (http or bare hosts would send the token without TLS)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ],
+    [
+     "next",
+     "report",
+     "--result",
+     "out/base.json",
+     "--out",
+     "out/page.html"
+    ]
+   ]
+  },
+  "publish/config-missing": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "no.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: no.toml: no such file: no.toml",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/config-not-configured": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "alt.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "alt.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "publish: no page at <root>/.ici/next/result.html — run `ici next report` first",
+    "outcome": null,
+    "refusal": "publish",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/config-unconfigured-with-page": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "alt.toml",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html"
+   ],
+   "env": {},
+   "files": {
+    "alt.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": null,
+    "outcome": "publish: not_configured — no publish destination — set [publish] or run under Actions",
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ],
+    [
+     "next",
+     "report",
+     "--result",
+     "out/base.json",
+     "--out",
+     "out/page.html"
+    ]
+   ]
+  },
+  "publish/config-without-page": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "pub.toml",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/none.html"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "local.toml": "output = \"out\"\n",
+    "pub.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nrepo = \"o/r\"\nbranch = \"gh-pages\"\napi_url = \"http://example.invalid\"\ntoken_env = \"PATH\"\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: pub.toml: publish.api_url: publish.api_url must be an https:// URL (http or bare hosts would send the token without TLS)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/configured-without-page": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "pub.toml",
+    "--local-config",
+    "local.toml",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/none.html"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "local.toml": "output = \"out\"\n",
+    "pub.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nrepo = \"o/r\"\nbranch = \"gh-pages\"\napi_url = \"http://example.invalid\"\ntoken_env = \"PATH\"\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: pub.toml: publish.api_url: publish.api_url must be an https:// URL (http or bare hosts would send the token without TLS)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/local-config-missing": {
+   "argv": [
+    "next",
+    "publish",
+    "--local-config",
+    "no.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: [Errno 2] No such file or directory: 'no.toml'",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/local-config-with-page": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "pub.toml",
+    "--local-config",
+    "local.toml",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "local.toml": "output = \"out\"\n",
+    "pub.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nrepo = \"o/r\"\nbranch = \"gh-pages\"\napi_url = \"http://example.invalid\"\ntoken_env = \"PATH\"\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: pub.toml: publish.api_url: publish.api_url must be an https:// URL (http or bare hosts would send the token without TLS)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ],
+    [
+     "next",
+     "report",
+     "--result",
+     "out/base.json",
+     "--out",
+     "out/page.html"
+    ]
+   ]
+  },
+  "publish/local-overlay-publish-key": {
+   "argv": [
+    "next",
+    "publish",
+    "--local-config",
+    "local.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "local.toml": "publish.repo = \"x/y\"\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: local.toml: publish.repo: a local overlay may only adjust paths (allowed: builds.*.directory, builds.*.project, cache, components.*.python.executable, output, tools.*.path)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-api-url-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\napi_url = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.api_url: api_url must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-branch-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nbranch = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.branch: branch must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-repo-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nrepo = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.repo: repo must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-server-url-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\nserver_url = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.server_url: server_url must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-invalid-token-env-type": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n[publish]\ntoken_env = 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish.token_env: token_env must be a string, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "publish/v1-publish-not-a-table": {
+   "argv": [
+    "next",
+    "publish",
+    "--config",
+    "bad.toml",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "bad.toml": "schema_version = 1\npublish = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: bad.toml: publish: publish must be a table, not int",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "report/auxiliary": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html",
+    "--auxiliary",
+    "aux.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "aux.json": "{\"schema_id\": \"ici.auxiliary\", \"schema_version\": 1, \"gate\": \"NOT_EVALUATED\", \"evidence\": \"imported\", \"limitations\": [], \"records\": [], \"format\": \"sarif\", \"scope\": \"app\", \"source\": {\"path\": \"x.sarif\", \"sha256\": \"0000000000000000000000000000000000000000000000000000000000000000\"}, \"imported_at\": \"2026-01-01T00:00:00Z\", \"observed_at\": null}\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": [
+     "out/page.html"
+    ]
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "report/auxiliary-invalid": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html",
+    "--auxiliary",
+    "aux.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "aux.json": "{}\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "report: expected ici.auxiliary v1",
+    "outcome": null,
+    "refusal": "report",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "report/auxiliary-missing": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html",
+    "--auxiliary",
+    "out/none.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "report: [Errno 2] No such file or directory: '<root>/out/none.json'",
+    "outcome": null,
+    "refusal": "report",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "report/auxiliary-with-sarif": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/base.json",
+    "--sarif",
+    "out/r.sarif",
+    "--auxiliary",
+    "x.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "report: --auxiliary attaches to HTML; it cannot be merged into SARIF",
+    "outcome": null,
+    "refusal": "report",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "report/auxiliary-without-limitations": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html",
+    "--auxiliary",
+    "aux.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "aux.json": "{\"schema_id\": \"ici.auxiliary\", \"schema_version\": 1, \"gate\": \"NOT_EVALUATED\", \"evidence\": \"imported\", \"records\": [], \"format\": \"sarif\", \"scope\": \"app\", \"source\": {\"path\": \"x.sarif\", \"sha256\": \"0000000000000000000000000000000000000000000000000000000000000000\"}, \"imported_at\": \"2026-01-01T00:00:00Z\", \"observed_at\": null}\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": [
+     "out/page.html"
+    ]
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "report/result-missing": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/none.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "report: no result at <root>/out/none.json; run `ici next verify` first",
+    "outcome": null,
+    "refusal": "report",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "report/result-page": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/base.json",
+    "--out",
+    "out/page.html"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": [
+     "out/page.html"
+    ]
+   },
+   "steps": [
+    [
+     "next",
+     "verify",
+     "--python",
+     "--result",
+     "out/base.json"
+    ]
+   ]
+  },
+  "report/result-unreadable": {
+   "argv": [
+    "next",
+    "report",
+    "--result",
+    "out/bad.json",
+    "--out",
+    "out/page.html"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n",
+    "out/bad.json": "{}\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "report: <root>/out/bad.json is not a result this version can read: expected schema_id 'ici.next.run', found None",
+    "outcome": null,
+    "refusal": "report",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/component": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--component",
+    "app"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "checks": [
+      "python.cognitive",
+      "python.compat",
+      "python.complexity",
+      "python.cycle",
+      "python.dead",
+      "python.dup",
+      "python.exception",
+      "python.line",
+      "python.resource",
+      "python.security"
+     ],
+     "gate": "PASS"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/component-unknown": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--component",
+    "x"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: no component 'x'; declared: app, lib",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/config": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--config",
+    "alt.toml"
+   ],
+   "env": {},
+   "files": {
+    "alt.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "checks": [
+      "python.cognitive",
+      "python.compat",
+      "python.complexity",
+      "python.cycle",
+      "python.dead",
+      "python.dup",
+      "python.exception",
+      "python.line",
+      "python.resource",
+      "python.security"
+     ],
+     "gate": "PASS"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/config-missing": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--config",
+    "no.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: no.toml: no such file: no.toml",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/cpp-without-cpp": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--cpp"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: no component selected a check; a run that checks nothing cannot pass",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/json-python": {
+   "argv": [
+    "next",
+    "verify",
+    "--python",
+    "--json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "checks": [
+      "python.cognitive",
+      "python.compat",
+      "python.complexity",
+      "python.cycle",
+      "python.dead",
+      "python.dup",
+      "python.exception",
+      "python.line",
+      "python.resource",
+      "python.security"
+     ],
+     "gate": "PASS"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/local-config": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--python",
+    "--local-config",
+    "local.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n",
+    "local.toml": "components.app.python.executable = \"/usr/bin/python3\"\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "checks": [
+      "python.cognitive",
+      "python.compat",
+      "python.complexity",
+      "python.cycle",
+      "python.dead",
+      "python.dup",
+      "python.exception",
+      "python.line",
+      "python.resource",
+      "python.security"
+     ],
+     "gate": "PASS"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/local-config-invalid": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--local-config",
+    "local.toml"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n",
+    "local.toml": "workspace.name = 1\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": "config: local.toml: workspace.name: a local overlay may only adjust paths (allowed: builds.*.directory, builds.*.project, cache, components.*.python.executable, output, tools.*.path)",
+    "outcome": null,
+    "refusal": "config",
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/require-full-partial": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--require-full"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 3,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "checks": [
+      "cpp.artifact",
+      "cpp.binary-compat",
+      "cpp.cognitive",
+      "cpp.compile",
+      "cpp.complexity",
+      "cpp.coverage",
+      "cpp.cycle",
+      "cpp.diagnostics",
+      "cpp.dup",
+      "cpp.exception",
+      "cpp.line",
+      "cpp.test",
+      "cpp.tidy",
+      "python.cognitive",
+      "python.compat",
+      "python.complexity",
+      "python.cycle",
+      "python.dead",
+      "python.dup",
+      "python.exception",
+      "python.line",
+      "python.resource",
+      "python.security"
+     ],
+     "gate": "INCOMPLETE"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/require-full-selection": {
+   "argv": [
+    "next",
+    "verify",
+    "--json",
+    "--python",
+    "--require-full"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 3,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": {
+     "checks": [
+      "python.cognitive",
+      "python.compat",
+      "python.complexity",
+      "python.cycle",
+      "python.dead",
+      "python.dup",
+      "python.exception",
+      "python.line",
+      "python.resource",
+      "python.security"
+     ],
+     "gate": "INCOMPLETE"
+    },
+    "written": []
+   },
+   "steps": []
+  },
+  "verify/result": {
+   "argv": [
+    "next",
+    "verify",
+    "--python",
+    "--result",
+    "out/base.json"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": {
+     "checks": [
+      "python.cognitive",
+      "python.compat",
+      "python.complexity",
+      "python.cycle",
+      "python.dead",
+      "python.dup",
+      "python.exception",
+      "python.line",
+      "python.resource",
+      "python.security"
+     ],
+     "gate": "PASS"
+    },
+    "stdout": null,
+    "written": [
+     "out/base.json"
+    ]
+   },
+   "steps": []
+  },
+  "verify/text-python": {
+   "argv": [
+    "next",
+    "verify",
+    "--python"
+   ],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 0,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "Python 3.10.21"
+}

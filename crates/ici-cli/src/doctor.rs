@@ -426,8 +426,13 @@ pub fn collect(
         Err(error) => return Err(CliError(redact_text(&error.to_string()))),
     };
     let mut inventory = Inventory::default();
-    if let Some(prepared) = &prepared {
-        gather(prepared, &mut inventory, environment);
+    let legacy_matrix = prepared
+        .as_ref()
+        .and_then(|prepared| legacy_support(invocation, prepared));
+    match (&prepared, &legacy_matrix) {
+        (_, Some(matrix)) => legacy_tools(matrix, &inspection.root, environment, &mut inventory),
+        (Some(prepared), None) => gather(prepared, &mut inventory, environment),
+        (None, None) => {}
     }
     let required = inspection
         .effective
@@ -516,8 +521,11 @@ pub fn collect(
         }
         tools.insert(key, row.clone());
     }
+    // The historical doctor diagnoses frozen's engine/language support policy, not native check
+    // rows (`ici next doctor` keeps those).
     let components = prepared
         .as_ref()
+        .filter(|_| legacy_matrix.is_none())
         .map(|prepared| component_rows(prepared, &inventory, &rows))
         .unwrap_or_default();
     let blocked_checks = components
@@ -541,9 +549,117 @@ pub fn collect(
     limitations.push("tool versions diagnose executable availability only; analysis, project imports, tests, builds and runtime compatibility remain NOT_RUN".into());
     limitations.push("the running product is Rust; historical core-Python candidate and NAS/shared-infrastructure discovery are superseded by the native runtime contract".into());
     let candidates = rows.iter().filter(|row|row["name"].as_str().is_some_and(|name|name.starts_with("python"))&&row["available"]==true).map(|row|json!({"candidate":row["name"],"path":row["path"],"version":row["version"],"complete":row["complete"]})).collect::<Vec<_>>();
-    let supports = support_rows(prepared.as_ref(), &components, &rows);
-    let document = json!({"schema_id":"ici.next.doctor","schema_version":1,"root":inspection.root,"profile":profile,"components":components,"system":system(environment),"runtime":{"kind":"rust-native","version":crate::VERSION,"executable":std::env::current_exe().ok(),"target_os":std::env::consts::OS,"target_arch":std::env::consts::ARCH,"requires_project_python":false},"running_python":null,"python_candidates":candidates,"analysis_profile":profile,"required_tools":required,"effective_required_tools":rows.iter().filter(|row|row["required"]==true).filter_map(|row|row["name"].as_str().map(str::to_owned)).collect::<BTreeSet<_>>(),"tools":tools,"capability_inventory":{"schema_version":"ici.capabilities/v1","status":if healthy{"PASS"}else{"WARN"},"healthy":healthy,"counts":{"total":rows.len(),"ready":ready,"required":rows.iter().filter(|row|row["required"]==true).count(),"incomplete":rows.iter().filter(|row|row["available"]==true&&row["complete"]==false).count(),"unavailable":rows.iter().filter(|row|row["available"]==false).count(),"blocked_required_checks":blocked_checks,"version_probes":inventory.needs.values().filter(|need|need.outcome.as_ref().is_some_and(|outcome|outcome.cleanup.group.is_some())).count()},"missing_required":missing,"incomplete_required":incomplete,"tools":rows},"support_matrix":{"project_languages":languages,"project_frameworks":[],"entries":supports},"paths":{"workspace":inspection.root,"configuration_files":inspection.configuration_files,"native_tool_pack":planning::tool_pack(environment)},"scope_error":scope_error,"scope_guidance":if scope_error.is_some(){json!({"config_key":"components","resolve":"declare valid component sources and dependencies; configuration inspection remains available","recheck":"ici next doctor"})}else{Value::Null},"limitations":limitations,"analysis_executed":false,"cancelled":cancellation.is_cancelled()});
+    let support_matrix = legacy_matrix.unwrap_or_else(|| {
+        json!({"project_languages":languages,"project_frameworks":[],"entries":support_rows(prepared.as_ref(), &components, &rows)})
+    });
+    let document = json!({"schema_id":"ici.next.doctor","schema_version":1,"root":inspection.root,"profile":profile,"components":components,"system":system(environment),"runtime":{"kind":"rust-native","version":crate::VERSION,"executable":std::env::current_exe().ok(),"target_os":std::env::consts::OS,"target_arch":std::env::consts::ARCH,"requires_project_python":false},"running_python":null,"python_candidates":candidates,"analysis_profile":profile,"required_tools":required,"effective_required_tools":rows.iter().filter(|row|row["required"]==true).filter_map(|row|row["name"].as_str().map(str::to_owned)).collect::<BTreeSet<_>>(),"tools":tools,"capability_inventory":{"schema_version":"ici.capabilities/v1","status":if healthy{"PASS"}else{"WARN"},"healthy":healthy,"counts":{"total":rows.len(),"ready":ready,"required":rows.iter().filter(|row|row["required"]==true).count(),"incomplete":rows.iter().filter(|row|row["available"]==true&&row["complete"]==false).count(),"unavailable":rows.iter().filter(|row|row["available"]==false).count(),"blocked_required_checks":blocked_checks,"version_probes":inventory.needs.values().filter(|need|need.outcome.as_ref().is_some_and(|outcome|outcome.cleanup.group.is_some())).count()},"missing_required":missing,"incomplete_required":incomplete,"tools":rows},"support_matrix":support_matrix,"paths":{"workspace":inspection.root,"configuration_files":inspection.configuration_files,"native_tool_pack":planning::tool_pack(environment)},"scope_error":scope_error,"scope_guidance":if scope_error.is_some(){json!({"config_key":"components","resolve":"declare valid component sources and dependencies; configuration inspection remains available","recheck":"ici next doctor"})}else{Value::Null},"limitations":limitations,"analysis_executed":false,"cancelled":cancellation.is_cancelled()});
     Ok(redact_value(&document))
+}
+
+/// Frozen `ici doctor` (doctor.py `collect_diagnostics`) evaluated `core/support.py` over the
+/// legacy policy (a legacy `ici.toml`, or the legacy defaults of a configless directory).
+fn legacy_support(invocation: &Invocation, prepared: &PreparedPlan) -> Option<Value> {
+    if invocation.command() != "doctor"
+        || !matches!(
+            prepared.project.schema_family,
+            ici_config::SchemaFamily::Legacy | ici_config::SchemaFamily::Automatic
+        )
+    {
+        return None;
+    }
+    let profile = crate::legacy_support::profile_name(prepared.plan.profile);
+    let inputs = crate::legacy_support::inputs(prepared, &profile);
+    Some(ici_reporting::legacy_support_matrix(&inputs, &[], None))
+}
+
+/// Frozen `derive_tool_policy`: applicable, enabled rows contribute `engine:language` provenance;
+/// a required provenance dominates and absorbs optional use of the same tool. Each tool resolves
+/// natively from frozen's probe candidates (`clazy-standalone`/`clazy`, `qmake6`/`qmake`).
+fn legacy_tools(
+    matrix: &Value,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+    inventory: &mut Inventory,
+) {
+    let mut required: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut optional: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    for entry in matrix["entries"].as_array().into_iter().flatten() {
+        if entry["applicable"] != true || entry["enabled"] != true {
+            continue;
+        }
+        let source = format!(
+            "{}:{}",
+            entry["engine_name"].as_str().unwrap_or("-"),
+            entry["language"].as_str().unwrap_or("-")
+        );
+        for (key, target) in [
+            ("required_tools", &mut required),
+            ("optional_tools", &mut optional),
+        ] {
+            for name in entry[key]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+            {
+                target
+                    .entry(name.to_owned())
+                    .or_default()
+                    .insert(source.clone());
+            }
+        }
+    }
+    for (name, sources) in &mut required {
+        sources.extend(optional.remove(name).unwrap_or_default());
+    }
+    let policies = required
+        .into_iter()
+        .map(|entry| (entry, true))
+        .chain(optional.into_iter().map(|entry| (entry, false)));
+    for ((name, sources), is_required) in policies {
+        let candidates: &[&str] = match name.as_str() {
+            "clazy" => &["clazy-standalone", "clazy"],
+            "qmake" => &["qmake6", "qmake"],
+            _ => &[],
+        };
+        let resolved = candidates
+            .iter()
+            .copied()
+            .chain(std::iter::once(name.as_str()))
+            .map(|id| {
+                ToolRequest {
+                    id: id.into(),
+                    explicit: None,
+                    project_root: root.to_path_buf(),
+                    pack_root: if id.starts_with("python") {
+                        None
+                    } else {
+                        planning::tool_pack(environment)
+                    },
+                    path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
+                }
+                .resolve()
+            })
+            .reduce(|first, next| first.or(next))
+            .expect("one candidate");
+        for source in &sources {
+            match &resolved {
+                Ok(tool) => {
+                    inventory.add(&name, Some(tool), None, source, is_required, is_required);
+                }
+                Err(error) => {
+                    inventory.add(
+                        &name,
+                        None,
+                        Some(error.to_string()),
+                        source,
+                        is_required,
+                        is_required,
+                    );
+                }
+            }
+        }
+    }
 }
 
 fn gather(
@@ -1181,6 +1297,24 @@ fn render(document: &Value, brief: bool) -> String {
             text.push_str(&format!(
                 "  prepare: blocked — {}\n    resolve: fix the build declaration named above; doctor does not build\n",
                 &limitation[prefix.len()..]
+            ));
+        }
+    }
+    // The historical doctor lists no native component rows; its static preparation refusals
+    // are still plan-time facts and keep their component name.
+    if document["components"]
+        .as_array()
+        .is_none_or(|components| components.is_empty())
+    {
+        for limitation in document["limitations"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|limitation| limitation.contains("declared release build cannot be prepared"))
+        {
+            text.push_str(&format!(
+                "prepare: blocked — {limitation}\n  resolve: fix the build declaration named above; doctor does not build\n"
             ));
         }
     }
