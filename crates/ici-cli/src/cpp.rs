@@ -3446,7 +3446,7 @@ impl CppPlans {
                         "task.completed",
                         Some(&outcome.task_id),
                         Some(&component.id),
-                        &format!("{:?}", outcome.state),
+                        &outcome.state_label(),
                     );
                     let probe = probes
                         .iter()
@@ -3570,7 +3570,7 @@ impl CppPlans {
                         "task.completed",
                         Some(&outcome.task_id),
                         Some(&component.id),
-                        &format!("{:?}", outcome.state),
+                        &outcome.state_label(),
                     );
                     outcomes.insert(outcome.task_id.clone(), outcome);
                 }
@@ -3661,7 +3661,7 @@ impl CppPlans {
                     "task.completed",
                     Some(&outcome.task_id),
                     Some(&component.id),
-                    &format!("{:?}", outcome.state),
+                    &outcome.state_label(),
                 );
                 let provider = providers
                     .iter()
@@ -3989,7 +3989,7 @@ fn run_cpp_tasks(
             "task.completed",
             Some(&outcome.task_id),
             Some(component),
-            &format!("{:?}", outcome.state),
+            &outcome.state_label(),
         );
     }
     Ok(schedule.outcomes)

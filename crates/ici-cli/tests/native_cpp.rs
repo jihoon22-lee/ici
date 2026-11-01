@@ -121,6 +121,9 @@ fn actual_recorded_variants_keep_diagnostic_unit_ownership_without_python() {
             .count(),
         2
     );
+    // C++ task completions carry the wire state word (frozen next_events), never a Rust Debug
+    // label such as `Succeeded`.
+    assert_wire_task_states(&events, "project.cpp.diagnostics.unit");
     let moved = fixture();
     let relocated = execute::execute(
         &invocation,
@@ -140,6 +143,38 @@ fn actual_recorded_variants_keep_diagnostic_unit_ownership_without_python() {
     );
 }
 
+/// Every `task.completed` event is a wire task state; the prefixed C++ tasks all succeeded.
+fn assert_wire_task_states(events: &[ici_domain::RunEvent], prefix: &str) {
+    const STATES: [&str; 6] = [
+        "READY",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "BLOCKED",
+        "CANCELLED",
+    ];
+    let completed: Vec<_> = events
+        .iter()
+        .filter(|event| event.event_type == "task.completed")
+        .collect();
+    assert!(
+        completed
+            .iter()
+            .all(|event| STATES.contains(&event.message.as_str())),
+        "{:?}",
+        completed
+            .iter()
+            .map(|event| (&event.task_id, &event.message))
+            .collect::<Vec<_>>()
+    );
+    assert!(completed.iter().any(|event| {
+        event
+            .task_id
+            .as_deref()
+            .is_some_and(|id| id.starts_with(prefix))
+            && event.message == "SUCCEEDED"
+    }));
+}
 fn runtime_config(selected: &[&str], extra: &str) -> String {
     let mut config = String::from("schema_version=2\n");
     for check in ici_domain::builtin_catalog()
@@ -338,6 +373,7 @@ fn actual_existing_cmake_artifacts_feed_one_ctest_suite_gcov_and_binary_abi() {
             .count(),
         1
     );
+    assert_wire_task_states(&events, "project.cpp.");
     assert!(
         !events
             .iter()
