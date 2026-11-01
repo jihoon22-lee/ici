@@ -13,6 +13,10 @@ pub struct RunRequest {
     pub static_only: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub checks: Vec<String>,
+    /// Historical engine commands (`ici verify`, `ici <engine>`) select checks by the frozen
+    /// legacy descriptor profiles. Derived from the invocation, never part of the wire request.
+    #[serde(skip)]
+    pub legacy_profiles: bool,
 }
 impl RunRequest {
     pub fn scope<'a>(&self, project: &'a ResolvedProject) -> Result<Vec<&'a Component>> {

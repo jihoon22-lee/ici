@@ -17,6 +17,7 @@ pub(crate) fn lines(
     let legacy = request.options["legacy_projection"]
         .as_bool()
         .unwrap_or(false);
+    let extra_targets = request.options["extra_targets"].as_bool().unwrap_or(true);
     let selected = |key: &str, path: &str| {
         request.options[key]
             .as_array()
@@ -142,7 +143,11 @@ pub(crate) fn lines(
             );
         }
         rows.push(json!({"path":path,"lang":language,"code":fc,"comment":fm,"blank":fb,"total":fc+fm+fb,"status":target.status,"scope":if in_scope {"source"} else {"extra"}}));
-        output.targets.push(target);
+        // Frozen LineCountEngine records pass-2 extras (ici.toml, docs) only in the all_* totals;
+        // a frozen-schema request asks for that (`extra_targets: false`) like the Python line rule.
+        if in_scope || extra_targets {
+            output.targets.push(target);
+        }
     }
     let total = code + comments + blanks;
     for (name, value) in [

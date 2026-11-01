@@ -268,10 +268,20 @@ impl CppAnalysisSession {
                             .observation
                             .findings
                             .extend(duplicate_output.observation.findings);
-                        output
-                            .observation
-                            .measurements
-                            .extend(duplicate_output.observation.measurements);
+                        let legacy = request.options["legacy_projection"]
+                            .as_bool()
+                            .unwrap_or(false);
+                        // Frozen DuplicateEngine reports a completed scan as ESTIMATED evidence.
+                        output.observation.measurements.extend(
+                            duplicate_output.observation.measurements.into_iter().map(
+                                |mut measurement| {
+                                    if legacy {
+                                        measurement.evidence = EvidenceLevel::Estimated;
+                                    }
+                                    measurement
+                                },
+                            ),
+                        );
                         output
                             .observation
                             .limitations

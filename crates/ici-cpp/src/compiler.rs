@@ -56,11 +56,13 @@ pub fn analyze_compile_context(
             .as_bool()
             .unwrap_or(false);
         for source in &production {
+            // Frozen CompileDatabaseEngine `_coverage_target`: line 1 to 1, sentence message.
             let mut target = InspectionTarget::at(source, 1);
+            target.end_line = Some(1);
             target.target_name = "ici.compile-db.coverage".into();
             target.status = if required { "FAIL" } else { "WARN" }.into();
             target.message =
-                "No compilation database is available for this production translation unit".into();
+                "No compilation database is available for this production translation unit.".into();
             crate::analysis::finding(
                 &mut output,
                 request,

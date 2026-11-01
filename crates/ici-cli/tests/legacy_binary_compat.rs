@@ -80,13 +80,6 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
         for (engine, frozen) in case["frozen"].as_object().unwrap() {
             let actual = actual[engine].clone();
             match (name.as_str(), engine.as_str()) {
-                // Open: the Rust build inventory selects only measured ELF outputs, while the
-                // frozen manifest also lists MZ/Mach-O files from the shadow.
-                ("non-elf-allowed" | "non-elf-rejected", "binary_compat") => {
-                    assert_eq!(actual["targets"][0], frozen["targets"][0], "{name}");
-                    assert_eq!(actual["targets"].as_array().unwrap().len(), 1, "{name}");
-                    continue;
-                }
                 // Open: a Make build without linked outputs stops at artifact preparation
                 // (SKIP) instead of the frozen BuildAdapter PASS (0) + BuildArtifacts FAIL.
                 ("no-artifacts" | "no-artifacts-required", "build") => {

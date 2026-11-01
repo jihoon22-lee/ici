@@ -243,8 +243,16 @@ pub fn plan_with_checks(
             if !applies || !request.wants(definition) {
                 continue;
             }
-            let (enabled, required) = configured_check(project, component, definition);
-            let omitted = if !definition.profiles.contains(&profile) {
+            let (enabled, mut required) = configured_check(project, component, definition);
+            if request.legacy_profiles
+                && request.checks.is_empty()
+                && legacy_required_omitted(project, component, definition)
+            {
+                // Frozen `ici verify` engines read `cfg.get("required", False)`; only lowers, so
+                // sub-tool checks that are optional natively (cpp.tidy) stay optional.
+                required = false;
+            }
+            let omitted = if !check_profiles(request, &catalog, definition).contains(&profile) {
                 Some(format!(
                     "not in profile '{}'",
                     serde_json::to_value(profile)
@@ -459,6 +467,58 @@ pub fn configured_check(
         required = setting.required_or(required);
     }
     (enabled, required)
+}
+
+/// A historical engine command selects checks by the frozen legacy descriptor profiles
+/// (`core/pipeline.py` ENGINE_DESCRIPTORS): cognitive, build, binary_compat, thread_sanitize and
+/// integration run only in `deep`, test and sanitize in `standard`/`deep`.
+fn check_profiles<'a>(
+    request: &RunRequest,
+    catalog: &'a ici_domain::Catalog,
+    definition: &'a CheckDefinition,
+) -> &'a [Profile] {
+    if request.legacy_profiles
+        && let Some(engine) = engine_name(&definition.id)
+        && let Some(descriptor) = catalog.legacy.iter().find(|item| item.name == engine)
+    {
+        return &descriptor.profiles;
+    }
+    &definition.profiles
+}
+
+/// A legacy verify check whose frozen engine defaults to not required and whose policy and
+/// check settings name no `required` value.
+fn legacy_required_omitted(
+    project: &ResolvedProject,
+    component: &Component,
+    definition: &CheckDefinition,
+) -> bool {
+    engine_name(&definition.id).is_some_and(|engine| {
+        !legacy_required_default(engine)
+            && component
+                .settings
+                .pointer(&format!("/engines/{engine}/required"))
+                .is_none()
+            && component
+                .checks
+                .get(&definition.id)
+                .or_else(|| project.checks.get(&definition.id))
+                .is_none_or(|setting| setting.settings.get("required").is_none())
+    })
+}
+
+/// Frozen engines that read `cfg.get("required", False)` when the legacy policy omits the key.
+pub fn legacy_required_default(engine: &str) -> bool {
+    !matches!(
+        engine,
+        "cycle"
+            | "cognitive"
+            | "resource"
+            | "security"
+            | "python_compat"
+            | "binary_compat"
+            | "integration"
+    )
 }
 
 pub fn engine_name(check_id: &str) -> Option<&'static str> {
