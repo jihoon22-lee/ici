@@ -1300,6 +1300,24 @@ fn render(document: &Value, brief: bool) -> String {
             ));
         }
     }
+    // The historical doctor lists no native component rows; its static preparation refusals
+    // are still plan-time facts and keep their component name.
+    if document["components"]
+        .as_array()
+        .is_none_or(|components| components.is_empty())
+    {
+        for limitation in document["limitations"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|limitation| limitation.contains("declared release build cannot be prepared"))
+        {
+            text.push_str(&format!(
+                "prepare: blocked — {limitation}\n  resolve: fix the build declaration named above; doctor does not build\n"
+            ));
+        }
+    }
     text.push_str(if brief {
         "tools\n"
     } else {

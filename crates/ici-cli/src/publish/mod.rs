@@ -39,6 +39,9 @@ pub struct LegacyComment {
     pub unlabeled: bool,
     /// Frozen `hub` when reports go to a separate publication repository, otherwise `self`.
     pub mode: String,
+    /// `--report-dir` labels whose `verify_report.html` is absent: frozen `_publish_multi`
+    /// uploads the others and reports these as not uploaded instead of refusing the command.
+    pub missing: Vec<String>,
 }
 pub fn publish_with_transport<
     F: FnMut(&Request) -> std::result::Result<Response, TransportError>,
@@ -215,9 +218,18 @@ fn perform<F: FnMut(&Request) -> std::result::Result<Response, TransportError>>(
     for page in &publication.pages {
         let label = slug(&page.label);
         let path = remote_path(publication, &page.label);
-        let uploaded = client.put(&path, &page.bytes);
+        let missing = publication
+            .legacy
+            .as_ref()
+            .is_some_and(|legacy| legacy.missing.contains(&page.label));
+        let uploaded = if missing {
+            Err("report page not found".to_owned())
+        } else {
+            client.put(&path, &page.bytes)
+        };
         let viewer = site
             .as_ref()
+            .filter(|_| !missing)
             .map(|site| format!("{}/{path}", site.trim_end_matches('/')));
         let detail = uploaded.as_ref().err().cloned();
         record["reports"].as_array_mut().expect("report array").push(json!({"label":page.label,"remote_path":path,"viewer_url":viewer,"uploaded":uploaded.is_ok(),"detail":detail,"artifact":{"sha256":ici_domain::sha256(&page.bytes),"bytes":page.bytes.len()},"result_sha256":page.result_digest}));
@@ -425,7 +437,14 @@ pub fn command_with_transport(
         local.as_deref(),
         environment,
     )
-    .map_err(|error| CliError(error.to_string()))?;
+    .map_err(|error| {
+        // Frozen `next publish` reads the workspace through `_workspace` (`config: `).
+        if invocation.command() == "next publish" {
+            crate::commands::classed(crate::commands::CONFIG_PREFIX, error)
+        } else {
+            CliError(error.to_string())
+        }
+    })?;
     let modern = invocation.command() == "next publish";
     // Frozen engines/publish.ReportPublisher: the historical command skips (exit 0) outside
     // GitHub Actions and when no repository or token resolves; only a real failure exits 1.
@@ -513,6 +532,7 @@ pub fn command_with_transport(
         }
     }
     let mut pages = vec![];
+    let mut missing = vec![];
     if modern {
         pages.push(load_page(
             &config.root,
@@ -544,13 +564,29 @@ pub fn command_with_transport(
                     .unwrap_or("workspace")
                     .into()
             });
-            pages.push(load_page(
-                &config.root,
-                &label,
-                &path.join("verify_report.html"),
-                Some(&path.join("verify_report.json")),
-                false,
-            )?);
+            let page = path.join("verify_report.html");
+            if page.is_file() {
+                pages.push(load_page(
+                    &config.root,
+                    &label,
+                    &page,
+                    Some(&path.join("verify_report.json")),
+                    false,
+                )?);
+            } else {
+                // The suite still enriches the comment row (frozen loads it per directory).
+                let json = path.join("verify_report.json");
+                missing.push(label.clone());
+                pages.push(Page {
+                    label,
+                    bytes: vec![],
+                    result: json
+                        .is_file()
+                        .then(|| crate::report::load(&json).ok())
+                        .flatten(),
+                    result_digest: None,
+                });
+            }
             if pages
                 .iter()
                 .map(|page| page.bytes.len() as u64)
@@ -585,7 +621,10 @@ pub fn command_with_transport(
         let record = json!({"schema_id":"ici.next.publish","schema_version":1,"state":"NOT_CONFIGURED","detail":"no publication destination; configure publish.repo, publish.api_url and the named token environment variable"});
         save_record(&record_path, &record)?;
         return Ok(CommandOutput {
-            stdout: format!("{}\n", record["detail"].as_str().unwrap()),
+            stdout: format!(
+                "publish: not_configured — {}\n",
+                record["detail"].as_str().unwrap()
+            ),
             stderr: String::new(),
             exit_code: 2,
         });
@@ -635,6 +674,7 @@ pub fn command_with_transport(
         },
         run_url,
         legacy: (!modern).then(|| LegacyComment {
+            missing,
             unlabeled: invocation.values("report_dir").is_empty(),
             mode: if !get("ICI_PUBLISH_REPO").trim().is_empty()
                 || !own_repo.is_empty() && repo != own_repo
@@ -657,7 +697,8 @@ pub fn command_with_transport(
     }
     Ok(CommandOutput {
         stdout: format!(
-            "publish: {}\nRecord: {}\n",
+            "publish: {} — {}\nRecord: {}\n",
+            record["state"].as_str().unwrap_or("FAILED").to_lowercase(),
             record["detail"].as_str().unwrap_or("failed"),
             record_path.display()
         ),
@@ -722,6 +763,14 @@ fn load_page(
         }
         _ => (None, None),
     };
+    // Frozen `_load_artifact`: an absent page is a `publish: ` refusal that names the page and
+    // the command that writes it.
+    if required && !path.is_file() {
+        return Err(CliError(format!(
+            "publish: no page at {} — run `ici next report` first",
+            path.display()
+        )));
+    }
     let canonical = path
         .canonicalize()
         .map_err(|error| CliError(format!("publish page: {error}")))?;
