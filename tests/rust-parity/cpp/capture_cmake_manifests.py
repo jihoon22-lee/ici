@@ -21,11 +21,13 @@ PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-cmake-manifests"
 BASE = "[project]\ntype='cpp'\nsource_dirs=['src']\n"
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-# name: (fixture, command)
+# name: (fixture, command, extra arguments)
 CASES = {
-    "verify-suite": ("test-cmake/suite", "verify"),
-    "verify-broken-build": ("test-cmake/broken-build", "verify"),
-    "test-suite": ("test-cmake/suite", "test"),
+    "verify-suite": ("test-cmake/suite", "verify", []),
+    "verify-broken-build": ("test-cmake/broken-build", "verify", []),
+    "test-suite": ("test-cmake/suite", "test", []),
+    # The deep profile adds the thread-sanitize build session.
+    "verify-deep-plain": ("test-cmake/plain", "verify", ["--profile", "deep"]),
 }
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
@@ -45,7 +47,7 @@ def shape(value):
     return value
 
 
-def run(fixture: str, command: str) -> dict:
+def run(fixture: str, command: str, args: list[str]) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -57,7 +59,7 @@ def run(fixture: str, command: str) -> dict:
         subprocess.run([*git, "-C", str(project), "add", "-A"], check=True)
         subprocess.run([*git, "-C", str(project), "commit", "-qm", "fixture"], check=True)
         result = subprocess.run(
-            [PYTHON, "-m", "ici", command, "--report"],
+            [PYTHON, "-m", "ici", command, *args, "--report"],
             cwd=project,
             env={"PATH": "/usr/bin:/bin", "HOME": str(WORK), "PYTHONPATH": str(ORACLE / "src")},
             capture_output=True,
@@ -80,8 +82,13 @@ def run(fixture: str, command: str) -> dict:
 
 
 cases = {
-    name: {"fixture": fixture, "command": command, "frozen": run(fixture, command)}
-    for name, (fixture, command) in CASES.items()
+    name: {
+        "fixture": fixture,
+        "command": command,
+        "args": args,
+        "frozen": run(fixture, command, args),
+    }
+    for name, (fixture, command, args) in CASES.items()
 }
 (ROOT / "tests/rust-parity/cpp/cmake-manifests-oracle.json").write_text(
     json.dumps(

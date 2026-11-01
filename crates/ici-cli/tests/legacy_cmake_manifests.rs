@@ -72,7 +72,14 @@ fn run(oracle: &Value, case: &Value) -> Value {
     git(&["commit", "-qm", "fixture"]);
     let commit = git(&["rev-parse", "HEAD"]);
     let command = case["command"].as_str().unwrap();
-    let invocation = registry::parse(["ici", command, "--report"]).unwrap();
+    let args: Vec<&str> = case["args"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    let invocation =
+        registry::parse(["ici", command].into_iter().chain(args).chain(["--report"])).unwrap();
     let environment = BTreeMap::from([
         ("PATH".to_string(), "/usr/bin:/bin".to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
@@ -166,6 +173,11 @@ fn legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests() {
             .unwrap()
             .iter()
             .any(|artifact| artifact["id"] == "coverage:shadow:libcalc.a")
+    );
+    // The deep profile publishes the thread-sanitize session's manifest.
+    assert_eq!(
+        cases["verify-deep-plain"]["frozen"]["engines"]["thread_sanitize"][0]["variant"],
+        "thread-sanitize"
     );
     assert!(mismatches.is_empty(), "{mismatches:?}");
 }
