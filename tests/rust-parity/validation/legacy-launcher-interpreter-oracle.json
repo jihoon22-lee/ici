@@ -1,0 +1,441 @@
+{
+  "app": "def f(x):\n    return x + 1\n",
+  "contract": "import sys\n\nprint('contract ok')\n",
+  "fake": "#!/bin/sh\nexit 1\n",
+  "path_listing": {
+    "<BARE_BIN>": [
+      "python",
+      "python3",
+      "python3-config",
+      "python3.12",
+      "python3.12-config"
+    ],
+    "<FAKE>": [
+      "python3",
+      "python3.14"
+    ],
+    "<VENV_BIN>": [
+      "python",
+      "python3",
+      "python3.10"
+    ]
+  },
+  "pyz_sha256": "9e5f5751df033a2d51e9d09457bb35b7e81b05bf7cb750e93e31e62e61bef44f",
+  "runs": {
+    "compat_path": {
+      "command": "python-compat",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.python_compat]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "interpreters": [
+          "<BARE_REAL>"
+        ],
+        "required": false,
+        "status": "PASS",
+        "summary": "Python runtime and source compatibility verified",
+        "targets": [
+          {
+            "file_path": "app.py",
+            "message": "Python syntax-floor and standard-library API scan completed",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Compatibility:StaticScan"
+          },
+          {
+            "file_path": "contract.py",
+            "message": "Python syntax-floor and standard-library API scan completed",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Compatibility:StaticScan"
+          },
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Python syntax-floor and standard-library API scan completed",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Compatibility:StaticScan"
+          },
+          {
+            "file_path": ".",
+            "message": "<BARE_REAL> (3.12.13) passed version and compileall checks",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonRuntime:Verified"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "ici_python": null,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": true
+    },
+    "integration_current": {
+      "command": "verify",
+      "config": "[ici]\nprofile = \"deep\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\n[[engines.integration.cases]]\nname = \"current\"\nargv = [\"{python:current}\", \"contract.py\"]\nstdout_contains = [\"contract ok\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "engine": {
+        "cases": [
+          {
+            "assertions": {
+              "exit_code": true,
+              "output_artifacts": true,
+              "stderr_contains": true,
+              "stderr_not_contains": true,
+              "stdout_contains": true,
+              "stdout_not_contains": true
+            },
+            "name": "current",
+            "returncode": 0,
+            "status": "PASS"
+          }
+        ],
+        "evidence": "MEASURED",
+        "interpreters": [
+          "<VENV_REAL>"
+        ],
+        "required": true,
+        "status": "PASS",
+        "summary": "Integration contracts: 1 run, 0 violation(s)",
+        "targets": [
+          {
+            "file_path": "ici.toml",
+            "message": "All process and output artifact assertions passed",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Integration:current"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "ici_python": null,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "suite_status": "PASS",
+      "venv": false
+    },
+    "sanitize_path": {
+      "command": "sanitize",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.sanitize]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "interpreters": [
+          "<VENV_BIN>/python3.10"
+        ],
+        "required": true,
+        "status": "PASS",
+        "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+        "targets": [
+          {
+            "file_path": "tests",
+            "message": "pytest completed with ResourceWarning promoted to errors",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "PythonResourceWarnings"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "ici_python": null,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": false
+    },
+    "test_declared_bare": {
+      "command": "test",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.test]\nenabled = true\npython = \"python3\"\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "interpreters": [
+          "python3"
+        ],
+        "required": true,
+        "status": "FAIL",
+        "summary": "1/1 Tests Passed | Line: 71.4%, Func: 100.0%, Branch: 100.0% -> TEM: 4.46 / 5.0",
+        "targets": [
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Test passed successfully",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "tests/test_app.py::test_f"
+          },
+          {
+            "file_path": ".",
+            "message": "Overall line coverage 71.4% is below the configured minimum 80.0%",
+            "start_line": 1,
+            "status": "WARN",
+            "target_name": "Coverage:Overall line"
+          },
+          {
+            "file_path": ".",
+            "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Functions"
+          },
+          {
+            "file_path": "app.py",
+            "message": "Function f was exercised by the aggregate project test suite",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Function:f"
+          },
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Function test_f was exercised by the aggregate project test suite",
+            "start_line": 4,
+            "status": "PASS",
+            "target_name": "Coverage:Function:test_f"
+          }
+        ]
+      },
+      "exit_code": 1,
+      "ici_python": null,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": false
+    },
+    "test_ici_python": {
+      "command": "test",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.test]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "interpreters": [
+          "<VENV_BIN>/python"
+        ],
+        "required": true,
+        "status": "FAIL",
+        "summary": "1/1 Tests Passed | Line: 71.4%, Func: 100.0%, Branch: 100.0% -> TEM: 4.46 / 5.0",
+        "targets": [
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Test passed successfully",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "tests/test_app.py::test_f"
+          },
+          {
+            "file_path": ".",
+            "message": "Overall line coverage 71.4% is below the configured minimum 80.0%",
+            "start_line": 1,
+            "status": "WARN",
+            "target_name": "Coverage:Overall line"
+          },
+          {
+            "file_path": ".",
+            "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Functions"
+          },
+          {
+            "file_path": "app.py",
+            "message": "Function f was exercised by the aggregate project test suite",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Function:f"
+          },
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Function test_f was exercised by the aggregate project test suite",
+            "start_line": 4,
+            "status": "PASS",
+            "target_name": "Coverage:Function:test_f"
+          }
+        ]
+      },
+      "exit_code": 1,
+      "ici_python": "<VENV_BIN>/python",
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": false
+    },
+    "test_none": {
+      "command": "test",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.test]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "exit_code": 1,
+      "ici_python": null,
+      "path": [
+        "<FAKE>"
+      ],
+      "stderr": "\uc624\ub958: Python 3.10 \uc774\uc0c1\uc744 \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.\n      \uc2dc\uc2a4\ud15c\uc5d0 \uc124\uce58\ub41c 3.10+ \uc778\ud130\ud504\ub9ac\ud130 \uacbd\ub85c\ub97c ICI_PYTHON \uc5d0 \uc9c0\uc815\ud558\uc138\uc694:\n      \uc608: export ICI_PYTHON=/opt/python3.10/bin/python3.10",
+      "venv": false
+    },
+    "test_path": {
+      "command": "test",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.test]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "interpreters": [
+          "<VENV_BIN>/python3.10"
+        ],
+        "required": true,
+        "status": "FAIL",
+        "summary": "1/1 Tests Passed | Line: 71.4%, Func: 100.0%, Branch: 100.0% -> TEM: 4.46 / 5.0",
+        "targets": [
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Test passed successfully",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "tests/test_app.py::test_f"
+          },
+          {
+            "file_path": ".",
+            "message": "Overall line coverage 71.4% is below the configured minimum 80.0%",
+            "start_line": 1,
+            "status": "WARN",
+            "target_name": "Coverage:Overall line"
+          },
+          {
+            "file_path": ".",
+            "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Functions"
+          },
+          {
+            "file_path": "app.py",
+            "message": "Function f was exercised by the aggregate project test suite",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Function:f"
+          },
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Function test_f was exercised by the aggregate project test suite",
+            "start_line": 4,
+            "status": "PASS",
+            "target_name": "Coverage:Function:test_f"
+          }
+        ]
+      },
+      "exit_code": 1,
+      "ici_python": null,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": false
+    },
+    "test_venv_first": {
+      "command": "test",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.test]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "interpreters": [
+          "<ROOT>/.venv/bin/python"
+        ],
+        "required": true,
+        "status": "FAIL",
+        "summary": "1/1 Tests Passed | Line: 71.4%, Func: 100.0%, Branch: 100.0% -> TEM: 4.46 / 5.0",
+        "targets": [
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Test passed successfully",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "tests/test_app.py::test_f"
+          },
+          {
+            "file_path": ".",
+            "message": "Overall line coverage 71.4% is below the configured minimum 80.0%",
+            "start_line": 1,
+            "status": "WARN",
+            "target_name": "Coverage:Overall line"
+          },
+          {
+            "file_path": ".",
+            "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Functions"
+          },
+          {
+            "file_path": "app.py",
+            "message": "Function f was exercised by the aggregate project test suite",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Function:f"
+          },
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Function test_f was exercised by the aggregate project test suite",
+            "start_line": 4,
+            "status": "PASS",
+            "target_name": "Coverage:Function:test_f"
+          }
+        ]
+      },
+      "exit_code": 1,
+      "ici_python": null,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": true
+    },
+    "test_version_skip": {
+      "command": "test",
+      "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.test]\nenabled = true\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engine": {
+        "evidence": "MEASURED",
+        "interpreters": [
+          "<VENV_BIN>/python3.10"
+        ],
+        "required": true,
+        "status": "FAIL",
+        "summary": "1/1 Tests Passed | Line: 71.4%, Func: 100.0%, Branch: 100.0% -> TEM: 4.46 / 5.0",
+        "targets": [
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Test passed successfully",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "tests/test_app.py::test_f"
+          },
+          {
+            "file_path": ".",
+            "message": "Overall line coverage 71.4% is below the configured minimum 80.0%",
+            "start_line": 1,
+            "status": "WARN",
+            "target_name": "Coverage:Overall line"
+          },
+          {
+            "file_path": ".",
+            "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Functions"
+          },
+          {
+            "file_path": "app.py",
+            "message": "Function f was exercised by the aggregate project test suite",
+            "start_line": 1,
+            "status": "PASS",
+            "target_name": "Coverage:Function:f"
+          },
+          {
+            "file_path": "tests/test_app.py",
+            "message": "Function test_f was exercised by the aggregate project test suite",
+            "start_line": 4,
+            "status": "PASS",
+            "target_name": "Coverage:Function:test_f"
+          }
+        ]
+      },
+      "exit_code": 1,
+      "ici_python": null,
+      "path": [
+        "<FAKE>",
+        "<VENV_BIN>"
+      ],
+      "venv": false
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "test": "import app\n\n\ndef test_f():\n    assert app.f(1) == 2\n"
+}

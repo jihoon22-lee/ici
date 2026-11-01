@@ -255,6 +255,9 @@ pub(crate) fn component(
         required: true,
         build: text(body, "build"),
         needs: strings(body, "needs"),
+        python_executable_key: python_executable
+            .as_ref()
+            .map(|_| runtime_origin.key.clone()),
         python_executable,
         python_type_provider,
         test_paths,

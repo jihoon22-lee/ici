@@ -1,0 +1,25 @@
+{
+  "app": "def f(x):\n    if x:\n        return 1\n    return 2\n\n\ndef g():\n    return 3\n",
+  "runs": {
+    "legacy": {
+      "config": "[ici]\nprofile = \"standard\"\n[project]\nsource_dirs = [\".\"]\n[engines]\n[engines.test]\nenabled = true\nrequired = true\npython = \"<PYTHON>\"\nmin_line_cov = 99.0\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n",
+      "engines": {
+        "test": "FAIL"
+      },
+      "exit_code": 1,
+      "suite_status": "FAIL"
+    },
+    "next_v1_engines": {
+      "config": "schema_version = 1\n[workspace]\nname = 'w'\nprofile = 'standard'\n[[components]]\nid = 'project'\nroot = '.'\nlanguages = ['python']\n[engines.test]\nmin_line_cov = 99.0\n",
+      "exit_code": 2,
+      "stderr": "ici-next: [workspace] config found \u2014 running the next engine path (`ici next verify` is the same run)\nconfig: <ROOT>/ici.toml: engines: unknown key"
+    },
+    "sparse_v2": {
+      "config": "schema_version = 2\n[engines.test]\nmin_line_cov = 99.0\n",
+      "exit_code": 2,
+      "stderr": "Configuration error: schema_version is an unknown configuration key"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "test": "import app\n\n\ndef test_f():\n    assert app.f(1) == 1\n"
+}

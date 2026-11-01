@@ -170,6 +170,17 @@ fn quality_repeat_without_per_test_verdicts_is_the_frozen_collection_warning() {
     compare("quiet_repeat");
 }
 
+/// Distinct repeat failure modes: a later repeat times out after a bounded one (the bounded
+/// repeat still counts), a repeat killed by a signal keeps its negative return code, and a
+/// quiet repeat that fails (exit 1) still has no per-test collection evidence.
+#[test]
+#[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
+fn later_timeout_signal_and_failing_quiet_repeats_are_the_frozen_repeat_warnings() {
+    compare("timeout_third");
+    compare("signal");
+    compare("quiet_failing_repeat");
+}
+
 #[test]
 #[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
 fn missing_mutation_tool_is_the_frozen_skip_without_a_probe() {

@@ -204,7 +204,25 @@ pub fn observe_for(
         }
         .into();
     }
-    let provenance=plan.tasks.iter().map(|task|json!({"task_id":task.id,"argv":task.argv,"cwd":task.cwd,"state":outcomes.get(&task.id).map(|o|o.state),"exit_code":outcomes.get(&task.id).and_then(|o|o.exit_code)})).collect::<Vec<_>>();
+    let provenance = plan
+        .tasks
+        .iter()
+        .map(|task| {
+            let outcome = outcomes.get(&task.id);
+            let mut step = json!({"task_id":task.id,"argv":task.argv,"cwd":task.cwd,"state":outcome.map(|o|o.state),"exit_code":outcome.and_then(|o|o.exit_code)});
+            // Bounded-process problems stay distinguishable from an exit status (frozen
+            // `_process_problem`: timed out, output exceeded the bound, exit code N).
+            for (flag, set) in [
+                ("timed_out", outcome.is_some_and(|o| o.timed_out)),
+                ("truncated", outcome.is_some_and(|o| o.truncated)),
+            ] {
+                if set {
+                    step[flag] = json!(true);
+                }
+            }
+            step
+        })
+        .collect::<Vec<_>>();
     output.extra["steps"] = json!(provenance);
     output.extra["conditional_steps"] = json!(plan.conditional_steps);
     crate::python_coverage::annotate(plan, outcomes, &mut output);

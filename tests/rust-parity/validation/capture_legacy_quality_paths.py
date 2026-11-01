@@ -1,8 +1,9 @@
 """Development-only capture: frozen legacy deep `ici verify` test-quality repeat/mutation paths.
 
 A conftest counts pytest sessions in a state file next to it, so the second session (the first
-quality repeat) can time out, exit outside 0/1, or print no per-test verdict, and the first
-session (the base suite) can print no per-test verdict. Mutation capability is probed with no
+quality repeat) can time out, exit outside 0/1, be killed by a signal, or print no per-test
+verdict (passing or failing), a third session can time out after a bounded second one, and the
+first session (the base suite) can print no per-test verdict. Mutation capability is probed with no
 tool on PATH, a succeeding command and a failing command.
 """
 
@@ -25,14 +26,20 @@ CONFTEST = (
     "    run = int(STATE.read_text()) + 1 if STATE.exists() else 1\n"
     "    STATE.write_text(str(run))\n"
     "    config.ici_run = run\n"
-    "    if (MODE == 'quiet_repeat' and run == 2) or (MODE == 'quiet_base' and run == 1):\n"
+    "    if (MODE in ('quiet_repeat', 'quiet_failing_repeat') and run == 2) or (\n"
+    "        MODE == 'quiet_base' and run == 1\n"
+    "    ):\n"
     "        config.option.verbose = -1\n\n\n"
     "def pytest_runtest_call(item):\n"
     "    run = item.config.ici_run\n"
-    "    if MODE == 'timeout' and run == 2:\n"
+    "    if (MODE == 'timeout' and run == 2) or (MODE == 'timeout_third' and run == 3):\n"
     "        time.sleep(30)\n"
     "    if MODE == 'exit' and run == 2:\n"
     "        os._exit(7)\n"
+    "    if MODE == 'signal' and run == 2:\n"
+    "        os.kill(os.getpid(), 9)\n"
+    "    if MODE == 'quiet_failing_repeat' and run == 2:\n"
+    "        raise AssertionError('repeat failure')\n"
 )
 TEST = "def test_ok():\n    assert 1 + 1 == 2\n"
 # scenario: (conftest mode, extra [engines.test.quality] lines)
@@ -41,6 +48,11 @@ SCENARIOS = {
     "exit": ("exit", "repeat_runs = 2\n"),
     "quiet_repeat": ("quiet_repeat", "repeat_runs = 2\n"),
     "quiet_base": ("quiet_base", "repeat_runs = 2\n"),
+    # Distinct failure modes: a later repeat times out after a bounded one, a repeat is
+    # killed by a signal (negative return code), a quiet repeat fails (exit 1).
+    "timeout_third": ("timeout_third", "repeat_runs = 3\ntimeout = 2\n"),
+    "signal": ("signal", "repeat_runs = 2\n"),
+    "quiet_failing_repeat": ("quiet_failing_repeat", "repeat_runs = 2\n"),
     "mutation_missing": ("none", "[engines.test.quality.mutation]\nenabled = true\n"),
     "mutation_available": (
         "none",
