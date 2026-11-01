@@ -466,7 +466,8 @@ fn python_suite(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 report.to_string_lossy().into_owned(),
             ],
         );
-        reporting.kind = TaskKind::Prepare;
+        // Frozen python.coverage `coverage json` is not a prepare step: it is not `mutating`,
+        // so profile `fast` still runs it and the plan lists no mutating unit for it.
         reporting
             .input_refs
             .push(data.to_string_lossy().into_owned());

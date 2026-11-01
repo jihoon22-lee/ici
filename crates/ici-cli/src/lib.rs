@@ -15,6 +15,7 @@ pub mod legacy_lines;
 mod legacy_python_compat;
 mod legacy_scan_tests;
 mod legacy_support;
+mod plan_text;
 pub mod planning;
 pub mod preparation;
 pub mod publish;

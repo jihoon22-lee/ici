@@ -404,7 +404,7 @@ fn recorded_plan_differences_are_native_behaviour_not_silent_drift() {
             .as_array()
             .is_none_or(|gaps| !gaps.iter().any(|gap| gap
                 .as_str()
-                .is_some_and(|text| text.contains("was not selected")))),
+                .is_some_and(|text| text.contains("was not in the selected scope")))),
         "a full selection reports no unselected component"
     );
 
