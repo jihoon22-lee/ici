@@ -146,6 +146,86 @@ fn format_targets(items: &[Value], plan: &ProviderPlan) -> Result<Vec<Inspection
     Ok(targets)
 }
 
+/// Frozen `parse_stderr_warnings` for the capability probe.
+pub(crate) fn probe_stderr_warnings(text: &str) -> Result<Vec<String>, String> {
+    stderr_warnings(text)
+}
+
+/// Frozen `is_format_success_output`: nothing, or exactly the all-formatted tally.
+fn format_success_text(text: &str) -> bool {
+    let tally = Regex::new(r"\A\d+ files? already formatted(?:\r?\n)?\z").expect("constant regex");
+    text.trim().is_empty() || tally.is_match(text)
+}
+
+/// Frozen `parse_legacy_format_text`: `Would reformat: <path>` lines, then one tally whose count
+/// and units agree with the listed files. Anything else is not understood.
+fn legacy_format_paths(text: &str) -> Result<Vec<String>, String> {
+    let summary = Regex::new(
+        r"\A(?P<would>[1-9]\d*) (?P<would_unit>file|files) would be reformatted(?:, (?P<already>[1-9]\d*) (?P<already_unit>file|files) already formatted)?\z",
+    )
+    .expect("constant regex");
+    let lines: Vec<&str> = text.lines().collect();
+    let (last, earlier) = lines.split_last().ok_or("no output")?;
+    let tally = summary.captures(last).ok_or("no trailing summary")?;
+    if earlier.iter().any(|line| summary.is_match(line)) {
+        return Err("summary is not the final line".into());
+    }
+    let unit = |count: &str| if count == "1" { "file" } else { "files" };
+    let would = &tally["would"];
+    if &tally["would_unit"] != unit(would)
+        || tally
+            .name("already")
+            .is_some_and(|already| &tally["already_unit"] != unit(already.as_str()))
+    {
+        return Err("summary count does not agree with its unit".into());
+    }
+    let mut paths = vec![];
+    for line in earlier {
+        let path = line
+            .strip_prefix("Would reformat: ")
+            .filter(|path| !path.starts_with(char::is_whitespace) && !path.is_empty())
+            .ok_or_else(|| format!("unrecognized format line: {line:?}"))?
+            .trim();
+        paths.push(path.to_owned());
+    }
+    if paths.is_empty() || would.parse::<usize>().ok() != Some(paths.len()) {
+        return Err("summary count does not match the files listed".into());
+    }
+    Ok(paths)
+}
+
+/// Frozen `_evaluate_ruff_format(json_output=False)`: the text dialect of a formatter without
+/// JSON output. Each listed file is one `Format:Style` WARN at line 1.
+fn text_format_targets(
+    code: i32,
+    stdout: &str,
+    plan: &ProviderPlan,
+) -> Result<Vec<InspectionTarget>, String> {
+    if code == 1 && stdout.is_empty() {
+        return Err("Ruff format check failed without diagnostic output".into());
+    }
+    if code == 0 {
+        return if format_success_text(stdout) {
+            Ok(vec![])
+        } else {
+            Err("Ruff format output was not parseable".into())
+        };
+    }
+    let paths = legacy_format_paths(stdout)
+        .map_err(|_| "Ruff format output was not parseable".to_owned())?;
+    Ok(paths
+        .into_iter()
+        .map(|path| {
+            let mut target =
+                InspectionTarget::at(relative_location(&path, &plan.context).unwrap_or(path), 1);
+            target.target_name = "Format:Style".into();
+            target.status = "WARN".into();
+            target.message = "File requires reformatting (PEP 8 style mismatch)".into();
+            target
+        })
+        .collect())
+}
+
 /// Frozen `_evaluate_ruff_check` / `_evaluate_ruff_format(json_output=True)`.
 fn evaluate(
     plan: &ProviderPlan,
@@ -195,6 +275,9 @@ fn evaluate(
             (1, true) => Err("Ruff reported violations without any JSON findings".into()),
             _ => Ok(targets),
         };
+    }
+    if plan.context.legacy_text_format {
+        return text_format_targets(code, &stdout, plan);
     }
     let items: Vec<Value> = serde_json::from_str::<Value>(&stdout)
         .map_err(|error| error.to_string())

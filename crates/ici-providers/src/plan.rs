@@ -141,6 +141,15 @@ pub struct DiagnosticContext {
     /// Historical engine view (frozen target shapes); never set for modern plans.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub legacy: bool,
+    /// Legacy `ruff format`: the formatter has no JSON output, so its text dialect is read.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub legacy_text_format: bool,
+    /// Legacy `ruff format`: frozen's `ruff format capability` tool evidence record.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legacy_probe_evidence: Option<serde_json::Value>,
+    /// Legacy `ruff format`: the capability probe failed, so the formatter is not run.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legacy_probe_error: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderPlan {
@@ -490,6 +499,9 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             tool_version: request.tool.version.clone().unwrap_or_default(),
             source_coordinates: Default::default(),
             legacy: request.options.legacy,
+            legacy_text_format: false,
+            legacy_probe_evidence: None,
+            legacy_probe_error: None,
         },
         advisory: request.options.advisory,
         scope_complete: false,
@@ -667,6 +679,91 @@ pub(crate) fn relative_location(
     Ok(relative)
 }
 
+/// Frozen `_probe_ruff_format_json_support`: the legacy `ruff format` view first asks the
+/// installed Ruff's `format --help` whether the formatter answers in JSON. Visible as a probe
+/// task like the inventory; it reads help text only.
+pub fn ruff_format_capability_task(plan: &ProviderPlan) -> Result<TaskSpec, ProviderError> {
+    if plan.kind != ProviderKind::RuffFormat || !plan.context.legacy {
+        return Err(ProviderError(
+            "format capability is only probed for the legacy Ruff formatter".into(),
+        ));
+    }
+    let mut task = plan.task.clone();
+    task.id.push_str(".format-capability");
+    task.kind = TaskKind::Probe;
+    task.cacheable = false;
+    task.input_refs.clear();
+    task.argv = vec![plan.task.argv[0].clone(), "format".into(), "--help".into()];
+    task.timeout_seconds = Some(30.0);
+    task.validate()
+        .map_err(|error| ProviderError(error.to_string()))?;
+    Ok(task)
+}
+/// Frozen `_probe_ruff_format_json_support` and `format_supports_json`: record the probe as
+/// `ruff format capability` evidence, refuse the formatter on a failed probe (frozen returned the
+/// probe error without running it) and select the text dialect when `--output-format` is absent
+/// or only respected in preview mode.
+pub fn apply_ruff_format_capability(plan: &mut ProviderPlan, outcome: &ici_execution::TaskOutcome) {
+    let argv: Vec<String> = vec![plan.task.argv[0].clone(), "format".into(), "--help".into()];
+    let mut error = if outcome.timed_out {
+        "timed out".to_owned()
+    } else if outcome.truncated {
+        "output truncated".to_owned()
+    } else if outcome.exit_code.is_none_or(|code| code < 0) {
+        "process failed to start or terminated by signal".to_owned()
+    } else {
+        String::new()
+    };
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    let failure = if outcome.task_id != format!("{}.format-capability", plan.task.id) {
+        Some("Ruff format capability probe belongs to a different task".to_owned())
+    } else if outcome.timed_out {
+        Some("Ruff format capability probe timed out".to_owned())
+    } else if outcome.truncated {
+        Some("Ruff format capability probe output was truncated".to_owned())
+    } else if outcome.exit_code.is_none() && outcome.error.is_some() && !outcome.cancelled {
+        Some(format!(
+            "Ruff format capability probe could not execute: {}",
+            outcome.error.clone().unwrap_or_default()
+        ))
+    } else if outcome.cancelled || outcome.exit_code.is_none_or(|code| code < 0) {
+        Some("Ruff format capability probe terminated before producing a result".to_owned())
+    } else if outcome.exit_code != Some(0) {
+        Some(format!(
+            "Ruff format capability probe failed with exit code {}",
+            outcome.exit_code.unwrap_or_default()
+        ))
+    } else {
+        crate::diagnostics::legacy_stderr_warnings(&stderr)
+            .err()
+            .map(|warning| {
+                format!("Ruff format capability probe emitted unexpected stderr: {warning}")
+            })
+    };
+    if let Some(failure) = &failure {
+        error.clone_from(failure);
+        plan.context.legacy_probe_error = Some(failure.clone());
+    } else {
+        let preview_only = stdout
+            .to_lowercase()
+            .contains("only respected in preview mode");
+        if !stdout.contains("--output-format") || preview_only {
+            plan.context.legacy_text_format = true;
+            plan.task.argv.retain(|arg| arg != "--output-format=json");
+        }
+    }
+    plan.context.legacy_probe_evidence = Some(serde_json::json!({
+        "name": "ruff format capability",
+        "path": argv[0],
+        "version": plan.context.tool_version,
+        "argv": argv,
+        "returncode": outcome.exit_code,
+        "timed_out": outcome.timed_out,
+        "truncated": outcome.truncated,
+        "error": error,
+    }));
+}
 /// A separate inventory command is visible to plan/scheduler; analysis never silently probes.
 pub fn ruff_inventory_task(plan: &ProviderPlan) -> Result<TaskSpec, ProviderError> {
     if !matches!(plan.kind, ProviderKind::RuffLint | ProviderKind::RuffFormat) {

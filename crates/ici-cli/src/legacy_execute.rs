@@ -595,6 +595,7 @@ fn shape_engine(
                 .map_err(error)?;
             replaced = true;
         }
+        value["tool_evidence"] = missing_tool("ruff");
     } else if family == "type" && legacy_schema && mypy_unavailable(value) {
         // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
         // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
@@ -635,6 +636,7 @@ fn shape_engine(
             ));
             replaced = true;
         }
+        value["tool_evidence"] = missing_tool("mypy");
     } else if family == "test"
         && legacy_schema
         && let Some(reason) = refused_policy(value)
@@ -818,6 +820,12 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
 
 /// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
 /// refused at planning (a mixed C++ lint view keeps its native shape).
+/// Frozen `_record_missing_tool`: the evidence of a tool that was looked for and not run.
+fn missing_tool(name: &str) -> serde_json::Value {
+    serde_json::json!([{"name":name,"path":"","version":"","argv":[],"returncode":null,
+        "timed_out":false,"truncated":false,"error":"tool not found; no command was executed"}])
+}
+
 fn ruff_unavailable(engine: &serde_json::Value) -> bool {
     engine["extra"]["native_checks"]
         .as_array()

@@ -688,7 +688,13 @@ fn prepare_resolved_omitting(
             )
         })
         .map(|(id, provider)| {
-            ici_providers::plan::ruff_inventory_task(provider).map(|task| (id.clone(), task))
+            // The legacy formatter probes `ruff format --help` like frozen instead.
+            if provider.context.legacy && provider.kind == ProviderKind::RuffFormat {
+                ici_providers::plan::ruff_format_capability_task(provider)
+            } else {
+                ici_providers::plan::ruff_inventory_task(provider)
+            }
+            .map(|task| (id.clone(), task))
         })
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;

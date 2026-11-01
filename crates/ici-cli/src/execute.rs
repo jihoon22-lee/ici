@@ -734,7 +734,11 @@ pub fn execute(
                 None,
                 &state_label(outcome.state),
             );
-            if let Some(id) = outcome.task_id.strip_suffix(".files") {
+            if let Some(id) = outcome.task_id.strip_suffix(".format-capability")
+                && let Some(provider) = prepared.providers.get_mut(id)
+            {
+                ici_providers::plan::apply_ruff_format_capability(provider, &outcome);
+            } else if let Some(id) = outcome.task_id.strip_suffix(".files") {
                 let provider = prepared
                     .providers
                     .get_mut(id)
@@ -749,7 +753,22 @@ pub fn execute(
             }
         }
         let mut runnable = vec![];
-        for task in tasks {
+        for mut task in tasks {
+            // The legacy formatter's capability probe chose the text dialect after planning.
+            if let Some(provider) = prepared.providers.get(&task.id)
+                && provider.context.legacy_text_format
+            {
+                task.argv.clone_from(&provider.task.argv);
+            }
+            if let Some(mut output) = prepared
+                .providers
+                .get(&task.id)
+                .and_then(ici_providers::legacy_probe_refusal)
+            {
+                redact(&mut output)?;
+                outputs.insert(task.id.clone(), output);
+                continue;
+            }
             let mut hit = false;
             if let (Some(cache), Some(provider)) = (&cache, prepared.providers.get(&task.id)) {
                 match cache.provider_key(provider, &prepared.project.root, &snapshot, &runner) {

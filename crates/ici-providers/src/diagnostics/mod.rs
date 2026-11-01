@@ -13,6 +13,7 @@ use ici_domain::{
     AnalysisOutput, Finding, InspectionTarget, Observation, SourceSpan, TaskState, Validate, sha256,
 };
 use ici_execution::{TaskOutcome, redaction::redact_text};
+pub(crate) use legacy_ruff::probe_stderr_warnings as legacy_stderr_warnings;
 pub use python::ruff_inspected_files;
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -28,13 +29,70 @@ pub(super) struct Parsed {
 pub fn observe(plan: &ProviderPlan, outcome: &TaskOutcome) -> Observation {
     observe_full(plan, outcome).observation
 }
+/// Frozen `LintEngine._record_process`/`TypeCheckEngine._record_outcome` evidence of the one
+/// process a legacy Ruff or mypy view ran: its native argv (not frozen's), the resolved tool
+/// version when known (frozen recorded none), exit, timeout and truncation, and the first
+/// evaluation error as frozen set `tool_record.error = errors[0]`.
+fn legacy_tool_evidence(
+    plan: &ProviderPlan,
+    outcome: &TaskOutcome,
+    mut output: AnalysisOutput,
+) -> AnalysisOutput {
+    let name = match plan.kind {
+        ProviderKind::RuffLint => "ruff check",
+        ProviderKind::RuffFormat => "ruff format",
+        _ => "mypy",
+    };
+    let error = if outcome.timed_out {
+        "timed out".to_owned()
+    } else if outcome.truncated {
+        "output truncated".to_owned()
+    } else if outcome.exit_code.is_none_or(|code| code < 0) {
+        "process failed to start or terminated by signal".to_owned()
+    } else if output.status == "ERROR" {
+        output.summary.clone()
+    } else {
+        String::new()
+    };
+    let argv: Vec<String> = plan.task.argv.iter().map(|arg| redact_text(arg)).collect();
+    let probe = plan.context.legacy_probe_evidence.iter().cloned();
+    output.extra["tool_evidence"] = Value::Array(
+        probe
+            .chain([serde_json::json!({
+                "name": name,
+                "path": argv.first().cloned().unwrap_or_default(),
+                "version": plan.context.tool_version,
+                "argv": argv,
+                "returncode": outcome.exit_code,
+                "timed_out": outcome.timed_out,
+                "truncated": outcome.truncated,
+                "error": error,
+            })])
+            .collect(),
+    );
+    output
+}
+
+/// A legacy `ruff format` whose capability probe failed is not run (frozen returned the probe
+/// error); its result is that tool error with the probe evidence.
+pub fn legacy_probe_refusal(plan: &ProviderPlan) -> Option<AnalysisOutput> {
+    let reason = plan.context.legacy_probe_error.as_ref()?;
+    let mut output = AnalysisOutput::new(&plan.task.id, plan.kind.name());
+    output.observation.state = TaskState::Failed;
+    output.observation.limitations = vec![reason.clone()];
+    output.status = "ERROR".into();
+    output.summary = reason.clone();
+    output.extra["tool_evidence"] =
+        Value::Array(plan.context.legacy_probe_evidence.iter().cloned().collect());
+    Some(output)
+}
 pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutput {
     if plan.context.legacy && plan.kind == ProviderKind::Mypy {
-        return legacy::mypy(plan, outcome);
+        return legacy_tool_evidence(plan, outcome, legacy::mypy(plan, outcome));
     }
     if plan.context.legacy && matches!(plan.kind, ProviderKind::RuffLint | ProviderKind::RuffFormat)
     {
-        return legacy_ruff::ruff(plan, outcome);
+        return legacy_tool_evidence(plan, outcome, legacy_ruff::ruff(plan, outcome));
     }
     let mut result = AnalysisOutput::new(&plan.task.id, plan.kind.name());
     let observation = &mut result.observation;

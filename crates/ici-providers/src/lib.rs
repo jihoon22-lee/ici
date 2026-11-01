@@ -7,7 +7,7 @@ pub mod resolver;
 #[error("{0}")]
 pub struct ProviderError(pub String);
 pub use coordinates::{SourceCoordinates, attach_sources, source_coordinates};
-pub use diagnostics::{observe, observe_full};
+pub use diagnostics::{legacy_probe_refusal, observe, observe_full};
 pub use plan::{
     DiagnosticContext, NativeOptions, ProviderKind, ProviderPlan, ProviderRequest, plan,
     transform_compiler_argv,

@@ -169,6 +169,11 @@ fn single_engine_reports_carry_the_frozen_support_matrix() {
                 report["cache_hit"], report["cache_key"]
             ));
         }
+        failures.extend(evidence_differences(
+            name,
+            &report["tool_evidence"],
+            &frozen["tool_evidence"],
+        ));
         if report["artifact_manifests"] != frozen["artifact_manifests"] {
             failures.push(format!(
                 "{name}: artifact_manifests {}",
@@ -188,6 +193,59 @@ fn single_engine_reports_carry_the_frozen_support_matrix() {
         ));
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+/// Frozen tool evidence records: the same processes in order with frozen's names, exits, errors
+/// and (empty) versions. Native argv is its own, so only the subcommand is compared.
+fn evidence_differences(name: &str, actual: &Value, frozen: &Value) -> Vec<String> {
+    let keys = [
+        "name",
+        "returncode",
+        "timed_out",
+        "truncated",
+        "error",
+        "version",
+    ];
+    let pick = |items: &Value| -> Vec<Value> {
+        items
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .map(|item| {
+                        let mut picked: serde_json::Map<String, Value> = keys
+                            .iter()
+                            .map(|key| ((*key).to_owned(), item[*key].clone()))
+                            .collect();
+                        // Ruff records name their subcommand; mypy argv is native's own.
+                        if item["name"]
+                            .as_str()
+                            .is_some_and(|name| name.starts_with("ruff "))
+                        {
+                            picked.insert("subcommand".into(), item["argv"][1].clone());
+                        }
+                        // ADR-0008: the runtime metadata probe is the allowlisted fixed script
+                        // (`-I -c ...`), where frozen ran `python -VV`; same position, version
+                        // and exit, a different record name.
+                        if item["name"] == "python runtime metadata" || item["name"] == "python -VV"
+                        {
+                            picked.insert("name".into(), Value::from("<runtime metadata>"));
+                        }
+                        Value::Object(picked)
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    if pick(actual) == pick(frozen) {
+        vec![]
+    } else {
+        vec![format!(
+            "{name}: tool_evidence {:?} != {:?}",
+            pick(actual),
+            pick(frozen)
+        )]
+    }
 }
 
 /// Frozen `_require_digest`: a cache key is null or `sha256:` and 64 lowercase hex digits.
@@ -275,6 +333,11 @@ fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices
                 if result["support_matrix"] != Value::Null {
                     failures.push(format!("{at}: result support_matrix is not null"));
                 }
+                failures.extend(evidence_differences(
+                    &at,
+                    &result["tool_evidence"],
+                    &expected["tool_evidence"],
+                ));
                 if result["artifact_manifests"] != serde_json::json!([]) {
                     failures.push(format!(
                         "{at}: artifact_manifests {}",
