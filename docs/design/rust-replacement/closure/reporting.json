@@ -894,23 +894,32 @@
    ]
   },
   "command:ici verify": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-cli/src/cutover.rs",
+    "crates/ici-cli/src/run_text.rs",
     "crates/ici-domain/src/result.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
+    "positive": [
+     "crates/ici-cli/tests/verify_cutover.rs::workspace_verify_runs_the_next_path_and_composes_outputs_like_frozen_cutover"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/verify_cutover.rs::legacy_schema_verify_keeps_the_historical_suite"
+    ],
     "failure": [
      "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
     ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log",
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_verify_cutover.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/verify-cutover-oracle.json` (frozen v0.13.0); 7 cases; /tmp/ici-rust-replacement-20261028/w-reporting2-cutover-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test verify_cutover --test wire_schemas -- --include-ignored --test-threads=2`; EXIT 0, 2+6 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-cutover.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: every ici-cli test file that invokes `verify` (30 files incl. native_cpp, legacy_verify_matrix, legacy_gcov_cli, pytest_next_parity) `cargo test -p ici-cli --locked -j2 --test … --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 136 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting2-verify-users.log"
    ],
-   "comparison": "Exit-code and legacy suite-verdict facet only (reporting area): the legacy verify view keeps the frozen suite ERROR verdict and the frozen integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0). Legacy engine commands use the same rule through legacy_execute.rs: the frozen engine class (ici_reporting::legacy_exit_code) only raises the run exit, except frozen measured verdicts that the view reproduces. Other verify facets belong to the other areas.",
-   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
+   "comparison": "Reporting facet: exit code, suite verdict and the `[workspace]` cutover (frozen __main__.verify + cli/cutover.py, read in full). A root whose ici.toml declares [workspace] runs the next path: stable-only options (--fail-on-new, --write-baseline, --github-summary, --verbose, --max-findings other than 5, --group-by other than engine) are refused with the frozen stderr list and exit 2 before anything runs; otherwise stderr carries the frozen `ici-next: [workspace] config found …` notice, stdout the frozen next-verify frame, --report saves the ici.next.run result as verify_report.json, --sarif/--html compose `wrote <path>` from the stored result, --open/--publish use the same page, and a publish failure ends with publish's exit. Seven frozen captures compare exit, stderr byte for byte, the frame/wrote lines and every written artifact's schema. A legacy or configless root keeps the historical v3 suite. Legacy-path exit rule as before: the legacy verify view keeps the frozen suite ERROR verdict and integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0); legacy engine commands raise it only through ici_reporting::legacy_exit_code. Defect fixed: native `ici verify` on a [workspace] root ran the historical suite path and printed the raw-JSON console. Other verify facets belong to the other areas.",
+   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1). Cutover differences: the next result lives in the native .ici/rust-v1 namespace (frozen .ici/next); native next-verify lines after `saved` (HTML location, finding preview) also appear; a browser launch failure is reported on stderr where frozen webbrowser.open stayed silent."
   },
   "capability:wire-result-events": {
    "status": "complete",

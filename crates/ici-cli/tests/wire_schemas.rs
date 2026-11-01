@@ -634,13 +634,14 @@ fn legacy(root: &Path, command: &str) -> Value {
 
 #[test]
 fn native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema() {
+    // No `[workspace]`: frozen cutover sends `ici verify` on a next workspace to the next path,
+    // so the historical suite comes from a configless (automatic) project.
     let work = python_project();
-    fs::write(
-        work.path().join("ici.toml"),
-        "schema_version=1\n[workspace]\nname=\"wire\"\n[[components]]\nid=\"project\"\nroot=\".\"\nlanguages=[\"python\"]\n",
-    )
-    .unwrap();
+    let config = work.path().join("ici.toml");
+    let workspace = fs::read(&config).unwrap();
+    fs::remove_file(&config).unwrap();
     let suite = legacy(work.path(), "verify");
+    fs::write(&config, workspace).unwrap();
     assert_eq!(suite["schema_version"], "ici.result/v3");
     assert!(suite["results"].as_array().unwrap().len() > 3);
     sample("ici-result-v3", "native-verify-suite", &suite, true);

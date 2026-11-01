@@ -16,6 +16,9 @@ pub fn command(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
+    if crate::cutover::applies(invocation, cwd, environment) {
+        return crate::cutover::verify(invocation, cwd, environment);
+    }
     if invocation.flag("fail_on_new") && invocation.value("baseline").is_none() {
         return Err(CliError("--fail-on-new requires --baseline".into()));
     }
@@ -632,7 +635,11 @@ fn shape_engine(
     Ok((replaced, exit_code))
 }
 
-fn open_page(path: &Path, root: &Path, environment: &BTreeMap<String, String>) -> Result<()> {
+pub(crate) fn open_page(
+    path: &Path,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Result<()> {
     let tool = ici_providers::resolver::ToolRequest {
         id: "xdg-open".into(),
         explicit: None,

@@ -1,0 +1,153 @@
+{
+ "cases": {
+  "fail_on_new": {
+   "steps": [
+    {
+     "argv": [
+      "verify",
+      "--fail-on-new",
+      "--baseline",
+      "b.json"
+     ],
+     "exit_code": 2,
+     "files": {},
+     "stderr": "this workspace declares a [workspace] config, so `ici verify` runs the next engine path — and these stable-only options do not apply:\n  --fail-on-new — use `ici next verify --baseline <run>` compares; gate on `ici next diff`\n",
+     "stdout": ""
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "html": {
+   "steps": [
+    {
+     "argv": [
+      "verify",
+      "--html",
+      "page.html"
+     ],
+     "exit_code": 1,
+     "files": {
+      ".ici/next/result.json": "ici.next.run",
+      "page.html": null
+     },
+     "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\n",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\nsaved <root>/.ici/next/result.json\nwrote <root>/page.html\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "max_findings_default": {
+   "steps": [
+    {
+     "argv": [
+      "verify",
+      "--max-findings",
+      "5"
+     ],
+     "exit_code": 1,
+     "files": {
+      ".ici/next/result.json": "ici.next.run"
+     },
+     "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\n",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\nsaved <root>/.ici/next/result.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "plain": {
+   "steps": [
+    {
+     "argv": [
+      "verify"
+     ],
+     "exit_code": 1,
+     "files": {
+      ".ici/next/result.json": "ici.next.run"
+     },
+     "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\n",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\nsaved <root>/.ici/next/result.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "report": {
+   "steps": [
+    {
+     "argv": [
+      "verify",
+      "--report"
+     ],
+     "exit_code": 1,
+     "files": {
+      "verify_report.json": "ici.next.run"
+     },
+     "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\n",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\nsaved <root>/verify_report.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "sarif": {
+   "steps": [
+    {
+     "argv": [
+      "verify",
+      "--sarif",
+      "out.sarif"
+     ],
+     "exit_code": 1,
+     "files": {
+      ".ici/next/result.json": "ici.next.run",
+      "out.sarif": "2.1.0"
+     },
+     "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\n",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\nsaved <root>/.ici/next/result.json\nwrote <root>/out.sarif\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "stable_only": {
+   "steps": [
+    {
+     "argv": [
+      "verify",
+      "--verbose",
+      "--group-by",
+      "file",
+      "--write-baseline",
+      "b.json"
+     ],
+     "exit_code": 2,
+     "files": {},
+     "stderr": "this workspace declares a [workspace] config, so `ici verify` runs the next engine path — and these stable-only options do not apply:\n  --write-baseline — use save a run (`--result`) and pass it back as `--baseline`\n  --verbose\n  --group-by\n",
+     "stdout": ""
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "root_placeholder": "<root>"
+}
