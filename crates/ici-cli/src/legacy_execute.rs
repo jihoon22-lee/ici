@@ -369,9 +369,14 @@ pub fn command(
         } else {
             stdout.push_str(&markdown);
         }
-        for annotation in ici_reporting::github_annotations(&stored, &options).map_err(error)? {
-            stdout.push_str(&annotation);
-            stdout.push('\n');
+        // Frozen: workflow commands only inside GitHub Actions, built from the suite's targets.
+        if environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true") {
+            for annotation in
+                ici_reporting::legacy_github_annotations(&stored, &options).map_err(error)?
+            {
+                stdout.push_str(&annotation);
+                stdout.push('\n');
+            }
         }
     }
     let mut stderr = String::new();

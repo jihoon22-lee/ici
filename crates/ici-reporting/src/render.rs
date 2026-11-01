@@ -650,6 +650,106 @@ pub fn github_annotations(stored: &StoredResult, options: &RenderOptions) -> Res
         .collect())
 }
 
+/// Frozen `markdown.emit_github_actions_annotations` over a historical suite: every FAIL/ERROR/
+/// WARN/SKIP target (not findings), new/regressed baseline locations first, then FAIL/ERROR,
+/// then report order; at most `max_annotations` lines plus the omitted-count notice. Text is
+/// redacted at this boundary like the frozen `redact_suite`.
+pub fn legacy_github_annotations(
+    stored: &StoredResult,
+    options: &RenderOptions,
+) -> Result<Vec<String>> {
+    let data = |text: &str| {
+        ici_execution::redaction::redact_text(text)
+            .replace('%', "%25")
+            .replace('\r', "%0D")
+            .replace('\n', "%0A")
+    };
+    let property = |text: &str| data(text).replace(':', "%3A").replace(',', "%2C");
+    let StoredResult::Legacy(legacy) = stored else {
+        return github_annotations(stored, options);
+    };
+    let document = legacy.as_value();
+    let mut changed = std::collections::BTreeSet::<(String, u64)>::new();
+    for entry in document["baseline_comparison"]["entries"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+    {
+        if (entry["state"] == "new" || entry["regressed"] == true)
+            && let (Some(path), Some(line)) = (
+                entry["current_location"]["path"].as_str(),
+                entry["current_location"]["start_line"].as_u64(),
+            )
+        {
+            changed.insert((path.to_owned(), line));
+        }
+    }
+    let mut candidates = vec![];
+    for (result_index, result) in document["results"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .enumerate()
+    {
+        for (target_index, target) in result["targets"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .enumerate()
+        {
+            let status = target["status"].as_str().unwrap_or("");
+            if !matches!(status, "FAIL" | "ERROR" | "WARN" | "SKIP") {
+                continue;
+            }
+            let path = target["file_path"].as_str().unwrap_or("").to_owned();
+            let line = target["start_line"].as_u64().unwrap_or(1);
+            let key = (
+                !changed.contains(&(path.clone(), line)),
+                !matches!(status, "FAIL" | "ERROR"),
+                result_index,
+                target_index,
+            );
+            candidates.push((
+                key,
+                status,
+                path,
+                line,
+                plain(&result["engine_name"]),
+                plain(&target["message"]),
+            ));
+        }
+    }
+    candidates.sort_by_key(|candidate| candidate.0);
+    let mut lines: Vec<String> = candidates
+        .iter()
+        .take(options.max_annotations)
+        .map(|(_, status, path, line, engine, message)| {
+            format!(
+                "::{} file={},line={}::[{}] {}",
+                if matches!(*status, "FAIL" | "ERROR") {
+                    "error"
+                } else {
+                    "warning"
+                },
+                property(path),
+                property(&line.to_string()),
+                data(engine),
+                data(message)
+            )
+        })
+        .collect();
+    let omitted = candidates.len() - candidates.len().min(options.max_annotations);
+    if omitted > 0 {
+        lines.push(format!(
+            "::notice::{}",
+            data(&format!("{omitted} additional ici annotation(s) omitted from this bounded workflow view; the JSON and HTML reports retain the full inventory"))
+        ));
+    }
+    Ok(lines)
+}
+
 pub(crate) fn rich(value: &Value, out: &mut String) -> Result<()> {
     match value {
         Value::Object(items) => {
