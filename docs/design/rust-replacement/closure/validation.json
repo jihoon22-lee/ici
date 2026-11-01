@@ -1448,7 +1448,8 @@
    "comparison": "'Coverage:Changed lines' over start..end of the selection with requested/covered/executable/non_executable line metrics and default threshold 100; the passing golden (src/calc.py:2-4 -> 66.7%) matches target, metrics and fingerprint; overlapping or out-of-scope selections are refused at plan time.",
    "evidence": [
     "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
-    "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log"
+    "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-validation --locked -j2 --test contracts coverage_policy -- --include-ignored` passed (log /tmp/ici-rust-replacement-20261028/w-dec-coverage-policy.log); legacy_test_parity.rs passed with ICI_TEST_PYTHON in /tmp/ici-rust-replacement-20261028/w-dec-coverage.log."
    ],
    "fixtures": {
     "failure": [
@@ -1465,7 +1466,8 @@
     "crates/ici-validation/src/policy.rs",
     "crates/ici-reporting/src/projection.rs"
    ],
-   "status": "complete"
+   "status": "complete",
+   "difference_reason": "Decisions-worker audit: native changed-line selections must name a file of the captured source scope with a canonical path:line[-line]; frozen accepted any regular project file (an out-of-scope one became a 'no executable measured lines' ERROR target) and worded its refusals differently ('must use canonical path:line…', 'duplicates or overlaps an earlier entry', 'range is reversed'). Native refuses all of these at plan time; the legacy view keeps frozen's 'Coverage:Policy configuration' identity and ERROR/exit 1 (legacy_test_parity.rs changed_invalid). Pinned in contracts.rs::coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominators."
   },
   "finding_site:src/ici/engines/integration.py:233:24": {
    "comparison": "Empty optional scope: SKIP status, summary 'Integration analysis not applicable: no cases configured', located Integration:NotApplicable target at the declaring file line 1, extra.integration {state NOT_APPLICABLE, cases []}, NOT_APPLICABLE evidence; required empty scope stays incomplete (frozen: required engine has no cases -> error).",
@@ -2286,7 +2288,7 @@
   },
   "src/ici/engines/coverage_policy.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding sites 165:11, 198:12, 218:16, 264:12, 316:16 complete; 247:12 and 297:20 difference_review.",
+   "reason": "Read in full but not mapped: the row bound differs. Complete 335-line module read (decisions worker 2026-11-02). parse_changed_lines maps to ici_validation::policy::changed_lines (canonical path:line[-line], 10 000-line bound, overlap/reversed refusal; scope narrowing and wording recorded on 316:16); build_changed_line_status (executed lines never downgraded, missing lines executable-but-uncovered, positive non-bool integers only) maps to coverage::parse_python/gcov line maps; _number/min_file_statements validation maps to the config schema rows; evaluate_coverage_policy (Overall line, per-file >= min_file_statements, Functions aggregate, per-function targets in (file, line, column, name) order, Changed lines with the no-executable case) maps to policy::evaluate_suite and threshold_target, pinned field-for-field by the legacy goldens on rows 165:11/198:12/218:16/247:12/264:12/297:20/316:16. Logs: /tmp/ici-rust-replacement-20261028/w-dec-coverage-policy.log, w-dec-coverage.log. Bound difference: frozen refused more than 10 000 coverage-file or function rows ('coverage inventory exceeds the bounded 10000-row limit'); native bounds the decoded coverage report at 16 384 files (coverage.rs 'coverage file limit exceeded') and has no separate function-row bound — not pinned by a fixture.",
    "requirements": [
     "finding_site:src/ici/engines/coverage_policy.py:165:11",
     "finding_site:src/ici/engines/coverage_policy.py:198:12",
@@ -2366,7 +2368,7 @@
   },
   "src/ici/engines/test_output.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding site 226:24 complete (root-accepted summary-count exit 3); 83:20, 146:16, 195:16 difference_review (root-accepted fabricated-coverage and location differences, not yet moved to complete).",
+   "reason": "Complete 235-line module read (decisions worker 2026-11-02). Mapped behaviours: per-node targets and messages (195:16), summary-count fallback refused as incomplete (226:24, accepted), unittest case targets (146:16), the located 'No tests collected' FAIL for exit 5 / exit 0 without cases (83:20), and the all-skipped exception (skipped >= total is not a tool error) now equal to frozen in both views (check:python.test, D2). Open: the frozen legacy ERROR summaries of _parse_pytest_result are not pinned — frozen 'Pytest returned success without parseable test results' (exit 0, no evidence), 'Pytest failed with exit code N' (exit outside 0/1) and 'Pytest returned failure without parseable diagnostics' (exit 1 without a failure) versus native 'pytest exit1 carried no attributable failure' and the generic contract refusals (only python_sanitize.rs reuses the first frozen text); the `collected N items` total fallback is likewise not compared. Needs a frozen capture of these three legacy `ici test` ERROR summaries or a recorded wording difference.",
    "requirements": [
     "finding_site:src/ici/engines/test_output.py:83:20",
     "finding_site:src/ici/engines/test_output.py:146:16",

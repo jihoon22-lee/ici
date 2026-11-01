@@ -394,6 +394,13 @@ fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominato
     assert_eq!(output.observation.findings.len(), 3);
     request.options.changed_lines = vec!["main.py:1-2".into(), "main.py:2".into()];
     assert!(plan(&request).is_err());
+    // A project file outside the captured source scope, a reversed range and a non-canonical
+    // line are refused at plan time (frozen refused them as a policy configuration error, or
+    // reported an out-of-scope file as having no executable measured lines).
+    for spec in ["README.md:1", "main.py:3-2", "main.py:03", "./main.py:1"] {
+        request.options.changed_lines = vec![spec.into()];
+        assert!(plan(&request).is_err(), "{spec}");
+    }
     request.options.changed_lines = vec!["main.py:99".into()];
     let planned = plan(&request).unwrap();
     let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");
