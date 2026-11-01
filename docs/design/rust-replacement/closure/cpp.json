@@ -8170,6 +8170,138 @@
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen languages/artifacts.py verify_artifacts: per declared glob under the build directory, strict resolve (dangling link = no match), outside-workspace match = artifact.invalid, directory-only match counted, no regular file = artifact.missing with detail 'the build directory is absent' / 'only N non-file match(es)' / 'no match under the build directory'; findings MEASURED, high/high, at build.directory, raw fingerprint 'artifact-'+sha1('<kind>:<build>:<pattern|path>')[:16]. Rust crates/ici-cli/src/cpp.rs::analyze_contract now matches every message (Python repr of the pattern, detail texts, the invalid tail), the location, evidence, raw fingerprint, the dangling-link skip and artifacts.satisfied/produced metrics on all oracle cases; the gate (advisory PASS exit 0, required FAIL exit 1) matches. This site: _invalid.",
       "difference_reason": "Open (cross-area): (1) the envelope fingerprint still differs because Rust attribution (crates/ici-application/src/verification.rs via PlannedCheck::analysis_units default '<component>.<language>') sets analysis_unit_id 'app.cpp' on internal-check findings while frozen finding_identity.attribute leaves internal checks (planned.task None) unattributed; with that single input the frozen raw id yields the Rust id exactly (asserted). Also the Rust check record has variant null where frozen records 'release'. (2) frozen rejects `[builds.<id>] directory = \".\"` ('config: build directory must name a path below the root', exit 2) while Rust accepts it (ici-config) and locates findings at the declaration file."
+    },
+    "finding_site:src/ici/adapters/providers/tidy.py:95:16": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen `ici next` ClangTidyProvider.parse finding (rule_id clang_tidy.<check>, medium/high, workspace-relative path, line/column, native_rule_id) is not compared against the Rust provider diagnostics normalizer (crates/ici-providers/src/diagnostics/mod.rs formats the same clang_tidy.<rule> id) on a real clang-tidy transcript yet.",
+      "difference_reason": "Open: no frozen capture of ClangTidyProvider.parse over a real clang-tidy run; the Rust rule-id spelling matches by source reading only."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:274:11": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, _target InspectionTarget (target_name/metrics)) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:287:11": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, Qt codegen Finding (rule_id)) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:356:20": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, QtCodegenBudgetError target) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:395:12": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, QtCodegenBudgetError target) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:692:12": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, ui/moc target with qt_major/compile_replay metrics) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:747:11": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, qrc target with compile_replay metric) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:778:11": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, moc target with compile_replay metric) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:808:11": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, generated-code target with compile_replay metric) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:856:12": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, QtCodegenContextError target) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
+    },
+    "finding_site:src/ici/analysis/_qt_codegen.py:876:12": {
+      "status": "not_started",
+      "rust_paths": [],
+      "fixtures": {
+        "positive": [],
+        "negative": [],
+        "failure": []
+      },
+      "evidence": [],
+      "comparison": "Frozen LintEngine Qt generated-code verification (verify_qt_codegen, QtCodegenContextError target) has no Rust producer: crates/ici-cli and ici-cpp contain no moc/uic/rcc linkage or Qt major-version check.",
+      "difference_reason": "Open (not implemented): Rust lint does not verify Qt moc/uic/rcc generated-code linkage or Qt major-version evidence; no frozen capture exists (needs a Qt fixture with Q_OBJECT/.ui/.qrc inputs and an exact compilation database)."
     }
   },
   "source_files": {
@@ -8711,6 +8843,51 @@
       "disposition": "unreviewed",
       "requirements": [],
       "reason": "Unreviewed: Open: qmake capture/recorder site not compared with frozen at this site. Exact frozen hash 32cd3f66098ae1600245b321f1112d516a2df4e0f1359862ff5aef2c8e1824d5 and 12 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+    },
+    "src/ici/adapters/providers/tidy.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "finding_site:src/ici/adapters/providers/tidy.py:95:16"
+      ],
+      "reason": "Unreviewed: Open: ClangTidyProvider plan/parse not compared with frozen on a real clang-tidy transcript. Exact frozen hash fb286212a0b006bfdafccbd3f9e809139bb153bb5aeefc36a6afaf4f72a0eafd and 5 symbols retained for full C++ source review."
+    },
+    "src/ici/analysis/_qt_codegen.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "finding_site:src/ici/analysis/_qt_codegen.py:274:11",
+        "finding_site:src/ici/analysis/_qt_codegen.py:287:11",
+        "finding_site:src/ici/analysis/_qt_codegen.py:356:20",
+        "finding_site:src/ici/analysis/_qt_codegen.py:395:12",
+        "finding_site:src/ici/analysis/_qt_codegen.py:692:12",
+        "finding_site:src/ici/analysis/_qt_codegen.py:747:11",
+        "finding_site:src/ici/analysis/_qt_codegen.py:778:11",
+        "finding_site:src/ici/analysis/_qt_codegen.py:808:11",
+        "finding_site:src/ici/analysis/_qt_codegen.py:856:12",
+        "finding_site:src/ici/analysis/_qt_codegen.py:876:12"
+      ],
+      "reason": "Unreviewed: Open: Qt generated-code verification (moc/uic/rcc linkage, Qt major version, budget/context errors) has no Rust producer. Exact frozen hash bbe759b5f08f56024d3b532b7172d84fe619906bfc7adf085730f8c47d1d401f and 49 symbols retained for full C++ source review."
+    },
+    "src/ici/core/_build_paths.py": {
+      "disposition": "unreviewed",
+      "requirements": [],
+      "reason": "Unreviewed: Open: shadow_dir/prepare_owned_shadow; the Rust Make shadow ownership rule (see the build.make.shadow_dir rows) is an intended difference, but the remaining shadow preparation behaviour is not reviewed function by function. Exact frozen hash d90aa4642fcf415ed79719b434c9e07ef95839f40479756d27c7945b5c3117bb and 2 symbols retained for full C++ source review."
+    },
+    "src/ici/core/make.py": {
+      "disposition": "unreviewed",
+      "requirements": [],
+      "reason": "Unreviewed: Open: MakePlan/make_plan argv and contained-path refusals are exercised by tests/rust-parity/cpp/make-plan-oracle.json and legacy_make_build.rs, but the file is not reviewed function by function against every branch. Exact frozen hash cc00624e681d9d53722ab5162550d9ef56a9cbe72ad52d7568bcbf7187347044 and 8 symbols retained for full C++ source review."
+    },
+    "src/ici/core/toolchain.py": {
+      "disposition": "unreviewed",
+      "requirements": [],
+      "reason": "Unreviewed: Open: ToolProbe candidates (clang-tidy; clazy-standalone then clazy) and version regexes are used by the lint comparisons with resolvable clang tools; the probe-evidence and safe-argv branches are not reviewed function by function. Exact frozen hash a7a39fe5854369ac91f1bf25241bb4c2d51c050fde8924f1cc80af3c93595662 and 26 symbols retained for full C++ source review."
+    },
+    "src/ici/analysis/_sanitizer_diagnostics.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "finding_site:src/ici/analysis/_sanitizer_diagnostics.py:393:11"
+      ],
+      "reason": "Unreviewed: Open: the sanitizer report parser is compared through tests/rust-parity/cpp/sanitize-oracle.json and cpptest-parser-oracle.json (C++ ASan/UBSan/TSan runs); its :393 row lives in validation.json; location-normalization branches for other report shapes are not reviewed. Exact frozen hash 141366667f8bd5201ed11bfc85ea77dcab1b253e7aee69cfdab09b0256a3689f and 16 symbols retained for full C++ source review."
     }
   },
   "scope": {
