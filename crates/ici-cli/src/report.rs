@@ -154,7 +154,7 @@ pub fn write_artifact(path: &Path, bytes: &[u8], source: &Path, kind: ArtifactKi
 pub fn command(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
     if !invocation.values("auxiliary").is_empty() && invocation.value("sarif").is_some() {
         return Err(CliError(
-            "--auxiliary attaches supporting evidence to HTML and cannot be merged into SARIF"
+            "report: --auxiliary attaches supporting evidence to HTML and cannot be merged into SARIF"
                 .into(),
         ));
     }
@@ -182,10 +182,22 @@ pub fn command(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
     };
     for auxiliary in invocation.values("auxiliary") {
         let path = under(&root, auxiliary);
-        options.auxiliary.push(
-            ici_reporting::load_auxiliary(&read_bounded(&path, 32 * 1024 * 1024)?)
-                .map_err(error)?,
-        );
+        // Frozen `cmd_report`: an unreadable or invalid supporting document is a `report: `
+        // refusal (exit 2) before any page is written.
+        let bytes = read_bounded(&path, 32 * 1024 * 1024).map_err(|e| {
+            CliError(format!(
+                "report: cannot read supporting evidence {}: {e}",
+                path.display()
+            ))
+        })?;
+        options
+            .auxiliary
+            .push(ici_reporting::load_auxiliary(&bytes).map_err(|e| {
+                CliError(format!(
+                    "report: {} is not ici.auxiliary v1 supporting evidence: {e}",
+                    path.display()
+                ))
+            })?);
     }
     let (path, text, kind) = if let Some(path) = invocation.value("sarif") {
         (

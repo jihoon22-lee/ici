@@ -2,6 +2,11 @@
 
 Python is a development fixture driver. Every traced product command is the
 native ici executable; this server never opens a connection to a remote host.
+Cases cover `ici next publish` (schema v2 and v1 [publish], the Actions-default
+destination without [publish], and [publish] overriding the Actions environment)
+and historical `ici publish` (--html/--json, repeated --report-dir, the hub
+repository with a separate comment repository, and the default public API,
+whose CONNECT is refused by the local deny proxy so nothing leaves the machine).
 """
 
 import argparse
@@ -21,11 +26,29 @@ from urllib.parse import unquote, urlsplit
 
 TOKEN = "fixture-named-publish-token-MUST-NOT-LOG"
 FALLBACK_TOKEN = "fixture-fallback-token-MUST-NOT-USE"
+# The analyzed repository when reports go elsewhere (legacy hub, next [publish] override): only
+# its pull request and comments are addressed, with its own Actions token.
+SOURCE_TOKEN = "fixture-source-repository-token-MUST-NOT-LOG"
+SOURCE_REPOSITORY = "fixture/source"
 REPOSITORY = "fixture/repository"
 BRANCH = "reports/native"
 PR = 23
 WORKSPACE = "Native publisher fixture"
 MARKER = "<!-- ici-next:native-publisher-fixture -->"
+LEGACY_MARKER = "<!-- ici-report -->"
+SUITE = (
+    json.dumps(
+        {
+            "schema_version": "ici.result/v3",
+            "suite_status": "FAIL",
+            "tem_score": None,
+            "max_tem_score": 5.0,
+            "results": [{"engine_name": "line", "status": "FAIL", "summary": "too long"}],
+            "baseline_comparison": None,
+        }
+    )
+    + "\n"
+).encode()
 PAGE = b"<!doctype html><meta charset=utf-8><p>Frozen failing analysis evidence.</p>\n"
 
 
@@ -60,8 +83,12 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
         state = self.server.fixture
         body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
         route = urlsplit(self.path)
-        expected_prefix = state["prefix"] + "/repos/" + REPOSITORY
-        authorized = self.headers.get("Authorization") == "Bearer " + TOKEN
+        source_prefix = state["prefix"] + "/repos/" + SOURCE_REPOSITORY
+        source = route.path.startswith(source_prefix + "/")
+        expected_prefix = source_prefix if source else state["prefix"] + "/repos/" + REPOSITORY
+        authorized = self.headers.get("Authorization") == "Bearer " + (
+            SOURCE_TOKEN if source else TOKEN
+        )
         headers_valid = (
             self.headers.get("Accept") == "application/vnd.github+json"
             and self.headers.get("X-GitHub-Api-Version") == "2022-11-28"
@@ -81,8 +108,21 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
             self.reply(403, {"message": "fixture refused endpoint or headers"})
             return
         relative = unquote(route.path[len(expected_prefix) :])
-        if state["mode"] == "forbidden":
+        state["repositories"].add(SOURCE_REPOSITORY if source else REPOSITORY)
+        if source != (state["comment_repo"] == SOURCE_REPOSITORY) and (
+            relative.startswith(("/pulls/", "/issues/"))
+        ):
+            self.reply(403, {"message": "pull request addressed in the wrong repository"})
+        elif source and not relative.startswith(("/pulls/", "/issues/")):
+            self.reply(403, {"message": "reports must not be written to the source repository"})
+        elif state["mode"] == "forbidden":
             self.reply(403, {"message": TOKEN})
+        elif relative == "" and self.command == "GET":
+            # A separate publication repository has none of the analyzed commits: the branch
+            # starts from its own default branch.
+            self.reply(200, {"default_branch": "main"})
+        elif relative == "/git/ref/heads/main":
+            self.reply(200, {"object": {"sha": state["head"]}})
         elif relative.startswith("/git/ref/"):
             self.reply(200 if state["branch"] else 404, {})
         elif relative == "/git/refs" and self.command == "POST":
@@ -107,6 +147,7 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
                 assert payload == PAGE
                 assert relative.endswith("/pr-23/" + state["head"][:12] + "/index.html")
                 event["uploaded_sha256"] = digest(payload)
+                event["uploaded_path"] = relative
                 self.reply(201, {"content": {"sha": "fixture-blob"}})
         elif relative == f"/pulls/{PR}":
             self.reply(200, {"head": {"sha": state["head"]}})
@@ -114,16 +155,22 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
             assert route.query == "per_page=100&page=1"
             self.reply(
                 200,
-                [{"id": 99, "body": MARKER + "\n<!-- head:" + state["head"] + " run:1.1 -->"}]
+                [
+                    {
+                        "id": 99,
+                        "body": state["marker"] + "\n<!-- head:" + state["head"] + " run:1.1 -->",
+                    }
+                ]
                 if state["mode"] == "patch"
                 else [],
             )
         elif relative in (f"/issues/{PR}/comments", "/issues/comments/99"):
             assert self.command == ("PATCH" if state["mode"] == "patch" else "POST")
             value = json.loads(body)
-            assert MARKER in value["body"]
+            assert value["body"].startswith(state["marker"])
             assert "head:" + state["head"] + " run:42.2" in value["body"]
-            assert "Open report" in value["body"] and "FAIL" in value["body"]
+            assert "FAIL" in value["body"]
+            assert state["marker"] == LEGACY_MARKER or "Open report" in value["body"]
             assert len(value["body"].encode()) <= 65536
             event["comment_body_sha256"] = digest(value["body"].encode())
             self.reply(
@@ -153,12 +200,35 @@ class Endpoint(http.server.BaseHTTPRequestHandler):
 class DenyProxy(http.server.BaseHTTPRequestHandler):
     def do_CONNECT(self):
         self.server.unexpected_requests += 1
+        self.server.targets.append(self.path)
         self.send_response(403)
         self.send_header("Content-Length", "0")
         self.end_headers()
 
     def log_message(self, *_args):
         pass
+
+
+def next_v1_config(api, server_origin):
+    """A schema_version = 1 next workspace naming the same destination."""
+    return (
+        "schema_version=1\n[workspace]\nname="
+        + json.dumps(WORKSPACE)
+        + "\n[publish]\nrepo="
+        + json.dumps(REPOSITORY)
+        + "\napi_url="
+        + json.dumps(api)
+        + "\nserver_url="
+        + json.dumps(server_origin)
+        + "\nbranch="
+        + json.dumps(BRANCH)
+        + "\ntoken_env='ICI_FIXTURE_PUBLISH_TOKEN'\n"
+        + "[[components]]\nid='removed'\nroot='source-was-deleted'\nlanguages=['python']\n"
+    )
+
+
+def state_repositories(server):
+    return server.fixture["repositories"]
 
 
 def certificates(directory):
@@ -246,22 +316,44 @@ def main():
         server.socket = context.wrap_socket(server.socket, server_side=True)
         proxy = FixtureServer(("127.0.0.1", 0), DenyProxy)
         proxy.unexpected_requests = 0
+        proxy.targets = []
         threading.Thread(target=server.serve_forever, daemon=True).start()
         threading.Thread(target=proxy.serve_forever, daemon=True).start()
         origin = f"https://127.0.0.1:{server.server_port}"
 
-        def run(name, mode, prefix, trusted, expected, result_bytes=None):
+        def run(
+            name,
+            mode,
+            prefix,
+            trusted,
+            expected,
+            result_bytes=None,
+            *,
+            config=None,
+            command_args=None,
+            files=None,
+            result_name="saved.json",
+            environment_update=None,
+            marker=MARKER,
+            comment_repo=REPOSITORY,
+            uploads=1,
+            branch=None,
+            connects=(),
+        ):
             result_fixture = fixture if result_bytes is None else result_bytes
             project = root / name
             project.mkdir()
-            (project / "saved.json").write_bytes(result_fixture)
-            (project / "saved.html").write_bytes(PAGE)
+            inputs = {"saved.json": result_fixture, "saved.html": PAGE} if files is None else files
+            for relative, data in inputs.items():
+                (project / relative).parent.mkdir(parents=True, exist_ok=True)
+                (project / relative).write_bytes(data)
+            result_fixture = inputs.get(result_name, result_fixture)
             event_path = project / "event.json"
             event_path.write_text(
                 json.dumps({"pull_request": {"number": PR, "head": {"sha": head}}}),
                 encoding="utf-8",
             )
-            (project / "ici.toml").write_text(
+            configuration = (
                 "schema_version=2\n[workspace]\nname="
                 + json.dumps(WORKSPACE)
                 + "\n[publish]\nrepo="
@@ -273,17 +365,24 @@ def main():
                 + "\nbranch="
                 + json.dumps(BRANCH)
                 + "\ntoken_env='ICI_FIXTURE_PUBLISH_TOKEN'\n"
-                + "[[components]]\nid='removed'\nroot='source-was-deleted'\nlanguages=['python']\n",
-                encoding="utf-8",
+                + "[[components]]\nid='removed'\nroot='source-was-deleted'\nlanguages=['python']\n"
             )
+            if config is not None:
+                configuration = config(origin + prefix, origin)
+            if configuration:
+                (project / "ici.toml").write_text(configuration, encoding="utf-8")
             server.fixture = {
                 "mode": mode,
                 "prefix": prefix,
                 "head": head,
                 "origin": origin,
-                "branch": mode == "patch",
+                "branch": mode == "patch" if branch is None else branch,
                 "events": [],
+                "marker": marker,
+                "comment_repo": comment_repo,
+                "repositories": set(),
             }
+            proxy.targets.clear()
             environment = {
                 "PATH": "",
                 "HOME": str(project),
@@ -305,8 +404,19 @@ def main():
                 "HTTPS_PROXY": f"http://127.0.0.1:{proxy.server_port}",
                 "NO_PROXY": "127.0.0.1,localhost",
             }
+            for key, value in (environment_update or {}).items():
+                if value is None:
+                    environment.pop(key, None)
+                else:
+                    environment[key] = value
             trace = project / "trace.log"
-            command = [binary, "next", "publish", "--result", "saved.json", "--out", "saved.html"]
+            command = [
+                binary,
+                *(
+                    command_args
+                    or ["next", "publish", "--result", "saved.json", "--out", "saved.html"]
+                ),
+            ]
             result = subprocess.run(
                 [
                     trace_tool,
@@ -338,14 +448,16 @@ def main():
             record = json.loads(record_bytes)
             assert record["schema_id"] == "ici.next.publish" and record["schema_version"] == 1
             assert record["state"] == ("SUCCESS" if expected == 0 else "FAILED"), record
-            assert (project / "saved.json").read_bytes() == result_fixture
-            assert (project / "saved.html").read_bytes() == PAGE
+            for relative, data in inputs.items():
+                assert (project / relative).read_bytes() == data, relative
             assert not (project / "source-was-deleted").exists()
-            assert json.loads(result_fixture)["gate"]["selected"] == "FAIL"
+            if marker == MARKER:
+                assert json.loads(result_fixture)["gate"]["selected"] == "FAIL"
             assert all(
                 secret.encode() not in result.stdout + result.stderr + record_bytes
-                for secret in (TOKEN, FALLBACK_TOKEN)
+                for secret in (TOKEN, FALLBACK_TOKEN, SOURCE_TOKEN)
             ), "Credentials or private response bodies escaped the failure boundary"
+            assert proxy.targets == list(connects), proxy.targets
             text = trace.read_text(encoding="utf-8")
             programs = re.findall(r'execve\("([^"\n]+)"', text)
             assert programs == [str(binary)], programs
@@ -356,10 +468,16 @@ def main():
             assert all(event["authorized"] and event["required_headers"] for event in events)
             if not trusted:
                 assert not events, "An untrusted CA must prevent HTTP requests"
+            if connects:
+                assert not events, "The default public API must only be reached through the proxy"
             if expected == 0:
                 assert record["result_sha256"] == "sha256:" + digest(result_fixture)
                 assert record["reports"][0]["artifact"]["sha256"] == "sha256:" + digest(PAGE)
-                assert any(event.get("uploaded_sha256") == digest(PAGE) for event in events)
+                uploaded = [event for event in events if "uploaded_sha256" in event]
+                assert len(uploaded) == uploads, uploaded
+                assert all(event["uploaded_sha256"] == digest(PAGE) for event in uploaded)
+                assert len({event["uploaded_path"] for event in uploaded}) == uploads
+                assert state_repositories(server) == {REPOSITORY, comment_repo}
                 assert any("comment_body_sha256" in event for event in events)
                 assert any(
                     event["method"] == ("PATCH" if mode == "patch" else "POST")
@@ -375,9 +493,11 @@ def main():
                     "publication": record["state"],
                     "api_prefix": prefix,
                     "result_sha256_before": digest(result_fixture),
-                    "result_sha256_after": digest((project / "saved.json").read_bytes()),
+                    "result_sha256_after": digest((project / result_name).read_bytes()),
                     "programs": programs,
                     "http_requests": events,
+                    "proxy_connects": list(proxy.targets),
+                    "stdout": result.stdout.decode(errors="replace")[-2048:],
                 }
             )
             (root / "progress.json").write_text(
@@ -401,7 +521,115 @@ def main():
                 0,
                 result_bytes=json.dumps(large).encode(),
             )
-            assert proxy.unexpected_requests == 0, "No request may target an external server"
+            run("next-v1-config-publish", "success", "/api/v3", True, 0, config=next_v1_config)
+            # No [publish]: the destination is the Actions repository, API and token.
+            run(
+                "next-actions-default-destination",
+                "success",
+                "/api/v3",
+                True,
+                0,
+                config=lambda _api, _origin: (
+                    "schema_version=2\n[workspace]\nname=" + json.dumps(WORKSPACE) + "\n"
+                ),
+                environment_update={
+                    "GITHUB_API_URL": origin + "/api/v3",
+                    "GITHUB_TOKEN": TOKEN,
+                    "ICI_PUBLISH_BRANCH": BRANCH,
+                    "ICI_FIXTURE_PUBLISH_TOKEN": None,
+                },
+            )
+            # [publish] overrides the Actions repository, API and token; the PR comment goes to
+            # the analyzed (Actions) repository with its own token.
+            run(
+                "next-config-overrides-actions-environment",
+                "success",
+                "/api/v3",
+                True,
+                0,
+                environment_update={
+                    "GITHUB_REPOSITORY": SOURCE_REPOSITORY,
+                    "GITHUB_API_URL": "https://127.0.0.1:9/never-used",
+                    "GITHUB_TOKEN": SOURCE_TOKEN,
+                },
+                comment_repo=SOURCE_REPOSITORY,
+            )
+            legacy_environment = {
+                "GITHUB_ACTIONS": "true",
+                "GITHUB_API_URL": origin + "/api/v3",
+                "GITHUB_TOKEN": TOKEN,
+                "ICI_PUBLISH_BRANCH": BRANCH,
+                "ICI_FIXTURE_PUBLISH_TOKEN": None,
+            }
+            legacy = {"config": lambda _api, _origin: "", "marker": LEGACY_MARKER}
+            run(
+                "legacy-html-json-self",
+                "success",
+                "/api/v3",
+                True,
+                0,
+                command_args=["publish", "--html", "custom.html", "--json", "custom.json"],
+                files={"custom.html": PAGE, "custom.json": SUITE},
+                result_name="custom.json",
+                environment_update=legacy_environment,
+                **legacy,
+            )
+            run(
+                "legacy-report-dirs-self",
+                "success",
+                "/api/v3",
+                True,
+                0,
+                command_args=["publish", "--report-dir", "a", "--report-dir", "second=b"],
+                files={
+                    "a/verify_report.html": PAGE,
+                    "a/verify_report.json": SUITE,
+                    "b/verify_report.html": PAGE,
+                    "b/verify_report.json": SUITE,
+                },
+                result_name="a/verify_report.json",
+                environment_update=legacy_environment,
+                uploads=2,
+                **legacy,
+            )
+            # Hub: reports go to ICI_PUBLISH_REPO with ICI_PUBLISH_TOKEN; the comment goes to the
+            # analyzed repository with GITHUB_TOKEN (frozen _resolve_target hub mode).
+            run(
+                "legacy-hub-repository-default-pages",
+                "success",
+                "/api/v3",
+                True,
+                0,
+                command_args=["publish"],
+                files={"verify_report.html": PAGE, "verify_report.json": SUITE},
+                result_name="verify_report.json",
+                environment_update={
+                    **legacy_environment,
+                    "ICI_PUBLISH_REPO": REPOSITORY,
+                    "ICI_PUBLISH_TOKEN": TOKEN,
+                    "GITHUB_REPOSITORY": SOURCE_REPOSITORY,
+                    "GITHUB_TOKEN": SOURCE_TOKEN,
+                },
+                comment_repo=SOURCE_REPOSITORY,
+                branch=True,
+                **legacy,
+            )
+            # Without GITHUB_API_URL the historical caller targets the public GitHub API; the
+            # deny proxy refuses the CONNECT, so publication fails (exit 1) and nothing leaves.
+            run(
+                "legacy-default-public-api-through-proxy",
+                "success",
+                "/api/v3",
+                True,
+                1,
+                command_args=["publish"],
+                files={"verify_report.html": PAGE, "verify_report.json": SUITE},
+                result_name="verify_report.json",
+                environment_update={**legacy_environment, "GITHUB_API_URL": None},
+                connects=("api.github.com:443",),
+                **legacy,
+            )
+            assert proxy.unexpected_requests == 1, "Only the refused public-API CONNECT may leave"
         finally:
             server.shutdown()
             server.server_close()

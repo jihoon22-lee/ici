@@ -523,13 +523,20 @@ fn native_unicode_and_bom_columns_use_codepoints_across_utf16_and_byte_tools() {
             "export default [{rules:{'no-undef':'error'}}];\n",
         )
         .unwrap();
+        // Frozen adapters/providers/mypy.py ran without --show-column-numbers: a mypy finding
+        // names no column (fingerprint v3 parity, python_modern_tools_parity.rs).
         for (kind, variable, path, column) in [
-            (ProviderKind::Eslint, "ICI_TEST_ESLINT", "main.js", 16),
-            (ProviderKind::Tsc, "ICI_TEST_TSC", "main.ts", 22),
-            (ProviderKind::Mypy, "ICI_TEST_MYPY", "main.py", 23),
-            (ProviderKind::Ty, "ICI_TEST_TY", "main.py", 23),
-            (ProviderKind::Compiler, "ICI_TEST_GXX", "main.cpp", 39),
-            (ProviderKind::Compiler, "ICI_TEST_CLANG", "main.cpp", 39),
+            (ProviderKind::Eslint, "ICI_TEST_ESLINT", "main.js", Some(16)),
+            (ProviderKind::Tsc, "ICI_TEST_TSC", "main.ts", Some(22)),
+            (ProviderKind::Mypy, "ICI_TEST_MYPY", "main.py", None),
+            (ProviderKind::Ty, "ICI_TEST_TY", "main.py", Some(23)),
+            (ProviderKind::Compiler, "ICI_TEST_GXX", "main.cpp", Some(39)),
+            (
+                ProviderKind::Compiler,
+                "ICI_TEST_CLANG",
+                "main.cpp",
+                Some(39),
+            ),
         ] {
             let mut request = prepare(root.path(), kind, variable, &[path]);
             if kind == ProviderKind::Compiler {
@@ -544,8 +551,7 @@ fn native_unicode_and_bom_columns_use_codepoints_across_utf16_and_byte_tools() {
                 .find(|finding| finding.primary_location.path == path)
                 .unwrap();
             assert_eq!(
-                finding.primary_location.start_column,
-                Some(column),
+                finding.primary_location.start_column, column,
                 "{kind:?}, BOM={bom}: {finding:?}"
             );
             if kind == ProviderKind::Eslint {

@@ -102,6 +102,10 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
     observation.truncated = outcome.truncated;
     observation.duration_seconds = Some(outcome.duration_seconds);
     observation.limitations.clone_from(&plan.limitations);
+    let python = matches!(
+        plan.kind,
+        ProviderKind::RuffLint | ProviderKind::RuffFormat | ProviderKind::Mypy | ProviderKind::Ty
+    );
     let failure = if outcome.task_id != plan.task.id {
         Some("process outcome belongs to a different task".into())
     } else if !outcome.completed() {
@@ -115,11 +119,22 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
         .exit_code
         .is_some_and(|exit| plan.kind.accepts_exit(exit))
     {
-        Some(format!(
-            "{} exited with unsupported code {:?}",
-            plan.kind.name(),
-            outcome.exit_code
-        ))
+        Some(if python {
+            // Frozen adapters/providers/base.py `_limitation`.
+            format!(
+                "{} failed with exit code {}",
+                plan.task.id,
+                outcome
+                    .exit_code
+                    .map_or_else(|| "None".into(), |code| code.to_string())
+            )
+        } else {
+            format!(
+                "{} exited with unsupported code {:?}",
+                plan.kind.name(),
+                outcome.exit_code
+            )
+        })
     } else {
         None
     };
@@ -142,6 +157,12 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
         }
         result.status = "ERROR".into();
         result.summary = observation.limitations[0].clone();
+        if python {
+            // Frozen names the provider failure as the check's (last) limitation, which the
+            // incomplete gate reports.
+            let failure = observation.limitations.remove(0);
+            observation.limitations.push(failure);
+        }
         return result;
     }
     let parsed = std::str::from_utf8(&outcome.stdout)
@@ -175,26 +196,31 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
     match parsed {
         Err(error) => {
             observation.state = TaskState::Failed;
-            observation.limitations.insert(
-                0,
-                redact_text(&format!(
-                    "cannot parse {} diagnostics: {error}",
-                    plan.kind.name()
-                )),
-            );
+            let failure = redact_text(&format!(
+                "cannot parse {} diagnostics: {error}",
+                plan.kind.name()
+            ));
+            result.summary.clone_from(&failure);
+            if python {
+                observation.limitations.push(failure);
+            } else {
+                observation.limitations.insert(0, failure);
+            }
             result.status = "ERROR".into();
-            result.summary = observation.limitations[0].clone();
         }
         Ok(mut parsed) => {
             for finding in &mut parsed.findings {
                 if let Err(error) = crate::coordinates::normalize(finding, plan, parsed.column_kind)
                 {
                     observation.state = TaskState::Failed;
-                    observation
-                        .limitations
-                        .insert(0, format!("invalid native source coordinate: {error}"));
+                    let failure = format!("invalid native source coordinate: {error}");
+                    result.summary.clone_from(&failure);
+                    if python {
+                        observation.limitations.push(failure);
+                    } else {
+                        observation.limitations.insert(0, failure);
+                    }
                     result.status = "ERROR".into();
-                    result.summary = observation.limitations[0].clone();
                     return result;
                 }
             }

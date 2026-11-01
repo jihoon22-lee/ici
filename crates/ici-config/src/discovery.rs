@@ -92,10 +92,16 @@ pub(crate) fn select(
         } else {
             cwd.join(explicit)
         };
+        // The refusal names the file that was asked for (frozen `config: <path>: no such file`),
+        // not the working directory it was looked up from.
         let path = path.canonicalize().map_err(|e| {
             ConfigError::new(
                 format!("explicit configuration does not exist: {e}"),
-                origin,
+                Origin {
+                    file: path.display().to_string(),
+                    layer: "explicit".into(),
+                    ..origin
+                },
             )
         })?;
         let document = Parsed::read(

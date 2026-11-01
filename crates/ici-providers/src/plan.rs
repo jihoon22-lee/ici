@@ -318,8 +318,9 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             push(
                 &mut argv,
                 &[
+                    // Frozen adapters/providers/mypy.py named no column: the location and
+                    // the finding identity stay column-free.
                     "--show-error-codes",
-                    "--show-column-numbers",
                     "--no-color-output",
                     "--no-pretty",
                     "--no-incremental",

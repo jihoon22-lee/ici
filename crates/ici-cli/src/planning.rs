@@ -1081,8 +1081,11 @@ fn prepare_resolved_omitting(
             plan.limitations.push(format!("{} uses verified published or typed artifact bytes without a linked build producer", check.task_id));
         }
     }
-    let legacy_lines =
+    let mut legacy_lines =
         crate::legacy_lines::collect(&project, &plan, invocation, generated_outputs)?;
+    legacy_lines.extend(crate::legacy_scan_tests::collect(
+        &project, &plan, invocation,
+    )?);
     // Frozen `LineEngine` counted a tree with no in-scope source (documentation only, sources
     // outside `source_dirs`) as a measured empty scope with its repository extras. It is one
     // engine over every language: a hybrid component without C++ (or Python) sources still
@@ -1108,8 +1111,14 @@ fn prepare_resolved_omitting(
                 .is_some_and(|scope| scope.inputs.is_empty())
             && counted.contains(&check.component_id))
     });
+    // A legacy security scope with only `tests/` sources (engines.security.scan_tests) is measured
+    // like the line views: the planner's empty-source block does not apply to it.
+    let empty_security_scope = |check: &ici_application::plan::PlannedCheck| {
+        check.check.id == "python.security"
+            && matches!(&check.work, Work::Blocked { reason } if reason.starts_with("no sources in scope"))
+    };
     for check in &mut plan.checks {
-        if empty_line_scope(check)
+        if (empty_line_scope(check) || empty_security_scope(check))
             && legacy_lines
                 .get(&check.task_id)
                 .is_some_and(|scope| !scope.inputs.is_empty())

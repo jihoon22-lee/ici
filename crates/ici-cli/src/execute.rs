@@ -191,9 +191,29 @@ pub fn execute(
         baseline_path.as_deref(),
     )?;
     // Invalid baselines and artifact destinations fail before launching project tools.
+    // Frozen next `_load_baseline`: an unreadable baseline is a `config: ` refusal naming it.
     let baseline_document = baseline_path
         .as_ref()
-        .map(|path| crate::report::load(path))
+        .map(|path| {
+            crate::report::load(path).map_err(|e| {
+                if crate::legacy::is_legacy(invocation) {
+                    e
+                } else if path.is_file() {
+                    crate::commands::classed(
+                        crate::commands::CONFIG_PREFIX,
+                        format!(
+                            "baseline {} is not a result this version can read: {e}",
+                            path.display()
+                        ),
+                    )
+                } else {
+                    crate::commands::classed(
+                        crate::commands::CONFIG_PREFIX,
+                        format!("baseline {} cannot be read: {e}", path.display()),
+                    )
+                }
+            })
+        })
         .transpose()?;
     let baseline = baseline_document.as_ref().and_then(|stored| match stored {
         ici_reporting::StoredResult::Run(run) => Some(run.as_ref().clone()),

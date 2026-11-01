@@ -161,6 +161,7 @@ fn historical_publish_posts_the_frozen_comment_with_the_native_run_marker() {
         legacy: Some(LegacyComment {
             unlabeled: true,
             mode: "self".into(),
+            missing: vec![],
         }),
     };
     let mut posted = None;

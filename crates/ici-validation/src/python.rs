@@ -355,9 +355,12 @@ fn observe_suite(
         output.targets.push(target);
     }
     if total == 0 || !matches!(outcome.exit_code, Some(0 | 1)) {
+        // The exit code as a number (`none` when a signal ended the run), never Rust Debug text.
         return Err(ValidationError(format!(
-            "pytest did not report a completed nonempty suite (exit {:?})",
-            outcome.exit_code
+            "pytest did not report a completed nonempty suite (exit {})",
+            outcome
+                .exit_code
+                .map_or_else(|| "none".to_owned(), |code| code.to_string())
         )));
     }
     if passed == 0
