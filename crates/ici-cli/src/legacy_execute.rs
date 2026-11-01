@@ -875,6 +875,23 @@ fn python_sources_unselected(engine: &serde_json::Value) -> bool {
         })
 }
 
+/// Frozen `LintEngine.run` with neither a Python nor a C++ source selected (LintScope): every
+/// native lint check was refused at planning for its language's empty scope.
+fn no_lint_sources(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            !checks.is_empty()
+                && checks.iter().all(|check| {
+                    check["state"] == "BLOCKED"
+                        && matches!(
+                            check["summary"].as_str(),
+                            Some("no sources in scope for python" | "no sources in scope for cpp")
+                        )
+                })
+        })
+}
+
 type NoSources = (
     &'static str,
     &'static str,
@@ -884,7 +901,7 @@ type NoSources = (
 /// Frozen single-engine verdicts when the Python project selected no Python source: every
 /// native check of the engine was refused at planning ("no sources in scope for python").
 fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) -> Option<NoSources> {
-    if !python_sources_unselected(engine) {
+    if !python_sources_unselected(engine) && !(family == "lint" && no_lint_sources(engine)) {
         return None;
     }
     let none = "No applicable Python source files were selected";

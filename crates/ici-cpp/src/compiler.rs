@@ -113,8 +113,14 @@ pub fn analyze_compile_context(
     }
     let required_flags = string_options(&request.options, "required_flags");
     let forbidden_flags = string_options(&request.options, "forbidden_flags");
+    // Frozen `CompileDatabaseEngine` reports uncovered production sources and unit
+    // diagnostics (a gone directory, a stale source) as its own FAIL rows.
     if context.database_path.is_some()
-        && context.complete()
+        && (context.complete()
+            || !context
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.level == "error"))
         && request.options["legacy_projection"]
             .as_bool()
             .unwrap_or(false)
@@ -301,7 +307,12 @@ fn legacy_database_output(
         } else {
             &item.source
         };
-        let mut target = target(path, &item.code, status, &item.message);
+        let mut target = target(
+            path,
+            &item.code,
+            status,
+            legacy_diagnostic_message(&item.code, &item.message),
+        );
         if let Some(index) = item.entry_index {
             target.metrics.insert("entry_index".into(), json!(index));
         }
@@ -341,7 +352,21 @@ fn legacy_database_output(
             .iter()
             .map(|item| diagnostic(item, fallback)),
     );
-    for unit in &context.units {
+    // Frozen `load_compilation_context` orders units by (source, directory, configuration
+    // digest of the directory, argv and output).
+    let mut units: Vec<_> = context.units.iter().collect();
+    units.sort_by_cached_key(|unit| {
+        (
+            unit.source.clone(),
+            unit.directory.clone(),
+            ici_domain::canonical_json(
+                &json!({"directory":unit.directory,"argv":unit.argv,"output":unit.output}),
+            )
+            .map(ici_domain::sha256)
+            .unwrap_or_default(),
+        )
+    });
+    for unit in units {
         output.targets.push(target(
             &unit.source,
             "configuration",
@@ -446,6 +471,26 @@ fn legacy_database_output(
     );
     output.extra = json!({"context":context,"database_path":context.database_path,"production_units":production.len(),"covered_units":covered,"configurations":context.units.len(),"issues_count":failures + warnings,"coverage_percent":coverage});
     output
+}
+/// Frozen `compile_db` text of a native context diagnostic: the row-shape and unit codes have a
+/// frozen sentence (an absent `directory` field and a gone working directory share
+/// `missing-directory` but keep distinct native wording); other codes keep the native message.
+pub fn legacy_diagnostic_message<'a>(code: &str, message: &'a str) -> &'a str {
+    match code {
+        "invalid-entry" => "A compilation database entry is not an object.",
+        "missing-file" => "A compilation database entry has no file field.",
+        "missing-directory" if message.contains("field") => {
+            "A compilation database entry has no directory field."
+        }
+        "missing-directory" => "The compilation working directory does not exist.",
+        "invalid-file" => "The compilation file field is not a string.",
+        "invalid-directory" => "The compilation directory field is not a string.",
+        "directory-outside-project" => "The compilation working directory is outside the project.",
+        "source-outside-project" => "The compilation source resolves outside the project.",
+        "invalid-source-path" => "The compilation source does not identify a file path.",
+        "stale-source" => "The compilation source no longer exists.",
+        _ => message,
+    }
 }
 /// Frozen `compile_db._FAIL_DIAGNOSTICS`: context codes that fail regardless of their level.
 const LEGACY_FAIL_DIAGNOSTICS: [&str; 37] = [
