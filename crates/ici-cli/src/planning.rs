@@ -854,17 +854,34 @@ fn prepare_resolved_omitting(
                             format!("declared {variant} build cannot be prepared: {configuration}");
                         plan.limitations
                             .push(format!("{} {variant}: {reason}", component.id));
+                        let legacy_projection = cpp.legacy_projection;
                         for check in plan.checks.iter_mut().filter(|check| {
                             check.component_id == component.id
                                 && check.check.language == "cpp"
-                                && crate::cpp::preparation_dependent(
+                                && (crate::cpp::preparation_dependent(
                                     &check.check.id,
                                     variant,
                                     !check.tasks().is_empty(),
-                                )
+                                ) || (legacy_projection
+                                    && variant == "coverage"
+                                    && check.check.id == "cpp.test"))
                         }) {
                             // Context preparation is planned only for legacy commands.
-                            if variant == "release" && check.check.id == "cpp.artifact" {
+                            if check.check.id == "cpp.test" {
+                                // Frozen TestEngine `_run_cpp_tests_via_adapter`: a coverage
+                                // configure refusal is the engine's tool error (ERROR, NOT_RUN,
+                                // no targets); no test runs.
+                                cpp.fail_preparation(
+                                    &check.task_id,
+                                    crate::cpp::legacy_test_configuration_error(
+                                        &check.task_id,
+                                        &configuration,
+                                    ),
+                                );
+                                validations.remove(&check.task_id);
+                                check.check.needs.clear();
+                                check.work = Work::Internal;
+                            } else if variant == "release" && check.check.id == "cpp.artifact" {
                                 // Frozen BuildEngine: FAIL, "Build did not produce a complete
                                 // artifact set", one adapter target at the descriptor.
                                 cpp.fail_preparation(

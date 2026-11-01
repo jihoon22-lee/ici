@@ -49,7 +49,8 @@ DECLARED = (
     "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.artifacts]\nreport=['reports/*.txt']\n"
 )
 # case: (fixture, {relative path: text, None to delete, or {"symlink": target}}); the
-# "outside.txt" next to the project is a regular file outside the workspace.
+# "outside.txt" next to the project is a regular file outside the workspace. A "<git-tag>" key
+# commits the project and tags it, so the version comes from `git describe` (no pyproject).
 CASES = {
     "make": ("package-make", {}),
     "direct": ("package-direct", {}),
@@ -90,6 +91,18 @@ CASES = {
         "package-direct",
         {"ici.toml": DECLARED, "reports/summary.txt": {"symlink": "../../outside.txt"}},
     ),
+    "cmake-git": ("package-cmake", {"pyproject.toml": None, "<git-tag>": "v2.0.0"}),
+    "make-git": ("package-make", {"pyproject.toml": None, "<git-tag>": "v2.0.0"}),
+    "qmake-git": (
+        "package-cmake",
+        {
+            "CMakeLists.txt": None,
+            "pkg.pro": QMAKE_PROJECT,
+            "pyproject.toml": None,
+            "<git-tag>": "v2.0.0",
+        },
+    ),
+    "direct-git": ("package-direct", {"pyproject.toml": None, "<git-tag>": "v2.0.0"}),
     "declared-artifacts": (
         "package-direct",
         {
@@ -109,6 +122,8 @@ def run(fixture: str, changes: dict) -> dict:
         shutil.copytree(FIXTURES / fixture, project)
         (WORK / "outside.txt").write_text("outside\n", encoding="utf-8")
         for relative, text in changes.items():
+            if relative == "<git-tag>":
+                continue
             path = project / relative
             if text is None:
                 path.unlink()
@@ -118,6 +133,12 @@ def run(fixture: str, changes: dict) -> dict:
                 path.symlink_to(text["symlink"])
                 continue
             path.write_text(text, encoding="utf-8")
+        if "<git-tag>" in changes:
+            git = ["git", "-c", "user.email=ici@example.invalid", "-c", "user.name=ici", "-C"]
+            subprocess.run(["git", "init", "-q", str(project)], check=True)
+            subprocess.run([*git, str(project), "add", "-A"], check=True)
+            subprocess.run([*git, str(project), "commit", "-qm", "fixture"], check=True)
+            subprocess.run([*git, str(project), "tag", changes["<git-tag>"]], check=True)
         record = WORK / "result.json"
         result = subprocess.run(
             [PYTHON, "-c", DRIVER, str(record)],

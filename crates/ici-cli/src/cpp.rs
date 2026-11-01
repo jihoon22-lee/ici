@@ -2792,6 +2792,20 @@ pub fn legacy_sanitizer_configuration_error(
     output
 }
 
+/// Frozen TestEngine coverage-adapter configure refusal (`build.make.coverage_build_argv` missing,
+/// an unsupported backend contract): the message is the engine's tool error, nothing is located.
+pub fn legacy_test_configuration_error(id: &str, message: &str) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    output.status = "ERROR".into();
+    output.summary = message.into();
+    // No test ran, so the frozen TEM over zero tests is 0.00 / 5.0.
+    output.score = Some(0.0);
+    output.max_score = Some(5.0);
+    output.extra["legacy_test_configuration_error"] = json!(true);
+    output.observation.limitations.push(message.into());
+    output
+}
+
 /// Frozen BuildEngine result for a native build that did not produce a complete artifact set:
 /// one located adapter target (`BuildAdapter` FAIL, or `BuildError` ERROR for configuration).
 pub fn build_failure(

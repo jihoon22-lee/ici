@@ -86,7 +86,7 @@ fn run(oracle: &Value, case: &Value, capture: &str) -> (Value, Value) {
         root.join("ici.toml"),
         format!(
             "{}{}",
-            oracle["base"].as_str().unwrap(),
+            case["base"].as_str().or(oracle["base"].as_str()).unwrap(),
             case["config"].as_str().unwrap()
         ),
     )
@@ -431,7 +431,7 @@ fn legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes() {
         oracle["make"].as_str()
     );
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 5);
+    assert_eq!(cases.len(), 11);
     let mut mismatches = vec![];
     for (name, case) in cases {
         let (actual, gate) = run(&oracle, case, "/tmp/ici-cpp-make-test/project");

@@ -24,6 +24,19 @@ BASE = (
     "build_argv=['make','all']\ncoverage_build_argv=['make','all','VARIANT=coverage']\n"
     "sanitize_build_argv=['make','all','VARIANT=sanitize']\n"
 )
+NO_COVERAGE = BASE.replace("coverage_build_argv=['make','all','VARIANT=coverage']\n", "")
+NO_SANITIZE = BASE.replace("sanitize_build_argv=['make','all','VARIANT=sanitize']\n", "")
+THREAD = BASE + "thread_sanitize_build_argv=['make','all','VARIANT=thread']\n"
+# Cases whose `[build.make]` table differs from BASE: a variant build argv that is missing is
+# frozen `make_plan`'s MakeConfigError; parity-fixtures/cpp/tsan-make adds a thread variant.
+BASES = {
+    "test-no-coverage-build-argv": NO_COVERAGE,
+    "sanitize-no-sanitize-build-argv": NO_SANITIZE,
+    "thread-sanitize-pass": THREAD,
+    "thread-sanitize-race": THREAD,
+    "thread-sanitize-argv": THREAD,
+    "thread-sanitize-no-build-argv": BASE,
+}
 # name: (fixture, extra configuration, command)
 CASES = {
     "test-pass": ("test-make", "test_argv=['make','check']\n", "test"),
@@ -38,6 +51,20 @@ CASES = {
         "test-make",
         "test_argv=['make','check']\nsanitize_test_argv=['make','check-all']\n",
         "sanitize",
+    ),
+    "test-no-coverage-build-argv": ("test-make", "test_argv=['make','check']\n", "test"),
+    "sanitize-no-sanitize-build-argv": ("test-make", "test_argv=['make','check']\n", "sanitize"),
+    "thread-sanitize-pass": ("tsan-make", "test_argv=['make','check']\n", "thread-sanitize"),
+    "thread-sanitize-race": ("tsan-make", "test_argv=['make','check-race']\n", "thread-sanitize"),
+    "thread-sanitize-argv": (
+        "tsan-make",
+        "test_argv=['make','check']\nthread_sanitize_test_argv=['make','check-race']\n",
+        "thread-sanitize",
+    ),
+    "thread-sanitize-no-build-argv": (
+        "tsan-make",
+        "test_argv=['make','check']\n",
+        "thread-sanitize",
     ),
 }
 COUNTERS = [
@@ -70,13 +97,13 @@ MAKE = subprocess.check_output(["make", "--version"], text=True).splitlines()[0]
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
 
 
-def run(fixture: str, extra: str, command: str) -> dict:
+def run(fixture: str, base: str, extra: str, command: str) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
         shutil.copytree(ROOT / "parity-fixtures/cpp" / fixture, project)
-        (project / "ici.toml").write_text(BASE + extra, encoding="utf-8")
+        (project / "ici.toml").write_text(base + extra, encoding="utf-8")
         git = ["git", "-c", "user.email=ici@example.invalid", "-c", "user.name=ici"]
         subprocess.run(["git", "init", "-q", str(project)], check=True)
         subprocess.run([*git, "-C", str(project), "add", "-A"], check=True)
@@ -120,10 +147,12 @@ cases = {
         "fixture": fixture,
         "config": extra,
         "command": command,
-        "frozen": run(fixture, extra, command),
+        "frozen": run(fixture, BASES.get(name, BASE), extra, command),
     }
     for name, (fixture, extra, command) in CASES.items()
 }
+for name, base in BASES.items():
+    cases[name]["base"] = base
 (ROOT / "tests/rust-parity/cpp/make-test-oracle.json").write_text(
     json.dumps(
         {"oracle": EXPECTED, "make": MAKE, "gxx": GXX, "base": BASE, "cases": cases},

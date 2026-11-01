@@ -491,6 +491,21 @@ fn shape_engine(
         replaced = true;
     } else if family == "test"
         && legacy_schema
+        && value["score"].is_null()
+        && value["extra"]["native_checks"]
+            .as_array()
+            .is_some_and(|checks| {
+                checks
+                    .iter()
+                    .any(|check| check["extra"]["legacy_test_configuration_error"] == true)
+            })
+    {
+        // Frozen TestEngine always reports its TEM; a coverage configure refusal ran no test,
+        // so the engine carries TEM 0.0 / 5.0 next to its tool error.
+        value["score"] = serde_json::json!(0.0);
+        value["max_score"] = serde_json::json!(5.0);
+    } else if family == "test"
+        && legacy_schema
         && let Some(total) = python_tests_not_executed(value)
     {
         // Frozen `TestEngine.run` `no_tests_executed`: every collected case skipped is ERROR

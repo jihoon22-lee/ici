@@ -49,6 +49,9 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
     );
     fs::write(work.path().join("outside.txt"), "outside\n").unwrap();
     for (relative, text) in case["changes"].as_object().unwrap() {
+        if relative == "<git-tag>" {
+            continue;
+        }
         let path = project.as_path().join(relative);
         if let Some(target) = text.get("symlink").and_then(Value::as_str) {
             fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -62,6 +65,30 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
                 fs::write(path, text).unwrap();
             }
         }
+    }
+    // A tagged commit: the release version comes from the visible `git describe` probe.
+    if let Some(tag) = case["changes"]["<git-tag>"].as_str() {
+        let git = |args: &[&str]| {
+            let status = std::process::Command::new("git")
+                .args([
+                    "-c",
+                    "user.email=ici@example.invalid",
+                    "-c",
+                    "user.name=ici",
+                    "-C",
+                ])
+                .arg(&project)
+                .args(args)
+                .env_clear()
+                .env("PATH", "/usr/bin:/bin")
+                .status()
+                .unwrap();
+            assert!(status.success(), "git {args:?}");
+        };
+        git(&["init", "-q"]);
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "fixture"]);
+        git(&["tag", tag]);
     }
     // The real executable: the qmake adapter re-enters `ici` as its compiler capture shim.
     let process = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
@@ -139,7 +166,7 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
         ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
     ]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 16);
+    assert_eq!(cases.len(), 20);
     for (name, case) in cases {
         let frozen = &case["frozen"];
         let actual = run(case, &environment);

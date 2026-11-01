@@ -468,6 +468,26 @@ pub fn legacy_ctest_sanitizer(
                 .collect()
         })
         .unwrap_or_default();
+    // Frozen `_attach_sanitizer_output`: when no case printed its own report (a `make check`
+    // transcript, or CTest output without a case header), the whole sanitizer transcript belongs
+    // to the first executed case that failed, else to the first executed case.
+    // A passing owner becomes the failed case its transcript replaces.
+    let mut transcript_owner = None;
+    let owners = if owners.iter().all(Option::is_none) {
+        let executed = output
+            .targets
+            .iter()
+            .filter(|target| case(target) && target.target_name != "Instrumented suite")
+            .filter(|target| matches!(target.status.as_str(), "PASS" | "FAIL"));
+        transcript_owner = executed
+            .clone()
+            .find(|target| target.status == "FAIL")
+            .or_else(|| executed.clone().next())
+            .map(|target| target.target_name.clone());
+        owners.iter().map(|_| transcript_owner.clone()).collect()
+    } else {
+        owners
+    };
     let mut owners = owners.into_iter();
     let mut unattributed = vec![];
     let mut attributed: BTreeMap<String, Vec<InspectionTarget>> = BTreeMap::new();
@@ -496,7 +516,7 @@ pub fn legacy_ctest_sanitizer(
     let (mut measured, mut skipped, mut failed) = (0usize, 0usize, false);
     for target in &cases {
         let name = target.target_name.clone();
-        if target.status == "FAIL"
+        if (target.status == "FAIL" || transcript_owner.as_ref() == Some(&name))
             && let Some(diagnostics) = attributed.remove(&name)
         {
             measured += 1;
