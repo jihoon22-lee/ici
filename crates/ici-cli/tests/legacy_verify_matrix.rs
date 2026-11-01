@@ -394,3 +394,151 @@ fn cpp_analyze_and_next_verify_match_the_frozen_checks_findings_and_gate() {
     assert_eq!(result["gate"]["selected"], "INCOMPLETE");
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
+
+#[test]
+fn cpp_compilation_context_export_matches_the_frozen_cli_payload_and_refusals() {
+    let oracle = oracle();
+    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let exports = oracle["exports"].as_object().unwrap();
+    assert_eq!(exports.len(), 4);
+    for (name, frozen) in exports {
+        let work = tempfile::tempdir().unwrap();
+        let root = work.path().join("project");
+        copy_tree(
+            &Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../parity-fixtures/cpp/legacy-scope-fixture"),
+            &root,
+        );
+        fs::write(root.join("ici.toml"), oracle["base"].as_str().unwrap()).unwrap();
+        for (file, text) in frozen["files"].as_object().unwrap() {
+            fs::write(root.join(file), text.as_str().unwrap()).unwrap();
+        }
+        let options: Vec<&str> = frozen["options"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item.as_str().unwrap())
+            .collect();
+        let arguments = ["ici", "export-compilation-context"]
+            .into_iter()
+            .chain(options)
+            .chain(["--output", "-"]);
+        let invocation = registry::parse(arguments).unwrap();
+        let output = commands::dispatch(&invocation, &root, &environment).unwrap();
+        assert_eq!(output.exit_code, frozen["exit_code"], "{name}");
+        assert_eq!(output.stderr.trim(), frozen["stderr"], "{name}");
+        if frozen["payload"].is_null() {
+            assert!(output.stdout.is_empty(), "{name}");
+            continue;
+        }
+        let mut payload: Value = serde_json::from_str(&output.stdout).unwrap();
+        // The producer names its own release; every compilation fact and digest is frozen's.
+        assert_eq!(payload["producer"]["name"], "ici");
+        payload["producer"]["version"] = frozen["payload"]["producer"]["version"].clone();
+        assert_eq!(payload, frozen["payload"], "{name}");
+    }
+}
+
+/// The legacy descriptor cost profile is applied exactly once: every check whose frozen
+/// descriptor lacks the profile is omitted once with the honest "not in profile" reason (never
+/// "disabled"), every other enabled check is planned, and a single-engine command still runs its
+/// own deep-only engine under a configured fast profile.
+#[test]
+fn legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands() {
+    let catalog = ici_domain::builtin_catalog();
+    let base = "[project]\ntype='cpp'\nsource_dirs=['src']\n";
+    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    for (profile, configured, flag) in [
+        ("fast", true, false),
+        ("standard", false, false),
+        ("deep", true, false),
+        ("deep", false, true),
+        ("fast", false, true),
+    ] {
+        let work = tempfile::tempdir().unwrap();
+        copy_tree(
+            &Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../parity-fixtures/cpp/legacy-scope-fixture"),
+            work.path(),
+        );
+        let config = if configured {
+            format!("{base}[ici]\nprofile='{profile}'\n")
+        } else {
+            base.to_string()
+        };
+        fs::write(work.path().join("ici.toml"), config).unwrap();
+        let mut arguments = vec!["ici", "verify"];
+        if flag {
+            arguments.extend(["--profile", profile]);
+        }
+        let invocation = registry::parse(arguments).unwrap();
+        let prepared =
+            ici_cli::planning::prepare(&invocation, work.path(), &environment, false).unwrap();
+        let wanted: ici_domain::Profile = serde_json::from_value(Value::from(profile)).unwrap();
+        let label = format!("{profile} configured={configured} flag={flag}");
+        let mut seen = std::collections::BTreeSet::new();
+        for omitted in &prepared.plan.omitted {
+            assert!(
+                seen.insert((omitted.component_id.clone(), omitted.check_id.clone())),
+                "{label}: {} omitted twice",
+                omitted.check_id
+            );
+            let Some(engine) = ici_application::plan::engine_name(&omitted.check_id) else {
+                continue;
+            };
+            let Some(descriptor) = catalog.legacy.iter().find(|item| item.name == engine) else {
+                continue;
+            };
+            let in_profile = descriptor.profiles.contains(&wanted);
+            assert_eq!(
+                omitted.reason == format!("not in profile '{profile}'"),
+                !in_profile,
+                "{label}: {} omitted as {}",
+                omitted.check_id,
+                omitted.reason
+            );
+        }
+        for planned in &prepared.plan.checks {
+            if let Some(engine) = ici_application::plan::engine_name(&planned.check.id)
+                && let Some(descriptor) = catalog.legacy.iter().find(|item| item.name == engine)
+            {
+                assert!(
+                    descriptor.profiles.contains(&wanted),
+                    "{label}: {} planned outside its profile",
+                    planned.check.id
+                );
+            }
+        }
+        let planned = |id: &str| {
+            prepared
+                .plan
+                .checks
+                .iter()
+                .any(|check| check.check.id == id)
+        };
+        assert_eq!(planned("cpp.cognitive"), profile == "deep", "{label}");
+        assert!(planned("cpp.complexity"), "{label}");
+    }
+    // `ici cognitive` under a configured fast profile still runs its own deep-only engine.
+    let work = tempfile::tempdir().unwrap();
+    copy_tree(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../parity-fixtures/cpp/legacy-scope-fixture"),
+        work.path(),
+    );
+    fs::write(
+        work.path().join("ici.toml"),
+        format!("{base}[ici]\nprofile='fast'\n"),
+    )
+    .unwrap();
+    let invocation = registry::parse(["ici", "cognitive", "--report"]).unwrap();
+    let prepared =
+        ici_cli::planning::prepare(&invocation, work.path(), &environment, false).unwrap();
+    assert!(
+        prepared
+            .plan
+            .checks
+            .iter()
+            .any(|check| check.check.id == "cpp.cognitive")
+    );
+}

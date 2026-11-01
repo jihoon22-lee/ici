@@ -16,6 +16,27 @@ pub struct ExportMetadata {
     pub version: String,
     pub project_type: String,
     pub generator: Option<String>,
+    /// Frozen `_read_cmake_metadata`: `CMAKE_UNITY_BUILD` from a prepared CMake cache; unknown
+    /// (null) for configured, discovered and qmake databases.
+    pub unity_build: Option<bool>,
+}
+/// Frozen `_cmake_bool` over a `CMAKE_UNITY_BUILD:<TYPE>=<value>` cache entry.
+pub fn cmake_unity_build(cache: &str) -> Option<bool> {
+    let value = cache.lines().find_map(|line| {
+        let (declaration, value) = line.split_once('=')?;
+        let (name, _) = declaration.split_once(':')?;
+        (name == "CMAKE_UNITY_BUILD" && !line.starts_with(['#', '/'])).then_some(value)
+    })?;
+    let value = value.to_lowercase();
+    if ["1", "on", "true", "yes", "y"].contains(&value.as_str()) {
+        Some(true)
+    } else if ["0", "off", "false", "no", "n", "ignore", "notfound", ""].contains(&value.as_str())
+        || value.ends_with("-notfound")
+    {
+        Some(false)
+    } else {
+        None
+    }
 }
 fn digest(value: &Value) -> Result<String, String> {
     canonical_json(value)
@@ -530,7 +551,13 @@ pub fn compilation_export_payload(
     metadata: &ExportMetadata,
     context: &CompilationContext,
 ) -> Result<Value, String> {
-    if context.database_path.is_none() || context.database_digest.is_none() {
+    // Frozen loading keeps no measured database for an unparsable one, so a malformed
+    // database is refused like a missing one (exit 2), not as a fatal context diagnostic.
+    let malformed = context
+        .diagnostics
+        .iter()
+        .any(|item| item.code == "database-malformed");
+    if context.database_path.is_none() || context.database_digest.is_none() || malformed {
         return Err(
             "no measured compilation database is available; use --database or --prepare".into(),
         );
@@ -604,11 +631,17 @@ pub fn compilation_export_payload(
         || units
             .iter()
             .any(|unit| unit["comparison_state"] == "inconclusive");
+    // Frozen keeps unity unknown unless a CMake cache declared it or unity units were seen.
+    let unity = if context.unity_build {
+        Some(true)
+    } else {
+        metadata.unity_build
+    };
     let semantic = digest(
-        &json!({"generator":generator,"origin":context.origin,"units":units.iter().map(|unit|json!({"configuration_digest":unit["configuration_digest"],"source":unit["source"],"target":unit["target"]})).collect::<Vec<_>>(),"unity_build":context.unity_build}),
+        &json!({"generator":generator,"origin":context.origin,"units":units.iter().map(|unit|json!({"configuration_digest":unit["configuration_digest"],"source":unit["source"],"target":unit["target"]})).collect::<Vec<_>>(),"unity_build":unity}),
     )?;
     Ok(
-        json!({"compilation":{"comparison_state":if inconclusive {"inconclusive"}else{"comparable"},"database_path":path(context.database_path.as_deref().unwrap(),root),"diagnostics":context.diagnostics.iter().map(|item|diagnostic(item,root)).collect::<Vec<_>>(),"generator":generator,"origin":context.origin,"semantic_digest":semantic,"source_bytes_digest":context.database_digest,"units":units,"unity_build":context.unity_build},"evidence":"MEASURED","producer":{"name":"ici","version":env!("CARGO_PKG_VERSION")},"project":{"backend":metadata.backend,"name":text(&metadata.name),"type":metadata.project_type,"version":text(&metadata.version)},"schema_version":"ici.compilation-export/v1"}),
+        json!({"compilation":{"comparison_state":if inconclusive {"inconclusive"}else{"comparable"},"database_path":path(context.database_path.as_deref().unwrap(),root),"diagnostics":context.diagnostics.iter().map(|item|diagnostic(item,root)).collect::<Vec<_>>(),"generator":generator,"origin":context.origin,"semantic_digest":semantic,"source_bytes_digest":context.database_digest,"units":units,"unity_build":unity},"evidence":"MEASURED","producer":{"name":"ici","version":env!("CARGO_PKG_VERSION")},"project":{"backend":metadata.backend,"name":text(&metadata.name),"type":metadata.project_type,"version":text(&metadata.version)},"schema_version":"ici.compilation-export/v1"}),
     )
 }
 pub fn render_compilation_export(payload: &Value, pretty: bool) -> Result<Vec<u8>, String> {

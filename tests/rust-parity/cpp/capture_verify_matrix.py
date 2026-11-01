@@ -196,6 +196,59 @@ def next_run(arguments: list[str], config: str | None) -> dict:
     }
 
 
+DATABASE = (
+    '[{"directory": ".", "file": "src/main.cpp", '
+    '"arguments": ["g++", "-std=c++17", "-c", "src/main.cpp", "-o", "main.o"]}]\n'
+)
+EXPORTS = {
+    "no_database": ({}, []),
+    "explicit_database": (
+        {"compile_commands.json": DATABASE},
+        ["--database", "compile_commands.json"],
+    ),
+    "malformed_database": (
+        {"compile_commands.json": "{\n"},
+        ["--database", "compile_commands.json"],
+    ),
+    "missing_database": ({}, ["--database", "absent.json"]),
+}
+
+
+def export(files: dict[str, str], options: list[str]) -> dict:
+    shutil.rmtree(WORK, ignore_errors=True)
+    WORK.mkdir()
+    try:
+        project = WORK / "project"
+        shutil.copytree(FIXTURE, project)
+        (project / "ici.toml").write_text(BASE, encoding="utf-8")
+        for name, text in files.items():
+            (project / name).write_text(text, encoding="utf-8")
+        result = subprocess.run(
+            [PYTHON, "-m", "ici", "export-compilation-context", *options, "--output", "-"],
+            cwd=project,
+            env={
+                "PATH": "/usr/bin:/bin",
+                "HOME": str(WORK),
+                "PYTHONPATH": str(ORACLE / "src"),
+                "PYTHONHASHSEED": "0",
+            },
+            capture_output=True,
+            text=True,
+            timeout=600,
+            check=False,
+        )
+    finally:
+        shutil.rmtree(WORK, ignore_errors=True)
+    payload = json.loads(result.stdout) if result.returncode == 0 else None
+    return {
+        "files": files,
+        "options": options,
+        "exit_code": result.returncode,
+        "payload": payload,
+        "stderr": result.stderr.strip(),
+    }
+
+
 def legacy_refusal(arguments: list[str]) -> int:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
@@ -258,6 +311,7 @@ if __name__ == "__main__":
             "analyze_legacy_config": {"exit_code": legacy_refusal(["analyze"])},
             "next_verify": next_run(["next", "verify"], NEXT_CONFIG),
         }
+        exports = {name: export(*case) for name, case in EXPORTS.items()}
         output = ROOT / "tests/rust-parity/cpp/verify-matrix-oracle.json"
         gxx = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
         document = {
@@ -269,6 +323,7 @@ if __name__ == "__main__":
             "commands": commands,
             "next_config": NEXT_CONFIG,
             "next": next_cases,
+            "exports": exports,
         }
         output.write_text(json.dumps(document, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         print(f"{len(cases)} cases, {len(commands)} commands, {len(next_cases)} next -> {output}")

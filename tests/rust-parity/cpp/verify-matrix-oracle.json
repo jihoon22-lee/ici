@@ -21245,6 +21245,107 @@
   "profile_fast": "[ici]\nprofile='fast'\n",
   "required_flipped": "[engines.cycle]\nrequired=true\n[engines.exception]\nrequired=false\n[engines.type]\nrequired=false\n[engines.resource]\nrequired=true\n[engines.security]\nrequired=true\n[engines.python_compat]\nrequired=true\n[engines.sanitize]\nrequired=false\n[engines.test]\nrequired=false\n[engines.lint]\nrequired=false\n[engines.line]\nrequired=false\n[engines.compile_db]\nrequired=false\n[engines.complexity]\nrequired=false\n[engines.dup]\nrequired=false\n"
  },
+ "exports": {
+  "explicit_database": {
+   "exit_code": 0,
+   "files": {
+    "compile_commands.json": "[{\"directory\": \".\", \"file\": \"src/main.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-c\", \"src/main.cpp\", \"-o\", \"main.o\"]}]\n"
+   },
+   "options": [
+    "--database",
+    "compile_commands.json"
+   ],
+   "payload": {
+    "compilation": {
+     "comparison_state": "comparable",
+     "database_path": "compile_commands.json",
+     "diagnostics": [],
+     "generator": null,
+     "origin": "configured",
+     "semantic_digest": "sha256:3ba28b45eb7388ff911440ee5e08e83c06aadd69e3a6dd6e6efa2562d0e3d2c4",
+     "source_bytes_digest": "sha256:d36e3df5be3b894e176427f9635ce486ea96a6848faf4c7c9fd52d1adc806d01",
+     "units": [
+      {
+       "comparison_state": "comparable",
+       "compiler": {
+        "family": "gcc",
+        "name": "g++",
+        "path": "g++",
+        "wrappers": []
+       },
+       "configuration_digest": "sha256:258197294e63ac3c30362ec864fdb0ba6d4cfd0e9d1827198e7057217ee45beb",
+       "defines": [],
+       "diagnostics": [],
+       "directory": ".",
+       "include_paths": [],
+       "invocation": {
+        "command_style": "posix",
+        "digest": "sha256:f4928107fd16144672024bcc49139e8165f9c0733c659ef22349314d3283ccdd",
+        "source": "normalized",
+        "target_triple": null,
+        "unmodeled_options": []
+       },
+       "language": "c++",
+       "output": "main.o",
+       "source": "src/main.cpp",
+       "standard": "c++17",
+       "state": {
+        "duplicate": false,
+        "source_configuration_count": 1,
+        "unit_index": 0
+       },
+       "sysroot": null,
+       "target": null,
+       "undefines": []
+      }
+     ],
+     "unity_build": null
+    },
+    "evidence": "MEASURED",
+    "producer": {
+     "name": "ici",
+     "version": "0.13.0"
+    },
+    "project": {
+     "backend": null,
+     "name": "project",
+     "type": "cpp",
+     "version": "v1.0.0"
+    },
+    "schema_version": "ici.compilation-export/v1"
+   },
+   "stderr": ""
+  },
+  "malformed_database": {
+   "exit_code": 2,
+   "files": {
+    "compile_commands.json": "{\n"
+   },
+   "options": [
+    "--database",
+    "compile_commands.json"
+   ],
+   "payload": null,
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare"
+  },
+  "missing_database": {
+   "exit_code": 2,
+   "files": {},
+   "options": [
+    "--database",
+    "absent.json"
+   ],
+   "payload": null,
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare"
+  },
+  "no_database": {
+   "exit_code": 2,
+   "files": {},
+   "options": [],
+   "payload": null,
+   "stderr": "Compilation export error: no measured compilation database is available; use --database or --prepare"
+  }
+ },
  "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
  "next": {
   "analyze": {
