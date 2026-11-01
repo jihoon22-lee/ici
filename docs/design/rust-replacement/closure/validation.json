@@ -20,7 +20,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: none."
+      "comparison": "OPEN: Composite capability; Python half: clean, located leak, unlocated ResourceWarning and empty-suite scopes compared with the frozen legacy golden (tests/rust-parity/validation/legacy-python-sanitize-oracle.json); _sanitize_python_scope 155/219 are difference_review (snippet bytes; incomplete exit 3). C++ sanitizer half (engines/sanitize.py, adapters/providers/sanitize.py, _sanitizer_diagnostics) is the cpp worker's."
     },
     "capability:python-packaging-wheel": {
       "status": "not_started",
@@ -721,26 +721,50 @@
       "comparison": "A clean pytest run with ResourceWarning promoted to errors keeps the frozen 'PythonResourceWarnings' PASS target at tests:1 with the frozen message and legacy fingerprint; status PASS, evidence MEASURED, summary 'Memory Safety & Sanitize Clean (0 Defects)', exit 0 equal to the golden (clean scenario); the leak scenario is the negative."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:155:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_sanitize.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_python_sanitize.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-python-sanitize-oracle.json (frozen legacy `ici sanitize --report`; scenarios clean, leak, empty, unlocated; clean/leak unchanged; /tmp/ici-rust-replacement-20261028/w-validation-pysan-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_python_sanitize --locked -- --include-ignored: passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan.log); ici-validation all tests --include-ignored passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan-validation.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ]
       },
-      "comparison": "OPEN: the unlocated 'ResourceWarning' FAIL target at tests:1 carrying an output snippet (a ResourceWarning with no project frame). The frozen legacy Python sanitize golden covers the clean and the located-warning cases only; native python_sanitize.rs has the unlocated anchor path but it is not replayed against a frozen scenario."
+      "comparison": "Frozen: a failing ResourceWarning run whose output names ResourceWarning but has no `file.py:N: ...ResourceWarning` line is one unlocated 'ResourceWarning' FAIL target at tests:1 whose message is the first 300 characters of the whitespace-joined pytest output, with an ici.legacy.sanitize.target finding; summary '1 Memory / Resource Defect(s) Detected', exit 1 (scenario unlocated). Native: same target name, status, path, line, snippet rule (300 characters, whitespace-joined), rule id, summary and exit; located warnings (scenario leak) and clean runs stay byte-equal.",
+      "difference_reason": "The snippet bytes (and so the finding fingerprint) differ: each side snips its own pytest output; frozen's header carries its temporary rootdir and quiet progress line, native runs pytest -v under its own owned run directory. Neither is reproducible across machines."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:219:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_sanitize.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_python_sanitize.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-python-sanitize-oracle.json (frozen legacy `ici sanitize --report`; scenarios clean, leak, empty, unlocated; clean/leak unchanged; /tmp/ici-rust-replacement-20261028/w-validation-pysan-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_python_sanitize --locked -- --include-ignored: passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan.log); ici-validation all tests --include-ignored passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan-validation.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ]
       },
-      "comparison": "OPEN: the per-file 'PythonResourceWarnings' status target (scope-level target on a non-tests file path). The frozen legacy Python sanitize golden covers the clean and the located-warning cases only; native python_sanitize.rs has the unlocated anchor path but it is not replayed against a frozen scenario."
+      "comparison": "Frozen _missing_python_scope: pytest exit 5 is 'PythonResourceWarnings' ERROR at tests:1 'Pytest collected 0 tests' (exit 0 without a parseable result: 'Pytest returned success without parseable test results'), engine ERROR/NOT_RUN with that summary (scenario empty). Native previously reported no target and the summary 'Python ResourceWarning check has no completed executed test scope'; it now emits the frozen target, message, summary, evidence and legacy fingerprint (sha256:1acccd4f...).",
+      "difference_reason": "The empty scope is incomplete evidence, so legacy `ici sanitize` exits 3 (generic legacy Incomplete->3 mapping, root decision) where frozen exits 1. Frozen's not-required SKIP variant (engines.sanitize.required=false) and the 'Pytest is unavailable: <snippet>' variant are not captured; native keeps the ERROR target for both."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:238:16": {
       "status": "complete",

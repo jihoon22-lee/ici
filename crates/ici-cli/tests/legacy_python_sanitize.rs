@@ -44,11 +44,38 @@ fn python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exi
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     for (scenario, frozen) in oracle["runs"].as_object().unwrap() {
         let (exit, native) = run(&oracle, scenario);
-        assert_eq!(
-            i64::from(exit),
-            frozen["exit_code"].as_i64().unwrap(),
-            "{scenario}"
-        );
+        // An empty suite is incomplete evidence: the generic legacy Incomplete->3 mapping (root
+        // decision) replaces frozen's exit 1; status, summary, target and identity stay frozen.
+        let expected_exit = if scenario == "empty" {
+            3
+        } else {
+            frozen["exit_code"].as_i64().unwrap()
+        };
+        assert_eq!(i64::from(exit), expected_exit, "{scenario}");
+        if scenario == "unlocated" {
+            // The snippet is the first 300 characters of each side's own pytest output (frozen's
+            // carries its temporary rootdir and a quiet progress line, native runs `-v`), so the
+            // located shape and the snippet's origin are compared, not the bytes.
+            assert_eq!(native["status"], frozen["engine"]["status"]);
+            assert_eq!(native["summary"], frozen["engine"]["summary"]);
+            let (actual, expected) = (&native["targets"][0], &frozen["targets"][0]);
+            for key in ["file_path", "start_line", "target_name", "status"] {
+                assert_eq!(actual[key], expected[key], "{scenario} {key}");
+            }
+            let message = actual["message"].as_str().unwrap();
+            assert!(
+                message.starts_with("============================= test session starts")
+                    && message.chars().count() <= 300,
+                "{message}"
+            );
+            assert_eq!(native["targets"].as_array().unwrap().len(), 1);
+            assert_eq!(
+                native["findings"][0]["rule_id"],
+                frozen["findings"][0]["rule_id"]
+            );
+            assert_eq!(native["findings"][0]["message"], actual["message"]);
+            continue;
+        }
         for key in ["status", "summary", "evidence"] {
             assert_eq!(native[key], frozen["engine"][key], "{scenario} {key}");
         }

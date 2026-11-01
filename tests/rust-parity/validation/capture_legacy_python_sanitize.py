@@ -25,6 +25,17 @@ SCENARIOS = {
             "from calc import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
         ),
     },
+    # pytest exits 5: frozen _missing_python_scope 'Pytest collected 0 tests' (required -> ERROR).
+    "empty": {
+        "src/calc.py": "X = 1\n",
+        "tests/test_calc.py": "X = 1\n",
+    },
+    # A failing run naming ResourceWarning without a `file.py:N: ...ResourceWarning` line:
+    # frozen's unlocated 'ResourceWarning' FAIL target at tests:1 carrying an output snippet.
+    "unlocated": {
+        "src/calc.py": "X = 1\n",
+        "tests/test_calc.py": "def test_x():\n    raise RuntimeError('ResourceWarning')\n",
+    },
 }
 
 
