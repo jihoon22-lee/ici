@@ -85,7 +85,11 @@ pub(crate) fn node_location(
             .map(|line| (path, line))
     });
     let (raw_path, mut line) = explicit.unwrap_or((raw_path, 1));
-    let path = planning::relative(raw_path, &request.root, &request.cwd)?;
+    // Frozen analysis/pytest_output.py `_node_location`: a malformed or escaping node path is
+    // reduced to the stable `tests` scope instead of pointing outside the project.
+    let Ok(path) = planning::relative(raw_path, &request.root, &request.cwd) else {
+        return Ok(("tests".into(), 1));
+    };
     if explicit.is_none() {
         let names: Vec<_> = segments
             .map(|part| part.split('[').next().unwrap_or(part))

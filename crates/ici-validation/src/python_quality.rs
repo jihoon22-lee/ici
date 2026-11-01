@@ -176,7 +176,10 @@ pub(crate) fn observe(
                 .expect("constant regex");
         let primary = suite(plan, outcomes)?;
         let mut seen = BTreeMap::<(String, String), (f64, String, u32)>::new();
-        for line in String::from_utf8_lossy(&primary.stdout).lines() {
+        // Frozen `_pytest_duration_summary` strips ANSI colour before matching rows.
+        let ansi = Regex::new(r"\x1b\[[0-?]*[ -/]*[@-~]").expect("constant regex");
+        let stdout = String::from_utf8_lossy(&primary.stdout);
+        for line in ansi.replace_all(&stdout, "").lines() {
             let Some(parts) = duration.captures(line) else {
                 continue;
             };
@@ -195,7 +198,14 @@ pub(crate) fn observe(
             value.0 = value.0.max(seconds);
         }
         let mut rows = seen.into_iter().collect::<Vec<_>>();
-        rows.sort_by(|a, b| b.1.0.total_cmp(&a.1.0).then_with(|| a.0.cmp(&b.0)));
+        // Frozen order: slowest first, then file path, line, node id and phase.
+        rows.sort_by(|a, b| {
+            b.1.0
+                .total_cmp(&a.1.0)
+                .then_with(|| a.1.1.cmp(&b.1.1))
+                .then_with(|| a.1.2.cmp(&b.1.2))
+                .then_with(|| a.0.cmp(&b.0))
+        });
         let observed = rows.len();
         rows.truncate(plan.context.options.max_slow_tests);
         let slow_start = output.targets.len();

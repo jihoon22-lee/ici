@@ -335,15 +335,16 @@
    "status": "complete"
   },
   "finding_site:src/ici/adapters/providers/pytest.py:138:12": {
-   "comparison": "Reviewed adapters/providers/pytest.py and analysis/pytest_output.py. Last verdict per node wins, ANSI stripped, parameter ids with spaces preserved; pytest.failed/pytest.error findings keep the frozen raw identity sha256(pytest\\0node\\0VERDICT), message '<node> <verdict>', high severity, and after application attribution the final fingerprint, rule id and message equal the frozen next golden; pytest.cases keeps the numerator/denominator.",
+   "comparison": "Reviewed adapters/providers/pytest.py and analysis/pytest_output.py. Last verdict per node wins, ANSI stripped, parameter ids with spaces preserved; pytest.failed/pytest.error findings keep the frozen raw identity sha256(pytest\\0node\\0VERDICT), message '<node> <verdict>', high severity, and after application attribution the final fingerprint, rule id and message equal the frozen next golden; pytest.cases keeps the numerator/denominator. Decisions-worker audit of analysis/pytest_output.py: a malformed, escaping or absolute node path now keeps its verdict at the frozen `tests`:1 scope instead of failing the whole parse (checked against frozen pytest_node_location; contracts.rs).",
    "difference_reason": "XPASS is also a pytest.xpass finding and XFAIL counts as a passed tool case, following the frozen legacy TestEngine contract (frozen next counted only PASSED); unfinished, truncated or collection-failed suites stay incomplete instead of measured.",
    "evidence": [
     "python3 -I tests/rust-parity/validation/capture_pytest_next.py (frozen `next verify --python --no-cache`) -> tests/rust-parity/validation/pytest-next-oracle.json",
-    "cargo test -p ici-cli --test pytest_next_parity --test python_compat_cli --locked -- --include-ignored; ici-validation all + native_python --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log"
+    "cargo test -p ici-cli --test pytest_next_parity --test python_compat_cli --locked -- --include-ignored; ici-validation all + native_python --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-pytest-compat.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-validation --locked -j2 --test contracts --test native_python --test quality_details -- --include-ignored` and `cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test legacy_test_parity -- --include-ignored` passed; frozen _pytest_duration_summary/pytest_node_location outputs for the same text recorded in /tmp/ici-rust-replacement-20261028/w-dec-pytest-output.log."
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete",
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete",
      "crates/ici-validation/tests/native_python.rs::timed_out_suite_cannot_unlock_coverage_or_become_clean_evidence"
     ],
     "negative": [
@@ -368,7 +369,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone"
@@ -1698,7 +1699,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected",
@@ -1776,7 +1777,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone"
@@ -1825,7 +1826,7 @@
    ],
    "fixtures": {
     "failure": [
-     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_all_skipped_and_malformed_are_incomplete"
+     "crates/ici-validation/tests/contracts.rs::no_tests_collection_usage_and_malformed_are_incomplete"
     ],
     "negative": [
      "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates"
@@ -2235,9 +2236,11 @@
   },
   "src/ici/analysis/pytest_output.py": {
    "disposition": "unreviewed",
-   "reason": "Read through the pytest provider rows: last verdict per node, ANSI stripping and parameter ids with spaces (pytest.py 138:12, contracts.rs) and pytest_node_location. Not every helper branch audited line by line.",
+   "reason": "Complete 173-line module read (decisions worker 2026-11-02). parse_pytest_outcomes (ANSI strip, last verdict wins, parameter ids with spaces, sorted) maps to ici_validation::python::parse_pytest; _node_location maps to python::node_location, now with the frozen `tests`:1 fallback for malformed/escaping/absolute node paths (contracts.rs); _pytest_duration_summary maps to python_quality slow rows, now with ANSI stripping and the frozen (-duration, path, line, node, phase) order, 32-character token bound, threshold, dedup by (node, phase) keeping the slowest and max_slow_tests truncation (quality_details.rs::slow_rows_strip_ansi_and_keep_the_frozen_duration_path_line_order, checked against the frozen function in w-dec-pytest-output.log). Still open: (1) the slow/flaky rows it feeds (test_quality.py:196:16/355:20/502:16, capability:test-quality-tem) are blocked by the cpp.json not_started placeholder facet; (2) native node_location also resolves a node without an explicit line to the collected function's start line, where frozen kept line 1 — not recorded as a difference yet; (3) frozen validated threshold/max_items types (ValueError), native receives them already validated by config, not re-proven here.",
    "requirements": [
-    "finding_site:src/ici/adapters/providers/pytest.py:138:12"
+    "capability:test-quality-tem",
+    "finding_site:src/ici/adapters/providers/pytest.py:138:12",
+    "finding_site:src/ici/engines/test_quality.py:502:16"
    ]
   },
   "src/ici/application/integration.py": {
