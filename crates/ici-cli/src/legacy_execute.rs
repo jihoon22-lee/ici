@@ -271,8 +271,30 @@ pub fn command(
             // A legacy class never lowers the run's own exit (an incomplete run keeps 3).
             exit_code.max(ici_reporting::legacy_exit_code(status))
         };
+        // Frozen `_run_engine_command`: this engine's rows under the configured profile.
+        let inputs = crate::legacy_support::inputs(
+            &prepared,
+            &crate::legacy_support::profile_name(prepared.project.profile),
+        );
+        value["support_matrix"] = ici_reporting::legacy_support_matrix(
+            &inputs,
+            std::slice::from_ref(&value),
+            Some(&[family]),
+        );
         value["native_run"] = run.result.to_value().map_err(error)?;
         stored = StoredResult::from_value(value).map_err(error)?;
+    } else if let StoredResult::Legacy(legacy) = &stored {
+        // Frozen `engines/verify.py`: the suite matrix over the selected profile's results.
+        let profile = invocation.value("profile").map_or_else(
+            || crate::legacy_support::profile_name(prepared.project.profile),
+            str::to_owned,
+        );
+        let mut document = legacy.as_value().clone();
+        crate::legacy_support::attach_suite(
+            &mut document,
+            &crate::legacy_support::inputs(&prepared, &profile),
+        );
+        stored = StoredResult::from_value(document).map_err(error)?;
     }
     let options = RenderOptions {
         verbose: invocation.flag("verbose"),
@@ -573,6 +595,7 @@ fn shape_engine(
                 .map_err(error)?;
             replaced = true;
         }
+        value["tool_evidence"] = missing_tool("ruff");
     } else if family == "type" && legacy_schema && mypy_unavailable(value) {
         // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
         // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
@@ -613,6 +636,7 @@ fn shape_engine(
             ));
             replaced = true;
         }
+        value["tool_evidence"] = missing_tool("mypy");
     } else if family == "test"
         && legacy_schema
         && let Some(reason) = refused_policy(value)
@@ -796,6 +820,12 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
 
 /// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
 /// refused at planning (a mixed C++ lint view keeps its native shape).
+/// Frozen `_record_missing_tool`: the evidence of a tool that was looked for and not run.
+fn missing_tool(name: &str) -> serde_json::Value {
+    serde_json::json!([{"name":name,"path":"","version":"","argv":[],"returncode":null,
+        "timed_out":false,"truncated":false,"error":"tool not found; no command was executed"}])
+}
+
 fn ruff_unavailable(engine: &serde_json::Value) -> bool {
     engine["extra"]["native_checks"]
         .as_array()

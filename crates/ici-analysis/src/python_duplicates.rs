@@ -464,7 +464,11 @@ pub(crate) fn analyze(
             target.end_line = exclusion.end_line;
             target.target_name = "PythonSemanticShapeError".into();
             target.status = "ERROR".into();
-            target.message = format!("{}: {}", exclusion.reason, exclusion.message);
+            // Frozen dup.py:401 names the excluded callable region when there is one.
+            target.message = match &exclusion.region_name {
+                Some(region) => format!("{}: {} ({region})", exclusion.reason, exclusion.message),
+                None => format!("{}: {}", exclusion.reason, exclusion.message),
+            };
             output.targets.push(target);
         }
         crate::semantic::record_metadata(

@@ -16,6 +16,8 @@ pub struct ProjectionContext {
     /// Historical identities/baselines require their own proven compatibility metadata.
     pub analysis_metadata: Option<Value>,
     pub legacy_baseline: Option<Value>,
+    /// Native observation-cache key of every task that had one (task id -> `sha256:` key).
+    pub cache_keys: BTreeMap<String, String>,
     /// Attributed run fingerprint -> pre-attribution producer fingerprint.
     pub raw_fingerprints: BTreeMap<String, String>,
     /// Exact task policy supplied by the application. Missing means unknown.
@@ -139,7 +141,8 @@ pub fn legacy_projection(
         let engine = engines.entry(name.into()).or_insert_with(|| json!({
             "schema_version":"ici.result/v3", "engine_name":name, "status":"SKIP", "summary":"",
             "score":null, "max_score":null, "duration":0.0, "evidence":"NOT_RUN",
-            "targets":[], "findings":[], "extra":{"native_checks":[]}, "tool_evidence":[], "raw_output":""
+            "targets":[], "findings":[], "extra":{"native_checks":[]}, "tool_evidence":[], "raw_output":"",
+            "cache_hit":false, "cache_key":null, "artifact_manifests":[]
         }));
         let output = outputs.get(&check.task_id);
         let status = legacy_status(check.state, output);
@@ -335,6 +338,7 @@ pub fn legacy_projection(
                 engine["required"] = json!(false);
             }
         }
+        legacy_cache(engine, &run.execution.reused_task_ids, &context.cache_keys);
         project_extra(engine)?;
         integration_refusal(engine);
         legacy_type_summary(engine);
@@ -372,6 +376,36 @@ pub fn legacy_projection(
         "capability_inventory":context.capability_inventory,"baseline_comparison":context.legacy_baseline,
         "native_run":run.to_value()?,"analysis_metadata":context.analysis_metadata});
     LegacyDocument::from_value(crate::safe::redact(&value))
+}
+
+/// Frozen `EngineResult.cache_hit`/`cache_key` from the native observation cache. The key is in
+/// the native namespace: the check's own key, or for an engine of several checks a digest of
+/// their sorted keys; any check without a key leaves it null. An engine is a hit only when every
+/// check it projects was reused.
+fn legacy_cache(engine: &mut Value, reused: &[String], keys: &BTreeMap<String, String>) {
+    let tasks: Vec<&str> = engine["extra"]["native_checks"]
+        .as_array()
+        .map(|checks| {
+            checks
+                .iter()
+                .filter_map(|check| check["task_id"].as_str())
+                .collect()
+        })
+        .unwrap_or_default();
+    let keyed: Option<BTreeMap<&str, &String>> = tasks
+        .iter()
+        .map(|task| keys.get(*task).map(|key| (*task, key)))
+        .collect();
+    let key = match keyed {
+        Some(keyed) if keyed.len() == 1 => keyed.into_values().next().cloned(),
+        Some(keyed) if !keyed.is_empty() => Some(ici_domain::sha256(
+            json!(["ici.legacy.engine-cache.v1", keyed]).to_string(),
+        )),
+        _ => None,
+    };
+    engine["cache_hit"] =
+        json!(key.is_some() && tasks.iter().all(|task| reused.iter().any(|id| id == task)));
+    engine["cache_key"] = json!(key);
 }
 
 /// Preserve the historical direct extra keys when one native check owns them. A line descriptor
@@ -1405,5 +1439,45 @@ mod test_aggregation_tests {
         assert_eq!(engine["extra"]["total_tests"], 2);
         assert_eq!(engine["extra"]["coverage_totals"]["stmts"], 1);
         assert!(engine["extra"].get("test_aggregation_limitation").is_none());
+    }
+}
+
+#[cfg(test)]
+mod legacy_cache_tests {
+    use super::legacy_cache;
+    use serde_json::json;
+    use std::collections::BTreeMap;
+
+    fn engine(tasks: &[&str]) -> serde_json::Value {
+        json!({"extra":{"native_checks":tasks.iter().map(|t| json!({"task_id":t})).collect::<Vec<_>>()}})
+    }
+
+    #[test]
+    fn engine_cache_key_is_native_and_a_hit_needs_every_check_reused() {
+        let key = |n: u8| format!("sha256:{}", format!("{n:x}").repeat(64));
+        let keys = BTreeMap::from([("a".to_string(), key(1)), ("b".to_string(), key(2))]);
+        // One keyed check keeps its own native key.
+        let mut one = engine(&["a"]);
+        legacy_cache(&mut one, &["a".into()], &keys);
+        assert_eq!(one["cache_key"], key(1));
+        assert_eq!(one["cache_hit"], true);
+        // Several keyed checks: one deterministic digest; partial reuse is not a hit.
+        let mut both = engine(&["b", "a"]);
+        legacy_cache(&mut both, &["a".into()], &keys);
+        let digest = both["cache_key"].as_str().unwrap().to_owned();
+        assert!(digest.starts_with("sha256:") && digest.len() == 71);
+        assert_ne!(digest, key(1));
+        assert_eq!(both["cache_hit"], false);
+        let mut again = engine(&["a", "b"]);
+        legacy_cache(&mut again, &["a".into(), "b".into()], &keys);
+        assert_eq!(again["cache_key"], digest.as_str());
+        assert_eq!(again["cache_hit"], true);
+        // Any unkeyed check (or no check) leaves frozen's null/false.
+        for tasks in [&["a", "c"][..], &[][..]] {
+            let mut partial = engine(tasks);
+            legacy_cache(&mut partial, &["a".into(), "c".into()], &keys);
+            assert_eq!(partial["cache_key"], serde_json::Value::Null);
+            assert_eq!(partial["cache_hit"], false);
+        }
     }
 }

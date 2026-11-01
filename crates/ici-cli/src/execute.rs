@@ -32,6 +32,8 @@ pub struct ExecutedRun {
     pub outputs: BTreeMap<String, AnalysisOutput>,
     pub result_path: PathBuf,
     pub raw_fingerprints: BTreeMap<String, String>,
+    /// Native observation-cache key of every task that had one (task id -> `sha256:` key).
+    pub cache_keys: BTreeMap<String, String>,
     pub required_checks: BTreeMap<String, bool>,
     pub engine_names: BTreeMap<String, String>,
     pub project_name: String,
@@ -724,7 +726,11 @@ pub fn execute(
                 None,
                 &state_label(outcome.state),
             );
-            if let Some(id) = outcome.task_id.strip_suffix(".files") {
+            if let Some(id) = outcome.task_id.strip_suffix(".format-capability")
+                && let Some(provider) = prepared.providers.get_mut(id)
+            {
+                ici_providers::plan::apply_ruff_format_capability(provider, &outcome);
+            } else if let Some(id) = outcome.task_id.strip_suffix(".files") {
                 let provider = prepared
                     .providers
                     .get_mut(id)
@@ -739,7 +745,22 @@ pub fn execute(
             }
         }
         let mut runnable = vec![];
-        for task in tasks {
+        for mut task in tasks {
+            // The legacy formatter's capability probe chose the text dialect after planning.
+            if let Some(provider) = prepared.providers.get(&task.id)
+                && provider.context.legacy_text_format
+            {
+                task.argv.clone_from(&provider.task.argv);
+            }
+            if let Some(mut output) = prepared
+                .providers
+                .get(&task.id)
+                .and_then(ici_providers::legacy_probe_refusal)
+            {
+                redact(&mut output)?;
+                outputs.insert(task.id.clone(), output);
+                continue;
+            }
             let mut hit = false;
             if let (Some(cache), Some(provider)) = (&cache, prepared.providers.get(&task.id)) {
                 match cache.provider_key(provider, &prepared.project.root, &snapshot, &runner) {
@@ -887,10 +908,10 @@ pub fn execute(
         && !cancellation.is_cancelled()
         && let Some(cache) = &cache
     {
-        for (id, key) in cache_keys {
-            if !reused.contains(&id)
-                && let Some(output) = outputs.get(&id)
-                && let Err(error) = cache.store.put_output(&key, output)
+        for (id, key) in &cache_keys {
+            if !reused.contains(id)
+                && let Some(output) = outputs.get(id)
+                && let Err(error) = cache.store.put_output(key, output)
             {
                 limitations.push(format!("cache write for {id}: {error}"));
             }
@@ -1107,6 +1128,7 @@ pub fn execute(
         outputs,
         result_path,
         raw_fingerprints,
+        cache_keys,
         required_checks: prepared
             .plan
             .checks

@@ -706,3 +706,176 @@ fn ecosystem_parsers_match_frozen_rule_ids_locations_and_fingerprints() {
         }
     }
 }
+
+fn legacy_format() -> ProviderPlan {
+    let tool = ResolvedTool {
+        id: "ruff".into(),
+        path: PathBuf::from("/usr/bin/true"),
+        source: ToolSource::Explicit,
+        digest: sha256("replay executable"),
+        version: None,
+        configuration: vec![],
+    };
+    let mut request = ProviderRequest::new(
+        ProviderKind::RuffFormat,
+        tool,
+        "/workspace",
+        "/workspace",
+        vec!["main.py".into(), "pkg/b.py".into()],
+        "component.format",
+    );
+    request.options.legacy = true;
+    plan(&request).unwrap()
+}
+
+fn probe(plan: &ProviderPlan, stdout: &str, stderr: &str, exit: i32) -> TaskOutcome {
+    let task = ici_providers::plan::ruff_format_capability_task(plan).unwrap();
+    assert_eq!(task.argv[1..], ["format", "--help"]);
+    let mut result = TaskOutcome::empty(&task.id);
+    result.state = TaskState::Succeeded;
+    result.exit_code = Some(exit);
+    result.stdout = stdout.as_bytes().to_vec();
+    result.stderr = stderr.as_bytes().to_vec();
+    result
+}
+
+/// Frozen `_probe_ruff_format_json_support` + `_evaluate_ruff_format(json_output=False)`.
+#[test]
+fn legacy_format_probe_selects_the_text_dialect_only_without_usable_json_output() {
+    // A formatter that answers in JSON keeps the JSON argv (frozen `format_supports_json`).
+    let mut json_plan = legacy_format();
+    json_plan.context.legacy = true;
+    let help = "  --output-format <OUTPUT_FORMAT>\n";
+    let outcome = probe(&json_plan, help, "", 0);
+    ici_providers::plan::apply_ruff_format_capability(&mut json_plan, &outcome);
+    assert!(!json_plan.context.legacy_text_format);
+    assert!(
+        json_plan
+            .task
+            .argv
+            .contains(&"--output-format=json".to_string())
+    );
+    assert_eq!(
+        json_plan.context.legacy_probe_evidence.as_ref().unwrap()["name"],
+        "ruff format capability"
+    );
+    // Absent, or only respected in preview mode: the text dialect.
+    for help in [
+        "  --check\n",
+        "  --output-format <F>  Only respected in preview mode\n",
+    ] {
+        let mut text = legacy_format();
+        let outcome = probe(&text, help, "", 0);
+        ici_providers::plan::apply_ruff_format_capability(&mut text, &outcome);
+        assert!(text.context.legacy_text_format, "{help}");
+        assert!(!text.task.argv.contains(&"--output-format=json".to_string()));
+        let stdout =
+            "Would reformat: main.py\nWould reformat: pkg/b.py\n2 files would be reformatted\n";
+        let result = observe_full(&text, &outcome_for(&text, stdout, 1));
+        let targets: Vec<_> = result
+            .targets
+            .iter()
+            .map(|t| {
+                (
+                    t.target_name.as_str(),
+                    t.file_path.as_str(),
+                    t.start_line,
+                    t.status.as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            targets,
+            [
+                ("Format:Style", "main.py", 1, "WARN"),
+                ("Format:Style", "pkg/b.py", 1, "WARN")
+            ]
+        );
+        let evidence = result.extra["tool_evidence"].as_array().unwrap();
+        assert_eq!(evidence.len(), 2);
+        assert_eq!(evidence[0]["name"], "ruff format capability");
+        assert_eq!(evidence[1]["name"], "ruff format");
+        assert_eq!(evidence[1]["returncode"], 1);
+        // The all-formatted tally is a clean result.
+        let clean = observe_full(&text, &outcome_for(&text, "2 files already formatted\n", 0));
+        assert_eq!(clean.status, "PASS");
+        assert!(clean.targets.is_empty());
+    }
+}
+
+fn outcome_for(plan: &ProviderPlan, stdout: &str, exit: i32) -> TaskOutcome {
+    outcome(plan, stdout, "", exit)
+}
+
+#[test]
+fn legacy_text_format_and_failed_probes_fail_closed() {
+    let mut text = legacy_format();
+    let help = probe(&text, "  --check\n", "", 0);
+    ici_providers::plan::apply_ruff_format_capability(&mut text, &help);
+    // A tally that disagrees with the listed files, a unit mismatch, an unknown line, or an
+    // exit 1 without output is never read as formatted (frozen `parse_legacy_format_text`).
+    for (stdout, exit, summary) in [
+        (
+            "Would reformat: main.py\n2 files would be reformatted\n",
+            1,
+            "Ruff format output was not parseable",
+        ),
+        (
+            "Would reformat: main.py\n1 files would be reformatted\n",
+            1,
+            "Ruff format output was not parseable",
+        ),
+        (
+            "reformatted main.py\n1 file would be reformatted\n",
+            1,
+            "Ruff format output was not parseable",
+        ),
+        ("", 1, "Ruff format check failed without diagnostic output"),
+        (
+            "something else\n",
+            0,
+            "Ruff format output was not parseable",
+        ),
+        ("", 2, "Ruff format check failed with exit code 2"),
+    ] {
+        let result = observe_full(&text, &outcome_for(&text, stdout, exit));
+        assert_eq!(result.status, "ERROR", "{stdout:?}");
+        assert_eq!(result.summary, summary, "{stdout:?}");
+        assert_eq!(result.observation.state, TaskState::Failed);
+        assert_eq!(result.extra["tool_evidence"][1]["error"], summary);
+    }
+    // A failed probe refuses the formatter with frozen's message; nothing claims formatting.
+    for (stdout, stderr, exit, reason) in [
+        (
+            "",
+            "",
+            2,
+            "Ruff format capability probe failed with exit code 2",
+        ),
+        (
+            "  --check\n",
+            "noise\n",
+            0,
+            "Ruff format capability probe emitted unexpected stderr: unrecognized stderr line: \"noise\"",
+        ),
+    ] {
+        let mut refused = legacy_format();
+        let outcome = probe(&refused, stdout, stderr, exit);
+        ici_providers::plan::apply_ruff_format_capability(&mut refused, &outcome);
+        let output = ici_providers::legacy_probe_refusal(&refused).expect("refused");
+        assert_eq!(output.status, "ERROR");
+        assert_eq!(output.summary, reason);
+        assert_eq!(output.extra["tool_evidence"][0]["error"], reason);
+        assert_eq!(output.extra["tool_evidence"].as_array().unwrap().len(), 1);
+    }
+    let mut timed = legacy_format();
+    let mut outcome = probe(&timed, "", "", 0);
+    outcome.timed_out = true;
+    ici_providers::plan::apply_ruff_format_capability(&mut timed, &outcome);
+    assert_eq!(
+        timed.context.legacy_probe_error.as_deref(),
+        Some("Ruff format capability probe timed out")
+    );
+    // A successful probe never refuses.
+    assert!(ici_providers::legacy_probe_refusal(&text).is_none());
+}

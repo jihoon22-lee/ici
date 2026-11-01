@@ -34,6 +34,23 @@ pub fn decorate(output: &mut AnalysisOutput) {
             details.insert(finding.fingerprint.clone(),json!({"legacy_rule_id":finding.rule_id,"legacy_category":finding.category,"legacy_confidence":finding.confidence,"legacy_severity":finding.severity,"legacy_label":finding.primary_location.label,"tool_rule_id":finding.native_rule_id}));
             continue;
         }
+        // A lexical clone occurrence is the frozen `CloneGroup#N` target at the same span
+        // (dup.py:721); naming its message lets the historical view keep only that target's
+        // finding instead of adding the native one beside it.
+        if finding.rule_id == "dup.type2-clone" {
+            if let Some(target) = output.targets.iter().find(|target| {
+                target.file_path == finding.primary_location.path
+                    && target.start_line == finding.primary_location.start_line
+                    && target.end_line == finding.primary_location.end_line
+                    && target.target_name.starts_with("CloneGroup#")
+            }) {
+                details.insert(
+                    finding.fingerprint.clone(),
+                    json!({"legacy_message":target.message}),
+                );
+            }
+            continue;
+        }
         let Some(target) = target(output, finding) else {
             continue;
         };

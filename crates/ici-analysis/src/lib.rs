@@ -430,6 +430,7 @@ impl AnalysisSession {
         output.extra["parser_identity"] = json!(PARSER_IDENTITY);
         if legacy {
             legacy::reshape(kind, request, &mut output);
+            legacy::frozen_evidence(kind, &mut output);
         }
         output
     }
