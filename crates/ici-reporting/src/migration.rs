@@ -44,7 +44,7 @@ fn truthy(value: &Value) -> bool {
     }
 }
 /// Python `repr(float)`: shortest round-trip digits, exponent outside [1e-4, 1e16).
-fn python_float(value: f64) -> String {
+pub(crate) fn python_float(value: f64) -> String {
     if value.is_nan() {
         return "nan".into();
     }

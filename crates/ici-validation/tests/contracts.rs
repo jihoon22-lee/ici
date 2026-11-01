@@ -101,11 +101,31 @@ fn pytest_preserves_parameter_spaces_last_verdicts_and_source_facts() {
         &CapturedArtifacts::default(),
     );
     assert_eq!(output.observation.state, TaskState::Succeeded);
-    assert_eq!(output.targets.len(), 2);
-    assert_eq!(output.targets[0].start_line, 32);
-    assert_eq!(output.targets[1].start_line, 14);
+    // Legacy targets are frozen `_parse_pytest_stdout`'s: every verdict line in execution
+    // order, named by its first token (so `[a b]` reads `[a`), repeats kept.
+    let targets: Vec<_> = output
+        .targets
+        .iter()
+        .map(|target| {
+            (
+                target.target_name.as_str(),
+                target.status.as_str(),
+                target.start_line,
+            )
+        })
+        .collect();
+    assert_eq!(
+        targets,
+        [
+            ("tests/test_main.py::TestSuite::test_x[a", "FAIL", 14),
+            ("tests/test_main.py::TestSuite::test_x[a", "PASS", 14),
+            ("tests/test_main.py:32::test_y", "FAIL", 32),
+        ]
+    );
+    // Findings and the next metric stay per unique node, last verdict winning.
     assert_eq!(output.observation.findings.len(), 1);
     assert_eq!(output.observation.measurements[0].denominator, Some(2));
+    assert_eq!(output.observation.measurements[0].numerator, Some(1));
     // An escaping or absolute node path keeps its verdict at the frozen `tests` scope.
     let text = "../outside/test_a.py::test_a FAILED\n/elsewhere/test_b.py:9::test_b FAILED\n";
     let output = observe(

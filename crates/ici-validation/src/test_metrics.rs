@@ -67,16 +67,10 @@ pub(crate) fn attach(
                     let tests = crate::python::parse_pytest(text, &plan.context).ok()?;
                     let total = tests.cases.len() as u64;
                     if total > 0 {
-                        let passed = tests
-                            .cases
-                            .values()
-                            .filter(|case| matches!(case.verdict.as_str(), "PASSED" | "XFAIL"))
-                            .count() as u64;
-                        evidence.observation.measurements.push(crate::python::pair(
-                            "pytest.cases",
-                            passed,
-                            total,
-                        ));
+                        // The shared suite's legacy counts (frozen `_parse_pytest_stdout`).
+                        let (passed, lines, skipped) = tests.legacy_counts();
+                        evidence.extra["legacy_case_counts"] =
+                            json!({"passed":passed,"total":lines,"skipped":skipped});
                         evidence.extra["test_outcomes"] = json!(
                             tests
                                 .cases
@@ -116,21 +110,32 @@ pub(crate) fn attach(
         &*output
     };
     let suite_rows = suites(evidence);
-    let counts = evidence
-        .observation
-        .measurements
-        .iter()
-        .find(|metric| metric.name.ends_with(".cases"))
-        .and_then(|metric| metric.numerator.zip(metric.denominator));
-    let skipped = evidence
-        .extra
-        .get("test_outcomes")
-        .and_then(Value::as_object)
-        .map(|nodes| {
-            nodes
-                .values()
-                .filter(|state| state.as_str() == Some("SKIPPED"))
-                .count() as u64
+    // A pytest suite reports its frozen legacy counts (every verdict line, XFAIL passing);
+    // other frameworks report their `.cases` metric.
+    let legacy = evidence.extra.get("legacy_case_counts");
+    let counts = legacy
+        .and_then(|counts| counts["passed"].as_u64().zip(counts["total"].as_u64()))
+        .or_else(|| {
+            evidence
+                .observation
+                .measurements
+                .iter()
+                .find(|metric| metric.name.ends_with(".cases"))
+                .and_then(|metric| metric.numerator.zip(metric.denominator))
+        });
+    let skipped = legacy
+        .and_then(|counts| counts["skipped"].as_u64())
+        .or_else(|| {
+            evidence
+                .extra
+                .get("test_outcomes")
+                .and_then(Value::as_object)
+                .map(|nodes| {
+                    nodes
+                        .values()
+                        .filter(|state| state.as_str() == Some("SKIPPED"))
+                        .count() as u64
+                })
         });
     let actual_ids = if framework == "unittest" {
         (0..plan.context.targets.len())

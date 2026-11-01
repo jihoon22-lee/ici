@@ -24,12 +24,106 @@ pub struct TestEvidence {
     /// The path exactly as pytest printed it, paired with `collection_errors` (frozen identity).
     pub collection_sources: Vec<String>,
     pub collection_error: bool,
+    /// Frozen legacy `TestOutputMixin._parse_pytest_stdout` view: every verdict line in
+    /// execution order (repeats kept), named by the line's first token, with its verdict.
+    pub legacy_lines: Vec<(String, String)>,
+}
+impl TestEvidence {
+    /// Frozen legacy counts (passed, total, skipped): every verdict line counts once, PASSED and
+    /// XFAIL lines pass. The next `pytest.cases` metric instead counts unique nodes and PASSED.
+    pub fn legacy_counts(&self) -> (u64, u64, u64) {
+        let count = |accepted: &[&str]| {
+            self.legacy_lines
+                .iter()
+                .filter(|(_, verdict)| accepted.contains(&verdict.as_str()))
+                .count() as u64
+        };
+        (
+            count(&["PASSED", "XFAIL"]),
+            self.legacy_lines.len() as u64,
+            count(&["SKIPPED"]),
+        )
+    }
+}
+/// Frozen legacy `TestOutputMixin._parse_pytest_result` tool errors (the stable engine's ERROR
+/// summary) for one finished pytest run, from the same stdout+stderr; `None` where frozen
+/// recorded none (a green/failed suite, or the "No tests collected" verdict).
+pub fn frozen_legacy_tool_error(
+    stdout: &str,
+    stderr: &str,
+    exit_code: Option<i32>,
+    evidence: &TestEvidence,
+) -> Option<String> {
+    let exit = exit_code?;
+    let output = format!("{stdout}\n{stderr}");
+    let failing = |verdict: &str| matches!(verdict, "FAILED" | "ERROR" | "XPASS");
+    let mut total = evidence.legacy_lines.len() as u64;
+    let mut skipped = evidence.legacy_counts().2;
+    let mut has_failure = evidence
+        .legacy_lines
+        .iter()
+        .any(|(_, verdict)| failing(verdict));
+    if total == 0 {
+        // `_parse_pytest_stdout`'s summary-count fallback (the last `N <label>` of each kind).
+        let last = |label: &str| {
+            Regex::new(&format!(r"\b(\d+)\s+{label}\b"))
+                .expect("constant regex")
+                .captures_iter(&output)
+                .last()
+                .and_then(|capture| capture[1].parse::<u64>().ok())
+                .unwrap_or(0)
+        };
+        let failed = last("failed") + last("errors?");
+        let xpassed = last("xpassed");
+        skipped = last("skipped");
+        total = last("passed") + last("xfailed") + failed + skipped + xpassed;
+        has_failure = failed > 0 || xpassed > 0;
+    }
+    if total == 0
+        && let Some(capture) = Regex::new(r"\bcollected\s+(\d+)\s+items?\b")
+            .expect("constant regex")
+            .captures(&output)
+    {
+        total = capture[1].parse().unwrap_or(0);
+    }
+    let evidence_shown = Regex::new(r"::[^\r\n]*\s+(?:PASSED|FAILED|ERROR|SKIPPED|XFAIL|XPASS)\b")
+        .expect("constant regex")
+        .is_match(&output)
+        || Regex::new(r"\b\d+\s+(?:passed|failed|errors?|skipped|xfailed|xpassed)\b")
+            .expect("constant regex")
+            .is_match(&output);
+    if exit == 5 || (total == 0 && exit == 0) {
+        None
+    } else if exit == 0 && !evidence_shown && !(total > 0 && skipped >= total) {
+        Some("Pytest returned success without parseable test results".into())
+    } else if !matches!(exit, 0 | 1) {
+        Some(format!("Pytest failed with exit code {exit}"))
+    } else if exit == 1 && !has_failure {
+        Some("Pytest returned failure without parseable diagnostics".into())
+    } else {
+        None
+    }
+}
+const VERDICTS: [&str; 6] = ["PASSED", "FAILED", "ERROR", "SKIPPED", "XFAIL", "XPASS"];
+/// Frozen `_parse_pytest_stdout` over the raw (unstripped) output: lines with `::`, the first
+/// whitespace-separated token after the name that is a verdict.
+fn legacy_lines(text: &str) -> Vec<(String, String)> {
+    text.lines()
+        .filter(|line| line.contains("::"))
+        .filter_map(|line| {
+            let mut parts = line.split_whitespace();
+            let name = parts.next()?;
+            let verdict = parts.find(|part| VERDICTS.contains(part))?;
+            Some((name.to_owned(), verdict.to_owned()))
+        })
+        .collect()
 }
 
 pub fn parse_pytest(
     text: &str,
     request: &ValidationRequest,
 ) -> Result<TestEvidence, ValidationError> {
+    let raw = text;
     let ansi = Regex::new(r"\x1b\[[0-?]*[ -/]*[@-~]").expect("constant regex");
     let text = ansi.replace_all(text, "");
     let verdict =
@@ -39,8 +133,16 @@ pub fn parse_pytest(
     let mut result = TestEvidence::default();
     for line in text.lines() {
         if let Some(capture) = collection.captures(line) {
-            let path = planning::relative(&capture[1], &request.root, &request.cwd)?;
-            if !result.collection_errors.contains(&path) {
+            // Frozen `_relative`: an absolute path inside the workspace is made relative; one
+            // outside it names no finding (the banner still marks the collection failed).
+            let path = match planning::relative(&capture[1], &request.root, &request.cwd) {
+                Ok(path) => Some(path),
+                Err(_) if std::path::Path::new(&capture[1]).is_absolute() => None,
+                Err(error) => return Err(error),
+            };
+            if let Some(path) = path
+                && !result.collection_errors.contains(&path)
+            {
                 result.collection_errors.push(path);
                 result.collection_sources.push(capture[1].to_owned());
             }
@@ -69,6 +171,10 @@ pub fn parse_pytest(
         if result.cases.len() > 100000 {
             return Err(ValidationError("pytest case limit exceeded".into()));
         }
+    }
+    result.legacy_lines = legacy_lines(raw);
+    if result.legacy_lines.len() > 100000 {
+        return Err(ValidationError("pytest case limit exceeded".into()));
     }
     Ok(result)
 }
@@ -261,16 +367,24 @@ fn observe_suite(
     let text = std::str::from_utf8(&outcome.stdout)
         .map_err(|_| ValidationError("pytest output is not UTF-8".into()))?;
     let evidence = parse_pytest(text, &plan.context)?;
-    for case in evidence.cases.values() {
-        let mut target = InspectionTarget::at(&case.path, case.line);
-        target.target_name = case.node.clone();
-        target.status = match case.verdict.as_str() {
+    // Root decision E3: the legacy view keeps frozen `_parse_pytest_stdout`'s targets — every
+    // verdict line in execution order, repeats kept — while findings and the next metric stay
+    // per unique node (sorted, as frozen `parse_pytest_outcomes`).
+    for (name, verdict) in &evidence.legacy_lines {
+        let (path, line) = node_location(name, &plan.context)?;
+        let mut target = InspectionTarget::at(&path, line);
+        target.target_name = name.clone();
+        target.status = match verdict.as_str() {
             "PASSED" | "XFAIL" => "PASS",
             "SKIPPED" => "SKIP",
             _ => "FAIL",
         }
         .into();
-        target.message = case_message(&case.verdict).into();
+        target.message = case_message(verdict).into();
+        output.targets.push(target);
+    }
+    for case in evidence.cases.values() {
+        let message = case_message(&case.verdict);
         if matches!(case.verdict.as_str(), "FAILED" | "ERROR" | "XPASS") {
             let mut finding = finding(
                 plan,
@@ -282,10 +396,9 @@ fn observe_suite(
             finding.fingerprint = sha256(format!("pytest\0{}\0{}", case.node, case.verdict));
             // The historical view keeps one issue per case: the verdict target already carries it.
             output.extra["finding_details"][&finding.fingerprint] =
-                json!({"legacy_message":target.message});
+                json!({"legacy_message":message});
             output.observation.findings.push(finding);
         }
-        output.targets.push(target);
     }
     for (path, source) in evidence
         .collection_errors
@@ -303,6 +416,18 @@ fn observe_suite(
         item.fingerprint = sha256(format!("pytest\0collect:{source}\0error"));
         output.observation.findings.push(item);
     }
+    // Root decision E5: the legacy view's ERROR summary is frozen's own tool-error text; the
+    // modern check keeps its native refusal wording.
+    if planning::completed(outcome)
+        && let Some(error) = frozen_legacy_tool_error(
+            text,
+            &String::from_utf8_lossy(&outcome.stderr),
+            outcome.exit_code,
+            &evidence,
+        )
+    {
+        output.extra["legacy_tool_error"] = json!(error);
+    }
     let total = evidence.cases.len() as u64;
     let passed = evidence
         .cases
@@ -310,10 +435,19 @@ fn observe_suite(
         .filter(|case| matches!(case.verdict.as_str(), "PASSED" | "XFAIL"))
         .count() as u64;
     if total > 0 {
+        // Frozen next provider: the numerator counts PASSED nodes only (an xfail is no pass).
+        let green = evidence
+            .cases
+            .values()
+            .filter(|case| case.verdict == "PASSED")
+            .count() as u64;
         output
             .observation
             .measurements
-            .push(pair("pytest.cases", passed, total));
+            .push(pair("pytest.cases", green, total));
+        let (legacy_passed, legacy_total, legacy_skipped) = evidence.legacy_counts();
+        output.extra["legacy_case_counts"] =
+            json!({"passed":legacy_passed,"total":legacy_total,"skipped":legacy_skipped});
     }
     output.extra["test_outcomes"] = json!(
         evidence
@@ -490,14 +624,11 @@ fn observe_coverage(
             .insert("total_lines".into(), json!(file.counts.total_lines));
         output.targets.push(target);
     }
-    let passed = tests
-        .cases
-        .values()
-        .filter(|case| matches!(case.verdict.as_str(), "PASSED" | "XFAIL"))
-        .count() as u64;
+    // Frozen TEM reads the legacy case counts (every verdict line; PASSED and XFAIL pass).
+    let (passed, total, _) = tests.legacy_counts();
     let inputs = tem::TemInputs {
         passed,
-        total: tests.cases.len() as u64,
+        total,
         line_coverage: tem::percentage(report.counts.covered_lines, report.counts.total_lines),
         branch_coverage: tem::percentage(
             report.counts.covered_branches,
@@ -607,8 +738,18 @@ fn observe_runtime_metadata(
         .observation
         .tool_versions
         .push(("project-python".into(), version.clone()));
+    // Frozen `PythonVersionProvider.parse` limitations: the measured runtime, then the floor verdict.
+    output
+        .observation
+        .limitations
+        .push(format!("measured runtime: Python {version}"));
     if let Some(requirement) = &plan.context.options.requires_python {
-        if !ici_analysis::python_version_allowed(requirement, &version).map_err(ValidationError)? {
+        if ici_analysis::python_version_allowed(requirement, &version).map_err(ValidationError)? {
+            output.observation.limitations.push(format!(
+                "runtime satisfies requires-python {}",
+                crate::integration::repr(requirement)
+            ));
+        } else {
             output.observation.findings.push(finding(
                 plan,
                 "python.compat.runtime-version",
@@ -624,7 +765,7 @@ fn observe_runtime_metadata(
         output
             .observation
             .limitations
-            .push("no requires-python constraint is declared".into());
+            .push("no requires-python floor is declared — the measured runtime was not judged against a floor".into());
     }
     output.extra["runtime"] = value;
     let mut target = InspectionTarget::at("pyproject.toml", 1);
@@ -656,6 +797,11 @@ fn observe_compilation(
         ));
     }
     if compile.exit_code == Some(0) {
+        // Frozen `CompileallProvider.parse`: the compiled file count.
+        let mut checked =
+            Measurement::measured("compileall.checked", plan.context.source_files.len() as f64);
+        checked.unit = "files".into();
+        output.observation.measurements.push(checked);
         for path in &plan.context.source_files {
             let mut target = InspectionTarget::at(path, 1);
             target.target_name = "Project runtime compilation".into();
@@ -706,7 +852,7 @@ fn observe_compilation(
         let detail = message
             .captures(block)
             .map(|entry| format!("{}: {}", &entry[1], &entry[2]))
-            .unwrap_or_else(|| "project runtime could not compile this source".into());
+            .unwrap_or_else(|| "the declared interpreter could not compile this file".into());
         compile_finding(plan, output, &path, row, &detail);
         count += 1;
     }
@@ -746,9 +892,12 @@ fn observe_compilation(
         count += 1;
     }
     if count == 0 {
-        return Err(ValidationError(
-            "runtime compile failed without attributable source diagnostics".into(),
-        ));
+        return Err(ValidationError(format!(
+            "compileall exited {} but named no failed file — the failure cannot be attributed",
+            compile
+                .exit_code
+                .map_or_else(|| "none".to_owned(), |code| code.to_string())
+        )));
     }
     Ok(())
 }

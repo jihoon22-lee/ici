@@ -1145,6 +1145,19 @@ pub fn execute(
                 &engine_names(&prepared),
                 invocation.flag("fail_on_new"),
             );
+            // Frozen `compare_with_baseline`: the source is the root-relative POSIX path.
+            if let Some(value) = legacy_baseline.as_mut()
+                && let Some(relative) = value["source_path"]
+                    .as_str()
+                    .and_then(|origin| {
+                        std::path::Path::new(origin)
+                            .strip_prefix(&prepared.project.root)
+                            .ok()
+                    })
+                    .map(|relative| relative.to_string_lossy().replace('\\', "/"))
+            {
+                value["source_path"] = serde_json::json!(relative);
+            }
             baseline_gate_failures =
                 ici_reporting::baseline_gate_failures(&result, &baseline, comparison);
         }
