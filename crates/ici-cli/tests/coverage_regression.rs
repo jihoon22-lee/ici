@@ -236,7 +236,7 @@ fn actual_coverage_drop_gates_fail_on_new_without_changing_selected_gate_or_base
         fs::read(root.path().join("baseline.json")).unwrap(),
         original
     );
-    let details = ici_cli::report::load(&root.path().join(ici_cli::DEFAULT_RESULT))
+    let details = ici_cli::report::load(root.path(), &root.path().join(ici_cli::DEFAULT_RESULT))
         .unwrap()
         .to_value()
         .unwrap();

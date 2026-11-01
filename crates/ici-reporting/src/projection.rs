@@ -153,8 +153,21 @@ pub fn legacy_projection(
         // Frozen engines report their tool errors as the summary (`"; ".join(errors[:3])`); a
         // passing sibling check's count must not stand next to an ERROR verdict.
         if status == "ERROR" {
+            // A frozen legacy tool-error text recorded by the producer (e.g. the stable test
+            // engine's pytest errors) is the historical summary; else the native refusal.
             let reason = output
-                .map(|output| output.summary.as_str())
+                .and_then(|output| {
+                    // Flat, or keyed by the producing step (several steps in one check).
+                    output.extra.get("legacy_tool_error").or_else(|| {
+                        output.extra.as_object().and_then(|parts| {
+                            parts
+                                .values()
+                                .find_map(|part| part.get("legacy_tool_error"))
+                        })
+                    })
+                })
+                .and_then(serde_json::Value::as_str)
+                .or_else(|| output.map(|output| output.summary.as_str()))
                 .filter(|summary| !summary.is_empty())
                 .unwrap_or("analysis did not complete");
             let reasons = errored.entry(name.to_owned()).or_default();

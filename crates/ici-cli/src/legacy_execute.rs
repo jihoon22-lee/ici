@@ -195,7 +195,7 @@ pub fn command(
             }
         }
     }
-    let mut stored = crate::report::load(&run.result_path)?;
+    let mut stored = crate::report::load(&root, &run.result_path)?;
     let shaping = Shaping {
         prepared: &prepared,
         root: &root,
@@ -340,9 +340,15 @@ pub fn command(
     if let Some(path) = sarif_path {
         crate::report::write_artifact(
             &path,
-            ici_reporting::render_sarif(&stored, &options)
-                .map_err(error)?
-                .as_bytes(),
+            // Root decision E1: the historical suite keeps frozen reporters/sarif.py's shape
+            // (`ici/v3` fingerprints, %SRCROOT%) so code-scanning alerts keep their identity.
+            if legacy_schema && matches!(stored, StoredResult::Legacy(_)) {
+                ici_reporting::render_legacy_sarif(&stored)
+            } else {
+                ici_reporting::render_sarif(&stored, &options)
+            }
+            .map_err(error)?
+            .as_bytes(),
             &run.result_path,
             crate::report::ArtifactKind::Sarif,
         )?;
@@ -1229,9 +1235,14 @@ fn refused_policy(engine: &serde_json::Value) -> Option<String> {
     engine["extra"]["native_checks"]
         .as_array()?
         .iter()
-        .filter(|check| check["state"] == "BLOCKED")
-        .filter_map(|check| check["summary"].as_str())
-        .find(|summary| summary.starts_with("changed line"))
+        .filter_map(|check| {
+            let summary = check["summary"].as_str()?;
+            // Planning refuses changed lines; the measured inventory bound refuses after parse.
+            ((check["state"] == "BLOCKED" && summary.starts_with("changed line"))
+                || summary == ici_validation::policy::POLICY_ROWS_REFUSAL)
+                .then_some(summary)
+        })
+        .next()
         .map(str::to_owned)
 }
 

@@ -334,7 +334,7 @@ fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
     );
     // Frozen `cmd_diff`: an unreadable stored result is a `diff: ` refusal naming the file.
     let read = |path: &Path, label: &str| {
-        native_comparison_result(path).map_err(|e| {
+        native_comparison_result(&root, path).map_err(|e| {
             CliError(if path.is_file() {
                 format!(
                     "diff: {label}{} is not a result this version can read: {e}",
@@ -393,8 +393,8 @@ fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
     }
     Ok(CommandOutput::text(text))
 }
-fn native_comparison_result(path: &Path) -> Result<Option<ici_domain::RunResult>> {
-    match crate::report::load(path)? {
+fn native_comparison_result(root: &Path, path: &Path) -> Result<Option<ici_domain::RunResult>> {
+    match crate::report::load(root, path)? {
         ici_reporting::StoredResult::Run(run) => Ok(Some(*run)),
         ici_reporting::StoredResult::Legacy(legacy) => legacy
             .as_value()

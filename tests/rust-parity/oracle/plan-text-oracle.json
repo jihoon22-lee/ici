@@ -1,0 +1,128 @@
+{
+ "cases": {
+  "build/default": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=lib languages=cpp profile=standard\ndemo: 13 check(s)\nlib:\n  lib.cpp.line: Line counts (ici)\n  lib.cpp.compile: blocked \u2014 no compilation database for the component's C++ scope \u2014 build 'native' declares no approved configure command \u2014 give it a prepare vector or generate out/compile_commands.json\n  lib.cpp.diagnostics: blocked \u2014 no compilation database for the component's C++ scope \u2014 build 'native' declares no approved configure command \u2014 give it a prepare vector or generate out/compile_commands.json\n  lib.cpp.tidy: blocked \u2014 clang-tidy is not available\n  lib.cpp.test: blocked \u2014 no declared test suite \u2014 cmake add_test or a testlib/testcase .pro is what declares one\n  lib.cpp.coverage: blocked \u2014 build is not instrumented \u2014 no .gcno under the linked build directories\n  lib.cpp.complexity: Cyclomatic complexity (ici)\n  lib.cpp.cognitive: Cognitive complexity (ici)\n  lib.cpp.cycle: Include cycles (ici)\n  lib.cpp.dup: Duplicate code (ici)\n  lib.cpp.exception: Exception safety (ici)\n  lib.cpp.artifact: blocked \u2014 no artifact contract \u2014 declare [builds.<id>] artifacts = [...]\n  lib.cpp.binary-compat: blocked \u2014 no artifact contract \u2014 declare [builds.<id>] artifacts = [...] so the binaries to inspect are named\nbuilds:\n  native: cmake release \u2192 out (for lib)\n  coverage gap: lib: no compilation database captured its C++ scope\n  note: lib: no compilation database for its C++ scope (build 'native' declares no approved configure command \u2014 give it a prepare vector or generate out/compile_commands.json)\n",
+   "tree": "build"
+  },
+  "mixed/component-lib": {
+   "argv": [
+    "next",
+    "plan",
+    "--component",
+    "lib"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=lib languages=cpp profile=standard\ndemo: 13 check(s)\nlib:\n  lib.cpp.line: Line counts (ici)\n  lib.cpp.compile: blocked \u2014 no compilation database for the component's C++ scope \u2014 no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band\n  lib.cpp.diagnostics: blocked \u2014 no compilation database for the component's C++ scope \u2014 no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band\n  lib.cpp.tidy: blocked \u2014 clang-tidy is not available\n  lib.cpp.test: blocked \u2014 no build unit linked \u2014 declare [builds.<id>] and attach it to the component\n  lib.cpp.coverage: blocked \u2014 build is not instrumented \u2014 no .gcno under the linked build directories\n  lib.cpp.complexity: Cyclomatic complexity (ici)\n  lib.cpp.cognitive: Cognitive complexity (ici)\n  lib.cpp.cycle: Include cycles (ici)\n  lib.cpp.dup: Duplicate code (ici)\n  lib.cpp.exception: Exception safety (ici)\n  lib.cpp.artifact: blocked \u2014 no build unit linked \u2014 artifact declarations live on [builds.<id>]\n  lib.cpp.binary-compat: blocked \u2014 no build unit linked \u2014 artifact declarations live on [builds.<id>]\n  coverage gap: --require-full: required component 'app' was not in the selected scope\n  coverage gap: lib: no compilation database captured its C++ scope\n  note: lib: no compilation database for its C++ scope (no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)\n",
+   "tree": "mixed"
+  },
+  "mixed/default": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app,lib languages=cpp,python profile=standard\ndemo: 29 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\nlib:\n  lib.cpp.line: Line counts (ici)\n  lib.cpp.compile: blocked \u2014 no compilation database for the component's C++ scope \u2014 no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band\n  lib.cpp.diagnostics: blocked \u2014 no compilation database for the component's C++ scope \u2014 no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band\n  lib.cpp.tidy: blocked \u2014 clang-tidy is not available\n  lib.cpp.test: blocked \u2014 no build unit linked \u2014 declare [builds.<id>] and attach it to the component\n  lib.cpp.coverage: blocked \u2014 build is not instrumented \u2014 no .gcno under the linked build directories\n  lib.cpp.complexity: Cyclomatic complexity (ici)\n  lib.cpp.cognitive: Cognitive complexity (ici)\n  lib.cpp.cycle: Include cycles (ici)\n  lib.cpp.dup: Duplicate code (ici)\n  lib.cpp.exception: Exception safety (ici)\n  lib.cpp.artifact: blocked \u2014 no build unit linked \u2014 artifact declarations live on [builds.<id>]\n  lib.cpp.binary-compat: blocked \u2014 no build unit linked \u2014 artifact declarations live on [builds.<id>]\n  coverage gap: lib: no compilation database captured its C++ scope\n  note: lib: no compilation database for its C++ scope (no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)\n",
+   "tree": "mixed"
+  },
+  "mixed/python": {
+   "argv": [
+    "next",
+    "plan",
+    "--python"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app,lib languages=python profile=standard\ndemo: 16 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  coverage gap: --require-full: lib declares cpp but the request selected only python\n  coverage gap: lib: no compilation database captured its C++ scope\n  note: lib: no checks in the requested languages (python)\n  note: lib: no compilation database for its C++ scope (no build unit is linked to lib; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band)\n",
+   "tree": "mixed"
+  },
+  "python-env/default": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=standard\ndemo: 17 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: /home/jihoon/projects/ici/.venv/bin/python -m coverage run --branch --data-file <root>/.ici/cache/coverage/app.data -m pytest -p no:cacheprovider -v --tb=short\n  app.python.coverage: /home/jihoon/projects/ici/.venv/bin/python -m coverage json --data-file <root>/.ici/cache/coverage/app.data -o <root>/.ici/cache/coverage/app.json\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime.version: /home/jihoon/projects/ici/.venv/bin/python -VV\n  app.python.compat-runtime.compileall: /home/jihoon/projects/ici/.venv/bin/python -B -m compileall -q -f main.py tests/test_main.py\ndependencies:\n  app.python.coverage needs app.python.test\n",
+   "tree": "python-env"
+  },
+  "python-env/profile-fast": {
+   "argv": [
+    "next",
+    "plan",
+    "--profile",
+    "fast"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=fast\ndemo: 17 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: /home/jihoon/projects/ici/.venv/bin/python -m coverage run --branch --data-file <root>/.ici/cache/coverage/app.data -m pytest -p no:cacheprovider -v --tb=short\n  app.python.coverage: /home/jihoon/projects/ici/.venv/bin/python -m coverage json --data-file <root>/.ici/cache/coverage/app.data -o <root>/.ici/cache/coverage/app.json\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime.version: /home/jihoon/projects/ici/.venv/bin/python -VV\n  app.python.compat-runtime.compileall: /home/jihoon/projects/ici/.venv/bin/python -B -m compileall -q -f main.py tests/test_main.py\ndependencies:\n  app.python.coverage needs app.python.test\n",
+   "tree": "python-env"
+  },
+  "python/default": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=standard\ndemo: 16 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n",
+   "tree": "python"
+  },
+  "python/profile-deep": {
+   "argv": [
+    "next",
+    "plan",
+    "--profile",
+    "deep"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=deep\ndemo: 16 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n",
+   "tree": "python"
+  },
+  "python/profile-fast": {
+   "argv": [
+    "next",
+    "plan",
+    "--profile",
+    "fast"
+   ],
+   "exit_code": 0,
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=fast\ndemo: 16 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.lint: blocked \u2014 ruff is not available\n  app.python.format: blocked \u2014 ruff is not available\n  app.python.type: blocked \u2014 mypy is not available\n  app.python.test: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked \u2014 no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <root>/app/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n",
+   "tree": "python"
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "trees": {
+  "build": {
+   "CMakeLists.txt": "cmake_minimum_required(VERSION 3.16)\nproject(demo CXX)\nadd_library(a lib/a.cpp)\n",
+   "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"standard\"\n[builds.native]\nsystem = \"cmake\"\ndirectory = \"out\"\nproject = \"CMakeLists.txt\"\nvariant = \"release\"\nprepare = \"explicit\"\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\nbuild = \"native\"\n",
+   "lib/a.cpp": "int f() { return 1; }\n"
+  },
+  "mixed": {
+   "app/main.py": "def f():\n    return 1\n",
+   "app/tests/test_main.py": "from main import f\n\n\ndef test_f():\n    assert f() == 1\n",
+   "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n",
+   "lib/a.cpp": "int f() { return 1; }\n"
+  },
+  "python": {
+   "app/main.py": "def f():\n    return 1\n",
+   "app/tests/test_main.py": "from main import f\n\n\ndef test_f():\n    assert f() == 1\n",
+   "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n"
+  },
+  "python-env": {
+   "app/main.py": "def f():\n    return 1\n",
+   "app/tests/test_main.py": "from main import f\n\n\ndef test_f():\n    assert f() == 1\n",
+   "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"standard\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[components.python]\nexecutable = \"/home/jihoon/projects/ici/.venv/bin/python\"\n"
+  }
+ }
+}

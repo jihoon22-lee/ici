@@ -129,8 +129,8 @@ pub fn command(
         // result and its text ends at `saved <path>`; the page is `next report`'s job. Only
         // `ici analyze` adds the offline page and the finding preview (execution plan §2.1).
         if invocation.command() == "analyze" {
-            let stored = crate::report::load(&run.result_path)?;
             let root = crate::commands::artifact_root(cwd);
+            let stored = crate::report::load(&root, &run.result_path)?;
             let options = ici_reporting::RenderOptions {
                 source_root: Some(root.to_string_lossy().into_owned()),
                 ..Default::default()
@@ -200,7 +200,7 @@ pub fn execute(
     let baseline_document = baseline_path
         .as_ref()
         .map(|path| {
-            crate::report::load(path).map_err(|e| {
+            crate::report::load(&prepared.project.root, path).map_err(|e| {
                 if crate::legacy::is_legacy(invocation) {
                     e
                 } else if path.is_file() {
@@ -229,7 +229,10 @@ pub fn execute(
             .and_then(|value| RunResult::from_value(value).ok()),
     });
     validate_destination(&result_path, false)?;
-    validate_destination(&crate::report::details_path(&result_path, &run_id)?, true)?;
+    validate_destination(
+        &crate::report::details_path(&prepared.project.root, &result_path, &run_id)?,
+        true,
+    )?;
     if result_path.exists() {
         storage::read_result(&result_path).map_err(|failure| CliError(format!("existing result is not a native run artifact; choose a new --result path: {failure}")))?;
     }
@@ -1161,6 +1164,19 @@ pub fn execute(
                 &engine_names(&prepared),
                 invocation.flag("fail_on_new"),
             );
+            // Frozen `compare_with_baseline`: the source is the root-relative POSIX path.
+            if let Some(value) = legacy_baseline.as_mut()
+                && let Some(relative) = value["source_path"]
+                    .as_str()
+                    .and_then(|origin| {
+                        std::path::Path::new(origin)
+                            .strip_prefix(&prepared.project.root)
+                            .ok()
+                    })
+                    .map(|relative| relative.to_string_lossy().replace('\\', "/"))
+            {
+                value["source_path"] = serde_json::json!(relative);
+            }
             baseline_gate_failures =
                 ici_reporting::baseline_gate_failures(&result, &baseline, comparison);
         }
@@ -1255,7 +1271,7 @@ pub fn execute(
         legacy_baseline,
         baseline_gate_failures,
     };
-    crate::report::save_details(&executed)?;
+    crate::report::save_details(&prepared.project.root, &executed)?;
     Ok(executed)
 }
 pub(crate) fn execute_artifact_prepare(

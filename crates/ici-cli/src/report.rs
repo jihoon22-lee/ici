@@ -30,34 +30,44 @@ fn run_component(run_id: &str) -> String {
         run_id.to_string()
     }
 }
-/// Presentation archive of one saved run. It lives in ici's own `.ici/rust-v1` namespace
-/// beside the result, keyed by the result file name, so it never lands in a user's `runs/`.
-pub fn details_path(result: &Path, run_id: &str) -> Result<PathBuf> {
+/// Presentation archive of one saved run. It lives in the project's own `.ici/rust-v1`
+/// namespace, keyed by the result file name and run, so an explicit `--result` never gains a
+/// `.ici` (or `runs/`) beside it: frozen wrote only the result there
+/// (tests/rust-parity/runtime/result-placement-oracle.json).
+pub fn details_path(root: &Path, result: &Path, run_id: &str) -> Result<PathBuf> {
+    let name = result
+        .file_name()
+        .ok_or_else(|| CliError("result path has no file name".into()))?;
+    Ok(root
+        .join(".ici/rust-v1/details")
+        .join(name)
+        .join(run_component(run_id))
+        .join("details.json"))
+}
+/// Placements written by earlier native builds; read only, nothing is moved.
+fn previous_details_paths(result: &Path, run_id: &str) -> [PathBuf; 2] {
     let parent = result.parent().unwrap_or(Path::new("."));
     let namespace = if parent.ends_with(".ici/rust-v1") {
         parent.to_path_buf()
     } else {
         parent.join(".ici/rust-v1")
     };
-    let name = result
-        .file_name()
-        .ok_or_else(|| CliError("result path has no file name".into()))?;
-    Ok(namespace
-        .join("details")
-        .join(name)
-        .join(run_component(run_id))
-        .join("details.json"))
+    let name = result.file_name().unwrap_or_default();
+    [
+        // Beside the result (2026-10-29 to 2026-11-02).
+        namespace
+            .join("details")
+            .join(name)
+            .join(run_component(run_id))
+            .join("details.json"),
+        // `<result dir>/runs/<run>/details.json` (before 2026-10-29).
+        parent
+            .join("runs")
+            .join(run_component(run_id))
+            .join("details.json"),
+    ]
 }
-/// Placement written before 2026-10-29 (`<result dir>/runs/<run>/details.json`); read only.
-fn previous_details_path(result: &Path, run_id: &str) -> PathBuf {
-    result
-        .parent()
-        .unwrap_or(Path::new("."))
-        .join("runs")
-        .join(run_component(run_id))
-        .join("details.json")
-}
-pub fn save_details(run: &crate::execute::ExecutedRun) -> Result<PathBuf> {
+pub fn save_details(root: &Path, run: &crate::execute::ExecutedRun) -> Result<PathBuf> {
     let details = ici_reporting::legacy_projection(
         &run.result,
         &run.outputs,
@@ -73,21 +83,25 @@ pub fn save_details(run: &crate::execute::ExecutedRun) -> Result<PathBuf> {
         },
     )
     .map_err(error)?;
-    let path = details_path(&run.result_path, &run.result.run_id)?;
+    let path = details_path(root, &run.result_path, &run.result.run_id)?;
     let text = ici_reporting::render_json(&StoredResult::Legacy(details)).map_err(error)? + "\n";
     storage::atomic_write(&path, text.as_bytes(), WriteMode::CreateNew).map_err(error)?;
     Ok(path)
 }
-pub fn load(path: &Path) -> Result<StoredResult> {
+/// Read a stored result and, for a native run, its presentation details from the project
+/// `root` (or an earlier placement beside the result).
+pub fn load(root: &Path, path: &Path) -> Result<StoredResult> {
     let stored =
         StoredResult::from_report_bytes(&read_bounded(path, 64 * 1024 * 1024)?).map_err(error)?;
     if let StoredResult::Run(run) = &stored {
-        let mut details = details_path(path, &run.run_id)?;
+        let mut details = details_path(root, path, &run.run_id)?;
         if !details.try_exists().map_err(error)? {
-            // Results saved with the earlier placement stay readable; nothing is moved.
-            let previous = previous_details_path(path, &run.run_id);
-            if previous.try_exists().map_err(error)? {
-                details = previous;
+            // Results saved with an earlier placement stay readable; nothing is moved.
+            for previous in previous_details_paths(path, &run.run_id) {
+                if previous.try_exists().map_err(error)? {
+                    details = previous;
+                    break;
+                }
             }
         }
         if details.try_exists().map_err(error)? {
@@ -170,7 +184,7 @@ pub fn command(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
             source.display()
         )));
     }
-    let stored = load(&source).map_err(|e| {
+    let stored = load(&root, &source).map_err(|e| {
         CliError(format!(
             "report: {} is not a result this version can read: {e}",
             source.display()
