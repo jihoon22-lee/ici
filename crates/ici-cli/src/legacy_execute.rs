@@ -443,6 +443,33 @@ fn shape_engine(
         // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
         ici_reporting::legacy_no_tests_collected(value, &languages).map_err(error)?;
         replaced = true;
+    } else if family == "build" && legacy_schema && python_sources_unselected(value) {
+        // Frozen `BuildEngine.run`: a Python project without a selected source creates no
+        // library, launcher or binary, which is the measured `BuildArtifacts` FAIL (mode-aware).
+        let mode = prepared.project.components.iter().find_map(|component| {
+            component
+                .settings
+                .pointer("/engines/build/mode")
+                .and_then(serde_json::Value::as_str)
+        });
+        let status = if mode == Some("pass_warn") {
+            "WARN"
+        } else {
+            "FAIL"
+        };
+        let target = serde_json::json!({"file_path":".","start_line":1,"end_line":null,
+            "start_column":null,"end_column":null,"target_name":"BuildArtifacts",
+            "status":"FAIL","message":"No Python library, launcher, or C++ binary artifact was created",
+            "snippet":"","metrics":{}});
+        ici_reporting::legacy_verdict(
+            value,
+            status,
+            "MEASURED",
+            "Build did not produce a complete artifact set",
+            vec![target],
+        )
+        .map_err(error)?;
+        replaced = true;
     } else if legacy_schema
         && let Some((status, evidence, summary, target)) =
             no_python_sources(family, value, &warn_cc)
@@ -763,6 +790,23 @@ fn mypy_unavailable(engine: &serde_json::Value) -> bool {
         })
 }
 
+/// Every native check of the engine is a Python check refused at planning because no Python
+/// source was selected ("no sources in scope for python").
+fn python_sources_unselected(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            !checks.is_empty()
+                && checks.iter().all(|check| {
+                    check["state"] == "BLOCKED"
+                        && check["check_id"]
+                            .as_str()
+                            .is_some_and(|id| id.starts_with("python."))
+                        && check["summary"] == "no sources in scope for python"
+                })
+        })
+}
+
 type NoSources = (
     &'static str,
     &'static str,
@@ -772,16 +816,7 @@ type NoSources = (
 /// Frozen single-engine verdicts when the Python project selected no Python source: every
 /// native check of the engine was refused at planning ("no sources in scope for python").
 fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) -> Option<NoSources> {
-    let checks = engine["extra"]["native_checks"].as_array()?;
-    if checks.is_empty()
-        || !checks.iter().all(|check| {
-            check["state"] == "BLOCKED"
-                && check["check_id"]
-                    .as_str()
-                    .is_some_and(|id| id.starts_with("python."))
-                && check["summary"] == "no sources in scope for python"
-        })
-    {
+    if !python_sources_unselected(engine) {
         return None;
     }
     let none = "No applicable Python source files were selected";

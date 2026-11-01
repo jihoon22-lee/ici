@@ -1,0 +1,119 @@
+{
+  "runs": {
+    "default": {
+      "build": {
+        "evidence": "MEASURED",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:4dd6c8805fecf8ce8a2c833ce8532db9900d09b29c112a94befd42b5fda1d2d9",
+            "fixes": [],
+            "message": "No Python library, launcher, or C++ binary artifact was created",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "BuildArtifacts",
+              "path": ".",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "high",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "FAIL",
+        "summary": "Build did not produce a complete artifact set",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": ".",
+            "message": "No Python library, launcher, or C++ binary artifact was created",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "FAIL",
+            "target_name": "BuildArtifacts"
+          }
+        ]
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\n",
+      "exit_code": 0,
+      "suite_status": "WARN"
+    },
+    "pass_warn": {
+      "build": {
+        "evidence": "MEASURED",
+        "findings": [
+          {
+            "category": "build",
+            "confidence": "high",
+            "explanation": "Adapted from the legacy build InspectionTarget contract.",
+            "fingerprint": "sha256:4dd6c8805fecf8ce8a2c833ce8532db9900d09b29c112a94befd42b5fda1d2d9",
+            "fixes": [],
+            "message": "No Python library, launcher, or C++ binary artifact was created",
+            "metrics": {},
+            "primary_location": {
+              "end_column": null,
+              "end_line": null,
+              "label": "BuildArtifacts",
+              "path": ".",
+              "start_column": null,
+              "start_line": 1
+            },
+            "related_locations": [],
+            "remediation": "",
+            "rule_id": "ici.legacy.build.target",
+            "severity": "high",
+            "snippet": "",
+            "suppression": {
+              "kind": "none",
+              "reason": "",
+              "suppressed": false
+            },
+            "tool_name": "",
+            "tool_rule_id": "",
+            "tool_version": ""
+          }
+        ],
+        "required": false,
+        "status": "WARN",
+        "summary": "Build did not produce a complete artifact set",
+        "targets": [
+          {
+            "end_column": null,
+            "end_line": null,
+            "file_path": ".",
+            "message": "No Python library, launcher, or C++ binary artifact was created",
+            "metrics": {},
+            "snippet": "",
+            "start_column": null,
+            "start_line": 1,
+            "status": "FAIL",
+            "target_name": "BuildArtifacts"
+          }
+        ]
+      },
+      "config": "[project]\ntype = 'python'\nsource_dirs = ['src']\n[ici]\nprofile = 'deep'\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.integration]\nenabled = false\n[engines.build]\nenabled = true\nmode = 'pass_warn'\n",
+      "exit_code": 0,
+      "suite_status": "WARN"
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

@@ -941,15 +941,29 @@
       "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
     },
     "finding_site:src/ici/engines/build.py:92:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-cli/src/artifact_build.rs"
+      ],
+      "evidence": [
+        "Frozen goldens: tests/rust-parity/cpp/build-targets-oracle.json case no-artifacts (frozen `ici build`, exit 1, console '✘ Build did not produce a complete artifact set') and tests/rust-parity/validation/build-sourceless-oracle.json from python3 tests/rust-parity/validation/capture_build_sourceless.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> (frozen deep `ici verify --report`, default and pass_warn modes; /tmp/ici-rust-replacement-20261028/w-validation-build-sourceless-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_build_targets --locked -- --include-ignored: 2 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-sourceless.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log); legacy_python_engines/legacy_commands/legacy_no_tests/legacy_mode_scope passed (/tmp/ici-rust-replacement-20261028/w-validation-build-sourceless-neighbours.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Python facet. Frozen BuildEngine.run: a legacy type='python' project that selects no Python source creates no library, launcher or binary, so with no tool error it appends `BuildArtifacts` FAIL at '.' line 1 'No Python library, launcher, or C++ binary artifact was created' and summarises 'Build did not produce a complete artifact set' (MEASURED; mode pass_warn gives WARN). Native legacy `ici build` previously stopped with the blocked python.artifact check (exit 3); the legacy view now replaces that block with the frozen verdict: `ici build` exits 1 with the frozen console line, and deep `ici verify --report` reproduces status, summary, evidence, required=false, the target and the ici.legacy.build.target finding (rule id, fingerprint, severity, confidence, message, location) and suite WARN/exit 0 in both modes. Artifact-producing and tool-failure builds never add the target (byte-equal frozen cases python, make-failure, cmake-configure-failure).",
+      "difference_reason": "Frozen _prepare_output_tree creates the empty <version>/x86_64/{bin,lib} tree before discovering there is nothing to build; native creates no output directory for a build that produces nothing. The saved native details keep the blocked python.artifact check (the legacy verdict is a presentation of it)."
     },
     "finding_site:src/ici/engines/coverage_policy.py:165:11": {
       "status": "complete",
