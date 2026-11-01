@@ -1,0 +1,4003 @@
+{
+ "baseline_incompatible_policy": "[checks.\"python.dead\"]\nenabled = false\n",
+ "cases": {
+  "baseline_comparable": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--result",
+      "base.json"
+     ],
+     "exit_code": 1,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614",
+        "message": "Pickle deserialization can execute attacker-controlled code",
+        "native_rule_id": "Security:PickleLoad",
+        "primary_location": {
+         "end_column": 29,
+         "end_line": 4,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 4
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.pickleload",
+        "severity": "high",
+        "task_id": "app.python.security"
+       },
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d",
+        "message": "Dynamic code execution accepts untrusted input",
+        "native_rule_id": "Security:EvalExec",
+        "primary_location": {
+         "end_column": 20,
+         "end_line": 7,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 7
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.evalexec",
+        "severity": "high",
+        "task_id": "app.python.security"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "2 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:66d40aa03b6980b850d60893f4da4980c558838192fe3e751f228c08e051470c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 7.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 5,
+        "unit": "lines",
+        "value": 5.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 4,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "c69edfb25bef47d3a367ed81e5915bd9",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/base.json\n"
+    },
+    {
+     "argv": [
+      "analyze",
+      "--baseline",
+      "base.json",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 1,
+     "result": {
+      "baseline": {
+       "carried": [],
+       "new": [],
+       "origin": "<root>/base.json",
+       "reason": "",
+       "resolved": [],
+       "state": "comparable",
+       "unchanged": [
+        "sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d",
+        "sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614"
+       ]
+      },
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614",
+        "message": "Pickle deserialization can execute attacker-controlled code",
+        "native_rule_id": "Security:PickleLoad",
+        "primary_location": {
+         "end_column": 29,
+         "end_line": 4,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 4
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.pickleload",
+        "severity": "high",
+        "task_id": "app.python.security"
+       },
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d",
+        "message": "Dynamic code execution accepts untrusted input",
+        "native_rule_id": "Security:EvalExec",
+        "primary_location": {
+         "end_column": 20,
+         "end_line": 7,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 7
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.evalexec",
+        "severity": "high",
+        "task_id": "app.python.security"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "2 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:66d40aa03b6980b850d60893f4da4980c558838192fe3e751f228c08e051470c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 7.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 5,
+        "unit": "lines",
+        "value": 5.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 4,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "543b9cded7c74241b3b8783c03dc4e02",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\n  baseline: 0 new, 2 unchanged, 0 resolved, 0 carried\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/out.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "baseline_incompatible": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--result",
+      "base.json"
+     ],
+     "exit_code": 1,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614",
+        "message": "Pickle deserialization can execute attacker-controlled code",
+        "native_rule_id": "Security:PickleLoad",
+        "primary_location": {
+         "end_column": 29,
+         "end_line": 4,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 4
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.pickleload",
+        "severity": "high",
+        "task_id": "app.python.security"
+       },
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d",
+        "message": "Dynamic code execution accepts untrusted input",
+        "native_rule_id": "Security:EvalExec",
+        "primary_location": {
+         "end_column": 20,
+         "end_line": 7,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 7
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.evalexec",
+        "severity": "high",
+        "task_id": "app.python.security"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "2 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:b784434ea8eba83ec82a17cb5f5288a5a0b1a7d4da5e37b2dfaf8d1a116d3ffa",
+       "source": {
+        "digest": "sha256:66d40aa03b6980b850d60893f4da4980c558838192fe3e751f228c08e051470c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 7.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 5,
+        "unit": "lines",
+        "value": 5.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 4,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "de8c0e5b14484879b84a4cdad1908187",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/base.json\n"
+    },
+    {
+     "argv": [
+      "analyze",
+      "--baseline",
+      "base.json",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 1,
+     "result": {
+      "baseline": {
+       "carried": [],
+       "new": [],
+       "origin": "<root>/base.json",
+       "reason": "policy changed since the baseline — accept the current run as the new baseline instead of comparing across the change",
+       "resolved": [],
+       "state": "incompatible",
+       "unchanged": []
+      },
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614",
+        "message": "Pickle deserialization can execute attacker-controlled code",
+        "native_rule_id": "Security:PickleLoad",
+        "primary_location": {
+         "end_column": 29,
+         "end_line": 4,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 4
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.pickleload",
+        "severity": "high",
+        "task_id": "app.python.security"
+       },
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d",
+        "message": "Dynamic code execution accepts untrusted input",
+        "native_rule_id": "Security:EvalExec",
+        "primary_location": {
+         "end_column": 20,
+         "end_line": 7,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 7
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.evalexec",
+        "severity": "high",
+        "task_id": "app.python.security"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "2 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:66d40aa03b6980b850d60893f4da4980c558838192fe3e751f228c08e051470c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 7.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 5,
+        "unit": "lines",
+        "value": 5.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 4,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "81331bb7044a44269377c003220c560a",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\n  baseline: incompatible — policy changed since the baseline — accept the current run as the new baseline instead of comparing across the change\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/out.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "fail": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 1,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614",
+        "message": "Pickle deserialization can execute attacker-controlled code",
+        "native_rule_id": "Security:PickleLoad",
+        "primary_location": {
+         "end_column": 29,
+         "end_line": 4,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 4
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.pickleload",
+        "severity": "high",
+        "task_id": "app.python.security"
+       },
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d",
+        "message": "Dynamic code execution accepts untrusted input",
+        "native_rule_id": "Security:EvalExec",
+        "primary_location": {
+         "end_column": 20,
+         "end_line": 7,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 7
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.evalexec",
+        "severity": "high",
+        "task_id": "app.python.security"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "2 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:66d40aa03b6980b850d60893f4da4980c558838192fe3e751f228c08e051470c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 7.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 5,
+        "unit": "lines",
+        "value": 5.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 4,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "9bbbb2decf6a47c6a81b01fde247ba86",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nFAIL: 2 finding(s)\n  2 violation(s) found\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/out.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "fail_json": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--json",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 1,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614",
+        "message": "Pickle deserialization can execute attacker-controlled code",
+        "native_rule_id": "Security:PickleLoad",
+        "primary_location": {
+         "end_column": 29,
+         "end_line": 4,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 4
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.pickleload",
+        "severity": "high",
+        "task_id": "app.python.security"
+       },
+       {
+        "component_id": "app",
+        "confidence": "high",
+        "evidence": "MEASURED",
+        "fingerprint": "sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d",
+        "message": "Dynamic code execution accepts untrusted input",
+        "native_rule_id": "Security:EvalExec",
+        "primary_location": {
+         "end_column": 20,
+         "end_line": 7,
+         "path": "main.py",
+         "start_column": 12,
+         "start_line": 7
+        },
+        "provider": "ici.hygiene",
+        "rule_id": "security.evalexec",
+        "severity": "high",
+        "task_id": "app.python.security"
+       }
+      ],
+      "gate": {
+       "has_violations": true,
+       "reasons": [
+        "2 violation(s) found"
+       ],
+       "selected": "FAIL",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:66d40aa03b6980b850d60893f4da4980c558838192fe3e751f228c08e051470c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 7.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 5,
+        "unit": "lines",
+        "value": 5.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 7,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 4,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 2.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "8e53d72f85314877906efe5ee3ceea9f",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "root: <root>\nscope: components=app languages=python profile=standard\n",
+     "stdout": "{\"checks\":[{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.line\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.line\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.complexity\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.complexity\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.cognitive\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.cognitive\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.cycle\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.cycle\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.dup\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.dup\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.security\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.security\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.resource\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.resource\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.exception\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.exception\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.dead\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.dead\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.compat\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.compat\",\"variant\":null}],\"execution\":{\"blocked_task_ids\":[],\"cancelled\":false,\"failed_task_ids\":[],\"required_complete\":true,\"reused_task_ids\":[]},\"findings\":[{\"component_id\":\"app\",\"confidence\":\"high\",\"evidence\":\"MEASURED\",\"fingerprint\":\"sha256:7c55afbf1252bb2dd7462b287d873658328af0dfb203f24de20ec86fbe46f614\",\"message\":\"Pickle deserialization can execute attacker-controlled code\",\"native_rule_id\":\"Security:PickleLoad\",\"primary_location\":{\"end_column\":29,\"end_line\":4,\"path\":\"main.py\",\"start_column\":12,\"start_line\":4},\"provider\":\"ici.hygiene\",\"rule_id\":\"security.pickleload\",\"severity\":\"high\",\"task_id\":\"app.python.security\"},{\"component_id\":\"app\",\"confidence\":\"high\",\"evidence\":\"MEASURED\",\"fingerprint\":\"sha256:32eee85fb6f558c5646421868099d33e5c4c6b263e83e6b74f608d96fe695a0d\",\"message\":\"Dynamic code execution accepts untrusted input\",\"native_rule_id\":\"Security:EvalExec\",\"primary_location\":{\"end_column\":20,\"end_line\":7,\"path\":\"main.py\",\"start_column\":12,\"start_line\":7},\"provider\":\"ici.hygiene\",\"rule_id\":\"security.evalexec\",\"severity\":\"high\",\"task_id\":\"app.python.security\"}],\"gate\":{\"has_violations\":true,\"reasons\":[\"2 violation(s) found\"],\"selected\":\"FAIL\",\"workspace\":\"NOT_EVALUATED\"},\"identity\":{\"fingerprint_version\":\"ici.next.fingerprint.v3\",\"policy_digest\":\"sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5\",\"source\":{\"digest\":\"sha256:66d40aa03b6980b850d60893f4da4980c558838192fe3e751f228c08e051470c\",\"dirty\":true,\"files\":[\"main.py\"]},\"toolchain_digest\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"limitations\":[\"AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only\",\"no requires-python floor could be inferred — the syntax and standard-library floors were not asserted\",\"static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility\",\"static selection: tests, runtime checks and build artifact checks omitted\",\"app: TEM N/A — no coverage evidence — the score is not computed\"],\"metrics\":[{\"evidence\":\"MEASURED\",\"name\":\"lines_total\",\"unit\":\"lines\",\"value\":7.0},{\"denominator\":7,\"evidence\":\"MEASURED\",\"name\":\"lines_code\",\"numerator\":5,\"unit\":\"lines\",\"value\":5.0},{\"denominator\":7,\"evidence\":\"MEASURED\",\"name\":\"lines_comment\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"denominator\":7,\"evidence\":\"MEASURED\",\"name\":\"lines_blank\",\"numerator\":2,\"unit\":\"lines\",\"value\":2.0},{\"denominator\":1,\"evidence\":\"MEASURED\",\"name\":\"files_counted\",\"numerator\":1,\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"functions_measured\",\"unit\":\"functions\",\"value\":2.0},{\"evidence\":\"MEASURED\",\"name\":\"max_complexity\",\"unit\":\"complexity\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"functions_measured\",\"unit\":\"functions\",\"value\":2.0},{\"evidence\":\"MEASURED\",\"name\":\"max_cognitive\",\"unit\":\"cognitive\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"cycles_found\",\"unit\":\"cycles\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"clone_groups\",\"unit\":\"groups\",\"value\":0.0},{\"denominator\":4,\"evidence\":\"MEASURED\",\"name\":\"duplicated_lines\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":2.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0}],\"producer\":{\"ici_version\":\"0.13.0\"},\"publication\":{\"detail\":\"\",\"state\":\"NOT_CONFIGURED\"},\"run_id\":\"8e53d72f85314877906efe5ee3ceea9f\",\"schema_id\":\"ici.next.run\",\"schema_version\":2,\"scope\":{\"full_required_satisfied\":false,\"kind\":\"partial\",\"omitted_components\":[],\"required_components\":[\"app\"],\"selected_components\":[\"app\"],\"selected_languages\":[\"python\"]}}\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "import pickle\n\ndef load(blob):\n    return pickle.loads(blob)\n\ndef run(cmd):\n    return eval(cmd)\n"
+   }
+  },
+  "incomplete": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 3,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.lint",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "BLOCKED",
+        "task_id": "app.python.lint",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.format",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "BLOCKED",
+        "task_id": "app.python.format",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.type",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "BLOCKED",
+        "task_id": "app.python.type",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [
+        "app.python.lint",
+        "app.python.format",
+        "app.python.type"
+       ],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.python.lint: ruff is not available",
+        "app.python.format: ruff is not available",
+        "app.python.type: mypy is not available"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:59454995e77dba7eae08e3c040ab9a0bcf4f9ccac57c197f694068bc0b4936cd",
+       "source": {
+        "digest": "sha256:8d392dd9270eb3c25477d0f81342609cbbeec955bfce561f3305250d01f80c0c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "ruff is not available",
+       "ruff is not available",
+       "mypy is not available",
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "2953dcb65eea47da85665793fee9cc2f",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nINCOMPLETE: 0 finding(s)\n  app.python.lint: ruff is not available\n  app.python.format: ruff is not available\n  app.python.type: mypy is not available\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/out.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  },
+  "incomplete_json": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--json",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 3,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.lint",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "BLOCKED",
+        "task_id": "app.python.lint",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.format",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "BLOCKED",
+        "task_id": "app.python.format",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.type",
+        "component_id": "app",
+        "evidence_complete": false,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "BLOCKED",
+        "task_id": "app.python.type",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [
+        "app.python.lint",
+        "app.python.format",
+        "app.python.type"
+       ],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": false,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [
+        "app.python.lint: ruff is not available",
+        "app.python.format: ruff is not available",
+        "app.python.type: mypy is not available"
+       ],
+       "selected": "INCOMPLETE",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:59454995e77dba7eae08e3c040ab9a0bcf4f9ccac57c197f694068bc0b4936cd",
+       "source": {
+        "digest": "sha256:8d392dd9270eb3c25477d0f81342609cbbeec955bfce561f3305250d01f80c0c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "ruff is not available",
+       "ruff is not available",
+       "mypy is not available",
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "710fd54ad90243078443d514c7c50376",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "root: <root>\nscope: components=app languages=python profile=standard\n",
+     "stdout": "{\"checks\":[{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.line\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.line\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.lint\",\"component_id\":\"app\",\"evidence_complete\":false,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"BLOCKED\",\"task_id\":\"app.python.lint\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.format\",\"component_id\":\"app\",\"evidence_complete\":false,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"BLOCKED\",\"task_id\":\"app.python.format\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.type\",\"component_id\":\"app\",\"evidence_complete\":false,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"BLOCKED\",\"task_id\":\"app.python.type\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.complexity\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.complexity\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.cognitive\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.cognitive\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.cycle\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.cycle\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.dup\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.dup\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.security\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.security\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.resource\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.resource\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.exception\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.exception\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.dead\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.dead\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.compat\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.compat\",\"variant\":null}],\"execution\":{\"blocked_task_ids\":[\"app.python.lint\",\"app.python.format\",\"app.python.type\"],\"cancelled\":false,\"failed_task_ids\":[],\"required_complete\":false,\"reused_task_ids\":[]},\"findings\":[],\"gate\":{\"has_violations\":false,\"reasons\":[\"app.python.lint: ruff is not available\",\"app.python.format: ruff is not available\",\"app.python.type: mypy is not available\"],\"selected\":\"INCOMPLETE\",\"workspace\":\"NOT_EVALUATED\"},\"identity\":{\"fingerprint_version\":\"ici.next.fingerprint.v3\",\"policy_digest\":\"sha256:59454995e77dba7eae08e3c040ab9a0bcf4f9ccac57c197f694068bc0b4936cd\",\"source\":{\"digest\":\"sha256:8d392dd9270eb3c25477d0f81342609cbbeec955bfce561f3305250d01f80c0c\",\"dirty\":true,\"files\":[\"main.py\"]},\"toolchain_digest\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"limitations\":[\"ruff is not available\",\"ruff is not available\",\"mypy is not available\",\"AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only\",\"no requires-python floor could be inferred — the syntax and standard-library floors were not asserted\",\"static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility\",\"static selection: tests, runtime checks and build artifact checks omitted\",\"app: TEM N/A — no coverage evidence — the score is not computed\"],\"metrics\":[{\"evidence\":\"MEASURED\",\"name\":\"lines_total\",\"unit\":\"lines\",\"value\":2.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"lines_code\",\"numerator\":2,\"unit\":\"lines\",\"value\":2.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"lines_comment\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"lines_blank\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"denominator\":1,\"evidence\":\"MEASURED\",\"name\":\"files_counted\",\"numerator\":1,\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"functions_measured\",\"unit\":\"functions\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"max_complexity\",\"unit\":\"complexity\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"functions_measured\",\"unit\":\"functions\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"max_cognitive\",\"unit\":\"cognitive\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"cycles_found\",\"unit\":\"cycles\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"clone_groups\",\"unit\":\"groups\",\"value\":0.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"duplicated_lines\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0}],\"producer\":{\"ici_version\":\"0.13.0\"},\"publication\":{\"detail\":\"\",\"state\":\"NOT_CONFIGURED\"},\"run_id\":\"710fd54ad90243078443d514c7c50376\",\"schema_id\":\"ici.next.run\",\"schema_version\":2,\"scope\":{\"full_required_satisfied\":false,\"kind\":\"partial\",\"omitted_components\":[],\"required_components\":[\"app\"],\"selected_components\":[\"app\"],\"selected_languages\":[\"python\"]}}\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  },
+  "no_sources": {
+   "steps": [
+    {
+     "argv": [
+      "analyze"
+     ],
+     "exit_code": 2,
+     "result": null,
+     "stderr": "config: no supported sources discovered in <root>\n",
+     "stdout": ""
+    }
+   ],
+   "tree": {
+    "README": "nothing to analyze\n"
+   }
+  },
+  "nothing_selected": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--language",
+      "cpp"
+     ],
+     "exit_code": 2,
+     "result": null,
+     "stderr": "config: no component selected a check; a run that checks nothing cannot pass\n",
+     "stdout": "root: <root>\nscope: components=app languages=all profile=standard\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  },
+  "nothing_selected_json": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--json",
+      "--language",
+      "cpp"
+     ],
+     "exit_code": 2,
+     "result": null,
+     "stderr": "root: <root>\nscope: components=app languages=all profile=standard\nconfig: no component selected a check; a run that checks nothing cannot pass\n",
+     "stdout": ""
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  },
+  "pass": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 0,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:8d392dd9270eb3c25477d0f81342609cbbeec955bfce561f3305250d01f80c0c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "590577e4508147a5949473cebe94f398",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard\nPASS: 0 finding(s)\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/out.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  },
+  "pass_json": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--json",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 0,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:8d392dd9270eb3c25477d0f81342609cbbeec955bfce561f3305250d01f80c0c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "8f0011b5e8a749b4bf594784a87ac84f",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "root: <root>\nscope: components=app languages=python profile=standard\n",
+     "stdout": "{\"checks\":[{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.line\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.line\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.complexity\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.complexity\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.cognitive\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.cognitive\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.cycle\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.cycle\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.dup\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.dup\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.security\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.security\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.resource\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.resource\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.exception\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.exception\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.dead\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.dead\",\"variant\":null},{\"analysis_unit_id\":\"app.python\",\"check_id\":\"python.compat\",\"component_id\":\"app\",\"evidence_complete\":true,\"language\":\"python\",\"scope_digest\":\"sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c\",\"state\":\"SUCCEEDED\",\"task_id\":\"app.python.compat\",\"variant\":null}],\"execution\":{\"blocked_task_ids\":[],\"cancelled\":false,\"failed_task_ids\":[],\"required_complete\":true,\"reused_task_ids\":[]},\"findings\":[],\"gate\":{\"has_violations\":false,\"reasons\":[],\"selected\":\"PASS\",\"workspace\":\"NOT_EVALUATED\"},\"identity\":{\"fingerprint_version\":\"ici.next.fingerprint.v3\",\"policy_digest\":\"sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5\",\"source\":{\"digest\":\"sha256:8d392dd9270eb3c25477d0f81342609cbbeec955bfce561f3305250d01f80c0c\",\"dirty\":true,\"files\":[\"main.py\"]},\"toolchain_digest\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"},\"limitations\":[\"AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only\",\"no requires-python floor could be inferred — the syntax and standard-library floors were not asserted\",\"static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility\",\"static selection: tests, runtime checks and build artifact checks omitted\",\"app: TEM N/A — no coverage evidence — the score is not computed\"],\"metrics\":[{\"evidence\":\"MEASURED\",\"name\":\"lines_total\",\"unit\":\"lines\",\"value\":2.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"lines_code\",\"numerator\":2,\"unit\":\"lines\",\"value\":2.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"lines_comment\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"lines_blank\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"denominator\":1,\"evidence\":\"MEASURED\",\"name\":\"files_counted\",\"numerator\":1,\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"functions_measured\",\"unit\":\"functions\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"max_complexity\",\"unit\":\"complexity\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"functions_measured\",\"unit\":\"functions\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"max_cognitive\",\"unit\":\"cognitive\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"cycles_found\",\"unit\":\"cycles\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"clone_groups\",\"unit\":\"groups\",\"value\":0.0},{\"denominator\":2,\"evidence\":\"MEASURED\",\"name\":\"duplicated_lines\",\"numerator\":0,\"unit\":\"lines\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0},{\"evidence\":\"MEASURED\",\"name\":\"issues_found\",\"unit\":\"issues\",\"value\":0.0},{\"evidence\":\"MEASURED\",\"name\":\"files_checked\",\"unit\":\"files\",\"value\":1.0}],\"producer\":{\"ici_version\":\"0.13.0\"},\"publication\":{\"detail\":\"\",\"state\":\"NOT_CONFIGURED\"},\"run_id\":\"8f0011b5e8a749b4bf594784a87ac84f\",\"schema_id\":\"ici.next.run\",\"schema_version\":2,\"scope\":{\"full_required_satisfied\":false,\"kind\":\"partial\",\"omitted_components\":[],\"required_components\":[\"app\"],\"selected_components\":[\"app\"],\"selected_languages\":[\"python\"]}}\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  },
+  "require_full": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--require-full",
+      "--result",
+      "out.json"
+     ],
+     "exit_code": 0,
+     "result": {
+      "checks": [
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.line",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.line",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.complexity",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.complexity",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cognitive",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cognitive",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.cycle",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.cycle",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dup",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dup",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.security",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.security",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.resource",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.resource",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.exception",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.exception",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.dead",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.dead",
+        "variant": null
+       },
+       {
+        "analysis_unit_id": "app.python",
+        "check_id": "python.compat",
+        "component_id": "app",
+        "evidence_complete": true,
+        "language": "python",
+        "scope_digest": "sha256:3ca88556f5a4c94d305ad47fb253ee6a599bf132564dcd6f9c5db7fa4766932c",
+        "state": "SUCCEEDED",
+        "task_id": "app.python.compat",
+        "variant": null
+       }
+      ],
+      "execution": {
+       "blocked_task_ids": [],
+       "cancelled": false,
+       "failed_task_ids": [],
+       "required_complete": true,
+       "reused_task_ids": []
+      },
+      "findings": [],
+      "gate": {
+       "has_violations": false,
+       "reasons": [],
+       "selected": "PASS",
+       "workspace": "NOT_EVALUATED"
+      },
+      "identity": {
+       "fingerprint_version": "ici.next.fingerprint.v3",
+       "policy_digest": "sha256:886d0bed0a03811521396b6707715c5cfa8cd44c2e81a80f5375d135f0be64f5",
+       "source": {
+        "digest": "sha256:8d392dd9270eb3c25477d0f81342609cbbeec955bfce561f3305250d01f80c0c",
+        "dirty": true,
+        "files": [
+         "main.py"
+        ]
+       },
+       "toolchain_digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "limitations": [
+       "AST-shape semantic clustering is not carried yet — matches are lexical Type-2 clones only",
+       "no requires-python floor could be inferred — the syntax and standard-library floors were not asserted",
+       "static API rules cover a documented standard-library compatibility inventory — absence of a finding is not proof of compatibility",
+       "static selection: tests, runtime checks and build artifact checks omitted",
+       "app: TEM N/A — no coverage evidence — the score is not computed"
+      ],
+      "metrics": [
+       {
+        "evidence": "MEASURED",
+        "name": "lines_total",
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_code",
+        "numerator": 2,
+        "unit": "lines",
+        "value": 2.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_comment",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "lines_blank",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "denominator": 1,
+        "evidence": "MEASURED",
+        "name": "files_counted",
+        "numerator": 1,
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_complexity",
+        "unit": "complexity",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "functions_measured",
+        "unit": "functions",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "max_cognitive",
+        "unit": "cognitive",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "cycles_found",
+        "unit": "cycles",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "clone_groups",
+        "unit": "groups",
+        "value": 0.0
+       },
+       {
+        "denominator": 2,
+        "evidence": "MEASURED",
+        "name": "duplicated_lines",
+        "numerator": 0,
+        "unit": "lines",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "issues_found",
+        "unit": "issues",
+        "value": 0.0
+       },
+       {
+        "evidence": "MEASURED",
+        "name": "files_checked",
+        "unit": "files",
+        "value": 1.0
+       }
+      ],
+      "producer": {
+       "ici_version": "0.13.0"
+      },
+      "publication": {
+       "detail": "",
+       "state": "NOT_CONFIGURED"
+      },
+      "run_id": "8aa8c7308b7d4dea9402e9c6b7ad8971",
+      "schema_id": "ici.next.run",
+      "schema_version": 2,
+      "scope": {
+       "full_required_satisfied": false,
+       "kind": "partial",
+       "omitted_components": [],
+       "required_components": [
+        "app"
+       ],
+       "selected_components": [
+        "app"
+       ],
+       "selected_languages": [
+        "python"
+       ]
+      }
+     },
+     "stderr": "",
+     "stdout": "root: <root>\nscope: components=app languages=python profile=standard require-full\nPASS: 0 finding(s)\n  note: static selection: tests, runtime checks and build artifact checks omitted\nsaved <root>/out.json\n"
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  },
+  "unknown_component": {
+   "steps": [
+    {
+     "argv": [
+      "analyze",
+      "--component",
+      "ghost"
+     ],
+     "exit_code": 2,
+     "result": null,
+     "stderr": "config: no component 'ghost'; declared: app\n",
+     "stdout": ""
+    }
+   ],
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   }
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21",
+ "root_placeholder": "<root>"
+}

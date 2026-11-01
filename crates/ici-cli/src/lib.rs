@@ -16,6 +16,7 @@ pub mod preparation;
 pub mod publish;
 pub mod registry;
 pub mod report;
+pub mod run_text;
 pub mod setup;
 pub mod vcs;
 

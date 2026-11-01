@@ -911,6 +911,34 @@
    ],
    "comparison": "Exit-code and legacy suite-verdict facet only (reporting area): the legacy verify view keeps the frozen suite ERROR verdict and the frozen integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0). Legacy engine commands use the same rule through legacy_execute.rs: the frozen engine class (ici_reporting::legacy_exit_code) only raises the run exit, except frozen measured verdicts that the view reproduces. Other verify facets belong to the other areas.",
    "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
+  },
+  "capability:wire-result-events": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/run_text.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/planning.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/analyze_text.rs::native_analyze_prints_the_frozen_frame_on_the_same_projects",
+     "crates/ici-cli/tests/analyze_text.rs::frozen_results_render_the_frozen_verdict_block_byte_for_byte"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/report_commands.rs::ordinary_analyze_points_to_complete_offline_html_and_json_keeps_machine_output"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/analyze_text.rs::verdict_block_failure_modes_cover_incompatible_baseline_reuse_and_unit_notes"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_analyze_text.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/analyze-text-oracle.json` (frozen v0.13.0, Python 3.10.21, empty HOME, PATH=os.defpath); 13 cases; /tmp/ici-rust-replacement-20261028/w-reporting2-analyze-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test analyze_text --test legacy_baseline_gate --test execution -- --include-ignored --test-threads=2` and `cargo test -p ici-application --locked -j2 --test baseline`; EXIT 0, 3+2+9+4 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-analyze-text.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test report_commands --test wire_schemas --test run_tem --test vcs -- --include-ignored --test-threads=2`; EXIT 0, 6+1+2+6 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-cli-regress.log",
+    "before the fix the native text output was `ici analysis: FAIL` plus 80-column-wrapped raw scope/execution/gate JSON and `--json` wrote nothing to stderr: /tmp/ici-rust-replacement-20261028/w-runtime-events-compare.log"
+   ],
+   "comparison": "Reporting facet: the human and `--json` output streams of `ici analyze` / `ici next verify` (frozen cli/next_common._announce and cli/next_render.verify_text, read in full). Text mode prints `root:`/`scope: components=… languages=…|all profile=…[ require-full]`, `<VERDICT>: N finding(s)`, gate reasons, the comparable/incompatible baseline line, `cache: reused N`, run notes and `saved <path>`; `--json` writes only the result to stdout and the two announce lines to stderr. Thirteen frozen captures: the frozen result.json of every text run renders to the frozen block byte for byte (8 runs); the native CLI on the same trees reproduces announcement, stream placement, verdict, reasons, baseline line, saved path and exit 0/1/2/3, prints no announcement for an unknown component or no sources and prints it before the nothing-selected refusal. Run notes are the plan and run limitations only, not the analyses' own. Defects fixed: raw axes JSON dump, missing announcement, a contradictory `Suite: WARN` line under a FAIL gate, a duplicated `baseline comparison unavailable` gate reason, and paraphrased baseline incompatibility reasons (now the frozen application/baseline.py text). Event-stream order/seq and run v2 remain the runtime facet; id validation the config facet.",
+   "difference_reason": "Native lines follow the exact frozen block: `HTML: <page>` (execution plan: analyze prints JSON/HTML locations) and at most five unsuppressed findings, most severe first, with file:line, rule and message (plan §2.1). An incompatible baseline reason keeps the frozen text and appends `; regenerate it with: …`. Error lines keep the native `ici:` prefix where frozen prints `config:`. Native reuses internal analyses (frozen never caches them), so reruns print `cache: reused N`; frozen per-unit cache-ineligibility notes (`note: <unit>: prepare tasks are not cacheable`) have no native counterpart because native cache identity differs. Note and blocked-reason text comes from other areas' limitations/providers and is rendered with the frozen template. Output is printed when the run ends, not streamed."
   }
  },
  "source_files": {
