@@ -37,6 +37,22 @@ CONTEXTS = (
 )
 
 
+UNKNOWN = (
+    "!!!",
+    "  ",
+    "ici.",
+    "ici.-x",
+    "ici..x",
+    "ici.Other",
+    "ICI.python.x",
+    "ici.python.UPPER",
+    "ici.python.",
+    "ici.python.a_b",
+    "x:",
+    "tool: ",
+)
+
+
 def inputs():
     for mapping in PYTHON_RULE_MAPPINGS:
         for alias in mapping.aliases:
@@ -53,6 +69,14 @@ def inputs():
             yield {"rule_id": rule, "engine": engine}
     for label in ("unreachable code", "Unreachable_Code", "something else"):
         yield {"rule_id": "ici.legacy.dead.target", "engine": "dead", "label": label}
+    # Unknown and malformed rule ids: punctuation-only tokens, near-canonical ici ids and a
+    # bracketed code after an invalid first bracket.
+    for rule in UNKNOWN:
+        for engine in ("", "lint", "security"):
+            yield {"rule_id": rule, "engine": engine}
+    for label in ("[bad id] then [E501]", "[] [F401]", "x[y"):
+        yield {"rule_id": "ici.legacy.lint.target", "label": label}
+    yield {"rule_id": "ici.legacy.lint.target", "tool_rule_id": "!!!"}
 
 
 def main() -> None:

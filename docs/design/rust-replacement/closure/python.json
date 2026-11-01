@@ -1124,40 +1124,56 @@
    "status": "complete"
   },
   "finding_site:src/ici/core/python_rules.py:304:17": {
-   "comparison": "PythonRuleProvenance: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases.",
-   "difference_reason": "OPEN for complete: no dedicated negative/failure fixture for unknown rule ids or unmergeable legacy labels; the full python_rule_registry table was not replayed row by row against the frozen registry.",
+   "comparison": "PythonRuleProvenance: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases. Closure sweep: the frozen canonical_python_rule_identity golden (tests/rust-parity/reporting/python-rule-identity.json, 3161 cases: every alias x engine x context of the frozen registry, which the native alias table equals, plus tool rule ids, bracketed labels, engine fallbacks and 40 unknown/malformed ids) replays through issues.rs identity() with equal canonical rule id and merge group. Rust defects fixed: a punctuation-only or blank token became `ici.python.external.` instead of frozen's `ici.python.external.unknown`, and near-canonical ids failing frozen's `^ici\\.[a-z0-9][a-z0-9.-]*$` (`ici.`, `ici.-x`, `ici..x`) were kept instead of becoming external tokens.",
+   "difference_reason": null,
    "evidence": [
-    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log"
+    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log",
+    "cd <scratch>; PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/reporting/capture_python_rule_identity.py tests/rust-parity/reporting/python-rule-identity.json (frozen v0.13.0; 3121 earlier cases byte-equal, 40 unknown/malformed cases added); /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity-capture.log",
+    "source opus-env.sh; cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo clippy -p ici-reporting --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::unknown_and_malformed_rule_ids_keep_frozen_external_identities"
+    ],
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group"
     ]
    },
    "rust_paths": [
-    "crates/ici-reporting/src/issues.rs"
+    "crates/ici-reporting/src/issues.rs",
+    "crates/ici-reporting/assets/python-rule-aliases.json"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "finding_site:src/ici/core/python_rules.py:368:11": {
-   "comparison": "canonical_python_rule_identity projection: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases.",
-   "difference_reason": "OPEN for complete: no dedicated negative/failure fixture for unknown rule ids or unmergeable legacy labels; the full python_rule_registry table was not replayed row by row against the frozen registry.",
+   "comparison": "canonical_python_rule_identity projection: the only frozen consumer is reporters/python_issue_projection.py; ici-reporting issues.rs identity()/contextual() reproduce the registry mapping, contextual semantic tokens (baseexception, confirmed-leak, subprocess, os.system, os.popen, cyclomatic) and the mergeable flag, pinned by the frozen issue-groups cases. Closure sweep: the frozen canonical_python_rule_identity golden (tests/rust-parity/reporting/python-rule-identity.json, 3161 cases: every alias x engine x context of the frozen registry, which the native alias table equals, plus tool rule ids, bracketed labels, engine fallbacks and 40 unknown/malformed ids) replays through issues.rs identity() with equal canonical rule id and merge group. Rust defects fixed: a punctuation-only or blank token became `ici.python.external.` instead of frozen's `ici.python.external.unknown`, and near-canonical ids failing frozen's `^ici\\.[a-z0-9][a-z0-9.-]*$` (`ici.`, `ici.-x`, `ici..x`) were kept instead of becoming external tokens.",
+   "difference_reason": null,
    "evidence": [
-    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log"
+    "cargo test -p ici-reporting --test issues --locked -j2 -- --test-threads=2: 1 passed; /tmp/ici-rust-replacement-20261028/w-python-rule-identity.log",
+    "cd <scratch>; PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/reporting/capture_python_rule_identity.py tests/rust-parity/reporting/python-rule-identity.json (frozen v0.13.0; 3121 earlier cases byte-equal, 40 unknown/malformed cases added); /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity-capture.log",
+    "source opus-env.sh; cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored (all passed); cargo clippy -p ici-reporting --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-rule-identity.log"
    ],
    "fixtures": {
-    "failure": [],
-    "negative": [],
+    "failure": [
+     "crates/ici-reporting/src/issues.rs::unknown_and_malformed_rule_ids_keep_frozen_external_identities"
+    ],
+    "negative": [
+     "crates/ici-reporting/src/issues.rs::tool_rule_ids_bracketed_labels_unknown_ids_and_engine_fallbacks_match_frozen"
+    ],
     "positive": [
-     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts"
+     "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
+     "crates/ici-reporting/src/issues.rs::every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group"
     ]
    },
    "rust_paths": [
-    "crates/ici-reporting/src/issues.rs"
+    "crates/ici-reporting/src/issues.rs",
+    "crates/ici-reporting/assets/python-rule-aliases.json"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "finding_site:src/ici/engines/cognitive.py:50:20": {
    "comparison": "Legacy `ici <engine> --report` emits frozen PythonCognitiveAnalysisError (name, status, message, file, line, column), the engine summary, evidence, legacy finding fingerprint and exit class for strict UTF-8 intake (invalid start/continuation, truncated, surrogate, overlong, NUL, second-file failure, latin-1 cookie read as UTF-8), syntax errors, excluded-only and no-source scopes. The modern view keeps the generic PythonAnalysis targets (python_modern_parity unchanged). Incomplete runs exit 3 where frozen exited 1 (accepted policy).",
