@@ -576,6 +576,16 @@ pub fn execute(
                             &mut step_outcomes,
                             &mut owned_runs,
                         );
+                        if planned.check.id == "cpp.test" {
+                            let failures = crate::cpp::direct_test_compile_failures(
+                                &prepared.project,
+                                &planned.component_id,
+                            );
+                            crate::cpp::append_test_compile_failures(&mut output, &failures);
+                            if prepared.legacy_projection && direct_gcc(&prepared, planned) {
+                                crate::cpp::legacy_direct_tests(&mut output, &failures);
+                            }
+                        }
                         if prepared.legacy_projection && planned.check.id == "cpp.binary-compat" {
                             let shadow = plans
                                 .first()
@@ -589,15 +599,7 @@ pub fn execute(
                         }
                         if prepared.legacy_projection
                             && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
-                            && prepared
-                                .project
-                                .components
-                                .iter()
-                                .find(|component| component.id == planned.component_id)
-                                .and_then(|component| {
-                                    crate::cpp::linked_build(&prepared.project, component)
-                                })
-                                .is_some_and(|build| build.system.as_deref() == Some("direct-gcc"))
+                            && direct_gcc(&prepared, planned)
                         {
                             crate::cpp::legacy_direct_sanitizer(&mut output, &planned.check.id);
                         }
@@ -1481,4 +1483,18 @@ fn wire_label<T: serde::Serialize>(value: &T) -> String {
 }
 fn state_label(state: ici_domain::TaskState) -> String {
     wire_label(&state)
+}
+
+/// Whether the planned C++ check's component is linked to a descriptor-free direct g++ build.
+fn direct_gcc(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+) -> bool {
+    prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == planned.component_id)
+        .and_then(|component| crate::cpp::linked_build(&prepared.project, component))
+        .is_some_and(|build| build.system.as_deref() == Some("direct-gcc"))
 }

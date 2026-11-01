@@ -124,6 +124,12 @@ fn failed_compiler(
     output.summary = format!("Direct C++ {phase} reported a compilation failure");
     output
 }
+fn linked(binary: &DirectBinary, failures: &BTreeMap<String, String>) -> bool {
+    binary
+        .source
+        .as_ref()
+        .is_none_or(|source| !failures.contains_key(source))
+}
 fn passed_source(provider: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(&outcome.task_id, "g++");
     output.observation.exit_code = outcome.exit_code;
@@ -221,17 +227,50 @@ pub(in crate::export_context) fn execute(
     }
     let mut records = vec![];
     let mut completed = 0usize;
+    // Frozen TestEngine compiles each `tests/**/*.cpp` on its own: a test whose own translation
+    // unit does not compile is that test's failure, and the other tests still build and run.
+    // Only test/coverage variants tolerate it, and only for a complete exit-1 compiler verdict
+    // on a source that no other executable links.
+    let tolerant = matches!(plan.build.variant.as_str(), "test" | "coverage");
+    let mut failed_tests: BTreeMap<usize, String> = BTreeMap::new();
     for chunk in providers.chunks(2) {
         let tasks = chunk
             .iter()
             .map(|provider| provider.task.clone())
             .collect::<Vec<_>>();
         let outcomes = run_tasks(plan, &tasks, scheduler, cancellation, events)?;
-        let failed = outcomes
-            .iter()
-            .any(|outcome| !outcome.prerequisite_succeeded());
         completed += outcomes.len();
         records.extend(outcomes.iter().map(result_record));
+        let mut failed = false;
+        for outcome in outcomes
+            .iter()
+            .filter(|outcome| !outcome.prerequisite_succeeded())
+        {
+            let index = providers
+                .iter()
+                .position(|provider| provider.task.id == outcome.task_id)
+                .expect("declared direct compiler");
+            let owners: Vec<_> = direct
+                .binaries
+                .iter()
+                .filter(|binary| binary.object_indices.contains(&index))
+                .collect();
+            if tolerant
+                && outcome.completed()
+                && outcome.exit_code == Some(1)
+                && owners.len() == 1
+                && owners[0].source.as_deref() == Some(direct.sources[index].path.as_str())
+            {
+                let stderr = String::from_utf8_lossy(&outcome.stderr)
+                    .replace('\0', "\u{fffd}")
+                    .chars()
+                    .take(4096)
+                    .collect::<String>();
+                failed_tests.insert(index, stderr);
+            } else {
+                failed = true;
+            }
+        }
         if failed {
             let outputs = outcomes
                 .iter()
@@ -270,7 +309,10 @@ pub(in crate::export_context) fn execute(
             });
         }
     }
-    for path in &direct.objects {
+    for (index, path) in direct.objects.iter().enumerate() {
+        if failed_tests.contains_key(&index) {
+            continue;
+        }
         output_file(&plan.root, path).map_err(PreparationFailure::Incomplete)?;
         if !plan.root.join(path).is_file() {
             return Err(PreparationFailure::Incomplete(
@@ -279,6 +321,13 @@ pub(in crate::export_context) fn execute(
         }
     }
     for (link, binary) in links.iter().zip(&direct.binaries) {
+        if binary
+            .object_indices
+            .iter()
+            .any(|index| failed_tests.contains_key(index))
+        {
+            continue;
+        }
         let mut staged_link = link.clone();
         staged_link.depends_on.clear();
         let mut outcomes = run_tasks(
@@ -342,7 +391,11 @@ pub(in crate::export_context) fn execute(
             context.diagnostics
         )));
     }
-    let evidence = json!({"system":"direct-gcc","pkg_config":flags.records,"limitations":flags.limitations,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_tasks":links,"outcomes":records,"database":plan.build.compilation_database});
+    let test_compile_failures: BTreeMap<String, String> = failed_tests
+        .into_iter()
+        .map(|(index, stderr)| (direct.sources[index].path.clone(), stderr))
+        .collect();
+    let evidence = json!({"system":"direct-gcc","pkg_config":flags.records,"limitations":flags.limitations,"compiler_tasks":providers.iter().map(|provider|&provider.task).collect::<Vec<_>>(),"link_tasks":links,"outcomes":records,"database":plan.build.compilation_database,"test_compile_failures":test_compile_failures.keys().collect::<Vec<_>>()});
     Ok(PreparedContext {
         plan: plan.clone(),
         context,
@@ -350,11 +403,13 @@ pub(in crate::export_context) fn execute(
         artifacts: direct
             .binaries
             .iter()
+            .filter(|binary| linked(binary, &test_compile_failures))
             .map(|binary| binary.path.clone())
             .collect(),
         test_executables: direct
             .binaries
             .iter()
+            .filter(|binary| linked(binary, &test_compile_failures))
             .filter_map(|binary| {
                 binary
                     .source
@@ -363,6 +418,7 @@ pub(in crate::export_context) fn execute(
             })
             .collect(),
         test_executable: None,
+        test_compile_failures,
         evidence: Some(evidence),
         _lease: Arc::new(lease),
     })

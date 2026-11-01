@@ -1,6 +1,7 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
 mod config_scope;
 mod fallback;
+mod legacy_tests;
 mod linker;
 pub(crate) mod package_flags;
 pub use config_scope::external_build_directories;
@@ -15,6 +16,7 @@ use ici_providers::{
     ProviderKind, ProviderPlan, ProviderRequest,
     resolver::{ResolvedTool, ToolRequest},
 };
+pub use legacy_tests::*;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},

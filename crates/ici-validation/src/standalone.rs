@@ -96,7 +96,7 @@ pub(crate) fn observe(
         .measurements
         .push(pair("cpp-executable.cases", u64::from(passed), 1));
     output.extra["test_outcomes"] = json!({format!("cpp-executable:{path}"):verdict});
-    output.extra["executable_test"] = json!({"source":path,"executable":plan.context.tool.path,"exit_code":outcome.exit_code,"stderr":String::from_utf8_lossy(&outcome.stderr).chars().take(4096).collect::<String>()});
+    output.extra["executable_test"] = json!({"source":path,"executable":plan.context.tool.path,"exit_code":outcome.exit_code,"stdout":String::from_utf8_lossy(&outcome.stdout).chars().take(4096).collect::<String>(),"stderr":String::from_utf8_lossy(&outcome.stderr).chars().take(4096).collect::<String>()});
     output.summary = format!("{}/1 C++ executables passed", u8::from(passed));
     Ok(())
 }

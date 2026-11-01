@@ -50,6 +50,9 @@ pub struct PreparedContext {
     pub test_executable: Option<String>,
     /// Actual source-to-executable mapping for descriptor-free native test suites.
     pub test_executables: BTreeMap<String, String>,
+    /// Descriptor-free test sources whose own translation unit failed to compile, with the
+    /// compiler's bounded stderr. Their executables were not linked; the other tests still run.
+    pub test_compile_failures: BTreeMap<String, String>,
     pub evidence: Option<Value>,
     _lease: Arc<BuildLease>,
 }
@@ -569,6 +572,7 @@ fn execute_native_preparation(
         non_elf,
         test_executable,
         test_executables: BTreeMap::new(),
+        test_compile_failures: BTreeMap::new(),
         evidence: None,
         _lease: Arc::new(lease),
     })
@@ -705,9 +709,12 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 .unwrap_or(executable);
             build.settings["test_argv"] = json!([relative]);
         }
-        if !context.test_executables.is_empty() {
+        if !context.test_executables.is_empty() || !context.test_compile_failures.is_empty() {
             build.settings["direct_test_executables"] = json!(context.test_executables);
             build.settings["direct_compiled_sources"] = json!(plan.selected_sources);
+        }
+        if !context.test_compile_failures.is_empty() {
+            build.settings["direct_test_compile_failures"] = json!(context.test_compile_failures);
         }
         if let Some(existing) = overlay.builds.iter_mut().find(|existing| existing.id == id) {
             *existing = build;
