@@ -1042,9 +1042,13 @@
   "src/ici/application/gates.py": {
    "disposition": "unreviewed",
    "requirements": [
-    "capability:report-console-markdown-json-html-sarif"
+    "check:python.type",
+    "check:python.test",
+    "check:python.coverage",
+    "check:python.compat-runtime",
+    "capability:execution-dag-resource-lock"
    ],
-   "reason": "Not read in this pass; gate evaluation was not compared with the native gate model."
+   "reason": "Read in full (decisions worker, 2026-11-02): this is the next-path plan gate module, not a report renderer, so the earlier report-capability mapping was wrong. About two thirds is C++ gating (gate_cpp: compile/tidy database blockers, per-TU diagnostics expansion with diagnostics_blocker/source_token/task_slug, cpp.test/coverage/sanitize/tsan/binary-compat expansion, gate_artifact contract blockers), owned by the cpp facet. The Python half (gate_python: type_provider mypy default / ty when named, `unknown type_provider`/`<tool> is not available` blockers, project interpreter blocker `no project interpreter — <detail>; looked at ...; set <key>/declare [python] executable...`, one pytest-under-coverage execution when test and coverage are both selected) maps to the listed check rows and the accepted DAG model (D5); interpreter-blocker and missing-tool wording are reviewed python-area differences. Stays unreviewed until the cpp facet maps gate_cpp/gate_artifact/expand_diagnostics."
   },
   "src/ici/application/report.py": {
    "disposition": "mapped",

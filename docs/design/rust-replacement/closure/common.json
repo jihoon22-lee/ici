@@ -397,11 +397,11 @@
    "reason": "Module fully read; source/gate/extras collection, mixed language ownership, threshold cutoffs, mode exit contracts and fail-on-new are pinned by legacy_line_scope.rs/legacy_line_hybrid.rs, and the documentation-only and monorepo root-extra scopes now equal frozen captures (line-scope-oracle.json). Row command:ici line closed with /tmp/ici-rust-replacement-20261028/w-dec-line.log."
   },
   "src/ici/reporters/baseline_view.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Complete 76-line frozen module reviewed. Native render baseline_preview now preserves changed-first 20-row and unchanged 3-row display bounds, reports omissions, and leaves saved JSON full; actual native HTML/console replay passes. Frozen severity transition formatting and legacy enriched delta location controls still require end-to-end review, so source audit remains open."
+   "reason": "Complete 76-frozen-line module re-read (decisions worker, 2026-11-02). The open end-to-end items are covered by named frozen-corpus tests: severity_transition with `—` for an absent side and the issues-first delta order (select_baseline_details, 20 changed / 3 unchanged bounds with omission counts) in suite_overview.rs::every_renderer_states_the_frozen_gate_reason_scores_and_tally (console and markdown), and the enriched delta location controls for resolved deltas without or with escaping baseline locations in suite_overview.rs::resolved_deltas_without_or_with_escaping_baseline_locations_follow_the_frozen_serializer; the saved JSON keeps every identity (limits.rs::baseline_presentation_is_bounded_while_saved_json_keeps_every_identity). Rerun: cargo test -p ici-reporting --locked -j2 -- --include-ignored, all passed; /tmp/ici-rust-replacement-20261028/w-dec-reporting-audit.log."
   }
  }
 }
