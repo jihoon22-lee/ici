@@ -672,6 +672,38 @@ pub fn execute(
                                 .unwrap_or_default();
                             crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
                         }
+                        // Frozen CMake build sessions of `ici verify` (with an analysis context;
+                        // standalone commands have none) publish their linked outputs
+                        // (`_capture_artifact_manifest`) on the test/sanitize engines.
+                        if prepared.legacy_projection
+                            && !prepared.cpp.legacy_standalone
+                            && build_system(&prepared, planned).as_deref() == Some("cmake")
+                            && let Some(variant) = match planned.check.id.as_str() {
+                                "cpp.test" => Some("coverage"),
+                                "cpp.sanitize" => Some("sanitize"),
+                                "cpp.tsan" => Some("thread-sanitize"),
+                                _ => None,
+                            }
+                            && let Some(shadow) = plans
+                                .first()
+                                .and_then(|plan| plan.context.options.build_dir.clone())
+                            && let Some(session) = context_guards.iter().find(|guard| {
+                                guard.plan.component_id == planned.component_id
+                                    && prepared.project.root.join(&guard.plan.build.shadow)
+                                        == shadow
+                            })
+                            && let Some(build) = session.plan.build.tasks.iter().find(|task| {
+                                task.argv.get(1).map(String::as_str) == Some("--build")
+                            })
+                            && let Some(manifest) = crate::cpp::legacy_cmake_artifact_manifest(
+                                &prepared.project.root,
+                                &shadow,
+                                variant,
+                                &build.argv,
+                            )
+                        {
+                            output.extra["legacy_artifact_manifests"] = json!([manifest]);
+                        }
                         if prepared.legacy_projection
                             && matches!(planned.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
                         {

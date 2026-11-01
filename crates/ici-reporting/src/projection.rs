@@ -247,6 +247,54 @@ pub fn legacy_projection(
                 .as_array_mut()
                 .expect("array")
                 .extend(scopes);
+            // Frozen `ici.artifacts/v2` manifests of a compiled build session, bound to the run
+            // identity (`AnalysisIdentity`: source commit, configuration and toolchain digests).
+            if let Some(manifests) = output
+                .extra
+                .get("legacy_artifact_manifests")
+                .and_then(Value::as_array)
+            {
+                let identity = &run.identity;
+                for manifest in manifests {
+                    let artifacts = manifest["artifacts"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default();
+                    let producer_metadata = artifacts.iter().any(|artifact| {
+                        ["id", "target"].iter().any(|key| {
+                            artifact[*key]
+                                .as_str()
+                                .is_some_and(|value| !value.is_empty())
+                        }) || artifact["command"]
+                            .as_array()
+                            .is_some_and(|argv| !argv.is_empty())
+                    });
+                    let artifacts: Vec<Value> = artifacts
+                        .into_iter()
+                        .map(|mut artifact| {
+                            if !producer_metadata && let Some(object) = artifact.as_object_mut() {
+                                for key in ["id", "target", "command"] {
+                                    object.remove(key);
+                                }
+                            }
+                            artifact
+                        })
+                        .collect();
+                    engine["artifact_manifests"]
+                        .as_array_mut()
+                        .expect("array")
+                        .push(json!({
+                            "schema_version": if producer_metadata { "ici.artifacts/v2" } else { "ici.artifacts/v1" },
+                            "project_root": ".",
+                            "shadow_root": manifest["shadow_root"],
+                            "variant": manifest["variant"],
+                            "source_commit": identity.source.commit,
+                            "config_digest": identity.policy_digest,
+                            "toolchain_digest": identity.toolchain_digest,
+                            "artifacts": artifacts,
+                        }));
+                }
+            }
             // Historical engines carry their process evidence; adapted targets name its first tool.
             if let Some(items) = output.extra.get("tool_evidence").and_then(Value::as_array) {
                 engine["tool_evidence"]
@@ -420,11 +468,30 @@ fn project_extra(engine: &mut Value) -> Result<()> {
             for (key, value) in extra {
                 if !matches!(
                     key.as_str(),
-                    "native_checks" | "target_scopes" | "tool_evidence" | "legacy_findings"
+                    "native_checks"
+                        | "target_scopes"
+                        | "tool_evidence"
+                        | "legacy_findings"
+                        | "legacy_artifact_manifests"
                 ) {
                     engine["extra"][key] = value.clone();
                 }
             }
+        }
+        if engine["engine_name"] == "line"
+            && let Some(rows) = engine["extra"]["files_data"].as_array_mut()
+        {
+            // Frozen record order before the stable code-line sort (sources, then extras).
+            rows.sort_by(frozen_line_order);
+            rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
+            let rows = rows.clone();
+            engine["extra"]["top_files"] = json!(
+                rows.iter()
+                    .filter(|row| row["scope"] == "source")
+                    .take(5)
+                    .collect::<Vec<_>>()
+            );
+            engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
         }
         return Ok(());
     }
@@ -458,6 +525,9 @@ fn project_extra(engine: &mut Value) -> Result<()> {
         }
     }
     let mut rows: Vec<_> = files.into_values().collect();
+    // Frozen `LineEngine` records source files first (pass 1, in its source scan order), then
+    // repository extras (pass 2, top-down walk), and stable-sorts the rows by code lines.
+    rows.sort_by(frozen_line_order);
     rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
     for field in ["code", "comment", "blank", "total"] {
         let sum = |source_only: bool| {
@@ -482,12 +552,79 @@ fn project_extra(engine: &mut Value) -> Result<()> {
             .collect::<Vec<_>>()
     );
     engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
-    engine["extra"]["metrics_summary"] = json!(format!(
-        "{} code / {source_count} files",
-        engine["extra"]["code"]
+    let thousands = crate::legacy_console::thousands;
+    let [code, comment, blank, total] = ["code", "comment", "blank", "total"]
+        .map(|field| thousands(engine["extra"][field].as_u64().unwrap_or(0)));
+    engine["extra"]["metrics_summary"] = json!(format!("{code} code / {source_count} files"));
+    // Frozen `LineEngine.run` summary over every language's source rows, and its targets in
+    // source scan order.
+    engine["summary"] = json!(format!(
+        "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {source_count} files"
     ));
+    if let Some(targets) = engine["targets"].as_array().cloned() {
+        let mut order: Vec<usize> = (0..targets.len()).collect();
+        order.sort_by(|left, right| {
+            frozen_line_order(
+                &json!({"path":targets[*left]["file_path"],"scope":"source"}),
+                &json!({"path":targets[*right]["file_path"],"scope":"source"}),
+            )
+        });
+        // Each target keeps its owning check: the scope rows follow the same permutation.
+        let mut position = vec![0usize; targets.len()];
+        for (new, old) in order.iter().enumerate() {
+            position[*old] = new;
+        }
+        engine["targets"] = json!(order.iter().map(|old| &targets[*old]).collect::<Vec<_>>());
+        if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
+            for scope in scopes.iter_mut() {
+                if let Some(old) = scope["target_index"].as_u64().map(|index| index as usize)
+                    && let Some(new) = position.get(old)
+                {
+                    scope["target_index"] = json!(new);
+                }
+            }
+            scopes.sort_by_key(|scope| scope["target_index"].as_u64().unwrap_or(u64::MAX));
+        }
+    }
     engine["extra"]["files_data"] = json!(rows);
     Ok(())
+}
+
+/// Frozen `LineEngine._collect_files` record order before its stable code-line sort: source
+/// rows first, by the frozen default source directory order (`src`, `include`, `lib`, `app`,
+/// then the others) and sorted paths (`Path` order: component by component); then extras in
+/// a top-down walk (a directory's files before its subdirectories').
+fn frozen_line_order(left: &Value, right: &Value) -> std::cmp::Ordering {
+    let path = |row: &Value| row["path"].as_str().unwrap_or("").to_owned();
+    let source = |row: &Value| row["scope"] == "source";
+    let rank = |path: &str| {
+        let top = path.split_once('/').map_or("", |(top, _)| top);
+        ["src", "include", "lib", "app"]
+            .iter()
+            .position(|name| *name == top)
+            .unwrap_or(4)
+    };
+    let (left_path, right_path) = (path(left), path(right));
+    let parts = |path: &str| path.split('/').map(str::to_owned).collect::<Vec<_>>();
+    source(right).cmp(&source(left)).then_with(|| {
+        if source(left) {
+            rank(&left_path)
+                .cmp(&rank(&right_path))
+                .then_with(|| parts(&left_path).cmp(&parts(&right_path)))
+        } else {
+            let (left_parts, right_parts) = (parts(&left_path), parts(&right_path));
+            let common = left_parts
+                .iter()
+                .zip(&right_parts)
+                .take_while(|(left, right)| left == right)
+                .count();
+            let left_file = common + 1 == left_parts.len();
+            let right_file = common + 1 == right_parts.len();
+            right_file
+                .cmp(&left_file)
+                .then_with(|| left_parts[common..].cmp(&right_parts[common..]))
+        }
+    })
 }
 
 fn check_extra(check: &Value) -> &Value {

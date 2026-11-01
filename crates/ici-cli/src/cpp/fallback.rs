@@ -74,6 +74,23 @@ impl CppPlans {
             .iter()
             .filter(|path| ici_cpp::is_translation_unit(path))
             .collect();
+        // Frozen `run_cpp_lint`: more than 2048 selected sources stop before any replay with one
+        // C++SyntaxBudgetError at the project root (the clang tool steps still report).
+        if self.legacy_projection && sources.len() > super::legacy_syntax::MAX_SELECTED_UNITS {
+            let message = "C++ source count exceeds the bounded limit";
+            let mut target = InspectionTarget::at(".", 1);
+            target.target_name = "C++SyntaxBudgetError".into();
+            target.status = "ERROR".into();
+            target.message = message.into();
+            self.legacy_context_errors.insert(
+                id.into(),
+                super::legacy_syntax::Terminal {
+                    targets: vec![target],
+                    errors: vec![message.into()],
+                },
+            );
+            return Ok(Work::Internal);
+        }
         if sources.is_empty() || sources.len() > 2048 {
             return Err(
                 "legacy syntax fallback requires 1..2048 selected translation units".into(),
@@ -244,19 +261,45 @@ impl CppPlans {
             .get_mut(&request.task_id)
             .expect("bound fallback")
             .observed = Some(observed);
-        let results = match run_cpp_tasks(
-            &concrete,
-            scheduler,
-            cancellation,
-            events,
-            &component.id,
-            "legacy c++17 syntax fallback",
-        ) {
+        // Frozen `_run_fallback`: one source at a time under the global time budget.
+        let units: Vec<_> = providers
+            .iter()
+            .map(|provider| {
+                (
+                    provider
+                        .context
+                        .targets
+                        .first()
+                        .cloned()
+                        .unwrap_or_default(),
+                    Some(provider.task.clone()),
+                )
+            })
+            .collect();
+        let (results, budget_stop) = match super::legacy_syntax::run_budgeted(&units, |task| {
+            run_cpp_tasks(
+                &[task],
+                scheduler,
+                cancellation,
+                events,
+                &component.id,
+                "legacy c++17 syntax fallback",
+            )
+            .map(|outcomes| outcomes.into_iter().next().expect("one outcome"))
+        }) {
             Ok(results) => results,
             Err(error) => return failed(AnalysisOutput::new(&request.task_id, "compiler"), &error),
         };
+        let executed: BTreeSet<String> = results
+            .iter()
+            .map(|outcome| outcome.task_id.clone())
+            .collect();
+        let concrete: Vec<_> = concrete
+            .into_iter()
+            .filter(|task| executed.contains(&task.id))
+            .collect();
         let mut syntax_errors = vec![];
-        let outputs = results
+        let mut outputs: Vec<_> = results
             .iter()
             .map(|outcome| {
                 let provider = providers
@@ -278,6 +321,10 @@ impl CppPlans {
                 output
             })
             .collect();
+        if let Some(stop) = &budget_stop {
+            outputs.push(super::legacy_syntax::budget_output(&request.task_id, stop));
+            syntax_errors.push(stop.error.clone());
+        }
         let mut output = merge(&request.task_id, "compiler", outputs);
         super::legacy_record_syntax_errors(&mut output, syntax_errors);
         for finding in &mut output.observation.findings {

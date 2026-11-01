@@ -377,7 +377,7 @@ impl CppAnalysisSession {
     }
 }
 /// Python `{value:,}` grouping for the frozen line summary.
-fn grouped(value: u64) -> String {
+pub(crate) fn grouped(value: u64) -> String {
     let digits = value.to_string();
     let mut out = String::new();
     for (index, digit) in digits.chars().enumerate() {

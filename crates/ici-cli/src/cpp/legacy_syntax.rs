@@ -3,9 +3,88 @@
 //! replayable unit, the selected-unit budget and rejected replay commands.
 use super::*;
 use ici_cpp::{ContextDiagnostic, CppError};
+use ici_execution::TaskOutcome;
+use std::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::{Duration, Instant},
+};
 
 /// Frozen `_cpp_lint._MAX_SELECTED_UNITS`.
 pub(super) const MAX_SELECTED_UNITS: usize = 2_048;
+/// Frozen `_cpp_lint._GLOBAL_TIMEOUT_SECONDS`: one wall-clock budget for every selected unit.
+pub(super) const GLOBAL_BUDGET: Duration = Duration::from_secs(600);
+/// Frozen `_cpp_lint._TIMEOUT_SECONDS`: the per-unit process limit.
+const UNIT_TIMEOUT: Duration = Duration::from_secs(120);
+static BUDGET_OVERRIDE_MILLIS: AtomicU64 = AtomicU64::new(u64::MAX);
+
+/// Test hook: replaces the 600 s legacy syntax budget for this process (`None` restores it).
+/// The command line has no way to reach it.
+#[doc(hidden)]
+pub fn set_legacy_syntax_budget_for_tests(budget: Option<Duration>) {
+    let millis = budget.map_or(u64::MAX, |budget| {
+        u64::try_from(budget.as_millis()).unwrap_or(u64::MAX - 1)
+    });
+    BUDGET_OVERRIDE_MILLIS.store(millis, Ordering::SeqCst);
+}
+
+fn budget() -> Duration {
+    match BUDGET_OVERRIDE_MILLIS.load(Ordering::SeqCst) {
+        u64::MAX => GLOBAL_BUDGET,
+        millis => Duration::from_millis(millis),
+    }
+}
+
+/// The unit at which the global budget ran out: its error target and LintEngine tool error.
+#[derive(Clone, Debug)]
+pub(super) struct BudgetStop {
+    pub index: usize,
+    pub target: InspectionTarget,
+    pub error: String,
+}
+
+/// Frozen `_run_exact` / `_run_fallback` loop: units run one at a time in frozen order under
+/// one deadline. Before each unit (replayed or not) the remaining budget is checked; when it is
+/// spent that unit is the `C++SyntaxBudgetError` target naming how many units are left and no
+/// further unit runs. A replayed unit gets `min(120 s, remaining)`.
+pub(super) fn run_budgeted(
+    units: &[(String, Option<TaskSpec>)],
+    mut run: impl FnMut(TaskSpec) -> std::result::Result<TaskOutcome, String>,
+) -> std::result::Result<(Vec<TaskOutcome>, Option<BudgetStop>), String> {
+    let deadline = Instant::now() + budget();
+    let mut outcomes = vec![];
+    for (index, (source, task)) in units.iter().enumerate() {
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            let error = format!(
+                "C++ syntax global time budget left {} unit(s) unexamined",
+                units.len() - index
+            );
+            return Ok((
+                outcomes,
+                Some(BudgetStop {
+                    index,
+                    target: target(source, "C++SyntaxBudgetError", "ERROR", error.clone()),
+                    error,
+                }),
+            ));
+        }
+        if let Some(task) = task {
+            let mut task = task.clone();
+            task.timeout_seconds = Some(remaining.min(UNIT_TIMEOUT).as_secs_f64());
+            outcomes.push(run(task)?);
+        }
+    }
+    Ok((outcomes, None))
+}
+
+/// The output that stands for the unit at which the budget ran out.
+pub(super) fn budget_output(task: &str, stop: &BudgetStop) -> AnalysisOutput {
+    let mut output = AnalysisOutput::new(task, "compiler");
+    output.observation.state = TaskState::Succeeded;
+    output.targets.push(stop.target.clone());
+    output.status = "ERROR".into();
+    output
+}
 
 /// A legacy `cpp.diagnostics` run that stops before any replay: its targets in frozen order and
 /// the LintEngine tool errors.
@@ -19,6 +98,7 @@ pub(super) struct Terminal {
 /// task that runs it or the error target and tool error that replace the replay.
 #[derive(Clone, Debug)]
 pub(super) struct UnitNote {
+    pub source: String,
     pub before: Vec<InspectionTarget>,
     pub replay: Result<String, (Option<InspectionTarget>, String)>,
 }

@@ -1,0 +1,337 @@
+{
+ "base": "[project]\ntype='hybrid'\nsource_dirs=['src']\n",
+ "cases": {
+  "hybrid-both": {
+   "config": "",
+   "files": {
+    "src/app.cpp": "// header\nint value() {\n\n    return 1;\n}\n",
+    "src/app.py": "def value():\n    # one\n\n    return 1\n"
+   },
+   "frozen": {
+    "counts": {
+     "all": {
+      "blank": 2,
+      "code": 8,
+      "comment": 2,
+      "files": 3,
+      "total": 12
+     },
+     "blank": 2,
+     "code": 5,
+     "comment": 2,
+     "files_data": [
+      {
+       "blank": 1,
+       "code": 3,
+       "comment": 1,
+       "lang": "C++",
+       "path": "src/app.cpp",
+       "scope": "source",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 0,
+       "code": 3,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 3
+      },
+      {
+       "blank": 1,
+       "code": 2,
+       "comment": 1,
+       "lang": "Python",
+       "path": "src/app.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 4
+      }
+     ],
+     "total": 9
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Total 9 lines (5 code, 2 comment, 2 blank) across 2 files",
+    "targets": [
+     {
+      "file_path": "src/app.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "file_path": "src/app.py",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Python"
+     }
+    ]
+   }
+  },
+  "hybrid-cpp-only": {
+   "config": "",
+   "files": {
+    "docs/guide.md": "# guide\n",
+    "src/app.cpp": "// header\nint value() {\n\n    return 1;\n}\n"
+   },
+   "frozen": {
+    "counts": {
+     "all": {
+      "blank": 1,
+      "code": 7,
+      "comment": 1,
+      "files": 3,
+      "total": 9
+     },
+     "blank": 1,
+     "code": 3,
+     "comment": 1,
+     "files_data": [
+      {
+       "blank": 1,
+       "code": 3,
+       "comment": 1,
+       "lang": "C++",
+       "path": "src/app.cpp",
+       "scope": "source",
+       "status": "PASS",
+       "total": 5
+      },
+      {
+       "blank": 0,
+       "code": 3,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 3
+      },
+      {
+       "blank": 0,
+       "code": 1,
+       "comment": 0,
+       "lang": "Markdown",
+       "path": "docs/guide.md",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 1
+      }
+     ],
+     "total": 5
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Total 5 lines (3 code, 1 comment, 1 blank) across 1 files",
+    "targets": [
+     {
+      "file_path": "src/app.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "hybrid-cpp-only-over-warn": {
+   "config": "[engines.line]\nwarn_limit=2\nfail_limit=5\n",
+   "files": {
+    "docs/guide.md": "# guide\n",
+    "src/app.cpp": "// header\nint value() {\n\n    return 1;\n}\n"
+   },
+   "frozen": {
+    "counts": {
+     "all": {
+      "blank": 1,
+      "code": 10,
+      "comment": 1,
+      "files": 3,
+      "total": 12
+     },
+     "blank": 1,
+     "code": 3,
+     "comment": 1,
+     "files_data": [
+      {
+       "blank": 0,
+       "code": 6,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 1,
+       "code": 3,
+       "comment": 1,
+       "lang": "C++",
+       "path": "src/app.cpp",
+       "scope": "source",
+       "status": "WARN",
+       "total": 5
+      },
+      {
+       "blank": 0,
+       "code": 1,
+       "comment": 0,
+       "lang": "Markdown",
+       "path": "docs/guide.md",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 1
+      }
+     ],
+     "total": 5
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "WARN",
+    "summary": "Total 5 lines (3 code, 1 comment, 1 blank) across 1 files",
+    "targets": [
+     {
+      "file_path": "src/app.cpp",
+      "message": "Pure code lines (3) exceed 2 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "hybrid-python-only": {
+   "config": "",
+   "files": {
+    "docs/guide.md": "# guide\n",
+    "src/app.py": "def value():\n    # one\n\n    return 1\n"
+   },
+   "frozen": {
+    "counts": {
+     "all": {
+      "blank": 1,
+      "code": 6,
+      "comment": 1,
+      "files": 3,
+      "total": 8
+     },
+     "blank": 1,
+     "code": 2,
+     "comment": 1,
+     "files_data": [
+      {
+       "blank": 0,
+       "code": 3,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 3
+      },
+      {
+       "blank": 1,
+       "code": 2,
+       "comment": 1,
+       "lang": "Python",
+       "path": "src/app.py",
+       "scope": "source",
+       "status": "PASS",
+       "total": 4
+      },
+      {
+       "blank": 0,
+       "code": 1,
+       "comment": 0,
+       "lang": "Markdown",
+       "path": "docs/guide.md",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 1
+      }
+     ],
+     "total": 4
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Total 4 lines (2 code, 1 comment, 1 blank) across 1 files",
+    "targets": [
+     {
+      "file_path": "src/app.py",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Python"
+     }
+    ]
+   }
+  },
+  "hybrid-python-only-over-limit": {
+   "config": "[engines.line]\nwarn_limit=1\nfail_limit=2\n",
+   "files": {
+    "src/app.py": "def value():\n    # one\n\n    return 1\n\n\ndef other():\n    return 2\n"
+   },
+   "frozen": {
+    "counts": {
+     "all": {
+      "blank": 3,
+      "code": 10,
+      "comment": 1,
+      "files": 2,
+      "total": 14
+     },
+     "blank": 3,
+     "code": 4,
+     "comment": 1,
+     "files_data": [
+      {
+       "blank": 0,
+       "code": 6,
+       "comment": 0,
+       "lang": "TOML",
+       "path": "ici.toml",
+       "scope": "extra",
+       "status": "PASS",
+       "total": 6
+      },
+      {
+       "blank": 3,
+       "code": 4,
+       "comment": 1,
+       "lang": "Python",
+       "path": "src/app.py",
+       "scope": "source",
+       "status": "FAIL",
+       "total": 8
+      }
+     ],
+     "total": 8
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "Total 8 lines (4 code, 1 comment, 3 blank) across 1 files",
+    "targets": [
+     {
+      "file_path": "src/app.py",
+      "message": "Pure code lines (4) exceed 2 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Python"
+     }
+    ]
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

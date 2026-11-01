@@ -18,6 +18,7 @@ use ici_providers::{
     ProviderKind, ProviderPlan, ProviderRequest,
     resolver::{ResolvedTool, ToolRequest},
 };
+pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
 use serde_json::{Value, json};
 use std::{
@@ -417,6 +418,7 @@ impl CppPlans {
                     // one is an error or the replay command is rejected.
                     let mut replayed = vec![];
                     for unit in selected {
+                        let source = unit.source.clone();
                         let (before, error) = legacy_syntax::unit_targets(&unit);
                         let replay = match error {
                             Some(error) => Err((None, error)),
@@ -440,7 +442,11 @@ impl CppPlans {
                         if replay.is_ok() {
                             replayed.push(unit);
                         }
-                        notes.push(legacy_syntax::UnitNote { before, replay });
+                        notes.push(legacy_syntax::UnitNote {
+                            source,
+                            before,
+                            replay,
+                        });
                     }
                     self.legacy_syntax_units
                         .insert(component.id.clone(), replayed.clone());
@@ -1621,6 +1627,140 @@ pub fn legacy_shadow_linked_outputs(shadow: &Path) -> Option<usize> {
     Some(count)
 }
 
+/// Frozen `core/cmake._capture_artifact_manifest` for one legacy CMake build session: the
+/// linked outputs of its shadow tree (`_linked_artifact_paths`: regular non-symlink files with
+/// an executable magic or `!<arch>` archives, objects/coverage notes excluded, in `Path` order),
+/// each with the frozen kind, digest, size, mode, `cmake.build` producer, `<variant>:shadow:<path>`
+/// id, derived target and the report-safe build command. The run identity (commit and digests)
+/// is attached by the legacy report projection. `None` when the walk cannot be completed.
+pub fn legacy_cmake_artifact_manifest(
+    root: &Path,
+    shadow: &Path,
+    variant: &str,
+    command: &[String],
+) -> Option<Value> {
+    const MAGICS: [&[u8]; 6] = [
+        b"\x7fELF",
+        b"MZ",
+        b"\xfe\xed\xfa\xce",
+        b"\xfe\xed\xfa\xcf",
+        b"\xce\xfa\xed\xfe",
+        b"\xcf\xfa\xed\xfe",
+    ];
+    let root_text = root.to_string_lossy().trim_end_matches('/').to_owned();
+    let command: Vec<String> = command
+        .iter()
+        .enumerate()
+        .map(|(index, argument)| {
+            let argument = if index == 0 {
+                Path::new(argument)
+                    .file_name()
+                    .map_or(argument.clone(), |name| name.to_string_lossy().into_owned())
+            } else {
+                argument.clone()
+            };
+            argument
+                .replace(&format!("{root_text}/"), "")
+                .replace(&root_text, ".")
+        })
+        .collect();
+    let mut pending = vec![shadow.to_path_buf()];
+    let mut files = vec![];
+    let mut visited = 0usize;
+    while let Some(directory) = pending.pop() {
+        for entry in std::fs::read_dir(&directory).ok()? {
+            let entry = entry.ok()?;
+            visited += 1;
+            if visited > 200_000 {
+                return None;
+            }
+            let kind = entry.file_type().ok()?;
+            if kind.is_dir() {
+                pending.push(entry.path());
+            } else if kind.is_file() {
+                files.push(entry.path());
+            }
+        }
+    }
+    // Frozen `sorted(paths)`: `Path` order compares component by component.
+    files.sort_by(|left, right| left.components().cmp(right.components()));
+    let mut artifacts = vec![];
+    for path in files {
+        let extension = path.extension().and_then(|value| value.to_str());
+        if matches!(extension, Some("o" | "obj" | "gcno" | "gcda")) {
+            continue;
+        }
+        let mut prefix = [0u8; 8];
+        let read = std::fs::File::open(&path)
+            .and_then(|mut file| std::io::Read::read(&mut file, &mut prefix))
+            .unwrap_or(0);
+        let prefix = &prefix[..read];
+        let archive = matches!(extension, Some("a" | "lib")) && prefix.starts_with(b"!<arch>\n");
+        if !archive && !MAGICS.iter().any(|magic| prefix.starts_with(magic)) {
+            continue;
+        }
+        let Ok(relative) = path.strip_prefix(shadow) else {
+            continue;
+        };
+        let relative = relative.to_string_lossy().replace('\\', "/");
+        let name = path.file_name()?.to_string_lossy().into_owned();
+        let kind = if matches!(extension, Some("a" | "lib")) {
+            "static-library"
+        } else if matches!(extension, Some("so" | "dylib" | "dll")) || name.contains(".so.") {
+            "shared-library"
+        } else {
+            "executable"
+        };
+        // Frozen `_artifact_target`.
+        let mut target = match kind {
+            "static-library" => name
+                .strip_suffix(".a")
+                .or_else(|| name.strip_suffix(".lib"))
+                .unwrap_or(&name)
+                .to_owned(),
+            "shared-library" => match name.split_once(".so.") {
+                Some((stem, _)) => stem.to_owned(),
+                None => [".so", ".dylib", ".dll"]
+                    .iter()
+                    .find_map(|suffix| name.strip_suffix(suffix))
+                    .unwrap_or(&name)
+                    .to_owned(),
+            },
+            _ => Path::new(&name)
+                .file_stem()
+                .map_or(name.clone(), |stem| stem.to_string_lossy().into_owned()),
+        };
+        if target.starts_with("lib") && target.len() > 3 {
+            target = target[3..].to_owned();
+        }
+        if target.is_empty() {
+            target.clone_from(&relative);
+        }
+        let bytes = std::fs::read(&path).ok()?;
+        let metadata = std::fs::metadata(&path).ok()?;
+        let id = format!("{variant}:shadow:{relative}");
+        let id = if id.len() <= 512 {
+            id
+        } else {
+            format!(
+                "{variant}:shadow:path-{}",
+                ici_domain::sha256(&id).trim_start_matches("sha256:")
+            )
+        };
+        artifacts.push(json!({
+            "path": relative, "scope": "shadow", "kind": kind,
+            "sha256": ici_domain::sha256(&bytes), "size": bytes.len(),
+            "mode": std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o7777,
+            "producer": "cmake.build", "id": id, "target": target, "command": command,
+        }));
+    }
+    let shadow_root = shadow
+        .strip_prefix(root)
+        .ok()
+        .map(|path| path.to_string_lossy().into_owned());
+    Some(json!({"variant": variant, "shadow_root": shadow_root, "artifacts": artifacts}))
+}
+
 /// Frozen `compile_db` configuration identity of one recorded unit (`canonical_digest` of the
 /// recorded directory, argv and output; first 12 hex digits).
 /// Internal target metric carrying a replayed unit's frozen configuration digest to the lint
@@ -1678,17 +1818,27 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
         available.evidence = ici_domain::EvidenceLevel::Estimated;
         output.observation.measurements.push(available);
     }
-    // Frozen `_ready_tool` records the unavailable tool as evidence without a command.
+    // Frozen `_ready_tool` records the unavailable tool as evidence without a command, and
+    // `_validated_context` without an analysis context records the missing context.
     output.extra["tool_evidence"] = json!(
         unavailable
             .iter()
-            .filter(|(_, message, _)| message.ends_with("is unavailable or incompletely probed"))
-            .map(|(label, _, _)| json!({
-                "name": if *label == "ClazyUnavailable" { "clazy" } else { "clang-tidy" },
-                "path": "", "argv": [], "version": "", "returncode": null,
-                "error": "tool not found or capability probe incomplete; no command was executed",
-                "timed_out": false, "truncated": false,
-            }))
+            .filter_map(|(label, message, _)| {
+                let error = if message.ends_with("is unavailable or incompletely probed") {
+                    "tool not found or capability probe incomplete; no command was executed"
+                } else if message.ends_with(
+                    "requires an approved capability inventory and exact compilation context",
+                ) {
+                    "analysis context unavailable"
+                } else {
+                    return None;
+                };
+                Some(json!({
+                    "name": if *label == "ClazyUnavailable" { "clazy" } else { "clang-tidy" },
+                    "path": "", "argv": [], "version": "", "returncode": null,
+                    "error": error, "timed_out": false, "truncated": false,
+                }))
+            })
             .collect::<Vec<_>>()
     );
     for (label, message, required) in unavailable {
@@ -3452,29 +3602,60 @@ impl CppPlans {
                 .iter()
                 .map(|provider| provider.task.clone())
                 .collect();
-            let schedule = match scheduler.run_with_start(&tasks, cancellation, |task| {
+            let start = |task: &TaskSpec| {
                 events.emit(
                     "task.started",
                     Some(&task.id),
                     Some(&component.id),
                     "recorded compiler diagnostics",
                 )
-            }) {
-                Ok(schedule) => schedule,
+            };
+            let legacy_notes = self
+                .legacy_unit_notes
+                .get(&request.task_id)
+                .filter(|_| self.legacy_projection && request.check_id == "cpp.diagnostics");
+            let scheduled = if let Some(notes) = legacy_notes {
+                // Frozen `_run_exact`: one unit at a time under the global time budget.
+                let units: Vec<_> = notes
+                    .iter()
+                    .map(|note| {
+                        let task = note
+                            .replay
+                            .as_ref()
+                            .ok()
+                            .and_then(|id| tasks.iter().find(|task| &task.id == id).cloned());
+                        (note.source.clone(), task)
+                    })
+                    .collect();
+                legacy_syntax::run_budgeted(&units, |task| {
+                    scheduler
+                        .run_with_start(&[task], cancellation, start)
+                        .map_err(|error| error.to_string())
+                        .map(|schedule| schedule.outcomes.into_iter().next().expect("one outcome"))
+                })
+            } else {
+                scheduler
+                    .run_with_start(&tasks, cancellation, start)
+                    .map(|schedule| (schedule.outcomes, None))
+                    .map_err(|error| error.to_string())
+            };
+            let (scheduled, budget_stop) = match scheduled {
+                Ok(scheduled) => scheduled,
                 Err(error) => {
-                    return failed(
-                        AnalysisOutput::new(&request.task_id, "compiler"),
-                        &error.to_string(),
-                    );
+                    return failed(AnalysisOutput::new(&request.task_id, "compiler"), &error);
                 }
             };
+            let executed: BTreeSet<String> = scheduled
+                .iter()
+                .map(|outcome| outcome.task_id.clone())
+                .collect();
             let mut outputs = vec![];
             let mut unused_observations = vec![];
             let mut unused_runs = vec![];
             let mut legacy_tool_runs = vec![];
             let mut replayed = BTreeSet::new();
             let mut syntax_errors = vec![];
-            for outcome in schedule.outcomes {
+            for outcome in scheduled {
                 events.emit(
                     "task.completed",
                     Some(&outcome.task_id),
@@ -3629,7 +3810,12 @@ impl CppPlans {
                     .collect();
                 let mut errors: BTreeMap<String, String> = syntax_errors.drain(..).collect();
                 outputs = vec![];
-                for note in notes {
+                for (index, note) in notes.iter().enumerate() {
+                    if let Some(stop) = budget_stop.as_ref().filter(|stop| stop.index == index) {
+                        outputs.push(legacy_syntax::budget_output(&request.task_id, stop));
+                        syntax_errors.push((String::new(), stop.error.clone()));
+                        break;
+                    }
                     match &note.replay {
                         Ok(task) => {
                             if let Some(mut output) = by_task.remove(task) {
@@ -3694,6 +3880,7 @@ impl CppPlans {
                     output.extra["concrete_tasks"] = json!(
                         tasks
                             .iter()
+                            .filter(|task| executed.contains(&task.id))
                             .map(|task| {
                                 let version = task
                                     .argv
