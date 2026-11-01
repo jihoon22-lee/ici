@@ -65,6 +65,7 @@ pub fn save_details(run: &crate::execute::ExecutedRun) -> Result<PathBuf> {
             project_name: run.project_name.clone(),
             duration_seconds: run.duration_seconds,
             raw_fingerprints: run.raw_fingerprints.clone(),
+            cache_keys: run.cache_keys.clone(),
             required_checks: run.required_checks.clone(),
             engine_names: run.engine_names.clone(),
             legacy_baseline: run.legacy_baseline.clone(),

@@ -160,6 +160,21 @@ fn single_engine_reports_carry_the_frozen_support_matrix() {
             }
             continue;
         }
+        // Frozen single-engine commands never consulted the cache (false/null); the native
+        // command reuses its own observation cache, so only the shape and a fresh-run miss are
+        // frozen's.
+        if report["cache_hit"] != false || !digest_or_null(&report["cache_key"]) {
+            failures.push(format!(
+                "{name}: cache {} {}",
+                report["cache_hit"], report["cache_key"]
+            ));
+        }
+        if report["artifact_manifests"] != frozen["artifact_manifests"] {
+            failures.push(format!(
+                "{name}: artifact_manifests {}",
+                report["artifact_manifests"]
+            ));
+        }
         if report["evidence"] != frozen["evidence"] {
             failures.push(format!(
                 "{name}: engine evidence {} != {}",
@@ -175,6 +190,45 @@ fn single_engine_reports_carry_the_frozen_support_matrix() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+/// Frozen `_require_digest`: a cache key is null or `sha256:` and 64 lowercase hex digits.
+fn digest_or_null(value: &Value) -> bool {
+    value.is_null()
+        || value.as_str().is_some_and(|key| {
+            key.strip_prefix("sha256:").is_some_and(|hex| {
+                hex.len() == 64
+                    && hex
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            })
+        })
+}
+
+/// Second-run cache reuse that differs from frozen by design (native namespace, native rules).
+const CACHE_REUSE_DIFFERENCES: [(&str, bool, &str); 4] = [
+    (
+        "lint",
+        false,
+        "legacy Ruff runs keep frozen's explicit-file argv; their configuration closure is not \
+         proven complete, so native never reuses them (frozen cached the engine result)",
+    ),
+    (
+        "type",
+        false,
+        "legacy mypy runs (project configuration and plugins) are never reused natively",
+    ),
+    (
+        "dead",
+        true,
+        "frozen DeadCodeEngine was CACHE_REUSE_SAFE=False; the native Python dead-code analysis \
+         is a pure function of the hashed inputs and is reused",
+    ),
+    (
+        "compile_db",
+        true,
+        "frozen did not store its Python-only compile_db SKIP; the native check output is reused",
+    ),
+];
+
 #[test]
 #[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
 fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices() {
@@ -185,23 +239,78 @@ fn verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices
     for (name, case) in oracle["verify"].as_object().unwrap() {
         let root = project(&oracle, case);
         let profile = case["profile"].as_str().unwrap();
-        let frozen = &case["frozen"]["first"];
-        let (_, report) = run(
-            root.path(),
-            &with_tools,
-            &["verify", "--report", "--profile", profile],
-        );
-        failures.extend(support_differences(
-            name,
-            &report["support_matrix"],
-            &frozen["support_matrix"],
-        ));
-        for result in report["results"].as_array().unwrap() {
-            let engine = result["engine_name"].as_str().unwrap();
-            if result["support_matrix"] != Value::Null {
+        for (label, extra) in [
+            ("first", None),
+            ("second", None),
+            ("no-cache", Some("--no-cache")),
+        ] {
+            let frozen = &case["frozen"][label];
+            let mut args = vec!["verify", "--report", "--profile", profile];
+            args.extend(extra);
+            let (_, report) = run(root.path(), &with_tools, &args);
+            failures.extend(support_differences(
+                &format!("{name}/{label}"),
+                &report["support_matrix"],
+                &frozen["support_matrix"],
+            ));
+            let results = report["results"].as_array().unwrap();
+            let engines: Vec<_> = results.iter().map(|r| r["engine_name"].clone()).collect();
+            let frozen_engines: Vec<_> = frozen["results"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .map(|engine| Value::from(engine.as_str()))
+                .collect();
+            let mut sorted = engines.clone();
+            sorted.sort_by_key(|engine| engine.as_str().unwrap().to_owned());
+            if sorted != frozen_engines {
                 failures.push(format!(
-                    "{name}/{engine}: result support_matrix is not null"
+                    "{name}/{label}: engines {sorted:?} != {frozen_engines:?}"
                 ));
+            }
+            for result in results {
+                let engine = result["engine_name"].as_str().unwrap();
+                let at = format!("{name}/{label}/{engine}");
+                let expected = &frozen["results"][engine];
+                if result["support_matrix"] != Value::Null {
+                    failures.push(format!("{at}: result support_matrix is not null"));
+                }
+                if result["artifact_manifests"] != serde_json::json!([]) {
+                    failures.push(format!(
+                        "{at}: artifact_manifests {}",
+                        result["artifact_manifests"]
+                    ));
+                }
+                if !result["cache_hit"].is_boolean() || !digest_or_null(&result["cache_key"]) {
+                    failures.push(format!(
+                        "{at}: cache shape {} {}",
+                        result["cache_hit"], result["cache_key"]
+                    ));
+                }
+                // Without the cache both products report false/null for every engine; a first
+                // run is never a hit; a second run hits exactly where frozen hit, except the
+                // recorded native-namespace differences.
+                let hit = match (
+                    label,
+                    CACHE_REUSE_DIFFERENCES
+                        .iter()
+                        .find(|(e, _, _)| *e == engine),
+                ) {
+                    ("second", Some((_, native, _))) => Value::Bool(*native),
+                    _ => expected["cache_hit"].clone(),
+                };
+                if result["cache_hit"] != hit {
+                    failures.push(format!("{at}: cache_hit {} != {hit}", result["cache_hit"]));
+                }
+                if label == "no-cache" && !result["cache_key"].is_null() {
+                    failures.push(format!(
+                        "{at}: --no-cache keeps key {}",
+                        result["cache_key"]
+                    ));
+                }
+                if result["cache_hit"] == true && result["cache_key"].is_null() {
+                    failures.push(format!("{at}: a hit without a key"));
+                }
             }
         }
     }

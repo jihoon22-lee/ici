@@ -32,6 +32,8 @@ pub struct ExecutedRun {
     pub outputs: BTreeMap<String, AnalysisOutput>,
     pub result_path: PathBuf,
     pub raw_fingerprints: BTreeMap<String, String>,
+    /// Native observation-cache key of every task that had one (task id -> `sha256:` key).
+    pub cache_keys: BTreeMap<String, String>,
     pub required_checks: BTreeMap<String, bool>,
     pub engine_names: BTreeMap<String, String>,
     pub project_name: String,
@@ -895,10 +897,10 @@ pub fn execute(
         && !cancellation.is_cancelled()
         && let Some(cache) = &cache
     {
-        for (id, key) in cache_keys {
-            if !reused.contains(&id)
-                && let Some(output) = outputs.get(&id)
-                && let Err(error) = cache.store.put_output(&key, output)
+        for (id, key) in &cache_keys {
+            if !reused.contains(id)
+                && let Some(output) = outputs.get(id)
+                && let Err(error) = cache.store.put_output(key, output)
             {
                 limitations.push(format!("cache write for {id}: {error}"));
             }
@@ -1115,6 +1117,7 @@ pub fn execute(
         outputs,
         result_path,
         raw_fingerprints,
+        cache_keys,
         required_checks: prepared
             .plan
             .checks
