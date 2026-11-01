@@ -36,7 +36,9 @@ BASES = {
     "thread-sanitize-race": THREAD,
     "thread-sanitize-argv": THREAD,
     "thread-sanitize-no-build-argv": BASE,
+    "verify-no-coverage-build-argv": NO_COVERAGE,
 }
+NO_SANITIZERS = "[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n"
 # name: (fixture, extra configuration, command)
 CASES = {
     "test-pass": ("test-make", "test_argv=['make','check']\n", "test"),
@@ -66,7 +68,77 @@ CASES = {
         "test_argv=['make','check']\n",
         "thread-sanitize",
     ),
+    # The shared analysis context of a Make project: requested variants (deep adds release through
+    # the build engine) and the compilation record. Sanitizers stay off
+    # there: every Make variant shares the one shadow, so frozen "sanitizes" the up-to-date
+    # coverage binaries (verify-shared-shadow-sanitize keeps that case).
+    "verify": ("test-make", "test_argv=['make','check']\n" + NO_SANITIZERS, "verify"),
+    "verify-no-coverage-build-argv": (
+        "test-make",
+        "test_argv=['make','check']\n" + NO_SANITIZERS,
+        "verify",
+    ),
+    "verify-deep": (
+        "test-make",
+        "test_argv=['make','check']\n[ici]\nprofile='deep'\n[engines.build]\nenabled=true\n"
+        + NO_SANITIZERS,
+        "verify",
+    ),
+    "verify-shared-shadow-sanitize": ("test-make", "test_argv=['make','check']\n", "verify"),
+    # Legacy engine keys over the same suites; REFERENCES names the case each one varies.
+    "test-mode": (
+        "test-make",
+        "test_argv=['make','check']\n[engines.test]\nmode='pass_warn'\n",
+        "test",
+    ),
+    "test-min-branch": (
+        "test-make",
+        "test_argv=['make','check']\n[engines.test]\nmin_branch_cov=50.0\n",
+        "test",
+    ),
+    "test-min-line": (
+        "test-make",
+        "test_argv=['make','check']\n[engines.test]\nmin_line_cov=90.0\n",
+        "test",
+    ),
+    "test-min-file": (
+        "test-make",
+        "test_argv=['make','check']\n[engines.test]\nmin_file_cov=90.0\n",
+        "test",
+    ),
+    "test-min-file-statements": (
+        "test-make",
+        "test_argv=['make','check']\n[engines.test]\nmin_file_cov=90.0\nmin_file_statements=50\n",
+        "test",
+    ),
+    "test-min-func": (
+        "test-make",
+        "test_argv=['make','check']\n[engines.test]\nmin_func_cov=100.0\n",
+        "test",
+    ),
+    "sanitize-mode": (
+        "test-make",
+        "test_argv=['make','check']\nsanitize_test_argv=['make','check-all']\n"
+        "[engines.sanitize]\nmode='pass_warn'\n",
+        "sanitize",
+    ),
+    "thread-sanitize-mode": (
+        "tsan-make",
+        "test_argv=['make','check-race']\n[engines.thread_sanitize]\nmode='pass_warn'\n",
+        "thread-sanitize",
+    ),
 }
+REFERENCES = {
+    "test-mode": "test-pass",
+    "test-min-branch": "test-pass",
+    "test-min-line": "test-pass",
+    "test-min-file": "test-pass",
+    "test-min-file-statements": "test-min-file",
+    "test-min-func": "test-pass",
+    "sanitize-mode": "sanitize-argv",
+    "thread-sanitize-mode": "thread-sanitize-race",
+}
+FIXED_DATE = "2026-01-01T00:00:00+00:00"
 COUNTERS = [
     "suite_status",
     "passed_count",
@@ -107,7 +179,13 @@ def run(fixture: str, base: str, extra: str, command: str) -> dict:
         git = ["git", "-c", "user.email=ici@example.invalid", "-c", "user.name=ici"]
         subprocess.run(["git", "init", "-q", str(project)], check=True)
         subprocess.run([*git, "-C", str(project), "add", "-A"], check=True)
-        subprocess.run([*git, "-C", str(project), "commit", "-qm", "fixture"], check=True)
+        # Fixed dates give a reproducible commit id (the deep build's `git describe` version).
+        dates = {"GIT_AUTHOR_DATE": FIXED_DATE, "GIT_COMMITTER_DATE": FIXED_DATE}
+        subprocess.run(
+            [*git, "-C", str(project), "commit", "-qm", "fixture"],
+            check=True,
+            env={"PATH": "/usr/bin:/bin", "HOME": str(WORK), **dates},
+        )
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
             cwd=project,
@@ -153,6 +231,11 @@ cases = {
 }
 for name, base in BASES.items():
     cases[name]["base"] = base
+unchanged = []
+for name, reference in REFERENCES.items():
+    cases[name]["reference"] = reference
+    if cases[name]["frozen"]["engines"] == cases[reference]["frozen"]["engines"]:
+        unchanged.append(name)
 (ROOT / "tests/rust-parity/cpp/make-test-oracle.json").write_text(
     json.dumps(
         {"oracle": EXPECTED, "make": MAKE, "gxx": GXX, "base": BASE, "cases": cases},
@@ -164,3 +247,4 @@ for name, base in BASES.items():
     encoding="utf-8",
 )
 print(f"{len(cases)} Make test cases with {MAKE}")
+assert not unchanged, f"keys without a frozen effect: {unchanged}"

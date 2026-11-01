@@ -17,6 +17,7 @@ pub use facts::{ClassFact, FunctionFact, SourceFacts};
 mod finding;
 mod legacy;
 /// Frozen `languages/hygiene.py` provider identity, shared with the C++ hygiene rules.
+pub use details::decorate as decorate_finding_details;
 pub use finding::sha1_short;
 pub use legacy::lint_syntax_error;
 mod lines;

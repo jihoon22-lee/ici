@@ -24,7 +24,11 @@ CASES = {
     "python": (None, "python"),
     "hybrid": (CPP, "hybrid"),
     "cpp-unity": ("unity-cache", "cpp"),
+    "cpp-deep": (CPP, "cpp"),
 }
+# Extra legacy configuration per case: the deep profile with the build engine requests the
+# release variant next to coverage, sanitize and thread-sanitize.
+CASE_CONFIGS = {"cpp-deep": "[ici]\nprofile='deep'\n[engines.build]\nenabled=true\n"}
 PYTHON_FILES = {
     "src/app.py": "def add(a, b):\n    return a + b\n",
     "tests/test_app.py": "from app import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",
@@ -36,7 +40,7 @@ assert (
 CMAKE = subprocess.check_output(["cmake", "--version"], text=True).splitlines()[0]
 
 
-def run(fixture: str | None, kind: str) -> dict:
+def run(name: str, fixture: str | None, kind: str) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -48,7 +52,7 @@ def run(fixture: str | None, kind: str) -> dict:
             for name, text in PYTHON_FILES.items():
                 (project / name).parent.mkdir(parents=True, exist_ok=True)
                 (project / name).write_text(text, encoding="utf-8")
-        config = f"[project]\ntype='{kind}'\nsource_dirs=['src']\n"
+        config = f"[project]\ntype='{kind}'\nsource_dirs=['src']\n" + CASE_CONFIGS.get(name, "")
         (project / "ici.toml").write_text(config, encoding="utf-8")
         git = ["git", "-c", "user.email=ici@example.invalid", "-c", "user.name=ici"]
         subprocess.run(["git", "init", "-q", str(project)], check=True)
@@ -69,7 +73,7 @@ def run(fixture: str | None, kind: str) -> dict:
         shutil.rmtree(WORK, ignore_errors=True)
 
 
-cases = {name: run(fixture, kind) for name, (fixture, kind) in CASES.items()}
+cases = {name: run(name, fixture, kind) for name, (fixture, kind) in CASES.items()}
 (ROOT / "tests/rust-parity/cpp/analysis-context-oracle.json").write_text(
     json.dumps(
         {
@@ -77,6 +81,7 @@ cases = {name: run(fixture, kind) for name, (fixture, kind) in CASES.items()}
             "cmake": CMAKE,
             "cpp_fixture": CPP,
             "case_projects": {name: list(value) for name, value in CASES.items()},
+            "case_configs": CASE_CONFIGS,
             "python_files": PYTHON_FILES,
             "cases": cases,
         },

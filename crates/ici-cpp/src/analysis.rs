@@ -238,6 +238,7 @@ impl CppAnalysisSession {
             output.extra = json!({"excluded_source_counts":excluded_counts,"evidence":"NOT_APPLICABLE","parser_identity":source::PARSER_ID});
             return output;
         }
+        let mut duplicate_status = None;
         let result = match kind {
             "line" => {
                 crate::source_rules::lines(request, &mut output, &line_files, cancellation);
@@ -291,6 +292,11 @@ impl CppAnalysisSession {
                         if duplicate_output.observation.state != TaskState::Succeeded {
                             output.observation.state = duplicate_output.observation.state;
                             output.status = duplicate_output.status;
+                        } else {
+                            // Frozen DuplicateEngine: the verdict is the duplication rate
+                            // against warn_pct/fail_pct under the engine mode, not the
+                            // severity of individual clone findings.
+                            duplicate_status = Some(duplicate_output.status);
                         }
                         Ok(())
                     }
@@ -305,10 +311,23 @@ impl CppAnalysisSession {
         if cancelled(&mut output, cancellation) {
             return output;
         }
+        let legacy_projection = request.options["legacy_projection"]
+            .as_bool()
+            .unwrap_or(false);
+        let mut required_boundaries = None;
         if matches!(kind, "complexity" | "cognitive") {
             let policy = request.options["cpp_boundaries"].as_str().unwrap_or("auto");
             let result = if let Some((context, evidence)) = compiler {
                 crate::compiler::apply_compiler_boundaries(request, &mut output, context, evidence)
+            } else if policy == "required" && legacy_projection {
+                // Frozen `_resolve_cpp_boundaries`: the engine keeps its lexical rows (complexity)
+                // or none (cognitive) and reports the missing exact boundaries as its error.
+                required_boundaries = Some(if kind == "complexity" {
+                    ("CppComplexityAnalysisError", "function")
+                } else {
+                    ("CppCognitiveAnalysisError", "cognitive")
+                });
+                Ok(())
             } else if policy == "required" {
                 Err(CppError::new(
                     "compiler-boundaries-required",
@@ -342,6 +361,9 @@ impl CppAnalysisSession {
         }
         if kind == "dup" {
             output.extra["excluded_source_counts"] = json!(excluded_counts);
+            // Each clone occurrence is the frozen `CloneGroup#N` target; the historical view
+            // keeps only that target's finding.
+            ici_analysis::decorate_finding_details(&mut output);
         }
         if output.observation.state == TaskState::Succeeded {
             output.observation.state = TaskState::Succeeded;
@@ -358,6 +380,9 @@ impl CppAnalysisSession {
                 "WARN"
             }
             .into();
+            if let Some(status) = duplicate_status.take() {
+                output.status = status;
+            }
         }
         output.summary = if output.observation.state == TaskState::Succeeded {
             frozen_summary(kind, request, &mut output)
@@ -372,6 +397,30 @@ impl CppAnalysisSession {
                 output.observation.findings.len()
             )
         });
+        if let Some((name, noun)) = required_boundaries
+            && output.observation.state == TaskState::Succeeded
+        {
+            let message = format!(
+                "compiler-backed C++ {noun} boundaries require an exact compilation database and approved clang-tidy"
+            );
+            if kind == "cognitive" {
+                output.targets.clear();
+                output.observation.findings.clear();
+            }
+            let mut target = InspectionTarget::at(".", 1);
+            target.target_name = name.into();
+            target.status = "ERROR".into();
+            target.message = message.clone();
+            output.targets.push(target);
+            output.summary = if kind == "cognitive" {
+                "Cognitive complexity analysis did not complete".into()
+            } else {
+                frozen_summary(kind, request, &mut output).unwrap_or_default()
+            };
+            output.status = "ERROR".into();
+            output.observation.state = TaskState::Failed;
+            output.observation.limitations.push(message);
+        }
         output.extra["parser_identity"] = json!(source::PARSER_ID);
         output
     }
@@ -438,7 +487,8 @@ fn frozen_summary(
                 Some(format!(
                     "Max Cyclomatic Complexity: {peak} (limit {warn}) across {} functions ({} issues)",
                     rows.len(),
-                    fails + warns
+                    // Frozen counts every non-PASS target, including a required-boundary ERROR.
+                    fails + warns + count("ERROR")
                 ))
             } else {
                 let threshold = |frozen: &str, default| {

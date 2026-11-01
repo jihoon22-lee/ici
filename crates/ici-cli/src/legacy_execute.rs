@@ -504,6 +504,7 @@ fn shape_engine(
         // so the engine carries TEM 0.0 / 5.0 next to its tool error.
         value["score"] = serde_json::json!(0.0);
         value["max_score"] = serde_json::json!(5.0);
+        replaced = true;
     } else if family == "test"
         && legacy_schema
         && let Some(total) = python_tests_not_executed(value)

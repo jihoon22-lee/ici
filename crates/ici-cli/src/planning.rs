@@ -796,6 +796,18 @@ fn prepare_resolved_omitting(
                     .and_then(Value::as_str)
                     .unwrap_or("off")
                     != "off"
+                // Frozen GNU ELF reachability needs the root CMake backend; a legacy project
+                // without one reports the linker scope as unavailable without preparing.
+                && !(cpp.legacy_projection
+                    && component
+                        .settings
+                        .pointer("/engines/dead/cpp_unused")
+                        .and_then(Value::as_str)
+                        .unwrap_or("auto")
+                        != "off"
+                    && !crate::files::under(&project.root, &component.root)
+                        .join("CMakeLists.txt")
+                        .is_file())
             {
                 variants.insert("link-reachability");
             }
@@ -816,6 +828,11 @@ fn prepare_resolved_omitting(
                     && (selected.contains("cpp.artifact") || selected.contains("cpp.binary-compat"))
                 {
                     selected_component.settings["native_release_artifacts"] = json!(true);
+                }
+                // Frozen `ici verify` configures the release analysis database
+                // (`-DCMAKE_UNITY_BUILD=OFF`) before its deep BuildEngine reuses that shadow.
+                if variant == "release" && cpp.legacy_projection && !cpp.legacy_standalone {
+                    selected_component.settings["native_analysis_database"] = json!(true);
                 }
                 let binary =
                     std::env::current_exe().map_err(|error| CliError(error.to_string()))?;

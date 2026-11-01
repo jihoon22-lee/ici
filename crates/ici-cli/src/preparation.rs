@@ -257,11 +257,14 @@ pub fn execute(
                 crate::export_context::for_consumer(context, plan)
                     .map_err(crate::export_context::PreparationFailure::Incomplete)
             } else {
-                crate::export_context::execute_preparation_typed(
+                crate::export_context::execute_preparation_shared(
                     plan,
                     runtime.scheduler,
                     runtime.cancellation,
                     runtime.events,
+                    contexts
+                        .iter()
+                        .find_map(|context| context.shared_make_lease(plan)),
                 )
             };
             match result {
@@ -385,6 +388,7 @@ pub fn execute(
                         plan.component_id.clone(),
                         plan.build.variant.clone(),
                         reason,
+                        plan.direct.is_some(),
                     ));
                 }
             }
@@ -450,6 +454,34 @@ pub fn execute(
                     output.extra["preparation_evidence"][&context.plan.build.variant] =
                         evidence.clone();
                 }
+            }
+            // Frozen deep BuildEngine release session of an adapter backend (`ici verify`
+            // only) publishes its linked shadow outputs into the analysis context, like the
+            // test/sanitize sessions do.
+            if prepared.legacy_projection
+                && !prepared.cpp.legacy_standalone
+                && check.check.id == "cpp.artifact"
+                && let Some(session) = contexts.iter().find(|context| {
+                    context.plan.component_id == check.component_id
+                        && matches!(
+                            context.plan.build.system.as_str(),
+                            "cmake" | "qmake" | "make"
+                        )
+                        && context.plan.build.variant == "release"
+                })
+                && let Some(build) = session.plan.build.tasks.iter().find(|task| {
+                    task.argv.get(1).map(String::as_str) == Some("--build")
+                        || (session.plan.build.system != "cmake" && task.id.ends_with(":compile"))
+                })
+                && let Some(manifest) = crate::cpp::legacy_cmake_artifact_manifest(
+                    &prepared.project.root,
+                    &prepared.project.root.join(&session.plan.build.shadow),
+                    "release",
+                    &build.argv,
+                    &format!("{}.build", session.plan.build.system),
+                )
+            {
+                output.extra["legacy_artifact_manifests"] = serde_json::json!([manifest]);
             }
             if let Some(resolved) = resolved {
                 check.work = Work::native_prepare_after(
@@ -533,16 +565,25 @@ pub fn execute(
             prepared.graph.blocked.remove(&check.task_id);
         }
     }
-    for (component, variant, reason) in failures {
+    for (component, variant, reason, direct) in failures {
         for check in &prepared.plan.checks {
             if check.component_id != component || check.check.language != "cpp" {
                 continue;
             }
-            let affected = crate::cpp::preparation_dependent(
-                &check.check.id,
-                &variant,
-                !check.tasks().is_empty(),
-            );
+            // A failed legacy direct release compile is the BuildEngine's own failure; the
+            // source checks keep their database-free analysis like frozen.
+            let affected = if direct && variant == "release" {
+                matches!(
+                    check.check.id.as_str(),
+                    "cpp.artifact" | "cpp.binary-compat"
+                )
+            } else {
+                crate::cpp::preparation_dependent(
+                    &check.check.id,
+                    &variant,
+                    !check.tasks().is_empty(),
+                )
+            };
             if affected {
                 if observed_failures.contains(&check.task_id) {
                     prepared.graph.blocked.remove(&check.task_id);

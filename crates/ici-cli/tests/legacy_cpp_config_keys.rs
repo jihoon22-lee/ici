@@ -1,0 +1,248 @@
+//! Legacy C++ config keys replayed against tests/rust-parity/cpp/config-keys-oracle.json
+//! (capture_config_keys.py): every frozen run of a (reference, variant) configuration pair over
+//! parity-fixtures/cpp/legacy-scope-fixture is run natively and compared engine by engine, and
+//! each case's effect (the variant changed the engine view or not) must be frozen's.
+use ici_cli::{commands, registry};
+use serde_json::{Value, json};
+use std::{collections::BTreeMap, fs, path::Path};
+
+const FIELDS: [&str; 6] = [
+    "target_name",
+    "status",
+    "message",
+    "start_line",
+    "end_line",
+    "file_path",
+];
+const FINDING_FIELDS: [&str; 9] = [
+    "rule_id",
+    "message",
+    "severity",
+    "confidence",
+    "category",
+    "tool_name",
+    "tool_rule_id",
+    "primary_location",
+    "fingerprint",
+];
+
+fn copy_tree(from: &Path, to: &Path) {
+    fs::create_dir_all(to).unwrap();
+    for entry in fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_tree(&entry.path(), &target);
+        } else {
+            fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+fn pick(value: &Value, keys: &[&str]) -> Value {
+    Value::Object(
+        keys.iter()
+            .map(|key| ((*key).to_owned(), value[*key].clone()))
+            .collect(),
+    )
+}
+
+/// The capture's `engine_view`.
+fn engine_view(engine: &Value) -> Value {
+    let list = |name: &str, keys: &[&str]| -> Value {
+        engine[name]
+            .as_array()
+            .map(|items| items.iter().map(|item| pick(item, keys)).collect())
+            .unwrap_or_else(|| json!([]))
+    };
+    json!({
+        "engine_name": engine["engine_name"],
+        "status": engine["status"],
+        "required": engine["required"],
+        "evidence": engine["evidence"],
+        "summary": engine["summary"],
+        "score": engine["score"],
+        "max_score": engine["max_score"],
+        "targets": list("targets", &FIELDS),
+        "findings": list("findings", &FINDING_FIELDS),
+    })
+}
+
+fn execute(oracle: &Value, id: &Value, environment: &BTreeMap<String, String>) -> Value {
+    let (command, files, config) = (
+        id[0].as_str().unwrap(),
+        id[1].as_str(),
+        id[2].as_str().unwrap(),
+    );
+    let work = tempfile::tempdir().unwrap();
+    let root = work.path().join("project");
+    copy_tree(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../parity-fixtures/cpp/legacy-scope-fixture"),
+        &root,
+    );
+    if let Some(files) = files {
+        for (path, text) in oracle["files"][files].as_object().unwrap() {
+            fs::write(root.join(path), text.as_str().unwrap()).unwrap();
+        }
+    }
+    fs::write(
+        root.join("ici.toml"),
+        format!("{}{config}", oracle["base"].as_str().unwrap()),
+    )
+    .unwrap();
+    let invocation = registry::parse(["ici", command, "--report"]).unwrap();
+    let result = commands::dispatch(&invocation, &root, environment).unwrap();
+    let report: Value = serde_json::from_slice(
+        &fs::read(root.join(format!("{}_report.json", command.replace('-', "_")))).unwrap(),
+    )
+    .unwrap();
+    if command == "verify" {
+        json!({
+            "exit_code": result.exit_code,
+            "suite_status": report["suite_status"],
+            "engines": report["results"].as_array().unwrap().iter().map(engine_view).collect::<Vec<_>>(),
+            "incomplete": report["native_run"]["execution"]["required_complete"] == false,
+        })
+    } else {
+        json!({
+            "exit_code": result.exit_code,
+            "engines": [engine_view(&report)],
+            "incomplete": report["native_run"]["execution"]["required_complete"] == false,
+        })
+    }
+}
+
+/// Recorded validation difference shared with the verify matrix: the no-test verdict is
+/// MEASURED (high confidence) with no fabricated coverage estimate, TEM summary or score.
+fn comparable(mut run: Value, frozen: bool) -> Value {
+    for engine in run["engines"].as_array_mut().unwrap() {
+        // Intended difference (root decision for build.py:590, legacy_build_targets.rs
+        // `direct-compile-failure`): Rust keeps the located per-source compiler diagnostic where
+        // frozen reports one CppBinary FAIL at the output path with 200 characters of absolute-
+        // path stderr. Status, required, evidence and summary stay compared.
+        if engine["engine_name"] == "build"
+            && matches!(engine["status"].as_str(), Some("FAIL" | "WARN"))
+        {
+            let first = &engine["targets"][0];
+            if frozen {
+                assert_eq!(first["target_name"], "CppBinary");
+            } else {
+                assert_eq!(first["file_path"], "src/extra.cc", "{first}");
+            }
+            engine["targets"] = Value::Null;
+            engine["findings"] = Value::Null;
+        }
+        if engine["engine_name"] == "test" && engine["status"] == "FAIL" {
+            for key in ["summary", "score", "max_score"] {
+                engine[key] = Value::Null;
+            }
+            if frozen {
+                engine["evidence"] = json!("MEASURED");
+                for finding in engine["findings"].as_array_mut().unwrap() {
+                    finding["confidence"] = json!("high");
+                }
+            }
+        }
+    }
+    // Accepted policy (verify matrix): a run whose required evidence stays incomplete keeps an
+    // ERROR suite (single command: ERROR engine) and exits 3 where frozen exited 1.
+    let status = if run["suite_status"].is_null() {
+        run["engines"][0]["status"].clone()
+    } else {
+        run["suite_status"].clone()
+    };
+    if !frozen && run["incomplete"] == true && status == "ERROR" && run["exit_code"] == 3 {
+        run["exit_code"] = json!(1);
+    }
+    if let Some(object) = run.as_object_mut() {
+        object.remove("incomplete");
+    }
+    run
+}
+
+fn diff(frozen: &Value, native: &Value, path: &str, out: &mut Vec<String>) {
+    match (frozen, native) {
+        (Value::Object(left), Value::Object(right)) => {
+            for key in left
+                .keys()
+                .chain(right.keys().filter(|key| !left.contains_key(*key)))
+            {
+                diff(
+                    left.get(key).unwrap_or(&Value::Null),
+                    right.get(key).unwrap_or(&Value::Null),
+                    &format!("{path}/{key}"),
+                    out,
+                );
+            }
+        }
+        (Value::Array(left), Value::Array(right)) if left.len() == right.len() => {
+            for (index, (left, right)) in left.iter().zip(right).enumerate() {
+                diff(left, right, &format!("{path}[{index}]"), out);
+            }
+        }
+        _ if frozen != native => out.push(format!("{path}: frozen {frozen} native {native}")),
+        _ => {}
+    }
+}
+
+/// Positive: each key the frozen C++ engines consume (dup thresholds/window/mode, cognitive
+/// mode/required/cpp_boundaries=required, complexity cpp_boundaries=required, dead
+/// cpp_linker/mode/required, every engine `enabled`, build enabled/mode/required) changes the
+/// native engine view exactly as it changes frozen's. Negative: keys with no C++ effect
+/// (Python-only modes, ruff_required, test.python, python_semantic, cpp_boundaries=off without
+/// clang) leave both views unchanged. Failure: cpp_boundaries/cpp_linker/cpp_unused `required`
+/// without their exact input are the frozen ERROR verdicts and exit 1.
+#[test]
+#[ignore = "explicit actual g++ legacy C++ config-key runs: ICI_TEST_CXX must be the oracle g++ and /usr/bin must lack clang-tidy/clazy-standalone/clang++"]
+fn legacy_cpp_config_keys_change_native_engines_like_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/config-keys-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
+    let version = std::process::Command::new(&compiler)
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap().lines().next(),
+        oracle["gxx"].as_str(),
+        "the config-key oracle was captured with another g++"
+    );
+    let directory = Path::new(&compiler).parent().unwrap().display().to_string();
+    for tool in ["clang-tidy", "clazy-standalone", "clang++"] {
+        for path in [directory.as_str(), "/usr/bin", "/bin"] {
+            assert!(!Path::new(path).join(tool).exists(), "{tool} in {path}");
+        }
+    }
+    let environment = BTreeMap::from([("PATH".to_string(), format!("{directory}:/usr/bin:/bin"))]);
+    let mut native = BTreeMap::new();
+    let mut mismatches = vec![];
+    for run in oracle["runs"].as_array().unwrap() {
+        let id = &run["id"];
+        let actual = comparable(execute(&oracle, id, &environment), false);
+        let frozen = comparable(run["frozen"].clone(), true);
+        let mut lines = vec![];
+        diff(&frozen, &actual, "", &mut lines);
+        if !lines.is_empty() {
+            mismatches.push(format!("== {id}\n{}", lines.join("\n")));
+        }
+        native.insert(id.to_string(), actual);
+    }
+    let cases = oracle["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 19);
+    for (name, case) in cases {
+        let id = |side: &str| json!([case["command"], case["files"], case[side]]).to_string();
+        let effect = native[&id("reference")] != native[&id("variant")];
+        assert_eq!(
+            case["effect"], case["expect_effect"],
+            "{name}: frozen effect"
+        );
+        if Value::Bool(effect) != case["effect"] {
+            mismatches.push(format!("{name}: native effect {effect} ({})", case["rows"]));
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}

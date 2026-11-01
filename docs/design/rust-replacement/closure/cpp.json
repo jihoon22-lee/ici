@@ -37,22 +37,27 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
-          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid"
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid"
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ]
       },
       "evidence": [
         "Frozen `ici verify --report` analysis_context captured by tests/rust-parity/cpp/capture_analysis_context.py (oracle 6fe3e40) into tests/rust-parity/cpp/analysis-context-oracle.json for a C++ (parity-fixtures/cpp/test-cmake/plain), a Python and a hybrid project; /tmp/ici-rust-replacement-20261028/w-cpp8-context-capture.log",
         "cargo test -p ici-cli --test legacy_analysis_context --locked -j2 -- --include-ignored: 1 passed (3 cases equal after removing run-specific commit/digest/shadow-path/size values, each checked for shape); /tmp/ici-rust-replacement-20261028/w-cpp8-context-rust.log",
-        "cargo test -p ici-cli --locked -j2 --test legacy_analysis_context -- --include-ignored (cpp, python, hybrid, cpp-unity); /tmp/ici-rust-replacement-20261028/w-cpp9-unity-rust.log"
+        "cargo test -p ici-cli --locked -j2 --test legacy_analysis_context -- --include-ignored (cpp, python, hybrid, cpp-unity); /tmp/ici-rust-replacement-20261028/w-cpp9-unity-rust.log",
+        "cargo test -p ici-cli --test legacy_analysis_context --locked -j2 -- --include-ignored --test-threads=2: 5 contexts incl. cpp-deep (release, coverage, sanitize, thread-sanitize manifests, unity_build false); /tmp/ici-rust-replacement-20261028/w-cpp10-context.log (capture /tmp/ici-rust-replacement-20261028/w-cpp10-context-capture.log)",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases (make-test-oracle.json, capture tests/rust-parity/cpp/capture_make_suites.py) byte-equal; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
       ],
-      "comparison": "C++ facet of this frozen row (src/ici/core/context.py:1, src/ici/core/compilation_export.py:1, src/ici/compilation_export_cli.py:1): the frozen `verify` report serialization of prepare_analysis_context (reporters/json_rep._serialize_analysis_context) is rebuilt by crates/ici-cli/src/legacy_context.rs from the native run: project model (name, git-describe-style version, type, source_dirs, python/cpp sources, headers, compilable sources, external dirs, include flags, select_backend backend/descriptor/reason), identity, profile, compilation (database path/digest, cmake/qmake origin of a prepared database, CMake cache generator, units with frozen _redact_compilation_argv argv and relative paths, diagnostics), requested_variants (descriptor build variants per profile and engines.*.enabled in BuildVariant order) and the artifact manifests. Replayed against frozen for C++, Python and hybrid projects. Rust defects fixed for the qmake facet: include_paths `exists` was always null (the projection read a field native names `present`) and listed -idirafter/forced includes frozen never records; a captured qmake database's generator is `qmake` like frozen qmake_context; legacy qmake preparation prefers qmake6 like frozen `_configure_qmake` (Qt 6 headers, QtCompatibility:Qt6). Recorded: the qmake capture keeps the compiler invocation alias (g++) where frozen resolves it to its realpath (x86_64-linux-gnu-g++-15), because a multicall driver chooses its mode from argv[0].",
-      "difference_reason": "Recorded: shadow tree paths (.ici/rust-v1/build/... vs build/ici-cmake-build), the config/toolchain/database/configuration digests and artifact sizes are the native run's; unity_build now matches (Rust defect fixed: the legacy release analysis database is configured -DCMAKE_UNITY_BUILD=OFF like frozen cmake.py analysis_database; cpp-unity case); a tagged checkout's version uses the short commit, not `git describe --tags` (no process runs during report assembly); pkg-config include flags are not appended. Open: `ici export-compilation-context` and the context sites (_cpp_include_trace.py:124, compile_db.py:71/90/208, _cpp_diagnostics.py database mode) are compared only through tests/rust-parity/cpp/compilation-export-oracle.json; deep-profile release variants and Make databases are not captured; a qmake project's analysis_context (database units, generator qmake, qmake.build artifact manifests) is compared by crates/ici-cli/tests/legacy_qmake_verify.rs."
+      "comparison": "C++ facet of this frozen row (src/ici/core/context.py:1, src/ici/core/compilation_export.py:1, src/ici/compilation_export_cli.py:1): the frozen `verify` report serialization of prepare_analysis_context (reporters/json_rep._serialize_analysis_context) is rebuilt by crates/ici-cli/src/legacy_context.rs from the native run: project model (name, git-describe-style version, type, source_dirs, python/cpp sources, headers, compilable sources, external dirs, include flags, select_backend backend/descriptor/reason), identity, profile, compilation (database path/digest, cmake/qmake origin of a prepared database, CMake cache generator, units with frozen _redact_compilation_argv argv and relative paths, diagnostics), requested_variants (descriptor build variants per profile and engines.*.enabled in BuildVariant order) and the artifact manifests. Replayed against frozen for C++, Python and hybrid projects. Rust defects fixed for the qmake facet: include_paths `exists` was always null (the projection read a field native names `present`) and listed -idirafter/forced includes frozen never records; a captured qmake database's generator is `qmake` like frozen qmake_context; legacy qmake preparation prefers qmake6 like frozen `_configure_qmake` (Qt 6 headers, QtCompatibility:Qt6). Recorded: the qmake capture keeps the compiler invocation alias (g++) where frozen resolves it to its realpath (x86_64-linux-gnu-g++-15), because a multicall driver chooses its mode from argv[0]. Deep profile (cpp-deep, verify-deep): requested_variants [release, coverage, sanitize, thread-sanitize] and the BuildEngine release manifest (producer cmake.build / make.build) match frozen; the verify release database stays -DCMAKE_UNITY_BUILD=OFF when the deep build engine also publishes release artifacts (frozen configures the analysis database first and the BuildEngine reuses its cache). Make backend (verify, verify-deep): no database (origin '', no units) and make.build manifests per variant from that variant's own build command. Rust defects fixed: the release manifest of the deep build engine was missing, a Make variant manifest took another variant's argv, and a deep verify with build artifacts reported unity_build null.",
+      "difference_reason": "Recorded: shadow tree paths (.ici/rust-v1/build/... vs build/ici-cmake-build), the config/toolchain/database/configuration digests and artifact sizes are the native run's; unity_build now matches (Rust defect fixed: the legacy release analysis database is configured -DCMAKE_UNITY_BUILD=OFF like frozen cmake.py analysis_database; cpp-unity case); a tagged checkout's version uses the short commit, not `git describe --tags` (no process runs during report assembly); pkg-config include flags are not appended. Open: `ici export-compilation-context` and the context sites (_cpp_include_trace.py:124, compile_db.py:71/90/208, _cpp_diagnostics.py database mode) are compared only through tests/rust-parity/cpp/compilation-export-oracle.json; a qmake project's analysis_context (database units, generator qmake, qmake.build artifact manifests) is compared by crates/ici-cli/tests/legacy_qmake_verify.rs."
     },
     "capability:cpp-parser-heuristic-confidence": {
       "status": "not_started",
@@ -522,7 +527,7 @@
         ]
       },
       "evidence": [
-        "Frozen `ici thread-sanitize --report` over parity-fixtures/cpp/tsan-make captured by tests/rust-parity/cpp/capture_make_test.py (cases thread-sanitize-pass/-race/-argv/-no-build-argv, real ThreadSanitizer data race in tests/test_race.cpp); /tmp/ici-rust-replacement-20261028/w-cpp10-make-test-capture.log",
+        "Frozen `ici thread-sanitize --report` over parity-fixtures/cpp/tsan-make captured by tests/rust-parity/cpp/capture_make_suites.py (cases thread-sanitize-pass/-race/-argv/-no-build-argv, real ThreadSanitizer data race in tests/test_race.cpp); /tmp/ici-rust-replacement-20261028/w-cpp10-make-test-capture.log",
         "cargo test -p ici-cli --test legacy_qmake_verify --test legacy_cmake_verify --test legacy_sanitize --locked -j2 -- --include-ignored --test-threads=2 passed (Make 11/11, CMake suite-thread-sanitize cases, sanitizer skip/missing argv); /tmp/ici-rust-replacement-20261028/w-cpp10-make-variants.log, /tmp/ici-rust-replacement-20261028/w-cpp10-regress.log"
       ],
       "comparison": "C++ facet of cpp.tsan (frozen ThreadSanitizeEngine over the Make and CMake adapters): a clean threaded suite is PASS 'Thread Safety & TSan Clean (0 Defects)' with '[C++ TSan] <case>' targets at the descriptor; a real data race is the located 'TSan Error' FAIL (tests/test_race.cpp:9, frames_observed/project_frames/process_evidence_index metrics, high finding) replacing the case that printed it, in case order, with summary '1 Thread Safety Defect(s) Detected' and exit 1; a missing thread_sanitize_build_argv is the C++Sanitizer ERROR. Rust defect fixed: a Make transcript diagnostic had no owning case and was listed before the passing cases; it now follows frozen _attach_sanitizer_output (first failed executed case, else first executed case).",
@@ -1127,17 +1132,20 @@
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands",
           "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts",
           "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
-          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands",
           "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts",
-          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid"
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts"
+          "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ]
       },
       "evidence": [
@@ -1156,10 +1164,11 @@
         "cargo test -p ici-cli --test legacy_analysis_context --locked -j2 -- --include-ignored: 1 passed (3 cases equal after removing run-specific commit/digest/shadow-path/size values, each checked for shape); /tmp/ici-rust-replacement-20261028/w-cpp8-context-rust.log",
         "Regression: cargo test -p ici-validation -- --include-ignored and the ici-cli C++ legacy suites (/tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress3.log; legacy_no_tests updated to the frozen verdict), plus cargo test -p ici-cli -p ici-reporting --locked (/tmp/ici-rust-replacement-20261028/w-cpp8-cli-full.log)",
         "Root ruling unity_build: python3 tests/rust-parity/cpp/capture_analysis_context.py (frozen 6fe3e40, 4 cases incl. cpp-unity; /tmp/ici-rust-replacement-20261028/w-cpp9-unity-capture.log); cargo test -p ici-cli --locked -j2 --test legacy_analysis_context -- --include-ignored: 1 passed with unity_build compared (no longer nulled); /tmp/ici-rust-replacement-20261028/w-cpp9-unity-rust.log; legacy_cmake_manifests, legacy_cmake_verify, ici-cpp linker and native_cpp linker tests --include-ignored pass.",
-        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json by development-only tests/rust-parity/cpp/capture_qmake_verify.py (qmake6, PATH=/usr/bin:/bin, parity-fixtures/cpp/test-qmake with source_dirs=['tests'] and ['src']). source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_qmake_verify -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp9-regress-rust.log."
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json by development-only tests/rust-parity/cpp/capture_qmake_verify.py (qmake6, PATH=/usr/bin:/bin, parity-fixtures/cpp/test-qmake with source_dirs=['tests'] and ['src']). source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_qmake_verify -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp9-regress-rust.log.",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases (make-test-oracle.json, capture tests/rust-parity/cpp/capture_make_suites.py) byte-equal; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
       ],
-      "comparison": "C++ facet: legacy `ici verify` on a C++ project selects the frozen descriptor set per profile (fast/standard/deep) and per engines.*.enabled, applies mode and required like frozen, and reproduces every engine status/required/evidence/target. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target. Descriptor-free and unadapted-Makefile C++ projects with tests (sanitize-direct-clean, sanitize-tested): Rust defects fixed: the direct g++ test preparation refused an unadapted root Makefile and its compile became the release analysis context (input snapshot failure, exit 3); the coverage/test checks looked up the release build instead of their own variant; an optional coverage check with no non-main production source left the test engine NOT_RUN (suite ERROR) where frozen keeps the measured test verdict with ESTIMATED coverage (suite WARN, exit 0). The suite report now carries the frozen top-level analysis_context (ici.analysis-context/v1: project model, identity, profile, compilation database units, requested variants, artifact manifests) built from the recorded native facts. Legacy qmake: tests run as frozen `make check TESTARGS=-xunitxml` in the qmake shadow (new ici-validation MakeCheck kind, parsers byte-compared with frozen parse_make_check_stdout/parse_qtest_xunit/_qmake_results/_attach_sanitizer_output over 16 transcripts in tests/rust-parity/cpp/make-check-oracle.json), qmake runs without CONFIG debug/release like frozen (so gcov branch coverage is the frozen -O2 figure), and the sanitizer runs the same make check in the ASan shadow. For source_dirs=['tests'] and the missing source_dirs=['src'] every engine status/summary/score/target/finding and the exit code (1) match frozen; the missing scope reports compile_db SKIP 'No production C/C++ translation units are in scope.', type 'No applicable C++ source files were selected', and optional coverage ESTIMATED like frozen. analysis_context matches after path normalisation: project source_dirs keep only existing directories (frozen get_source_dirs), qmake artifact manifests (producer qmake.build) and the qmake database units.",
-      "difference_reason": "Recorded: Qt base-clause-members/access-label-start-line complexity corrections (tests/rust-parity/cpp/known-corrections.json); empty tool_name/process_evidence_index; met Threshold targets reported; native shadow paths/argv spelling and the qmake capture's g++ alias (frozen realpath); the qmake build runs `make -B -j2` where frozen ran `make clean` then `make --jobs=N`; with an empty configured scope the native gate keeps the refused C++ checks as INCOMPLETE evidence while the legacy verdicts and exit 1 are frozen's. In a shared release build with artifacts native's database unity_build reads the project cache where frozen's separate analysis shadow reads false. Open: deep-profile release variants are not captured in analysis_context. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
+      "comparison": "C++ facet: legacy `ici verify` on a C++ project selects the frozen descriptor set per profile (fast/standard/deep) and per engines.*.enabled, applies mode and required like frozen, and reproduces every engine status/required/evidence/target. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target. Descriptor-free and unadapted-Makefile C++ projects with tests (sanitize-direct-clean, sanitize-tested): Rust defects fixed: the direct g++ test preparation refused an unadapted root Makefile and its compile became the release analysis context (input snapshot failure, exit 3); the coverage/test checks looked up the release build instead of their own variant; an optional coverage check with no non-main production source left the test engine NOT_RUN (suite ERROR) where frozen keeps the measured test verdict with ESTIMATED coverage (suite WARN, exit 0). The suite report now carries the frozen top-level analysis_context (ici.analysis-context/v1: project model, identity, profile, compilation database units, requested variants, artifact manifests) built from the recorded native facts. Legacy qmake: tests run as frozen `make check TESTARGS=-xunitxml` in the qmake shadow (new ici-validation MakeCheck kind, parsers byte-compared with frozen parse_make_check_stdout/parse_qtest_xunit/_qmake_results/_attach_sanitizer_output over 16 transcripts in tests/rust-parity/cpp/make-check-oracle.json), qmake runs without CONFIG debug/release like frozen (so gcov branch coverage is the frozen -O2 figure), and the sanitizer runs the same make check in the ASan shadow. For source_dirs=['tests'] and the missing source_dirs=['src'] every engine status/summary/score/target/finding and the exit code (1) match frozen; the missing scope reports compile_db SKIP 'No production C/C++ translation units are in scope.', type 'No applicable C++ source files were selected', and optional coverage ESTIMATED like frozen. analysis_context matches after path normalisation: project source_dirs keep only existing directories (frozen get_source_dirs), qmake artifact manifests (producer qmake.build) and the qmake database units. Legacy Make verify (verify, verify-deep, verify-no-coverage-build-argv) matches frozen engine by engine. Rust defect fixed: every legacy Make variant shares the one configured shadow, so a verify preparing two variants waited 120 s for its own build lease and reported every C++ engine 'build-lease: resource lock timeout'; later variants now build inside the transaction the run already holds (crates/ici-cli/src/export_context.rs execute_preparation_shared, preparation.rs).",
+      "difference_reason": "Recorded: Qt base-clause-members/access-label-start-line complexity corrections (tests/rust-parity/cpp/known-corrections.json); empty tool_name/process_evidence_index; met Threshold targets reported; native shadow paths/argv spelling and the qmake capture's g++ alias (frozen realpath); the qmake build runs `make -B -j2` where frozen ran `make clean` then `make --jobs=N`; with an empty configured scope the native gate keeps the refused C++ checks as INCOMPLETE evidence while the legacy verdicts and exit 1 are frozen's. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not. Intended difference (verify-shared-shadow-sanitize): with the shared Make shadow the sanitize build after the coverage build is a no-op and frozen reports 'Memory Safety & Sanitize Clean' for the uninstrumented coverage binaries (identical sha256 in both manifests); Rust probes the declared executables for their sanitizer runtime and keeps the sanitize engine SKIP/NOT_RUN (suite ERROR, exit 3)."
     },
     "config:src/ici/_analysis_config.py:23:0": {
       "status": "verified",
@@ -1817,22 +1826,26 @@
       "fixtures": {
         "positive": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
-          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow"
+          "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "failure": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ]
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
-        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log"
+        "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases (make-test-oracle.json, capture tests/rust-parity/cpp/capture_make_suites.py) byte-equal; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
       ],
-      "comparison": "Frozen coverage variant: build.make.coverage_build_argv is required (missing -> 'build.make.coverage_build_argv is required for coverage') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Actual Make coverage variant built app-coverage in the shared shadow.",
+      "comparison": "Frozen coverage variant: build.make.coverage_build_argv is required (missing -> 'build.make.coverage_build_argv is required for coverage') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Actual Make coverage variant built app-coverage in the shared shadow. CLI facet: a missing coverage_build_argv is the frozen TestEngine tool error under `ici test` and `ici verify` (ERROR, NOT_RUN, no targets, TEM 0.0, exit 1; cases test-no-coverage-build-argv, verify-no-coverage-build-argv). Rust defect fixed: the legacy test check was SKIP 'C++ runtime checks require a declared component build' with exit 3 (crates/ici-cli/src/planning.rs, cpp.rs, legacy_execute.rs).",
       "difference_reason": ""
     },
     "config_key:legacy:build.make.coverage_test_argv": {
@@ -1953,7 +1966,7 @@
       "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_build_argv": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/export_context.rs",
@@ -1964,14 +1977,17 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "failure": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ]
       },
       "evidence": [
@@ -1980,9 +1996,10 @@
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
         "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
-        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases (make-test-oracle.json, capture tests/rust-parity/cpp/capture_make_suites.py) byte-equal; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
       ],
-      "comparison": "Frozen sanitize variant: build.make.sanitize_build_argv is required (missing -> 'build.make.sanitize_build_argv is required for sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix).",
+      "comparison": "Frozen sanitize variant: build.make.sanitize_build_argv is required (missing -> 'build.make.sanitize_build_argv is required for sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix). CLI facet: the configured variant argv builds the instrumented suite (sanitize-argv / thread-sanitize-pass) and a missing one is the frozen C++Sanitizer ERROR 'Make configuration failed: ... is required for ...' (case sanitize-no-sanitize-build-argv, exit 1).",
       "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_test_argv": {
@@ -2084,13 +2101,13 @@
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
-        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/make-test-oracle.json by development-only tests/rust-parity/cpp/capture_make_test.py (GNU Make 4.4.1, /usr/bin/g++, PATH=/usr/bin:/bin) over parity-fixtures/cpp/test-make: 5 cases (test-pass, test-fail, test-coverage-argv, sanitize-pass, sanitize-argv). source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_qmake_verify -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-cpp9-make-test-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp9-cli-full.log."
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/make-test-oracle.json by development-only tests/rust-parity/cpp/capture_make_suites.py (GNU Make 4.4.1, /usr/bin/g++, PATH=/usr/bin:/bin) over parity-fixtures/cpp/test-make: 5 cases (test-pass, test-fail, test-coverage-argv, sanitize-pass, sanitize-argv). source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_qmake_verify -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-cpp9-make-test-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp9-cli-full.log."
       ],
       "comparison": "Frozen `core/cmake.run_tests` (Make backend): the variant's test argv runs in build.make.workdir and stdout+stderr go through parse_make_check_stdout and _attach_sanitizer_output. Rust binds a legacy [build.make] test argv (selected by ici_cpp::make_settings for the build variant, argv[0] resolved like the build argv) as an ici-validation MakeCheck task without the xunit merge (label 'Make test command'); the projection gives '[C++] <test>' at the test source with 'C++ Test Passed' / 'Execution Failed: make check failed', and gcov runs over the Make shadow on the frozen non-header, non-main source set. `ici test` with test_argv=['make','check'] (1/1, line 80%, branch 50% WARN -> FAIL exit 1) and ['make','check-all'] (1/2, the Error line fails test_limit) match frozen target by target, finding by finding (fingerprints) and by exit code.",
       "difference_reason": "Recorded: empty tool_name; met Threshold targets reported. Native gcov evidence is MEASURED like frozen."
     },
     "config_key:legacy:build.make.thread_sanitize_build_argv": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/export_context.rs",
@@ -2101,14 +2118,17 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "failure": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
-          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ]
       },
       "evidence": [
@@ -2117,9 +2137,10 @@
         "cargo test -p ici-cli --test legacy_make_build --locked -j2 -- --include-ignored --test-threads=2; both actual legacy `ici build` Make tests passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-cli.log",
         "cargo clippy -p ici-cpp -p ici-cli --all-targets --locked -j2 -- -D warnings plus compilation_commands/native_preparation/legacy_direct_build regression tests; passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-strict.log",
         "Frozen CLI oracle tests/rust-parity/cpp/sanitize-oracle.json captured by development-only tests/rust-parity/cpp/capture_sanitize_cli.py (oracle 6fe3e40; fixtures parity-fixtures/cpp/sanitize-testless and sanitize-tested): 8 cases, `ici sanitize` and `ici thread-sanitize` x {test-less direct, test-less [build.make], test-less [build.make] with engines.*.required=true, tests/case.cpp with [build.make] lacking the sanitizer argv}; exit code, status, summary, located targets and no build tree.",
-        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log"
+        "cargo test -p ici-cli --test legacy_sanitize --test legacy_make_build --test legacy_direct_build --test native_cpp_direct --test native_cpp --test legacy_cpp_metrics --test native_preparation --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): 1+6+3+7+28+6+1 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases (make-test-oracle.json, capture tests/rust-parity/cpp/capture_make_suites.py) byte-equal; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
       ],
-      "comparison": "Frozen thread-sanitize variant: build.make.thread_sanitize_build_argv is required (missing -> 'build.make.thread_sanitize_build_argv is required for thread-sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix).",
+      "comparison": "Frozen thread-sanitize variant: build.make.thread_sanitize_build_argv is required (missing -> 'build.make.thread_sanitize_build_argv is required for thread-sanitize') and replaces build_argv; the release clean/configure steps and shared shadow are kept. Plan-level golden only; no actual instrumented Make run of this variant yet. CLI: a missing sanitizer argv with tests/**/*.cpp present is a frozen `C++Sanitizer` ERROR at Makefile, exit 1, without running make; Rust matches target/status/exit (summary differs only by the reporting check-id prefix). CLI facet: the configured variant argv builds the instrumented suite (sanitize-argv / thread-sanitize-pass) and a missing one is the frozen C++Sanitizer ERROR 'Make configuration failed: ... is required for ...' (case thread-sanitize-no-build-argv, exit 1).",
       "difference_reason": ""
     },
     "config_key:legacy:build.make.thread_sanitize_test_argv": {
@@ -2149,7 +2170,7 @@
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
-        "Frozen `ici thread-sanitize --report` over parity-fixtures/cpp/tsan-make (real -fsanitize=thread Make variant, GNU Make 4.4.1, g++ 15.2) captured by tests/rust-parity/cpp/capture_make_test.py into make-test-oracle.json cases thread-sanitize-pass/-race/-argv/-no-build-argv; /tmp/ici-rust-replacement-20261028/w-cpp10-make-test-capture.log",
+        "Frozen `ici thread-sanitize --report` over parity-fixtures/cpp/tsan-make (real -fsanitize=thread Make variant, GNU Make 4.4.1, g++ 15.2) captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json cases thread-sanitize-pass/-race/-argv/-no-build-argv; /tmp/ici-rust-replacement-20261028/w-cpp10-make-test-capture.log",
         "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 11/11 Make cases byte-equal (targets, findings, status, evidence, summary, score, exit); /tmp/ici-rust-replacement-20261028/w-cpp10-make-variants.log"
       ],
       "comparison": "Frozen make_plan selects build.make.thread_sanitize_test_argv for the thread-sanitize variant (else test_argv), runs it in the workdir and parses the transcript (parse_make_check_stdout + _attach_sanitizer_output: the whole TSan transcript belongs to the first failed executed case). Rust binds the same argv through the MakeCheck sanitizer suite and now attributes an unowned transcript like frozen (crates/ici-cli/src/cpp/legacy_tests.rs). Positive: thread_sanitize_test_argv=['make','check-race'] replaces test_argv=['make','check'] and reports the real data race ('[C++ TSan] test_counter' PASS then 'TSan Error' FAIL at tests/test_race.cpp:9, exit 1). Negative: without it test_argv runs the clean suite (PASS, 'Thread Safety & TSan Clean (0 Defects)', exit 0). Failure: a missing thread_sanitize_build_argv is the frozen C++Sanitizer ERROR 'Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize' (exit 1).",
@@ -2477,52 +2498,104 @@
       "difference_reason": null
     },
     "config_key:legacy:engines.build": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/artifact_build.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.build keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet of the [engines.build] table (deep profile): see engines.build.enabled/mode/required; enabling the build engine adds the frozen BuildEngine result to the suite.",
+      "difference_reason": "Intended difference (root decision for build.py:590): a failing direct g++ release keeps the located per-source compiler diagnostic where frozen reports one CppBinary FAIL with 200 characters of absolute-path stderr; status, required, evidence, summary and exit are compared."
     },
     "config_key:legacy:engines.build.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/artifact_build.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.build.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.build.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-build-enabled): enabled=true adds the deep build engine (direct g++ release of the legacy-scope fixture, FAIL 'Build did not produce a complete artifact set', required false) to the suite. Rust defects fixed: the failed direct release compile blocked lint/compile_db/diagnostics (SKIP, 'explicit release preparation failed'), and a successful one became the analysis context; frozen keeps those engines on the database-free analysis (crates/ici-cli/src/preparation.rs, export_context.rs).",
+      "difference_reason": "Intended difference (root decision for build.py:590): a failing direct g++ release keeps the located per-source compiler diagnostic where frozen reports one CppBinary FAIL with 200 characters of absolute-path stderr; status, required, evidence, summary and exit are compared."
     },
     "config_key:legacy:engines.build.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/artifact_build.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.build.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.build.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-build-mode): mode=pass_warn turns the failed build into WARN in both.",
+      "difference_reason": "Intended difference (root decision for build.py:590): a failing direct g++ release keeps the located per-source compiler diagnostic where frozen reports one CppBinary FAIL with 200 characters of absolute-path stderr; status, required, evidence, summary and exit are compared."
     },
     "config_key:legacy:engines.build.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/artifact_build.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.build.required: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.build.required was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-build-required): required=true makes the deep build engine required (frozen default false).",
+      "difference_reason": "Intended difference (root decision for build.py:590): a failing direct g++ release keeps the located per-source compiler diagnostic where frozen reports one CppBinary FAIL with 200 characters of absolute-path stderr; status, required, evidence, summary and exit are compared."
     },
     "config_key:legacy:engines.cognitive": {
       "status": "verified",
@@ -2558,28 +2631,53 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
     },
     "config_key:legacy:engines.cognitive.cpp_boundaries": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.cognitive keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: cpp_boundaries='required' without an exact compilation database and clang-tidy is the frozen CppCognitiveAnalysisError ERROR at '.', summary 'Cognitive complexity analysis did not complete', NOT_RUN, exit 1 (case cognitive-boundaries-required); 'off' has no observable effect without clang (case cognitive-boundaries-off, equal in both). Rust defect fixed: the legacy projection blocked the check (SKIP, exit 2); it now runs the lexical analysis and reports the frozen error (crates/ici-cpp/src/analysis.rs, crates/ici-cli/src/cpp.rs). The compiler-backed exact facet with a database and clang-tidy stays with capability:cpp-parser-heuristic-confidence.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.cognitive.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.cognitive.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.cognitive.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled, deep profile): enabled=false removes the cognitive engine from the frozen and Rust suites; the remaining engines are byte-equal.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.cognitive.fail": {
       "status": "complete",
@@ -2609,28 +2707,53 @@
       "difference_reason": ""
     },
     "config_key:legacy:engines.cognitive.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.cognitive.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.cognitive.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case cognitive-mode): with warn=3 the default pass_warn mode is WARN (exit 0) and mode=pass_fail turns the same rows into FAIL (exit 1), frozen and Rust alike.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.cognitive.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.cognitive.required: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.cognitive.required was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-required, deep profile): required=true makes the cognitive engine required in the legacy suite (frozen default false) with unchanged rows.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.cognitive.warn": {
       "status": "complete",
@@ -2744,16 +2867,29 @@
       "difference_reason": "Only explicit database absence is a measured policy violation. Coverage without a DB remains estimated. Malformed/missing explicit selection remains execution/evidence failure; no guessed compiler flags are created."
     },
     "config_key:legacy:engines.compile_db.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.compile_db.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.compile_db.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled): enabled=false removes the compile_db engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.compile_db.forbidden_flags": {
       "status": "verified",
@@ -2901,28 +3037,53 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
     },
     "config_key:legacy:engines.complexity.cpp_boundaries": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.complexity keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: cpp_boundaries='required' without exact boundaries keeps the 18 lexical rows and appends the frozen CppComplexityAnalysisError ERROR at '.', summary '... (1 issues)', score 11.0 (case complexity-boundaries-required; Rust keeps the accepted incomplete-required exit 3 where frozen exits 1); 'off' has no observable effect without clang. Rust defect fixed: the check was blocked (SKIP) and the ERROR target was not counted as an issue.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.complexity.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.complexity.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.complexity.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled): enabled=false removes the complexity engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.complexity.fail_cc": {
       "status": "complete",
@@ -3262,16 +3423,28 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
     },
     "config_key:legacy:engines.dead.cpp_linker": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.dead keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet without a root CMake project (frozen run_cpp_linker_dead_symbols 'Exact GNU ELF reachability requires a root CMake project'): cpp_linker='auto' adds the C++LinkerReachabilityUnavailable SKIP target at the first C/C++ source and keeps the engine optional (exit 2); 'required' makes it ERROR with that summary (exit 1). Rust defect fixed: the legacy projection planned a link-reachability build anyway and reported a blocked native check (SKIP/required, exit 3).",
+      "difference_reason": "Not complete: the exact GNU ELF reachability run on a root CMake project and the cpp_unused='off' + linker combination are not compared here (capability:legacy-cpp-linker-dead)."
     },
     "config_key:legacy:engines.dead.cpp_unused": {
       "status": "implemented",
@@ -3296,16 +3469,29 @@
       "difference_reason": "Open: the compilation-database-backed auto/required unused-function results have not yet been compared against the frozen engine on the same corpus."
     },
     "config_key:legacy:engines.dead.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.dead.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.dead.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled): enabled=false removes the dead engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.dead.include_generated": {
       "status": "verified",
@@ -3354,28 +3540,52 @@
       "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
     },
     "config_key:legacy:engines.dead.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.dead.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.dead.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case dead-mode, root compile_commands.json with a compiling extra.cc): the two compiler-local -Wunused-function findings are WARN under the default pass_warn and FAIL under mode=pass_fail, frozen and Rust alike.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.dead.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.dead.required: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.dead.required was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case dead-required, with database): required=false makes the measured dead engine optional in both; without a database frozen _effective_required already ignores it for an unavailable automatic scope (verify matrix).",
+      "difference_reason": null
     },
     "config_key:legacy:engines.dup": {
       "status": "verified",
@@ -3444,16 +3654,29 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.dup.fail_pct": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/duplicates.rs",
+        "crates/ici-analysis/src/details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case dup-fail-pct): under mode=pass_warn_fail, fail_pct=6 makes the 17.7% rate FAIL (exit 1) where fail_pct=60 keeps WARN (exit 0), exactly as frozen.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.dup.include_generated": {
       "status": "verified",
@@ -3508,40 +3731,79 @@
       "difference_reason": "C++ source-policy effects are verified; this row is not closure of the entire dead/duplicate descriptor or source-intake bounds. Direct binary build/sanitizer consumers remain under separate open rows."
     },
     "config_key:legacy:engines.dup.min_window": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/duplicates.rs",
+        "crates/ici-analysis/src/details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case dup-min-window): min_window=40 exceeds the 14-line clone, so frozen and Rust both report 0.0% with no clone group (PASS) where the default window reports the group (WARN).",
+      "difference_reason": null
     },
     "config_key:legacy:engines.dup.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/duplicates.rs",
+        "crates/ici-analysis/src/details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.dup.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.dup.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case dup-mode): with fail_pct=6 the default pass_warn mode reports WARN (exit 0) and pass_warn_fail FAIL (exit 1), as frozen evaluate_status.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.dup.python_semantic": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: no observable C++ effect. python_semantic='off' leaves the deep C++ verify suite unchanged in frozen and Rust (case verify-no-cpp-effect, variant equal to reference in both); the Python AST semantic facet belongs to the Python rows.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.dup.required": {
       "status": "complete",
@@ -3577,16 +3839,29 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.dup.warn_pct": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/duplicates.rs",
+        "crates/ici-analysis/src/details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (frozen DuplicateEngine over a 17.7% C++ clone group, case dup-warn-pct): warn_pct=fail_pct=60 turns the default WARN into PASS with the same CloneGroup#1 targets and rate summary. Rust defects fixed: the C++ dup verdict came from native clone-finding severity (always WARN) instead of the rate against warn_pct/fail_pct under the mode, and the native dup.type2-clone findings were listed beside the frozen CloneGroup target findings; the C++ path now uses the duplicate engine verdict and the shared legacy finding details (crates/ici-cpp/src/analysis.rs).",
+      "difference_reason": null
     },
     "config_key:legacy:engines.exception": {
       "status": "verified",
@@ -4007,16 +4282,29 @@
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.lint.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.lint.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.lint.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled): enabled=false removes the lint engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.lint.mode": {
       "status": "complete",
@@ -4085,16 +4373,29 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.lint.ruff_required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: no observable C++ effect. In the deep legacy C++ suite (case verify-no-cpp-effect) the variant leaves every engine byte-equal to the reference in frozen and Rust alike; the key's Python facet is a Python row.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.python_compat": {
       "status": "verified",
@@ -4130,28 +4431,54 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
     },
     "config_key:legacy:engines.python_compat.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.python_compat.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.python_compat.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled): enabled=false removes the (C++-not-applicable) python_compat engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.python_compat.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.python_compat.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.python_compat.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: no observable C++ effect. In the deep legacy C++ suite (case verify-no-cpp-effect) the variant leaves every engine byte-equal to the reference in frozen and Rust alike; the key's Python facet is a Python row.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.python_compat.required": {
       "status": "complete",
@@ -4253,16 +4580,29 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.resource.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.resource.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.resource.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: no observable C++ effect. In the deep legacy C++ suite (case verify-no-cpp-effect) the variant leaves every engine byte-equal to the reference in frozen and Rust alike; the key's Python facet is a Python row.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.resource.required": {
       "status": "complete",
@@ -4364,16 +4704,27 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.sanitize.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_tests.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.sanitize.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.sanitize.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (sanitize-mode vs sanitize-argv): the failing ASan/UBSan Make case is FAIL (exit 1) under the default pass_fail and WARN under mode=pass_warn, frozen and Rust alike.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.sanitize.required": {
       "status": "complete",
@@ -4437,28 +4788,54 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
     },
     "config_key:legacy:engines.security.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.security.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.security.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled): enabled=false removes the (C++-not-applicable) security engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.security.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.security.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.security.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: no observable C++ effect. In the deep legacy C++ suite (case verify-no-cpp-effect) the variant leaves every engine byte-equal to the reference in frozen and Rust alike; the key's Python facet is a Python row.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.security.required": {
       "status": "complete",
@@ -4551,16 +4928,29 @@
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.test.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.test.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled): enabled=false removes the test engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.max_coverage_regression": {
       "status": "not_started",
@@ -4575,16 +4965,29 @@
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.min_branch_cov": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-validation/src/test_metrics.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (test-min-branch vs test-pass): min_branch_cov=50 removes the 'Threshold: Branch coverage' WARN target (50.0% branch) and the engine passes.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.min_changed_line_cov": {
       "status": "difference_review",
@@ -4599,52 +5002,104 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.test.min_file_cov": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-validation/src/test_metrics.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (test-min-file vs test-pass): min_file_cov=90 turns the per-file 'Coverage:File' gate (80.0%) into the frozen below-minimum target.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.min_file_statements": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-validation/src/test_metrics.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (test-min-file-statements vs test-min-file): min_file_statements=50 exempts the small file from the per-file gate exactly as frozen.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.min_func_cov": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-validation/src/test_metrics.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (test-min-func vs test-pass): min_func_cov=100 changes the aggregate function gate target text/verdict exactly as frozen.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.min_line_cov": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-validation/src/test_metrics.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (test-min-line vs test-pass): min_line_cov=90 turns 'Coverage:Overall line' (80.0%) into the frozen below-minimum target and verdict.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.min_tem_score": {
       "status": "difference_review",
@@ -4659,28 +5114,54 @@
       "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
     },
     "config_key:legacy:engines.test.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-validation/src/test_metrics.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.test.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.test.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (test-mode vs test-pass, Make suite with gcov): the branch threshold WARN makes the default pass_fail engine FAIL (exit 1) and mode=pass_warn WARN (exit 0), frozen and Rust alike.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.python": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: no observable C++ effect. In the deep legacy C++ suite (case verify-no-cpp-effect) the variant leaves every engine byte-equal to the reference in frozen and Rust alike; the key's Python facet is a Python row.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.test.quality": {
       "status": "verified",
@@ -4970,28 +5451,52 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
     },
     "config_key:legacy:engines.thread_sanitize.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.thread_sanitize.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.thread_sanitize.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet (case verify-enabled, deep): enabled=false removes the thread_sanitize engine from both suites.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.thread_sanitize.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/legacy_tests.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.thread_sanitize.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.thread_sanitize.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy Make engine-key cases captured by tests/rust-parity/cpp/capture_make_suites.py into make-test-oracle.json (REFERENCES: each key case names the case it varies and the capture asserts a frozen effect); /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_qmake_verify legacy_make_test_argv --locked -j2 -- --include-ignored --test-threads=2: 23 Make cases byte-equal, every reference effect asserted; /tmp/ici-rust-replacement-20261028/w-cpp10-make-keys.log"
+      ],
+      "comparison": "C++ facet (thread-sanitize-mode vs thread-sanitize-race): the real ThreadSanitizer data race is FAIL under the default pass_fail and WARN under mode=pass_warn.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.thread_sanitize.required": {
       "status": "complete",
@@ -5088,16 +5593,29 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:engines.type.mode": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.type.mode: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.type.mode was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet: no observable C++ effect. In the deep legacy C++ suite (case verify-no-cpp-effect) the variant leaves every engine byte-equal to the reference in frozen and Rust alike; the key's Python facet is a Python row.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.type.required": {
       "status": "complete",

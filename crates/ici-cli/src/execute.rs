@@ -711,7 +711,7 @@ pub fn execute(
                         let system = build_system(&prepared, planned);
                         if prepared.legacy_projection
                             && !prepared.cpp.legacy_standalone
-                            && matches!(system.as_deref(), Some("cmake" | "qmake"))
+                            && matches!(system.as_deref(), Some("cmake" | "qmake" | "make"))
                             && let Some(variant) = match planned.check.id.as_str() {
                                 "cpp.test" => Some("coverage"),
                                 "cpp.sanitize" => Some("sanitize"),
@@ -721,14 +721,19 @@ pub fn execute(
                             && let Some(shadow) = plans
                                 .first()
                                 .and_then(|plan| plan.context.options.build_dir.clone())
-                            && let Some(session) = context_guards.iter().find(|guard| {
-                                guard.plan.component_id == planned.component_id
-                                    && prepared.project.root.join(&guard.plan.build.shadow)
-                                        == shadow
-                            })
+                            // A legacy Make shadow is shared by every variant: the session
+                            // of this check's own variant ran its build command.
+                            && let Some(session) = context_guards
+                                .iter()
+                                .filter(|guard| {
+                                    guard.plan.component_id == planned.component_id
+                                        && prepared.project.root.join(&guard.plan.build.shadow)
+                                            == shadow
+                                })
+                                .min_by_key(|guard| guard.plan.build.variant != variant)
                             && let Some(build) = session.plan.build.tasks.iter().find(|task| {
                                 task.argv.get(1).map(String::as_str) == Some("--build")
-                                    || (system.as_deref() == Some("qmake")
+                                    || (matches!(system.as_deref(), Some("qmake" | "make"))
                                         && task.id.ends_with(":compile"))
                             })
                             && let Some(manifest) = crate::cpp::legacy_cmake_artifact_manifest(
