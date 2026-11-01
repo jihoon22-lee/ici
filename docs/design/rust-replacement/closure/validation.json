@@ -42,7 +42,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: check:integration and integration finding sites (difference_review), pycompat provider sites."
+      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: check:integration and integration finding sites (difference_review), pycompat provider sites; project-interpreter selection (frozen resolve_python: declared executable, else only the component .venv/bin/python; never PATH python, venv/ or ici's own runtime; python.test/coverage/compat-runtime blocked with the frozen 'no project interpreter — none of 1 candidate(s) could be used; looked at <component>/.venv/bin/python; declare [python] executable or provide a .venv inside the component' reason, no test->coverage edge) — crates/ici-cli/tests/interpreter_selection.rs against tests/rust-parity/validation/interpreter-selection-oracle.json (/tmp/ici-rust-replacement-20261028/w-validation-interpreter.log, regressions /tmp/ici-rust-replacement-20261028/w-validation-interpreter-regress.log, -regress2.log). Interpreter differences: a declared bare name (e.g. python3) is the user's own PATH lookup (frozen `_anchor` documents it, frozen plan-time existence check blocked it as 'no such file: python3'); a declared missing interpreter keeps the native 'project Python \"<value>\": ...' wording; legacy projects without .venv or engines.test.python are blocked (exit 3, hint 'set engines.test.python or provide a .venv in the project') where frozen legacy engines ran under ici's own sys.executable (AGENTS §8, ADR-0008)."
     },
     "capability:test-quality-tem": {
       "status": "not_started",
@@ -1829,6 +1829,13 @@
       "reason": "Deep-only, tool-less, opt-in integration check definition reproduced by the native catalog (check:integration).",
       "requirements": [
         "check:integration"
+      ]
+    },
+    "src/ici/engines/test_interpreter.py": {
+      "disposition": "unreviewed",
+      "reason": "Whole file read. _resolve_python order (engines.test.python, project .venv, sys.executable) maps to native validation::project_python with the recorded sys.executable difference (crates/ici-cli/tests/interpreter_selection.rs::legacy_project_without_venv_is_blocked_instead_of_running_under_path_python). Open: _find_coverage_cmd probe error texts (timed out / truncated / terminated / exit N) and _interpreter_from_command pytest-argv normalisation are not compared with a frozen legacy capture.",
+      "requirements": [
+        "capability:runtime-integration"
       ]
     }
   }

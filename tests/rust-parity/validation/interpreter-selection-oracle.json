@@ -1,0 +1,89 @@
+{
+  "runs": {
+    "declared_bare": {
+      "checks": {
+        "python.compat-runtime": {
+          "blocked": "no project interpreter \u2014 no such file: python3; set components[0].python.executable to change it",
+          "kind": "blocked"
+        },
+        "python.coverage": {
+          "blocked": "no project interpreter \u2014 no such file: python3; set components[0].python.executable to change it",
+          "kind": "blocked"
+        },
+        "python.test": {
+          "blocked": "no project interpreter \u2014 no such file: python3; set components[0].python.executable to change it",
+          "kind": "blocked"
+        }
+      },
+      "config": "schema_version=1\n[workspace]\nname='w'\nprofile='deep'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=\"python3\"\n",
+      "edges": {},
+      "exit_code": 0,
+      "venv": false
+    },
+    "declared_missing": {
+      "checks": {
+        "python.compat-runtime": {
+          "blocked": "no project interpreter \u2014 no such file: <ROOT>/missing/python; set components[0].python.executable to change it",
+          "kind": "blocked"
+        },
+        "python.coverage": {
+          "blocked": "no project interpreter \u2014 no such file: <ROOT>/missing/python; set components[0].python.executable to change it",
+          "kind": "blocked"
+        },
+        "python.test": {
+          "blocked": "no project interpreter \u2014 no such file: <ROOT>/missing/python; set components[0].python.executable to change it",
+          "kind": "blocked"
+        }
+      },
+      "config": "schema_version=1\n[workspace]\nname='w'\nprofile='deep'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n[components.python]\nexecutable=\"missing/python\"\n",
+      "edges": {},
+      "exit_code": 0,
+      "venv": true
+    },
+    "no_venv": {
+      "checks": {
+        "python.compat-runtime": {
+          "blocked": "no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component",
+          "kind": "blocked"
+        },
+        "python.coverage": {
+          "blocked": "no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component",
+          "kind": "blocked"
+        },
+        "python.test": {
+          "blocked": "no project interpreter \u2014 none of 1 candidate(s) could be used; looked at <ROOT>/.venv/bin/python; declare [python] executable or provide a .venv inside the component",
+          "kind": "blocked"
+        }
+      },
+      "config": "schema_version=1\n[workspace]\nname='w'\nprofile='deep'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n",
+      "edges": {},
+      "exit_code": 0,
+      "venv": false
+    },
+    "venv": {
+      "checks": {
+        "python.compat-runtime": {
+          "interpreter": "<ROOT>/.venv/bin/python",
+          "kind": "process"
+        },
+        "python.coverage": {
+          "interpreter": "<ROOT>/.venv/bin/python",
+          "kind": "process"
+        },
+        "python.test": {
+          "interpreter": "<ROOT>/.venv/bin/python",
+          "kind": "process"
+        }
+      },
+      "config": "schema_version=1\n[workspace]\nname='w'\nprofile='deep'\n[[components]]\nid='project'\nroot='.'\nlanguages=['python']\n",
+      "edges": {
+        "project.python.coverage": [
+          "project.python.test"
+        ]
+      },
+      "exit_code": 0,
+      "venv": true
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
