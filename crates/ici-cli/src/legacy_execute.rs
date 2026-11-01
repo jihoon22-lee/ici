@@ -232,6 +232,18 @@ pub fn command(
             stored = StoredResult::from_value(document).map_err(error)?;
         }
     }
+    // Frozen `ici verify` exits 1 for a FAIL/ERROR suite. A legacy verdict the native gate keeps
+    // advisory (e.g. a coverage minimum the frozen TestEngine turns into FAIL) never exits 0;
+    // a higher native exit (incomplete 3) is kept.
+    if engine(&invocation.command()).is_none()
+        && let StoredResult::Legacy(legacy) = &stored
+        && matches!(
+            legacy.as_value()["suite_status"].as_str(),
+            Some("FAIL" | "ERROR")
+        )
+    {
+        exit_code = exit_code.max(1);
+    }
     if let Some(family) = engine(&invocation.command())
         && let StoredResult::Legacy(legacy) = &stored
     {

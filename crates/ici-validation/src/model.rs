@@ -92,6 +92,8 @@ pub struct ValidationOptions {
     pub mutation_enabled: bool,
     pub mutation_tool: Option<ResolvedTool>,
     pub mutation_argv: Vec<String>,
+    /// The frozen `tool` label of the mutation capability target (`auto`, or the found tool).
+    pub mutation_label: String,
     pub auxiliary_tools: BTreeMap<String, ResolvedTool>,
     pub elf_policy: ici_cpp::ElfPolicy,
     pub allow_non_elf: bool,
@@ -157,6 +159,7 @@ impl Default for ValidationOptions {
             mutation_enabled: false,
             mutation_tool: None,
             mutation_argv: vec![],
+            mutation_label: "auto".into(),
             auxiliary_tools: BTreeMap::new(),
             elf_policy: ici_cpp::ElfPolicy::default(),
             allow_non_elf: false,

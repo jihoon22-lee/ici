@@ -274,9 +274,16 @@ pub fn bind(
             let selected = mutation
                 .and_then(|value| value.get("tool"))
                 .and_then(Value::as_str)
+                .filter(|tool| matches!(*tool, "auto" | "mutmut" | "cosmic-ray" | "mutpy"))
                 .unwrap_or("auto");
             let (mutation_tool, mutation_argv) =
                 mutation_probe(project, &cwd, environment, selected, &command);
+            // Frozen labels an explicit command with the configured tool and an auto search
+            // with the tool it found.
+            options.mutation_label = match &mutation_tool {
+                Some(tool) if command.is_empty() => tool.id.clone(),
+                _ => selected.into(),
+            };
             options.mutation_tool = mutation_tool;
             options.mutation_argv = mutation_argv;
         }

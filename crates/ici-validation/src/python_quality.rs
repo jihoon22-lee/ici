@@ -61,36 +61,39 @@ pub(crate) fn observe(
             );
             locations.extend(evidence.cases);
         } else {
+            // Frozen `_observe_quality` distinguishes a timeout, an unbounded process (truncated,
+            // signalled or exit outside 0/1) and a bounded run without per-test verdicts.
+            let bounded = outcome.is_some_and(|outcome| {
+                planning::completed(outcome) && matches!(outcome.exit_code, Some(0 | 1))
+            });
             if timed_out {
                 timeouts += 1;
             } else {
                 unavailable += 1;
             }
-            let mut target = InspectionTarget::at(
-                plan.context
-                    .targets
-                    .first()
-                    .map(String::as_str)
-                    .unwrap_or("tests"),
-                1,
-            );
+            let mut target = InspectionTarget::at("tests", 1);
             target.target_name = format!("[test-quality] Repeat run {}", index + 2);
             target.status = "WARN".into();
-            target.message = if timed_out {
-                "pytest repeat run timed out"
-            } else {
-                "pytest repeat run did not produce bounded per-test evidence"
-            }
-            .into();
             target.metrics.insert("run".into(), json!(index + 2));
-            target.metrics.insert(
-                "returncode".into(),
-                json!(outcome.and_then(|outcome| outcome.exit_code)),
-            );
-            target.metrics.insert(
-                "timeout".into(),
-                json!(plan.context.options.quality_timeout_seconds),
-            );
+            if timed_out {
+                target.message = "pytest repeat run timed out".into();
+                target.metrics.insert(
+                    "timeout".into(),
+                    json!(plan.context.options.quality_timeout_seconds),
+                );
+            } else if bounded {
+                target.message = "pytest repeat run had no per-test collection evidence".into();
+            } else {
+                target.message = "pytest repeat run did not produce bounded evidence".into();
+                let returncode = outcome.and_then(|outcome| {
+                    outcome
+                        .exit_code
+                        .or_else(|| outcome.signal.map(|signal| -signal))
+                });
+                target
+                    .metrics
+                    .insert("returncode".into(), json!(returncode));
+            }
             output.targets.push(target);
         }
     }
@@ -243,28 +246,26 @@ fn mutation(
     let probe = outcomes.get(&id);
     let available =
         probe.is_some_and(|outcome| planning::completed(outcome) && outcome.exit_code == Some(0));
-    let mut target = InspectionTarget::at(
-        plan.context
-            .targets
-            .first()
-            .filter(|path| *path != ".")
-            .map(String::as_str)
-            .unwrap_or("tests"),
-        1,
-    );
+    // Frozen `_probe_mutation_capability`: one target at `tests` naming the selected tool.
+    let tool = plan.context.options.mutation_label.clone();
+    let mut target = InspectionTarget::at("tests", 1);
     target.target_name = "[test-quality] Mutation capability".into();
     target.status = if available { "PASS" } else { "SKIP" }.into();
-    target.message = if available {
-        "explicit mutation capability probe completed; mutations were not performed"
-    } else {
-        "mutation capability is unavailable; base test gate is unchanged"
-    }
-    .into();
+    target.message = match (probe, available) {
+        (_, true) => format!("Mutation tool capability available: {tool}"),
+        (None, _) if plan.context.options.mutation_tool.is_none() => {
+            "No supported mutation tool was found; base test gate unchanged".into()
+        }
+        _ => "Mutation capability probe unavailable; base test gate unchanged".into(),
+    };
     target.metrics.insert("available".into(), json!(available));
-    target.metrics.insert(
-        "returncode".into(),
-        json!(probe.and_then(|outcome| outcome.exit_code)),
-    );
+    target.metrics.insert("tool".into(), json!(tool));
+    if plan.context.options.mutation_tool.is_some() {
+        target.metrics.insert(
+            "returncode".into(),
+            json!(probe.and_then(|outcome| outcome.exit_code)),
+        );
+    }
     output.targets.push(target);
     output.extra["mutation"] = json!({"mutation_status":if available{"available"}else{"unavailable"},"mutation_probes":1,"mutation_available":u8::from(available),"mutation_unavailable":u8::from(!available),"tool":plan.context.options.mutation_tool.as_ref().map(|tool|&tool.id),"argv":plan.tasks.iter().find(|task|task.id==id).map(|task|&task.argv)});
 }
