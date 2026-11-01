@@ -199,10 +199,11 @@
    "status": "complete"
   },
   "check:python.compat-runtime": {
-   "comparison": "Descriptor facet only (languages/python/checks.py: python.compat-runtime static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules.",
-   "difference_reason": "OPEN: behaviour closure belongs to the validation fragment (engines/test*.py, coverage_policy.py, python_compat runtime); not re-audited here. crates/ici-cli/tests/legacy_test_metrics.rs needs a worktree .venv and failed in this worktree for that environment reason (/tmp/ici-rust-replacement-20261028/w-python-validation-actual.log).",
+   "comparison": "Descriptor facet only (languages/python/checks.py: python.compat-runtime static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules. The behaviour facet is claimed in the validation fragment (closure sweep).",
+   "difference_reason": null,
    "evidence": [
-    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log"
+    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
    ],
    "fixtures": {
     "failure": [
@@ -223,7 +224,7 @@
     "crates/ici-validation/src",
     "crates/ici-cli/src/validation.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "check:python.complexity": {
    "comparison": "Native python.complexity reproduces the 15 frozen metrics.json formulas (CPython 3.14.7 AST), legacy inclusive and modern strict thresholds, shared one-parse cache, and the modern metrics.<kind> findings (message, severity, line-only location, raw fingerprint) of languages/metrics.py in modern-findings.json. Syntax errors are incomplete with a located error target; cancellation keeps completed targets.",
@@ -257,10 +258,11 @@
    "status": "complete"
   },
   "check:python.coverage": {
-   "comparison": "Descriptor facet only (languages/python/checks.py: python.coverage static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules.",
-   "difference_reason": "OPEN: behaviour closure belongs to the validation fragment (engines/test*.py, coverage_policy.py, python_compat runtime); not re-audited here. crates/ici-cli/tests/legacy_test_metrics.rs needs a worktree .venv and failed in this worktree for that environment reason (/tmp/ici-rust-replacement-20261028/w-python-validation-actual.log).",
+   "comparison": "Descriptor facet only (languages/python/checks.py: python.coverage static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules. The behaviour facet is claimed in the validation fragment (closure sweep).",
+   "difference_reason": null,
    "evidence": [
-    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log"
+    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
    ],
    "fixtures": {
     "failure": [
@@ -281,7 +283,7 @@
     "crates/ici-validation/src",
     "crates/ici-cli/src/validation.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "check:python.cycle": {
    "comparison": "16 frozen cycle.json graphs match; modern cycle.import findings keep the original first-SCC-member primary location, chain start (fixed in this branch), related locations and cycle-<sha1> fingerprint; legacy Cycle:N targets start at the smallest member as engines/cycle.py did.",
@@ -595,10 +597,11 @@
    "status": "complete"
   },
   "check:python.test": {
-   "comparison": "Descriptor facet only (languages/python/checks.py: python.test static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules.",
-   "difference_reason": "OPEN: behaviour closure belongs to the validation fragment (engines/test*.py, coverage_policy.py, python_compat runtime); not re-audited here. crates/ici-cli/tests/legacy_test_metrics.rs needs a worktree .venv and failed in this worktree for that environment reason (/tmp/ici-rust-replacement-20261028/w-python-validation-actual.log).",
+   "comparison": "Descriptor facet only (languages/python/checks.py: python.test static/required/needs/provides match crates/ici-domain/data/registry.json) plus actual-tool CLI runs. The runtime/test/coverage engines themselves are the validation area's frozen modules. The behaviour facet is claimed in the validation fragment (closure sweep).",
+   "difference_reason": null,
    "evidence": [
-    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log"
+    "cargo test -p ici-cli --test native_validation --test native_validation_extra --locked -j2 -- --include-ignored: 29 passed with actual project Python/pytest/coverage; /tmp/ici-rust-replacement-20261028/w-python-validation-actual.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
    ],
    "fixtures": {
     "failure": [
@@ -619,7 +622,7 @@
     "crates/ici-validation/src",
     "crates/ici-cli/src/validation.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "check:python.type": {
    "comparison": "mypy/ty adapter facets (adapters/providers/mypy.py, ty.py, analysis/_mypy_output.py) with actual pinned tools and the legacy missing-return-annotation projection (annotations.json, 7 frozen cases). End-to-end frozen replay of the modern check with the same binaries (closure sweep): 11 frozen `ici analyze --json` projects (tests/rust-parity/python/modern-tools-findings.json; ruff 0.16.4, mypy 2.3.1, ty 0.0.93 linked into one PATH directory for both) replay through the native CLI: check states, every finding (rule id, message, severity, confidence, category, evidence, location), metrics, limitations, gate and exit code, and each native attributed fingerprint recomputed from the provider's raw fingerprint equals frozen's (python_modern_tools_parity.rs: import order, unused imports, Unicode columns, format, mypy errors and notes, two files, explicit ty, syntax errors, missing tools). The legacy `ici lint`/`ici type` targets (Ruff:<code>, Format:Style, SyntaxError, ASTSyntaxFallback, LintScope, MypyError, MypyNote, Mypy, annotation targets) are replayed by legacy_python_engines.rs against 27 frozen tool cases. Rust defects fixed: the ruff.format finding carried category lint-default/native_rule_id `format` instead of frozen's category `format` and no native rule id; modern mypy ran with --show-column-numbers, so the location and the attributed fingerprint (which hashes start_column) differed from frozen for every mypy finding (dropped; frozen identity restored, providers native.rs unicode test row updated); a Python provider's unsupported exit was worded `ruff exited with unsupported code Some(2)` and the incomplete gate named the closure limitation instead of the failure (now frozen's `<task> failed with exit code <n>`, last limitation); the same gate-reason order for unparseable output and invalid coordinates.",
