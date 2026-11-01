@@ -28,6 +28,38 @@ pub fn is_legacy(invocation: &Invocation) -> bool {
     invocation.command() == "verify" || engine(&invocation.command()).is_some()
 }
 
+/// Frozen `descriptors_for_profile` (core/pipeline.py): a legacy-schema deep `ici verify` refuses
+/// the whole pipeline before any engine runs when `binary_compat` or `integration` is enabled while
+/// their `build` dependency is not (legacy defaults: all three disabled). Registry order decides
+/// which engine is named. v2 projects declare checks and are never refused this way.
+pub fn pipeline_refusal(prepared: &crate::planning::PreparedPlan) -> Option<String> {
+    if prepared.project.schema_family != ici_config::SchemaFamily::Legacy
+        || prepared.plan.profile != Profile::Deep
+    {
+        return None;
+    }
+    let enabled = |engine: &str| {
+        prepared.project.components.iter().any(|component| {
+            component
+                .settings
+                .pointer(&format!("/engines/{engine}/enabled"))
+                .and_then(serde_json::Value::as_bool)
+                == Some(true)
+        })
+    };
+    if enabled("build") {
+        return None;
+    }
+    ["binary_compat", "integration"]
+        .into_iter()
+        .find(|engine| enabled(engine))
+        .map(|engine| {
+            format!(
+                "PipelineDefinitionError: engine {engine} has disabled dependencies in deep: build"
+            )
+        })
+}
+
 /// Historical WARN is a completed, non-failing policy outcome. Retain its measured diagnostics
 /// and mark their gate role separately; modern checks retain their fail-on-violation contract.
 pub fn apply_gate_policy(

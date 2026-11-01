@@ -530,3 +530,97 @@ fn schema_refused_placeholder_keeps_the_frozen_configuration_exit_code() {
     assert_eq!(i64::from(code), frozen["exit_code"].as_i64().unwrap());
     assert!(!root.path().join("verify_report.json").exists());
 }
+
+fn legacy_verify_output(root: &Path, deep: bool) -> commands::CommandOutput {
+    let mut argv = vec!["ici", "verify", "--report", "--no-cache"];
+    if deep {
+        argv.extend(["--profile", "deep"]);
+    }
+    commands::dispatch(
+        &registry::parse(argv).unwrap(),
+        root,
+        &BTreeMap::from([("PATH".into(), "/usr/bin:/bin".into())]),
+    )
+    .unwrap()
+}
+
+#[test]
+fn legacy_deep_verify_refuses_integration_and_binary_compat_without_build_like_frozen() {
+    let blocked: Value = serde_json::from_str(BLOCKED).unwrap();
+    for (scenario, engine) in [
+        ("no_build", "integration"),
+        ("binary_compat_no_build", "binary_compat"),
+    ] {
+        let frozen = &blocked["runs"][scenario];
+        let root = fixture(
+            &frozen["config"]
+                .as_str()
+                .unwrap()
+                .replace("\"<PYTHON>\"", "\"/bin/sh\""),
+        );
+        fs::write(root.path().join("x.py"), "echo x\n").unwrap();
+        let output = legacy_verify_output(root.path(), true);
+        assert_eq!(
+            i64::from(output.exit_code),
+            frozen["exit_code"].as_i64().unwrap(),
+            "{scenario}: {}",
+            output.stderr
+        );
+        assert!(frozen["report"].is_null());
+        assert_eq!(output.stderr.trim(), frozen["reason"].as_str().unwrap());
+        assert!(output.stderr.contains(&format!("engine {engine} has")));
+        // Refused before any engine ran: no report, no native result, no case output.
+        assert!(
+            !root.path().join("verify_report.json").exists(),
+            "{scenario}"
+        );
+        assert!(!root.path().join(".ici").exists(), "{scenario}");
+    }
+}
+
+#[test]
+fn standard_legacy_verify_and_v2_integration_without_build_are_not_refused() {
+    let blocked: Value = serde_json::from_str(BLOCKED).unwrap();
+    let frozen = &blocked["runs"]["no_build_standard"];
+    let root = fixture(
+        &frozen["config"]
+            .as_str()
+            .unwrap()
+            .replace("\"<PYTHON>\"", "\"/bin/sh\""),
+    );
+    let output = legacy_verify_output(root.path(), false);
+    assert_eq!(
+        i64::from(output.exit_code),
+        frozen["exit_code"].as_i64().unwrap(),
+        "{}",
+        output.stderr
+    );
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.path().join("verify_report.json")).unwrap()).unwrap();
+    assert_eq!(report["suite_status"], frozen["suite_status"]);
+    let engines: Vec<_> = report["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|engine| engine["engine_name"].clone())
+        .collect();
+    assert_eq!(Value::from(engines), frozen["engines"]);
+    // v2 declares the integration check directly; there is no legacy build dependency.
+    let v2 = tempfile::tempdir().unwrap();
+    fs::write(
+        v2.path().join("ici.toml"),
+        modern(
+            "[[components.integrations]]\nname='one'\nargv=['{python:sh}','x.sh']\n[components.integrations.python_targets]\nsh='/bin/sh'\n",
+        ),
+    )
+    .unwrap();
+    fs::write(v2.path().join("app.py"), "x = 1\n").unwrap();
+    fs::write(v2.path().join("x.sh"), "echo x\n").unwrap();
+    let output = legacy_verify_output(v2.path(), true);
+    assert!(
+        !output.stderr.contains("PipelineDefinitionError"),
+        "{}",
+        output.stderr
+    );
+    assert!(v2.path().join("verify_report.json").exists());
+}

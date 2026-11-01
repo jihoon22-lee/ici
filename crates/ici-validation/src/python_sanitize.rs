@@ -35,6 +35,21 @@ pub(crate) fn observe(
             )
         })
         .count();
+    // Frozen `_missing_python_scope`: a suite that collected nothing, or succeeded without a
+    // parseable result, is one located `PythonResourceWarnings` ERROR at `tests` naming why.
+    let missing = match outcome.exit_code {
+        Some(5) => Some("Pytest collected 0 tests"),
+        Some(0) if executed == 0 => Some("Pytest returned success without parseable test results"),
+        _ => None,
+    };
+    if let Some(message) = missing {
+        let mut target = InspectionTarget::at("tests", 1);
+        target.target_name = "PythonResourceWarnings".into();
+        target.status = "ERROR".into();
+        target.message = message.into();
+        output.targets.push(target);
+        return Err(ValidationError(message.into()));
+    }
     if executed == 0 || !matches!(outcome.exit_code, Some(0 | 1)) {
         return Err(ValidationError(
             "Python ResourceWarning check has no completed executed test scope".into(),

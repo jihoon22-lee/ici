@@ -312,6 +312,22 @@ fn observe_suite(
             "pytest collection failed; suite scope is incomplete".into(),
         ));
     }
+    // pytest ran cases but printed no per-node verdict (e.g. a quiet `-q`/`verbose=-1` run): the
+    // frozen summary-count fallback is not per-test evidence, so the suite stays incomplete and is
+    // never reported as "No tests collected".
+    let reported = Regex::new(
+        r"\b(?:collected\s+([1-9]\d*)\s+items?|([1-9]\d*)\s+(?:passed|failed|errors?|skipped|xfailed|xpassed))\b",
+    )
+    .expect("constant regex");
+    if total == 0
+        && outcome.exit_code == Some(0)
+        && reported.is_match(&String::from_utf8_lossy(&outcome.stdout))
+    {
+        return Err(ValidationError(
+            "pytest reported test cases without per-test verdicts; suite evidence is incomplete"
+                .into(),
+        ));
+    }
     if total == 0 && matches!(outcome.exit_code, Some(0 | 5)) {
         // Frozen `_parse_pytest_result`: the located descriptor-level verdict for an empty suite.
         let mut target = InspectionTarget::at("tests", 1);
