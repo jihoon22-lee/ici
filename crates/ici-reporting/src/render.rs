@@ -264,10 +264,11 @@ fn group_bucket(group: &Value, by: crate::ConsoleGroupBy) -> String {
                 .collect();
             (
                 "File",
-                if paths.len() == 1 {
-                    paths.into_iter().next().expect("one path")
-                } else {
-                    "(multiple files)".into()
+                // Frozen `issue_bucket`: one path, `(multiple files)`, or `(no location)`.
+                match paths.len() {
+                    0 => "(no location)".into(),
+                    1 => paths.into_iter().next().expect("one path"),
+                    _ => "(multiple files)".into(),
                 },
             )
         }
