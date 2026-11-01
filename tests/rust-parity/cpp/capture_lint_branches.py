@@ -105,6 +105,26 @@ CASES = {
             ),
         },
     ),
+    # Unit diagnostics frozen records as warnings: a recorded directory that is gone, and a
+    # stale Qt generated source (selected by name although it no longer exists).
+    "exact-unit-diagnostics": (
+        "lint-branches",
+        "verify",
+        "",
+        {
+            "build/compile_commands.json": json.dumps(
+                [
+                    {
+                        "directory": "{root}/gone",
+                        "file": "{root}/src/clean.cpp",
+                        "arguments": ["g++", "-std=c++17", "-c", "{root}/src/clean.cpp"],
+                    },
+                    row("build/moc_gone.cpp"),
+                ]
+                + [row(f"src/{name}.cpp") for name in BRANCHES if name != "clean"]
+            ),
+        },
+    ),
     # Frozen LintEngine on a hybrid project without Python or C++ sources: LintScope SKIP.
     "lint-hybrid-empty": ("lint-empty", "lint", "[project]\ntype='hybrid'\n", {}),
     # Mixed Python (Ruff F401) and C++ fallback (exit 3) summaries in one lint engine.
@@ -161,6 +181,15 @@ def run(fixture: str, command: str, config: str, files: dict) -> dict:
     }
     if command != "verify":
         captured["exit_code"] = result.returncode
+    else:
+        database = next(
+            item for item in report["results"] if item.get("engine_name") == "compile_db"
+        )
+        captured["compile_db"] = {
+            "status": database["status"],
+            "summary": database["summary"],
+            "targets": [{key: target.get(key) for key in FIELDS} for target in database["targets"]],
+        }
     text = json.dumps(captured).replace(str(project), "{root}").replace(str(tools), "{bin}")
     return json.loads(text)
 

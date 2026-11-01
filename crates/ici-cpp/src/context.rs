@@ -305,6 +305,24 @@ fn parse_row(
         diagnostics,
     };
     metadata(root, &cwd, row, &mut unit)?;
+    // Frozen `_record_include_value`: a configured -I/-isystem/-iquote directory that does not
+    // exist is a warning-level unit diagnostic (one per path, in argv order).
+    let missing_includes = unit
+        .include_paths
+        .iter()
+        .filter(|path| {
+            matches!(path.kind.as_str(), "include" | "system" | "quote") && !path.present
+        })
+        .count();
+    for _ in 0..missing_includes {
+        unit.diagnostics.push(ContextDiagnostic {
+            level: "warning".into(),
+            ..ContextDiagnostic::error(
+                "missing-include-dir",
+                "A configured compiler include directory does not exist.",
+            )
+        });
+    }
     for diagnostic in &mut unit.diagnostics {
         diagnostic.entry_index = Some(index);
         diagnostic.source = unit.source.clone();

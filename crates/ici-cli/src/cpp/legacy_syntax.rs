@@ -127,19 +127,18 @@ pub(super) fn terminal(context: &CompilationContext, selected: usize) -> Option<
     })
 }
 
-/// A unit's diagnostic targets (frozen `unit.diagnostics`, plus `missing-include-dir` for an
-/// absent `-I`/`-isystem`/`-iquote` directory, which the native context records as a search
-/// path that is not present) and the tool error when one of them is an error.
+/// A unit's diagnostic targets (frozen `unit.diagnostics`) and the tool error when one of them
+/// is an error.
 pub(super) fn unit_targets(unit: &CompilationUnit) -> (Vec<InspectionTarget>, Option<String>) {
     let mut diagnostics = unit.diagnostics.clone();
-    for path in &unit.include_paths {
-        if matches!(path.kind.as_str(), "include" | "system" | "quote") && !path.present {
-            let mut diagnostic = ContextDiagnostic::error(
-                "missing-include-dir",
-                "A configured compiler include directory does not exist.",
-            );
+    // Frozen `compile_db` records a gone working directory and a stale source as warnings and
+    // still attempts the replay, which `build_replay_command` then rejects.
+    for diagnostic in &mut diagnostics {
+        if matches!(
+            diagnostic.code.as_str(),
+            "missing-directory" | "stale-source"
+        ) {
             diagnostic.level = "warning".into();
-            diagnostics.push(diagnostic);
         }
     }
     let error = diagnostics
@@ -157,7 +156,7 @@ pub(super) fn unit_targets(unit: &CompilationUnit) -> (Vec<InspectionTarget>, Op
 
 /// Frozen `ReplayCommandError` code and message for a native replay rejection with the same
 /// meaning; other codes keep the native text.
-fn frozen_replay(error: &CppError) -> (String, String) {
+fn frozen_replay(unit: &CompilationUnit, error: &CppError) -> (String, String) {
     let token = |prefix: &str, suffix: &str| {
         error
             .message
@@ -186,6 +185,22 @@ fn frozen_replay(error: &CppError) -> (String, String) {
             "unsafe-tooling-warning-policy",
             "A warning-as-error option cannot be projected to a safe diagnostic flag.".into(),
         ),
+        // The native replay refuses a unit with error diagnostics; frozen (which records a gone
+        // directory or stale source as a warning) rejects the same replay as stale.
+        "invalid-compilation-unit"
+            if unit.diagnostics.iter().all(|diagnostic| {
+                diagnostic.level != "error"
+                    || matches!(
+                        diagnostic.code.as_str(),
+                        "missing-directory" | "stale-source"
+                    )
+            }) =>
+        {
+            (
+                "stale-translation-unit",
+                "The translation unit working directory or source no longer exists.".into(),
+            )
+        }
         "stale-compilation-unit" => (
             "stale-translation-unit",
             "The translation unit working directory or source no longer exists.".into(),
@@ -222,7 +237,7 @@ fn frozen_replay(error: &CppError) -> (String, String) {
 
 /// Frozen `C++SyntaxReplayError` target and `C++ replay <code>: <source>: <message>` tool error.
 pub(super) fn replay_error(unit: &CompilationUnit, error: &CppError) -> (InspectionTarget, String) {
-    let (code, message) = frozen_replay(error);
+    let (code, message) = frozen_replay(unit, error);
     (
         target(
             &unit.source,

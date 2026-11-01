@@ -85,7 +85,7 @@ fn run(oracle: &Value, case: &Value) -> Value {
             .unwrap()
             .clone()
     } else {
-        report
+        report.clone()
     };
     let targets: Vec<Value> = engine["targets"]
         .as_array()
@@ -109,6 +109,30 @@ fn run(oracle: &Value, case: &Value) -> Value {
     });
     if command != "verify" {
         captured["exit_code"] = json!(output.exit_code);
+    } else {
+        let database = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "compile_db")
+            .unwrap();
+        captured["compile_db"] = json!({
+            "status": database["status"],
+            "summary": database["summary"],
+            "targets": database["targets"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|target| {
+                    Value::Object(
+                        FIELDS
+                            .iter()
+                            .map(|key| ((*key).to_owned(), target[*key].clone()))
+                            .collect(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        });
     }
     let text = serde_json::to_string(&captured)
         .unwrap()
@@ -156,19 +180,29 @@ fn legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidenc
         }
         let mut actual = run(&oracle, case);
         let mut frozen = case["frozen"].clone();
-        if matches!(
-            name.as_str(),
-            "exact-budget" | "exact-no-replayable" | "lint-hybrid-mixed"
-        ) {
-            // Open (reporting/Python lint area): the adapted `ici.legacy.lint.target` findings
-            // name the engine's first tool evidence. Frozen lists Ruff (hybrid, Python linted
-            // first) or the unavailable clang-tidy (no replay ran) first; the native engine
-            // evidence starts with the compiler runs. Everything else must match.
+        if name == "lint-hybrid-mixed" {
+            // Open (Python lint area): the adapted `ici.legacy.lint.target` findings name the
+            // engine's first tool evidence. Frozen lists Ruff first (Python is linted first);
+            // the native Python lint output carries no tool evidence, so the compiler runs come
+            // first. Everything else must match.
             for side in [&mut actual, &mut frozen] {
                 for finding in side["findings"].as_array_mut().unwrap() {
                     finding["tool_name"] = json!("<first engine tool>");
                 }
             }
+        }
+        // The compile_db engine of the same verify run is compared on its own.
+        if let (Some(native), Some(oracle)) = (
+            actual
+                .as_object_mut()
+                .and_then(|item| item.remove("compile_db")),
+            frozen
+                .as_object_mut()
+                .and_then(|item| item.remove("compile_db")),
+        ) && native != oracle
+        {
+            eprintln!("== {name}/compile_db\nactual: {native}\nfrozen: {oracle}");
+            mismatches.push(format!("{name}/compile_db"));
         }
         if actual != frozen {
             eprintln!(

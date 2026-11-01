@@ -52,6 +52,18 @@ impl CppPlans {
         context: &CompilationContext,
     ) -> CompilationContext {
         let mut scoped = context.clone();
+        // Frozen `CompileDatabaseEngine` inspects every recorded configuration of the database
+        // (`context.compilation.units`), not only those of selected production sources.
+        if self.legacy_projection
+            && context.database_path.is_some()
+            && let Some(all) = self
+                .compiler_components
+                .get(id)
+                .and_then(|component| self.database_units.get(component))
+            && !all.is_empty()
+        {
+            scoped.units = all.clone();
+        }
         if let Some(directories) = self.compile_externals.get(id) {
             scoped
                 .selected_sources
@@ -83,7 +95,9 @@ impl CppPlans {
         let Some(context) = self.contexts.get(component) else {
             return;
         };
-        if context.complete() {
+        // Legacy unit diagnostics are projected per unit (`legacy_syntax`); only production
+        // sources without a command keep the legacy context incomplete.
+        if context.complete() || (self.legacy_projection && context.uncovered_sources.is_empty()) {
             return;
         }
         if self.legacy_projection {

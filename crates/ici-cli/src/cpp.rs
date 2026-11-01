@@ -1678,6 +1678,19 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
         available.evidence = ici_domain::EvidenceLevel::Estimated;
         output.observation.measurements.push(available);
     }
+    // Frozen `_ready_tool` records the unavailable tool as evidence without a command.
+    output.extra["tool_evidence"] = json!(
+        unavailable
+            .iter()
+            .filter(|(_, message, _)| message.ends_with("is unavailable or incompletely probed"))
+            .map(|(label, _, _)| json!({
+                "name": if *label == "ClazyUnavailable" { "clazy" } else { "clang-tidy" },
+                "path": "", "argv": [], "version": "", "returncode": null,
+                "error": "tool not found or capability probe incomplete; no command was executed",
+                "timed_out": false, "truncated": false,
+            }))
+            .collect::<Vec<_>>()
+    );
     for (label, message, required) in unavailable {
         output.observation.limitations.push(message.clone());
         let mut target = InspectionTarget::at(".", 1);
@@ -1891,22 +1904,10 @@ pub(crate) fn legacy_syntax_execution_error(
 /// Frozen `compile_db._RowError` messages for the row-shape codes; other codes keep the
 /// native message.
 pub(crate) fn legacy_context_message(code: &str, message: &str) -> String {
-    let frozen = match code {
-        "invalid-entry" => "A compilation database entry is not an object.",
-        "missing-file" => "A compilation database entry has no file field.",
-        "missing-directory" if message.contains("field") => {
-            "A compilation database entry has no directory field."
-        }
-        "missing-directory" => "The compilation working directory does not exist.",
-        "invalid-file" => "The compilation file field is not a string.",
-        "invalid-directory" => "The compilation directory field is not a string.",
-        "directory-outside-project" => "The compilation working directory is outside the project.",
-        "source-outside-project" => "The compilation source resolves outside the project.",
-        "invalid-source-path" => "The compilation source does not identify a file path.",
-        "stale-source" => "The compilation source no longer exists.",
-        _ => message,
-    };
-    format!("{code}: {frozen}")
+    format!(
+        "{code}: {}",
+        ici_cpp::legacy_diagnostic_message(code, message)
+    )
 }
 
 /// Appends frozen syntax execution errors after the context errors already recorded.

@@ -203,3 +203,16 @@ process verdict, with no inferred internal assertion count. Modern `analyze`
 continues to plan existing artifacts without implicit compilation. These cases
 close specific effects only; the complete frozen Make, source and capability
 audits remain independently tracked in the closure ledger.
+
+`lint-branches-oracle.json` is captured by `capture_lint_branches.py`: frozen legacy lint
+(`ici lint` heuristic fallback and `ici verify` exact database rows) with a fake `g++` shell
+driver first on PATH that kills itself, exits 3, exits 1 silently, reports an error with exit 0,
+reports only a warning with exit 1, floods stdout past the 1,000,000-byte limit or sleeps past
+the 120 s per-unit timeout, chosen by source name; plus rejected replay commands, several
+configurations of one source, unit diagnostics, no replayable unit, the 2048-unit budget and
+hybrid lint scopes. The verify cases also keep the compile_db engine result.
+`crates/ici-cli/tests/legacy_lint_branches.rs` replays every case natively (the optional
+`ICI_TEST_CASE=<name>[,<name>]` development filter defaults to all cases).
+`tidy-provider-oracle.json` is captured by `capture_tidy_provider.py`: a real clang-tidy
+`-p build` transcript over `parity-fixtures/cpp/lint-tidy` and derived transcripts fed to the
+frozen `ici next` ClangTidyProvider.parse, compared by `crates/ici-providers/tests/tidy_oracle.rs`.
