@@ -51,6 +51,33 @@
     ]
    }
   },
+  "line/thousands-grouping": {
+   "command": "line",
+   "files": {
+    "src/a.py": [
+     "lines",
+     1234,
+     1001,
+     2
+    ]
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "status": "FAIL",
+    "summary": "Total 2,237 lines (1,234 code, 1,001 comment, 2 blank) across 1 files",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Pure code lines (1234) exceed 1000 lines limit (Refactoring required)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "Python"
+     }
+    ]
+   }
+  },
   "resource/ast-at-limit": {
    "command": "resource",
    "files": {

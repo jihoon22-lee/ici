@@ -192,10 +192,46 @@ pub fn analyze(
         .cloned()
         .collect();
     let top_all: Vec<_> = rows.iter().take(5).cloned().collect();
-    output.extra = json!({"code":code,"comment":comment,"blank":blank,"total":total,"files_data":rows,"top_files":top,"top_files_all":top_all,"all":{"code":all_code,"comment":all_comment,"blank":all_blank,"total":all_code+all_comment+all_blank,"files":rows.len()},"metrics_summary":format!("{code} code / {counted} files")});
+    output.extra = json!({"code":code,"comment":comment,"blank":blank,"total":total,"files_data":rows,"top_files":top,"top_files_all":top_all,"all":{"code":all_code,"comment":all_comment,"blank":all_blank,"total":all_code+all_comment+all_blank,"files":rows.len()},"metrics_summary":format!("{} code / {counted} files", grouped(code))});
+    // Frozen engines/line.py groups every count with Python's `{:,}`.
     output.summary = format!(
-        "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {counted} files"
+        "Total {} lines ({} code, {} comment, {} blank) across {counted} files",
+        grouped(total),
+        grouped(code),
+        grouped(comment),
+        grouped(blank)
     );
     crate::cancelled(output, cancellation);
     finish_status(output, request);
+}
+
+/// Python `{value:,}` thousands grouping.
+fn grouped(value: u64) -> String {
+    let digits = value.to_string();
+    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
+    for (index, digit) in digits.chars().enumerate() {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(digit);
+    }
+    out
+}
+
+#[cfg(test)]
+mod grouped_tests {
+    use super::grouped;
+
+    #[test]
+    fn counts_group_like_python_format_spec_comma() {
+        for (value, text) in [
+            (0, "0"),
+            (999, "999"),
+            (1_000, "1,000"),
+            (2_237, "2,237"),
+            (1_234_567, "1,234,567"),
+        ] {
+            assert_eq!(grouped(value), text);
+        }
+    }
 }

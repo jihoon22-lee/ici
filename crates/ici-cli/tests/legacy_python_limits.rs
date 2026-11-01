@@ -1,7 +1,8 @@
 //! Legacy Python bounded-analysis stops against the frozen CLI
 //! (`tests/rust-parity/python/capture_legacy_python_limits.py`): `ici resource` past
 //! MAX_RESOURCE_AST_NODES (engines/resource.py:185) and `ici dup` past a bounded comparison
-//! limit (engines/dup.py:207). Fixtures are generated from the recorded parameters.
+//! limit (engines/dup.py:207), and the `{:,}` grouping of the `ici line` summary
+//! (engines/line.py). Fixtures are generated from the recorded parameters.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs};
@@ -17,7 +18,7 @@ const FIELDS: [&str; 6] = [
 
 /// The capture's generators (`constants`: `count + 6` CPython AST nodes in one statement;
 /// `statements`: `1 + 4 * count + 5 + tuple` nodes over many statements; `functions`: identical
-/// 14-line bodies).
+/// 14-line bodies; `lines`: code, comment and blank line counts).
 fn generate(content: &Value) -> String {
     if let Some(text) = content.as_str() {
         return text.to_owned();
@@ -38,19 +39,28 @@ fn generate(content: &Value) -> String {
                 .map(|i| format!("def f{i}(a, b):\n{body}    return v0\n\n\n"))
                 .collect()
         }
+        "lines" => {
+            let count = |index: usize| content[index].as_u64().unwrap() as usize;
+            format!(
+                "{}{}{}",
+                "x = 0\n".repeat(count(1)),
+                "# c\n".repeat(count(2)),
+                "\n".repeat(count(3))
+            )
+        }
         other => panic!("unknown generator {other}"),
     }
 }
 
 #[test]
-fn legacy_resource_and_dup_bounded_stops_match_frozen() {
+fn legacy_resource_and_dup_bounded_stops_and_line_grouping_match_frozen() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/python/legacy-python-limits-oracle.json"
     ))
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 6);
+    assert_eq!(cases.len(), 7);
     for (name, case) in cases {
         let root = tempfile::tempdir().unwrap();
         fs::write(

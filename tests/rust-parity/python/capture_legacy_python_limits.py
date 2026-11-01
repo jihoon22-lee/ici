@@ -2,7 +2,8 @@
 
 `ici resource` stops a file whose CPython AST exceeds MAX_RESOURCE_AST_NODES=100000
 (engines/resource.py:185, `ResourceAnalysisLimit`), and `ici dup` stops a scan that exceeds a
-bounded comparison limit (engines/dup.py:207, `DuplicateComparisonLimit`). The fixtures are
+bounded comparison limit (engines/dup.py:207, `DuplicateComparisonLimit`); `ici line` on a
+file past 1,000 lines shows the summary's `{:,}` grouping (engines/line.py). The fixtures are
 generated from the parameters recorded beside each case so the native test rebuilds the same
 bytes without checking in large trees.
 """
@@ -46,7 +47,18 @@ def functions(count: int) -> str:
     return "".join(f"def f{i}(a, b):\n" + body + "    return v0\n\n\n" for i in range(count))
 
 
-GENERATORS = {"constants": constants, "statements": statements, "functions": functions}
+def lines(code: int, comments: int, blanks: int) -> str:
+    """`code` statements, `comments` comment lines and `blanks` blank lines."""
+
+    return "x = 0\n" * code + "# c\n" * comments + "\n" * blanks
+
+
+GENERATORS = {
+    "constants": constants,
+    "statements": statements,
+    "functions": functions,
+    "lines": lines,
+}
 # name: (command, {path: [generator, count] or literal text})
 CASES = {
     "resource/ast-at-limit": ("resource", {"src/a.py": ["statements", 24_998, 2]}),
@@ -59,6 +71,7 @@ CASES = {
     "resource/long-logical-statement": ("resource", {"src/a.py": ["constants", 99_994]}),
     "dup/window-occurrence-limit": ("dup", {"src/a.py": ["functions", 2_100]}),
     "dup/raw-match-limit": ("dup", {"src/a.py": ["functions", 200]}),
+    "line/thousands-grouping": ("line", {"src/a.py": ["lines", 1_234, 1_001, 2]}),
 }
 
 
