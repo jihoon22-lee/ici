@@ -109,6 +109,10 @@ pub fn render_console(stored: &StoredResult, options: &RenderOptions) -> Result<
         projection.total_findings - visible,
         projection.groups.len() - visible_groups
     );
+    // Frozen console: the inventory panel names the command that shows the hidden rest.
+    if projection.total_findings > visible || projection.groups.len() > visible_groups {
+        let _ = writeln!(out, "Re-run with: ici verify --verbose");
+    }
     for limitation in &projection.limitations {
         let _ = writeln!(out, "Display limitation: {limitation}");
     }
