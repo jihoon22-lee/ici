@@ -786,22 +786,52 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         projection.total_findings,
         projection.groups.len()
     );
-    out.push_str("<div id=issue-groups>");
     let lazy = projection.total_findings > 2_000;
-    for group in projection
+    let engine_rows = engine_issue_rows(&view, &projection);
+    if !lazy {
+        axis_controls(&projection, &engine_rows, &mut out);
+    }
+    out.push_str("<div id=issue-groups>");
+    for (order, group) in projection
         .groups
         .iter()
         .take(if lazy { 50 } else { usize::MAX })
+        .enumerate()
     {
+        issue_axes(
+            &mut out,
+            order,
+            [
+                plain_or_empty(&group.view["engine_name"]),
+                plain_or_empty(&group.view["severity"]),
+                plain_or_empty(&group.view["category"]),
+                plain_or_empty(&group.view["confidence"]),
+                plain_or_empty(&group.view["rule_id"]),
+                plain_or_empty(&group.view["primary_location"]["path"]),
+            ],
+        );
         group_card(group, &mut out)?;
+        out.push_str("</div>");
     }
-    for (engine, status, summary) in engine_issue_rows(&view, &projection) {
+    for (index, (engine, status, summary)) in engine_rows.iter().enumerate() {
+        issue_axes(
+            &mut out,
+            projection.groups.len() + index,
+            [
+                engine.clone(),
+                status.clone(),
+                String::new(),
+                String::new(),
+                "engine".into(),
+                String::new(),
+            ],
+        );
         let _ = write!(
             out,
-            "<article class=finding data-search-row data-engine-issue><h3>engine · {}</h3><p>[{}] <span class=muted>engine result</span></p><p>{}</p></article>",
-            html(&status),
-            html(&engine),
-            html(&summary)
+            "<article class=finding data-search-row data-engine-issue><h3>engine · {}</h3><p>[{}] <span class=muted>engine result</span></p><p>{}</p></article></div>",
+            html(status),
+            html(engine),
+            html(summary)
         );
     }
     out.push_str("</div>");
@@ -933,6 +963,80 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         ));
     }
     Ok(out)
+}
+fn plain_or_empty(value: &Value) -> String {
+    if value.is_null() {
+        String::new()
+    } else {
+        plain(value)
+    }
+}
+const AXES: [(&str, &str); 5] = [
+    ("engine", "Engine"),
+    ("severity", "Severity"),
+    ("category", "Category"),
+    ("confidence", "Confidence"),
+    ("rule", "Rule"),
+];
+/// Frozen `sections/issues._render_axis_controls`: per-axis filters whose options are the values
+/// present (never an empty filter), a path filter and a sort over the rendered inventory. JSON and
+/// baseline inventories are untouched.
+fn axis_controls(
+    projection: &crate::IssueProjection,
+    engine_rows: &[(String, String, String)],
+    out: &mut String,
+) {
+    if projection.groups.is_empty() && engine_rows.is_empty() {
+        return;
+    }
+    let mut values: [std::collections::BTreeSet<String>; 5] = Default::default();
+    for group in &projection.groups {
+        for (index, key) in [
+            "engine_name",
+            "severity",
+            "category",
+            "confidence",
+            "rule_id",
+        ]
+        .iter()
+        .enumerate()
+        {
+            values[index].insert(plain_or_empty(&group.view[*key]));
+        }
+    }
+    for (engine, status, _) in engine_rows {
+        values[0].insert(engine.clone());
+        values[1].insert(status.clone());
+        values[4].insert("engine".into());
+    }
+    out.push_str("<div class=filters data-issue-filters>");
+    for ((axis, label), present) in AXES.iter().zip(values) {
+        let _ = write!(
+            out,
+            "<label>{label} <select data-issue-axis={axis}><option value=\"\">All</option>"
+        );
+        for value in present.iter().filter(|value| !value.is_empty()) {
+            let _ = write!(out, "<option>{}</option>", html(value));
+        }
+        out.push_str("</select></label> ");
+    }
+    out.push_str("<label>File <input type=search data-issue-file placeholder=\"path contains\" aria-label=\"File path contains\"></label> <label>Sort <select data-issue-sort><option value=order>Report order</option><option value=severity>Severity</option><option value=engine>Engine</option><option value=file>File</option></select></label> <span data-issue-count aria-live=polite></span></div>");
+}
+fn issue_axes(
+    out: &mut String,
+    order: usize,
+    [engine, severity, category, confidence, rule, file]: [String; 6],
+) {
+    let _ = write!(
+        out,
+        "<div data-issue data-order={order} data-engine=\"{}\" data-severity=\"{}\" data-category=\"{}\" data-confidence=\"{}\" data-rule=\"{}\" data-file=\"{}\">",
+        html(&engine),
+        html(&severity),
+        html(&category),
+        html(&confidence),
+        html(&rule),
+        html(&file)
+    );
 }
 /// A closed section whose content the page builds from the embedded saved result.
 pub(crate) fn lazy(out: &mut String, pointer: &str, indices: Option<&[usize]>, summary: &str) {

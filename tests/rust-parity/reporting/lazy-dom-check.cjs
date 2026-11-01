@@ -1,6 +1,7 @@
 // Development harness: load a native report into a minimal DOM, run its own inline script and
 // open every on-demand section. Prints JSON describing exactly what a browser user would see.
-// Usage: node lazy-dom-check.cjs report.html [filter-query]
+// Usage: node lazy-dom-check.cjs report.html [filter-query] [issue-controls-json]
+// issue-controls-json sets the issue axis filters/sort, e.g. {"severity":"high","sort":"file"}.
 'use strict';
 const fs = require('node:fs'), vm = require('node:vm');
 const VOID = new Set(['meta', 'input', 'br', 'hr', 'img', 'link']);
@@ -85,7 +86,7 @@ function parse(html) {
   return root;
 }
 async function main() {
-  const [file, query] = process.argv.slice(2);
+  const [file, query, controls] = process.argv.slice(2);
   const html = fs.readFileSync(file, 'utf8');
   if (/<script[^>]+src=|<link |https?:\/\/[^"'\s]*\.(js|css)/.test(html)) throw new Error('external resource reference');
   const root = parse(html);
@@ -141,7 +142,21 @@ async function main() {
     const rows = root.querySelectorAll('[data-search-row]');
     filtered = {shown: rows.filter(row => !row.hidden).length, total: rows.length, label: document.getElementById('filter-count').textContent};
   }
+  let issues = null;
+  const bar = root.querySelectorAll('[data-issue-filters]')[0];
+  if (bar && controls) {
+    const wanted = JSON.parse(controls);
+    for (const select of bar.querySelectorAll('[data-issue-axis]')) {
+      if (wanted[select.attributes['data-issue-axis']] !== undefined) select.value = wanted[select.attributes['data-issue-axis']];
+    }
+    if (wanted.file !== undefined) bar.querySelectorAll('[data-issue-file]')[0].value = wanted.file;
+    if (wanted.sort !== undefined) bar.querySelectorAll('[data-issue-sort]')[0].value = wanted.sort;
+    await bar.querySelectorAll('[data-issue-sort]')[0].dispatch('change');
+    issues = {count: bar.querySelectorAll('[data-issue-count]')[0].textContent,
+      order: document.getElementById('issue-groups').childNodes.filter(item => item instanceof Element)
+        .map(item => ({order: Number(item.attributes['data-order']), hidden: item.hidden, file: item.attributes['data-file'], severity: item.attributes['data-severity']}))};
+  }
   const payload = document.getElementById('ici-result');
-  process.stdout.write(JSON.stringify({sections, cards, saved, filtered, declared_bytes: Number(payload.attributes['data-bytes'])}));
+  process.stdout.write(JSON.stringify({sections, cards, saved, filtered, issues, declared_bytes: Number(payload.attributes['data-bytes'])}));
 }
 main().catch(error => { process.stderr.write(String(error && error.stack || error) + '\n'); process.exit(1); });

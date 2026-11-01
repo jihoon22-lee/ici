@@ -42,11 +42,30 @@ pub(crate) fn render(engines: &[Value], pointers: &[String], out: &mut String) -
     out.push_str("</nav>");
     for (index, (engine, pointer)) in engines.iter().zip(pointers).enumerate() {
         let name = engine["engine_name"].as_str().unwrap_or("unknown");
+        // Frozen summary row: a not-applicable engine is a dimmed `N/A` line whose reason stays
+        // collapsed, and the dedicated tabs omit it (sections/static_analysis skips SKIP).
+        let skipped = engine["status"] == "SKIP";
+        if skipped {
+            let _ = write!(
+                out,
+                "<section id=family-{index} data-family=\"{}\" class=muted><details><summary>{} · <span class=badge>N/A</span> Not applicable — why?</summary><p>{}</p>",
+                html(name),
+                html(title(name)),
+                html(&plain(&engine["summary"]))
+            );
+        }
         let _ = write!(
             out,
-            "<section id=family-{index} data-family=\"{}\"><h2>{}</h2><p><span class=badge>{}</span> {} · evidence {} · score {} / {}</p>",
-            html(name),
-            html(title(name)),
+            "{}<p><span class=badge>{}</span> {} · evidence {} · score {} / {}</p>",
+            if skipped {
+                String::new()
+            } else {
+                format!(
+                    "<section id=family-{index} data-family=\"{}\"><h2>{}</h2>",
+                    html(name),
+                    html(title(name))
+                )
+            },
             html(&plain(&engine["status"])),
             html(&plain(&engine["summary"])),
             html(&plain(&engine["evidence"])),
@@ -91,7 +110,11 @@ pub(crate) fn render(engines: &[Value], pointers: &[String], out: &mut String) -
                 );
             }
         }
-        out.push_str("</section>");
+        out.push_str(if skipped {
+            "</details></section>"
+        } else {
+            "</section>"
+        });
     }
     Ok(())
 }
@@ -172,6 +195,25 @@ fn lines(extra: &Value, out: &mut String) -> Result<()> {
         }
     }
     rich(&Value::Object(summary), out)?;
+    // Frozen `_render_ratio_card`: code/comment/blank shares of max(1, total), one decimal.
+    for (label, totals) in [
+        ("Source files", extra),
+        ("All project files", &extra["all"]),
+    ] {
+        let count = |key: &str| totals[key].as_f64();
+        if let (Some(code), Some(comment), Some(blank)) =
+            (count("code"), count("comment"), count("blank"))
+        {
+            let total = count("total").unwrap_or(code + comment + blank).max(1.0);
+            let _ = write!(
+                out,
+                "<p data-line-ratio>{label}: Code ({:.1}%) · Comments ({:.1}%) · Blanks ({:.1}%)</p>",
+                code / total * 100.0,
+                comment / total * 100.0,
+                blank / total * 100.0
+            );
+        }
+    }
     if let Some(top) = extra["top_files"].as_array() {
         out.push_str("<h3>Largest source files</h3><div class=bars>");
         let maximum = top
