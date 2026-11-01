@@ -270,7 +270,13 @@ pub fn legacy_tooling_projection(
             .collect::<Vec<_>>()
             .join("; ")
     } else {
-        errors.join("; ")
+        // Frozen LintEngine `"; ".join(tool_errors[:3])`.
+        errors
+            .iter()
+            .take(3)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ")
     };
     output.targets = targets;
 }
