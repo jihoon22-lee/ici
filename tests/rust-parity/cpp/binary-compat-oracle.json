@@ -8,6 +8,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -24,6 +25,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -65,6 +67,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libgcc_s.so.1, libstdc++.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      }
+     ],
      "rules": [
       "ici.binary.forbidden-dependency",
       "ici.legacy.binary-compat.target"
@@ -82,6 +104,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -121,6 +144,7 @@
    },
    "frozen": {
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -160,6 +184,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -176,6 +201,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -215,6 +241,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:24beb4accba13943b4d674a67aa8ec9c71009f1f4ab2dd099eb7e5bb87f76165",
+       "message": "ELF class 'ELF64' does not match expected 'ELF32'",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.class-mismatch",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.header.class"
+      }
+     ],
      "rules": [
       "ici.binary.class-mismatch",
       "ici.legacy.binary-compat.target"
@@ -232,6 +278,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -271,6 +318,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:16f64960af9017661bb8cba48c6c1264bbd5231983c69b5d32224f095fb9ba5c",
+       "message": "ELF machine 'Advanced Micro Devices X86-64' does not match expected 'AArch64'",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.machine-mismatch",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.header.machine"
+      }
+     ],
      "rules": [
       "ici.binary.machine-mismatch",
       "ici.legacy.binary-compat.target"
@@ -288,6 +355,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -328,6 +396,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -344,6 +413,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -383,6 +453,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target",
       "ici.legacy.binary-compat.target"
@@ -407,6 +478,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -448,6 +520,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:ca19d9623e93d82075bc977761570302d0d8c0126b8ca38441d30bd9d895c822",
+       "message": "Maximum required CXXABI 1.3.9 exceeds configured 1.2",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.cxxabi-floor",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.version.cxxabi"
+      }
+     ],
      "rules": [
       "ici.binary.cxxabi-floor",
       "ici.legacy.binary-compat.target"
@@ -465,6 +557,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -506,6 +599,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -522,6 +616,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -563,6 +658,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:66a53c0b2072c4b4d8b56dfd18db088c03858aeb61e89dea2822853860bfce6e",
+       "message": "Maximum required GLIBCXX 3.4.21 exceeds configured 3.4",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.glibcxx-floor",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.version.glibcxx"
+      }
+     ],
      "rules": [
       "ici.binary.glibcxx-floor",
       "ici.legacy.binary-compat.target"
@@ -580,6 +695,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -621,6 +737,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -637,6 +754,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -674,6 +792,7 @@
    "changes": {},
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -690,6 +809,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -732,6 +852,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libc.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      }
+     ],
      "rules": [
       "ici.binary.forbidden-dependency",
       "ici.legacy.binary-compat.target"
@@ -749,6 +889,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -788,6 +929,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libc.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      }
+     ],
      "rules": [
       "ici.binary.forbidden-dependency",
       "ici.legacy.binary-compat.target"
@@ -805,6 +966,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -844,6 +1006,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -860,6 +1023,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target"
@@ -892,6 +1056,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -908,6 +1073,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target"
@@ -940,6 +1106,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target",
       "ici.legacy.binary-compat.target"
@@ -964,6 +1131,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1003,6 +1171,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:4419a2dc0b77986d251b11abaa260183417308adf27157858e800a733d4b1c93",
+       "message": "Selected binary manifest artifact is not an ELF object",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "tool.exe",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.non-elf",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.magic"
+      }
+     ],
      "rules": [
       "ici.binary.non-elf",
       "ici.legacy.binary-compat.target",
@@ -1028,6 +1216,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1065,6 +1254,7 @@
    "changes": {},
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -1081,6 +1271,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1120,6 +1311,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:99f60be64d9d95f0c7caed95709fb9c4ce115e4f0ab06865dfca095f6be12992",
+       "message": "Artifact is dynamically linked but the policy requires static linkage",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.dynamic-linkage",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.linkage.dynamic"
+      }
+     ],
      "rules": [
       "ici.binary.dynamic-linkage",
       "ici.legacy.binary-compat.target"
@@ -1137,6 +1348,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1176,6 +1388,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -1192,6 +1405,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1232,6 +1446,26 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:daa11608e681b0b01ad20374f5b7c854304d3acdadde5ffc09d68039ce900648",
+       "message": "ELF loader path exposes build roots: <project>/build/ici-make",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.build-path-leak",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.rpath.build-path"
+      }
+     ],
      "rules": [
       "ici.binary.build-path-leak",
       "ici.legacy.binary-compat.target"
@@ -1249,6 +1483,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1289,6 +1524,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -1305,6 +1541,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1344,6 +1581,44 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:daa11608e681b0b01ad20374f5b7c854304d3acdadde5ffc09d68039ce900648",
+       "message": "ELF loader path exposes build roots: <project>/build/ici-make",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.build-path-leak",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.rpath.build-path"
+      },
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:1f78cd5c9222132140cf7785cd379b55f76b80762593da6c6c29742c97062ca2",
+       "message": "ELF loader path contains absolute entries: /opt/vendor/lib, <project>/build/ici-make",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-rpath",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.rpath.forbidden"
+      }
+     ],
      "rules": [
       "ici.binary.build-path-leak",
       "ici.binary.forbidden-rpath",
@@ -1362,6 +1637,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1399,6 +1675,7 @@
    "changes": {},
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -1415,6 +1692,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1460,6 +1738,7 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [],
      "rules": [
       "ici.legacy.binary-compat.target"
      ],
@@ -1476,6 +1755,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",
@@ -1515,6 +1795,44 @@
    },
    "frozen": {
     "binary_compat": {
+     "findings": [
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:32f879bcca137cb8c19a76c92bb819fce7f054076383a66950628f846e49351e",
+       "message": "ELF requires disallowed dependencies: libc.so.6",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.forbidden-dependency",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.dynamic.needed"
+      },
+      {
+       "category": "compatibility",
+       "confidence": "exact",
+       "fingerprint": "sha256:ebfe282efb4da487355cc8b7e94a956e142eff4639c029f0cc0640f3197239c2",
+       "message": "Maximum required GLIBC 2.34 exceeds configured 2.0",
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "",
+        "path": "app",
+        "start_column": null,
+        "start_line": 1
+       },
+       "rule_id": "ici.binary.glibc-floor",
+       "severity": "high",
+       "tool_name": "readelf",
+       "tool_rule_id": "elf.version.glibc"
+      }
+     ],
      "rules": [
       "ici.binary.forbidden-dependency",
       "ici.binary.glibc-floor",
@@ -1533,6 +1851,7 @@
      ]
     },
     "build": {
+     "findings": [],
      "rules": [
       "ici.legacy.build.target",
       "ici.legacy.build.target",

@@ -211,7 +211,11 @@ pub fn abi_violations(
             add(
                 &format!("{label}-mismatch"),
                 &format!("header.{label}"),
-                format!("ELF {label} {actual:?} does not match expected {expected:?}"),
+                format!(
+                    "ELF {label} {} does not match expected {}",
+                    python_repr(actual),
+                    python_repr(expected)
+                ),
             );
         }
     }
@@ -355,4 +359,47 @@ pub fn analyze_elf(
     measurement(&mut output, "artifacts_checked", 1, false);
     output.extra = serde_json::json!({"facts":facts});
     Ok(output)
+}
+
+/// Python `repr()` of a printable string, as frozen `abi_violations` formats `{actual!r}`:
+/// single quotes unless the text holds a single quote and no double quote.
+fn python_repr(text: &str) -> String {
+    let quote = if text.contains('\'') && !text.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
+    let mut out = String::from(quote);
+    for character in text.chars() {
+        match character {
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c == quote => {
+                out.push('\\');
+                out.push(c);
+            }
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                out.push_str(&format!("\\x{:02x}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out.push(quote);
+    out
+}
+
+#[cfg(test)]
+mod repr_tests {
+    use super::python_repr;
+
+    #[test]
+    fn python_repr_matches_frozen_quote_choice_and_escapes() {
+        // repr('ELF64'), repr("it's"), repr('a\'b"c'), repr('x\\y')
+        assert_eq!(python_repr("ELF64"), "'ELF64'");
+        assert_eq!(python_repr("it's"), "\"it's\"");
+        assert_eq!(python_repr("a'b\"c"), "'a\\'b\"c'");
+        assert_eq!(python_repr("x\\y"), "'x\\\\y'");
+    }
 }

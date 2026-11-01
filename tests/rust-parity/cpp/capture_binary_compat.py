@@ -20,6 +20,17 @@ FIXTURES = ROOT / "parity-fixtures/cpp"
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-binary-compat-capture"
 TOOLS = sorted({str(Path(shutil.which(name)).parent) for name in ("make", "g++", "readelf")})
 FIELDS = ("target_name", "status", "message", "start_line", "file_path")
+FINDING_FIELDS = (
+    "rule_id",
+    "message",
+    "severity",
+    "confidence",
+    "category",
+    "tool_name",
+    "tool_rule_id",
+    "primary_location",
+    "fingerprint",
+)
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
     == EXPECTED
@@ -170,6 +181,21 @@ def run(changes: dict, hidden: list[str], replaced: dict | None = None) -> dict:
                     {key: target.get(key) for key in FIELDS} for target in engine["targets"]
                 ],
                 "rules": sorted(finding["rule_id"] for finding in engine.get("findings", [])),
+                # Every frozen ABI finding (analysis/binary_abi.py binary_finding); loader-path
+                # messages name the temporary project, normalized to "<project>".
+                "findings": sorted(
+                    (
+                        {
+                            key: json.loads(
+                                json.dumps(finding.get(key)).replace(str(project), "<project>")
+                            )
+                            for key in FINDING_FIELDS
+                        }
+                        for finding in engine.get("findings", [])
+                        if finding["rule_id"].startswith("ici.binary.")
+                    ),
+                    key=lambda finding: (finding["rule_id"], finding["fingerprint"]),
+                ),
             }
     return engines
 

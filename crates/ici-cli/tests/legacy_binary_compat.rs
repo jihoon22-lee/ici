@@ -4,6 +4,18 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+const FINDING_FIELDS: [&str; 9] = [
+    "rule_id",
+    "message",
+    "severity",
+    "confidence",
+    "category",
+    "tool_name",
+    "tool_rule_id",
+    "primary_location",
+    "fingerprint",
+];
+
 fn engines(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> Value {
     let root = tempfile::tempdir().unwrap();
     let fixture =
@@ -55,9 +67,39 @@ fn engines(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> 
             .filter_map(|finding| finding["rule_id"].as_str().map(str::to_owned))
             .collect();
         rules.sort();
+        // Every ABI finding with the capture's "<project>" normalization of loader paths.
+        let project = root.path().display().to_string();
+        let mut findings: Vec<Value> = engine["findings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|finding| {
+                finding["rule_id"]
+                    .as_str()
+                    .is_some_and(|rule| rule.starts_with("ici.binary."))
+            })
+            .map(|finding| {
+                let picked = Value::Object(
+                    FINDING_FIELDS
+                        .iter()
+                        .map(|key| ((*key).to_owned(), finding[*key].clone()))
+                        .collect(),
+                );
+                serde_json::from_str(&picked.to_string().replace(&project, "<project>")).unwrap()
+            })
+            .collect();
+        findings.sort_by_key(|finding| {
+            (
+                finding["rule_id"].as_str().unwrap_or_default().to_owned(),
+                finding["fingerprint"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_owned(),
+            )
+        });
         engines.insert(
             name.into(),
-            json!({"status":engine["status"],"summary":engine["summary"],"targets":targets,"rules":rules}),
+            json!({"status":engine["status"],"summary":engine["summary"],"targets":targets,"rules":rules,"findings":findings}),
         );
     }
     Value::Object(engines)

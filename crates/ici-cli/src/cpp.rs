@@ -2655,6 +2655,13 @@ pub fn legacy_binary_compat(output: &mut AnalysisOutput, shadow: &str, variant: 
         "ELF compatibility: {checked} checked, {} violation(s), {skipped} skipped",
         findings.len()
     );
+    // Frozen `binary_finding(rule, record.path, ...)` locates each ABI finding at the
+    // manifest record path, relative to the shadow root (its fingerprint follows).
+    for finding in &mut output.observation.findings {
+        if let Some(relative) = finding.primary_location.path.strip_prefix(&prefix) {
+            finding.primary_location.path = relative.to_owned();
+        }
+    }
 }
 
 /// Frozen `_build_with_adapter` success target: `BuildAdapter[<backend>]` PASS at the descriptor,

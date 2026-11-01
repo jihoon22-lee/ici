@@ -2237,7 +2237,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case enabled (disabled vs pass: frozen and native report no binary_compat result when false), required and the table defaults, gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2263,7 +2264,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.allow_non_elf: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (non-elf-allowed SKIP NonElf vs non-elf-rejected FAIL) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2290,7 +2292,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.allowed_needed: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case allowed-needed (['libc.so.6'] on a libstdc++ binary) vs abi-reference: ici.binary.forbidden-dependency FAIL, gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2336,7 +2339,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); tests/rust-parity/cpp/verify-matrix-oracle.json (capture_verify_matrix.py); oracle 6fe3e40.",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.enabled: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (enabled deep pipeline vs the verify matrix profile_deep (frozen default off)) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2363,7 +2367,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.expected_class: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case expected-class-mismatch (ELF32) vs expected-class-machine-match (ELF64): ici.binary.class-mismatch FAIL / PASS, gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2390,7 +2395,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.expected_machine: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case expected-machine-mismatch (AArch64) vs expected-class-machine-match (Advanced Micro Devices X86-64): ici.binary.machine-mismatch FAIL / PASS, gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2417,7 +2423,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.forbid_absolute_rpath: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case rpath-default (/opt/vendor/lib and $(CURDIR)/build/ici-make RUNPATH: forbidden-rpath + build-path-leak) vs rpath-absolute-allowed (build-path-leak only), gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2444,7 +2451,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.forbid_build_paths: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case rpath-absolute-allowed (build-path-leak) vs rpath-all-allowed (PASS), gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2470,7 +2478,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.forbidden_needed: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (violations (libc.so.6 forbidden) vs pass) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2497,7 +2506,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.max_artifacts: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case max-artifacts (1 over two published executables: AnalysisUnavailable ERROR 'binary artifact count exceeds configured maximum 1') vs max-artifacts-reference (2 checked PASS), gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf. Rust defect fixed: the overflow was a SKIP with the planner's '1..max_artifacts' text and no target (crates/ici-cli/src/planning.rs legacy_binary_selection).",
       "difference_reason": null
@@ -2524,7 +2534,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.max_cxxabi: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case max-cxxabi ('1.2': ici.binary.cxxabi-floor FAIL) vs max-cxxabi-ok ('1.3.99': PASS), gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2550,7 +2561,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.max_glibc: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (violations (max_glibc 2.0) vs pass) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2577,7 +2589,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.max_glibcxx: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case max-glibcxx ('3.4': ici.binary.glibcxx-floor FAIL) vs max-glibcxx-ok ('3.4.99': PASS), gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2604,7 +2617,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.mode: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case mode-pass-warn (engine WARN, target FAIL) vs mode-pass-warn-fail (FAIL) over the same libc.so.6 violation, gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2631,7 +2645,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, 28 cases; the capture asserts every key case differs from its reference; old 9 cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log"
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored --test-threads=2: pass (status, summary, targets, sorted finding rule_ids and the engine set); /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.require_static: the frozen deep `ici verify --profile deep` pipeline over parity-fixtures/cpp/package-make, case require-static (ici.binary.dynamic-linkage FAIL) vs require-static-off (PASS), gives the same build and binary_compat status, summary, every target and the finding rule ids through actual Make/g++/readelf.",
       "difference_reason": null
@@ -2657,7 +2672,8 @@
       },
       "evidence": [
         "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
-        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
       "comparison": "C++ facet of engines.binary_compat.required: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (no-artifacts-required ERROR vs no-artifacts SKIP) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
       "difference_reason": null
@@ -7700,24 +7716,31 @@
       "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/analysis/binary_abi.py:33:11": {
-      "status": "implemented",
+      "status": "complete",
       "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
         "crates/ici-cpp/src/elf.rs",
         "crates/ici-validation/src/cpp.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline",
+          "crates/ici-cpp/src/elf.rs::repr_tests::python_repr_matches_frozen_quote_choice_and_escapes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "failure": [
           "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
-        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log"
+        "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
+        "Recapture with every ici.binary.* finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, primary_location, fingerprint; '<project>' normalization of loader paths): /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat-capture.log; cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: 28/28 pass, plus ici-cpp elf/lib and ici-cli published_abi, native_validation_extra, native_cpp, python_binary_scope, integration_legacy, artifact_contract; /tmp/ici-rust-replacement-20261028/w-cpp10-binary-compat2.log, /tmp/ici-rust-replacement-20261028/w-cpp10-binary-regress2.log"
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen ici.binary.* findings (rule id, message, high/exact, path line 1). The violations oracle case shows Rust produces the same number of violations for forbidden_needed and max_glibc (target message '2 binary compatibility violation(s)').",
-      "difference_reason": "Open: finding rule ids, messages, fingerprints and locations are not compared field by field (the legacy oracle records engine targets only); frozen locates findings at the shadow-relative artifact path while Rust uses the project path."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen ici.binary.* findings (rule id, message, high/exact, path line 1). The violations oracle case shows Rust produces the same number of violations for forbidden_needed and max_glibc (target message '2 binary compatibility violation(s)'). Field by field (28 cases): every frozen binary_finding — class/machine mismatch, glibc/glibcxx/cxxabi floors, dynamic linkage, forbidden absolute rpath, build-path leak, forbidden/outside-allowed dependency, non-ELF — has the same rule id, message, high/exact/compatibility, readelf tool ids, shadow-relative location and fingerprint. Rust defects fixed: Rust located findings at the project-relative path (build/ici-make/app, so fingerprints differed) and quoted class/machine with Rust Debug quotes instead of Python repr (crates/ici-cli/src/cpp.rs legacy_binary_compat, crates/ici-cpp/src/elf.rs python_repr).",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/cycles.py:491:12": {
       "status": "not_started",
@@ -9867,12 +9890,12 @@
       "reason": "Unreviewed: Open: source-input exclusion site not compared beyond the verified include_generated/include_vendor keys. Exact frozen hash bdd55b8882e40e63c58381e7d82331407baf432c4140ca6399901a9ab3d103ea and 13 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
     },
     "src/ici/analysis/binary_abi.py": {
-      "disposition": "unreviewed",
+      "disposition": "mapped",
       "requirements": [
         "capability:build-artifact-abi",
         "finding_site:src/ici/analysis/binary_abi.py:33:11"
       ],
-      "reason": "Unreviewed: Open: ABI fact extraction not compared with frozen. Exact frozen hash 97aa4356a727d5020f98ef35ea30fb2fa6f651cd5233c62492763223b0ef136a and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Mapped: whole frozen module read (3 symbols: _artifact_id, binary_finding, abi_violations). _artifact_id is the BinaryCompatibility:<variant>:shadow:<path> target identity (crates/ici-cli/src/cpp.rs legacy_binary_compat); binary_finding and every abi_violations branch (expected_class/machine, max_glibc/glibcxx/cxxabi via maximum_version/version_key, require_static, forbid_absolute_rpath, forbid_build_paths with project and shadow build roots, forbidden_needed/allowed_needed precedence) map to crates/ici-cpp/src/elf.rs abi_violations and are replayed field by field against the frozen deep pipeline (tests/rust-parity/cpp/binary-compat-oracle.json, 28 cases, crates/ici-cli/tests/legacy_binary_compat.rs). Hash 97aa4356a727d5020f98ef35ea30fb2fa6f651cd5233c62492763223b0ef136a."
     },
     "src/ici/analysis/cpp_complexity.py": {
       "disposition": "unreviewed",
