@@ -71,6 +71,17 @@
     if (typeof value === 'string' && /[\r\n]/.test(value)) return node('pre', value);
     return document.createTextNode(plain(value));
   };
+  // Same extent label as the server's range_label (frozen _related_location_label without path).
+  const rangeLabel = span => {
+    if (!Number.isInteger(span.start_line)) return null;
+    const start = span.start_line, end = Number.isInteger(span.end_line) ? span.end_line : start;
+    const startColumn = Number.isInteger(span.start_column) ? span.start_column : null;
+    const endColumn = Number.isInteger(span.end_column) ? span.end_column : null;
+    let label = `L${start}` + (startColumn !== null ? `:C${startColumn}` : '');
+    if (end > start) return label + `-L${end}` + (endColumn !== null ? `:C${endColumn}` : '');
+    if (endColumn !== null && endColumn !== startColumn) return label + `-C${endColumn}`;
+    return null;
+  };
   const card = finding => {
     const article = node('article'); article.className = 'finding'; article.dataset.searchRow = '';
     const span = finding.primary_location || {};
@@ -78,6 +89,8 @@
     const where = node('p');
     where.appendChild(copyLocation(typeof span.path === 'string' ? span.path : 'unknown',
       Number.isInteger(span.start_line) && span.start_line >= 0 ? span.start_line : 1, span.start_column));
+    const range = rangeLabel(span);
+    if (range) { const extent = node('span', range); extent.className = 'muted'; where.appendChild(document.createTextNode(' ')); where.appendChild(extent); }
     where.appendChild(document.createTextNode(' ' + plain(finding.message)));
     article.appendChild(where); article.appendChild(node('p', plain(finding.explanation)));
     const marks = [];

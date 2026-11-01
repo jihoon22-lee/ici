@@ -1261,6 +1261,27 @@ fn group_card(group: &crate::IssueGroup, out: &mut String) -> Result<()> {
     Ok(())
 }
 
+/// Frozen `sections/issues._related_location_label` without the path: the span's extent when it
+/// covers more than its start (`L13-L31`, `L4:C5-C10`); `None` for a single point.
+fn range_label(span: &Value) -> Option<String> {
+    let start = span["start_line"].as_u64()?;
+    let end = span["end_line"].as_u64().unwrap_or(start);
+    let (start_column, end_column) = (span["start_column"].as_u64(), span["end_column"].as_u64());
+    let mut label = format!("L{start}");
+    if let Some(column) = start_column {
+        label.push_str(&format!(":C{column}"));
+    }
+    if end > start {
+        label.push_str(&format!("-L{end}"));
+        if let Some(column) = end_column {
+            label.push_str(&format!(":C{column}"));
+        }
+    } else {
+        let column = end_column.filter(|column| Some(*column) != start_column)?;
+        label.push_str(&format!("-C{column}"));
+    }
+    Some(label)
+}
 fn copy_location(path: &str, line: u64, column: Option<u64>) -> String {
     let text = format!(
         "{path}:{line}{}",
@@ -1299,7 +1320,7 @@ fn markdown_location(finding: &Value, options: &RenderOptions) -> Result<String>
 fn finding_card(finding: &Value, out: &mut String) -> Result<()> {
     let _ = write!(
         out,
-        "<article class=finding data-search-row><h3>{} · {}</h3><p>{} {}</p><p>{}</p><p class=muted>{}</p>",
+        "<article class=finding data-search-row><h3>{} · {}</h3><p>{}{} {}</p><p>{}</p><p class=muted>{}</p>",
         html(&plain(&finding["rule_id"])),
         html(&plain(&finding["severity"])),
         copy_location(
@@ -1311,6 +1332,10 @@ fn finding_card(finding: &Value, out: &mut String) -> Result<()> {
                 .unwrap_or(1),
             finding["primary_location"]["start_column"].as_u64()
         ),
+        range_label(&finding["primary_location"]).map_or_else(String::new, |range| format!(
+            " <span class=muted>{}</span>",
+            html(&range)
+        )),
         html(&plain(&finding["message"])),
         html(&plain(&finding["explanation"])),
         html(&marks(finding))

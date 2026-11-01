@@ -160,3 +160,32 @@ fn issue_filters_and_sort_run_in_the_page_script() {
     let none = harness(&html, r#"{"severity":"not-a-severity"}"#);
     assert_eq!(none["count"], format!("0 of {total} issues shown"));
 }
+
+#[test]
+fn issue_cards_show_the_frozen_location_extent_only_for_a_range() {
+    let base: Value = serde_json::from_slice(include_bytes!(
+        "../../../tests/fixtures/ici-next/run-code-fail.json"
+    ))
+    .unwrap();
+    let with = |span: Value| {
+        let mut value = base.clone();
+        value["findings"][0]["primary_location"] = span;
+        page(&value)
+    };
+    let path = "python/tool-a/demo.py";
+    // A single point (end_line == start_line, no end column) adds nothing.
+    assert!(!page(&base).contains("<span class=muted>L12"));
+    let lines = with(serde_json::json!({"path":path,"start_line":13,"end_line":31}));
+    assert!(
+        lines.contains("</button> <span class=muted>L13-L31</span> "),
+        "{lines}"
+    );
+    let columns = with(
+        serde_json::json!({"path":path,"start_line":4,"end_line":4,"start_column":5,"end_column":10}),
+    );
+    assert!(columns.contains("<span class=muted>L4:C5-C10</span>"));
+    let both = with(
+        serde_json::json!({"path":path,"start_line":4,"end_line":6,"start_column":5,"end_column":2}),
+    );
+    assert!(both.contains("<span class=muted>L4:C5-L6:C2</span>"));
+}
