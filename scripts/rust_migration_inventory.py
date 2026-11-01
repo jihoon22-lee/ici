@@ -35,6 +35,11 @@ STATUS_RANK = {
     "complete": 4,
 }
 CLOSURE_DIR = "closure"
+IMPORT_CLOSURE = ROOT / "tests/rust-parity/oracle/import-closure-oracle.json"
+# pyproject.toml [project.scripts] ici = "ici.__main__:main"; the pyz runs the same console script.
+ENTRY_POINTS = ("ici.__main__",)
+# Rows and audits that claim this carry no behaviour; --check proves the claim from the oracle.
+UNREACHABLE_MARK = "No behaviour to preserve: unreachable"
 
 
 def expression(node: ast.AST | None) -> str | None:
@@ -189,6 +194,79 @@ def read_oracle() -> Source:
             assert content is not None
             files[member.name] = content.read()
     return Source(files)
+
+
+def imported_modules(source: Source, path: str, name: str) -> set[str]:
+    """Every ici module a module names in an import, function-local imports included."""
+    base = name.split(".") if path.endswith("/__init__.py") else name.split(".")[:-1]
+    found: set[str] = set()
+    for node in ast.walk(source.trees[path]):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                parent = base[: len(base) - node.level + 1]
+                module = ".".join(parent + ([node.module] if node.module else []))
+            else:
+                module = node.module or ""
+            found.add(module)
+            found.update(f"{module}.{alias.name}" for alias in node.names)
+    prefixes = {
+        ".".join(parts[:index])
+        for parts in (module.split(".") for module in found)
+        for index in range(1, len(parts) + 1)
+    }
+    return {module for module in prefixes if module in source.modules}
+
+
+def reachable_modules(source: Source, entries: tuple[str, ...] = ENTRY_POINTS) -> set[str]:
+    seen: set[str] = set()
+    pending = list(entries)
+    while pending:
+        module = pending.pop()
+        if module in seen:
+            continue
+        if module not in source.modules:
+            raise ValueError(f"import closure entry point is not in the oracle: {module}")
+        seen.add(module)
+        pending.extend(imported_modules(source, source.modules[module], module) - seen)
+    return seen
+
+
+def import_closure(source: Source) -> dict[str, Any]:
+    """Python modules no frozen entry point imports. Data files are not import-reachability cases."""
+    seen = {source.modules[module] for module in reachable_modules(source)}
+    return {
+        "schema_id": "ici.rust-parity.import-closure",
+        "oracle": ORACLE,
+        "entry_points": [f"{module}:main" for module in ENTRY_POINTS],
+        "reachable_modules": len(seen),
+        "unreachable": [
+            {"path": path, "sha256": hashlib.sha256(source.files[path]).hexdigest()}
+            for path in sorted(source.trees)
+            if path not in seen
+        ],
+    }
+
+
+def validate_unreachable_claims(effective: dict[str, Any], closure: dict[str, Any]) -> None:
+    """A row or audit may only claim unreachability for a module the closure proves unreachable."""
+    unreachable = {item["path"] for item in closure["unreachable"]}
+    for item in effective["source_files"]:
+        reason = item["audit"]["reason"] or ""
+        claimed = UNREACHABLE_MARK in reason or (
+            item["audit"]["disposition"] == "retired" and "nreachable" in reason
+        )
+        if claimed and item["path"] not in unreachable:
+            raise ValueError(f"unreachability claimed for a reachable module: {item['path']}")
+    for item in effective["requirements"]:
+        progress = item["migration"]
+        text = (progress.get("comparison") or "") + (progress.get("difference_reason") or "")
+        if UNREACHABLE_MARK not in text:
+            continue
+        path = item["id"].split(":")[1] if item["id"].startswith("finding_site:") else None
+        if path not in unreachable:
+            raise ValueError(f"unreachability claimed for a reachable site: {item['id']}")
 
 
 def registry_rows(source: Source) -> list[dict[str, Any]]:
@@ -1163,6 +1241,47 @@ def markdown(document: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def import_closure_self_test() -> None:
+    """unreachable_module_listed, reachable_module_not_listed, unreachable_claim_refused."""
+    source = Source(
+        {
+            "src/ici/__main__.py": b"from .engines import run\n",
+            "src/ici/engines/__init__.py": b"def run():\n    from ici.engines.local import go\n",
+            "src/ici/engines/local.py": b"from ..core import helper\n",
+            "src/ici/core/__init__.py": b"",
+            "src/ici/core/helper.py": b"X = 1\n",
+            "src/ici/orphan.py": b"import ici.core\n",
+            "src/ici/schemas/run.json": b"{}",
+        }
+    )
+    closure = import_closure(source)
+    assert [item["path"] for item in closure["unreachable"]] == ["src/ici/orphan.py"]
+    assert closure["reachable_modules"] == 5
+
+    def site(path: str) -> dict[str, Any]:
+        return {
+            "id": f"finding_site:{path}:1:1",
+            "migration": {"comparison": f"{UNREACHABLE_MARK} from every frozen entry point"},
+        }
+
+    validate_unreachable_claims(
+        {"requirements": [site("src/ici/orphan.py")], "source_files": []}, closure
+    )
+    for path in ("src/ici/core/helper.py", "src/ici/missing.py"):
+        try:
+            validate_unreachable_claims({"requirements": [site(path)], "source_files": []}, closure)
+        except ValueError as error:
+            assert "reachable site" in str(error)
+        else:
+            raise AssertionError("unreachability accepted for a reachable or unknown module")
+    try:
+        reachable_modules(source, ("ici.absent",))
+    except ValueError as error:
+        assert "not in the oracle" in str(error)
+    else:
+        raise AssertionError("unknown entry point accepted")
+
+
 def merge_self_test(document: dict[str, Any]) -> None:
     identifier = document["requirements"][0]["id"]
     document = copy.deepcopy(document)
@@ -1304,9 +1423,10 @@ def self_test() -> None:
     else:
         raise AssertionError("evidence deletion accepted")
     merge_self_test(document)
+    import_closure_self_test()
     print(
         "PASS: command/option aliases, source location, open/false closure, evidence preservation/deletion,"
-        " conjunctive fragment merge"
+        " conjunctive fragment merge, import closure"
     )
 
 
@@ -1325,16 +1445,20 @@ def main() -> int:
         self_test()
         return 0
     target = args.output_dir / "inventory.json"
-    document = collect(read_oracle())
+    source = read_oracle()
+    document = collect(source)
     if target.exists():
         preserve_evidence(document, json.loads(target.read_text(encoding="utf-8")))
     validate(document)
     fragments = read_fragments(args.output_dir / CLOSURE_DIR)
     effective = merge_fragments(document, fragments)
     validate(effective, require_closed=args.require_closed)
+    closure = import_closure(source)
+    validate_unreachable_claims(effective, closure)
     outputs = {
         target: json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         args.output_dir / "inventory.md": markdown(document),
+        IMPORT_CLOSURE: json.dumps(closure, ensure_ascii=False, indent=2) + "\n",
     }
     if args.check:
         stale = [
@@ -1347,6 +1471,7 @@ def main() -> int:
     else:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         for path, content in outputs.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
     print(
         json.dumps(

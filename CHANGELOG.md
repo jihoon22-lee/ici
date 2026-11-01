@@ -24,9 +24,20 @@
   빈 결과 댓글 대신 오류로 끝납니다.
 - **분석 캐시**: 캐시는 `.ici/rust-v1/` 아래에 새로 만들어지며 이전 버전의 캐시 파일은 읽지 않습니다. 첫
   실행에서 한 번 다시 분석할 뿐 결과는 달라지지 않습니다.
+- **PR 리포트 경로**: `pull_request` 이벤트에서 게시 경로와 viewer URL의 commit이 v0.13.0의 합성 merge
+  commit(`GITHUB_SHA`) 대신 PR head commit이 됩니다. v0.13.0은 이 때문에 PR 실행을 항상 오래된 실행으로
+  보고 sticky 댓글을 갱신하지 못했습니다.
 
 ### 변경
 
+- 컴파일 데이터베이스가 있는 레거시 C++ `ici verify`의 compile_db 커버리지·구성·플래그 정책 대상, 요약과
+  점수가 v0.13.0과 같습니다. 정책 위반은 그대로 gate를 실패시킵니다.
+- 컴파일 데이터베이스 기반 `ici dead`가 v0.13.0처럼 첫 실패 구성의 `C++UnusedFunctionError`, 또는
+  `C++UnusedFunctions`/`Compiler:-Wunused-function` 대상과 정확한 결과·소스 범위를 보고합니다.
+- 컴파일 데이터베이스가 있는 C++ lint가 GCC JSON 진단, 구성 다이제스트 기반 `C++Syntax:<digest>` 이름,
+  clang-tidy/clazy 부재 대상을 v0.13.0과 같게 보고합니다.
+- 컴파일러 include 추적으로 찾은 순환의 요약·메시지·도구 이름이 v0.13.0과 같습니다. 산출물은 있으나
+  `readelf`를 찾지 못하면 v0.13.0처럼 `BinaryCompatibility:AnalysisUnavailable` 오류로 보고합니다.
 - 레거시 deep `ici verify`에서 build 엔진 없이 integration/binary_compat을 켜면 v0.13.0과 같이 실행 전에
   거부합니다(종료 코드 1, 리포트 없음).
 - 소스가 없는 레거시 Python 프로젝트의 `ici build`가 v0.13.0과 같은 `BuildArtifacts` FAIL(종료 코드 1)을

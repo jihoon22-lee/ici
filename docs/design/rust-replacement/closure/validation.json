@@ -141,7 +141,7 @@
       "comparison": "Composite capability, implemented (not verified): the contract-defining facet named below is not proven. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); a legacy-schema `ici verify` exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; frozen exit 1, verify-exit-floor-oracle.json legacy). The floor is restricted to the legacy schema (root D3): frozen v0.13.0 rejects schema_version=2 ('schema_version is an unknown configuration key') and next [engines] keys ('engines: unknown key') with exit 2, so no modern frozen schema exits 1 for this verdict and a modern-schema verify keeps the native gate exit (crates/ici-cli/tests/verify_exit_floor.rs, log /tmp/ici-rust-replacement-20261028/w-validation-d3-exit-floor.log). Open: base-run summary-count fallback (difference_review). Open facets: the C++ halves of engines/test.py (9 not_started sites, cpp worker), quality/coverage difference_review sites, and line-by-line audits of application/tem.py, application/testing.py and analysis/coverage_support.py. Not verified because the TEM formula boundaries (application/tem.py) are not audited."
     },
     "check:integration": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/integration.rs",
         "crates/ici-cli/src/validation.rs",
@@ -181,7 +181,7 @@
         "python3 tests/rust-parity/validation/capture_integration_blocked.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/integration-blocked-oracle.json (/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log); cargo test -p ici-cli --test integration_legacy --locked -- --include-ignored: 9 passed (/tmp/ici-rust-replacement-20261028/w-validation-integration-nobuild.log); published_abi/native_cpp/python_binary_scope/legacy_binary_compat --include-ignored all passed (/tmp/ici-rust-replacement-20261028/w-validation-nobuild-neighbours.log)"
       ],
       "comparison": "Reviewed frozen engines/integration.py, analysis/_integration.py, application/integration.py, adapters/providers/integration.py and languages/integration.py in full. The frozen legacy oracle golden is replayed through native `ici verify`: exit code, engine status/summary/required/evidence, all targets, the per-case table (assertion map, return codes, truncation flags) and all four finding fingerprints (finding_fingerprint(rule, ici.toml:1, symbol=case name) for ici.hybrid.process-contract and the adapted ici.legacy.integration.target rows), severities, confidences, messages and tool_rule_ids are identical; the projected v3 tool_evidence (per-case name, argv, returncode, stderr preview) now also gives adapted rows the frozen tool_name (including its first-evidence quirk). Deep-profile only, opt-in by declared cases; SKIP/NOT_APPLICABLE located target for empty optional scope and incomplete required-empty scope; whole-token {python:NAME}/{artifact:ID} placeholders; replace-not-merge environment (inherit_env subset + declared env); max_cases 1..32, max_output_bytes 1024..8 MiB, 64 argv tokens of <=1024 chars within 32 KiB, 32 bounded needles, python target name/value and inherit_env name bounds; timeout, truncation, signal, cancellation are incomplete process evidence rather than findings; required case FAIL vs advisory WARN; the case order no longer lets an earlier advisory WARN hide a later required FAIL (native defect fixed in execute.rs). A legacy-schema deep `ici verify` with integration or binary_compat enabled and engines.build disabled is refused before any engine runs, exactly like frozen descriptors_for_profile: exit 1, the frozen 'PipelineDefinitionError: engine <name> has disabled dependencies in deep: build' line, no report and no native result; a standard legacy run and a v2 project (declared check, no legacy build dependency) are not refused (golden scenarios no_build, binary_compat_no_build, no_build_standard).",
-      "difference_reason": "Native never deletes declared outputs before a case (frozen _prepare_outputs unlinks stale files); it preserves user files and requires CLOCK_REALTIME_COARSE freshness against the pre-start inventory, so a stale file is a measured output assertion failure (cpp_contracts/native_validation_extra fixtures). {python:current} means the component's declared project interpreter, never ici's own runtime (frozen used sys.executable). Cases are executed independently and an incomplete case leaves the check incomplete instead of aborting later cases; invalid configuration is refused at plan time; the legacy view renders it as frozen's ERROR 'Integration:ConfigurationError' target with the frozen fingerprint. Shadow build outputs are addressed by BUILD/PATH or the frozen VARIANT:shadow:PATH (and >512-char path-<sha256>) identity of a prepared native variant; a bare shadow-relative path is not guessed. Per-aspect next findings: native case-level ids in the modern view, legacy ids in the legacy view (root 22:35 item 4). The shared ici-config argv bound counts UTF-8 bytes where frozen counts code points. Remaining verdict difference for the root: legacy `ici verify` exits 3 for an incomplete suite where frozen exits 1."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native never deletes declared outputs before a case (frozen _prepare_outputs unlinks stale files); it preserves user files and requires CLOCK_REALTIME_COARSE freshness against the pre-start inventory, so a stale file is a measured output assertion failure (cpp_contracts/native_validation_extra fixtures). {python:current} means the component's declared project interpreter, never ici's own runtime (frozen used sys.executable). Cases are executed independently and an incomplete case leaves the check incomplete instead of aborting later cases; invalid configuration is refused at plan time; the legacy view renders it as frozen's ERROR 'Integration:ConfigurationError' target with the frozen fingerprint. Shadow build outputs are addressed by BUILD/PATH or the frozen VARIANT:shadow:PATH (and >512-char path-<sha256>) identity of a prepared native variant; a bare shadow-relative path is not guessed. Per-aspect next findings: native case-level ids in the modern view, legacy ids in the legacy view (root 22:35 item 4). The shared ici-config argv bound counts UTF-8 bytes where frozen counts code points. Remaining verdict difference for the root: legacy `ici verify` exits 3 for an incomplete suite where frozen exits 1."
     },
     "finding_site:src/ici/adapters/providers/binarycompat.py:137:11": {
       "status": "not_started",
@@ -228,7 +228,7 @@
       "comparison": "OPEN: Frozen next CTest/QtTest provider findings; native cpp test provider (ici-validation cpp.rs) not yet compared with a frozen next golden for these sites (cpp-shared)."
     },
     "finding_site:src/ici/adapters/providers/integration.py:143:12": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/integration.rs"
       ],
@@ -248,7 +248,7 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
       ],
       "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding.",
-      "difference_reason": "Frozen next emits one finding per failed aspect (integration.{exit,stdout,stderr,output}, process_fingerprint over absolute argv, machine-dependent); native modern runs emit one case-level finding with native rule ids, and the legacy view uses ici.legacy.integration.target with the frozen legacy fingerprints. Accepted by the root (22:35, item 4): legacy ids in the legacy view, native ids in the modern view. Baselines saved by frozen `next verify` integration results do not carry over."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen next emits one finding per failed aspect (integration.{exit,stdout,stderr,output}, process_fingerprint over absolute argv, machine-dependent); native modern runs emit one case-level finding with native rule ids, and the legacy view uses ici.legacy.integration.target with the frozen legacy fingerprints. Accepted by the root (22:35, item 4): legacy ids in the legacy view, native ids in the modern view. Baselines saved by frozen `next verify` integration results do not carry over."
     },
     "finding_site:src/ici/adapters/providers/pycompat.py:109:20": {
       "status": "complete",
@@ -497,7 +497,7 @@
       "comparison": "Golden comparison of findings (fingerprint, message, severity, confidence, category, native rule id, path, line), Package:* targets and package_evidence metadata: ici.package.wheel-missing (wheel.discovery) for a configured glob that matched nothing. Negative coverage is the PASS cases of the same golden; malformed metadata/policy cases stay incomplete (failure)."
     },
     "finding_site:src/ici/analysis/_python_packaging.py:394:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-analysis/src/package.rs",
         "crates/ici-analysis/src/wheel.rs",
@@ -521,7 +521,7 @@
         "Golden re-verified against the frozen checkout: 105 frozen package/wheel contracts match under Python 3.14.4 with the frozen uv.lock pins packaging 26.3 / tomli 2.4.1 (throwaway venv); /tmp/ici-rust-replacement-20261028/w-validation-package-reverify.log"
       ],
       "comparison": "ici.package.wheel-invalid (wheel.structure) for unreadable or structurally invalid wheels; 35 frozen cases equal in identity, message and metadata.",
-      "difference_reason": "Four ZIP-structure cases are recorded corrections in the golden: native preflight rejects a central-directory member-count mismatch, local/central name disagreement and overlapping compressed ranges before decompression, and returns a located finding for a non-UTF-8 member name where frozen raised UnicodeDecodeError."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Four ZIP-structure cases are recorded corrections in the golden: native preflight rejects a central-directory member-count mismatch, local/central name disagreement and overlapping compressed ranges before decompression, and returns a located finding for a non-UTF-8 member name where frozen raised UnicodeDecodeError."
     },
     "finding_site:src/ici/analysis/_python_packaging.py:98:11": {
       "status": "complete",
@@ -1350,7 +1350,7 @@
       "comparison": "'Coverage:File' per file with >= min_file_statements (default 5) statements, actual = round(cover,1) before comparison, metrics covered/executable/missed lines; the 4-statement failing scenario emits none, as frozen. With a file gate configured the native per-file 'Coverage: <path>' inventory target is replaced by these policy targets."
     },
     "finding_site:src/ici/engines/coverage_policy.py:247:12": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/policy.rs",
         "crates/ici-reporting/src/projection.rs"
@@ -1373,7 +1373,7 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
       ],
       "comparison": "'Coverage:Functions' at '.' labelled 'Aggregate function coverage' with covered_functions/functions; equal to the golden in both scenarios.",
-      "difference_reason": "Frozen reports 100% PASS when coverage rows exist but no function is declared; native emits a SKIP 'measured scope has no applicable denominator' target (no fabricated percentage), and unknown function evidence keeps the check incomplete. Accepted by the root (22:35): n/a for an empty denominator."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen reports 100% PASS when coverage rows exist but no function is declared; native emits a SKIP 'measured scope has no applicable denominator' target (no fabricated percentage), and unknown function evidence keeps the check incomplete. Accepted by the root (22:35): n/a for an empty denominator."
     },
     "finding_site:src/ici/engines/coverage_policy.py:264:12": {
       "status": "complete",
@@ -1400,7 +1400,7 @@
       "comparison": "'Coverage:Function:<name>' sorted by (file, start_line, start_column, name), end_line defaulting to start_line, PASS/WARN with 'Function <name> was (not) exercised by the aggregate project test suite', metrics covered, gated=false, test_scope=aggregate-project-suite, symbol. Golden fingerprints, messages and metrics equal; a function whose invocation is unmeasured is SKIP and keeps the check incomplete rather than WARN."
     },
     "finding_site:src/ici/engines/coverage_policy.py:297:20": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/policy.rs",
         "crates/ici-reporting/src/projection.rs"
@@ -1423,7 +1423,7 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
       ],
       "comparison": "Selected lines without any measured executable statement produce 'Coverage:Changed lines' with the frozen message 'Changed-line coverage has no executable measured lines' and the frozen legacy fingerprint; the legacy `ici test` keeps the frozen ERROR verdict and exit 1 (golden scenario changed_unexecutable).",
-      "difference_reason": "Frozen's target status is ERROR; the native target is SKIP and the coverage check is incomplete ('coverage policy has unmeasured inputs'), which projects to the same legacy ERROR/exit 1. Accepted by the root (22:35): improved location/message, frozen exit code and verdict class kept."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen's target status is ERROR; the native target is SKIP and the coverage check is incomplete ('coverage policy has unmeasured inputs'), which projects to the same legacy ERROR/exit 1. Accepted by the root (22:35): improved location/message, frozen exit code and verdict class kept."
     },
     "finding_site:src/ici/engines/coverage_policy.py:316:16": {
       "status": "complete",
@@ -1492,7 +1492,7 @@
       "comparison": "Integration:<case> targets at ici.toml:1 with PASS/WARN/FAIL and frozen messages are byte-identical to the frozen golden; the case table and the aggregated 'Integration contracts: N run, M violation(s)' summary are restored for multi-case runs."
     },
     "finding_site:src/ici/engines/integration.py:333:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/validation.rs"
       ],
@@ -1515,7 +1515,7 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
       ],
       "comparison": "Every frozen IntegrationConfigError cause stops the check before any case runs. In the legacy view a check blocked by refused case configuration is the frozen ERROR engine (evidence NOT_RUN) with one 'Integration:ConfigurationError' ERROR target at ici.toml:1 and the frozen legacy fingerprint (ici.legacy.integration.target); a block caused by a missing prerequisite or by no declared case keeps SKIP. A schema-level refusal (untyped argv placeholder) exits 2 without a report, as frozen.",
-      "difference_reason": "The target message and summary carry the native reason (e.g. 'unknown Python target \"missing\"') instead of frozen's wording; the modern view keeps the blocked check with native wording and no invented finding. Accepted by the root (22:35, item 4). Legacy `ici verify` still exits 3 for this incomplete suite where frozen exits 1 (generic legacy-verify Incomplete->3 mapping, asserted by other areas' tests; root decision)."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): The target message and summary carry the native reason (e.g. 'unknown Python target \"missing\"') instead of frozen's wording; the modern view keeps the blocked check with native wording and no invented finding. Accepted by the root (22:35, item 4). Legacy `ici verify` still exits 3 for this incomplete suite where frozen exits 1 (generic legacy-verify Incomplete->3 mapping, asserted by other areas' tests; root decision)."
     },
     "finding_site:src/ici/engines/integration.py:43:11": {
       "status": "complete",
@@ -1726,7 +1726,7 @@
       "comparison": "OPEN: Sanitizer (ASan/UBSan/LSan/TSan) legacy and next targets/findings; native ici-validation sanitizer.rs exists, the cpp worker owns the C++ `ici sanitize` half (frozen SKIP/exit 2); these sites were not replayed against a frozen golden here."
     },
     "finding_site:src/ici/engines/test.py:352:12": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/legacy_execute.rs",
         "crates/ici-reporting/src/projection.rs",
@@ -1751,7 +1751,7 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
       ],
       "comparison": "Frozen _mark_zero_tests: with no tests/**/test_*.py and no tests/**/*.cpp the legacy `ici test` is FAIL, exit 1, with one '[Python|C++|Project] Tests' FAIL 'No tests collected' target at tests:1. Native legacy `ici test` reproduces status, exit code, target and legacy fingerprint for a Make tree without C++ sources in scope ('[Project]') and with C++ sources but no build-declared tests ('[C++]'); any frozen test file keeps the blocked checks incomplete (exit 3). An empty pytest suite keeps the same located target (test_output.py:83). The override applies only to the legacy schema and only to 'no runnable suite' blocks (no sources in scope / no declared component build); other blocks and v2 projects stay incomplete.",
-      "difference_reason": "Frozen pairs the verdict with fabricated ESTIMATED coverage (100%/45%) and TEM 0.00 in the summary; native reports '0/0 Tests Passed; No tests collected' with no coverage or TEM. The empty-pytest-suite variant now also keeps the frozen FAIL/exit 1 in the legacy view (modern check incomplete). Accepted by the root (22:35) as an intended difference: fabricated evidence is a frozen defect (ADR-0008, R05)."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen pairs the verdict with fabricated ESTIMATED coverage (100%/45%) and TEM 0.00 in the summary; native reports '0/0 Tests Passed; No tests collected' with no coverage or TEM. The empty-pytest-suite variant now also keeps the frozen FAIL/exit 1 in the legacy view (modern check incomplete). Accepted by the root (22:35) as an intended difference: fabricated evidence is a frozen defect (ADR-0008, R05)."
     },
     "finding_site:src/ici/engines/test.py:611:20": {
       "status": "not_started",
@@ -1853,7 +1853,7 @@
       "comparison": "OPEN: C++ facet of the legacy test engine (adapter/CTest/QtTest and direct g++ paths). Native C++ suites run through ici-validation cpp.rs/gcov.rs and ici-cli cpp_validation (shared with the cpp worker); the frozen target names and messages ('[C++] <case>', 'C++ Test Passed', 'Execution Failed: ...', 'Compilation Error: ...', build/configure FAIL targets) have not been replayed against a frozen legacy golden, so parity is unverified."
     },
     "finding_site:src/ici/engines/test_coverage.py:384:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/policy.rs",
         "crates/ici-validation/src/planning.rs"
@@ -1876,10 +1876,10 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
       ],
       "comparison": "An unusable changed_lines selection (overlap, reversed, non-canonical, outside the captured scope, > 10000 lines) never yields a coverage verdict. Native refuses it at plan time; the legacy `ici test` view adds the frozen located 'Coverage:Policy configuration' ERROR target at '.' (frozen legacy fingerprint equal), reports ERROR and exits 1 like frozen (golden scenario changed_invalid).",
-      "difference_reason": "The message carries the native reason ('Coverage policy could not be evaluated: changed line ranges overlap') instead of frozen's indexed reason; test cases are not run because the whole plan is refused. Accepted by the root (22:35): frozen exit code and verdict class kept."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): The message carries the native reason ('Coverage policy could not be evaluated: changed line ranges overlap') instead of frozen's indexed reason; test cases are not run because the whole plan is refused. Accepted by the root (22:35): frozen exit code and verdict class kept."
     },
     "finding_site:src/ici/engines/test_output.py:146:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/python_unittest.rs",
         "crates/ici-cli/src/legacy_execute.rs"
@@ -1900,10 +1900,10 @@
         "ICI_TEST_PYTHON_BARE=<pytest-free interpreter> cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-unittest.log"
       ],
       "comparison": "With pytest unavailable the visible project unittest runner is used. Every frozen case target ('<test> (<module>.<Class>.<test>)' at tests:1 with 'Unittest passed' / 'Unittest assertion failure' / \"skipped 'x'\" / 'Expected failure was exercised') and its legacy fingerprint equal the golden; the legacy `ici test` keeps frozen's FAIL and exit 1 (optional coverage missing never masks a failing case).",
-      "difference_reason": "Frozen fabricates ESTIMATED coverage (45%/50%) and TEM 0.70 for the unittest run; native adds one not-measured 'Coverage capability' SKIP target, reports no score and no percentage. Accepted by the root (22:35, item 2)."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen fabricates ESTIMATED coverage (45%/50%) and TEM 0.70 for the unittest run; native adds one not-measured 'Coverage capability' SKIP target, reports no score and no percentage. Accepted by the root (22:35, item 2)."
     },
     "finding_site:src/ici/engines/test_output.py:195:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/python.rs",
         "crates/ici-reporting/src/projection.rs"
@@ -1926,7 +1926,7 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
       ],
       "comparison": "pytest node targets keep the node id, PASS/FAIL/SKIP and the frozen messages (Test passed successfully / Test assertion failed / Test was collected but not executed / Expected failure was exercised / Unexpected pass violated the expected-failure contract); legacy fingerprints equal the golden. The modern pytest.failed finding carries legacy_message so the legacy view keeps one issue per case (no extra ici.native.pytest.failed).",
-      "difference_reason": "Native locates each case at its test definition line instead of the frozen line-1 placeholder (legacy identity excludes the line, so fingerprints are unchanged). Accepted by the root (22:35)."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native locates each case at its test definition line instead of the frozen line-1 placeholder (legacy identity excludes the line, so fingerprints are unchanged). Accepted by the root (22:35)."
     },
     "finding_site:src/ici/engines/test_output.py:226:24": {
       "status": "complete",
@@ -1952,7 +1952,7 @@
       "difference_reason": "Intended (ADR-0008, R05): summary counts carry no node identity or location, so native does not turn them into per-case targets, pass rates, coverage or TEM verdicts; frozen's FAIL/exit 1 becomes an incomplete run (exit 3). Summary-count-only pytest runs exit 3 (accepted incomplete-exit-3 policy) where frozen exits 1. Accepted by the root as an intended difference (2026-11-01)."
     },
     "finding_site:src/ici/engines/test_output.py:83:20": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/python.rs"
       ],
@@ -1973,10 +1973,10 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
       ],
       "comparison": "An empty pytest suite (exit 5, or exit 0 without cases) keeps the frozen located '[Python] Tests' FAIL 'No tests collected' target at tests:1 and its legacy fingerprint; the legacy `ici test` view reports the frozen FAIL and exit 1, while the modern python.test check stays FAILED/incomplete (exit 3 in the modern view).",
-      "difference_reason": "Frozen pairs the verdict with fabricated ESTIMATED coverage (45%/50%) and TEM 0.00; the legacy view reports '0/0 Tests Passed; No tests collected' without coverage or TEM. Accepted by the root (22:35) as an intended difference: fabricated evidence is a frozen defect (ADR-0008, R05)."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen pairs the verdict with fabricated ESTIMATED coverage (45%/50%) and TEM 0.00; the legacy view reports '0/0 Tests Passed; No tests collected' without coverage or TEM. Accepted by the root (22:35) as an intended difference: fabricated evidence is a frozen defect (ADR-0008, R05)."
     },
     "finding_site:src/ici/engines/test_quality.py:196:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/python_quality.rs",
         "crates/ici-validation/src/finding_details.rs"
@@ -1998,10 +1998,10 @@
         "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-quality.log"
       ],
       "comparison": "Quality findings ici.test.slow-test / ici.test.flaky-test keep the frozen rule id, message, test category, high confidence and the frozen legacy fingerprint (deep golden); report mode keeps them advisory and the engine PASS, exit 0.",
-      "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:355:20": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/python_quality.rs",
         "crates/ici-validation/src/finding_details.rs"
@@ -2023,7 +2023,7 @@
         "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-quality.log"
       ],
       "comparison": "'[test-quality] Slow test: <node> (<phase>)' WARN with 'pytest <phase> phase took Xs (threshold Ys)', placed before the repeat/flaky observations as frozen, with equal fingerprint.",
-      "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:381:16": {
       "status": "complete",
@@ -2134,7 +2134,7 @@
       "difference_reason": "No intended difference."
     },
     "finding_site:src/ici/engines/test_quality.py:502:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/python_quality.rs",
         "crates/ici-validation/src/finding_details.rs"
@@ -2156,7 +2156,7 @@
         "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-quality.log"
       ],
       "comparison": "'[test-quality] Flaky test: <node>' WARN with 'pytest verdict changed across bounded repeat runs: run 1=PASSED, run 2=FAILED' and the flaky inventory; equal fingerprint and repeat counters (repeat_runs, repeat_reruns, repeat_cases, flaky_tests).",
-      "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:550:16": {
       "status": "complete",
@@ -2211,7 +2211,7 @@
       "comparison": "Frozen: an explicit mutation command is probed; exit 0 is PASS 'Mutation tool capability available: <tool>' and a failing probe SKIP 'Mutation capability probe unavailable; base test gate unchanged', both with {available, tool, returncode} where tool is the configured tool ('auto') for a command and the found tool for an auto search (scenarios mutation_available, mutation_failing). Native previously reported 'explicit mutation capability probe completed; mutations were not performed'. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario mutation_available). An explicit command whose executable is absent is frozen's probe-unavailable SKIP with returncode -1 (scenario mutation_command_missing), not 'No supported mutation tool was found' (native defect fixed)."
     },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-validation/src/policy.rs",
         "crates/ici-reporting/src/projection.rs"
@@ -2233,7 +2233,7 @@
         "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
       ],
       "comparison": "'Threshold: TEM score' ({:.2f}) and 'Threshold: Branch coverage' ({:.1f}%) at '.' with metrics actual/threshold, appended after the coverage-policy targets and suppressed when a test case failed; the passing golden matches targets, messages and fingerprints. TEM uses frozen one-decimal line/branch inputs (legacy_tem), giving the frozen 1.78.",
-      "difference_reason": "Native also emits a PASS 'meets' target when a gate passes and a SKIP target for an empty branch denominator (frozen silently treats it as 100%), so the legacy view of a branch-free suite without failures has one extra SKIP target. Native test_suites no longer counts the Threshold targets as failed tests of a '.' suite (frozen _build_test_suites defect). Accepted by the root (22:35): n/a for an empty branch denominator and Threshold targets are no longer counted as failed tests."
+      "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native also emits a PASS 'meets' target when a gate passes and a SKIP target for an empty branch denominator (frozen silently treats it as 100%), so the legacy view of a branch-free suite without failures has one extra SKIP target. Native test_suites no longer counts the Threshold targets as failed tests of a '.' suite (frozen _build_test_suites defect). Accepted by the root (22:35): n/a for an empty branch denominator and Threshold targets are no longer counted as failed tests."
     },
     "finding_site:src/ici/languages/artifacts.py:121:11": {
       "status": "complete",

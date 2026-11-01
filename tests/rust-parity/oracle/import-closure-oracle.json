@@ -1,0 +1,46 @@
+{
+  "schema_id": "ici.rust-parity.import-closure",
+  "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+  "entry_points": [
+    "ici.__main__:main"
+  ],
+  "reachable_modules": 274,
+  "unreachable": [
+    {
+      "path": "src/ici/analysis/_dup_semantic.py",
+      "sha256": "8f7b04f5390aa458ddfafa42d431096f46d49fea4a8f2ff8b84ab5d0705b81db"
+    },
+    {
+      "path": "src/ici/core/result_keys.py",
+      "sha256": "276bb000b1f51fe0fd97086df67523a2140fdcc5db6d301e76f0405eebd67abc"
+    },
+    {
+      "path": "src/ici/domain/legacy.py",
+      "sha256": "12d3707720a5182d9520890a3529e706df8a9a38a95dea423843616c092110ab"
+    },
+    {
+      "path": "src/ici/execution/legacy_reader.py",
+      "sha256": "a978bf80a662ce7980cf8b063d5cc47da4149cf4715651b347a0ac31413e485e"
+    },
+    {
+      "path": "src/ici/execution/production.py",
+      "sha256": "d222dd8cbc0f434998c82366c9048a7d269f9552338ab62ef0471fd10b97f421"
+    },
+    {
+      "path": "src/ici/execution/results.py",
+      "sha256": "9e7a923f8f72946748fd610909daef05878d30d5ae8c677a05d6728b9cf7fdfb"
+    },
+    {
+      "path": "src/ici/execution/snapshot.py",
+      "sha256": "644216fd19cedfa99c7a8f70b3c106f4c89ca6310eeedb51ebc0b140114a55e9"
+    },
+    {
+      "path": "src/ici/reporters/html_assets.py",
+      "sha256": "84e4ae881ad9e2a93a40ee2d9fd8294ebf086ff525c26398059f333921d0003c"
+    },
+    {
+      "path": "src/ici/toolchain/assumptions.py",
+      "sha256": "c68c42203d3938433694a135731b16c3f89fb3dd6fce03b1cb7e9d75d2ac9780"
+    }
+  ]
+}
