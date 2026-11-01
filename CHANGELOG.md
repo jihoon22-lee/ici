@@ -30,6 +30,14 @@
 
 ### 변경
 
+- 레거시 `security`가 `engines.security.scan_tests` 설정 시 `tests/` 아래 Python 파일도 검사하며, 거부된 파일의
+  대상 순서와 `files_checked`가 v0.13.0과 같습니다.
+- 레거시·설정 없는 `ici doctor`가 v0.13.0의 지원 매트릭스와 도구 정책(`mypy_required` 등)을 평가합니다.
+- `next publish`/`next report`/`analyze --baseline`/`init`의 거부 메시지가 v0.13.0과 같은 분류(`config:`/`report:`/
+  `publish:`/`init:`)와 파일 이름을 보여 줍니다. 레거시 `publish --report-dir`에서 페이지가 없는 디렉터리는 명령
+  전체 거부 대신 업로드 실패(종료 코드 1)로 보고합니다.
+- mypy 결과 fingerprint가 v0.13.0과 같도록 열 번호 옵션을 쓰지 않으며, 도구 실패·빈 pytest 메시지는 `exit Some(5)`
+  대신 `exit 5`처럼 종료 코드를 표시합니다.
 - clang-tidy가 여러 소스를 분석할 때 출력하는 `[n/N] Processing file` 진행 줄을 정확히 그 형식만 무시하고, 그 밖의
   출력은 계속 거부합니다. `ici next`의 clang-tidy 진단 메시지는 v0.13.0과 같은 `warning: ` 접두어를 유지해
   fingerprint가 기존 결과와 같습니다.
