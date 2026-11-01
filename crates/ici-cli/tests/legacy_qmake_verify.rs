@@ -1,7 +1,7 @@
 //! Legacy qmake `ici verify`/`ici test`/`ici sanitize` against the frozen CLI
 //! (`tests/rust-parity/cpp/capture_qmake_verify.py`): exit code, suite counters, every engine's
 //! verdict, the test/sanitize targets and findings and the verify `analysis_context`; legacy
-//! Make `build.make.*test_argv` runs (`tests/rust-parity/cpp/capture_make_test.py`).
+//! Make `build.make.*test_argv` runs (`tests/rust-parity/cpp/capture_make_suites.py`).
 use serde_json::{Value, json};
 use std::{fs, path::Path, process::Command};
 

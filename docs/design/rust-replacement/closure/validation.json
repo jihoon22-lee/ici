@@ -248,7 +248,7 @@
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log",
     "source opus-env.sh (ICI_TEST_PYTHON=/home/jihoon/projects/ici/.venv/bin/python, pytest 9.1.1, coverage 7.15.4); frozen capture tests/rust-parity/validation/capture_pytest_next.py (green, all-skipped, no-tests, pytest.exit(2) added; earlier scenarios byte-identical); cargo test -p ici-cli --locked -j2 --no-fail-fast --test pytest_next_parity --test legacy_test_metrics --test legacy_commands --test native_validation_extra -- --include-ignored (3+2+7+27 passed); cargo test -p ici-validation and the five empty-suite CLI binaries: 23 binaries ok; /tmp/ici-rust-replacement-20261028/w-sweep-pytest.log, /tmp/ici-rust-replacement-20261028/w-sweep-pytest-regress.log",
-    "source opus-env.sh; cargo fmt --check; cargo clippy -p ici-validation -p ici-cli --all-targets --locked -j2 -- -D warnings; cargo test -p ici-cli --locked -j2 --no-fail-fast --test pytest_next_parity --test legacy_test_parity --test native_validation_extra --test legacy_test_metrics --test legacy_commands -- --include-ignored (3+8+27+2+7 passed); cargo test -p ici-validation --locked -j2 -- --include-ignored (all passed after contracts.rs update); frozen recapture: tests/rust-parity/validation/capture_legacy_test.py --oracle <frozen 6fe3e405> (all earlier scenarios byte-identical); /tmp/ici-rust-replacement-20261028/w-dec-d2.log, /tmp/ici-rust-replacement-20261028/w-dec-legacy-test-capture.log"
+    "source opus-env.sh; cargo fmt --check; cargo clippy -p ici-validation -p ici-cli --all-targets --locked -j2 -- -D warnings; cargo test -p ici-cli --locked -j2 --no-fail-fast --test pytest_next_parity --test legacy_test_parity --test native_validation_extra --test legacy_test_metrics --test legacy_commands -- --include-ignored (3+8+27+2+7 passed); cargo test -p ici-validation --locked -j2 -- --include-ignored (all passed after contracts.rs update); frozen recapture: tests/rust-parity/validation/capture_legacy_runs.py --oracle <frozen 6fe3e405> (all earlier scenarios byte-identical); /tmp/ici-rust-replacement-20261028/w-dec-d2.log, /tmp/ici-rust-replacement-20261028/w-dec-legacy-test-capture.log"
    ],
    "fixtures": {
     "failure": [
@@ -1315,7 +1315,7 @@
   "finding_site:src/ici/engines/coverage_policy.py:165:11": {
    "comparison": "Frozen _threshold_target: PASS/WARN by actual >= threshold, message '<label> {actual:.1f}% meets|is below the configured minimum {threshold:.1f}%', metrics actual=round(actual,1), threshold, gated=true plus the per-gate counters. Native threshold_target reproduces names, messages, metrics and the legacy fingerprint (golden targets compared field-for-field incl. metrics).",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --test python_compat_cli --test legacy_python_compat_parity --test legacy_python_sanitize --test legacy_python_sanitize_scopes --test legacy_test_parity --test pytest_next_parity --test legacy_quality_paths --test legacy_sarif --test legacy_coverage_bound --test legacy_test_metrics -- --include-ignored` all passed; strict Clippy ici-reporting/ici-validation/ici-cli clean; /tmp/ici-rust-replacement-20261028/w-rem-gate1.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log"
@@ -1343,7 +1343,7 @@
   "finding_site:src/ici/engines/coverage_policy.py:198:12": {
    "comparison": "'Coverage:Overall line' at '.' with covered_lines/executable_lines; equal target, message, metrics and legacy fingerprint in both golden scenarios. The modern ici.test.coverage.overall-line finding is anchored at the first captured source (a modern location must be a file) and the legacy view matches it to the '.' target through finding_details.legacy_path, so one historical issue remains.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log"
    ],
    "fixtures": {
@@ -1367,7 +1367,7 @@
   "finding_site:src/ici/engines/coverage_policy.py:218:16": {
    "comparison": "'Coverage:File' per file with >= min_file_statements (default 5) statements, actual = round(cover,1) before comparison, metrics covered/executable/missed lines; the 4-statement failing scenario emits none, as frozen. With a file gate configured the native per-file 'Coverage: <path>' inventory target is replaced by these policy targets.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log"
    ],
    "fixtures": {
@@ -1392,7 +1392,7 @@
    "comparison": "'Coverage:Functions' at '.' labelled 'Aggregate function coverage' with covered_functions/functions; equal to the golden in both scenarios.",
    "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen reports 100% PASS when coverage rows exist but no function is declared; native emits a SKIP 'measured scope has no applicable denominator' target (no fabricated percentage), and unknown function evidence keeps the check incomplete. Accepted by the root (22:35): n/a for an empty denominator.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
     "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
    ],
@@ -1417,7 +1417,7 @@
   "finding_site:src/ici/engines/coverage_policy.py:264:12": {
    "comparison": "'Coverage:Function:<name>' sorted by (file, start_line, start_column, name), end_line defaulting to start_line, PASS/WARN with 'Function <name> was (not) exercised by the aggregate project test suite', metrics covered, gated=false, test_scope=aggregate-project-suite, symbol. Golden fingerprints, messages and metrics equal; a function whose invocation is unmeasured is SKIP and keeps the check incomplete rather than WARN.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log"
    ],
    "fixtures": {
@@ -1442,7 +1442,7 @@
    "comparison": "Selected lines without any measured executable statement produce 'Coverage:Changed lines' with the frozen message 'Changed-line coverage has no executable measured lines' and the frozen legacy fingerprint; the legacy `ici test` keeps the frozen ERROR verdict and exit 1 (golden scenario changed_unexecutable).",
    "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen's target status is ERROR; the native target is SKIP and the coverage check is incomplete ('coverage policy has unmeasured inputs'), which projects to the same legacy ERROR/exit 1. Accepted by the root (22:35): improved location/message, frozen exit code and verdict class kept.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
     "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
    ],
@@ -1467,7 +1467,7 @@
   "finding_site:src/ici/engines/coverage_policy.py:316:16": {
    "comparison": "'Coverage:Changed lines' over start..end of the selection with requested/covered/executable/non_executable line metrics and default threshold 100; the passing golden (src/calc.py:2-4 -> 66.7%) matches target, metrics and fingerprint; overlapping or out-of-scope selections are refused at plan time.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
     "decisions worker 2026-11-02: `cargo test -p ici-validation --locked -j2 --test contracts coverage_policy -- --include-ignored` passed (log /tmp/ici-rust-replacement-20261028/w-dec-coverage-policy.log); legacy_test_parity.rs passed with ICI_TEST_PYTHON in /tmp/ici-rust-replacement-20261028/w-dec-coverage.log."
    ],
@@ -1746,7 +1746,7 @@
    "comparison": "An unusable changed_lines selection (overlap, reversed, non-canonical, outside the captured scope, > 10000 lines) never yields a coverage verdict. Native refuses it at plan time; the legacy `ici test` view adds the frozen located 'Coverage:Policy configuration' ERROR target at '.' (frozen legacy fingerprint equal), reports ERROR and exits 1 like frozen (golden scenario changed_invalid).",
    "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): The message carries the native reason ('Coverage policy could not be evaluated: changed line ranges overlap') instead of frozen's indexed reason; test cases are not run because the whole plan is refused. Accepted by the root (22:35): frozen exit code and verdict class kept.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
     "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
    ],
@@ -1772,7 +1772,7 @@
    "comparison": "With pytest unavailable the visible project unittest runner is used. Every frozen case target ('<test> (<module>.<Class>.<test>)' at tests:1 with 'Unittest passed' / 'Unittest assertion failure' / \"skipped 'x'\" / 'Expected failure was exercised') and its legacy fingerprint equal the golden; the legacy `ici test` keeps frozen's FAIL and exit 1 (optional coverage missing never masks a failing case).",
    "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen fabricates ESTIMATED coverage (45%/50%) and TEM 0.70 for the unittest run; native adds one not-measured 'Coverage capability' SKIP target, reports no score and no percentage. Accepted by the root (22:35, item 2).",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py --python-without-pytest <uv cpython 3.12.13> (scenario unittest) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py --python-without-pytest <uv cpython 3.12.13> (scenario unittest) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "ICI_TEST_PYTHON_BARE=<pytest-free interpreter> cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-unittest.log"
    ],
    "fixtures": {
@@ -1796,7 +1796,7 @@
    "comparison": "pytest node targets keep the node id, PASS/FAIL/SKIP and the frozen messages (Test passed successfully / Test assertion failed / Test was collected but not executed / Expected failure was exercised / Unexpected pass violated the expected-failure contract); legacy fingerprints equal the golden. The modern pytest.failed finding carries legacy_message so the legacy view keeps one issue per case (no extra ici.native.pytest.failed).",
    "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native locates each case at its test definition line instead of the frozen line-1 placeholder (legacy identity excludes the line, so fingerprints are unchanged). Accepted by the root (22:35).",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
     "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
    ],
@@ -1847,7 +1847,7 @@
    "comparison": "An empty pytest suite (exit 5, or exit 0 without cases) keeps the frozen located '[Python] Tests' FAIL 'No tests collected' target at tests:1 and its legacy fingerprint; the legacy `ici test` view reports the frozen FAIL and exit 1, while the modern python.test check stays FAILED/incomplete (exit 3 in the modern view).",
    "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Frozen pairs the verdict with fabricated ESTIMATED coverage (45%/50%) and TEM 0.00; the legacy view reports '0/0 Tests Passed; No tests collected' without coverage or TEM. Accepted by the root (22:35) as an intended difference: fabricated evidence is a frozen defect (ADR-0008, R05).",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (scenarios failing, passing, empty, no_coverage) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (scenarios failing, passing, empty, no_coverage) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-validation-legacy-test-empty.log",
     "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
    ],
@@ -2106,7 +2106,7 @@
    "comparison": "'Threshold: TEM score' ({:.2f}) and 'Threshold: Branch coverage' ({:.1f}%) at '.' with metrics actual/threshold, appended after the coverage-policy targets and suppressed when a test case failed; the passing golden matches targets, messages and fingerprints. TEM uses frozen one-decimal line/branch inputs (legacy_tem), giving the frozen 1.78.",
    "difference_reason": "Accepted intended difference (root review 2026-11-01; recorded decisions of the 2026-10-29 22:35 validation review and the incomplete-exit-3 policy): Native also emits a PASS 'meets' target when a gate passes and a SKIP target for an empty branch denominator (frozen silently treats it as 100%), so the legacy view of a branch-free suite without failures has one extra SKIP target. Native test_suites no longer counts the Threshold targets as failed tests of a '.' suite (frozen _build_test_suites defect). Accepted by the root (22:35): n/a for an empty branch denominator and Threshold targets are no longer counted as failed tests.",
    "evidence": [
-    "python3 tests/rust-parity/validation/capture_legacy_test.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
+    "python3 tests/rust-parity/validation/capture_legacy_runs.py (frozen legacy `ici test --report`, failing + passing scenarios) -> tests/rust-parity/validation/legacy-test-oracle.json",
     "cargo test -p ici-cli --test legacy_test_parity --locked -- --include-ignored (+ ici-validation, ici-reporting and affected ici-cli binaries); /tmp/ici-rust-replacement-20261028/w-validation-legacy-test.log",
     "/tmp/ici-rust-replacement-20261028/w-validation-legacy-verdicts.log"
    ],
