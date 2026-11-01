@@ -2171,7 +2171,7 @@
   },
   "src/ici/adapters/providers/pycompat.py": {
    "disposition": "unreviewed",
-   "reason": "Finding sites 109:20 (runtime-version) and 222:12 (compile-failure) are complete against the frozen next golden. The rest of the provider (import smoke parsing, limitation wording) is not audited line by line.",
+   "reason": "Finding sites 109:20 (runtime-version) and 222:12 (compile-failure) are complete against the frozen next golden. The rest of the provider (import smoke parsing, limitation wording) is not audited line by line. Blocked (decisions worker 2026-11-02 merge check): capability:runtime-integration (validation=verified).",
    "requirements": [
     "finding_site:src/ici/adapters/providers/pycompat.py:109:20",
     "finding_site:src/ici/adapters/providers/pycompat.py:222:12",
@@ -2196,7 +2196,7 @@
   },
   "src/ici/analysis/_python_packaging.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding sites 98:11, 121:11, 294:12, 312:16, 323:12, 378:12 complete; 394:16 difference_review (ZIP-structure corrections). Part of capability:python-packaging-wheel.",
+   "reason": "Not read in full. Finding sites 98:11, 121:11, 294:12, 312:16, 323:12, 378:12 complete; 394:16 difference_review (ZIP-structure corrections). Part of capability:python-packaging-wheel. Blocked (decisions worker 2026-11-02 merge check): capability:python-packaging-wheel (validation=verified).",
    "requirements": [
     "finding_site:src/ici/analysis/_python_packaging.py:98:11",
     "finding_site:src/ici/analysis/_python_packaging.py:121:11",
@@ -2210,7 +2210,7 @@
   },
   "src/ici/analysis/_python_wheel.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. All 9 finding sites (118:11, 462:8, 510:8, 534:8, 566:8, 592:8, 625:12, 638:8, 680:16) are complete; the whole-file branch audit (bounds, tag parsing) is pending. Part of capability:python-packaging-wheel.",
+   "reason": "Not read in full. All 9 finding sites (118:11, 462:8, 510:8, 534:8, 566:8, 592:8, 625:12, 638:8, 680:16) are complete; the whole-file branch audit (bounds, tag parsing) is pending. Part of capability:python-packaging-wheel. Blocked (decisions worker 2026-11-02 merge check): capability:python-packaging-wheel (validation=verified).",
    "requirements": [
     "finding_site:src/ici/analysis/_python_wheel.py:118:11",
     "finding_site:src/ici/analysis/_python_wheel.py:462:8",
@@ -2226,7 +2226,7 @@
   },
   "src/ici/analysis/_sanitize_python_scope.py": {
    "disposition": "unreviewed",
-   "reason": "Lines 1-263 reviewed. PASS scope (143), located (238) and unlocated (155) ResourceWarning targets, every _missing_python_scope variant (219: missing tests dir, no test files, pytest unavailable, 0 collected, no executed count, required and not-required) and the tool-failure scope error are captured against the frozen engine and replayed (legacy_python_sanitize.rs, legacy_python_sanitize_scopes.rs); _resolve_python order is the legacy launcher rule (legacy_launcher_interpreter.rs, capability:runtime-integration). Open: process-incomplete scope errors (timeout/truncation/signal, frozen _incomplete_message) and 'Pytest could not execute' are mapped in python_sanitize.rs but not captured against a frozen run; _has_python_tests (any *.py under tests) is the scope-applicability input of engines/sanitize.py _analysis_scopes (shared sanitize engine, audited there).",
+   "reason": "Lines 1-263 reviewed. PASS scope (143), located (238) and unlocated (155) ResourceWarning targets, every _missing_python_scope variant (219: missing tests dir, no test files, pytest unavailable, 0 collected, no executed count, required and not-required) and the tool-failure scope error are captured against the frozen engine and replayed (legacy_python_sanitize.rs, legacy_python_sanitize_scopes.rs); _resolve_python order is the legacy launcher rule (legacy_launcher_interpreter.rs, capability:runtime-integration). Open: process-incomplete scope errors (timeout/truncation/signal, frozen _incomplete_message) and 'Pytest could not execute' are mapped in python_sanitize.rs but not captured against a frozen run; _has_python_tests (any *.py under tests) is the scope-applicability input of engines/sanitize.py _analysis_scopes (shared sanitize engine, audited there). Blocked (decisions worker 2026-11-02 merge check): capability:legacy-python-sanitize (cpp=not_started, validation=implemented).",
    "requirements": [
     "capability:legacy-python-sanitize",
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:155:20",
@@ -2235,7 +2235,7 @@
   },
   "src/ici/analysis/coverage_support.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full; coverage evidence helpers under capability:test-quality-tem (open composite).",
+   "reason": "Not read in full; coverage evidence helpers under capability:test-quality-tem (open composite). Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "capability:test-quality-tem"
    ]
@@ -2258,28 +2258,28 @@
   },
   "src/ici/application/tem.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full; TEM formula under capability:test-quality-tem (open composite). Legacy TEM summary values are compared through legacy test parity goldens, formula boundaries not audited line by line.",
+   "reason": "Not read in full; TEM formula under capability:test-quality-tem (open composite). Legacy TEM summary values are compared through legacy test parity goldens, formula boundaries not audited line by line. Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "capability:test-quality-tem"
    ]
   },
   "src/ici/application/testing.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full; next test/coverage application wiring under capability:test-quality-tem (open composite).",
+   "reason": "Not read in full; next test/coverage application wiring under capability:test-quality-tem (open composite). Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "capability:test-quality-tem"
    ]
   },
   "src/ici/engines/binary_compat.py": {
    "disposition": "unreviewed",
-   "reason": "Error aggregation (lines 225-260) reviewed: unpublished explicit selection -> AnalysisUnavailable ERROR now equal to frozen (247:16 verified). Other sites are re-proven C++ facets. Open: readelf missing/incomplete evidence (cpp worker).",
+   "reason": "Error aggregation (lines 225-260) reviewed: unpublished explicit selection -> AnalysisUnavailable ERROR now equal to frozen (247:16 verified). Other sites are re-proven C++ facets. Open: readelf missing/incomplete evidence (cpp worker). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/binary_compat.py:247:16 (cpp=verified, validation=verified).",
    "requirements": [
     "finding_site:src/ici/engines/binary_compat.py:247:16"
    ]
   },
   "src/ici/engines/build.py": {
    "disposition": "unreviewed",
-   "reason": "run() (lines 40-150) reviewed: BuildArtifacts FAIL (92:16 complete, Python facet) and summaries. _package_python (lines 296-380) reviewed in full: PythonLibrary/PythonLauncher targets and the collision/entrypoint/unsafe-name/missing-module BuildErrors map to 338:16/373:16 (complete, Python facet; symlinked sources never selected); the remaining target sites are re-proven C++ facets (verified). Open: outside-root and launcher write-failure branches not captured, _prepare_output_tree side effects (frozen creates an empty <version>/x86_64 tree, accepted), env-script write failure (686:16).",
+   "reason": "run() (lines 40-150) reviewed: BuildArtifacts FAIL (92:16 complete, Python facet) and summaries. _package_python (lines 296-380) reviewed in full: PythonLibrary/PythonLauncher targets and the collision/entrypoint/unsafe-name/missing-module BuildErrors map to 338:16/373:16 (complete, Python facet; symlinked sources never selected); the remaining target sites are re-proven C++ facets (verified). Open: outside-root and launcher write-failure branches not captured, _prepare_output_tree side effects (frozen creates an empty <version>/x86_64 tree, accepted), env-script write failure (686:16). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/build.py:92:16 (cpp=not_started); finding_site:src/ici/engines/build.py:338:16 (cpp=verified); finding_site:src/ici/engines/build.py:373:16 (cpp=verified).",
    "requirements": [
     "finding_site:src/ici/engines/build.py:92:16",
     "finding_site:src/ici/engines/build.py:338:16",
@@ -2312,7 +2312,7 @@
   },
   "src/ici/engines/python_compat.py": {
    "disposition": "unreviewed",
-   "reason": "Whole file read. run/_not_applicable/_check_runtimes/_check_runtime/_configured_runtimes (empty -> launcher-selected interpreter, legacy_launcher_interpreter.rs)/_process_problem/counters/extra map to finding sites 75:11, 141:24, 161:20 (complete) and 214:16 (difference_review: unparseable pyproject.toml refused by native config discovery), replayed in legacy_python_compat_parity.rs. Open before mapping: the aggregate AST bound (1,000,000 nodes) and the 128 compileall-target bound errors, and -VV/compileall/import-smoke timeout or truncation problems are mapped in code but not captured against a frozen run; _resolve_interpreter symlink resolution only affects frozen tool-evidence argv.",
+   "reason": "Whole file read. run/_not_applicable/_check_runtimes/_check_runtime/_configured_runtimes (empty -> launcher-selected interpreter, legacy_launcher_interpreter.rs)/_process_problem/counters/extra map to finding sites 75:11, 141:24, 161:20 (complete) and 214:16 (difference_review: unparseable pyproject.toml refused by native config discovery), replayed in legacy_python_compat_parity.rs. Open before mapping: the aggregate AST bound (1,000,000 nodes) and the 128 compileall-target bound errors, and -VV/compileall/import-smoke timeout or truncation problems are mapped in code but not captured against a frozen run; _resolve_interpreter symlink resolution only affects frozen tool-evidence argv. Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/python_compat.py:214:16 (validation=difference_review); capability:runtime-integration (validation=verified).",
    "requirements": [
     "finding_site:src/ici/engines/python_compat.py:75:11",
     "finding_site:src/ici/engines/python_compat.py:141:24",
@@ -2323,7 +2323,7 @@
   },
   "src/ici/engines/sanitize.py": {
    "disposition": "unreviewed",
-   "reason": "Python-scope dispatch read (lines 100-135 _analysis_scopes; _missing_python_scope/_append_scope_error/_incomplete_message/_tool_failure_message/_process_incomplete helpers 790-905 used by the Python scope, see _sanitize_python_scope.py). Finding sites 200:16, 385:24, 566:12, 630:21, 669:16, 838:12, 865:12 are not_started; the C++ sanitizer flow is the C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
+   "reason": "Python-scope dispatch read (lines 100-135 _analysis_scopes; _missing_python_scope/_append_scope_error/_incomplete_message/_tool_failure_message/_process_incomplete helpers 790-905 used by the Python scope, see _sanitize_python_scope.py). Finding sites 200:16, 385:24, 566:12, 630:21, 669:16, 838:12, 865:12 are not_started; the C++ sanitizer flow is the C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker. Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/sanitize.py:385:24 (cpp=verified); finding_site:src/ici/engines/sanitize.py:566:12 (cpp=verified); finding_site:src/ici/engines/sanitize.py:630:21 (cpp=verified); finding_site:src/ici/engines/sanitize.py:838:12 (cpp=implemented); finding_site:src/ici/engines/sanitize.py:865:12 (cpp=implemented); capability:legacy-python-sanitize (cpp=not_started, validation=implemented).",
    "requirements": [
     "finding_site:src/ici/engines/sanitize.py:200:16",
     "finding_site:src/ici/engines/sanitize.py:385:24",
@@ -2337,7 +2337,7 @@
   },
   "src/ici/engines/test.py": {
    "disposition": "unreviewed",
-   "reason": "Python facets read where they touch closed rows: _resolve_python (legacy launcher rule, capability:runtime-integration), empty-suite verdict 352:12 (difference_review, root-accepted). Finding sites 611:20, 632:20, 643:20, 654:20, 716:20, 774:16, 811:16, 821:12, 839:12 are not_started C++ halves. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
+   "reason": "Python facets read where they touch closed rows: _resolve_python (legacy launcher rule, capability:runtime-integration), empty-suite verdict 352:12 (difference_review, root-accepted). Finding sites 611:20, 632:20, 643:20, 654:20, 716:20, 774:16, 811:16, 821:12, 839:12 are not_started C++ halves. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker. Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/test.py:611:20 (cpp=verified); finding_site:src/ici/engines/test.py:632:20 (cpp=verified); finding_site:src/ici/engines/test.py:654:20 (cpp=verified); finding_site:src/ici/engines/test.py:839:12 (cpp=verified); capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified).",
    "requirements": [
     "finding_site:src/ici/engines/test.py:352:12",
     "finding_site:src/ici/engines/test.py:611:20",
@@ -2354,14 +2354,14 @@
   },
   "src/ici/engines/test_coverage.py": {
    "disposition": "unreviewed",
-   "reason": "Not read in full. Finding site 384:16 difference_review (native overlap reason wording).",
+   "reason": "Not read in full. Finding site 384:16 difference_review (native overlap reason wording). Blocked (decisions worker 2026-11-02 merge check): finding_site:src/ici/engines/test_coverage.py:384:16 (cpp=not_started).",
    "requirements": [
     "finding_site:src/ici/engines/test_coverage.py:384:16"
    ]
   },
   "src/ici/engines/test_interpreter.py": {
    "disposition": "unreviewed",
-   "reason": "Whole file read. _resolve_python order (engines.test.python as given, project .venv/bin/python, .venv/Scripts/python.exe, sys.executable = pyz launcher choice) maps to native validation::project_python for legacy commands (crates/ici-cli/tests/legacy_launcher_interpreter.rs, interpreter_selection.rs::declared_bare_interpreter_name_is_a_path_lookup_for_legacy_commands, ::legacy_project_without_a_launcher_candidate_is_blocked_with_the_legacy_hint); _build_python_test_env PATH prepend (none for a bare name) and PYTHONPATH source dirs map to bind(). Open: _find_coverage_cmd probe error texts (timed out / truncated / terminated / exit N) and _interpreter_from_command pytest-argv normalisation are not compared with a frozen legacy capture.",
+   "reason": "Whole file read. _resolve_python order (engines.test.python as given, project .venv/bin/python, .venv/Scripts/python.exe, sys.executable = pyz launcher choice) maps to native validation::project_python for legacy commands (crates/ici-cli/tests/legacy_launcher_interpreter.rs, interpreter_selection.rs::declared_bare_interpreter_name_is_a_path_lookup_for_legacy_commands, ::legacy_project_without_a_launcher_candidate_is_blocked_with_the_legacy_hint); _build_python_test_env PATH prepend (none for a bare name) and PYTHONPATH source dirs map to bind(). Open: _find_coverage_cmd probe error texts (timed out / truncated / terminated / exit N) and _interpreter_from_command pytest-argv normalisation are not compared with a frozen legacy capture. Blocked (decisions worker 2026-11-02 merge check): capability:runtime-integration (validation=verified).",
    "requirements": [
     "capability:runtime-integration"
    ]
@@ -2378,7 +2378,7 @@
   },
   "src/ici/engines/test_quality.py": {
    "disposition": "unreviewed",
-   "reason": "Partially reviewed (lines 225-593: settings parsing, repeat/flaky/mutation paths). Sites 196/355/502/87 difference_review, 405/418/434/550/580 complete (405/418/434 with distinct failure-mode fixtures timeout_third/signal/quiet_failing_repeat), 381 difference_review (summary-count base run). Open before mapping: settings clamping (repeat_runs/timeout/slow threshold/max_slow_tests bounds, invalid mutation tool -> auto) are not compared with a frozen capture; lines 1-224 (report/warn mode verdicts) not re-read in this pass.",
+   "reason": "Partially reviewed (lines 225-593: settings parsing, repeat/flaky/mutation paths). Sites 196/355/502/87 difference_review, 405/418/434/550/580 complete (405/418/434 with distinct failure-mode fixtures timeout_third/signal/quiet_failing_repeat), 381 difference_review (summary-count base run). Open before mapping: settings clamping (repeat_runs/timeout/slow threshold/max_slow_tests bounds, invalid mutation tool -> auto) are not compared with a frozen capture; lines 1-224 (report/warn mode verdicts) not re-read in this pass. Blocked (decisions worker 2026-11-02 merge check): capability:test-quality-tem (cpp=not_started, validation=implemented, common=verified); finding_site:src/ici/engines/test_quality.py:381:16 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:405:24 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:418:24 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:434:24 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:550:16 (cpp=not_started); finding_site:src/ici/engines/test_quality.py:580:12 (cpp=not_started).",
    "requirements": [
     "capability:test-quality-tem",
     "finding_site:src/ici/engines/test_quality.py:381:16",
