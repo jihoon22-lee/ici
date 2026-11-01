@@ -87,6 +87,17 @@ fn never_imported_declared_source_is_measured_zero_instead_of_omitted() {
     );
     assert_eq!(metric(&result, "coverage.functions")["numerator"], 1);
     assert_eq!(metric(&result, "coverage.functions")["denominator"], 2);
+    // Frozen reported `coverage.branches` 0.0 % with no counts when the sources had no
+    // branch to measure; native records no branch percentage instead of a fabricated 0 %.
+    let frozen_branches = frozen["metrics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|metric| metric["name"] == "coverage.branches")
+        .unwrap();
+    assert_eq!(frozen_branches["value"], 0.0);
+    assert!(frozen_branches.get("denominator").is_none());
+    assert_eq!(metric(&result, "coverage.branches"), Value::Null);
     assert_eq!(
         fs::read_to_string(root.path().join("main.py")).unwrap(),
         "def main():\n    return 1\n"

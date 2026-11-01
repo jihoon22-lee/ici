@@ -104,12 +104,6 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "Command-line usage errors are reported by the native parser as `error: invalid value ...` (exit 2, nothing written) where frozen typer drew an unclassed usage box; same exit code.",
     ),
     (
-        "legacy-publish/html-upload-refused",
-        "outcome",
-        r#""[publish] --publish failed to upload ici/project/local/unversioned-0.1/index.html to team/repo (gh-pages). Check token permissions (contents: write) and branch availability.""#,
-        "Native keeps its gh-pages layout ici/<label>/<ref>/<revision>/index.html (accepted in reporting.json, legacy_publish.rs normalizes it); the message, exit 1 and the refused real HTTPS connect are frozen's.",
-    ),
-    (
         "legacy-publish/html-without-json",
         "exit_code",
         r#"0"#,
@@ -240,12 +234,6 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "message",
         r#""config: <root>/local.toml:1:11: workspace.name: local preferences may change display/cache/tool paths, never inspection policy""#,
         "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
-    ),
-    (
-        "verify/result",
-        "written",
-        r#"["out/base.html", "out/base.json"]"#,
-        "Plan-described native behaviour for root decision (the execution plan describes an offline HTML page for analyze results): text-mode next verify also writes the offline page next to --result (out/base.html); the result itself is frozen's.",
     ),
     (
         "global/unknown-command",

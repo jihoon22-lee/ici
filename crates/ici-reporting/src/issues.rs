@@ -554,10 +554,13 @@ fn clone_groups(view: &View, records: &[Record]) -> (Vec<IssueGroup>, BTreeSet<u
             let Some(start) = occurrence["start_line"].as_u64().filter(|start| *start > 0) else {
                 continue;
             };
-            let end = occurrence["end_line"]
-                .as_u64()
-                .filter(|end| *end >= start)
-                .unwrap_or(start);
+            // Frozen `_canonical_occurrence`: a missing end is the start line; an end before
+            // the start is not a location at all.
+            let end = match occurrence["end_line"].as_u64().filter(|end| *end > 0) {
+                Some(end) if end < start => continue,
+                Some(end) => end,
+                None => start,
+            };
             source_records.push(Record{engine:"dup".into(),index:usize::MAX,finding:json!({"primary_location":{"path":path,"start_line":start,"end_line":end,"label":""},"related_locations":[]})});
         }
         if source_records.is_empty() {

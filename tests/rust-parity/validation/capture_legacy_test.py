@@ -61,6 +61,26 @@ SCENARIOS = {
         "src/calc.py": "def add(a, b):\n    return a + b\n",
         "tests/helper.py": "VALUE = 1\n",
     },
+    "all_skipped": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": (
+            "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n"
+        ),
+    },
+    "all_skipped_optional": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": (
+            "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later():\n    pass\n"
+        ),
+        "extra_config": "required = false\n",
+    },
+    "skipped_and_failing": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": (
+            "import pytest\nfrom calc import add\n\n\n@pytest.mark.skip(reason='later')\n"
+            "def test_later():\n    pass\n\n\ndef test_bad():\n    assert add(1, 1) == 3\n"
+        ),
+    },
     "no_coverage": {
         "src/calc.py": "def add(a, b):\n    return a + b\n",
         "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n",

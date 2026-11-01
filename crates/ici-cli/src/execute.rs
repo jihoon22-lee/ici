@@ -119,33 +119,38 @@ pub fn command(
     let stdout = if json_mode {
         run.result.to_json().map_err(error)? + "\n"
     } else {
-        let stored = crate::report::load(&run.result_path)?;
-        let root = crate::commands::artifact_root(cwd);
-        let options = ici_reporting::RenderOptions {
-            source_root: Some(root.to_string_lossy().into_owned()),
-            ..Default::default()
-        };
         let notes: Vec<String> = run
             .notes
             .iter()
             .map(|note| ici_execution::redaction::redact_text(note))
             .collect();
         let mut text = crate::run_text::verdict_block(&run.result, &[], &notes, &run.result_path);
-        let page = run.result_path.with_extension("html");
-        let html = ici_reporting::render_html(&stored, &options).map_err(error)?;
-        crate::report::write_artifact(
-            &page,
-            html.as_bytes(),
-            &run.result_path,
-            crate::report::ArtifactKind::Html,
-        )
-        .map_err(|failure| {
-            CliError(format!(
-                "analysis result saved at {}; HTML could not be written: {failure}",
-                run.result_path.display()
-            ))
-        })?;
-        text.push_str(&crate::run_text::native_tail(&run.result, &page));
+        // Root decision D4: frozen `next verify` (cli/next_path.cmd_verify) writes only the
+        // result and its text ends at `saved <path>`; the page is `next report`'s job. Only
+        // `ici analyze` adds the offline page and the finding preview (execution plan §2.1).
+        if invocation.command() == "analyze" {
+            let stored = crate::report::load(&run.result_path)?;
+            let root = crate::commands::artifact_root(cwd);
+            let options = ici_reporting::RenderOptions {
+                source_root: Some(root.to_string_lossy().into_owned()),
+                ..Default::default()
+            };
+            let page = run.result_path.with_extension("html");
+            let html = ici_reporting::render_html(&stored, &options).map_err(error)?;
+            crate::report::write_artifact(
+                &page,
+                html.as_bytes(),
+                &run.result_path,
+                crate::report::ArtifactKind::Html,
+            )
+            .map_err(|failure| {
+                CliError(format!(
+                    "analysis result saved at {}; HTML could not be written: {failure}",
+                    run.result_path.display()
+                ))
+            })?;
+            text.push_str(&crate::run_text::native_tail(&run.result, &page));
+        }
         text
     };
     let output = CommandOutput {
@@ -1707,7 +1712,7 @@ fn wire_label<T: serde::Serialize>(value: &T) -> String {
         .and_then(|value| value.as_str().map(str::to_owned))
         .unwrap_or_default()
 }
-fn state_label(state: ici_domain::TaskState) -> String {
+pub(crate) fn state_label(state: ici_domain::TaskState) -> String {
     wire_label(&state)
 }
 

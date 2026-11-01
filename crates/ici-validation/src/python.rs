@@ -85,7 +85,11 @@ pub(crate) fn node_location(
             .map(|line| (path, line))
     });
     let (raw_path, mut line) = explicit.unwrap_or((raw_path, 1));
-    let path = planning::relative(raw_path, &request.root, &request.cwd)?;
+    // Frozen analysis/pytest_output.py `_node_location`: a malformed or escaping node path is
+    // reduced to the stable `tests` scope instead of pointing outside the project.
+    let Ok(path) = planning::relative(raw_path, &request.root, &request.cwd) else {
+        return Ok(("tests".into(), 1));
+    };
     if explicit.is_none() {
         let names: Vec<_> = segments
             .map(|part| part.split('[').next().unwrap_or(part))
@@ -363,14 +367,22 @@ fn observe_suite(
                 .map_or_else(|| "none".to_owned(), |code| code.to_string())
         )));
     }
-    if passed == 0
-        && evidence
+    // Frozen `adapters/providers/pytest.py` `_parse`: a collected suite in which no case passed
+    // (every case skipped, xfailed or errored) is still an answer, but nothing was verified green,
+    // so the run says so instead of presenting the check as verified evidence (root decision D2).
+    let green = evidence
+        .cases
+        .values()
+        .filter(|case| case.verdict == "PASSED")
+        .count();
+    if green == 0 {
+        let skipped = evidence
             .cases
             .values()
-            .all(|case| case.verdict == "SKIPPED")
-    {
-        return Err(ValidationError(
-            "all pytest cases skipped; nothing was verified".into(),
+            .filter(|case| case.verdict == "SKIPPED")
+            .count();
+        output.observation.limitations.push(format!(
+            "no test ran green ({skipped} skipped of {total} collected)"
         ));
     }
     if outcome.exit_code == Some(1) && output.observation.findings.is_empty() {
@@ -459,7 +471,7 @@ fn observe_coverage(
             output
                 .observation
                 .measurements
-                .push(pair(name, covered, total));
+                .push(coverage_percent(name, covered, total));
         }
     }
     // With a file gate the policy owns the per-file inventory (frozen `Coverage:File`).
@@ -852,6 +864,12 @@ pub(crate) fn finding(
     ));
     item
 }
+/// Frozen adapters/providers/coverage.py reports every percentage as `round(percent, 1)`.
+fn coverage_percent(name: &str, covered: u64, total: u64) -> Measurement {
+    let mut metric = pair(name, covered, total);
+    metric.value = ici_domain::python_round_one(metric.value);
+    metric
+}
 pub(crate) fn pair(name: &str, numerator: u64, denominator: u64) -> Measurement {
     let mut metric = Measurement::measured(
         name,
@@ -870,4 +888,24 @@ pub(crate) fn pair(name: &str, numerator: u64, denominator: u64) -> Measurement 
     }
     .into();
     metric
+}
+#[cfg(test)]
+mod coverage_percent_tests {
+    #[test]
+    fn coverage_percentages_round_to_one_decimal_like_python() {
+        for (covered, total, expected) in [
+            (1, 3, 33.3),
+            (2, 3, 66.7),
+            (1, 8, 12.5),
+            (1, 16, 6.2),
+            (5, 5, 100.0),
+        ] {
+            let metric = super::coverage_percent("coverage.lines", covered, total);
+            assert_eq!(metric.value, expected);
+            assert_eq!(
+                (metric.numerator, metric.denominator),
+                (Some(covered), Some(total))
+            );
+        }
+    }
 }

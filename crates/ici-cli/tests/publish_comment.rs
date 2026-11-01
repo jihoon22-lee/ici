@@ -26,6 +26,7 @@ fn legacy_comment_bodies_equal_the_frozen_single_and_multi_project_layouts() {
             suite("warn-tem").as_ref(),
             Some("https://pages.example/a/index.html"),
             true,
+            true,
             "self",
             "pr/7/index.html",
             run_url,
@@ -36,6 +37,7 @@ fn legacy_comment_bodies_equal_the_frozen_single_and_multi_project_layouts() {
         legacy_comment::single(
             suite("pass-no-tem").as_ref(),
             None,
+            true,
             false,
             "hub",
             "proj/pr/7/index.html",
@@ -47,6 +49,7 @@ fn legacy_comment_bodies_equal_the_frozen_single_and_multi_project_layouts() {
         legacy_comment::single(
             None,
             Some("https://pages.example/b/index.html"),
+            true,
             true,
             "self",
             "index.html",
@@ -61,18 +64,21 @@ fn legacy_comment_bodies_equal_the_frozen_single_and_multi_project_layouts() {
                 suite: suite("warn-tem"),
                 remote_path: "api/pr/7/index.html".into(),
                 viewer: Some("https://pages.example/api".into()),
+                uploaded: true,
             },
             Report {
                 label: "web",
                 suite: suite("pass-no-tem"),
                 remote_path: "web/pr/7/index.html".into(),
                 viewer: None,
+                uploaded: true,
             },
             Report {
                 label: "docs",
                 suite: None,
                 remote_path: "docs/pr/7/index.html".into(),
                 viewer: None,
+                uploaded: true,
             },
         ]
     };
@@ -106,7 +112,7 @@ fn unreadable_suites_and_inconsistent_baselines_render_like_the_frozen_loader() 
     for (name, expected) in cases {
         let suite = legacy_comment::suite(&oracle["negative_suites"][name]);
         assert_eq!(
-            legacy_comment::single(suite.as_ref(), None, true, "self", "index.html", None),
+            legacy_comment::single(suite.as_ref(), None, true, true, "self", "index.html", None),
             expected.as_str().unwrap(),
             "{name}"
         );
@@ -134,7 +140,7 @@ fn response(status: u16, value: Value) -> std::result::Result<Response, Transpor
 }
 
 #[test]
-fn historical_publish_posts_the_frozen_comment_with_the_native_run_marker() {
+fn historical_publish_posts_the_frozen_comment_on_the_frozen_layout() {
     let oracle = oracle();
     let document = serde_json::to_vec(&oracle["suites"]["warn-tem"]).unwrap();
     let publication = Publication {
@@ -162,14 +168,16 @@ fn historical_publish_posts_the_frozen_comment_with_the_native_run_marker() {
             unlabeled: true,
             mode: "self".into(),
             missing: vec![],
+            prefix: String::new(),
+            reference: "main".into(),
+            github_sha: "a".repeat(40),
         }),
     };
     let mut posted = None;
     let record = publish::publish_with_transport(&publication, &mut |request: &Request| {
         let url = &request.url;
-        if url.ends_with("/pulls/7") {
-            return response(200, json!({"head":{"sha":"a".repeat(40)}}));
-        }
+        // The historical caller has no head/run ordering guard: it never reads the PR head.
+        assert!(!url.ends_with("/pulls/7"), "{url}");
         if url.contains("/issues/7/comments") {
             if request.method == "GET" {
                 return response(200, json!([]));
@@ -197,21 +205,21 @@ fn historical_publish_posts_the_frozen_comment_with_the_native_run_marker() {
         panic!("unexpected endpoint {} {url}", request.method)
     });
     assert_eq!(record["state"], "SUCCESS", "{record}");
-    let path = "ici/workspace/pr-7/aaaaaaaaaaaa/index.html";
+    // Frozen `_resolve_target`: a PR run's page is `pr/<n>/index.html` (the ref is ignored).
+    let path = "pr/7/index.html";
     assert_eq!(record["remote_path"], path);
     let expected = legacy_comment::single(
         legacy_comment::suite(&oracle["suites"]["warn-tem"]).as_ref(),
         None,
+        true,
         false,
         "self",
         path,
         Some("https://github.example/team/repo/actions/runs/9"),
     );
     let posted = posted.expect("comment posted");
-    assert_eq!(
-        posted,
-        format!("{expected}\n<!-- head:{} run:9.1 -->", "a".repeat(40))
-    );
+    // Exactly the frozen body: no native head/run metadata trailer.
+    assert_eq!(posted, expected);
     // The frozen gh-pages notice, TEM header and stats table, not the native summary.
     assert!(posted.starts_with(
         "<!-- ici-report -->\n## ⚠️ ici Quality Gate — **`WARN`** · TEM **`3.46/5.0`**\n\n> 📦"

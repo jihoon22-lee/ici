@@ -413,13 +413,13 @@ fn execute_native_preparation(
             "task.completed",
             Some(&outcome.task_id),
             Some(&plan.component_id),
-            &format!("{:?}", outcome.state),
+            &outcome.state_label(),
         );
         if !outcome.prerequisite_succeeded() {
             let detail = format!(
-                "native preparation {} failed (exit {:?}, timed_out={}, truncated={}): {} {}",
+                "native preparation {} failed ({}, timed_out={}, truncated={}): {} {}",
                 outcome.task_id,
-                outcome.exit_code,
+                outcome.ending(),
                 outcome.timed_out,
                 outcome.truncated,
                 outcome.error.unwrap_or_default(),

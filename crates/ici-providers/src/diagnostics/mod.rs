@@ -111,8 +111,11 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
     } else if !outcome.completed() {
         Some(outcome.error.clone().unwrap_or_else(|| {
             format!(
-                "process did not complete ({:?}, signal {:?}, timeout {}, truncated {})",
-                outcome.state, outcome.signal, outcome.timed_out, outcome.truncated
+                "process did not complete ({}, {}, timeout {}, truncated {})",
+                outcome.state_label(),
+                outcome.ending(),
+                outcome.timed_out,
+                outcome.truncated
             )
         }))
     } else if !outcome
@@ -130,9 +133,11 @@ pub fn observe_full(plan: &ProviderPlan, outcome: &TaskOutcome) -> AnalysisOutpu
             )
         } else {
             format!(
-                "{} exited with unsupported code {:?}",
+                "{} exited with unsupported code {}",
                 plan.kind.name(),
-                outcome.exit_code
+                outcome
+                    .exit_code
+                    .map_or_else(|| "none".into(), |code| code.to_string())
             )
         })
     } else {

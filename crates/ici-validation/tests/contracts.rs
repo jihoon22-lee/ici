@@ -106,9 +106,22 @@ fn pytest_preserves_parameter_spaces_last_verdicts_and_source_facts() {
     assert_eq!(output.targets[1].start_line, 14);
     assert_eq!(output.observation.findings.len(), 1);
     assert_eq!(output.observation.measurements[0].denominator, Some(2));
+    // An escaping or absolute node path keeps its verdict at the frozen `tests` scope.
+    let text = "../outside/test_a.py::test_a FAILED\n/elsewhere/test_b.py:9::test_b FAILED\n";
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, text, 1))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(output.observation.state, TaskState::Succeeded);
+    assert_eq!(output.observation.findings.len(), 2);
+    for finding in &output.observation.findings {
+        assert_eq!(finding.primary_location.path, "tests");
+        assert_eq!(finding.primary_location.start_line, 1);
+    }
 }
 #[test]
-fn no_tests_collection_usage_all_skipped_and_malformed_are_incomplete() {
+fn no_tests_collection_usage_and_malformed_are_incomplete() {
     let root = tempfile::tempdir().unwrap();
     let planned = plan(&request(root.path(), ValidationKind::PythonTest)).unwrap();
     let id = planned.tasks[0].id.clone();
@@ -116,7 +129,6 @@ fn no_tests_collection_usage_all_skipped_and_malformed_are_incomplete() {
         ("no tests ran", 5),
         ("garbage", 0),
         ("ERROR collecting tests/test_bad.py\n", 2),
-        ("tests/test_main.py::test_x SKIPPED\n", 0),
         ("tests/test_main.py::test_x PASSED\n", 4),
         ("tests/test_main.py::test_x PASSED\n", 1),
     ] {
@@ -136,6 +148,51 @@ fn no_tests_collection_usage_all_skipped_and_malformed_are_incomplete() {
                 "pytest.collection-error"
             );
         }
+    }
+}
+/// Root decision D2 (frozen `adapters/providers/pytest.py`): a collected suite in which no case
+/// passed is an answer with the frozen limitation, never a refusal and never silent.
+#[test]
+fn all_skipped_suite_succeeds_with_the_frozen_no_green_limitation() {
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::PythonTest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    for (text, limitation) in [
+        (
+            "tests/test_main.py::test_x SKIPPED\n",
+            Some("no test ran green (1 skipped of 1 collected)"),
+        ),
+        (
+            "tests/test_main.py::test_x SKIPPED\ntests/test_main.py::test_y XFAIL\n",
+            Some("no test ran green (1 skipped of 2 collected)"),
+        ),
+        ("tests/test_main.py::test_x PASSED\n", None),
+    ] {
+        let output = observe(
+            &planned,
+            &BTreeMap::from([(id.clone(), outcome(&id, text, 0))]),
+            &CapturedArtifacts::default(),
+        );
+        assert_eq!(
+            output.observation.state,
+            TaskState::Succeeded,
+            "{text}: {output:?}"
+        );
+        let named: Vec<_> = output
+            .observation
+            .limitations
+            .iter()
+            .filter(|text| text.starts_with("no test ran green"))
+            .cloned()
+            .collect();
+        assert_eq!(
+            named,
+            limitation
+                .map(str::to_owned)
+                .into_iter()
+                .collect::<Vec<_>>(),
+            "{text}"
+        );
     }
 }
 #[test]
@@ -337,6 +394,13 @@ fn coverage_policy_honors_thresholds_statement_floor_and_changed_line_denominato
     assert_eq!(output.observation.findings.len(), 3);
     request.options.changed_lines = vec!["main.py:1-2".into(), "main.py:2".into()];
     assert!(plan(&request).is_err());
+    // A project file outside the captured source scope, a reversed range and a non-canonical
+    // line are refused at plan time (frozen refused them as a policy configuration error, or
+    // reported an out-of-scope file as having no executable measured lines).
+    for spec in ["README.md:1", "main.py:3-2", "main.py:03", "./main.py:1"] {
+        request.options.changed_lines = vec![spec.into()];
+        assert!(plan(&request).is_err(), "{spec}");
+    }
     request.options.changed_lines = vec!["main.py:99".into()];
     let planned = plan(&request).unwrap();
     let mut output = ici_domain::AnalysisOutput::new("coverage", "coverage");

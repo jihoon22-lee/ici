@@ -237,8 +237,9 @@ pub(crate) fn observe_flags(
             arguments.extend(flags.clone());
         } else {
             limitations.push(format!(
-                "{} was unavailable (exit {:?}); no flags were invented",
-                probe.argv[2], outcome.exit_code
+                "{} was unavailable ({}); no flags were invented",
+                probe.argv[2],
+                outcome.ending()
             ));
         }
         statuses.push(outcome.exit_code);

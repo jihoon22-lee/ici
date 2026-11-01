@@ -16,6 +16,13 @@ SKIPPED = "import pytest\n\n\n@pytest.mark.skip(reason='later')\ndef test_later(
 GREEN = "def test_ok():\n    pass\n"
 EMPTY = "X = 1\n"
 INTERRUPTED = "import pytest\n\n\ndef test_stop():\n    pytest.exit('stop', returncode=2)\n"
+# A plugin that reports node ids outside the project (frozen `_node_location` keeps the
+# verdict at the stable `tests` scope instead of pointing outside).
+ESCAPING = (
+    "def pytest_collection_modifyitems(items):\n"
+    "    for item in items:\n"
+    "        item._nodeid = '../outside/' + item.nodeid.rsplit('/', 1)[-1]\n"
+)
 SCENARIOS = {
     "failing": {"tests/test_a.py": FAILING},
     "collection": {"tests/test_b.py": BROKEN},
@@ -24,6 +31,7 @@ SCENARIOS = {
     "all-skipped": {"tests/test_d.py": SKIPPED},
     "no-tests": {"tests/test_e.py": EMPTY},
     "interrupted": {"tests/test_f.py": INTERRUPTED},
+    "escaping-node": {"tests/conftest.py": ESCAPING, "tests/test_g.py": FAILING},
 }
 
 

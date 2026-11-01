@@ -362,3 +362,44 @@ fn known_non_elf_policy_preserves_original_binary_finding_details() {
     matches_original(&actual, &actual.observation.findings[0], &oracle("binary"));
     assert_eq!(actual.observation.findings[0].confidence, "exact");
 }
+#[test]
+fn slow_rows_strip_ansi_and_keep_the_frozen_duration_path_line_order() {
+    let mut context = request(ValidationKind::PythonTest);
+    context.options.slow_threshold_seconds = Some(1.0);
+    let planned = plan(&context).unwrap();
+    let base = format!("{}.suite", context.task_id);
+    // Frozen `_pytest_duration_summary`: ANSI colour is stripped, rows below the threshold or
+    // without a node id are dropped, the slowest duration of a repeated row wins, and ties sort
+    // by file path, line, node id and phase.
+    let text = "tests/z_test.py::test_z PASSED\ntests/a_test.py::test_a PASSED\n\
+        \x1b[33m2.000s call     tests/z_test.py::test_z\x1b[0m\n\
+        2.000s call     tests/a_test.py::test_a\n\
+        2.000s call     tests/a.py:30::test_b\n\
+        2.000s call     tests/a.py:4::test_c\n\
+        1.200s setup    tests/a_test.py::test_a\n\
+        1.900s setup    tests/a_test.py::test_a\n\
+        0.500s call     tests/z_test.py::test_fast\n\
+        3.000s call     summary-only\n";
+    let actual = observe(
+        &planned,
+        &BTreeMap::from([(base.clone(), outcome(&base, text, "", 0))]),
+        &CapturedArtifacts::default(),
+    );
+    assert_eq!(actual.observation.state, TaskState::Succeeded, "{actual:?}");
+    let rows: Vec<&str> = actual
+        .targets
+        .iter()
+        .map(|target| target.target_name.as_str())
+        .filter(|name| name.starts_with("[test-quality] Slow test:"))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            "[test-quality] Slow test: tests/a.py:4::test_c (call)",
+            "[test-quality] Slow test: tests/a.py:30::test_b (call)",
+            "[test-quality] Slow test: tests/a_test.py::test_a (call)",
+            "[test-quality] Slow test: tests/z_test.py::test_z (call)",
+            "[test-quality] Slow test: tests/a_test.py::test_a (setup)",
+        ]
+    );
+}

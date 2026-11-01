@@ -190,7 +190,17 @@ fn header(suite: Option<&Suite>) -> String {
         suite.status
     )
 }
-fn links(viewer: Option<&str>, pages_enabled: bool, remote_path: &str) -> Vec<String> {
+fn links(
+    viewer: Option<&str>,
+    pages_enabled: bool,
+    remote_path: &str,
+    uploaded: bool,
+) -> Vec<String> {
+    if !uploaded {
+        return vec![
+            "> ❌ **HTML 리포트 업로드 실패** — 토큰 권한(`contents: write`)과 Workflow Run 로그를 확인해 주세요.".into(),
+        ];
+    }
     if let Some(url) = viewer {
         return vec![
             format!(
@@ -320,13 +330,14 @@ fn footer(mode: &str, remote_path: &str, run_url: Option<&str>) -> String {
 pub fn single(
     suite: Option<&Suite>,
     viewer: Option<&str>,
+    uploaded: bool,
     pages_enabled: bool,
     mode: &str,
     remote_path: &str,
     run_url: Option<&str>,
 ) -> String {
     let mut lines = vec![MARKER.to_owned(), header(suite), String::new()];
-    lines.extend(links(viewer, pages_enabled, remote_path));
+    lines.extend(links(viewer, pages_enabled, remote_path, uploaded));
     lines.push(String::new());
     lines.extend(stats(suite));
     let baseline = baseline_lines(suite);
@@ -346,6 +357,7 @@ pub struct Report<'a> {
     pub suite: Option<Suite>,
     pub remote_path: String,
     pub viewer: Option<String>,
+    pub uploaded: bool,
 }
 
 /// Frozen `_multi_report_body`: one sticky comment covering every project of the run.
@@ -399,10 +411,14 @@ pub fn multi(
             .as_ref()
             .and_then(tem)
             .unwrap_or_else(|| "—".into());
-        let link = report.viewer.as_ref().map_or_else(
-            || format!("`{}`", report.remote_path),
-            |url| format!("[📊 열기]({url})"),
-        );
+        let link = if !report.uploaded {
+            "❌ 업로드 실패".to_owned()
+        } else {
+            report.viewer.as_ref().map_or_else(
+                || format!("`{}`", report.remote_path),
+                |url| format!("[📊 열기]({url})"),
+            )
+        };
         lines.push(format!(
             "| `{}` | {status} | {tem} | {link} |",
             label(report)
