@@ -242,12 +242,6 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
     ),
     (
-        "verify/result",
-        "written",
-        r#"["out/base.html", "out/base.json"]"#,
-        "Plan-described native behaviour for root decision (the execution plan describes an offline HTML page for analyze results): text-mode next verify also writes the offline page next to --result (out/base.html); the result itself is frozen's.",
-    ),
-    (
         "global/unknown-command",
         "message",
         r#""error: unrecognized subcommand 'bogus'""#,
