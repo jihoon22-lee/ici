@@ -1,0 +1,470 @@
+{
+ "names": {
+  "Q": false,
+  "QA": true,
+  "QObject": true,
+  "Qobject": false,
+  "Qt": false,
+  "Qt/x": true,
+  "Qt5Compat": true,
+  "Qt6Core": true,
+  "QtCore": true,
+  "QtCore/QObject": true,
+  "Qtx": false,
+  "QÉ": true,
+  "q": false,
+  "vector": false
+ },
+ "texts": [
+  {
+   "code": "",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": ""
+  },
+  {
+   "code": "Q_OBJECT",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 1,
+   "text": "Q_OBJECT"
+  },
+  {
+   "code": "class A {\n    Q_OBJECT\n};\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 2,
+   "text": "class A {\n    Q_OBJECT\n};\n"
+  },
+  {
+   "code": "           \n              \n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "// Q_OBJECT\n/* Q_OBJECT */\n"
+  },
+  {
+   "code": "          \n   \n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "\"Q_OBJECT\"\n'Q'\n"
+  },
+  {
+   "code": "               \nQ_OBJECT\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 2,
+   "text": "R\"x(Q_OBJECT)x\"\nQ_OBJECT\n"
+  },
+  {
+   "code": "           \n  \nQ_OBJECT\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 3,
+   "text": "R\"(Q_OBJECT\n)\"\nQ_OBJECT\n"
+  },
+  {
+   "code": "R                              \n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "R\"has space(Q_OBJECT)has space\"\n"
+  },
+  {
+   "code": "R                                              \n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "R\"12345678901234567(Q_OBJECT)12345678901234567\"\n"
+  },
+  {
+   "code": "                     \nQ_OBJECT\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 2,
+   "text": "\"escaped \\\" Q_OBJECT\"\nQ_OBJECT\n"
+  },
+  {
+   "code": "       \n          \n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "\"line \\\n Q_OBJECT\"\n"
+  },
+  {
+   "code": "#if 0\nQ_OBJECT\n#endif\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "#if 0\nQ_OBJECT\n#endif\n"
+  },
+  {
+   "code": "#if 0\n#elif 1\nQ_OBJECT\n#endif\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 3,
+   "text": "#if 0\n#elif 1\nQ_OBJECT\n#endif\n"
+  },
+  {
+   "code": "#if 1\n#elif 1\nQ_OBJECT\n#else\nQ_OBJECT\n#endif\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "#if 1\n#elif 1\nQ_OBJECT\n#else\nQ_OBJECT\n#endif\n"
+  },
+  {
+   "code": "#if false\nQ_OBJECT\n#else\nQ_OBJECT\n#endif\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 4,
+   "text": "#if false\nQ_OBJECT\n#else\nQ_OBJECT\n#endif\n"
+  },
+  {
+   "code": "#ifdef X\n#if 0\n#else\nQ_OBJECT\n#endif\n#endif\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 4,
+   "text": "#ifdef X\n#if 0\n#else\nQ_OBJECT\n#endif\n#endif\n"
+  },
+  {
+   "code": "#endif\n#else\nQ_OBJECT\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 3,
+   "text": "#endif\n#else\nQ_OBJECT\n"
+  },
+  {
+   "code": "  #  if   0  \nQ_OBJECT\n  #endif\nQ_OBJECT\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 4,
+   "text": "  #  if   0  \nQ_OBJECT\n  #endif\nQ_OBJECT\n"
+  },
+  {
+   "code": "a\rb\r Q_OBJECT\r",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 3,
+   "text": "a\rb\r Q_OBJECT\r"
+  },
+  {
+   "code": "a\r\nQ_OBJECT\r\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 2,
+   "text": "a\r\nQ_OBJECT\r\n"
+  },
+  {
+   "code": "a\fQ_OBJECT\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 2,
+   "text": "a\fQ_OBJECT\n"
+  },
+  {
+   "code": "a Q_OBJECT\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": 2,
+   "text": "a Q_OBJECT\n"
+  },
+  {
+   "code": "MY_Q_OBJECT\nQ_OBJECTS\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "MY_Q_OBJECT\nQ_OBJECTS\n"
+  },
+  {
+   "code": "#include      \n#include <QObject>\n                 \n",
+   "include_names": {
+    "value": [
+     "a.h",
+     "QObject"
+    ]
+   },
+   "q_object_line": null,
+   "text": "#include \"a.h\"\n#include <QObject>\n// #include \"b.h\"\n"
+  },
+  {
+   "code": "  #  include           \n#include         \n#  include <a/b.h>\n",
+   "include_names": {
+    "value": [
+     "spaced.h",
+     "tight.h",
+     "a/b.h"
+    ]
+   },
+   "q_object_line": null,
+   "text": "  #  include \"spaced.h\"\n#include\"tight.h\"\n#  include <a/b.h>\n"
+  },
+  {
+   "code": "                     #include      \n#include                  \n",
+   "include_names": {
+    "value": [
+     "e.h"
+    ]
+   },
+   "q_object_line": null,
+   "text": "/* #include \"c.h\" */ #include \"d.h\"\n#include \"e.h\" // trailing\n"
+  },
+  {
+   "code": "#include              \n#include <>\n#include MACRO\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "#include \"unterminated\n#include <>\n#include MACRO\n"
+  },
+  {
+   "code": "         \n#include      \n",
+   "include_names": {
+    "error": "ValueError: zip() argument 2 is shorter than argument 1"
+   },
+   "q_object_line": null,
+   "text": "/* a\rb */\n#include \"c.h\"\n"
+  },
+  {
+   "code": "   \n#include      \n",
+   "include_names": {
+    "error": "ValueError: zip() argument 2 is shorter than argument 1"
+   },
+   "q_object_line": null,
+   "text": "\"\f\"\n#include \"f.h\"\n"
+  },
+  {
+   "code": "#if 0\n#include             \n#endif\n",
+   "include_names": {
+    "value": [
+     "disabled.h"
+    ]
+   },
+   "q_object_line": null,
+   "text": "#if 0\n#include \"disabled.h\"\n#endif\n"
+  },
+  {
+   "code": "#include <xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx>\n",
+   "include_names": {
+    "value": []
+   },
+   "q_object_line": null,
+   "text": "#include <xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx>\n"
+  }
+ ],
+ "units": [
+  {
+   "argv": [
+    "g++",
+    "-I/usr/include/qt5",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [
+    5
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-I/usr/include/x86_64-linux-gnu/qt6/QtCore",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [
+    6
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-DQT_VERSION_MAJOR=5",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [
+    5
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-c",
+    "a.cpp"
+   ],
+   "defines": [
+    [
+     "QT_VERSION_MAJOR",
+     "6"
+    ]
+   ],
+   "majors": [
+    6
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-c",
+    "a.cpp"
+   ],
+   "defines": [
+    [
+     "qt5core",
+     null
+    ]
+   ],
+   "majors": [
+    5
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-Dqt6core",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [],
+   "metadata_relevant": false
+  },
+  {
+   "argv": [
+    "g++",
+    "-DUSE_QT6CORE",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [],
+   "metadata_relevant": false
+  },
+  {
+   "argv": [
+    "g++",
+    "-lQt5Widgets",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [],
+   "metadata_relevant": false
+  },
+  {
+   "argv": [
+    "g++",
+    "-I/opt/Qt5.15/include",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [
+    5
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-I/opt/myqt5/include",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [],
+   "metadata_relevant": false
+  },
+  {
+   "argv": [
+    "g++",
+    "-c",
+    "a.cpp"
+   ],
+   "include_paths": [
+    [
+     "third_party/qt6",
+     "include"
+    ]
+   ],
+   "majors": [
+    6
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-I/usr/include/qt5",
+    "-I/usr/include/qt6",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [
+    5,
+    6
+   ],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-DQT_CORE_LIB",
+    "-c",
+    "a.cpp"
+   ],
+   "defines": [
+    [
+     "QT_CORE_LIB",
+     null
+    ]
+   ],
+   "majors": [],
+   "metadata_relevant": true
+  },
+  {
+   "argv": [
+    "g++",
+    "-DQT_core_LIB",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [],
+   "metadata_relevant": false
+  },
+  {
+   "argv": [
+    "g++",
+    "-DMY_QT_GUI_LIB_X",
+    "-c",
+    "a.cpp"
+   ],
+   "majors": [],
+   "metadata_relevant": false
+  }
+ ]
+}

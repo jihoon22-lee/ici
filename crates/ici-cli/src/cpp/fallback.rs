@@ -47,6 +47,7 @@ fn provider(
         replay.argv.push("-fdiagnostics-format=json".into());
     }
     request.options.compiler_argv = replay.argv;
+    request.options.legacy = true;
     request.options.source_token = Some(replay.source.to_string_lossy().into_owned());
     let mut planned = ici_providers::plan(&request).map_err(|error| error.to_string())?;
     planned.scope_complete = false;
@@ -86,6 +87,20 @@ impl CppPlans {
             tools,
         } = super::package_flags::plan_flags(project, component, id, environment)?;
         self.tools.extend(tools);
+        // Frozen `ici verify` fallback replays carry the probed g++ capability version; the
+        // standalone `ici lint` inventory has none.
+        if !self.legacy_standalone {
+            let path = compiler.path.to_string_lossy().into_owned();
+            self.compiler_versions.entry(path).or_insert_with(|| {
+                super::legacy_tooling::legacy_version_banner(
+                    &compiler.path,
+                    &project.root,
+                    environment,
+                    "g++",
+                )
+                .unwrap_or_default()
+            });
+        }
         let mut providers = vec![];
         let mut units = vec![];
         for (index, source) in sources.iter().enumerate() {
@@ -239,19 +254,31 @@ impl CppPlans {
             Ok(results) => results,
             Err(error) => return failed(AnalysisOutput::new(&request.task_id, "compiler"), &error),
         };
+        let mut syntax_errors = vec![];
         let outputs = results
             .iter()
             .map(|outcome| {
-                ici_providers::observe_full(
-                    providers
-                        .iter()
-                        .find(|provider| provider.task.id == outcome.task_id)
-                        .expect("declared fallback"),
-                    outcome,
-                )
+                let provider = providers
+                    .iter()
+                    .find(|provider| provider.task.id == outcome.task_id)
+                    .expect("declared fallback");
+                let mut output = ici_providers::observe_full(provider, outcome);
+                if let Some(source) = provider.context.targets.first()
+                    && let Some(error) = super::legacy_syntax_execution_error(
+                        &mut output,
+                        outcome,
+                        source,
+                        provider.task.argv.first().map_or("", String::as_str),
+                    )
+                {
+                    syntax_errors.push(error);
+                }
+                super::legacy_clean_only_without_diagnostics(&mut output);
+                output
             })
             .collect();
         let mut output = merge(&request.task_id, "compiler", outputs);
+        super::legacy_record_syntax_errors(&mut output, syntax_errors);
         for finding in &mut output.observation.findings {
             finding.evidence = EvidenceLevel::Estimated;
             finding.confidence = "medium".into();
@@ -273,6 +300,17 @@ impl CppPlans {
         output.extra["cpp_analysis_mode"] = json!("heuristic");
         output.extra["pkg_config"] = json!(observed_flags.records);
         output.extra["concrete_tasks"] = json!(concrete);
+        for task in output.extra["concrete_tasks"]
+            .as_array_mut()
+            .expect("concrete task list")
+        {
+            let version = task["argv"][0]
+                .as_str()
+                .and_then(|path| self.compiler_versions.get(path))
+                .cloned()
+                .unwrap_or_default();
+            task["version"] = json!(version);
+        }
         output
     }
 }

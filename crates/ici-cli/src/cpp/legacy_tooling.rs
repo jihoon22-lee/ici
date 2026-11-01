@@ -37,9 +37,21 @@ pub fn legacy_capability_probe(
     environment: &BTreeMap<String, String>,
     clazy: bool,
 ) -> bool {
+    legacy_version_banner(executable, cwd, environment, tool(clazy)).is_some()
+}
+
+/// The frozen capability `version` of one probed tool (`<tool> --version` in the run
+/// environment): the first output line matching its `parse_tool_version` patterns, at most 200
+/// characters, or `None` when the probe fails or reports no version.
+pub fn legacy_version_banner(
+    executable: &Path,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+    name: &str,
+) -> Option<String> {
     let mut task = TaskSpec::command(
-        format!("legacy-lint.{}.version", tool(clazy)),
-        if clazy { "clazy" } else { "clang-tidy" },
+        format!("legacy-lint.{name}.version"),
+        name,
         vec![
             executable.to_string_lossy().into_owned(),
             "--version".into(),
@@ -52,22 +64,24 @@ pub fn legacy_capability_probe(
     task.env_overlay = ici_cpp::replay_environment();
     let outcome =
         Runner::with_environment(environment.clone()).run(&task, &Cancellation::default());
-    if outcome.timed_out || outcome.truncated || outcome.error.is_some() {
-        return false;
-    }
-    if outcome.exit_code != Some(0) {
-        return false;
+    if outcome.timed_out
+        || outcome.truncated
+        || outcome.error.is_some()
+        || outcome.exit_code != Some(0)
+    {
+        return None;
     }
     let text = format!(
         "{}\n{}",
         String::from_utf8_lossy(&outcome.stdout),
         String::from_utf8_lossy(&outcome.stderr)
     );
-    probe_version_reported(clazy, &text)
+    version_line(name == "clazy", &text)
 }
 
-/// Frozen `parse_tool_version` returns a version tuple for this probe output.
-fn probe_version_reported(clazy: bool, text: &str) -> bool {
+/// Frozen `parse_tool_version`: pattern by pattern, the first line holding a version (clazy only
+/// its own banner; compilers and clang tools a compiler banner, then any dotted version).
+fn version_line(clazy: bool, text: &str) -> Option<String> {
     let patterns: &[&str] = if clazy {
         &[r"(?i)\bclazy(?:-standalone)?\s+(?:version\s*:?\s*)?\d+(?:\.\d+)+\b"]
     } else {
@@ -82,9 +96,12 @@ fn probe_version_reported(clazy: bool, text: &str) -> bool {
         .map(str::trim)
         .filter(|line| !line.is_empty())
         .collect();
-    patterns.iter().any(|pattern| {
+    patterns.iter().find_map(|pattern| {
         let pattern = Regex::new(pattern).expect("constant regex");
-        lines.iter().any(|line| pattern.is_match(line))
+        lines
+            .iter()
+            .find(|line| pattern.is_match(line))
+            .map(|line| line.chars().take(200).collect())
     })
 }
 

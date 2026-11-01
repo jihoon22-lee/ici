@@ -78,3 +78,10 @@ pub use tidy_boundaries::{
 };
 
 pub use compiler::confirm_compilation_coverage;
+
+mod qt_codegen;
+pub use qt_codegen::{
+    QtCodegenOutcome, QtCodegenRequest, QtContext, QtFinding, cpp_code as qt_cpp_code,
+    include_names as qt_include_names, is_qt_include, legacy_cpp_inputs, py_splitlines,
+    q_object_line, qt_major, qt_metadata_relevant, verify_qt_codegen,
+};

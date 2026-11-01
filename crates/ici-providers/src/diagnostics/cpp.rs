@@ -64,6 +64,27 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
                 .map(|value| number(value.as_str()))
                 .transpose()?;
             if relative_location(&captures[1], &plan.context).is_err() {
+                if plan.context.legacy {
+                    // Frozen `_diagnostic_path`: an external location is the `[external]`
+                    // sentinel with the tool's own line and column.
+                    let mut current = finding(
+                        plan,
+                        &external_path(plan),
+                        row,
+                        column,
+                        captures.get(6).map_or("diagnostic", |value| value.as_str()),
+                        &captures[5],
+                        if captures[4].contains("error") {
+                            "high"
+                        } else {
+                            "medium"
+                        },
+                    )?;
+                    current.primary_location.start_column = column;
+                    append(&mut parsed, plan, current, &captures[4])?;
+                    fixit_owner = false;
+                    continue;
+                }
                 if captures[4].contains("error") {
                     return Err(ProviderError("unattributed external compiler error".into()));
                 }
@@ -129,6 +150,36 @@ fn number(value: &str) -> Result<u32, ProviderError> {
         .filter(|value| *value > 0 && *value <= i32::MAX as u32)
         .ok_or_else(|| ProviderError("invalid C++ coordinate".into()))
 }
+/// The synthetic absolute path whose project-relative form is the frozen `[external]`.
+fn external_path(plan: &ProviderPlan) -> String {
+    plan.context
+        .workspace_root
+        .join("[external]")
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// Child diagnostics of a legacy `[external]` diagnostic (frozen keeps external fix-its out of
+/// project locations; notes attach to their parent).
+fn legacy_external_children(
+    value: &Value,
+    plan: &ProviderPlan,
+    sink: &mut Parsed,
+    depth: usize,
+    count: &mut usize,
+) -> Result<(), ProviderError> {
+    if let Some(children) = value.get("children") {
+        for child in children
+            .as_array()
+            .filter(|children| children.len() <= MAX_DIAGNOSTICS)
+            .ok_or_else(|| ProviderError("unbounded C++ child diagnostics".into()))?
+        {
+            json_entry(child, plan, sink, depth + 1, count)?;
+        }
+    }
+    Ok(())
+}
+
 fn append(
     parsed: &mut Parsed,
     _plan: &ProviderPlan,
@@ -265,13 +316,16 @@ fn json_entry(
     }
     let message = text(value, "message")?;
     let external = relative_location(path, &plan.context).is_err();
-    if external && kind.contains("error") {
+    // Frozen `_diagnostic_path` (legacy view): an external location is kept as the
+    // `[external]` sentinel with the tool's own line and columns.
+    let legacy_external = external && plan.context.legacy;
+    if external && kind.contains("error") && !legacy_external {
         return Err(ProviderError("unattributed external compiler error".into()));
     }
     // Validate external branches atomically, including fixes/children, without allowing a
     // child note or fix to attach to an unrelated preceding project diagnostic.
     let mut discarded = Parsed::default();
-    let sink = if external {
+    let sink = if external && !legacy_external {
         &mut discarded
     } else {
         &mut *parsed
@@ -314,6 +368,13 @@ fn json_entry(
     } else {
         crate::coordinates::ColumnKind::Unknown
     };
+    if legacy_external {
+        current.primary_location.start_column = column;
+        current.primary_location.end_line = Some(finish_line);
+        current.primary_location.end_column = finish_column;
+        append(sink, plan, current, kind)?;
+        return legacy_external_children(value, plan, sink, depth, count);
+    }
     crate::coordinates::normalize(&mut current, plan, Some(kind_columns))?;
     current.primary_location.end_line = Some(finish_line);
     current.primary_location.end_column = finish_column

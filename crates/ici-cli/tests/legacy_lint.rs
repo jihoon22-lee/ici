@@ -220,39 +220,23 @@ fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summar
                 ),
             );
         }
-        let mut actual = run(case, base, &environment);
+        let actual = run(case, base, &environment);
         let mut frozen = case["frozen"].clone();
-        match name.as_str() {
-            "clazy-env-library-path" => {
-                // Known frozen defect, corrected (D-B): frozen probes Clazy with the caller's
-                // LD_LIBRARY_PATH, then runs it in a replaced minimal environment, so every
-                // run exits 127 (ClazyExecutionError). Rust probes and runs with the same
-                // environment, so the raw binary loads in both and the result is exactly the
-                // frozen result of a Clazy that can load its libraries (`clazy-only`).
-                assert_eq!(frozen["status"], "ERROR", "{name}: frozen defect captured");
-                assert!(
-                    frozen["summary"]
-                        .as_str()
-                        .unwrap()
-                        .starts_with("clazy failed with exit code 127"),
-                    "{name}"
-                );
-                frozen = cases["clazy-only"]["frozen"].clone();
-            }
-            "tidy-and-clazy-qt" => {
-                // Open: Rust has no frozen Qt compatibility / generated-code verification
-                // (analysis/_qt_codegen.py), so the QtCompatibility targets and the summary
-                // and evidence they decide are absent; every clang tool target matches.
-                frozen["targets"]
-                    .as_array_mut()
+        if name == "clazy-env-library-path" {
+            // Known frozen defect, corrected (D-B): frozen probes Clazy with the caller's
+            // LD_LIBRARY_PATH, then runs it in a replaced minimal environment, so every
+            // run exits 127 (ClazyExecutionError). Rust probes and runs with the same
+            // environment, so the raw binary loads in both and the result is exactly the
+            // frozen result of a Clazy that can load its libraries (`clazy-only`).
+            assert_eq!(frozen["status"], "ERROR", "{name}: frozen defect captured");
+            assert!(
+                frozen["summary"]
+                    .as_str()
                     .unwrap()
-                    .retain(|target| target["target_name"] != "QtCompatibility:UnknownMajor");
-                for key in ["summary", "evidence"] {
-                    actual[key] = Value::Null;
-                    frozen[key] = Value::Null;
-                }
-            }
-            _ => {}
+                    .starts_with("clazy failed with exit code 127"),
+                "{name}"
+            );
+            frozen = cases["clazy-only"]["frozen"].clone();
         }
         assert_eq!(actual, frozen, "{name}");
     }
