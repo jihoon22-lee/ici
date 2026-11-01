@@ -589,10 +589,16 @@ pub fn execute(
                             } else if prepared.legacy_projection
                                 && system.as_deref() == Some("cmake")
                             {
+                                let testfile = plans
+                                    .first()
+                                    .and_then(|plan| plan.context.targets.first())
+                                    .map(|target| prepared.project.root.join(target))
+                                    .unwrap_or_default();
                                 crate::cpp::legacy_ctest_tests(
                                     &mut output,
                                     &prepared.project.root,
                                     "CMakeLists.txt",
+                                    &testfile,
                                 );
                             }
                         }

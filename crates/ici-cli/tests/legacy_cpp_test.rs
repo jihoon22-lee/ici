@@ -17,12 +17,22 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
+/// The explicit compiler, CMake, CTest and gcov directories first, then the system path.
 fn tool_path() -> String {
-    let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler (ICI_TEST_CXX)");
-    format!(
-        "{}:/usr/bin:/bin",
-        Path::new(&compiler).parent().unwrap().display()
-    )
+    [
+        "ICI_TEST_CXX",
+        "ICI_TEST_CMAKE",
+        "ICI_TEST_CTEST",
+        "ICI_TEST_GCOV",
+    ]
+    .iter()
+    .map(|name| {
+        let tool = std::env::var(name).unwrap_or_else(|_| panic!("explicit tool {name}"));
+        Path::new(&tool).parent().unwrap().display().to_string()
+    })
+    .chain(["/usr/bin".into(), "/bin".into()])
+    .collect::<Vec<_>>()
+    .join(":")
 }
 
 /// Runs `ici <command> --report` on a copy of `parity-fixtures/cpp/<fixture>` placed at
@@ -50,7 +60,7 @@ fn run_at(project: &Path, fixture: &str, command: &str, config: &str, path: &str
 }
 
 #[test]
-#[ignore = "explicit actual g++/gcov direct test and coverage run (ICI_TEST_CXX)"]
+#[ignore = "explicit actual g++/gcov direct test and coverage run (ICI_TEST_CXX, ICI_TEST_GCOV)"]
 fn direct_coverage_completes_for_a_project_deep_below_the_filesystem_root() {
     // gcov `-p` used to mangle the whole absolute notes path into each report name; ~100
     // characters of project depth pushed the name over NAME_MAX and gcov exited 6.
@@ -132,7 +142,7 @@ fn compiler_only_path(directory: &Path) -> String {
 }
 
 #[test]
-#[ignore = "explicit actual g++/gcov direct and CMake/ctest C++ test runs (ICI_TEST_CXX, cmake/ctest from /usr/bin)"]
+#[ignore = "explicit actual g++/gcov direct and CMake/ctest C++ test runs (ICI_TEST_CXX, ICI_TEST_CMAKE, ICI_TEST_CTEST, ICI_TEST_GCOV)"]
 fn legacy_cpp_tests_report_frozen_targets_counts_and_verdicts() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/test-cli-oracle.json"
@@ -225,5 +235,5 @@ fn legacy_cpp_tests_report_frozen_targets_counts_and_verdicts() {
             );
         }
     }
-    assert_eq!(seen, 9);
+    assert_eq!(seen, 10);
 }

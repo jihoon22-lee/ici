@@ -58,7 +58,7 @@ pub fn append_test_compile_failures(
         target.target_name = source.clone();
         target.status = "FAIL".into();
         let detail: String = stderr.chars().take(2048).collect();
-        target.message = format!("test source did not compile: {}", detail.trim_end());
+        target.message = format!("test executable did not compile: {}", detail.trim_end());
         add_finding(
             output,
             &target,
@@ -263,17 +263,23 @@ fn skip_return_code(testfile: &Path, name: &str) -> Option<u32> {
 /// Frozen `TestEngine._run_cpp_tests_via_adapter` targets for CTest cases: `[C++] <name>` at the
 /// resolved test source, PASS "C++ Test Passed", FAIL "Execution Failed: <message>", and a case
 /// that did not run SKIP "Execution skipped: <message>".
-pub fn legacy_ctest_tests(output: &mut AnalysisOutput, root: &Path, descriptor: &str) {
+pub fn legacy_ctest_tests(
+    output: &mut AnalysisOutput,
+    root: &Path,
+    descriptor: &str,
+    testfile: &Path,
+) {
+    // Every target of a CTest suite check is one case (native locates a case at a declared
+    // source whose stem contains its name, else at the CTestTestfile).
     for target in &mut output.targets {
         if target.target_name.starts_with('[')
-            || !target.file_path.ends_with("CTestTestfile.cmake")
             || !matches!(target.status.as_str(), "PASS" | "FAIL" | "SKIP")
         {
             continue;
         }
         let name = target.target_name.clone();
         if target.message == "Skipped"
-            && let Some(code) = skip_return_code(&root.join(&target.file_path), &name)
+            && let Some(code) = skip_return_code(testfile, &name)
         {
             // ctest's JUnit `<skipped message="SKIP_RETURN_CODE=<n>"/>`, from the same property.
             target.message = format!("SKIP_RETURN_CODE={code}");
@@ -377,7 +383,12 @@ pub fn legacy_ctest_sanitizer(output: &mut AnalysisOutput, check_id: &str, descr
             "Memory / Resource",
         )
     };
-    let case = |target: &InspectionTarget| target.file_path.ends_with("CTestTestfile.cmake");
+    let case = |target: &InspectionTarget| {
+        !matches!(
+            target.target_name.as_str(),
+            "ASan/UBSan Error" | "TSan Error" | "LSan Error" | "SanitizerDiagnosticLocation"
+        )
+    };
     let diagnostics = output.targets.iter().any(|target| !case(target));
     let mut reshaped = vec![];
     for target in &output.targets {

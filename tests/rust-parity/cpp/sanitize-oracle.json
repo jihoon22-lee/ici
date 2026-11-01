@@ -78,6 +78,14 @@
      "message": "Sanitizers reported no diagnostics",
      "start_line": 1,
      "status": "PASS",
+     "target_name": "[C++ ASan/UBSan] calc"
+    },
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
      "target_name": "[C++ ASan/UBSan] orphan_check"
     },
     {
@@ -334,6 +342,14 @@
    "status": "FAIL",
    "summary": "1 Thread Safety Defect(s) Detected",
    "targets": [
+    {
+     "end_line": null,
+     "file_path": "CMakeLists.txt",
+     "message": "Sanitizers reported no diagnostics",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "[C++ TSan] calc"
+    },
     {
      "end_line": null,
      "file_path": "CMakeLists.txt",

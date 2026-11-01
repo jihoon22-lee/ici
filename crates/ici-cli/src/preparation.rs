@@ -309,6 +309,36 @@ pub fn execute(
                             observed_failures.insert(check.task_id.clone());
                         }
                     }
+                    // Frozen TestEngine compiles the library with every test: a library source
+                    // that does not compile is a `Compilation Error` FAIL for each test.
+                    if matches!(plan.build.variant.as_str(), "coverage" | "test")
+                        && plan.build.system == "direct-gcc"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.test"
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(stderr) = observed
+                            .extra
+                            .get("compile_failure_stderr")
+                            .and_then(serde_json::Value::as_str)
+                        && let Some(direct) = plan.direct.as_ref()
+                        && !direct.test_sources().is_empty()
+                    {
+                        let failures: std::collections::BTreeMap<String, String> = direct
+                            .test_sources()
+                            .into_iter()
+                            .map(|source| (source, stderr.to_owned()))
+                            .collect();
+                        let mut output =
+                            crate::cpp::test_compile_failures_only(&check.task_id, &failures);
+                        if prepared.legacy_projection {
+                            crate::cpp::legacy_direct_tests(&mut output, &failures);
+                        }
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
                     limitations.push(format!(
                         "{} {} preparation: {reason}",
                         plan.component_id, plan.build.variant

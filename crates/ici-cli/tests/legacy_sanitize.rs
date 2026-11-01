@@ -155,17 +155,21 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
 }
 
 #[test]
-#[ignore = "explicit actual g++ and CMake/ctest sanitizer runs (ICI_TEST_CXX; cmake/ctest from /usr/bin)"]
+#[ignore = "explicit actual g++ and CMake/ctest sanitizer runs (ICI_TEST_CXX, ICI_TEST_CMAKE, ICI_TEST_CTEST)"]
 fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/sanitize-oracle.json"
     ))
     .unwrap();
     let compiler = std::env::var("ICI_TEST_CXX").expect("explicit C++ compiler");
-    let path = format!(
-        "{}:/usr/bin:/bin",
-        Path::new(&compiler).parent().unwrap().display()
-    );
+    let cmake = std::env::var("ICI_TEST_CMAKE").expect("explicit CMake (ICI_TEST_CMAKE)");
+    let ctest = std::env::var("ICI_TEST_CTEST").expect("explicit CTest (ICI_TEST_CTEST)");
+    let path = [&compiler, &cmake, &ctest]
+        .iter()
+        .map(|tool| Path::new(tool).parent().unwrap().display().to_string())
+        .chain(["/usr/bin".into(), "/bin".into()])
+        .collect::<Vec<_>>()
+        .join(":");
     let fixtures = BTreeMap::from([
         ("direct-clean", "sanitize-direct-clean"),
         ("direct-defect", "sanitize-direct"),

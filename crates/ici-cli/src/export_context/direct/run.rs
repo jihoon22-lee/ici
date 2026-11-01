@@ -293,6 +293,25 @@ pub(in crate::export_context) fn execute(
                 })
                 .collect();
             let mut output = crate::cpp::merge("direct-build", "g++", outputs);
+            // The first complete exit-1 compiler stderr, for a test command that reports it per
+            // test (frozen TestEngine compiles the library with every test).
+            if let Some(stderr) = outcomes
+                .iter()
+                .find(|outcome| {
+                    !outcome.prerequisite_succeeded()
+                        && outcome.completed()
+                        && outcome.exit_code == Some(1)
+                })
+                .map(|outcome| {
+                    String::from_utf8_lossy(&outcome.stderr)
+                        .replace('\0', "\u{fffd}")
+                        .chars()
+                        .take(4096)
+                        .collect::<String>()
+                })
+            {
+                output.extra["compile_failure_stderr"] = json!(stderr);
+            }
             attach_evidence(
                 &mut output,
                 json!({"phase":"compile","pkg_config":flags.records,"compiler_tasks":tasks,"outcomes":records,"unexecuted_sources":providers.len().saturating_sub(completed)}),

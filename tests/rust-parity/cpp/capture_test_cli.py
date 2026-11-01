@@ -31,6 +31,7 @@ CASES = {
     "direct-broken": ("test-direct/broken", "", "tools"),
     "direct-all-broken": ("test-direct/all-broken", "", "tools"),
     "direct-abort": ("test-direct/abort", "", "tools"),
+    "direct-lib-broken": ("test-direct/lib-broken", "", "tools"),
     "direct-mixed-without-gcov": ("test-direct/mixed", "", "compiler"),
     "direct-broken-without-gcov": ("test-direct/broken", "", "compiler"),
     # CMake/ctest adapter runs (frozen reads ctest --output-junit).
