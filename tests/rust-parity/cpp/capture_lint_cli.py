@@ -8,7 +8,10 @@ first on PATH holding `clang-tidy` (a symlink to ICI_TEST_CLANG_TIDY) and/or `cl
 (the names core/toolchain.py probes). Frozen runs clang tools with a replaced minimal
 environment (core/cpp_replay.replay_environment), so a clazy that needs LD_LIBRARY_PATH is
 wrapped in a script that sets ICI_TEST_CLANG_LIBRARY_PATH itself; the `clazy-unloadable` case
-links the raw binary instead.
+links the raw binary instead. Capability probe cases: `clazy-env-library-path` links the raw
+binary with LD_LIBRARY_PATH in the caller environment (frozen probes with it and runs without
+it); `clazy-run-fails` passes the `--version` probe and exits 3 on every run;
+`tidy-no-version` exits 0 without a parseable version.
 """
 
 import json
@@ -68,7 +71,14 @@ CASES = {
 }
 
 
-def run(fixture: str, command: str, config: str, files: dict, path: str = "/usr/bin:/bin") -> dict:
+def run(
+    fixture: str,
+    command: str,
+    config: str,
+    files: dict,
+    path: str = "/usr/bin:/bin",
+    extra_env: dict | None = None,
+) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -81,7 +91,12 @@ def run(fixture: str, command: str, config: str, files: dict, path: str = "/usr/
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
             cwd=project,
-            env={"PATH": path, "HOME": str(WORK), "PYTHONPATH": str(ORACLE / "src")},
+            env={
+                "PATH": path,
+                "HOME": str(WORK),
+                "PYTHONPATH": str(ORACLE / "src"),
+                **(extra_env or {}),
+            },
             capture_output=True,
             text=True,
             timeout=900,
@@ -119,16 +134,48 @@ cases = {
 }
 TOOLS = Path(tempfile.gettempdir()) / "ici-cpp-lint-tools"
 QT = "-DQT_CORE_LIB"
-# name: (fixture, database sources (None: every src/ file), extra compiler flags, tools)
+LIBRARY = "{clang-library-path}"
+# name: (fixture, database sources (None: every src/ file), extra compiler flags, tools,
+# extra caller environment with LIBRARY = ICI_TEST_CLANG_LIBRARY_PATH, ici.toml tail)
 TOOL_CASES = {
-    "tidy-only": ("lint-tidy", None, [], ("clang-tidy",)),
-    "clazy-only": ("lint-tidy", None, [], ("clazy",)),
-    "tidy-and-clazy": ("lint-tidy", None, [], ("clang-tidy", "clazy")),
+    "tidy-only": ("lint-tidy", None, [], ("clang-tidy",), {}, ""),
+    "clazy-only": ("lint-tidy", None, [], ("clazy",), {}, ""),
+    "tidy-and-clazy": ("lint-tidy", None, [], ("clang-tidy", "clazy"), {}, ""),
     # clazy --only-qt reports only for Qt code (QT_CORE_LIB), which also turns on frozen
     # Qt compatibility verification (QtCompatibility targets).
-    "tidy-and-clazy-qt": ("lint-tidy", None, [QT], ("clang-tidy", "clazy")),
-    "tidy-partial-database": ("lint-fixture", ["src/clean.cpp"], [], ("clang-tidy",)),
-    "clazy-unloadable": ("lint-tidy", None, [], ("clazy-raw",)),
+    "tidy-and-clazy-qt": ("lint-tidy", None, [QT], ("clang-tidy", "clazy"), {}, ""),
+    "tidy-partial-database": ("lint-fixture", ["src/clean.cpp"], [], ("clang-tidy",), {}, ""),
+    "clazy-unloadable": ("lint-tidy", None, [], ("clazy-raw",), {}, ""),
+    "clazy-env-library-path": (
+        "lint-tidy",
+        None,
+        [],
+        ("clazy-raw",),
+        {"LD_LIBRARY_PATH": LIBRARY},
+        "",
+    ),
+    "clazy-run-fails": ("lint-tidy", None, [], ("clazy-probe-only",), {}, ""),
+    "tidy-no-version": ("lint-tidy", None, [], ("tidy-no-version",), {}, ""),
+    # No compilation database ([] sources): a probed clang-tidy "requires an exact compilation
+    # database", the raw clazy that fails its probe is "unavailable or incompletely probed".
+    "no-database-probe": ("lint-tidy", [], [], ("clang-tidy", "clazy-raw"), {}, ""),
+    # Required tools: frozen ERROR with NOT_RUN evidence under verify.
+    "clazy-required-unloadable": (
+        "lint-tidy",
+        None,
+        [],
+        ("clazy-raw",),
+        {},
+        "[engines.lint]\nclazy='required'\n",
+    ),
+    "tidy-required-no-database": (
+        "lint-tidy",
+        [],
+        [],
+        ("clang-tidy",),
+        {},
+        "[engines.lint]\nclang_tidy='required'\n",
+    ),
 }
 
 
@@ -139,6 +186,18 @@ def tool_bin(directory: Path, tools: tuple[str, ...]) -> str:
             os.symlink(os.environ["ICI_TEST_CLANG_TIDY"], directory / "clang-tidy")
         elif tool == "clazy-raw":
             os.symlink(os.environ["ICI_TEST_CLAZY"], directory / "clazy-standalone")
+        elif tool in ("clazy-probe-only", "tidy-no-version"):
+            name = "clazy-standalone" if tool == "clazy-probe-only" else "clang-tidy"
+            script = (
+                '#!/bin/sh\nif [ "$1" = --version ]; then LD_LIBRARY_PATH={} exec {} "$@"; fi\n'
+                "exit 3\n".format(
+                    os.environ["ICI_TEST_CLANG_LIBRARY_PATH"], os.environ["ICI_TEST_CLAZY"]
+                )
+                if tool == "clazy-probe-only"
+                else "#!/bin/sh\necho clang-tidy without a version banner\nexit 0\n"
+            )
+            (directory / name).write_text(script, encoding="utf-8")
+            (directory / name).chmod(0o755)
         else:
             wrapper = directory / "clazy-standalone"
             wrapper.write_text(
@@ -167,19 +226,27 @@ def database(fixture: str, sources: list[str] | None, flags: list[str]) -> str:
 
 
 tool_cases = {}
-for name, (fixture, sources, flags, tools) in TOOL_CASES.items():
+for name, (fixture, sources, flags, tools, extra, config) in TOOL_CASES.items():
     shutil.rmtree(TOOLS, ignore_errors=True)
     try:
         path = tool_bin(TOOLS / "bin", tools)
-        files = {"build/compile_commands.json": database(fixture, sources, flags)}
+        files = (
+            {"build/compile_commands.json": database(fixture, sources, flags)}
+            if sources != []
+            else {}
+        )
+        library = os.environ["ICI_TEST_CLANG_LIBRARY_PATH"]
+        environment = {key: value.replace(LIBRARY, library) for key, value in extra.items()}
         tool_cases[name] = {
             "fixture": fixture,
             "command": "verify",
-            "config": "",
+            "config": config,
             "files": files,
             "tools": list(tools),
-            "frozen": run(fixture, "verify", "", files, path),
+            "frozen": run(fixture, "verify", config, files, path, environment),
         }
+        if extra:
+            tool_cases[name]["env"] = extra
     finally:
         shutil.rmtree(TOOLS, ignore_errors=True)
 VERSIONS = {

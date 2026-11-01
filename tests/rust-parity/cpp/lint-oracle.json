@@ -565,6 +565,84 @@
  "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
  "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
  "tool_cases": {
+  "clazy-env-library-path": {
+   "command": "verify",
+   "config": "",
+   "env": {
+    "LD_LIBRARY_PATH": "{clang-library-path}"
+   },
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/clean.cpp; clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/qt.cpp; clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/tidy.cpp",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/clean.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyExecutionError"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/qt.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyExecutionError"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/tidy.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyExecutionError"
+     }
+    ]
+   },
+   "tools": [
+    "clazy-raw"
+   ]
+  },
   "clazy-only": {
    "command": "verify",
    "config": "",
@@ -640,6 +718,140 @@
     "clazy"
    ]
   },
+  "clazy-required-unloadable": {
+   "command": "verify",
+   "config": "[engines.lint]\nclazy='required'\n",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "clazy is unavailable or incompletely probed",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "tools": [
+    "clazy-raw"
+   ]
+  },
+  "clazy-run-fails": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/clean.cpp; clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/qt.cpp; clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/tidy.cpp",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/clean.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyExecutionError"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/qt.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyExecutionError"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/tidy.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyExecutionError"
+     }
+    ]
+   },
+   "tools": [
+    "clazy-probe-only"
+   ]
+  },
   "clazy-unloadable": {
    "command": "verify",
    "config": "",
@@ -696,6 +908,63 @@
     ]
    },
    "tools": [
+    "clazy-raw"
+   ]
+  },
+  "no-database-probe": {
+   "command": "verify",
+   "config": "",
+   "files": {},
+   "fixture": "lint-tidy",
+   "frozen": {
+    "evidence": "ESTIMATED",
+    "status": "WARN",
+    "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy requires an exact compilation database",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy requires an exact compilation database",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "tools": [
+    "clang-tidy",
     "clazy-raw"
    ]
   },
@@ -923,6 +1192,65 @@
     "clazy"
    ]
   },
+  "tidy-no-version": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "status": "WARN",
+    "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "tools": [
+    "tidy-no-version"
+   ]
+  },
   "tidy-only": {
    "command": "verify",
    "config": "",
@@ -1066,6 +1394,62 @@
       "start_line": 1,
       "status": "PASS",
       "target_name": "ClangTidy:49e88acfcb0f"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "tools": [
+    "clang-tidy"
+   ]
+  },
+  "tidy-required-no-database": {
+   "command": "verify",
+   "config": "[engines.lint]\nclang_tidy='required'\n",
+   "files": {},
+   "fixture": "lint-tidy",
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "clang-tidy requires an exact compilation database",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:fallback"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy requires an exact compilation database",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyUnavailable"
      },
      {
       "file_path": ".",

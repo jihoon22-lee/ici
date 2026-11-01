@@ -142,7 +142,7 @@ fn legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes() {
 /// `clazy-standalone` a wrapper that sets ICI_TEST_CLANG_LIBRARY_PATH (frozen replaces the
 /// clang tools' environment), or the raw binary for `clazy-raw`.
 fn tool_bin(directory: &Path, tools: &[Value]) {
-    use std::os::unix::fs::{PermissionsExt, symlink};
+    use std::os::unix::fs::symlink;
     fs::create_dir_all(directory).unwrap();
     let variable = |name: &str| std::env::var(name).unwrap_or_else(|_| panic!("explicit {name}"));
     for tool in tools {
@@ -157,21 +157,36 @@ fn tool_bin(directory: &Path, tools: &[Value]) {
                 directory.join("clazy-standalone"),
             )
             .unwrap(),
-            _ => {
-                let wrapper = directory.join("clazy-standalone");
-                fs::write(
-                    &wrapper,
-                    format!(
-                        "#!/bin/sh\nLD_LIBRARY_PATH={} exec {} \"$@\"\n",
-                        variable("ICI_TEST_CLANG_LIBRARY_PATH"),
-                        variable("ICI_TEST_CLAZY")
-                    ),
-                )
-                .unwrap();
-                fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
-            }
+            // Passes the `--version` capability probe, exits 3 on every run.
+            "clazy-probe-only" => script(
+                &directory.join("clazy-standalone"),
+                &format!(
+                    "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={} exec {} \"$@\"; fi\nexit 3\n",
+                    variable("ICI_TEST_CLANG_LIBRARY_PATH"),
+                    variable("ICI_TEST_CLAZY")
+                ),
+            ),
+            // Exits 0 without a parseable version: an incomplete capability probe.
+            "tidy-no-version" => script(
+                &directory.join("clang-tidy"),
+                "#!/bin/sh\necho clang-tidy without a version banner\nexit 0\n",
+            ),
+            _ => script(
+                &directory.join("clazy-standalone"),
+                &format!(
+                    "#!/bin/sh\nLD_LIBRARY_PATH={} exec {} \"$@\"\n",
+                    variable("ICI_TEST_CLANG_LIBRARY_PATH"),
+                    variable("ICI_TEST_CLAZY")
+                ),
+            ),
         }
     }
+}
+
+fn script(path: &Path, text: &str) {
+    use std::os::unix::fs::PermissionsExt;
+    fs::write(path, text).unwrap();
+    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
 }
 
 #[test]
@@ -185,41 +200,44 @@ fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summar
     let directory = Path::new(&compiler).parent().unwrap().display().to_string();
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["tool_cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 6);
+    assert_eq!(cases.len(), 12);
     for (name, case) in cases {
         let tools = tempfile::tempdir().unwrap();
         tool_bin(&tools.path().join("bin"), case["tools"].as_array().unwrap());
-        let environment = BTreeMap::from([(
+        let mut environment = BTreeMap::from([(
             "PATH".to_string(),
             format!(
                 "{}:{directory}:/usr/bin:/bin",
                 tools.path().join("bin").display()
             ),
         )]);
+        for (key, value) in case["env"].as_object().into_iter().flatten() {
+            environment.insert(
+                key.clone(),
+                value.as_str().unwrap().replace(
+                    "{clang-library-path}",
+                    &std::env::var("ICI_TEST_CLANG_LIBRARY_PATH").unwrap(),
+                ),
+            );
+        }
         let mut actual = run(case, base, &environment);
         let mut frozen = case["frozen"].clone();
         match name.as_str() {
-            "clazy-unloadable" => {
-                // Intended: frozen probes `clazy-standalone --version` in its replaced
-                // environment and reports ClazyUnavailable when the binary cannot load; Rust
-                // resolves the executable on PATH without a capability probe and reports the
-                // failed run per source as the frozen ClazyExecutionError shape.
-                let targets = actual["targets"].as_array().unwrap();
-                let errors: Vec<_> = targets
-                    .iter()
-                    .filter(|target| target["target_name"] == "ClazyExecutionError")
-                    .collect();
-                assert_eq!(errors.len(), 3, "{name}: {actual}");
+            "clazy-env-library-path" => {
+                // Known frozen defect, corrected (D-B): frozen probes Clazy with the caller's
+                // LD_LIBRARY_PATH, then runs it in a replaced minimal environment, so every
+                // run exits 127 (ClazyExecutionError). Rust probes and runs with the same
+                // environment, so the raw binary loads in both and the result is exactly the
+                // frozen result of a Clazy that can load its libraries (`clazy-only`).
+                assert_eq!(frozen["status"], "ERROR", "{name}: frozen defect captured");
                 assert!(
-                    errors[0]["message"]
+                    frozen["summary"]
                         .as_str()
                         .unwrap()
-                        .starts_with("clazy failed with exit code 127 (fatal=0, error=0"),
-                    "{name}: {actual}"
+                        .starts_with("clazy failed with exit code 127"),
+                    "{name}"
                 );
-                assert_eq!(actual["status"], "ERROR", "{name}");
-                assert_eq!(actual["evidence"], "NOT_RUN", "{name}");
-                continue;
+                frozen = cases["clazy-only"]["frozen"].clone();
             }
             "tidy-and-clazy-qt" => {
                 // Open: Rust has no frozen Qt compatibility / generated-code verification

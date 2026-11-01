@@ -803,7 +803,16 @@ impl CppPlans {
                     path_env: environment.get("PATH").cloned(),
                 }
                 .resolve()
-                .is_ok();
+                .is_ok_and(|resolved| {
+                    // Frozen `_ready_tool`: only a tool that passed its capability probe is
+                    // "resolvable"; a failed probe is "unavailable or incompletely probed".
+                    legacy_tooling::legacy_capability_probe(
+                        &resolved.path,
+                        &project.root,
+                        environment,
+                        name == "clazy-standalone",
+                    )
+                });
                 let message = if self.legacy_standalone {
                     format!(
                         "{tool} requires an approved capability inventory and exact compilation context"
@@ -845,7 +854,24 @@ impl CppPlans {
                 pack_root: None,
                 path_env: environment.get("PATH").cloned(),
             };
-            match request.resolve() {
+            let resolved = request.resolve().map_err(|error| error.to_string());
+            // Frozen capability probe (D-A): a resolvable tool whose `--version` probe fails in
+            // the run environment is the frozen `<Tool>Unavailable`, not an execution error.
+            let resolved = match resolved {
+                Ok(tool)
+                    if self.legacy_projection
+                        && !legacy_tooling::legacy_capability_probe(
+                            &tool.path,
+                            &project.root,
+                            environment,
+                            kind == ProviderKind::Clazy,
+                        ) =>
+                {
+                    Err("capability probe failed".to_owned())
+                }
+                other => other,
+            };
+            match resolved {
                 Ok(tool) => {
                     self.tools.insert(name.into(), tool.clone());
                     selected.push((kind, tool));
@@ -862,7 +888,7 @@ impl CppPlans {
                         mode(field) == "required",
                     ));
                 }
-                Err(error) if mode(field) == "required" => return Err(error.to_string()),
+                Err(error) if mode(field) == "required" => return Err(error),
                 Err(_) => {}
             }
         }
@@ -1557,8 +1583,10 @@ pub fn legacy_fallback_lint(
         && output.targets.iter().all(|target| {
             target.status != "ERROR" && output.observation.state != TaskState::Cancelled
         });
+    // A clean heuristic fallback is WARN (`run_fallback` marks its estimated PASS); the frozen
+    // verdict below is recomputed from the projected targets either way.
     if !partial
-        && (!matches!(output.status.as_str(), "PASS" | "FAIL")
+        && (!matches!(output.status.as_str(), "PASS" | "FAIL" | "WARN")
             || !output.observation.evidence_is_complete())
     {
         return false;
