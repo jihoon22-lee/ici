@@ -1078,10 +1078,32 @@ fn prepare_resolved_omitting(
     let legacy_lines =
         crate::legacy_lines::collect(&project, &plan, invocation, generated_outputs)?;
     // Frozen `LineEngine` counted a tree with no in-scope source (documentation only, sources
-    // outside `source_dirs`) as a measured empty scope with its repository extras.
-    for check in &mut plan.checks {
-        if matches!(check.check.id.as_str(), "python.line" | "cpp.line")
+    // outside `source_dirs`) as a measured empty scope with its repository extras. It is one
+    // engine over every language: a hybrid component without C++ (or Python) sources still
+    // counts the other language's files, so the empty language adds nothing and is not run.
+    let counted: BTreeSet<String> = plan
+        .checks
+        .iter()
+        .filter(|check| {
+            legacy_lines
+                .get(&check.task_id)
+                .is_some_and(|scope| !scope.inputs.is_empty())
+        })
+        .map(|check| check.component_id.clone())
+        .collect();
+    let empty_line_scope = |check: &ici_application::plan::PlannedCheck| {
+        matches!(check.check.id.as_str(), "python.line" | "cpp.line")
             && matches!(&check.work, Work::Blocked { reason } if reason.starts_with("no sources in scope"))
+    };
+    plan.checks.retain(|check| {
+        !(empty_line_scope(check)
+            && legacy_lines
+                .get(&check.task_id)
+                .is_some_and(|scope| scope.inputs.is_empty())
+            && counted.contains(&check.component_id))
+    });
+    for check in &mut plan.checks {
+        if empty_line_scope(check)
             && legacy_lines
                 .get(&check.task_id)
                 .is_some_and(|scope| !scope.inputs.is_empty())

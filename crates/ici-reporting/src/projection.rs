@@ -392,6 +392,21 @@ fn project_extra(engine: &mut Value) -> Result<()> {
                 }
             }
         }
+        if engine["engine_name"] == "line"
+            && let Some(rows) = engine["extra"]["files_data"].as_array_mut()
+        {
+            // Frozen record order before the stable code-line sort (sources, then extras).
+            rows.sort_by(frozen_line_order);
+            rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
+            let rows = rows.clone();
+            engine["extra"]["top_files"] = json!(
+                rows.iter()
+                    .filter(|row| row["scope"] == "source")
+                    .take(5)
+                    .collect::<Vec<_>>()
+            );
+            engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
+        }
         return Ok(());
     }
     if engine["engine_name"] == "test" {
@@ -424,6 +439,9 @@ fn project_extra(engine: &mut Value) -> Result<()> {
         }
     }
     let mut rows: Vec<_> = files.into_values().collect();
+    // Frozen `LineEngine` records source files first (pass 1, in its source scan order), then
+    // repository extras (pass 2, top-down walk), and stable-sorts the rows by code lines.
+    rows.sort_by(frozen_line_order);
     rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
     for field in ["code", "comment", "blank", "total"] {
         let sum = |source_only: bool| {
@@ -448,12 +466,62 @@ fn project_extra(engine: &mut Value) -> Result<()> {
             .collect::<Vec<_>>()
     );
     engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
-    engine["extra"]["metrics_summary"] = json!(format!(
-        "{} code / {source_count} files",
-        engine["extra"]["code"]
+    let thousands = crate::legacy_console::thousands;
+    let [code, comment, blank, total] = ["code", "comment", "blank", "total"]
+        .map(|field| thousands(engine["extra"][field].as_u64().unwrap_or(0)));
+    engine["extra"]["metrics_summary"] = json!(format!("{code} code / {source_count} files"));
+    // Frozen `LineEngine.run` summary over every language's source rows, and its targets in
+    // source scan order.
+    engine["summary"] = json!(format!(
+        "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {source_count} files"
     ));
+    if let Some(targets) = engine["targets"].as_array_mut() {
+        targets.sort_by(|left, right| {
+            frozen_line_order(
+                &json!({"path":left["file_path"],"scope":"source"}),
+                &json!({"path":right["file_path"],"scope":"source"}),
+            )
+        });
+    }
     engine["extra"]["files_data"] = json!(rows);
     Ok(())
+}
+
+/// Frozen `LineEngine._collect_files` record order before its stable code-line sort: source
+/// rows first, by the frozen default source directory order (`src`, `include`, `lib`, `app`,
+/// then the others) and sorted paths (`Path` order: component by component); then extras in
+/// a top-down walk (a directory's files before its subdirectories').
+fn frozen_line_order(left: &Value, right: &Value) -> std::cmp::Ordering {
+    let path = |row: &Value| row["path"].as_str().unwrap_or("").to_owned();
+    let source = |row: &Value| row["scope"] == "source";
+    let rank = |path: &str| {
+        let top = path.split_once('/').map_or("", |(top, _)| top);
+        ["src", "include", "lib", "app"]
+            .iter()
+            .position(|name| *name == top)
+            .unwrap_or(4)
+    };
+    let (left_path, right_path) = (path(left), path(right));
+    let parts = |path: &str| path.split('/').map(str::to_owned).collect::<Vec<_>>();
+    source(right).cmp(&source(left)).then_with(|| {
+        if source(left) {
+            rank(&left_path)
+                .cmp(&rank(&right_path))
+                .then_with(|| parts(&left_path).cmp(&parts(&right_path)))
+        } else {
+            let (left_parts, right_parts) = (parts(&left_path), parts(&right_path));
+            let common = left_parts
+                .iter()
+                .zip(&right_parts)
+                .take_while(|(left, right)| left == right)
+                .count();
+            let left_file = common + 1 == left_parts.len();
+            let right_file = common + 1 == right_parts.len();
+            right_file
+                .cmp(&left_file)
+                .then_with(|| left_parts[common..].cmp(&right_parts[common..]))
+        }
+    })
 }
 
 fn check_extra(check: &Value) -> &Value {

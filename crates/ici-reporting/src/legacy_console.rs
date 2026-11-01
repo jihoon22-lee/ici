@@ -117,7 +117,7 @@ pub(crate) fn rich_print(text: &str) -> String {
     out
 }
 
-fn thousands(value: u64) -> String {
+pub(crate) fn thousands(value: u64) -> String {
     let digits = value.to_string();
     let mut out = String::new();
     for (index, digit) in digits.chars().enumerate() {

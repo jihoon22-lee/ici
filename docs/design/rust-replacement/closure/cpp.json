@@ -714,9 +714,11 @@
       "difference_reason": "Open for complete: --prepare CMake/qmake CLI payloads are compared only through compilation_commands actual-tool tests, not a frozen CLI capture; a prepared CMake cache without CMAKE_UNITY_BUILD now gives null like frozen but is not captured."
     },
     "command:ici line": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/legacy.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/legacy_lines.rs",
         "crates/ici-application/src/plan.rs",
         "crates/ici-reporting/src/projection.rs",
         "crates/ici-cpp/src/source_rules.rs",
@@ -724,19 +726,23 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report",
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report",
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen"
+        ]
       },
       "evidence": [
-        "Frozen captures by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, frozen .venv, PYTHONHASHSEED=0, PATH=/usr/bin:/bin without clang-tidy/clazy-standalone, fixed project path /tmp/ici-cpp-verify-matrix-capture/project, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted) into tests/rust-parity/cpp/verify-matrix-oracle.json over parity-fixtures/cpp/legacy-scope-fixture; rerun twice byte-identical. Section commands: all 15 frozen single-engine commands (`__main__._ENGINE_COMMANDS`: line, type, resource, security, python-compat, thread-sanitize, dup, dead, cognitive, complexity, cycle, exception, test, sanitize, lint) with --report: exit code, status, required, evidence, summary, score, max_score, every target (name/status/message/start/end line/path) and every legacy finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, explanation, remediation, related_locations, fixes, metrics, snippet, primary_location, fingerprint).",
-        "source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --test legacy_lint --test legacy_python_engines --test legacy_cpp_metrics --locked -j2 -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-cpp3-commands.log; regression ici-cpp/ici-analysis/ici-reporting/ici-application and 21 ici-cli C++/legacy test binaries --include-ignored (346 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-next-regress.log; post-merge of feat/rust-application 47405cd: /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log"
+        "Frozen captures by development-only tests/rust-parity/cpp/capture_verify_matrix.py into tests/rust-parity/cpp/verify-matrix-oracle.json (C++ project, all single commands) and tests/rust-parity/cpp/capture_line_hybrid.py into tests/rust-parity/cpp/line-hybrid-oracle.json (oracle 6fe3e40 `ici line --report` on type='hybrid': Python only, C++ only, both, Python over the fail limit, C++ over the warning limit); /tmp/ici-rust-replacement-20261028/w-cpp7-line-hybrid-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_line_hybrid --test legacy_line_scope --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-line-hybrid-rust.log; regressions ici-reporting and 15 ici-cli legacy/report binaries: /tmp/ici-rust-replacement-20261028/w-cpp7-line-regress.log"
       ],
-      "comparison": "C++ facet of `ici line --report` on a C++ project: exit code, status, required (the frozen engine default; a single-engine command forces nothing but `ici build`), evidence, summary, score, every target and every legacy finding equal the frozen single-command report.",
-      "difference_reason": "Open for complete: one C++ fixture tree only; no C++-specific failure fixture for this command and options other than --report are config-area facets. Report `extra` keys are native (not compared)."
+      "comparison": "C++ facet of `ici line --report`: on a C++ project every single-command field equals frozen (verify matrix). On type='hybrid' projects exit code, status, evidence, summary (grouped counts over every language's sources), every target in frozen source scan order and the counts/all/files_data rows (frozen record order: sources, then extras, stable-sorted by code lines) equal frozen for Python only, C++ only and both languages; a Python only project over fail_limit exits 1 (FAIL target) and a C++ only one over warn_limit warns, as frozen. Regression fixed: a hybrid project without C++ sources (or without Python sources) no longer reports NOT_RUN/exit 3 for the empty language (the empty language's line check is not run, frozen LineEngine is one engine over all files).",
+      "difference_reason": null
     },
     "command:ici lint": {
       "status": "difference_review",

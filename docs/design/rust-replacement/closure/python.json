@@ -858,39 +858,77 @@
    "difference_reason": null
   },
   "finding_site:src/ici/analysis/_exception_rules.py:801:12": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cpp/src/source_rules.rs",
+    "crates/ici-cli/src/cpp.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+     "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
+    ],
+    "failure": [
+     "crates/ici-cpp/tests/source.rs::frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence"
+    ]
    },
-   "evidence": [],
-   "comparison": "C++-only analyze_cpp_exceptions DestructorThrow target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
+   "evidence": [
+    "Frozen tests/rust-parity/cpp/exception-oracle.json (legacy `ici exception --report` over parity-fixtures/cpp/exception-fixture, oracle 6fe3e40) and tests/rust-parity/cpp/source-oracle.json (frozen analyze_cpp_exceptions per case, capture_source_oracle.py)",
+    "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
+   ],
+   "comparison": "C++ facet claimed by the cpp area (python.json row): frozen analyze_cpp_exceptions DestructorThrow FAIL target 'C++ destructor throws an exception and may call std::terminate' at each masked destructor-throw line (a lambda throw inside a destructor, two throws on one line reported once, `~Spec() throw()`, CRLF sources) equals the native legacy `ici exception` targets (exit 1, FAIL); throws inside string/raw literals, comments and spliced comment lines are not reported (negative), and the per-case frozen source oracle keeps rule ids, lines and statuses (failure: the false-positive literal/comment shapes).",
    "difference_reason": null
   },
   "finding_site:src/ici/analysis/_exception_rules.py:811:12": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cpp/src/source_rules.rs",
+    "crates/ici-cli/src/cpp.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+     "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
+    ],
+    "failure": [
+     "crates/ici-cpp/tests/source.rs::frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence"
+    ]
    },
-   "evidence": [],
-   "comparison": "C++-only analyze_cpp_exceptions CatchAllSwallowed target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
+   "evidence": [
+    "Frozen tests/rust-parity/cpp/exception-oracle.json (legacy `ici exception --report` over parity-fixtures/cpp/exception-fixture, oracle 6fe3e40) and tests/rust-parity/cpp/source-oracle.json (frozen analyze_cpp_exceptions per case, capture_source_oracle.py)",
+    "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
+   ],
+   "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CatchAllSwallowed FAIL target 'Silent catch(...) block without logging or re-throw' at every empty masked catch(...) line (including the `/* } */` comment body and catch blocks after literal look-alikes) equals the native legacy `ici exception` targets; a catch(...) that logs or rethrows and catch(...) text inside literals are not reported (negative); the frozen per-case source oracle keeps lines and statuses (failure: literal/comment look-alikes).",
    "difference_reason": null
   },
   "finding_site:src/ici/analysis/_exception_rules.py:820:8": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cpp/src/source_rules.rs",
+    "crates/ici-cli/src/cpp.rs"
+   ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
-    "failure": []
+    "positive": [
+     "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+    ],
+    "failure": [
+     "crates/ici-cpp/tests/source.rs::frozen_cpp_exception_oracle_preserves_rule_ids_locations_summary_targets_and_measured_source_evidence"
+    ]
    },
-   "evidence": [],
-   "comparison": "C++-only CppExceptionSafety summary target: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
+   "evidence": [
+    "Frozen tests/rust-parity/cpp/exception-oracle.json (legacy `ici exception --report` over parity-fixtures/cpp/exception-fixture, oracle 6fe3e40) and tests/rust-parity/cpp/source-oracle.json (frozen analyze_cpp_exceptions per case, capture_source_oracle.py)",
+    "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metrics and -p ici-cpp --test source --locked -j2 -- --include-ignored: all pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
+   ],
+   "comparison": "C++ facet claimed by the cpp area (python.json row): frozen CppExceptionSafety PASS summary target at line 1 of every inspected C++ source, 'C++ exception constructs were inspected' for a clean source (clean.cc, negative) and '...; see findings above' after DestructorThrow/CatchAllSwallowed targets (positive), in frozen target order, equals the native legacy `ici exception` report; the per-case frozen source oracle keeps the summary target after findings (failure cases).",
    "difference_reason": null
   },
   "finding_site:src/ici/analysis/_python_compatibility.py:299:11": {
@@ -2200,16 +2238,23 @@
    "difference_reason": "Modern projection corrections are explicit per case in tests/rust-parity/python/modern-findings.json: unparsable selected files make every Python check incomplete (the original cycle/dead/compat claimed SUCCEEDED and dead emitted an estimated dead.syntaxerror finding), PEP 263 cookies are decoded by the strict native decoder instead of invalid-utf8, Unicode character columns replace UTF-8 byte columns, fully excluded scopes are SKIP/NOT_APPLICABLE instead of measured zero counts, and the new analysis_unit_id attribution changes the attributed fingerprint only through that field (the test recomputes the original value without it)."
   },
   "finding_site:src/ici/languages/cycles.py:98:12": {
-   "status": "not_started",
-   "rust_paths": [],
+   "status": "difference_review",
+   "rust_paths": [
+    "crates/ici-cpp/src/cycles.rs"
+   ],
    "fixtures": {
-    "positive": [],
+    "positive": [
+     "crates/ici-cli/tests/legacy_verify_matrix.rs::cpp_analyze_and_next_verify_match_the_frozen_checks_findings_and_gate"
+    ],
     "negative": [],
     "failure": []
    },
-   "evidence": [],
-   "comparison": "C++-only modern C++ include-cycle (_measure_cpp) finding: not a Python facet and not claimed by cpp.json. A native producer appears to exist (crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/tests/source.rs for the exception rules) but this area did not compare it with the frozen oracle; the C++ owner must claim it.",
-   "difference_reason": null
+   "evidence": [
+    "Frozen tests/rust-parity/cpp/verify-matrix-oracle.json next.analyze / next.next_verify (capture_verify_matrix.py, oracle 6fe3e40): one cycle.include finding each",
+    "flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log"
+   ],
+   "comparison": "C++ facet claimed by the cpp area (python.json row): frozen `ici next` _measure_cpp include-cycle finding (rule cycle.include, severity medium, confidence low, evidence ESTIMATED, task <component>.cpp.cycle, related locations for the other members) equals native on the legacy-scope fixture for analyze and next verify except the recorded identity difference.",
+   "difference_reason": "Intended (recorded on command:ici analyze / command:ici next verify): frozen hashes absolute checkout paths in Python set order (_fingerprint(str(path))) and starts the chain at an arbitrary member at line 1; native uses workspace-relative sorted members and the include line, so fingerprint, message start and primary location differ. Open: no negative (acyclic) or failure (unresolved/ambiguous include limitation wording) fixture compared with frozen `ici next`."
   },
   "finding_site:src/ici/languages/deadcode.py:87:11": {
    "status": "complete",

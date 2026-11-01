@@ -181,7 +181,7 @@ pub(crate) fn lines(
             .cloned()
             .collect();
         let top_all: Vec<_> = rows.iter().take(5).cloned().collect();
-        output.extra = json!({"code":code,"comment":comments,"blank":blanks,"total":total,"files_data":rows,"top_files":top,"top_files_all":top_all,"all":{"code":all_code,"comment":all_comments,"blank":all_blanks,"total":all_code+all_comments+all_blanks,"files":files.len()},"metrics_summary":format!("{code} code / {counted} files")});
+        output.extra = json!({"code":code,"comment":comments,"blank":blanks,"total":total,"files_data":rows,"top_files":top,"top_files_all":top_all,"all":{"code":all_code,"comment":all_comments,"blank":all_blanks,"total":all_code+all_comments+all_blanks,"files":files.len()},"metrics_summary":format!("{} code / {counted} files", crate::analysis::grouped(code))});
     }
 }
 #[derive(Default)]
