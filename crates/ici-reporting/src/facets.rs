@@ -149,7 +149,10 @@ fn facet(name: &str, extra: &Value, out: &mut String) -> Result<()> {
             ] {
                 if let Some(value) = extra.get(key) {
                     let _ = write!(out, "<h3>{label}</h3>");
-                    rich(value, out)?;
+                    match value.as_array() {
+                        Some(suites) if key == "test_suites" => test_suites(suites, out)?,
+                        _ => rich(value, out)?,
+                    }
                 }
             }
         }
@@ -183,6 +186,69 @@ fn facet(name: &str, extra: &Value, out: &mut String) -> Result<()> {
             }
         }
         _ => {}
+    }
+    Ok(())
+}
+/// Frozen `sections/test._render_suite_card`: failing and skipped cases stay visible, passing
+/// cases fold behind a disclosure, and an all-passing suite is one summary line.
+fn test_suites(suites: &[Value], out: &mut String) -> Result<()> {
+    for suite in suites {
+        let count = |key: &str| suite[key].as_u64().unwrap_or(0);
+        let (passed, failed, skipped, total) = (
+            count("passed"),
+            count("failed"),
+            count("skipped"),
+            count("total"),
+        );
+        let mut badge = format!("{passed}/{total} Passed");
+        if skipped > 0 {
+            badge.push_str(&format!(" · {skipped} Skipped"));
+        }
+        let _ = write!(
+            out,
+            "<h4>{} <span class=badge>{}</span></h4>",
+            html(suite["file"].as_str().unwrap_or("tests")),
+            html(&badge)
+        );
+        let cases = suite["tests"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let status = |case: &Value| case["status"].as_str().unwrap_or("PASS").to_owned();
+        let (passing, other): (Vec<&Value>, Vec<&Value>) =
+            cases.iter().partition(|case| status(case) == "PASS");
+        let (skips, failures): (Vec<&Value>, Vec<&Value>) =
+            other.into_iter().partition(|case| status(case) == "SKIP");
+        let visible: Vec<Value> = failures.into_iter().chain(skips).cloned().collect();
+        let summary = if failed == 0 && skipped == 0 {
+            let _ = write!(out, "<p>PASS — all {total} cases passed</p>");
+            format!("Show all {} cases", passing.len())
+        } else {
+            if !visible.is_empty() {
+                rich(&Value::Array(visible), out)?;
+            }
+            format!("Show {} passed cases", passing.len())
+        };
+        if !passing.is_empty() {
+            let _ = write!(out, "<details><summary>{}</summary>", html(&summary));
+            rich(&Value::Array(passing.into_iter().cloned().collect()), out)?;
+            out.push_str("</details>");
+        }
+        let rest: serde_json::Map<String, Value> = suite
+            .as_object()
+            .into_iter()
+            .flatten()
+            .filter(|(key, _)| {
+                !matches!(
+                    key.as_str(),
+                    "file" | "passed" | "failed" | "skipped" | "total" | "tests"
+                )
+            })
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect();
+        if !rest.is_empty() {
+            rich(&Value::Object(rest), out)?;
+        }
     }
     Ok(())
 }

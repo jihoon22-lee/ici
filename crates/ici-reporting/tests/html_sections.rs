@@ -189,3 +189,43 @@ fn issue_cards_show_the_frozen_location_extent_only_for_a_range() {
     );
     assert!(both.contains("<span class=muted>L4:C5-L6:C2</span>"));
 }
+
+#[test]
+fn test_suites_keep_failures_visible_and_fold_passing_cases() {
+    let mut value = rich();
+    engine(&mut value, "test")["extra"]["test_suites"] = serde_json::json!([
+        {"file":"tests/test_a.py","passed":2,"failed":1,"skipped":1,"total":4,"tests":[
+            {"name":"ok_one","status":"PASS"},{"name":"broken","status":"FAIL","message":"expected <1>"},
+            {"name":"later","status":"SKIP"},{"name":"ok_two","status":"PASS"}]},
+        {"file":"tests/test_b.py","passed":3,"failed":0,"skipped":0,"total":3,"tests":[
+            {"name":"b1","status":"PASS"},{"name":"b2","status":"PASS"},{"name":"b3","status":"PASS"}]},
+        {"file":"tests/test_c.py","passed":0,"failed":0,"skipped":0,"total":0,"tests":[]}
+    ]);
+    let html = page(&value);
+    let start = html.find("<h4>tests/test_a.py").unwrap();
+    let suite_a = &html[start..html.find("<h4>tests/test_b.py").unwrap()];
+    assert!(
+        suite_a.starts_with(
+            "<h4>tests/test_a.py <span class=badge>2/4 Passed · 1 Skipped</span></h4>"
+        )
+    );
+    let folded = suite_a
+        .find("<details><summary>Show 2 passed cases</summary>")
+        .unwrap();
+    // Failure (escaped) and skip precede the fold; passing cases are only inside it.
+    assert!(
+        suite_a[..folded].contains("expected &lt;1&gt;") && suite_a[..folded].contains("later")
+    );
+    assert!(!suite_a[..folded].contains("ok_one") && suite_a[folded..].contains("ok_one"));
+    let suite_b =
+        &html[html.find("<h4>tests/test_b.py").unwrap()..html.find("<h4>tests/test_c.py").unwrap()];
+    assert!(
+        suite_b.contains(
+            "<p>PASS — all 3 cases passed</p><details><summary>Show all 3 cases</summary>"
+        )
+    );
+    // Empty suite: the summary line, no empty disclosure.
+    let suite_c = &html[html.find("<h4>tests/test_c.py").unwrap()..];
+    assert!(suite_c.contains("<p>PASS — all 0 cases passed</p>"));
+    assert!(!suite_c[..suite_c.find("</p>").unwrap() + 30].contains("Show all 0 cases"));
+}
