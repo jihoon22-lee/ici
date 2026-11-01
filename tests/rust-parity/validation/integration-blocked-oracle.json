@@ -1,10 +1,24 @@
 {
   "runs": {
+    "binary_compat_no_build": {
+      "config": "[ici]\nprofile = \"deep\"\n[engines]\n[engines.integration]\nenabled = false\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = true\n[engines.build]\nenabled = false\n",
+      "exit_code": 1,
+      "reason": "PipelineDefinitionError: engine binary_compat has disabled dependencies in deep: build",
+      "report": null
+    },
     "no_build": {
       "config": "[ici]\nprofile = \"deep\"\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[[engines.integration.cases]]\nname = \"one\"\nargv = [\"{python:py}\", \"x.py\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = false\n",
       "exit_code": 1,
       "reason": "PipelineDefinitionError: engine integration has disabled dependencies in deep: build",
       "report": null
+    },
+    "no_build_standard": {
+      "config": "[ici]\nprofile = \"standard\"\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[[engines.integration.cases]]\nname = \"one\"\nargv = [\"{python:py}\", \"x.py\"]\n[engines.line]\nenabled = true\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = false\n",
+      "engines": [
+        "line"
+      ],
+      "exit_code": 0,
+      "suite_status": "PASS"
     },
     "unknown_placeholder": {
       "config": "[ici]\nprofile = \"deep\"\n[engines]\n[engines.integration]\nenabled = true\nrequired = true\npython_targets = { py = \"<PYTHON>\" }\n[[engines.integration.cases]]\nname = \"one\"\nargv = [\"{nope}\"]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = true\n",

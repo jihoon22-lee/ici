@@ -28,6 +28,15 @@ pub fn command(
     let prepared = crate::planning::prepare(&internal, cwd, environment, false)?;
     let root = prepared.project.root.clone();
     let legacy_schema = prepared.project.schema_family == ici_config::SchemaFamily::Legacy;
+    if invocation.command() == "verify"
+        && let Some(reason) = crate::legacy::pipeline_refusal(&prepared)
+    {
+        return Ok(CommandOutput {
+            stdout: String::new(),
+            stderr: format!("{reason}\n"),
+            exit_code: 1,
+        });
+    }
     let coverage_required = prepared.project.components.iter().any(|component| {
         component
             .settings

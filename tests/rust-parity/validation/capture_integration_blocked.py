@@ -17,17 +17,29 @@ CASES = {
     ),
     "unknown_placeholder": ('[[engines.integration.cases]]\nname = "one"\nargv = ["{nope}"]\n'),
     "no_build": '[[engines.integration.cases]]\nname = "one"\nargv = ["{python:py}", "x.py"]\n',
+    # binary_compat shares the `build` dependency; integration is left disabled here.
+    "binary_compat_no_build": "",
+    # A standard profile disables every deep-only engine, so nothing is refused.
+    "no_build_standard": (
+        '[[engines.integration.cases]]\nname = "one"\nargv = ["{python:py}", "x.py"]\n'
+    ),
 }
+PROFILES = {"no_build_standard": "standard"}
 
 
 def config(python: str, scenario: str) -> str:
+    integration = "false" if scenario == "binary_compat_no_build" else "true"
     text = (
-        '[ici]\nprofile = "deep"\n[engines]\n[engines.integration]\nenabled = true\n'
+        f'[ici]\nprofile = "{PROFILES.get(scenario, "deep")}"\n[engines]\n'
+        f"[engines.integration]\nenabled = {integration}\n"
         f"required = true\npython_targets = {{ py = {json.dumps(python)} }}\n"
     ) + CASES[scenario]
     for engine in DISABLED:
-        text += f"[engines.{engine}]\nenabled = false\n"
-    build = "false" if scenario == "no_build" else "true"
+        # The standard run keeps one engine so the pipeline is not empty.
+        kept = {("binary_compat", "binary_compat_no_build"), ("line", "no_build_standard")}
+        enabled = "true" if (engine, scenario) in kept else "false"
+        text += f"[engines.{engine}]\nenabled = {enabled}\n"
+    build = "false" if scenario.endswith(("no_build", "no_build_standard")) else "true"
     return text + f"[engines.build]\nenabled = {build}\n"
 
 
@@ -38,7 +50,7 @@ def capture(oracle: Path, python: Path, scenario: str) -> dict[str, object]:
         (root / "main.py").write_text("def f():\n    return 1\n", encoding="utf-8")
         (root / "x.py").write_text("print('x')\n", encoding="utf-8")
         completed = subprocess.run(
-            [str(python), "-m", "ici", "verify", "--report", "--profile", "deep", "--no-cache"],
+            [str(python), "-m", "ici", "verify", "--report", "--no-cache"],
             cwd=root,
             env=dict(os.environ, PYTHONPATH=str(oracle / "src")),
             capture_output=True,
@@ -58,7 +70,16 @@ def capture(oracle: Path, python: Path, scenario: str) -> dict[str, object]:
             }
         with report_path.open(encoding="utf-8") as handle:
             report = json.load(handle)
-    engine = next(item for item in report["results"] if item["engine_name"] == "integration")
+    engine = next(
+        (item for item in report["results"] if item["engine_name"] == "integration"), None
+    )
+    if engine is None:
+        return {
+            "config": config("<PYTHON>", scenario),
+            "exit_code": completed.returncode,
+            "suite_status": report["suite_status"],
+            "engines": sorted(item["engine_name"] for item in report["results"]),
+        }
     return {
         "config": config("<PYTHON>", scenario),
         "exit_code": completed.returncode,
