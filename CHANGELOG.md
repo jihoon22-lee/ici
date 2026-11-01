@@ -30,6 +30,24 @@
 
 ### 변경
 
+- 레거시 `ici publish`/`verify --publish`가 v0.13.0처럼 GitHub Actions 밖이나 저장소/토큰이 없을 때 건너뛰고
+  (종료 코드 0), 페이지 누락·업로드·댓글 실패만 `[publish] …` 메시지와 종료 코드 1로 알립니다.
+  `verify --publish`는 검증 종료 코드를 바꾸지 않습니다.
+- `verify --github-summary`가 v0.13.0의 GitHub 요약 레이아웃(상태/TEM 헤더, 엔진 표, 도구 스냅샷, baseline 변화,
+  이슈 그룹, 엔진별 최대 100행의 대상/관련 위치, 실패 발췌)을 900,000바이트 한도로 덧붙입니다.
+- `ici next plan`/`ici analyze --plan`이 root/scope 안내를 출력하고(`--json`에서는 stderr), `[workspace]` 루트의
+  레거시 엔진 명령은 v0.13.0처럼 실행 전에 거부합니다(종료 코드 2).
+- `tests/`가 없는 Python 프로젝트의 레거시 `ici test`가 인터프리터 없이도 v0.13.0의 "No tests collected" FAIL
+  대상을 보고합니다. 저장된 실행 결과의 SARIF에는 v0.13.0의 필드(digest, 범위, gate, 제한 사항, 결과별 속성)를
+  함께 기록합니다.
+- `ici analyze` 텍스트 출력이 v0.13.0과 같은 root/scope 안내, 판정, 사유, baseline, `saved` 형식을 따르며,
+  `--json`에서는 안내를 stderr로 보냅니다. 저장 경로 뒤에 HTML 경로와 최대 5개의 결과 미리보기를 덧붙입니다.
+- `[workspace]` 설정 루트의 `ici verify`가 v0.13.0처럼 next 경로로 실행되고, stable 전용 옵션은 같은 목록으로
+  거부합니다.
+- HTML 리포트에 이슈 필터(엔진·심각도·분류·신뢰도·규칙·파일)와 정렬, 위치 범위(`L13-L31`), 해당 없음 엔진의
+  접힌 사유 표시, 코드·주석·빈 줄 비율, 통과 테스트 접기, 주의가 필요한 지원 항목 우선 표시를 추가했습니다.
+- 레거시 GitHub annotation은 GitHub Actions 안에서만 v0.13.0 형식으로 출력하고, Actions 밖의 `--publish`는
+  v0.13.0과 같은 건너뜀 안내를 보여 줍니다.
 - 컴파일 데이터베이스가 있는 레거시 C++ `ici verify`의 compile_db 커버리지·구성·플래그 정책 대상, 요약과
   점수가 v0.13.0과 같습니다. 정책 위반은 그대로 gate를 실패시킵니다.
 - 컴파일 데이터베이스 기반 `ici dead`가 v0.13.0처럼 첫 실패 구성의 `C++UnusedFunctionError`, 또는

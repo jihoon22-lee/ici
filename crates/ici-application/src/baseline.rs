@@ -17,16 +17,17 @@ pub fn compare(
         origin: origin.into(),
         ..Default::default()
     };
+    // Frozen application/baseline.py `compare` reasons, verbatim.
     let reason = if baseline.identity.fingerprint_version != FINGERPRINT_VERSION
         || identity.fingerprint_version != FINGERPRINT_VERSION
     {
-        "fingerprint normalization differs; accept the current run as a new baseline"
+        "the baseline was written under a different fingerprint normalization — accept the current run as the new baseline instead of comparing across the change"
     } else if baseline.identity.policy_digest != identity.policy_digest {
-        "policy changed since the baseline; accept the current run as a new baseline"
+        "policy changed since the baseline — accept the current run as the new baseline instead of comparing across the change"
     } else if baseline.identity.toolchain_digest != identity.toolchain_digest {
-        "the provider toolchain changed since the baseline; tool versions are not the same identity"
+        "the provider toolchain changed since the baseline — findings from different tool versions are not the same identity"
     } else if baseline.checks.is_none() || checks.is_none() {
-        "completed check scope is unknown; older results remain readable but cannot prove resolutions"
+        "completed check scope is unknown — accept a new v2 result as the baseline; older results remain readable but cannot prove resolutions"
     } else {
         ""
     };

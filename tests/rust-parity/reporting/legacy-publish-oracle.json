@@ -1,0 +1,198 @@
+{
+ "publish": {
+  "outside_actions": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 0,
+   "stdout": "[publish] --publish requires a GitHub Actions environment; skipping.\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  },
+  "no_repository": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 0,
+   "stdout": "[publish] --publish skipped: GITHUB_REPOSITORY or a publish token is unavailable.\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  },
+  "no_token": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 0,
+   "stdout": "[publish] --publish skipped: GITHUB_REPOSITORY or a publish token is unavailable.\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  },
+  "html_missing": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 1,
+   "stdout": "[publish] --publish skipped: HTML report not found at verify_report.html.\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  },
+  "upload_failure": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 1,
+   "stdout": "[publish] --publish failed to upload index.html to team/repo (gh-pages). Check token permissions (contents: write) and branch availability.\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  },
+  "comment_failure": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 1,
+   "stdout": "[publish] --publish uploaded pr/7/index.html, but failed to update the PR comment. Check token permissions (pull-requests: write).\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  },
+  "pushed_without_pages": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 0,
+   "stdout": "[publish] HTML report pushed to team/repo:gh-pages/index.html. Pages is not enabled — enable it once: Settings → Pages → Source: gh-pages.\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  },
+  "published_with_comment": {
+   "argv": [
+    "publish"
+   ],
+   "exit_code": 0,
+   "stdout": "[publish] HTML report published: https://team.github.io/repo/pr/7/\n[publish] PR comment: https://github.com/team/repo/pull/7#issuecomment-1\n",
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <root>/home/.config/ici/ici.toml\n"
+  }
+ },
+ "verify": {
+  "outside_actions": {
+   "argv": [
+    "verify",
+    "--html",
+    "verify_report.html",
+    "--publish"
+   ],
+   "exit_code": 1,
+   "stderr": "",
+   "run_exit_code": 1,
+   "publish_lines": [
+    "[publish] --publish requires a GitHub Actions environment; skipping."
+   ]
+  },
+  "no_repository": {
+   "argv": [
+    "verify",
+    "--html",
+    "verify_report.html",
+    "--publish"
+   ],
+   "exit_code": 1,
+   "stderr": "",
+   "run_exit_code": 1,
+   "publish_lines": [
+    "[publish] --publish skipped: GITHUB_REPOSITORY or a publish token is unavailable."
+   ]
+  },
+  "no_token": {
+   "argv": [
+    "verify",
+    "--html",
+    "verify_report.html",
+    "--publish"
+   ],
+   "exit_code": 1,
+   "stderr": "",
+   "run_exit_code": 1,
+   "publish_lines": [
+    "[publish] --publish skipped: GITHUB_REPOSITORY or a publish token is unavailable."
+   ]
+  },
+  "upload_failure": {
+   "argv": [
+    "verify",
+    "--html",
+    "verify_report.html",
+    "--publish"
+   ],
+   "exit_code": 1,
+   "stderr": "",
+   "run_exit_code": 1,
+   "publish_lines": [
+    "[publish] --publish failed to upload index.html to team/repo (gh-pages). Check token permissions (contents: write) and branch availability."
+   ]
+  },
+  "comment_failure": {
+   "argv": [
+    "verify",
+    "--html",
+    "verify_report.html",
+    "--publish"
+   ],
+   "exit_code": 1,
+   "stderr": "",
+   "run_exit_code": 1,
+   "publish_lines": [
+    "[publish] --publish uploaded pr/7/index.html, but failed to update the PR comment. Check token permissions (pull-requests: write)."
+   ]
+  },
+  "pushed_without_pages": {
+   "argv": [
+    "verify",
+    "--html",
+    "verify_report.html",
+    "--publish"
+   ],
+   "exit_code": 1,
+   "stderr": "",
+   "run_exit_code": 1,
+   "publish_lines": [
+    "[publish] HTML report pushed to team/repo:gh-pages/index.html. Pages is not enabled — enable it once: Settings → Pages → Source: gh-pages."
+   ]
+  },
+  "published_with_comment": {
+   "argv": [
+    "verify",
+    "--html",
+    "verify_report.html",
+    "--publish"
+   ],
+   "exit_code": 1,
+   "stderr": "",
+   "run_exit_code": 1,
+   "publish_lines": [
+    "[publish] HTML report published: https://team.github.io/repo/pr/7/",
+    "[publish] PR comment: https://github.com/team/repo/pull/7#issuecomment-1"
+   ]
+  }
+ },
+ "next_publish": {
+  "not_configured": {
+   "argv": [
+    "next",
+    "publish"
+   ],
+   "exit_code": 2,
+   "stdout": "publish: not_configured — no publish destination — set [publish] or run under Actions\n",
+   "stderr": "",
+   "setup_exit_codes": [
+    3,
+    0
+   ],
+   "record": {
+    "schema_id": "ici.next.publish",
+    "schema_version": 1,
+    "state": "NOT_CONFIGURED",
+    "detail": "no publish destination — set [publish] or run under Actions",
+    "remote_path": "",
+    "viewer_url": null,
+    "comment_url": null,
+    "artifact": {
+     "sha256": "",
+     "bytes": 0
+    },
+    "result_sha256": ""
+   }
+  }
+ }
+}

@@ -634,16 +634,20 @@ fn legacy(root: &Path, command: &str) -> Value {
 
 #[test]
 fn native_legacy_suite_and_engine_reports_validate_against_the_frozen_result_v3_schema() {
+    // No `[workspace]`: frozen cutover sends `ici verify` on a next workspace to the next path,
+    // so the historical suite comes from a configless (automatic) project.
     let work = python_project();
-    fs::write(
-        work.path().join("ici.toml"),
-        "schema_version=1\n[workspace]\nname=\"wire\"\n[[components]]\nid=\"project\"\nroot=\".\"\nlanguages=[\"python\"]\n",
-    )
-    .unwrap();
+    let config = work.path().join("ici.toml");
+    fs::remove_file(&config).unwrap();
     let suite = legacy(work.path(), "verify");
     assert_eq!(suite["schema_version"], "ici.result/v3");
     assert!(suite["results"].as_array().unwrap().len() > 3);
     sample("ici-result-v3", "native-verify-suite", &suite, true);
+    // Frozen also refuses engine subcommands on a `[workspace]` root (plan_engines.rs), so the
+    // engine reports come from a configless project; its automatic scope reads `src/`
+    // (a root-level module is outside it, as in frozen).
+    fs::create_dir(work.path().join("src")).unwrap();
+    fs::copy(work.path().join("main.py"), work.path().join("src/main.py")).unwrap();
     for command in ["line", "complexity", "security"] {
         let engine = legacy(work.path(), command);
         assert!(

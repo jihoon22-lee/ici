@@ -41,6 +41,11 @@ pub struct ExecutedRun {
     pub legacy_baseline: Option<serde_json::Value>,
     /// Gated new findings and gated severity regressions against a comparable baseline.
     pub baseline_gate_failures: Vec<String>,
+    /// Frozen `_announce` lines for the resolved root and scope.
+    pub announcement: Option<String>,
+    /// Run-level notes frozen `verify_text` prints: plan and execution limitations, without the
+    /// per-analysis limitations the saved result also carries.
+    pub notes: Vec<String>,
 }
 /// The exact command that writes a baseline this command can compare against.
 pub fn regenerate_baseline_command(command: &str, baseline: &str) -> String {
@@ -81,8 +86,38 @@ pub fn command(
 ) -> Result<CommandOutput> {
     let cancellation = Cancellation::default();
     let _signals = SignalGuard::install(&cancellation).map_err(error)?;
-    let run = execute(invocation, cwd, environment, static_only, &cancellation)?;
-    let stdout = if invocation.flag("json_mode") {
+    let json_mode = invocation.flag("json_mode");
+    // Frozen `_announce`: root and scope precede everything; under --json they are diagnostics.
+    let place = |announcement: String, mut output: CommandOutput| {
+        if json_mode {
+            output.stderr.insert_str(0, &announcement);
+        } else {
+            output.stdout.insert_str(0, &announcement);
+        }
+        output
+    };
+    let run = match execute(invocation, cwd, environment, static_only, &cancellation) {
+        Ok(run) => run,
+        Err(failure) => {
+            // A refusal after scope resolution (nothing selected, an unreadable baseline, an
+            // unwritable destination) still follows the announcement, as in the frozen flow.
+            return match crate::planning::announcement(invocation, cwd, environment) {
+                Some(announcement) => Ok(place(
+                    announcement,
+                    CommandOutput {
+                        stdout: String::new(),
+                        stderr: format!(
+                            "ici: {}\n",
+                            ici_execution::redaction::redact_text(&failure.to_string())
+                        ),
+                        exit_code: 2,
+                    },
+                )),
+                None => Err(failure),
+            };
+        }
+    };
+    let stdout = if json_mode {
         run.result.to_json().map_err(error)? + "\n"
     } else {
         let stored = crate::report::load(&run.result_path)?;
@@ -91,7 +126,12 @@ pub fn command(
             source_root: Some(root.to_string_lossy().into_owned()),
             ..Default::default()
         };
-        let mut text = ici_reporting::render_console(&stored, &options).map_err(error)?;
+        let notes: Vec<String> = run
+            .notes
+            .iter()
+            .map(|note| ici_execution::redaction::redact_text(note))
+            .collect();
+        let mut text = crate::run_text::verdict_block(&run.result, &[], &notes, &run.result_path);
         let page = run.result_path.with_extension("html");
         let html = ici_reporting::render_html(&stored, &options).map_err(error)?;
         crate::report::write_artifact(
@@ -106,17 +146,17 @@ pub fn command(
                 run.result_path.display()
             ))
         })?;
-        text.push_str(&format!(
-            "Result: {}\nHTML: {}\n",
-            run.result_path.display(),
-            page.display()
-        ));
+        text.push_str(&crate::run_text::native_tail(&run.result, &page));
         text
     };
-    Ok(CommandOutput {
+    let output = CommandOutput {
         stdout,
         stderr: String::new(),
         exit_code: run.result.exit_code(),
+    };
+    Ok(match run.announcement.clone() {
+        Some(announcement) => place(announcement, output),
+        None => output,
     })
 }
 
@@ -916,6 +956,27 @@ pub fn execute(
         .collect();
     source.files.retain(|path| !generated.contains(path));
     source.generated = generated.into_iter().collect();
+    // Frozen next_path records why a run stopped among the run's own limitations.
+    if cancellation.is_cancelled() {
+        limitations.push(format!(
+            "cancelled: {}",
+            cancellation
+                .reason()
+                .unwrap_or_else(|| "user request".into())
+        ));
+    }
+    // What frozen `verify_text` prints as notes: plan and run limitations, not the analyses' own.
+    let mut run_notes: BTreeSet<String> = prepared
+        .plan
+        .limitations
+        .iter()
+        .chain(&limitations)
+        .map(|note| ici_execution::redaction::redact_text(note))
+        .collect();
+    if !inputs_stable {
+        run_notes
+            .insert("inputs changed while running; the saved findings are partial evidence".into());
+    }
     let mut result = assemble::assemble(
         &prepared.project,
         &prepared.request,
@@ -951,11 +1012,9 @@ pub fn execute(
         );
         let mut comparison = comparison;
         if comparison.state == ici_domain::BaselineState::Incompatible {
+            // Native addition after the frozen reason; like frozen, the refusal is the baseline's
+            // own state and adds no gate reason (the verdict line already counts the findings).
             comparison.reason = format!("{}; regenerate it with: {regenerate}", comparison.reason);
-            result.gate.reasons.push(format!(
-                "baseline comparison unavailable: {}",
-                comparison.reason
-            ));
         }
         result.baseline = Some(comparison);
         if let Some(document) = &baseline_document {
@@ -1042,7 +1101,19 @@ pub fn execute(
         result.limitations.push(failure);
         storage::write_result(&result_path, &result, WriteMode::ReplaceRegular).map_err(error)?;
     }
+    let announcement = crate::run_text::announce(&prepared.project, &prepared.request);
+    if let Some(failure) = events.failure() {
+        run_notes.insert(failure);
+    }
+    let notes = result
+        .limitations
+        .iter()
+        .filter(|note| run_notes.contains(*note))
+        .cloned()
+        .collect();
     let executed = ExecutedRun {
+        announcement,
+        notes,
         result,
         outputs,
         result_path,

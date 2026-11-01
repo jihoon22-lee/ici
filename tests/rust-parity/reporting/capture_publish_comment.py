@@ -57,6 +57,28 @@ SUITES = {
         "baseline_comparison": None,
     },
 }
+# Each fault makes the frozen parse_baseline_summary drop the baseline (publish_baseline.py);
+# "multiline-warning" is accepted and pins the warning escape.
+BASELINE_FAULTS = {
+    "bool-count": {"new_count": True},
+    "negative-count": {"unchanged_count": -1},
+    "float-count": {"moved_count": 0.0},
+    "empty-source": {"source_path": ""},
+    "warnings-not-list": {"warnings": "one"},
+    "empty-warning": {"warnings": [""]},
+    "metadata-list": {"baseline_metadata": []},
+    "fail-on-new-int": {"fail_on_new": 1},
+    "gate-inconsistent": {"gate_failed": False},
+    "entries-not-list": {"entries": {}},
+    "entry-not-object": {"entries": ["new"]},
+    "entry-missing-gated": {"entries": [{"state": "new", "regressed": False}, ENTRY_SAME]},
+    "regressed-new": {"entries": [{"state": "new", "regressed": True, "gated": True}, ENTRY_SAME]},
+    "gated-unchanged": {
+        "entries": [ENTRY_NEW, {"state": "unchanged", "regressed": False, "gated": True}]
+    },
+    "missing-field": {"resolved_count": None},
+    "multiline-warning": {"warnings": ["line one\r\nline <two> `x` | y\u2028z\n"]},
+}
 # Documents the frozen loader refuses (whole suite) or partly drops (baseline only).
 NEGATIVE = {
     "unknown-engine-status": {
@@ -80,6 +102,13 @@ NEGATIVE = {
     "miscounted-baseline": {
         **SUITES["warn-tem"],
         "baseline_comparison": {**SUITES["warn-tem"]["baseline_comparison"], "gated_count": 1},
+    },
+    **{
+        f"baseline-{name}": {
+            **SUITES["warn-tem"],
+            "baseline_comparison": {**SUITES["warn-tem"]["baseline_comparison"], **change},
+        }
+        for name, change in BASELINE_FAULTS.items()
     },
     "uppercase-baseline-state": {
         **SUITES["warn-tem"],

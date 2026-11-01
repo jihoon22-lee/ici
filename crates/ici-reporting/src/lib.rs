@@ -22,9 +22,12 @@ mod facets;
 mod render;
 mod view;
 pub use render::{
-    bounded_summary, github_annotations, render_console, render_html, render_json, render_markdown,
+    bounded_summary, github_annotations, legacy_github_annotations, render_console, render_html,
+    render_json, render_markdown,
 };
 pub use view::{ConsoleGroupBy, RenderOptions};
+mod legacy_markdown;
+pub use legacy_markdown::{MAX_SUMMARY_BYTES, bounded_summary_payload, legacy_summary_markdown};
 mod sarif;
 pub use sarif::{render_sarif, sarif_document};
 mod migration;

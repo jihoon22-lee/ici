@@ -114,6 +114,45 @@ pub fn prepare_with_contexts(
     crate::preparation::bind_compiled_artifacts(&mut prepared, contexts, environment)?;
     Ok(prepared)
 }
+/// Frozen `_announce` for a run that stops after scope resolution: the configuration resolves
+/// and the request names a valid scope and profile. `None` when the refusal comes earlier.
+pub fn announcement(
+    invocation: &Invocation,
+    cwd: &Path,
+    environment: &BTreeMap<String, String>,
+) -> Option<String> {
+    let explicit = invocation.value("config_path").map(|path| under(cwd, path));
+    let local = invocation
+        .value("local_config")
+        .or_else(|| invocation.value("local_path"))
+        .map(|path| under(cwd, path));
+    let project = ici_config::resolve_with_environment(
+        cwd,
+        explicit.as_deref(),
+        local.as_deref(),
+        environment,
+    )
+    .ok()?;
+    let mut languages = invocation.values("language").to_vec();
+    if invocation.flag("python") {
+        languages.push("python".into());
+    }
+    if invocation.flag("cpp") {
+        languages.push("cpp".into());
+    }
+    let profile = match invocation.value("profile") {
+        Some(value) => Some(serde_json::from_value::<Profile>(Value::String(value.into())).ok()?),
+        None => None,
+    };
+    let request = RunRequest {
+        components: invocation.values("component").to_vec(),
+        languages,
+        profile,
+        require_full: invocation.flag("require_full"),
+        ..Default::default()
+    };
+    crate::run_text::announce(&project, &request)
+}
 pub fn prepare_resolved(
     invocation: &Invocation,
     project: ResolvedProject,

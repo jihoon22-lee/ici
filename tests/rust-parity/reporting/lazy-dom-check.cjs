@@ -1,6 +1,7 @@
 // Development harness: load a native report into a minimal DOM, run its own inline script and
 // open every on-demand section. Prints JSON describing exactly what a browser user would see.
-// Usage: node lazy-dom-check.cjs report.html [filter-query]
+// Usage: node lazy-dom-check.cjs report.html [filter-query] [issue-controls-json]
+// issue-controls-json sets the issue axis filters/sort, e.g. {"severity":"high","sort":"file"}.
 'use strict';
 const fs = require('node:fs'), vm = require('node:vm');
 const VOID = new Set(['meta', 'input', 'br', 'hr', 'img', 'link']);
@@ -85,7 +86,7 @@ function parse(html) {
   return root;
 }
 async function main() {
-  const [file, query] = process.argv.slice(2);
+  const [file, query, controls] = process.argv.slice(2);
   const html = fs.readFileSync(file, 'utf8');
   if (/<script[^>]+src=|<link |https?:\/\/[^"'\s]*\.(js|css)/.test(html)) throw new Error('external resource reference');
   const root = parse(html);
@@ -102,13 +103,26 @@ async function main() {
     atob, Blob, Response, DecompressionStream, JSON, Promise, Uint8Array, Number, String, Object, Array, Set, Math, Error};
   for (const script of scripts) vm.runInNewContext(script.textContent, context);
   const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+  // The page's toggle listeners start hydration without returning its promise, and inflation runs
+  // on DecompressionStream's own schedule. Wait for the observable completion state instead of a
+  // fixed number of ticks (a busy host can need more than a handful). The deadline only turns a
+  // genuine hang into a failure; it never decides what the page shows.
+  const until = async (done, what) => {
+    const deadline = Date.now() + 120000;
+    while (!done()) {
+      if (Date.now() > deadline) throw new Error('timed out waiting for ' + what);
+      await settle();
+    }
+  };
   const sections = [];
   const lazy = root.querySelectorAll('details[data-lazy]');
   for (const details of lazy) { details.open = true; await details.dispatch('toggle'); }
   for (const list of root.querySelectorAll('[data-lazy-findings]')) {
     const details = list.closest('details'); if (details) { details.open = true; await details.dispatch('toggle'); }
   }
-  for (let round = 0; round < 5; round++) await settle();
+  const pending = () => [...lazy, ...root.querySelectorAll('[data-lazy-findings]')]
+    .filter(element => element.attributes['data-hydrated'] === 'pending');
+  await until(() => pending().length === 0, 'on-demand sections to hydrate');
   for (const details of lazy) {
     sections.push({pointer: details.attributes['data-lazy'], indices: details.attributes['data-indices'] === undefined ? null : details.attributes['data-indices'],
       state: details.attributes['data-hydrated'], text: details.childNodes.slice(1).map(child => child.textContent).join('')});
@@ -116,7 +130,11 @@ async function main() {
   const cards = root.querySelectorAll('[data-lazy-findings]').map(list => ({pointers: JSON.parse(list.attributes['data-lazy-findings']),
     state: list.attributes['data-hydrated'], texts: list.childNodes.map(child => child.textContent)}));
   const raw = document.getElementById('raw-result'); let saved = null;
-  if (raw) { raw.closest('details').open = true; await raw.closest('details').dispatch('toggle'); for (let round = 0; round < 5; round++) await settle(); saved = JSON.parse(raw.textContent); }
+  if (raw) {
+    raw.closest('details').open = true; await raw.closest('details').dispatch('toggle');
+    await until(() => raw.textContent !== '', 'the complete saved result to inflate');
+    saved = JSON.parse(raw.textContent);
+  }
   let filtered = null;
   const filter = document.getElementById('finding-filter');
   if (filter && query !== undefined) {
@@ -124,7 +142,21 @@ async function main() {
     const rows = root.querySelectorAll('[data-search-row]');
     filtered = {shown: rows.filter(row => !row.hidden).length, total: rows.length, label: document.getElementById('filter-count').textContent};
   }
+  let issues = null;
+  const bar = root.querySelectorAll('[data-issue-filters]')[0];
+  if (bar && controls) {
+    const wanted = JSON.parse(controls);
+    for (const select of bar.querySelectorAll('[data-issue-axis]')) {
+      if (wanted[select.attributes['data-issue-axis']] !== undefined) select.value = wanted[select.attributes['data-issue-axis']];
+    }
+    if (wanted.file !== undefined) bar.querySelectorAll('[data-issue-file]')[0].value = wanted.file;
+    if (wanted.sort !== undefined) bar.querySelectorAll('[data-issue-sort]')[0].value = wanted.sort;
+    await bar.querySelectorAll('[data-issue-sort]')[0].dispatch('change');
+    issues = {count: bar.querySelectorAll('[data-issue-count]')[0].textContent,
+      order: document.getElementById('issue-groups').childNodes.filter(item => item instanceof Element)
+        .map(item => ({order: Number(item.attributes['data-order']), hidden: item.hidden, file: item.attributes['data-file'], severity: item.attributes['data-severity']}))};
+  }
   const payload = document.getElementById('ici-result');
-  process.stdout.write(JSON.stringify({sections, cards, saved, filtered, declared_bytes: Number(payload.attributes['data-bytes'])}));
+  process.stdout.write(JSON.stringify({sections, cards, saved, filtered, issues, declared_bytes: Number(payload.attributes['data-bytes'])}));
 }
 main().catch(error => { process.stderr.write(String(error && error.stack || error) + '\n'); process.exit(1); });

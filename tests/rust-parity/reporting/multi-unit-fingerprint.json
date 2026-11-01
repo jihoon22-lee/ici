@@ -1,0 +1,26 @@
+{
+ "units": [
+  "app.python.b",
+  "app.python.a"
+ ],
+ "findings": [
+  {
+   "input_unit": "app.python.a",
+   "native_fingerprint": "native-0",
+   "analysis_unit_id": "app.python.a",
+   "fingerprint": "sha256:4270c6c2d9d12194ba592c646be3f8fc8522d4c16022e7692196f5b267a78490"
+  },
+  {
+   "input_unit": "elsewhere.unit",
+   "native_fingerprint": "native-1",
+   "analysis_unit_id": null,
+   "fingerprint": "sha256:5b71a642a7696b7ac170088f3fa256b64e76edbe8ff2dfa932a801880aa3514b"
+  },
+  {
+   "input_unit": null,
+   "native_fingerprint": "native-2",
+   "analysis_unit_id": null,
+   "fingerprint": "sha256:a91be3154920897ec19cf64edb9cd3ba87d2bf3f73a3da1619d04420db8503a2"
+  }
+ ]
+}

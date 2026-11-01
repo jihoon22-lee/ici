@@ -42,11 +42,30 @@ pub(crate) fn render(engines: &[Value], pointers: &[String], out: &mut String) -
     out.push_str("</nav>");
     for (index, (engine, pointer)) in engines.iter().zip(pointers).enumerate() {
         let name = engine["engine_name"].as_str().unwrap_or("unknown");
+        // Frozen summary row: a not-applicable engine is a dimmed `N/A` line whose reason stays
+        // collapsed, and the dedicated tabs omit it (sections/static_analysis skips SKIP).
+        let skipped = engine["status"] == "SKIP";
+        if skipped {
+            let _ = write!(
+                out,
+                "<section id=family-{index} data-family=\"{}\" class=muted><details><summary>{} · <span class=badge>N/A</span> Not applicable — why?</summary><p>{}</p>",
+                html(name),
+                html(title(name)),
+                html(&plain(&engine["summary"]))
+            );
+        }
         let _ = write!(
             out,
-            "<section id=family-{index} data-family=\"{}\"><h2>{}</h2><p><span class=badge>{}</span> {} · evidence {} · score {} / {}</p>",
-            html(name),
-            html(title(name)),
+            "{}<p><span class=badge>{}</span> {} · evidence {} · score {} / {}</p>",
+            if skipped {
+                String::new()
+            } else {
+                format!(
+                    "<section id=family-{index} data-family=\"{}\"><h2>{}</h2>",
+                    html(name),
+                    html(title(name))
+                )
+            },
             html(&plain(&engine["status"])),
             html(&plain(&engine["summary"])),
             html(&plain(&engine["evidence"])),
@@ -91,7 +110,11 @@ pub(crate) fn render(engines: &[Value], pointers: &[String], out: &mut String) -
                 );
             }
         }
-        out.push_str("</section>");
+        out.push_str(if skipped {
+            "</details></section>"
+        } else {
+            "</section>"
+        });
     }
     Ok(())
 }
@@ -126,7 +149,10 @@ fn facet(name: &str, extra: &Value, out: &mut String) -> Result<()> {
             ] {
                 if let Some(value) = extra.get(key) {
                     let _ = write!(out, "<h3>{label}</h3>");
-                    rich(value, out)?;
+                    match value.as_array() {
+                        Some(suites) if key == "test_suites" => test_suites(suites, out)?,
+                        _ => rich(value, out)?,
+                    }
                 }
             }
         }
@@ -163,6 +189,69 @@ fn facet(name: &str, extra: &Value, out: &mut String) -> Result<()> {
     }
     Ok(())
 }
+/// Frozen `sections/test._render_suite_card`: failing and skipped cases stay visible, passing
+/// cases fold behind a disclosure, and an all-passing suite is one summary line.
+fn test_suites(suites: &[Value], out: &mut String) -> Result<()> {
+    for suite in suites {
+        let count = |key: &str| suite[key].as_u64().unwrap_or(0);
+        let (passed, failed, skipped, total) = (
+            count("passed"),
+            count("failed"),
+            count("skipped"),
+            count("total"),
+        );
+        let mut badge = format!("{passed}/{total} Passed");
+        if skipped > 0 {
+            badge.push_str(&format!(" · {skipped} Skipped"));
+        }
+        let _ = write!(
+            out,
+            "<h4>{} <span class=badge>{}</span></h4>",
+            html(suite["file"].as_str().unwrap_or("tests")),
+            html(&badge)
+        );
+        let cases = suite["tests"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let status = |case: &Value| case["status"].as_str().unwrap_or("PASS").to_owned();
+        let (passing, other): (Vec<&Value>, Vec<&Value>) =
+            cases.iter().partition(|case| status(case) == "PASS");
+        let (skips, failures): (Vec<&Value>, Vec<&Value>) =
+            other.into_iter().partition(|case| status(case) == "SKIP");
+        let visible: Vec<Value> = failures.into_iter().chain(skips).cloned().collect();
+        let summary = if failed == 0 && skipped == 0 {
+            let _ = write!(out, "<p>PASS — all {total} cases passed</p>");
+            format!("Show all {} cases", passing.len())
+        } else {
+            if !visible.is_empty() {
+                rich(&Value::Array(visible), out)?;
+            }
+            format!("Show {} passed cases", passing.len())
+        };
+        if !passing.is_empty() {
+            let _ = write!(out, "<details><summary>{}</summary>", html(&summary));
+            rich(&Value::Array(passing.into_iter().cloned().collect()), out)?;
+            out.push_str("</details>");
+        }
+        let rest: serde_json::Map<String, Value> = suite
+            .as_object()
+            .into_iter()
+            .flatten()
+            .filter(|(key, _)| {
+                !matches!(
+                    key.as_str(),
+                    "file" | "passed" | "failed" | "skipped" | "total" | "tests"
+                )
+            })
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect();
+        if !rest.is_empty() {
+            rich(&Value::Object(rest), out)?;
+        }
+    }
+    Ok(())
+}
 fn lines(extra: &Value, out: &mut String) -> Result<()> {
     out.push_str("<div data-line-scope><h3>Source and whole-project line inventory</h3><label>File scope <select data-scope-toggle><option value=source>Source files</option><option value=all>All project files</option></select></label>");
     let mut summary = serde_json::Map::new();
@@ -172,6 +261,25 @@ fn lines(extra: &Value, out: &mut String) -> Result<()> {
         }
     }
     rich(&Value::Object(summary), out)?;
+    // Frozen `_render_ratio_card`: code/comment/blank shares of max(1, total), one decimal.
+    for (label, totals) in [
+        ("Source files", extra),
+        ("All project files", &extra["all"]),
+    ] {
+        let count = |key: &str| totals[key].as_f64();
+        if let (Some(code), Some(comment), Some(blank)) =
+            (count("code"), count("comment"), count("blank"))
+        {
+            let total = count("total").unwrap_or(code + comment + blank).max(1.0);
+            let _ = write!(
+                out,
+                "<p data-line-ratio>{label}: Code ({:.1}%) · Comments ({:.1}%) · Blanks ({:.1}%)</p>",
+                code / total * 100.0,
+                comment / total * 100.0,
+                blank / total * 100.0
+            );
+        }
+    }
     if let Some(top) = extra["top_files"].as_array() {
         out.push_str("<h3>Largest source files</h3><div class=bars>");
         let maximum = top

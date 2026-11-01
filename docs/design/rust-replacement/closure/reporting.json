@@ -1,18 +1,20 @@
 {
  "requirements": {
   "capability:report-console-markdown-json-html-sarif": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
-    "crates/ici-reporting/src/render.rs",
-    "crates/ici-reporting/src/overview.rs",
-    "crates/ici-reporting/src/facets.rs",
-    "crates/ici-reporting/src/view.rs",
-    "crates/ici-reporting/src/sarif.rs",
-    "crates/ici-reporting/src/issues.rs",
-    "crates/ici-reporting/src/migration.rs",
-    "crates/ici-reporting/src/safe.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-cli/src/report.rs",
     "crates/ici-reporting/assets/native.js",
-    "crates/ici-cli/src/report.rs"
+    "crates/ici-reporting/src/facets.rs",
+    "crates/ici-reporting/src/issues.rs",
+    "crates/ici-reporting/src/legacy_markdown.rs",
+    "crates/ici-reporting/src/migration.rs",
+    "crates/ici-reporting/src/overview.rs",
+    "crates/ici-reporting/src/render.rs",
+    "crates/ici-reporting/src/safe.rs",
+    "crates/ici-reporting/src/sarif.rs",
+    "crates/ici-reporting/src/view.rs"
    ],
    "fixtures": {
     "positive": [
@@ -22,32 +24,51 @@
      "crates/ici-reporting/tests/finding_marks.rs::run_findings_show_provider_and_baseline_state_in_every_view",
      "crates/ici-reporting/tests/facets.rs::all_historical_families_render_their_rich_saved_payload_and_collapsed_normal_inventory",
      "crates/ici-reporting/tests/issues.rs::display_groups_match_frozen_identity_overlap_context_and_clone_contracts",
-     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools"
+     "crates/ici-cli/tests/report_commands.rs::saved_rich_report_survives_deleted_sources_and_no_tools",
+     "crates/ici-reporting/tests/html_sections.rs::issue_axis_filters_offer_only_present_values_and_tag_every_issue",
+     "crates/ici-reporting/tests/html_sections.rs::line_ratio_card_matches_the_frozen_shares_and_handles_an_empty_inventory",
+     "crates/ici-reporting/tests/html_sections.rs::test_suites_keep_failures_visible_and_fold_passing_cases",
+     "crates/ici-reporting/tests/html_sections.rs::support_entries_needing_attention_are_listed_first_with_a_count",
+     "crates/ici-reporting/tests/annotations.rs::frozen_suite_targets_become_the_frozen_annotation_lines",
+     "crates/ici-reporting/tests/legacy_summary.rs::frozen_suites_render_the_frozen_step_summary_byte_for_byte",
+     "crates/ici-reporting/tests/run_sarif.rs::run_sarif_carries_every_frozen_field"
     ],
     "negative": [
      "crates/ici-reporting/tests/html_budget.rs::every_saved_record_formerly_dumped_in_markup_has_an_on_demand_section",
      "crates/ici-reporting/tests/finding_marks.rs::projected_legacy_findings_keep_the_modern_baseline_state",
      "crates/ici-reporting/tests/rendering.rs::saved_run_renderers_preserve_axes_baseline_suppression_unicode_and_escape_boundaries",
-     "crates/ici-reporting/tests/suite_overview.rs::resolved_historical_deltas_stay_visible_as_sarif_absent_results"
+     "crates/ici-reporting/tests/suite_overview.rs::resolved_historical_deltas_stay_visible_as_sarif_absent_results",
+     "crates/ici-reporting/tests/html_sections.rs::not_applicable_engines_stay_collapsed_with_their_reason",
+     "crates/ici-reporting/tests/html_sections.rs::issue_cards_show_the_frozen_location_extent_only_for_a_range",
+     "crates/ici-cli/tests/legacy_commands.rs::explicit_browser_and_github_summary_use_saved_outputs_and_preserve_existing_summary"
     ],
     "failure": [
      "crates/ici-reporting/tests/html_budget.rs::one_file_python_report_fits_the_budget_and_keeps_the_complete_saved_result",
      "crates/ici-reporting/tests/limits.rs::large_html_keeps_100000_records_and_only_fifty_initial_issue_cards",
      "crates/ici-reporting/tests/stored.rs::duplicate_keys_trailing_data_and_embedded_script_closures_are_handled_at_intake_and_output",
-     "crates/ici-cli/tests/report_commands.rs::report_rejects_mismatched_details_input_aliases_and_user_files"
+     "crates/ici-cli/tests/report_commands.rs::report_rejects_mismatched_details_input_aliases_and_user_files",
+     "crates/ici-reporting/tests/html_sections.rs::issue_filters_and_sort_run_in_the_page_script",
+     "crates/ici-reporting/tests/annotations.rs::bounded_changed_first_escaped_and_pass_targets_never_annotate",
+     "crates/ici-reporting/tests/legacy_summary.rs::bounded_targets_baseline_selection_and_payload_limits"
     ]
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
     "actual `target/debug/ici report --result result.json --out report-head.html` on the capture_cli_oracle.py one-file project (HTML output has no build-profile dependent code): frozen oracle 7,096 B; native before 165,113 B (root release measurement 165,618/165,097 B); 43,800 B at 9cbbfe4; 46,419 B at the fragment commit after the engine table was added; 49 lazy sections hydrated by `node tests/rust-parity/reporting/lazy-dom-check.cjs`; /tmp/ici-rust-replacement-20261028/w-reporting-html-size.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test report_commands --test publish_commands --test legacy_commands --no-fail-fast -- --include-ignored --test-threads=2`; 17 passed (5+6+6); /tmp/ici-rust-replacement-20261028/w-reporting-head-cli.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 at the fragment commit: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-cli -p ici-reporting --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-head-clippy.log",
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/audit_html_sections.py frozen.html native.html $ICI_TEST_NODE` over a frozen v0.13.0 `ici verify --report --html` page and native `ici report` of the same saved v3 suite (14 engines); after the fixes the only frozen tab tokens absent from the native page are labels/Korean help text and alternative spellings of the same facts (path:Lx-Ly vs path:x + extent label, 11.45 vs 11.45s, key=value vs key/value cells); no absolute URL in either page; /tmp/ici-rust-replacement-20261028/w-reporting2-html-audit.json",
+    "`tests/rust-parity/reporting/capture_legacy_annotations.py` (frozen v0.13.0, GITHUB_ACTIONS=true); 6 annotation lines; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo clippy -p ici-reporting -p ici-cli --all-targets --locked -j2 -- -D warnings`, `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (incl. Node DOM and the 100,000-record case) and the ici-cli GitHub-summary/cutover/analyze suites; EXIT 0, 24 binaries, 102 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log",
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_summary.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-summary-oracle.json` (frozen verify --github-summary: issues, >100 targets, existing summary, --baseline --fail-on-new); /tmp/ici-rust-replacement-20261028/w-reporting3-summary-capture.log",
+    "`PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/reporting/capture_run_sarif.py <repo> tests/rust-parity/reporting/run-sarif-oracle.json` (11 stored runs incl. comparable/incompatible baselines, suppressed, bare span, unknown severity)",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock` strict workspace clippy, then `cargo test -p ici-reporting -p ici-cli -p ici-domain --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, clippy clean, 95 binaries, 379 passed, 0 failed, 0 ignored; /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log"
    ],
-   "comparison": "Reporting facet only. Reviewed frozen reporting/view_model.py, reporting/offline_html.py, reporters/baseline_view.py, reporters/console.py, reporters/markdown.py (summary, engine table, capability, baseline, issue projection) and the SARIF resolved/absent path. Native renderers now carry every oracle offline-view fact (scope, execution, checks, gate reasons, findings with provider/baseline marks, measurements, limitations), the legacy engine table (issues, score display, cache, duration), status tally, gate_reason, capability snapshot and issues-first baseline deltas with severity transitions, all pinned to frozen captures (suite-overview.json). HTML is Zero-CDN and verified by DOM/text equality of on-demand sections with the server renderer, not bytes. Open for complete: the 12 legacy html/sections/*.py, html/large.py, html/report.py and markdown target/related/failure-snippet rows were not field-by-field audited in this pass (rich-19 sentinels only), and legacy GitHub annotations come from findings rather than the frozen target list.",
-   "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 46,419 B for the budget fixture at the fragment commit). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read)."
+   "comparison": "Reporting facet only. Reviewed frozen reporting/view_model.py, reporting/offline_html.py, reporters/baseline_view.py, reporters/console.py, reporters/markdown.py (summary, engine table, capability, baseline, issue projection) and the SARIF resolved/absent path. Native renderers now carry every oracle offline-view fact (scope, execution, checks, gate reasons, findings with provider/baseline marks, measurements, limitations), the legacy engine table (issues, score display, cache, duration), status tally, gate_reason, capability snapshot and issues-first baseline deltas with severity transitions, all pinned to frozen captures (suite-overview.json). HTML is Zero-CDN and verified by DOM/text equality of on-demand sections with the server renderer, not bytes. Field-by-field HTML audit (frozen html/report.py, large.py, utils.py and all 12 sections read in full; frozen page vs native page of the same suite, see audit evidence): every frozen fact appears; Zero-CDN holds (CSP default-src 'none', no external URL); escaping is html()/textContent only. Fixed to frozen: issues-tab engine/severity/category/confidence/rule filters with present values only, path filter and sort (report order/severity/engine/file); location extent label (L13-L31, L4:C5-C10); SKIP engines collapse to the frozen `N/A — Not applicable, why?` row instead of a full section (frozen summary row; static_analysis hides them); line ratio shares; test suites keep failing/skipped cases visible and fold passing cases; support entries needing attention first under the frozen count. Large reports keep the frozen 2,000/50 thresholds. Historical GitHub annotations now follow frozen emit_github_actions_annotations (targets, changed-first, 50 + notice, GITHUB_ACTIONS only). Historical `verify --github-summary` now renders frozen generate_markdown_report for a historical suite (status/TEM header, engine table, tool capability snapshot, baseline delta with the 20/3 selection, canonical issue groups, per-engine target and related rows bounded at 100 with omission notes, failure snippets) and appends it with the frozen 900 000-byte bounded payload; four frozen suites render to the frozen bytes (legacy_summary.rs). Without GITHUB_STEP_SUMMARY nothing is printed, as frozen. Stored-run SARIF carries every frozen reporting/sarif.document field (driver informationUri, rules, invocation limitations, policy/toolchain/source digests, scope kind, selected components, gate, per-result frozen property names, baselineState, suppressions) on 11 frozen captures (run_sarif.rs).",
+   "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 46,419 B for the budget fixture at the fragment commit). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read). HTML layout: one page with sections and native labels (saved field names in generic tables) instead of frozen tabs, emoji labels and Korean help text; frozen hard-coded thresholds (cognitive warn 30/fail 60, coverage Min 80%/90%) and badge colours are not repeated because they are not saved facts. Decision on SKIP engines: native previously rendered every SKIP engine as a full family section; frozen shows it as a dimmed N/A summary row with the reason collapsed and omits it from the dedicated tabs. Native now collapses it (reason one click away, nothing hidden) because a full section per not-applicable engine is noise under AGENTS.md §5 and carries no additional fact. In >2,000-finding pages the axis filters are not offered; the text filter and pager over the complete inventory remain. Step summary: a tool's `details` pairs follow the key-sorted saved JSON instead of frozen probe insertion order (content identical; legacy_summary.rs compares the cell as a multiset). Stored-run SARIF keeps native choices on top of the frozen fields: columnKind unicodeCodePoints with exclusive end columns (frozen claimed utf16CodeUnits with the inclusive saved column), no uriBaseId, the saved record's own snake_case properties beside the frozen names, the complete saved baseline under properties.baseline instead of frozen's count summary (derivable, checked), and a cancelled run's invocation exitCode 130 (the native process exit) where frozen wrote the gate's 3."
   },
   "capability:legacy-command-config-result-projection": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-reporting/src/projection.rs",
@@ -79,13 +100,15 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 7 passed; the saved suite tem_score equals the test engine score (frozen engines/verify.py); /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the same run on the previous projection fails twice with suite tem_score null against 1.17 and 1.78; /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem-before.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null).",
+   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null). Complete for the reporting area's result-v3 reader/migration facet only; other facets stay with their areas' fragments.",
    "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
   },
   "capability:execution-cancel-save-redact": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-reporting/src/safe.rs",
     "crates/ici-reporting/src/migration.rs",
@@ -105,13 +128,15 @@
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node at b7f053f: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 --lib --test migration_edges --test rendering --test legacy_pipeline --test facets --test stored --test html_budget --test navigation --test fixes --test issues --test imports --no-fail-fast -- --include-ignored --test-threads=2`; all passed; migration_edges runs the 13 frozen cases of migration-v2-edges.json (10 accepted, 3 refused); its two coercion/argv tests failed on the pre-fix code (/tmp/ici-rust-replacement-20261028/w-reporting-migration-edges-before.log); /tmp/ici-rust-replacement-20261028/w-reporting-migration-edges.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Report-boundary redaction facet only. Reviewed core/redaction_values.py (all six patterns, redact_data key-collision suffixes) and core/redaction.py engine/finding/delta/capability/argv redaction. Fixed: values after --token/--password/--secret/--api-key flags in any argv array were not hidden; identity now derives from redacted target text as the frozen serializer did. Cancellation, saving and process cleanup facets belong to the runtime area.",
+   "comparison": "Report-boundary redaction facet only. Reviewed core/redaction_values.py (all six patterns, redact_data key-collision suffixes) and core/redaction.py engine/finding/delta/capability/argv redaction. Fixed: values after --token/--password/--secret/--api-key flags in any argv array were not hidden; identity now derives from redacted target text as the frozen serializer did. Cancellation, saving and process cleanup facets belong to the runtime area. Complete for the reporting area's report-boundary redaction facet only; other facets stay with their areas' fragments.",
    "difference_reason": "Native output redaction is stricter: values under credential-named keys and URL user:password@ credentials are also masked. Compilation argv path relativization (_redact_compilation_*) is applied by the producer, not re-derived at report time."
   },
   "capability:suppression": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-application/src/suppressions.rs",
     "crates/ici-reporting/src/render.rs",
@@ -130,12 +155,14 @@
    },
    "evidence": [
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-domain --locked -j2 --test suppressions --test baseline --test identity --test wire -- --test-threads=2`; 17 passed (4+4+2+7); /tmp/ici-rust-replacement-20261028/w-reporting-application-domain.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node (v24.18.0) at fb58ebb (source identical to the fragment commit): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-reporting --locked -j2 -- --include-ignored --test-threads=2 --nocapture`; EXIT 0, no failures, includes the Node DOM harness and the 100,000-record case; /tmp/ici-rust-replacement-20261028/w-reporting-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Config suppression application and report preservation facet. Frozen application/suppressions.py (conjunctive fingerprint/rule-prefix/component/path selectors, first declaration wins, kind=config with reason and origin, basename vs anchored fnmatchcase) maps one-to-one to SuppressionPolicy; reports keep suppressed findings, counts, reasons/origins and SARIF suppressions. Inline source suppressions are produced by analysis areas."
+   "comparison": "Config suppression application and report preservation facet. Frozen application/suppressions.py (conjunctive fingerprint/rule-prefix/component/path selectors, first declaration wins, kind=config with reason and origin, basename vs anchored fnmatchcase) maps one-to-one to SuppressionPolicy; reports keep suppressed findings, counts, reasons/origins and SARIF suppressions. Inline source suppressions are produced by analysis areas. Complete for the reporting area's config-suppression application and report preservation facet only; other facets stay with their areas' fragments."
   },
   "capability:identity-cache-baseline": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-application/src/baseline.rs",
     "crates/ici-reporting/src/baseline_delta.rs",
@@ -169,9 +196,11 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application -p ici-reporting -p ici-cli -p ici-domain --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 309 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-identity.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the identity test fails on the previous attribution (envelope fingerprint sha256:0257d1… with unit app.cpp vs frozen sha256:223305… with no unit); /tmp/ici-rust-replacement-20261028/w-reporting-identity-before.log",
     "`cargo clippy -p ici-application -p ici-cli --all-targets --locked -j2 -- -D warnings`; EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting-identity-clippy.log",
-    "manual probe (not a fixture): a python component run through frozen `python -I -m ici next verify --no-cache` and native `target/debug/ici next verify --no-cache` gives identical envelope fingerprints for internal checks with no unit (12 dup.type2-clone, security.evalexec) and for tool findings with unit core.python (3 ruff.SIM102); the remaining differences are outside identity (metrics.complexity carries columns, pytest location and collection-error, python.type uses ty); /tmp/ici-rust-replacement-20261028/w-reporting-identity-python-probe.log"
+    "manual probe (not a fixture): a python component run through frozen `python -I -m ici next verify --no-cache` and native `target/debug/ici next verify --no-cache` gives identical envelope fingerprints for internal checks with no unit (12 dup.type2-clone, security.evalexec) and for tool findings with unit core.python (3 ruff.SIM102); the remaining differences are outside identity (metrics.complexity carries columns, pytest location and collection-error, python.type uses ty); /tmp/ici-rust-replacement-20261028/w-reporting-identity-python-probe.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
    ],
-   "comparison": "Baseline facet closed under the root decision (all four conditions proven by legacy_baseline_gate.rs). Identity: internal-check findings carry no analysis unit or variant (frozen finding_identity.attribute) and their check records name the component unit with its build variant (frozen check_scope), so envelope fingerprints equal frozen's (tests/rust-parity/reporting/artifact-identity.json, captured by capture_artifact_identity.py; the binary-compat per-artifact task expansion is a cpp-area difference outside this contract); the cache facet was not reviewed by the reporting area, so this row stays verified rather than complete.",
+   "comparison": "Baseline facet closed under the root decision (all four conditions proven by legacy_baseline_gate.rs). Identity: internal-check findings carry no analysis unit or variant (frozen finding_identity.attribute) and their check records name the component unit with its build variant (frozen check_scope), so envelope fingerprints equal frozen's (tests/rust-parity/reporting/artifact-identity.json, captured by capture_artifact_identity.py; the binary-compat per-artifact task expansion is a cpp-area difference outside this contract); the cache facet was not reviewed by the reporting area, so this fragment claims the identity and baseline facet only. Complete for the reporting area's identity and baseline (the observation cache is the runtime facet) facet only; other facets stay with their areas' fragments.",
    "difference_reason": "Root decision (accepted, ADR-0008 'readable is not comparable'; no mass-new): the frozen pyz FindingDelta comparator is not ported. Native-written baselines (legacy `ici verify --write-baseline`, next results for `ici analyze --baseline`) compare by native fingerprint (new/unchanged/resolved/carried; resolution requires a completed matching check scope), and the legacy view rebuilds the frozen delta entries from that comparison with frozen `_is_regressed` (higher severity or lifted suppression) and `_is_actionable` gating (crates/ici-reporting/src/baseline_delta.rs), which also drives `--fail-on-new`. Differences: (1) pyz-era v3 baselines without a native run stay readable and displayable but every comparison is refused as incompatible with the exact regenerate command (`ici verify --write-baseline <path>`, or `ici analyze --result <stem>.next.json` for next commands) in the console and the saved JSON; (2) `--fail-on-new` against such a baseline fails like the frozen gate failure path (exit 1, 'Baseline gate: FAILED' with the reason and command) and never writes a requested replacement; (3) nothing is reported as new from an incompatible baseline; (4) native fingerprints include the location, so a frozen MOVED pair is a new plus a resolved/carried entry; (5) severity aliases (error=high, warning=medium, note=info, fatal=critical) are ranked, unknown severities never claim a regression; (6) carried (unprovable) fingerprints are listed as their own state."
   },
   "wire_schema:ici-result-v3.schema.json": {
@@ -894,54 +923,91 @@
    ]
   },
   "command:ici verify": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-cli/src/cutover.rs",
+    "crates/ici-cli/src/run_text.rs",
     "crates/ici-domain/src/result.rs"
    ],
    "fixtures": {
-    "positive": [],
-    "negative": [],
+    "positive": [
+     "crates/ici-cli/tests/verify_cutover.rs::workspace_verify_runs_the_next_path_and_composes_outputs_like_frozen_cutover"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/verify_cutover.rs::legacy_schema_verify_keeps_the_historical_suite"
+    ],
     "failure": [
      "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
     ]
    },
    "evidence": [
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_exit_policy -- --include-ignored`; 1 passed; /tmp/ici-rust-replacement-20261028/w-reporting-exit-policy.log",
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_verify_cutover.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/verify-cutover-oracle.json` (frozen v0.13.0); 7 cases; /tmp/ici-rust-replacement-20261028/w-reporting2-cutover-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test verify_cutover --test wire_schemas -- --include-ignored --test-threads=2`; EXIT 0, 2+6 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-cutover.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: every ici-cli test file that invokes `verify` (30 files incl. native_cpp, legacy_verify_matrix, legacy_gcov_cli, pytest_next_parity) `cargo test -p ici-cli --locked -j2 --test … --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 136 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting2-verify-users.log"
    ],
-   "comparison": "Exit-code and legacy suite-verdict facet only (reporting area): the legacy verify view keeps the frozen suite ERROR verdict and the frozen integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0). Legacy engine commands use the same rule through legacy_execute.rs: the frozen engine class (ici_reporting::legacy_exit_code) only raises the run exit, except frozen measured verdicts that the view reproduces. Other verify facets belong to the other areas.",
-   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
+   "comparison": "Reporting facet: exit code, suite verdict and the `[workspace]` cutover (frozen __main__.verify + cli/cutover.py, read in full). A root whose ici.toml declares [workspace] runs the next path: stable-only options (--fail-on-new, --write-baseline, --github-summary, --verbose, --max-findings other than 5, --group-by other than engine) are refused with the frozen stderr list and exit 2 before anything runs; otherwise stderr carries the frozen `ici-next: [workspace] config found …` notice, stdout the frozen next-verify frame, --report saves the ici.next.run result as verify_report.json, --sarif/--html compose `wrote <path>` from the stored result, --open/--publish use the same page, and a publish failure ends with publish's exit. Seven frozen captures compare exit, stderr byte for byte, the frame/wrote lines and every written artifact's schema. A legacy or configless root keeps the historical v3 suite. Legacy-path exit rule as before: the legacy verify view keeps the frozen suite ERROR verdict and integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0); legacy engine commands raise it only through ici_reporting::legacy_exit_code. Defect fixed: native `ici verify` on a [workspace] root ran the historical suite path and printed the raw-JSON console. Other verify facets belong to the other areas.",
+   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1). Cutover differences: the next result lives in the native .ici/rust-v1 namespace (frozen .ici/next); native next-verify lines after `saved` (HTML location, finding preview) also appear; a browser launch failure is reported on stderr where frozen webbrowser.open stayed silent."
+  },
+  "capability:wire-result-events": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/run_text.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/planning.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/analyze_text.rs::native_analyze_prints_the_frozen_frame_on_the_same_projects",
+     "crates/ici-cli/tests/analyze_text.rs::frozen_results_render_the_frozen_verdict_block_byte_for_byte"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/report_commands.rs::ordinary_analyze_points_to_complete_offline_html_and_json_keeps_machine_output"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/analyze_text.rs::verdict_block_failure_modes_cover_incompatible_baseline_reuse_and_unit_notes"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_analyze_text.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/analyze-text-oracle.json` (frozen v0.13.0, Python 3.10.21, empty HOME, PATH=os.defpath); 13 cases; /tmp/ici-rust-replacement-20261028/w-reporting2-analyze-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test analyze_text --test legacy_baseline_gate --test execution -- --include-ignored --test-threads=2` and `cargo test -p ici-application --locked -j2 --test baseline`; EXIT 0, 3+2+9+4 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-analyze-text.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test report_commands --test wire_schemas --test run_tem --test vcs -- --include-ignored --test-threads=2`; EXIT 0, 6+1+2+6 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-cli-regress.log",
+    "before the fix the native text output was `ici analysis: FAIL` plus 80-column-wrapped raw scope/execution/gate JSON and `--json` wrote nothing to stderr: /tmp/ici-rust-replacement-20261028/w-runtime-events-compare.log"
+   ],
+   "comparison": "Reporting facet: the human and `--json` output streams of `ici analyze` / `ici next verify` (frozen cli/next_common._announce and cli/next_render.verify_text, read in full). Text mode prints `root:`/`scope: components=… languages=…|all profile=…[ require-full]`, `<VERDICT>: N finding(s)`, gate reasons, the comparable/incompatible baseline line, `cache: reused N`, run notes and `saved <path>`; `--json` writes only the result to stdout and the two announce lines to stderr. Thirteen frozen captures: the frozen result.json of every text run renders to the frozen block byte for byte (8 runs); the native CLI on the same trees reproduces announcement, stream placement, verdict, reasons, baseline line, saved path and exit 0/1/2/3, prints no announcement for an unknown component or no sources and prints it before the nothing-selected refusal. Run notes are the plan and run limitations only, not the analyses' own. Defects fixed: raw axes JSON dump, missing announcement, a contradictory `Suite: WARN` line under a FAIL gate, a duplicated `baseline comparison unavailable` gate reason, and paraphrased baseline incompatibility reasons (now the frozen application/baseline.py text). Event-stream order/seq and run v2 remain the runtime facet; id validation the config facet.",
+   "difference_reason": "Native lines follow the exact frozen block: `HTML: <page>` (execution plan: analyze prints JSON/HTML locations) and at most five unsuppressed findings, most severe first, with file:line, rule and message (plan §2.1). An incompatible baseline reason keeps the frozen text and appends `; regenerate it with: …`. Error lines keep the native `ici:` prefix where frozen prints `config:`. Native reuses internal analyses (frozen never caches them), so reruns print `cache: reused N`; frozen per-unit cache-ineligibility notes (`note: <unit>: prepare tasks are not cacheable`) have no native counterpart because native cache identity differs. Note and blocked-reason text comes from other areas' limitations/providers and is rendered with the frozen template. Output is printed when the run ends, not streamed."
   }
  },
  "source_files": {
   "src/ici/reporters/baseline_view.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Complete 76-line module reviewed in this pass. Every behaviour is ported (overview::delta_order including the location tiebreak, 20 changed / 3 unchanged bounds with omission counts, severity_transition with '—', enum labels) and pinned by suite_overview.rs against frozen captures; disposition stays open only because its requirement row is verified, not complete."
+   "reason": "Complete 76-line module reviewed in this pass. Every behaviour is ported (overview::delta_order including the location tiebreak, 20 changed / 3 unchanged bounds with omission counts, severity_transition with '—', enum labels) and pinned by suite_overview.rs against frozen captures; disposition stays open only because its requirement row is verified, not complete. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/core/redaction_values.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:execution-cancel-save-redact"
    ],
-   "reason": "Complete 74-line module reviewed: the six credential patterns and redact_data key-collision suffixes map to ici_execution::redaction and safe::redact_plain/redact; native adds URL-credential and credential-key masking. Open until the shared redaction row is complete."
+   "reason": "Complete 74-line module reviewed: the six credential patterns and redact_data key-collision suffixes map to ici_execution::redaction and safe::redact_plain/redact (capability:execution-cancel-save-redact, reporting redaction facet complete); native additionally masks URL credentials and credential-named keys (stricter, recorded on the row). Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/reporting/view_model.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif",
     "finding_site:src/ici/reporting/view_model.py:130:11"
    ],
-   "reason": "Complete module reviewed; all RunView facts (verdict note excepted, native prints the verdict) including per-finding provider and new/unchanged baseline marks are shown and pinned by html_budget.rs and finding_marks.rs. Open until its rows are complete."
+   "reason": "Complete module reviewed; all RunView facts (verdict note excepted, native prints the verdict) including per-finding provider and new/unchanged baseline marks are shown and pinned by html_budget.rs and finding_marks.rs. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporting/offline_html.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Complete module reviewed against the R8 budget fixture: every visible fact of the frozen page appears in native visible markup (html_budget.rs), Zero-CDN preserved. The frozen verdict notes ('the run did not finish what it was asked to do') are not reproduced verbatim. Open until the report row is complete."
+   "reason": "Complete module reviewed against the R8 budget fixture: every visible fact of the frozen page appears in native visible markup (html_budget.rs), Zero-CDN preserved. The frozen verdict notes ('the run did not finish what it was asked to do') are not reproduced verbatim. The verdict notes are not repeated verbatim (native prints the verdict and gate reasons; recorded on the report row). Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/json_rep.py": {
    "disposition": "unreviewed",
@@ -953,25 +1019,25 @@
    "reason": "Complete 899-line module reviewed. Migration/intake behaviour is captured and fixed (migration_edges.rs). Serializer validation (_serialize_delta presence/relationship/flag checks, support-matrix rules, artifact manifest/analysis-context serializers) is producer-side and was not mapped to native writers in this pass."
   },
   "src/ici/application/baseline.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:identity-cache-baseline"
    ],
-   "reason": "Reviewed; the modern comparison maps to ici_application::baseline and the frozen delta/gate to ici_reporting::baseline_delta (legacy_baseline_gate.rs). Open while capability:identity-cache-baseline is verified."
+   "reason": "Complete 171-line module reviewed; the modern comparison maps to ici_application::baseline (incompatibility reasons now use the frozen texts verbatim, analyze_text.rs) and the frozen delta/gate to ici_reporting::baseline_delta (legacy_baseline_gate.rs); capability:identity-cache-baseline is complete for the identity+baseline facet. Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/application/suppressions.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:suppression"
    ],
-   "reason": "Complete module reviewed and mapped one-to-one to SuppressionPolicy (conjunctive selectors, first reason wins, fnmatchcase paths); open until capability:suppression is complete (currently verified)."
+   "reason": "Complete 85-line module reviewed and mapped one-to-one to ici_application SuppressionPolicy (conjunctive selectors, first reason wins, fnmatchcase paths) pinned by crates/ici-application/tests/suppressions.rs; capability:suppression is complete for the reporting facet. Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/application/finding_identity.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:identity-cache-baseline"
    ],
-   "reason": "Not read in this pass; identity behaviour is only covered indirectly through crates/ici-application/tests/identity.rs."
+   "reason": "Complete 71-line module read. attribute -> ici_application::verification::evaluate (crates/ici-application/src/verification.rs:84-120): single declared unit/variant stamps the finding, a finding unit outside several declared units is cleared, task_id set; _fingerprint -> ici_domain::identity::attributed_fingerprint (same 13-field ASCII-JSON payload, sorted unit tuple appended for >1 unit) pinned to the frozen digest by crates/ici-domain/tests/wire.rs fingerprint_unicode_matches_frozen_python_oracle (tests/rust-parity/domain/fingerprint.json) and cross-component aliasing by crates/ici-application/tests/verification.rs; the multi-unit digest (sorted unit tuple appended) and frozen unit attribution (declared kept, foreign/absent cleared) are pinned by crates/ici-domain/tests/multi_unit_fingerprint.rs against tests/rust-parity/reporting/multi-unit-fingerprint.json (capture_multi_unit_fingerprint.py; /tmp/ici-rust-replacement-20261028/w-reporting2-multi-unit.log). The native clearing statement itself (verification.rs:93-99) is code-reviewed, not separately exercised with a multi-unit task. Frozen's untouched pass-through (no owner, unit, variant or units) is unreachable from the frozen CLI because cli/next_path.py:602 maps every planned task to its component; native always stamps the planned component. Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/application/gates.py": {
    "disposition": "unreviewed",
@@ -988,7 +1054,7 @@
    "reason": "Reviewed all 3 symbols. build_result -> crates/ici-application/src/assemble.rs: run_id, producer, identity (fingerprint_version), scope (selected/required/omitted, full_required_satisfied only for a complete full scope; native also requires every required component selected and none omitted), execution (blocked ids only when incomplete, failed ids, reused ids from cache hits), gate, findings, metrics = observation measurements then the TEM tuple, limitations = observation, run and TEM limitations in frozen order (native drops repeated strings), baseline, checks. tem_metrics -> ici_domain::tem::run_metrics (tests/rust-parity/reporting/tem-metrics.json, 9 frozen cases, exact). digest_of -> ici_domain::sha256 'sha256:<hex>' of UTF-8 text."
   },
   "src/ici/core/baseline.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:identity-cache-baseline",
     "finding_site:src/ici/core/baseline.py:284:11",
@@ -999,7 +1065,7 @@
     "finding_site:src/ici/core/baseline.py:527:11",
     "finding_site:src/ici/core/baseline.py:541:11"
    ],
-   "reason": "Complete module reviewed against the root ADR-0008 decision; all seven finding sites are complete. Stays unreviewed only because capability:identity-cache-baseline is verified (its cache facet is outside reporting)."
+   "reason": "Complete 714-line module reviewed against the root ADR-0008 decision; all seven finding sites are complete and the baseline behaviour maps to capability:identity-cache-baseline (identity+baseline facet complete; the observation cache facet is not in this module). Rows closed with /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log (EXIT 0, 25 passed) and w-reporting2-annotations.log."
   },
   "src/ici/core/findings.py": {
    "disposition": "mapped",
@@ -1017,32 +1083,33 @@
    "reason": "Engine/finding/delta/capability/argv redaction reviewed (redaction.py:491 complete); open because redaction.py:360/447 are only verified and the compilation argv helpers are producer-side."
   },
   "src/ici/core/result_keys.py": {
-   "disposition": "unreviewed",
+   "disposition": "retired",
    "requirements": [
     "capability:legacy-command-config-result-projection"
    ],
-   "reason": "Not read in this pass."
+   "reason": "Unreachable from ici.__main__ (static import closure: python3 -I tests/rust-parity/oracle/import_closure.py <oracle>/src src/ici/core/result_keys.py -> UNREACHABLE, /tmp/ici-rust-replacement-20261028/w-reporting2-import-closure.log); no product module references result_keys/EXTRA_KEYS (only tests/test_result_key_contract.py). It is a Python-side typo tripwire for EngineResult.extra keys; native readers parse extra keys explicitly and keep unknown keys (legacy_pipeline/stored tests)."
   },
   "src/ici/engines/publish.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
+    "capability:publish-ca-proxy-ghes",
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass; publish engine behaviour is covered only by the publish_commands CLI tests."
+   "reason": "Complete comment/loader half read: _header_line, _report_link_lines, _stats_table, _engine_details, _status_cell/_tem_cell/_link_cell, _multi_report_body, _footer_line, _build_comment_body and load_suite_from_json refusals are replayed byte for byte (publish_comment.rs); the GITHUB_ACTIONS guard of _publish_single is fixed for legacy verify --publish (verify_cutover.rs). Publication half now matches frozen too: the Actions and repository/token skips (exit 0), missing page, upload and comment failure messages (exit 1) of ici publish and the never-changed verify --publish exit are replayed against frozen captures (legacy_publish.rs, legacy-publish-oracle.json); the GitHub API half maps to capability:publish-ca-proxy-ghes (complete in distribution.json). Native keeps its branch layout ici/<label>/<ref>/<revision>/index.html and its publish.json record. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/engines/publish_baseline.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
-    "capability:identity-cache-baseline"
+    "capability:publish-ca-proxy-ghes"
    ],
-   "reason": "Not read in this pass."
+   "reason": "Complete 190-line module read. parse_baseline_summary (strict non-negative int counts, header types, declared counts equal to entries, flag consistency, gate_failed == fail_on_new && gated>0), _escape_comment_value and baseline_summary_lines map one-to-one to crates/ici-cli/src/publish/legacy_comment.rs::baseline/baseline_lines/escape_comment; publish_comment.rs replays the frozen comment for 2 accepted suites and 23 refused/faulted documents (16 parse_baseline_summary faults) byte for byte (tests/rust-parity/reporting/publish-comment-oracle.json). Native additionally redacts warning text."
   },
   "src/ici/engines/verify.py": {
    "disposition": "unreviewed",
    "requirements": [
     "capability:legacy-command-config-result-projection"
    ],
-   "reason": "Not read in this pass."
+   "reason": "Outline read: legacy VerifyOrchestrator (engine scheduling, compilation-context preparation, baseline apply/write). Baseline apply/write is covered by legacy_baseline_gate.rs; engine scheduling and compilation context belong to the runtime and C++ areas and were not mapped in this pass."
   },
   "src/ici/reporters/console.py": {
    "disposition": "unreviewed",
@@ -1052,11 +1119,11 @@
    "reason": "Reviewed for engine table, footer tally, suite reason, capability snapshot, baseline delta lines, hidden-location and snippet lines (suite_overview.rs); per-engine detail renderers were not mapped field by field."
   },
   "src/ici/reporters/markdown.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Summary, engine table, capability, baseline and issue projection reviewed (suite_overview.rs); target/related/failure-snippet sections were not mapped field by field."
+   "reason": "Complete module read. Annotations (emit_github_actions_annotations, escapes, bounds, changed-first order, GITHUB_ACTIONS guard) now match frozen (annotations.rs, legacy-annotations-oracle.json); summary byte bound and truncation match (limits.rs). generate_markdown_report and _bounded_summary_payload/write_github_step_summary now match frozen bytes (legacy_summary.rs, four frozen captures; tool details order recorded); _make_gh_link links are never produced because the CLI passes no repository URL (frozen engines/verify.py). Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/sarif.py": {
    "disposition": "unreviewed",
@@ -1066,16 +1133,18 @@
    "reason": "Resolved/absent path, message fallback and delta properties reviewed (sarif.py:296 difference_review); the remaining rule/region serialization was not re-audited."
   },
   "src/ici/reporting/sarif.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass; modern SARIF writer only covered by rendering.rs tests."
+   "reason": "Complete 202-line module read. document/_rules/_result/_level/_baseline_states/_baseline_summary map to ici_reporting::sarif::sarif_document; every frozen field is compared on 11 frozen captures (run_sarif.rs, run-sarif-oracle.json via capture_run_sarif.py); the 100 000-result bound is limits.rs. Native differences (code-point columns with exclusive ends, no uriBaseId, cancelled exit 130, full baseline) are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporting/__init__.py": {
-   "disposition": "unreviewed",
-   "requirements": [],
-   "reason": "Not read in this pass (package export surface)."
+   "disposition": "mapped",
+   "requirements": [
+    "capability:report-console-markdown-json-html-sarif"
+   ],
+   "reason": "Read: docstring-only package marker (no executable statements). Its rule — reporters only read a stored RunResult and never run providers — is the report row's boundary (ici-reporting has no ici-execution/provider dependency); The report row is complete. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/issue_view.py": {
    "disposition": "unreviewed",
@@ -1094,19 +1163,19 @@
    "reason": "Covered by the frozen issue-groups.json cases; not re-audited in this pass."
   },
   "src/ici/reporters/issue_models.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass; issue group models are exercised only through issues.rs."
+   "reason": "Complete 49-line module read: IssueLocation (path, start/end line, labels) and IssueGroup (engine_name, rule_id, category, severity, confidence, fingerprints, message, snippet, locations, original_finding_count, clone_group_id, producer_counts, provenance, primary/related locations) are the field set of ici_reporting::issues::IssueGroup.view; IssueComponent's records are IssueGroup.findings/source_indices. Pinned by issues.rs over the frozen issue-groups.json cases and rendered by legacy_summary.rs. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/utils.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "finding_site:src/ici/reporters/html/utils.py:86:12",
     "finding_site:src/ici/reporters/html/utils.py:110:16"
    ],
-   "reason": "Only the finding-site helpers (utils.py:86/110) were checked via issues.rs; the other helpers were not read."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/schemas/ici-result-v3.schema.json": {
    "disposition": "mapped",
@@ -1116,137 +1185,137 @@
    "reason": "Whole schema read verbatim by crates/ici-cli/tests/wire_schemas.rs (every keyword implemented; the two lookahead path patterns spelled out) and cross-checked with jsonschema 4.26.0 on all 92 wire samples: native legacy suite and engine reports validate, invalid mutations are rejected."
   },
   "src/ici/reporters/html/__init__.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/report.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/large.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/assets_loader.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/assets/app.js": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/assets/style.css": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/__init__.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/baseline.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/complexity.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/cycles.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/dup.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/issues.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/line.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/static_analysis.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/summary.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/support.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/test.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html/sections/type_check.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/reporters/html_assets.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:report-console-markdown-json-html-sarif"
    ],
-   "reason": "Not read in this pass field by field; the legacy HTML page is replaced by the native Zero-CDN report whose information preservation is tested on the budget fixture and the rich-19 sentinels, not against this module."
+   "reason": "Complete module read; field-by-field compared with the native page over the same frozen suite (tests/rust-parity/reporting/audit_html_sections.py). Every fact maps to render.rs/facets.rs/native.js and is pinned by html_sections.rs, facets.rs, html_budget.rs and the on-demand DOM test; layout/label/threshold differences are recorded on the report row. Layout/label differences and the SKIP-engine decision are recorded on the report row. Row closed with /tmp/ici-rust-replacement-20261028/w-reporting3-gate.log."
   },
   "src/ici/schemas/ici-compilation-export-v1.schema.json": {
    "disposition": "mapped",
