@@ -345,17 +345,22 @@ pub fn command(
         stdout.push_str(&format!("wrote baseline {}\n", path.display()));
     }
     if invocation.flag("github_summary") {
-        let markdown = ici_reporting::render_markdown(&stored, &options).map_err(error)?;
+        // Frozen write_github_step_summary: append the historical suite's bounded Markdown to
+        // $GITHUB_STEP_SUMMARY when it is set; without it nothing is written or printed.
         if let Some(path) = summary_path {
+            let markdown = match ici_reporting::legacy_summary_markdown(&stored).map_err(error)? {
+                Some(markdown) => markdown,
+                None => ici_reporting::render_markdown(&stored, &options).map_err(error)?,
+            };
             let mut bytes = if path.exists() {
                 crate::report::read_bounded(&path, 8 * 1024 * 1024)?
             } else {
                 vec![]
             };
-            bytes.extend_from_slice(markdown.as_bytes());
-            if bytes.len() > 8 * 1024 * 1024 {
-                return Err(CliError("GitHub summary exceeds 8 MiB".into()));
-            }
+            let remaining = ici_reporting::MAX_SUMMARY_BYTES.saturating_sub(bytes.len());
+            bytes.extend_from_slice(
+                ici_reporting::bounded_summary_payload(&markdown, remaining).as_bytes(),
+            );
             ici_execution::storage::atomic_write(
                 &path,
                 &bytes,
@@ -366,8 +371,6 @@ pub fn command(
                 },
             )
             .map_err(error)?;
-        } else {
-            stdout.push_str(&markdown);
         }
         // Frozen: workflow commands only inside GitHub Actions, built from the suite's targets.
         if environment.get("GITHUB_ACTIONS").map(String::as_str) == Some("true") {

@@ -26,6 +26,8 @@ pub use render::{
     render_json, render_markdown,
 };
 pub use view::{ConsoleGroupBy, RenderOptions};
+mod legacy_markdown;
+pub use legacy_markdown::{MAX_SUMMARY_BYTES, bounded_summary_payload, legacy_summary_markdown};
 mod sarif;
 pub use sarif::{render_sarif, sarif_document};
 mod migration;
