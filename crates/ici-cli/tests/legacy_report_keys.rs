@@ -114,13 +114,9 @@ fn support_differences(name: &str, actual: &Value, frozen: &Value) -> Vec<String
 }
 
 /// Engine evidence that differs from frozen for a reason outside the report projection.
-const KNOWN_ENGINE_EVIDENCE: [(&str, &str, &str); 1] = [(
-    "configured-hybrid/line",
-    "NOT_RUN",
-    "cross-area planning: `type='hybrid'` without C++ sources plans a cpp.line check that is \
-     BLOCKED (no sources in scope), so the line engine reads NOT_RUN and the run exits 3; \
-     frozen counted the Python sources (MEASURED, exit 0)",
-)];
+// Fixed (cpp area): the `type='hybrid'` project without C++ sources no longer plans a blocked
+// cpp.line check; its line engine is MEASURED like frozen and is compared in full.
+const KNOWN_ENGINE_EVIDENCE: [(&str, &str, &str); 0] = [];
 
 #[test]
 #[ignore = "explicit pinned native tool gate; no tool installation or silent skip"]
