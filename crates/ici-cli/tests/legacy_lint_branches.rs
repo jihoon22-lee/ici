@@ -180,17 +180,6 @@ fn legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidenc
         }
         let mut actual = run(&oracle, case);
         let mut frozen = case["frozen"].clone();
-        if name == "lint-hybrid-mixed" {
-            // Open (Python lint area): the adapted `ici.legacy.lint.target` findings name the
-            // engine's first tool evidence. Frozen lists Ruff first (Python is linted first);
-            // the native Python lint output carries no tool evidence, so the compiler runs come
-            // first. Everything else must match.
-            for side in [&mut actual, &mut frozen] {
-                for finding in side["findings"].as_array_mut().unwrap() {
-                    finding["tool_name"] = json!("<first engine tool>");
-                }
-            }
-        }
         // The compile_db engine of the same verify run is compared on its own.
         if let (Some(native), Some(oracle)) = (
             actual
