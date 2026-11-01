@@ -525,7 +525,12 @@ pub(crate) fn observe_qtest(
                         "qtest.{}",
                         case[1].trim_end_matches('!').to_ascii_lowercase()
                     ),
-                    &format!("{} {}", &case[2], &case[1]),
+                    // Frozen `f"{node} {verdict.rstrip('!').lower()}"`.
+                    &format!(
+                        "{} {}",
+                        &case[2],
+                        case[1].trim_end_matches('!').to_ascii_lowercase()
+                    ),
                     &path,
                     1,
                 ));

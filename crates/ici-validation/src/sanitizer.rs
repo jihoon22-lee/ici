@@ -475,16 +475,22 @@ pub(crate) fn observe(
         crate::sanitizer_suite::observe_framework(plan, outcome, output)?;
     }
     if output.observation.findings.is_empty() && outcome.exit_code != Some(0) {
-        output.observation.findings.push(finding(
+        // Frozen `_suite_failure_finding` text; the exit code is shown, not its Rust Option.
+        let mut failure = finding(
             plan,
             "ici.sanitize.suite-failure",
             &format!(
-                "suite exited {:?} without sanitizer defect evidence",
-                outcome.exit_code
+                "suite exited {} with no sanitizer diagnostic in its output \u{2014} the run failed without the sanitizer reporting a defect",
+                outcome.exit_code.map_or_else(
+                    || "without an exit code".to_owned(),
+                    |code| code.to_string()
+                )
             ),
             &crate::cpp::source(plan, "sanitizer"),
             1,
-        ));
+        );
+        failure.native_rule_id.clear();
+        output.observation.findings.push(failure);
     }
     output.observation.measurements.push(Measurement::measured(
         format!("{}.diagnostics", plan.kind.provider()),

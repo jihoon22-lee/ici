@@ -5817,64 +5817,123 @@
       "difference_reason": "Open: compiler provider site not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:144:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_ctest_transcript_findings_and_counts_match_the_frozen_cpptest_parser"
+        ],
+        "negative": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_ctest_transcript_findings_and_counts_match_the_frozen_cpptest_parser",
+          "crates/ici-validation/tests/cpp_contracts.rs::ctest_partial_skipped_and_missing_terminal_counts_are_distinct_from_failures"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/cpp_contracts.rs::ctest_partial_skipped_and_missing_terminal_counts_are_distinct_from_failures"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:144); enclosing frozen function _parse_ctest) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared. Open (cpp worker, 2026-11-01): next-path ctest.failed finding. No frozen capture compares it yet. Implemented natively but not compared with frozen: crates/ici-validation/src/cpp.rs emits ctest.failed. A frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
+      "evidence": [
+        "Frozen parser oracle tests/rust-parity/cpp/cpptest-parser-oracle.json captured by development-only tests/rust-parity/cpp/capture_cpptest_parsers.py (oracle 6fe3e40): real transcripts from parity-fixtures/cpp/test-cmake/suite (ctest 4.2.3), test-qmake (QtTest 5.15.18, out-of-source build, and the same transcript with in-root Loc paths) and test-cmake/sanitize built with g++ -fsanitize=address,undefined / -fsanitize=thread (heap use-after-free; a test exiting 3), parsed by the frozen _parse_ctest, _parse_qtest and SanitizeProvider.parse; /tmp/ici-rust-replacement-20261028/w-cpp-cpptest-capture.log",
+        "cargo test -p ici-validation --locked -j2 -- --include-ignored (cpptest_oracle 3, cpp_contracts 9 ...) and the ici-cli legacy_cpp_test/legacy_sanitize/native_cpp*/native_validation*/legacy_verify_matrix replays with --include-ignored: all passed; strict ici-cli/ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-next-providers.log"
+      ],
+      "comparison": "Frozen _parse_ctest: one ctest.failed finding per failed verdict ('test <name>: <verdict>', high/high) at the test source matched by name, line 1; Passed counts, not-run verdicts (Not Run, Disabled, Skipped) count in the total but are a limitation; measurement ctest.cases passed/total. Rust observe_ctest replayed on the real ctest 4.2.3 transcript of test-cmake/suite: the two findings (test_fail 'Failed', test_crash 'Exception: SegFault'), locations tests/test_fail.cpp and tests/test_crash.cpp, and ctest.cases 2/6 match.",
+      "difference_reason": "Intended (R05): native Rust refuses a suite with not-run cases ('2 CTest suites were not run', state FAILED) where frozen next keeps a limitation of a measured run; legacy commands keep the frozen behaviour (ctest_not_run_measured). Rust also checks the terminal 'out of N' count (DISABLED tests excluded, fixed in 4cafb4b). A ctest name with no matching source falls back to the declared inventory path in Rust and to the bare stem in frozen (not a finding in the capture)."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:191:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_qtest_transcript_findings_and_counts_match_the_frozen_cpptest_parser"
+        ],
+        "negative": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_qtest_transcript_findings_and_counts_match_the_frozen_cpptest_parser",
+          "crates/ici-validation/tests/cpp_contracts.rs::qtest_retains_following_failure_location_and_validates_totals"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_qtest_transcript_findings_and_counts_match_the_frozen_cpptest_parser"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:191); enclosing frozen function _parse_qtest) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared. Open (cpp worker, 2026-11-01): next-path qtest.<verdict> finding. No frozen capture compares it yet. Implemented natively but not compared with frozen: crates/ici-validation/src/cpp.rs emits qtest.<verdict> (tests/native_cpp.rs qtest fixtures are native-only). A frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
+      "evidence": [
+        "Frozen parser oracle tests/rust-parity/cpp/cpptest-parser-oracle.json captured by development-only tests/rust-parity/cpp/capture_cpptest_parsers.py (oracle 6fe3e40): real transcripts from parity-fixtures/cpp/test-cmake/suite (ctest 4.2.3), test-qmake (QtTest 5.15.18, out-of-source build, and the same transcript with in-root Loc paths) and test-cmake/sanitize built with g++ -fsanitize=address,undefined / -fsanitize=thread (heap use-after-free; a test exiting 3), parsed by the frozen _parse_ctest, _parse_qtest and SanitizeProvider.parse; /tmp/ici-rust-replacement-20261028/w-cpp-cpptest-capture.log",
+        "cargo test -p ici-validation --locked -j2 -- --include-ignored (cpptest_oracle 3, cpp_contracts 9 ...) and the ici-cli legacy_cpp_test/legacy_sanitize/native_cpp*/native_validation*/legacy_verify_matrix replays with --include-ignored: all passed; strict ici-cli/ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-next-providers.log"
+      ],
+      "comparison": "Frozen _parse_qtest: one qtest.fail / qtest.xpass finding per FAIL!/XPASS row, message '<node> <verdict without !, lower case>', at the following Loc path/line; PASS counts, SKIP/XFAIL are skipped; qtest.cases passed/total. Rust observe_qtest replayed on a real QtTest 5.15.18 transcript (test-qmake): findings, locations and qtest.cases 3/6 match after fixing the Rust message ('Unit::fails() FAIL!' -> frozen 'Unit::fails() fail').",
+      "difference_reason": "Known frozen defect corrected: a SKIP row's own Loc line overwrites the preceding XPASS finding's location (frozen line 12); Rust keeps each Loc with the verdict it follows (line 10). An out-of-source build prints Loc: [../../tests/...]; frozen raises 'span path must be relative and contained' (internal error), Rust refuses the escaping location as incomplete evidence with the limitation 'external validation location ...'."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:212:27": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_qtest_transcript_findings_and_counts_match_the_frozen_cpptest_parser"
+        ],
+        "negative": [
+          "crates/ici-validation/tests/cpp_contracts.rs::qtest_retains_following_failure_location_and_validates_totals"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_qtest_transcript_findings_and_counts_match_the_frozen_cpptest_parser"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:212); enclosing frozen function _parse_qtest) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared. Open (cpp worker, 2026-11-01): next-path qtest finding relocated to its source location. No frozen capture compares it yet. Implemented natively but not compared with frozen: crates/ici-validation/src/cpp.rs keeps the qtest failure source location (native_cpp.rs::qtest_qt5_and_qt6_native_cases_keep_failure_source_location, native-only). A frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
+      "evidence": [
+        "Frozen parser oracle tests/rust-parity/cpp/cpptest-parser-oracle.json captured by development-only tests/rust-parity/cpp/capture_cpptest_parsers.py (oracle 6fe3e40): real transcripts from parity-fixtures/cpp/test-cmake/suite (ctest 4.2.3), test-qmake (QtTest 5.15.18, out-of-source build, and the same transcript with in-root Loc paths) and test-cmake/sanitize built with g++ -fsanitize=address,undefined / -fsanitize=thread (heap use-after-free; a test exiting 3), parsed by the frozen _parse_ctest, _parse_qtest and SanitizeProvider.parse; /tmp/ici-rust-replacement-20261028/w-cpp-cpptest-capture.log",
+        "cargo test -p ici-validation --locked -j2 -- --include-ignored (cpptest_oracle 3, cpp_contracts 9 ...) and the ici-cli legacy_cpp_test/legacy_sanitize/native_cpp*/native_validation*/legacy_verify_matrix replays with --include-ignored: all passed; strict ici-cli/ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-next-providers.log"
+      ],
+      "comparison": "Frozen _parse_qtest Loc re-location: the first Loc line after a failing verdict replaces the finding's primary location (path, line). Rust observe_qtest applies the Loc that follows a FAIL!/XPASS verdict; replayed on the real QtTest transcript (tests/test_unit.cpp:7 for the failure and :10 for the unexpected pass).",
+      "difference_reason": "Known frozen defect corrected: frozen also applies a Loc that follows a SKIP row to the last finding (moves the XPASS to line 12); Rust does not. Out-of-source '../../' Loc paths: frozen internal error, Rust incomplete evidence (see cpptest.py:191)."
     },
     "finding_site:src/ici/adapters/providers/sanitize.py:212:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/sanitizer.rs",
+        "crates/ici-validation/src/finding_details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_sanitizer_runs_match_the_frozen_next_sanitize_provider_findings"
+        ],
+        "negative": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_sanitizer_runs_match_the_frozen_next_sanitize_provider_findings"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_sanitizer_runs_match_the_frozen_next_sanitize_provider_findings"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/sanitize.py:212); enclosing frozen function _diagnostic_finding) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: sanitizer provider parsing not compared with frozen. Open (cpp worker, 2026-11-01): next-path sanitizer diagnostic finding. No frozen capture compares it yet. Implemented natively but not compared with frozen: crates/ici-validation/src/sanitizer.rs builds sanitizer diagnostic findings (rule identity not cross-checked). A frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
+      "evidence": [
+        "Frozen parser oracle tests/rust-parity/cpp/cpptest-parser-oracle.json captured by development-only tests/rust-parity/cpp/capture_cpptest_parsers.py (oracle 6fe3e40): real transcripts from parity-fixtures/cpp/test-cmake/suite (ctest 4.2.3), test-qmake (QtTest 5.15.18, out-of-source build, and the same transcript with in-root Loc paths) and test-cmake/sanitize built with g++ -fsanitize=address,undefined / -fsanitize=thread (heap use-after-free; a test exiting 3), parsed by the frozen _parse_ctest, _parse_qtest and SanitizeProvider.parse; /tmp/ici-rust-replacement-20261028/w-cpp-cpptest-capture.log",
+        "cargo test -p ici-validation --locked -j2 -- --include-ignored (cpptest_oracle 3, cpp_contracts 9 ...) and the ici-cli legacy_cpp_test/legacy_sanitize/native_cpp*/native_validation*/legacy_verify_matrix replays with --include-ignored: all passed; strict ici-cli/ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-next-providers.log"
+      ],
+      "comparison": "Frozen _diagnostic_finding: one finding per normalized sanitizer diagnostic, rule ici.sanitize.<kind>.<defect>, message '<tool> detected <defect>', high/high, native rule = defect, primary location = the first project frame (label 'frame #<n>: <function>' for ASan '... in <function>' frames, 'frame #<n>' for TSan frames), project-only related locations. Rust sanitizer.rs replayed on real g++ ASan+UBSan and TSan heap-use-after-free runs: rule, message, native rule, location, label, related locations, severity, confidence and limitations match (after the TSan frame-label fix in 27490e7).",
+      "difference_reason": "Only heap use-after-free is captured; UBSan runtime-error, LSan and unlocated ('[external]' primary) diagnostics are covered by native tests, not by this oracle."
     },
     "finding_site:src/ici/adapters/providers/sanitize.py:233:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/sanitizer.rs",
+        "crates/ici-validation/src/finding_details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_sanitizer_runs_match_the_frozen_next_sanitize_provider_findings"
+        ],
+        "negative": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_sanitizer_runs_match_the_frozen_next_sanitize_provider_findings"
+        ],
+        "failure": [
+          "crates/ici-validation/tests/cpptest_oracle.rs::actual_sanitizer_runs_match_the_frozen_next_sanitize_provider_findings"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/sanitize.py:233); enclosing frozen function _suite_failure_finding) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: sanitizer provider parsing not compared with frozen. Open (cpp worker, 2026-11-01): next-path ici.sanitize.suite-failure finding. No frozen capture compares it yet. Implemented natively but not compared with frozen: crates/ici-validation/src/sanitizer.rs emits the suite-failure finding. A frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
+      "evidence": [
+        "Frozen parser oracle tests/rust-parity/cpp/cpptest-parser-oracle.json captured by development-only tests/rust-parity/cpp/capture_cpptest_parsers.py (oracle 6fe3e40): real transcripts from parity-fixtures/cpp/test-cmake/suite (ctest 4.2.3), test-qmake (QtTest 5.15.18, out-of-source build, and the same transcript with in-root Loc paths) and test-cmake/sanitize built with g++ -fsanitize=address,undefined / -fsanitize=thread (heap use-after-free; a test exiting 3), parsed by the frozen _parse_ctest, _parse_qtest and SanitizeProvider.parse; /tmp/ici-rust-replacement-20261028/w-cpp-cpptest-capture.log",
+        "cargo test -p ici-validation --locked -j2 -- --include-ignored (cpptest_oracle 3, cpp_contracts 9 ...) and the ici-cli legacy_cpp_test/legacy_sanitize/native_cpp*/native_validation*/legacy_verify_matrix replays with --include-ignored: all passed; strict ici-cli/ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-next-providers.log"
+      ],
+      "comparison": "Frozen _suite_failure_finding: a finished instrumented suite that exits non-zero without a sanitizer report is one ici.sanitize.suite-failure finding 'suite exited <code> with no sanitizer diagnostic in its output — the run failed without the sanitizer reporting a defect' at the suite binary (build/<binary>), line 1. Rust defect fixed: the message printed the Rust Option ('suite exited Some(3) without sanitizer defect evidence') and carried a native rule id; replayed sanitize-exit and thread-sanitize-exit exactly.",
+      "difference_reason": "Rust still records '<variant>.diagnostics' = 1 for the suite failure where frozen records no measurement."
     },
     "finding_site:src/ici/analysis/_clang_tidy.py:57:11": {
       "status": "verified",
