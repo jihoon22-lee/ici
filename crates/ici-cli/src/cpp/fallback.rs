@@ -50,6 +50,7 @@ fn provider(
     request.options.legacy = true;
     request.options.source_token = Some(replay.source.to_string_lossy().into_owned());
     let mut planned = ici_providers::plan(&request).map_err(|error| error.to_string())?;
+    super::legacy_syntax_limits(&mut planned.task);
     planned.scope_complete = false;
     planned.limitations.push("Legacy c++17 syntax fallback has no recorded build configuration or compiler header/module closure; findings are estimated".into());
     Ok(planned)

@@ -120,10 +120,13 @@ impl CppPlans {
                 "No recorded translation-unit configuration covers this selected source".into();
             output.targets.push(target);
         }
+        // Legacy context and unit diagnostics are projected in frozen unit order instead
+        // (`legacy_syntax`).
         for diagnostic in context
             .diagnostics
             .iter()
             .chain(context.units.iter().flat_map(|unit| &unit.diagnostics))
+            .filter(|_| !self.legacy_projection)
         {
             if diagnostic.level == "error" {
                 let path = if diagnostic.source.is_empty() {

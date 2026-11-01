@@ -1,0 +1,98 @@
+{
+ "argv_tail": [
+  "-p",
+  "build",
+  "src/clean.cpp",
+  "src/qt.cpp",
+  "src/tidy.cpp"
+ ],
+ "cases": {
+  "clean": {
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": []
+   },
+   "outcome": "finished",
+   "stderr": "",
+   "stdout": ""
+  },
+  "null-byte": {
+   "frozen": {
+    "failed_to_parse": "clang-tidy diagnostic output contains a null byte",
+    "findings": []
+   },
+   "outcome": "finished",
+   "stderr": "",
+   "stdout": "src/tidy.cpp:7:18: warning: Division by zero [clang-analyzer-core.DivideZero]\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\nsrc/tidy.cpp:6:5: note: 'zero' initialized to 0\n    6 |     int zero = 0;\n      |     ^~~~~~~~\nsrc/tidy.cpp:7:18: note: Division by zero\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\n\u0000"
+  },
+  "outside-only": {
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:bceff63ce10a8cf1c9909d8b19c70c2f401ac33fda2dce672876280db2ed0b54",
+      "message": "warning: outside the project",
+      "native_rule_id": "misc-outside",
+      "path": "[external]",
+      "provider": "clang-tidy",
+      "rule_id": "clang_tidy.misc-outside",
+      "severity": "medium",
+      "start_column": 5,
+      "start_line": 3,
+      "task_id": "app.cpp.tidy"
+     }
+    ]
+   },
+   "outcome": "finished",
+   "stderr": "",
+   "stdout": "/usr/include/outside.h:3:5: warning: outside the project [misc-outside]\n"
+  },
+  "real": {
+   "frozen": {
+    "failed_to_parse": "unrecognized compiler output line: '[1/3] Processing file <ROOT>/src/clean.cpp.'",
+    "findings": []
+   },
+   "outcome": "finished",
+   "stderr": "[1/3] Processing file <ROOT>/src/clean.cpp.\n[2/3] Processing file <ROOT>/src/qt.cpp.\n[3/3] Processing file <ROOT>/src/tidy.cpp.\n1 warning generated.\n",
+   "stdout": "src/tidy.cpp:7:18: warning: Division by zero [clang-analyzer-core.DivideZero]\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\nsrc/tidy.cpp:6:5: note: 'zero' initialized to 0\n    6 |     int zero = 0;\n      |     ^~~~~~~~\nsrc/tidy.cpp:7:18: note: Division by zero\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\n"
+  },
+  "real-stdout": {
+   "frozen": {
+    "failed_to_parse": "",
+    "findings": [
+     {
+      "confidence": "high",
+      "evidence": "MEASURED",
+      "fingerprint": "sha256:bea9c6c64a548376982b22612114352ebadee5ad8c0b66e38d0f04378cc517ba",
+      "message": "warning: Division by zero",
+      "native_rule_id": "clang-analyzer-core.DivideZero",
+      "path": "src/tidy.cpp",
+      "provider": "clang-tidy",
+      "rule_id": "clang_tidy.clang-analyzer-core.DivideZero",
+      "severity": "medium",
+      "start_column": 18,
+      "start_line": 7,
+      "task_id": "app.cpp.tidy"
+     }
+    ]
+   },
+   "outcome": "finished",
+   "stderr": "",
+   "stdout": "src/tidy.cpp:7:18: warning: Division by zero [clang-analyzer-core.DivideZero]\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\nsrc/tidy.cpp:6:5: note: 'zero' initialized to 0\n    6 |     int zero = 0;\n      |     ^~~~~~~~\nsrc/tidy.cpp:7:18: note: Division by zero\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\n"
+  },
+  "timed-out": {
+   "frozen": {
+    "failed_to_parse": "app.cpp.tidy did not finish",
+    "findings": []
+   },
+   "outcome": "timed-out",
+   "stderr": "",
+   "stdout": "src/tidy.cpp:7:18: warning: Division by zero [clang-analyzer-core.DivideZero]\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\nsrc/tidy.cpp:6:5: note: 'zero' initialized to 0\n    6 |     int zero = 0;\n      |     ^~~~~~~~\nsrc/tidy.cpp:7:18: note: Division by zero\n    7 |     return value / zero;\n      |            ~~~~~~^~~~~~\n"
+  }
+ },
+ "clang_tidy": "Ubuntu LLVM version 21.1.8\n  Optimized build.",
+ "exit_code": 0,
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
