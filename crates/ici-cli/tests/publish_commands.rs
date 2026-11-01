@@ -544,3 +544,33 @@ fn pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard
         assert_eq!(comments, usize::from(expect_comment), "{}", output.stdout);
     }
 }
+
+/// Frozen `_load_result`: the stored result is read before the page, and a missing or unreadable
+/// result is a `publish: ` refusal naming it (exit 2), never a page error.
+#[test]
+fn publish_reads_the_result_before_the_page_with_the_frozen_refusal_class() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("ici.toml"),
+        "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n",
+    )
+    .unwrap();
+    std::fs::write(root.path().join("main.py"), "x = 1\n").unwrap();
+    let invocation = ici_cli::registry::parse(["ici", "next", "publish"]).unwrap();
+    let environment = std::collections::BTreeMap::new();
+    let refusal = |expected: &str| {
+        let error = ici_cli::commands::dispatch(&invocation, root.path(), &environment)
+            .err()
+            .expect("refused");
+        let line = ici_cli::commands::diagnostic(&error);
+        assert!(line.starts_with(expected), "{line}");
+        assert!(!line.contains("publish page"), "{line}");
+    };
+    refusal("publish: cannot read result ");
+    std::fs::create_dir_all(root.path().join(".ici/rust-v1")).unwrap();
+    std::fs::write(root.path().join(".ici/rust-v1/result.json"), "{bad").unwrap();
+    refusal(&format!(
+        "publish: {} is not a result this version can read: ",
+        root.path().join(".ici/rust-v1/result.json").display()
+    ));
+}

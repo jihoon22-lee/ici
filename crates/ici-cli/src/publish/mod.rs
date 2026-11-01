@@ -692,6 +692,26 @@ fn load_page(
     result: Option<&Path>,
     required: bool,
 ) -> Result<Page> {
+    // Frozen `publish_run` (application/publish.py `_load_result`) reads the stored result
+    // before the page: a missing or unreadable result is a `publish: ` refusal naming it.
+    let (result, result_digest) = match result {
+        Some(path) if required || path.exists() => {
+            let bytes = crate::report::read_bounded(path, 64 * 1024 * 1024).map_err(|error| {
+                CliError(format!(
+                    "publish: cannot read result {}: {error}",
+                    path.display()
+                ))
+            })?;
+            let loaded = crate::report::load(path).map_err(|error| {
+                CliError(format!(
+                    "publish: {} is not a result this version can read: {error}",
+                    path.display()
+                ))
+            })?;
+            (Some(loaded), Some(ici_domain::sha256(bytes)))
+        }
+        _ => (None, None),
+    };
     let canonical = path
         .canonicalize()
         .map_err(|error| CliError(format!("publish page: {error}")))?;
@@ -701,16 +721,6 @@ fn load_page(
         ));
     }
     let bytes = crate::report::read_bounded(&canonical, 64 * 1024 * 1024)?;
-    let (result, result_digest) = match result {
-        Some(path) if required || path.exists() => (
-            Some(crate::report::load(path)?),
-            Some(ici_domain::sha256(crate::report::read_bounded(
-                path,
-                64 * 1024 * 1024,
-            )?)),
-        ),
-        _ => (None, None),
-    };
     Ok(Page {
         label: label.into(),
         bytes,
