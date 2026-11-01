@@ -27,6 +27,18 @@
 
 ### 변경
 
+- 레거시 deep `ici verify`에서 build 엔진 없이 integration/binary_compat을 켜면 v0.13.0과 같이 실행 전에
+  거부합니다(종료 코드 1, 리포트 없음).
+- 소스가 없는 레거시 Python 프로젝트의 `ici build`가 v0.13.0과 같은 `BuildArtifacts` FAIL(종료 코드 1)을
+  보고합니다. 게시되지 않은 binary_compat 아티팩트 선택은 v0.13.0과 같은 `AnalysisUnavailable` ERROR입니다.
+- 새 설정(`schema_version=2`)의 프로젝트 Python은 선언된 executable 또는 컴포넌트 `.venv`만 사용하며
+  PATH의 `python`으로 대체하지 않습니다. 찾지 못하면 test/coverage/compat-runtime 검사를 차단하고 이유를
+  보여 줍니다.
+- test-quality 반복 실행(시간 초과·비정상 종료·테스트별 결과 없음)과 mutation 도구 대상이 v0.13.0의 메시지·
+  지표·fingerprint와 일치합니다. 요약 숫자만 출력한 pytest 실행은 "수집된 테스트 없음" 대신 불완전 실행으로
+  보고합니다.
+- 레거시 `ici verify`는 FAIL/ERROR suite에서 종료 코드 0을 반환하지 않으며, 빈 Python sanitize 범위는
+  v0.13.0과 같은 `PythonResourceWarnings` ERROR를 보고합니다.
 - C++ 프로젝트의 기존 `ici verify`가 v0.13.0과 같은 엔진 집합(standard 프로필의 sanitize, deep 전용
   cognitive)과 설정에 없는 엔진의 기본 required 값을 사용합니다.
 - C/C++ 프로젝트에서 type/resource/security/python_compat 엔진이 v0.13.0과 같은 적용 불가 대상을 보고하고,

@@ -1,0 +1,234 @@
+{
+  "runs": {
+    "collection_error": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "status": "ERROR",
+        "summary": "Pytest returned success without parseable test results"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "import ici_parity_missing_module\n\n\ndef test_add():\n    assert True\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Pytest returned success without parseable test results",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical"
+        }
+      ],
+      "interpreter": "python",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Pytest returned success without parseable test results",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
+    "no_test_files": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: no Python test files were selected"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/helper.py": "X = 1\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical"
+        }
+      ],
+      "interpreter": "python",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: no Python test files were selected",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
+    "no_tests_dir": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n",
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "status": "ERROR",
+        "summary": "Python ResourceWarning check skipped: tests directory is missing"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical"
+        }
+      ],
+      "interpreter": "python",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
+    "no_tests_dir_optional": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n[engines.sanitize]\nrequired = false\n",
+      "engine": {
+        "evidence": "ESTIMATED",
+        "required": false,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "python",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Python ResourceWarning check skipped: tests directory is missing",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
+    "pytest_unavailable": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<BARE>\"\n",
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": true,
+        "status": "ERROR",
+        "summary": "Pytest is unavailable: <BARE>: No module named pytest"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Pytest is unavailable: <BARE>: No module named pytest",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical"
+        }
+      ],
+      "interpreter": "bare",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Pytest is unavailable: <BARE>: No module named pytest",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
+    "pytest_unavailable_optional": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<BARE>\"\n[engines.sanitize]\nrequired = false\n",
+      "engine": {
+        "evidence": "ESTIMATED",
+        "required": false,
+        "status": "SKIP",
+        "summary": "Sanitize skipped: no applicable checks were executed"
+      },
+      "exit_code": 2,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Pytest is unavailable: <BARE>: No module named pytest",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "info"
+        }
+      ],
+      "interpreter": "bare",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Pytest is unavailable: <BARE>: No module named pytest",
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
+    "tool_failure": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines.test]\npython = \"<PYTHON>\"\n[engines.sanitize]\nrequired = false\n",
+      "engine": {
+        "evidence": "NOT_RUN",
+        "required": false,
+        "status": "ERROR",
+        "summary": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <ROOT> collected 1 item tests/test_calc.py F [100%] =================================== FAILURES ======================"
+      },
+      "exit_code": 1,
+      "files": {
+        "src/calc.py": "def add(a, b):\n    return a + b\n",
+        "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 4\n"
+      },
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <ROOT> collected 1 item tests/test_calc.py F [100%] =================================== FAILURES ======================",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target",
+          "severity": "critical"
+        }
+      ],
+      "interpreter": "python",
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Pytest ResourceWarning check failed with exit code 1: ============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: <ROOT> collected 1 item tests/test_calc.py F [100%] =================================== FAILURES ======================",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

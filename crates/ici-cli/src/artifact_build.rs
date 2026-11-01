@@ -920,6 +920,69 @@ fn normalize_version(value: &str) -> Result<String, String> {
         Ok(format!("v{value}"))
     }
 }
+/// Python `repr` of a string (frozen `{value!r}`): single quotes unless only double quotes avoid
+/// escaping, backslash and quote escapes, control characters as `\x..`.
+fn python_repr(value: &str) -> String {
+    let quote = if value.contains('\'') && !value.contains('"') {
+        '"'
+    } else {
+        '\''
+    };
+    let mut text = String::from(quote);
+    for character in value.chars() {
+        match character {
+            '\\' => text.push_str("\\\\"),
+            '\n' => text.push_str("\\n"),
+            '\r' => text.push_str("\\r"),
+            '\t' => text.push_str("\\t"),
+            c if c == quote => {
+                text.push('\\');
+                text.push(c);
+            }
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => {
+                text.push_str(&format!("\\x{:02x}", c as u32));
+            }
+            c => text.push(c),
+        }
+    }
+    text.push(quote);
+    text
+}
+
+/// The frozen BuildEngine `_record_error` text for a Python packaging refusal, or `None` when
+/// the reason is not one of the frozen `_package_python` error branches.
+pub fn legacy_python_build_error(root: &Path, reason: &str) -> Option<String> {
+    if let Some(path) = reason.strip_prefix("Python artifact collision at ") {
+        return Some(format!(
+            "Python artifact collision at {}",
+            root.join(path).display()
+        ));
+    }
+    if let Some(name) = reason
+        .strip_prefix("unsafe Python launcher name: ")
+        .and_then(|quoted| serde_json::from_str::<String>(quoted).ok())
+    {
+        return Some(format!(
+            "Unsafe Python launcher name: {}",
+            python_repr(&name)
+        ));
+    }
+    if let Some(source) = reason
+        .strip_prefix("Python source ")
+        .and_then(|rest| rest.strip_suffix(" lies outside configured roots"))
+    {
+        return Some(format!(
+            "Python source is outside configured roots: {}",
+            root.join(source).display()
+        ));
+    }
+    if reason == "build.python.entrypoint must be a string" {
+        return Some("build.python.entrypoint must be a non-empty string".into());
+    }
+    (reason.starts_with("Invalid Python entrypoint: ")
+        || reason.starts_with("Python entrypoint module does not exist: "))
+    .then(|| reason.to_owned())
+}
 fn validate_launcher_name(value: &str) -> Result<(), String> {
     if value.len() > 255
         || !value

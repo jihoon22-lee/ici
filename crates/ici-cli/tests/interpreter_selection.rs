@@ -139,15 +139,19 @@ fn declared_interpreter_that_is_missing_blocks_without_using_the_venv() {
 }
 
 /// Frozen legacy engines (`engines/test_interpreter.py`, `_sanitize_python_scope.py`) fell back to
-/// `sys.executable`, ici's own interpreter. The native product has no own Python and never uses
-/// PATH `python` instead: a legacy project without `.venv` or `engines.test.python` keeps its test
-/// and coverage checks blocked (incomplete, exit 3) and names the legacy key; declaring the key runs
-/// the suite.
+/// `sys.executable`, which under the pyz is the launcher's choice of `$ICI_PYTHON`,
+/// python3.14 ... python3.10 or python3 (`legacy_launcher_interpreter.rs` replays that rule).
+/// A PATH that offers none of those names, only `python`, leaves the legacy test and coverage
+/// checks blocked (incomplete, exit 3) with a hint naming `engines.test.python` and `ICI_PYTHON`;
+/// declaring the key runs the suite.
 #[test]
 #[ignore = "explicit project CPython (ICI_TEST_PYTHON)"]
-fn legacy_project_without_venv_is_blocked_instead_of_running_under_path_python() {
+fn legacy_project_without_a_launcher_candidate_is_blocked_with_the_legacy_hint() {
     let work = tempfile::tempdir().unwrap();
-    let path = path_with_python(work.path());
+    let bin = work.path().join("path-bin");
+    fs::create_dir_all(&bin).unwrap();
+    std::os::unix::fs::symlink(python(), bin.join("python")).unwrap();
+    let path = bin.display().to_string();
     let root = project(
         work.path(),
         "[project]\ntype='python'\nsource_dirs=['.']\n",
@@ -173,7 +177,8 @@ fn legacy_project_without_venv_is_blocked_instead_of_running_under_path_python()
         let summary = check["summary"].as_str().unwrap();
         assert!(
             summary.starts_with("no project interpreter")
-                && summary.ends_with("set engines.test.python or provide a .venv in the project"),
+                && summary.contains("ICI_PYTHON (unset), python3.14")
+                && summary.ends_with("set engines.test.python, provide a .venv in the project, or set ICI_PYTHON to a Python 3.10+ interpreter (legacy pyz launcher rule)"),
             "{summary}"
         );
     }
@@ -196,36 +201,92 @@ fn legacy_project_without_venv_is_blocked_instead_of_running_under_path_python()
     assert_eq!(test["state"], "SUCCEEDED", "{test:#}");
 }
 
-/// Intended difference (root decision requested): frozen next checks a declared bare name at plan
-/// time as a relative file and blocks it ('no such file: python3'), while frozen legacy
-/// `_resolve_python` runs the declared `engines.test.python` name through the PATH. Native keeps
-/// the documented SPEC-01 §3 `_anchor` semantics for both schemas: a declared bare name is the
-/// user's own PATH lookup (never a fallback), so the three checks plan with that interpreter.
+/// Frozen next checks a declared bare name as a file and blocks it with the resolver's text
+/// ('no such file: python3; set components[0].python.executable to change it'), even when the
+/// component has a `.venv`: a declared interpreter is never replaced by the convention. The
+/// sparse v2 schema has no frozen counterpart (frozen v0.13.0 rejects `schema_version = 2`); it
+/// uses the same form with its own key.
 #[test]
 #[ignore = "explicit project CPython (ICI_TEST_PYTHON)"]
-fn declared_bare_interpreter_name_is_the_users_path_lookup() {
+fn declared_bare_interpreter_name_blocks_on_the_next_schema_like_frozen() {
     let oracle: Value = serde_json::from_str(ORACLE).unwrap();
     let frozen = &oracle["runs"]["declared_bare"];
-    for check in CHECKS {
-        assert_eq!(frozen["checks"][check]["kind"], "blocked");
-    }
     let work = tempfile::tempdir().unwrap();
     let bin = work.path().join("path-bin");
     fs::create_dir_all(&bin).unwrap();
     std::os::unix::fs::symlink(python(), bin.join("python3")).unwrap();
     let path = format!("{}:/usr/bin:/bin", bin.display());
-    let root = project(work.path(), frozen["config"].as_str().unwrap(), false);
-    let (checks, edges) = shaped(&plan(&root, &path), &root);
+    for venv in [false, true] {
+        let work = tempfile::tempdir().unwrap();
+        let root = project(work.path(), frozen["config"].as_str().unwrap(), venv);
+        let (checks, edges) = shaped(&plan(&root, &path), &root);
+        assert_eq!(checks, frozen["checks"], "venv={venv}");
+        assert_eq!(edges, frozen["edges"], "venv={venv}");
+    }
+    let work = tempfile::tempdir().unwrap();
+    let root = project(
+        work.path(),
+        "schema_version=2\nprofile='deep'\n[python]\nexecutable='python3'\n",
+        false,
+    );
+    let (checks, _) = shaped(&plan(&root, &path), &root);
     for check in CHECKS {
-        assert_eq!(checks[check]["kind"], "process", "{check}: {checks:#}");
         assert_eq!(
-            checks[check]["interpreter"],
-            json!(bin.join("python3").display().to_string()),
+            checks[check],
+            json!({"kind": "blocked", "blocked": "no project interpreter \u{2014} no such file: python3; set python.executable to change it"}),
             "{check}"
         );
     }
+}
+
+/// Frozen legacy `_resolve_python` returns the declared `engines.test.python` name as argv and the
+/// subprocess finds it on the run's PATH, so a legacy bare name runs that interpreter.
+#[test]
+#[ignore = "explicit project CPython (ICI_TEST_PYTHON)"]
+fn declared_bare_interpreter_name_is_a_path_lookup_for_legacy_commands() {
+    let work = tempfile::tempdir().unwrap();
+    let bin = Path::new(&python()).parent().unwrap().to_owned();
+    assert!(bin.join("python3").is_file(), "the venv offers python3");
+    let root = project(
+        work.path(),
+        "[project]\ntype='python'\nsource_dirs=['.']\n[engines.test]\npython='python3'\n",
+        true,
+    );
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+        .args(["test", "--report"])
+        .current_dir(&root)
+        .env_clear()
+        .env("PATH", bin.display().to_string())
+        .output()
+        .unwrap();
+    let report: Value =
+        serde_json::from_slice(&fs::read(root.join("test_report.json")).unwrap()).unwrap();
+    let test = report["extra"]["native_checks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|check| check["check_id"] == "python.test")
+        .unwrap();
+    assert_eq!(test["state"], "SUCCEEDED", "{test:#}");
     assert_eq!(
-        edges,
-        json!({"project.python.coverage": ["project.python.test"]})
+        report["targets"][0]["status"],
+        "PASS",
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    // The declared name wins over the project .venv and is not a launcher fallback.
+    let result: Value =
+        serde_json::from_slice(&fs::read(root.join(".ici/rust-v1/result.json")).unwrap()).unwrap();
+    assert!(
+        !result["limitations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item
+                .as_str()
+                .unwrap()
+                .starts_with("legacy pyz launcher rule")),
+        "{:#}",
+        result["limitations"]
     );
 }

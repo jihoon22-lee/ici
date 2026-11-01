@@ -45,20 +45,29 @@ fn report(root: &Path) -> Value {
 fn src_layout_imports_resolve_through_declared_source_dirs_and_unavailable_is_reported_once() {
     let root = fixture();
     let engine = report(root.path());
-    let messages: Vec<_> = engine["findings"]
+    // Native per-module import evidence: frozen prepends [root, *source_dirs], so only the
+    // genuinely missing module fails.
+    let imports: Vec<_> = engine["extra"]["native_checks"]
         .as_array()
         .unwrap()
         .iter()
-        .filter(|finding| finding["tool_rule_id"] == "python.compat.import")
-        .map(|finding| finding["message"].as_str().unwrap().to_owned())
+        .filter(|check| check["check_id"] == "python.compat-runtime")
+        .flat_map(|check| check["extra"].as_object().unwrap().values())
+        .flat_map(|extra| extra["runtime_matrix"].as_array().into_iter().flatten())
+        .filter_map(|runtime| runtime["imports"]["imports"].as_array())
+        .flatten()
+        .map(|item| (item["module"].clone(), item["ok"].clone()))
         .collect();
-    // Frozen prepends [root, *source_dirs]; only the genuinely missing module fails.
-    assert_eq!(messages.len(), 1, "{messages:?}");
-    assert!(
-        messages[0].starts_with("import pkg.nothere:"),
-        "{messages:?}"
+    assert_eq!(
+        imports,
+        vec![
+            (serde_json::json!("pkg"), serde_json::json!(true)),
+            (serde_json::json!("pkg.nothere"), serde_json::json!(false))
+        ]
     );
-    let unavailable = engine["targets"]
+    // The frozen legacy view: one Unavailable target for the optional interpreter and one
+    // Incompatible verdict naming requires-python and the failed import smoke.
+    let runtimes: Vec<_> = engine["targets"]
         .as_array()
         .unwrap()
         .iter()
@@ -66,16 +75,33 @@ fn src_layout_imports_resolve_through_declared_source_dirs_and_unavailable_is_re
             target["target_name"]
                 .as_str()
                 .unwrap()
-                .contains("/nonexistent/python3.99")
+                .starts_with("PythonRuntime:")
         })
-        .count();
-    assert_eq!(unavailable, 1);
+        .map(|target| {
+            (
+                target["target_name"].as_str().unwrap().to_owned(),
+                target["status"].as_str().unwrap().to_owned(),
+                target["message"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect();
+    assert_eq!(runtimes.len(), 2, "{runtimes:#?}");
+    assert_eq!(runtimes[0].0, "PythonRuntime:Incompatible");
+    assert_eq!(runtimes[0].1, "FAIL");
     assert!(
-        engine["findings"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|finding| finding["tool_rule_id"] == "python.compat.runtime-version")
+        runtimes[0].2.starts_with(&format!("{} (", python()))
+            && runtimes[0]
+                .2
+                .ends_with("): does not satisfy requires-python >=3.11; import smoke: exit code 1"),
+        "{runtimes:#?}"
+    );
+    assert_eq!(
+        runtimes[1],
+        (
+            "PythonRuntime:Unavailable".to_owned(),
+            "WARN".to_owned(),
+            "Configured interpreter is unavailable: /nonexistent/python3.99".to_owned()
+        )
     );
     assert!(!root.path().join("src/pkg/__pycache__").exists());
 }

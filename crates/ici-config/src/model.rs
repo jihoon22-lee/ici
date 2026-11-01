@@ -186,6 +186,9 @@ pub struct Component {
     pub build: Option<String>,
     pub needs: Vec<String>,
     pub python_executable: Option<String>,
+    /// The configuration key that declared `python_executable` (frozen `declared.origin.key`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub python_executable_key: Option<String>,
     pub python_type_provider: Option<String>,
     pub test_paths: Vec<String>,
     pub checks: BTreeMap<String, CheckSetting>,

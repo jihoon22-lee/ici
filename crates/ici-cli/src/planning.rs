@@ -295,6 +295,24 @@ fn prepare_resolved_omitting(
                             artifact_builds.insert(task_id.into(), build);
                             work
                         }
+                        // Frozen `_package_python` records these as a BuildError at ".".
+                        Err(reason)
+                            if crate::legacy::is_legacy(invocation)
+                                && project.schema_family == ici_config::SchemaFamily::Legacy
+                                && let Some(message) =
+                                    crate::artifact_build::legacy_python_build_error(
+                                        &project.root,
+                                        &reason,
+                                    ) =>
+                        {
+                            cpp.fail_preparation(
+                                task_id,
+                                crate::cpp::build_failure(
+                                    task_id, ".", "ici.toml", true, &message, &reason,
+                                ),
+                            );
+                            Work::Internal
+                        }
                         Err(reason) => Work::Blocked { reason },
                     },
                 );
