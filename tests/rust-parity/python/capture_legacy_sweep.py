@@ -1,7 +1,8 @@
 """Development-only frozen captures for the closure sweep; never called by the Rust product.
 
-Runs `python -m ici security --report` from the immutable v0.13.0 checkout over projects that
-exercise `engines.security.scan_tests` (frozen engines/security.py `_test_python_files`) and
+Runs `python -m ici security --report` (and `ici verify --report`, keeping its security entry)
+from the immutable v0.13.0 checkout over projects that exercise `engines.security.scan_tests`
+(frozen engines/security.py `_test_python_files`), plus legacy resource syntax counters, and
 records the engine status, summary, evidence, targets, findings, counters and exit code.
 """
 
@@ -34,7 +35,7 @@ RISKY = (
 PICKLE = "import pickle\n\n\ndef load(data):\n    return pickle.loads(data)\n"
 
 # name: (configuration text or None for no ici.toml, files); a file value {"symlink": target}
-# creates a symbolic link to the project-relative target.
+# creates a symbolic link to the project-relative (or absolute) target.
 CASES = {
     "scan-tests-on": (ON, {"src/a.py": CLEAN, "tests/test_a.py": RISKY}),
     "scan-tests-default-off": (BASE, {"src/a.py": CLEAN, "tests/test_a.py": RISKY}),
@@ -76,6 +77,14 @@ CASES = {
             "tests/linkdir": {"symlink": "outside"},
         },
     ),
+    "scan-tests-dir-symlink-inside": (
+        ON,
+        {"src/a.py": CLEAN, "suite/test_s.py": RISKY, "tests": {"symlink": "suite"}},
+    ),
+    "scan-tests-dir-symlink-dangling": (
+        ON,
+        {"src/a.py": CLEAN, "tests": {"symlink": "/nonexistent-ici-sweep-target"}},
+    ),
     "scan-tests-syntax": (
         ON,
         {"src/a.py": CLEAN, "tests/test_bad.py": "def f(:\n    pass\n"},
@@ -91,6 +100,26 @@ CASES = {
             "src/a.py": CLEAN,
             "tests/test_secret.py": "API_TOKEN = 'abcdefghijklmnop'\nPASSWORD = 'zyxwvutsrq'\n",
         },
+    ),
+}
+
+
+# Other commands: name -> (command, configuration, files). Verify keeps only its security entry.
+OTHER = {
+    "verify/scan-tests-on": (
+        "verify",
+        ON,
+        {"src/a.py": CLEAN, "tests/test_a.py": PICKLE},
+    ),
+    "resource/syntax-files-checked": (
+        "resource",
+        BASE,
+        {"src/a.py": CLEAN, "src/b.py": "def f(:\n    pass\n", "src/c.py": "x = (1,\n"},
+    ),
+    "security/syntax-files-checked": (
+        "security",
+        BASE,
+        {"src/a.py": CLEAN, "src/b.py": "def f(:\n    pass\n", "src/c.py": "x = (1,\n"},
     ),
 }
 
@@ -126,6 +155,8 @@ def run(command: str, config: str | None, files: dict) -> dict:
         report = (
             json.loads(report_path.read_text(encoding="utf-8")) if report_path.exists() else None
         )
+        if command == "verify" and report is not None:
+            report = next(item for item in report["results"] if item["engine_name"] == "security")
     finally:
         shutil.rmtree(work, ignore_errors=True)
     if report is None:
@@ -154,6 +185,13 @@ def main() -> None:
         }
         for name, (config, files) in CASES.items()
     }
+    for name, (command, config, files) in OTHER.items():
+        cases[name] = {
+            "command": command,
+            "config": config,
+            "files": files,
+            "frozen": run(command, config, files),
+        }
     python = subprocess.check_output([PYTHON, "--version"], text=True).strip()
     OUT.write_text(
         json.dumps(

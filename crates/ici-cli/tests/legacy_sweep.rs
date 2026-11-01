@@ -1,6 +1,7 @@
 //! Closure-sweep frozen replays (`tests/rust-parity/python/capture_legacy_sweep.py`, frozen
-//! v0.13.0 CLI on CPython 3.10.21): legacy `ici security --report` with
-//! `engines.security.scan_tests` (frozen engines/security.py `_test_python_files`).
+//! v0.13.0 CLI on CPython 3.10.21): legacy `ici security --report` and the security entry of
+//! `ici verify --report` with `engines.security.scan_tests` (frozen engines/security.py
+//! `_test_python_files`), and the legacy security/resource `files_checked` syntax counters.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs};
@@ -65,12 +66,26 @@ fn run(case: &Value) -> Value {
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
     let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
     let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
-    let report: Value = serde_json::from_slice(
+    let mut report: Value = serde_json::from_slice(
         &fs::read(root.path().join(format!("{command}_report.json"))).unwrap(),
     )
     .unwrap();
+    let mut exit_code = output.exit_code;
+    if command == "verify" {
+        report = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|item| item["engine_name"] == "security")
+            .unwrap()
+            .clone();
+        // Accepted exit policy: the incomplete legacy suite (no pytest/ruff/mypy on PATH) exits
+        // 3 where frozen exited 1; only the security entry is compared.
+        assert_eq!(exit_code, 3);
+        exit_code = 1;
+    }
     json!({
-        "exit_code": output.exit_code,
+        "exit_code": exit_code,
         "status": report["status"],
         "summary": report["summary"],
         "evidence": report["evidence"],
@@ -83,9 +98,21 @@ fn run(case: &Value) -> Value {
 fn replay(names: &[&str]) {
     let oracle = oracle();
     for name in names {
-        let case = &oracle["cases"][format!("security/{name}")];
+        let key = if name.contains('/') {
+            (*name).to_owned()
+        } else {
+            format!("security/{name}")
+        };
+        let case = &oracle["cases"][key];
         assert!(case.is_object(), "{name}: no frozen case");
-        assert_eq!(run(case), case["frozen"], "{name}");
+        let actual = run(case);
+        if actual != case["frozen"] {
+            panic!(
+                "{name}\nnative {}\nfrozen {}",
+                serde_json::to_string_pretty(&actual).unwrap(),
+                serde_json::to_string_pretty(&case["frozen"]).unwrap()
+            );
+        }
     }
 }
 
@@ -100,6 +127,8 @@ fn scan_tests_adds_frozen_test_python_files_to_the_security_scope() {
         "scan-tests-overlap",
         "scan-tests-allowlist",
         "scan-tests-no-tests-dir",
+        "scan-tests-dir-symlink-inside",
+        "verify/scan-tests-on",
     ]);
 }
 
@@ -113,18 +142,25 @@ fn scan_tests_off_and_frozen_discovery_exclusions_leave_test_files_out() {
         "scan-tests-ignored-parts",
         "scan-tests-symlinks",
         "scan-tests-tests-is-file",
+        "scan-tests-dir-symlink-dangling",
     ]);
 }
 
 /// A test file the security AST cannot parse is frozen's ERROR (exit 1: security is not required
-/// by default) and a tree with no Python anywhere stays the frozen SKIP.
+/// by default), a tree with no Python anywhere stays the frozen SKIP, and the legacy security and
+/// resource counters count every read source, including two the parser rejected.
 #[test]
 fn scan_tests_syntax_error_and_empty_scope_keep_frozen_failure_verdicts() {
-    replay(&["scan-tests-syntax", "scan-tests-nothing"]);
+    replay(&[
+        "scan-tests-syntax",
+        "scan-tests-nothing",
+        "security/syntax-files-checked",
+        "resource/syntax-files-checked",
+    ]);
 }
 
 #[test]
 fn every_captured_sweep_case_is_replayed() {
     let oracle = oracle();
-    assert_eq!(oracle["cases"].as_object().unwrap().len(), 12);
+    assert_eq!(oracle["cases"].as_object().unwrap().len(), 17);
 }

@@ -57,7 +57,9 @@ pub fn collect(
         } else {
             format!("{}/tests", component.root)
         };
-        walk(&project.root, &tests, 0, &mut inputs)?;
+        if let Some(tests) = contained(&project.root, &tests) {
+            walk(&project.root, &tests, 0, &mut inputs)?;
+        }
         inputs.sort();
         inputs.dedup();
         result.insert(
@@ -70,6 +72,22 @@ pub fn collect(
         );
     }
     Ok(result)
+}
+
+/// Frozen `_safe_project_dir(project_root, tests_dir)`: the directory itself may be a symbolic
+/// link resolving inside the project, which is then walked (and named) at its resolved path.
+fn contained(root: &Path, relative: &str) -> Option<String> {
+    let metadata = fs::symlink_metadata(root.join(relative)).ok()?;
+    if !metadata.file_type().is_symlink() {
+        return metadata.is_dir().then(|| relative.to_owned());
+    }
+    let root = root.canonicalize().ok()?;
+    let resolved = root.join(relative).canonicalize().ok()?;
+    let inside = resolved.strip_prefix(&root).ok()?;
+    if !resolved.is_dir() || inside.as_os_str().is_empty() {
+        return None;
+    }
+    inside.to_str().map(str::to_owned)
 }
 
 fn ignored(name: &str) -> bool {
