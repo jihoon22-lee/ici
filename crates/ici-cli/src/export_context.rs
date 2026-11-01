@@ -771,7 +771,11 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 component.settings["native_build_variants"][&plan.build.variant]["plan"] =
                     json!(plan.build);
             }
-            if primary || component.build.is_none() {
+            // A legacy direct test/sanitizer compile is never the analysis context: frozen
+            // compiles those executables per engine and keeps lint/compile_db/dead on the
+            // project's own (absent) database.
+            let direct_runtime = plan.direct.is_some() && !primary;
+            if (primary || component.build.is_none()) && !direct_runtime {
                 component.build = Some(id.clone());
                 // A handwritten Make backend need not write a compilation database; only an
                 // observed database becomes an analysis input.

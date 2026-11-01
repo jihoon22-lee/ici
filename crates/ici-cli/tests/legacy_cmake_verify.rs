@@ -198,6 +198,8 @@ fn diff(frozen: &Value, actual: &Value, path: &str, out: &mut Vec<String>) {
 /// - frozen `tool_evidence` (backend selection, cmake/ctest argv) has no native counterpart, so
 ///   adapted findings carry no `tool_name` and diagnostics no `process_evidence_index` metric;
 /// - an empty branch denominator reads `Branch: n/a`, not the frozen vacuous `100.0%`;
+/// - native keeps a met TEM minimum (PASS) and an empty branch axis (SKIP) as threshold
+///   targets; frozen lists only breaches;
 /// - a failed coverage build has no fabricated ESTIMATED coverage/TEM (frozen 'Line: 45.0%
 ///   (est)'): the test engine keeps the frozen targets/findings/status, its own summary, NOT_RUN
 ///   evidence (so `low`, not `medium`, finding confidence) and no score; the suite TEM is null.
@@ -225,6 +227,34 @@ fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
     {
         *summary = json!(text.replace("Branch: n/a", "Branch: 100.0%"));
     }
+    if !frozen && let Some(test) = view["engines"].get_mut("test") {
+        // Native reports every evaluated threshold (AGENTS 5-1), frozen only the breaches: a met
+        // TEM minimum (PASS) and an empty branch denominator (SKIP) have no frozen target.
+        let dropped: Vec<Value> = test["targets"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|target| {
+                target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("Threshold: "))
+                    && target["status"] != "WARN"
+            })
+            .map(|target| target["message"].clone())
+            .collect();
+        for list in ["targets", "findings"] {
+            if let Some(items) = test.get_mut(list).and_then(Value::as_array_mut) {
+                items.retain(|item| !dropped.contains(&item["message"]));
+            }
+        }
+    }
+    if case == "make-unadapted" {
+        // The same refusal to fabricate: frozen's fixed 85%/95% estimate for a direct build whose
+        // only production source defines main; the verdict class and ESTIMATED evidence match.
+        view["engines"]["test"]["summary"] = Value::Null;
+        view["engines"]["test"]["score"] = Value::Null;
+        view["counters"]["tem_score"] = Value::Null;
+    }
     if case == "broken-build" {
         let test = &mut view["engines"]["test"];
         for key in ["summary", "evidence", "score"] {
@@ -246,7 +276,9 @@ fn comparable(mut view: Value, frozen: bool, case: &str) -> Value {
 /// coverage and sanitizer builds (`[C++] build` FAIL, `C++Sanitizer` ERROR) while the
 /// configured release database still serves compile_db/lint/dead, and the suite exits 1.
 /// `ici thread-sanitize` on the suite adds the TSan labels and a report without a project frame
-/// (frozen `SanitizerDiagnosticLocation` ERROR at `[external]`, exit 1).
+/// (frozen `SanitizerDiagnosticLocation` ERROR at `[external]`, exit 1). A descriptor-free project
+/// and one with an unadapted Makefile compile their tests with direct g++ (exit 0) without that
+/// test compile becoming the lint/compile_db analysis context.
 #[test]
 #[ignore = "explicit actual CMake/ctest/g++ runs: /usr/bin/cmake (4.2.3), ctest and /usr/bin/g++ must be the captured tools"]
 fn legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts() {
@@ -261,7 +293,7 @@ fn legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts() {
         oracle["cmake"].as_str()
     );
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 6);
+    assert_eq!(cases.len(), 8);
     let mut mismatches = vec![];
     for (name, case) in cases {
         let (actual, gate) = run(&oracle, case);
@@ -284,6 +316,8 @@ fn legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts() {
         ("broken-build", 1),
         ("suite-thread-sanitize", 1),
         ("suite-thread-sanitize-optional", 1),
+        ("direct-tests", 0),
+        ("make-unadapted", 0),
     ] {
         assert_eq!(cases[name]["frozen"]["exit_code"], code, "{name}");
     }

@@ -1,0 +1,649 @@
+//! Frozen `reporters/json_rep.py::_serialize_analysis_context` for the historical `verify` report:
+//! the `ici.analysis-context/v1` project model, identity, compilation context, requested build
+//! variants and artifact manifests, built from facts the native run already recorded (no process
+//! runs here). Host paths are reported project-relative or `[external]` like frozen.
+use crate::planning::PreparedPlan;
+use serde_json::{Value, json};
+use std::path::{Component, Path, PathBuf};
+
+const REDACTED: &str = "***REDACTED***";
+const SECRET_FLAGS: [&str; 6] = [
+    "--api-key",
+    "--api_key",
+    "--password",
+    "--passwd",
+    "--secret",
+    "--token",
+];
+const PATH_FLAGS: [&str; 13] = [
+    "-I",
+    "-B",
+    "-L",
+    "-include",
+    "-include-pch",
+    "-imacros",
+    "-isystem",
+    "-iquote",
+    "-isysroot",
+    "--sysroot",
+    "-o",
+    "-fmodule-file",
+    "-resource-dir",
+];
+/// Longest first, as frozen `_COMPILE_PATH_PREFIXES`.
+const PATH_PREFIXES: [&str; 22] = [
+    "-fmodule-file=",
+    "-fdebug-compilation-dir=",
+    "-fdebug-prefix-map=",
+    "-ffile-prefix-map=",
+    "-fmacro-prefix-map=",
+    "-include-pch=",
+    "-include-pch",
+    "-resource-dir=",
+    "-resource-dir",
+    "-imacros=",
+    "-imacros",
+    "-include=",
+    "-include",
+    "--sysroot=",
+    "-isystem",
+    "-iquote",
+    "-isysroot",
+    "-fmodule-file",
+    "-B",
+    "-L",
+    "-I",
+    "-o",
+];
+
+fn text(value: &str) -> String {
+    ici_execution::redaction::redact_text(value)
+}
+fn secret_name(name: &str) -> bool {
+    let folded = name.to_ascii_lowercase();
+    [
+        "password",
+        "passwd",
+        "secret",
+        "api_key",
+        "api-key",
+        "apikey",
+        "access_key",
+        "access-key",
+        "accesskey",
+        "auth_token",
+        "auth-token",
+        "authtoken",
+        "token",
+    ]
+    .iter()
+    .any(|needle| folded.contains(needle))
+}
+fn lexical(path: &Path) -> PathBuf {
+    let mut result = PathBuf::new();
+    for item in path.components() {
+        match item {
+            Component::CurDir => (),
+            Component::ParentDir => {
+                result.pop();
+            }
+            _ => result.push(item.as_os_str()),
+        }
+    }
+    result
+}
+fn absolute(value: &str) -> bool {
+    let raw = unquote(value.trim()).1;
+    raw.starts_with('/')
+        || raw.starts_with("\\\\")
+        || raw.as_bytes().get(1) == Some(&b':')
+            && raw
+                .as_bytes()
+                .get(2)
+                .is_some_and(|byte| matches!(byte, b'/' | b'\\'))
+}
+fn unquote(value: &str) -> (&str, &str) {
+    let bytes = value.as_bytes();
+    if bytes.len() >= 2 && matches!(bytes[0], b'\'' | b'"') && bytes[bytes.len() - 1] == bytes[0] {
+        (&value[..1], &value[1..value.len() - 1])
+    } else {
+        ("", value)
+    }
+}
+/// Frozen `_redact_compilation_path`: project-relative (`.` for the root) or `[external]`.
+fn path(value: &str, root: &Path) -> String {
+    if value.is_empty() {
+        return String::new();
+    }
+    let (quote, raw) = unquote(value);
+    if !absolute(value) {
+        return text(value);
+    }
+    if !raw.starts_with('/') {
+        return format!("{quote}[external]{quote}");
+    }
+    let resolved = lexical(Path::new(raw));
+    let relative = match resolved.strip_prefix(root) {
+        Ok(relative) if relative.as_os_str().is_empty() => ".".to_owned(),
+        Ok(relative) => relative.to_string_lossy().into_owned(),
+        Err(_) => "[external]".to_owned(),
+    };
+    format!("{quote}{relative}{quote}")
+}
+fn assignment(value: &str, root: &Path) -> String {
+    if absolute(value) {
+        return path(value, root);
+    }
+    let Some((left, right)) = value.split_once('=') else {
+        return text(value);
+    };
+    if absolute(left) {
+        format!("{}={}", path(left, root), text(right))
+    } else if absolute(right) {
+        format!("{}={}", text(left), path(right, root))
+    } else {
+        text(value)
+    }
+}
+fn define(value: &str, root: &Path) -> String {
+    let Some((name, body)) = value[2..].split_once('=') else {
+        return text(value);
+    };
+    if secret_name(name) {
+        format!("-D{}={REDACTED}", text(name))
+    } else {
+        format!("-D{}={}", text(name), assignment(body, root))
+    }
+}
+fn linker(value: &str, root: &Path) -> String {
+    value
+        .split(',')
+        .map(|part| {
+            if absolute(part) {
+                path(part, root)
+            } else if let Some((left, right)) = part.split_once('=')
+                && absolute(right)
+            {
+                format!("{}={}", text(left), path(right, root))
+            } else {
+                text(part)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+/// Frozen `_redact_compilation_argv`.
+fn argv(values: &[String], root: &Path) -> Vec<String> {
+    let (mut hide_next, mut path_next) = (false, false);
+    let mut out = Vec::with_capacity(values.len());
+    for value in values {
+        if hide_next {
+            out.push(REDACTED.to_owned());
+            hide_next = false;
+            continue;
+        }
+        if path_next {
+            out.push(path(value, root));
+            path_next = false;
+            continue;
+        }
+        let safe = text(value);
+        if SECRET_FLAGS.contains(&value.to_lowercase().as_str()) {
+            out.push(safe);
+            hide_next = true;
+        } else if PATH_FLAGS.contains(&value.as_str()) {
+            out.push(safe);
+            path_next = true;
+        } else if value.starts_with("-D") && value.len() > 2 {
+            out.push(define(value, root));
+        } else if let Some(rest) = value.strip_prefix("-Wl,").filter(|rest| !rest.is_empty()) {
+            out.push(format!("-Wl,{}", linker(rest, root)));
+        } else if let Some(rest) = value.strip_prefix('@').filter(|rest| !rest.is_empty()) {
+            out.push(format!("@{}", path(rest, root)));
+        } else if let Some(prefix) = PATH_PREFIXES
+            .iter()
+            .find(|prefix| value.starts_with(**prefix) && value.len() > prefix.len())
+        {
+            let rest = &value[prefix.len()..];
+            out.push(if prefix.ends_with('=') {
+                format!("{prefix}{}", assignment(rest, root))
+            } else if let Some(rest) = rest.strip_prefix('=') {
+                format!("{prefix}={}", assignment(rest, root))
+            } else {
+                format!("{prefix}{}", assignment(rest, root))
+            });
+        } else {
+            out.push(path(&safe, root));
+        }
+    }
+    out
+}
+fn strings(value: &Value) -> Vec<String> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
+}
+fn diagnostic(value: &Value, root: &Path) -> Value {
+    let field = |key: &str| text(value[key].as_str().unwrap_or_default());
+    json!({
+        "code": field("code"),
+        "message": field("message"),
+        "level": value["level"],
+        "entry_index": value["entry_index"],
+        "source": path(value["source"].as_str().unwrap_or_default(), root),
+    })
+}
+fn diagnostics(value: &Value, root: &Path) -> Vec<Value> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|item| diagnostic(item, root))
+        .collect()
+}
+/// Frozen `_serialize_compilation_unit` over one native compilation unit.
+fn unit(value: &Value, root: &Path) -> Value {
+    let field = |key: &str| value[key].as_str().unwrap_or_default();
+    let defines: Vec<Value> = value["defines"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|item| item["undefine"] != true)
+        .map(|item| {
+            let name = item["name"].as_str().unwrap_or_default();
+            let value = match item["value"].as_str() {
+                Some(_) if secret_name(name) => json!(REDACTED),
+                Some(value) => json!(text(value)),
+                None => Value::Null,
+            };
+            json!({"name": text(name), "value": value})
+        })
+        .collect();
+    let include_paths: Vec<Value> = value["include_paths"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|item| {
+            json!({
+                "path": path(item["path"].as_str().unwrap_or_default(), root),
+                "kind": item["kind"],
+                "scope": item["scope"],
+                "exists": item["exists"],
+            })
+        })
+        .collect();
+    json!({
+        "source": path(field("source"), root),
+        "directory": path(field("directory"), root),
+        "argv": argv(&strings(&value["argv"]), root),
+        "output": path(field("output"), root),
+        "compiler": text(field("compiler")),
+        "language": field("language"),
+        "standard": text(field("standard")),
+        "target": text(field("target")),
+        "defines": defines,
+        "include_paths": include_paths,
+        "sysroot": path(field("sysroot"), root),
+        "sysroot_scope": field("sysroot_scope"),
+        "configuration": field("configuration"),
+        "diagnostics": diagnostics(&value["diagnostics"], root),
+    })
+}
+
+/// Frozen `select_backend`: the build descriptor at the project root and why it was chosen.
+fn backend(root: &Path, effective: &Value) -> (Value, String, String) {
+    let file = |name: &str| {
+        let path = root.join(name);
+        path.is_file() && !path.is_symlink()
+    };
+    let mut projects: Vec<String> = std::fs::read_dir(root)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|entry| {
+            entry.file_name().to_string_lossy().ends_with(".pro")
+                && entry.file_type().is_ok_and(|kind| kind.is_file())
+        })
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect();
+    projects.sort();
+    if file("CMakeLists.txt") {
+        let mut reason = "CMakeLists.txt at the project root selected the CMake backend".to_owned();
+        if let Some(project) = projects.first() {
+            reason.push_str(&format!("; {project} was present and passed over"));
+        }
+        return (json!("cmake"), "CMakeLists.txt".into(), reason);
+    }
+    if let Some(project) = projects.first() {
+        return (
+            json!("qmake"),
+            project.clone(),
+            format!("{project} at the project root selected the qmake backend"),
+        );
+    }
+    if let Some(makefile) = ["Makefile", "makefile", "GNUmakefile"]
+        .into_iter()
+        .find(|name| file(name))
+    {
+        if effective.pointer("/build/make/enabled") == Some(&json!(true)) {
+            return (
+                json!("make"),
+                makefile.into(),
+                format!("{makefile} at the project root selected the configured Make backend"),
+            );
+        }
+        return (
+            Value::Null,
+            makefile.into(),
+            format!(
+                "{makefile} at the project root requires build.make.enabled=true and explicit shell-free command argv"
+            ),
+        );
+    }
+    (
+        Value::Null,
+        String::new(),
+        "No build descriptor at the project root".into(),
+    )
+}
+
+fn under(file: &str, directory: &str) -> bool {
+    directory == "."
+        || file
+            .strip_prefix(directory)
+            .is_some_and(|rest| rest.starts_with('/'))
+}
+fn ignored(path: &str) -> bool {
+    path.split('/').any(|part| {
+        matches!(
+            part,
+            ".venv" | "venv" | "build" | "__pycache__" | ".git" | ".pytest_cache" | ".ruff_cache"
+        ) || part.starts_with("v1.")
+            || part.starts_with("v0.")
+    })
+}
+
+/// Frozen `ProjectModel` fields: sources under the configured source directories, headers under
+/// them and `include/`, and the include flags of `include/` (and its subdirectories) and
+/// `<source dir>/include`.
+fn project(prepared: &PreparedPlan, document: &Value, commit: Option<&str>) -> Value {
+    let project = &prepared.project;
+    let root = &project.root;
+    let effective = &project.effective;
+    let mut source_dirs: Vec<String> = project
+        .components
+        .iter()
+        .flat_map(|component| component.source_dirs.iter().cloned())
+        .collect();
+    source_dirs.sort();
+    source_dirs.dedup();
+    let mut files: Vec<String> = project
+        .components
+        .iter()
+        .flat_map(|component| component.files.iter().cloned())
+        .collect();
+    files.sort();
+    files.dedup();
+    let extension = |file: &str| file.rsplit_once('.').map(|(_, ext)| ext.to_owned());
+    let in_sources = |file: &str| source_dirs.iter().any(|directory| under(file, directory));
+    let pick = |extensions: &[&str], header_roots: bool| -> Vec<String> {
+        files
+            .iter()
+            .filter(|file| {
+                extension(file).is_some_and(|ext| extensions.contains(&ext.as_str()))
+                    && (in_sources(file) || header_roots && under(file, "include"))
+            })
+            .cloned()
+            .collect()
+    };
+    let python_sources = pick(&["py"], false);
+    let cpp_sources = pick(&["cpp", "cc", "cxx", "c"], false);
+    let cpp_headers = pick(&["h", "hh", "hpp", "hxx"], true);
+    let external: Vec<String> = effective
+        .pointer("/project/cpp_external_build_dirs")
+        .map(strings)
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|directory| root.join(directory).is_dir())
+        .map(|directory| directory.trim_end_matches('/').to_owned())
+        .collect();
+    let compilable: Vec<String> = cpp_sources
+        .iter()
+        .filter(|file| !external.iter().any(|directory| under(file, directory)))
+        .cloned()
+        .collect();
+    let mut includes = std::collections::BTreeSet::new();
+    let include = root.join("include");
+    if include.is_dir() && !include.is_symlink() {
+        includes.insert(format!("-I{}", include.display()));
+        for file in &files {
+            let mut parent = Path::new(file).parent();
+            while let Some(directory) = parent.filter(|path| !path.as_os_str().is_empty()) {
+                let text = directory.to_string_lossy();
+                if under(&text, "include") && !ignored(&text) {
+                    includes.insert(format!("-I{}", root.join(directory).display()));
+                }
+                parent = directory.parent();
+            }
+        }
+    }
+    for directory in &source_dirs {
+        let nested = root.join(directory).join("include");
+        if nested.is_dir() && !nested.is_symlink() {
+            includes.insert(format!("-I{}", lexical(&nested).display()));
+        }
+    }
+    let include_flags: Vec<String> = includes.into_iter().collect();
+    let configured_type = effective
+        .get("type")
+        .filter(|value| value.is_string())
+        .or_else(|| effective.pointer("/project/type"))
+        .and_then(Value::as_str)
+        .filter(|kind| matches!(*kind, "python" | "cpp" | "hybrid"));
+    let kind =
+        configured_type.unwrap_or(match (python_sources.is_empty(), cpp_sources.is_empty()) {
+            (false, false) => "hybrid",
+            (true, false) => "cpp",
+            _ => "python",
+        });
+    let version = effective
+        .pointer("/project/version")
+        .and_then(Value::as_str)
+        .map(|raw| {
+            if raw.starts_with('v') {
+                raw.to_owned()
+            } else {
+                format!("v{raw}")
+            }
+        })
+        // Frozen `git describe --tags --always`: an untagged checkout reads its short commit.
+        .or_else(|| commit.map(|commit| format!("v{}", &commit[..7.min(commit.len())])))
+        .unwrap_or_else(|| "v1.0.0".into());
+    let (backend, descriptor, reason) = backend(root, effective);
+    json!({
+        "name": document["project_name"].as_str().unwrap_or(&project.workspace_name),
+        "version": version,
+        "type": kind,
+        "source_dirs": source_dirs,
+        "python_sources": python_sources,
+        "cpp_sources": cpp_sources,
+        "cpp_headers": cpp_headers,
+        "compilable_cpp_sources": compilable,
+        "external_cpp_dirs": external,
+        "cpp_include_flags": argv(&include_flags, root),
+        "backend": backend,
+        "backend_descriptor": descriptor,
+        "backend_reason": reason,
+    })
+}
+
+/// Frozen `prepare_analysis_context` compilation: the compile_db engine's measured database.
+fn compilation(document: &Value, root: &Path, backend: &Value) -> Value {
+    let context = document["results"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|result| matches!(result["engine_name"].as_str(), Some("compile_db" | "lint")))
+        .map(|result| &result["extra"]["context"])
+        .find(|context| context["database_path"].is_string());
+    let Some(context) = context else {
+        return json!({
+            "database_path": null,
+            "origin": "",
+            "generator": "",
+            "unity_build": null,
+            "units": [],
+            "diagnostics": [],
+        });
+    };
+    let database = context["database_path"].as_str().unwrap_or_default();
+    // A database ici prepared from the root descriptor is frozen's `cmake`/`qmake` origin.
+    let prepared = database.starts_with(".ici/");
+    let origin = match (prepared, backend.as_str()) {
+        (true, Some(kind @ ("cmake" | "qmake"))) => kind.to_owned(),
+        _ => context["origin"].as_str().unwrap_or_default().to_owned(),
+    };
+    let cache = Path::new(database)
+        .parent()
+        .map(|directory| root.join(directory).join("CMakeCache.txt"))
+        .and_then(|path| std::fs::read_to_string(path).ok());
+    let generator = cache
+        .as_deref()
+        .and_then(|cache| {
+            cache.lines().find_map(|line| {
+                line.strip_prefix("CMAKE_GENERATOR:INTERNAL=")
+                    .map(str::to_owned)
+            })
+        })
+        .unwrap_or_default();
+    let unity = cache
+        .as_deref()
+        .and_then(crate::export_context::cmake_unity_build);
+    let units: Vec<Value> = context["units"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|item| unit(item, root))
+        .collect();
+    let mut value = json!({
+        "database_path": path(database, root),
+        "origin": origin,
+        "generator": text(&generator),
+        "unity_build": if origin == "cmake" { json!(unity) } else { Value::Null },
+        "units": units,
+        "diagnostics": diagnostics(&context["diagnostics"], root),
+    });
+    if let Some(digest) = context["database_digest"]
+        .as_str()
+        .filter(|digest| digest.starts_with("sha256:"))
+    {
+        value["database_digest"] = json!(digest);
+    }
+    value
+}
+
+/// Frozen `descriptors_for_profile` build variants, in `BuildVariant` order.
+fn requested_variants(effective: &Value, profile: &str) -> Vec<&'static str> {
+    let enabled =
+        |name: &str| effective.pointer(&format!("/engines/{name}/enabled")) != Some(&json!(false));
+    let standard = matches!(profile, "standard" | "deep");
+    let deep = profile == "deep";
+    let mut variants = vec![];
+    if deep && (enabled("build") || enabled("integration")) {
+        variants.push("release");
+    }
+    if standard && enabled("test") {
+        variants.push("coverage");
+    }
+    if standard && enabled("sanitize") {
+        variants.push("sanitize");
+    }
+    if deep && enabled("thread_sanitize") {
+        variants.push("thread-sanitize");
+    }
+    variants
+}
+
+/// The frozen top-level `analysis_context` of a historical `verify` report.
+pub fn analysis_context(prepared: &PreparedPlan, document: &Value, profile: &str) -> Value {
+    let identity = &document["native_run"]["identity"];
+    let commit = identity["source"]["commit"]
+        .as_str()
+        .filter(|commit| commit.len() >= 40 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()));
+    let project = project(prepared, document, commit);
+    let compilation = compilation(document, &prepared.project.root, &project["backend"]);
+    let mut manifests: Vec<Value> = vec![];
+    for result in document["results"].as_array().into_iter().flatten() {
+        for manifest in result["artifact_manifests"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if !manifests.contains(manifest) {
+                manifests.push(manifest.clone());
+            }
+        }
+    }
+    json!({
+        "schema_version": "ici.analysis-context/v1",
+        "project": project,
+        "identity": {
+            "source_commit": commit.unwrap_or("unavailable"),
+            "config_digest": identity["policy_digest"],
+            "toolchain_digest": identity["toolchain_digest"],
+        },
+        "profile": profile,
+        "compilation": compilation,
+        "requested_variants": requested_variants(&prepared.project.effective, profile),
+        "artifact_manifests": manifests,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compilation_argv_reports_host_paths_relative_or_external() {
+        let root = Path::new("/work/project");
+        let values: Vec<String> = [
+            "/usr/bin/c++",
+            "-I",
+            "/work/project/include",
+            "-I/opt/sdk/include",
+            "-DROOT=/work/project/data",
+            "-DAPI_TOKEN=abc",
+            "--token",
+            "abc",
+            "-Wl,-rpath,/opt/lib",
+            "@/work/project/args.rsp",
+            "-c",
+            "/work/project/src/a.cpp",
+        ]
+        .map(str::to_owned)
+        .to_vec();
+        assert_eq!(
+            argv(&values, root),
+            [
+                "[external]",
+                "-I",
+                "include",
+                "-I[external]",
+                "-DROOT=data",
+                "-DAPI_TOKEN=***REDACTED***",
+                "--token",
+                "***REDACTED***",
+                "-Wl,-rpath,[external]",
+                "@args.rsp",
+                "-c",
+                "src/a.cpp",
+            ]
+        );
+        assert_eq!(path("/work/project", root), ".");
+        assert_eq!(path("'C:\\x'", root), "'[external]'");
+    }
+}

@@ -164,6 +164,424 @@
     "exit_code": 1
    }
   },
+  "direct-tests": {
+   "command": "verify",
+   "config": "",
+   "fixture": "sanitize-direct-clean",
+   "frozen": {
+    "counters": {
+     "error_count": 0,
+     "failed_count": 0,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 5,
+     "suite_status": "WARN",
+     "tem_score": 5.0,
+     "total_count": 14,
+     "warned_count": 2
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 1.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 1 (limit 15) across 1 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 1 lines (1 code, 0 comment, 0 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:46b8daf55ae97316fa92d9be8d25390565df28a051c53d5b4945b9155326d133",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "ASan/UBSan",
+         "path": "tests/test_ok.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "sanitizer compile"
+       }
+      ],
+      "score": null,
+      "status": "PASS",
+      "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+      "targets": [
+       {
+        "file_path": "tests/test_ok.cpp",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ASan/UBSan"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:31220e100bf951758598f366fc9f9dde70120b7dea700bf4acc72feb93855962",
+        "message": "Function answer() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 27,
+         "end_line": 1,
+         "label": "Coverage:Function:answer()",
+         "path": "src/lib.cpp",
+         "start_column": 5,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:4b0cc8ada4620b408ec2a1223c2e18907b261abaf4f362b3d4cfcfc3207ee780",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_ok.cpp",
+         "path": "tests/test_ok.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ coverage compile"
+       }
+      ],
+      "score": 5.0,
+      "status": "PASS",
+      "summary": "1/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 5.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_ok.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] test_ok.cpp"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 1,
+         "executable_lines": 1,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 1,
+         "functions": 1,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "src/lib.cpp",
+        "message": "Function answer() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_Z6answerv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Function:answer()"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 0
+   }
+  },
+  "make-unadapted": {
+   "command": "verify",
+   "config": "",
+   "fixture": "sanitize-tested",
+   "frozen": {
+    "counters": {
+     "error_count": 0,
+     "failed_count": 0,
+     "max_tem_score": 5.0,
+     "passed_count": 6,
+     "skipped_count": 5,
+     "suite_status": "WARN",
+     "tem_score": 4.75,
+     "total_count": 14,
+     "warned_count": 3
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "WARN",
+      "summary": "Compilation DB: 0/1 production units covered, 0 configurations, 0 failures, 1 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 2.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 2 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_RUN",
+      "score": null,
+      "status": "SKIP",
+      "summary": "C++ dead-code analysis not run: exact native context unavailable"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 3 lines (2 code, 0 comment, 1 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback; clang-tidy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:88aefed740ffcbfa2bb526683b6fbba5a83c50a9f13982fd646a669693974063",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "ASan/UBSan",
+         "path": "tests/case.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "info",
+        "tool_name": "sanitizer compile"
+       }
+      ],
+      "score": null,
+      "status": "PASS",
+      "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+      "targets": [
+       {
+        "file_path": "tests/case.cpp",
+        "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "ASan/UBSan"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "fingerprint": "sha256:656996dc2038f78b1464eb3845e917dff09ed732d3c7353c78723807cca09d5d",
+        "message": "C++ Test Passed",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] case.cpp",
+         "path": "tests/case.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "g++ test compile"
+       }
+      ],
+      "score": 4.75,
+      "status": "WARN",
+      "summary": "1/1 Tests Passed | Line: 85.0% (est), Func: 95.0%, Branch: 85.0% -> TEM: 4.75 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "tests/case.cpp",
+        "message": "C++ Test Passed",
+        "metrics": {},
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "[C++] case.cpp"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 0
+   }
+  },
   "plain": {
    "command": "verify",
    "config": "",

@@ -1752,11 +1752,28 @@ fn build_system(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,
 ) -> Option<String> {
-    prepared
+    let component = prepared
         .project
         .components
         .iter()
-        .find(|component| component.id == planned.component_id)
-        .and_then(|component| crate::cpp::linked_build(&prepared.project, component))
+        .find(|component| component.id == planned.component_id)?;
+    // A runtime check runs on its own prepared variant (a legacy direct test compile is not the
+    // component's linked build); other checks use the linked build.
+    let variants: &[&str] = match planned.check.id.as_str() {
+        "cpp.test" | "cpp.coverage" => &["coverage", "test"],
+        "cpp.sanitize" => &["sanitize"],
+        "cpp.tsan" => &["thread-sanitize"],
+        _ => &[],
+    };
+    variants
+        .iter()
+        .find_map(|variant| {
+            let id = component
+                .settings
+                .pointer(&format!("/native_build_variants/{variant}/build_id"))?
+                .as_str()?;
+            prepared.project.builds.iter().find(|build| build.id == id)
+        })
+        .or_else(|| crate::cpp::linked_build(&prepared.project, component))
         .and_then(|build| build.system.clone())
 }

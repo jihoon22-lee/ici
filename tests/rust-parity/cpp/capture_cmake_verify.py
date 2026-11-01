@@ -1,7 +1,8 @@
 """Development-only frozen legacy CMake `ici verify` verdict captures; never called by Rust.
 
 Runs the frozen CLI over parity-fixtures/cpp/test-cmake/{plain,suite,broken-build} (and the
-suite with `engines.sanitize.required = false`, and `ici thread-sanitize` on the suite) in a git
+suite with `engines.sanitize.required = false`, `ici thread-sanitize` on the suite, and the
+descriptor-free direct g++ and unadapted-Makefile projects with tests) in a git
 checkout and keeps the exit code, the suite counters, every engine's verdict and the
 test/sanitize/thread_sanitize targets and findings. The project
 root is replaced by `<ROOT>`. The frozen interpreter runs under the C locale and coerces
@@ -31,6 +32,8 @@ CASES = {
     ),
     "broken-build": ("test-cmake/broken-build", "", "verify"),
     "suite-thread-sanitize": ("test-cmake/suite", "", "thread-sanitize"),
+    "direct-tests": ("sanitize-direct-clean", "", "verify"),
+    "make-unadapted": ("sanitize-tested", "", "verify"),
     "suite-thread-sanitize-optional": (
         "test-cmake/suite",
         "[engines.thread_sanitize]\nrequired=false\n",

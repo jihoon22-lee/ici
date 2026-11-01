@@ -87,19 +87,39 @@ fn test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity() {
 
 #[test]
 fn a_declared_cpp_test_file_is_never_reported_as_no_tests_collected() {
-    // tests/test_calc.cpp exists: the frozen engine attempts a suite, so the blocked native
-    // checks stay an incomplete result (exit 3) instead of an invented FAIL verdict.
+    // tests/test_calc.cpp exists beside an unadapted Makefile: frozen compiles and runs it with
+    // direct g++ and measures coverage (FAIL on the coverage minimums, exit 1). Captured from the
+    // frozen CLI (oracle 6fe3e405) with `ici test --report` on this tree under PATH=/usr/bin:/bin.
     let (exit, native) = run(
         "src-sources",
         Some(("tests/test_calc.cpp", "int main(){return 0;}\n")),
     );
-    assert_eq!(exit, 3, "{native:#}");
-    assert!(
-        !native["targets"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|target| target["message"] == "No tests collected")
+    assert_eq!(exit, 1, "{native:#}");
+    assert_eq!(native["status"], "FAIL");
+    let targets: Vec<_> = native["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        // Intended: an empty branch denominator is a SKIP, not the frozen vacuous 100.0%.
+        .filter(|target| target["target_name"] != "Threshold: Branch coverage")
+        .map(|target| {
+            format!(
+                "{} {} {}",
+                target["target_name"].as_str().unwrap(),
+                target["status"].as_str().unwrap(),
+                target["message"].as_str().unwrap()
+            )
+        })
+        .collect();
+    assert_eq!(
+        targets,
+        [
+            "[C++] test_calc.cpp PASS C++ Test Passed",
+            "Coverage:Overall line WARN Overall line coverage 0.0% is below the configured minimum 80.0%",
+            "Coverage:Functions WARN Aggregate function coverage 0.0% is below the configured minimum 90.0%",
+            "Coverage:Function:add(int, int) WARN Function add(int, int) was not exercised by the aggregate project test suite",
+            "Threshold: TEM score WARN TEM score 0.00 is below the configured minimum 4.00",
+        ]
     );
 }
 

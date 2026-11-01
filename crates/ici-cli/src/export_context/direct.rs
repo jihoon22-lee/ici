@@ -270,7 +270,11 @@ pub fn plan_legacy_direct_preparation(
     }
     let is_test = variant != "release";
     let directory = project.root.join(&component.root);
-    no_root_descriptor(&directory)?;
+    // Frozen TestEngine/SanitizeEngine compile with generic g++ whenever select_backend chose no
+    // adapter (an unadapted Makefile included); only the BuildEngine refuses generic g++ there.
+    if !is_test {
+        no_root_descriptor(&directory)?;
+    }
     let excluded = crate::cpp::external_build_directories(project, component, environment)?;
     let tests_root = directory.join("tests");
     let test_sources = if is_test && tests_root.is_dir() {

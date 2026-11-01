@@ -9,6 +9,7 @@ pub mod execute;
 pub mod export_context;
 pub mod inputs;
 pub mod legacy;
+pub mod legacy_context;
 pub mod legacy_execute;
 pub mod legacy_lines;
 mod legacy_python_compat;
