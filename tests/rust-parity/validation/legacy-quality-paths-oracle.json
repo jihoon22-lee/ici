@@ -188,6 +188,100 @@
         "slow_tests_observed": 0
       }
     },
+    "mutation_command_missing": {
+      "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines]\n[engines.test]\nenabled = true\nrequired = true\npython = \"<PYTHON>\"\n[engines.test.quality]\nenabled = true\nmode = 'report'\n[engines.test.quality.mutation]\nenabled = true\ncommand = ['/nonexistent/mutation']\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = false\n[engines.integration]\nenabled = false\n",
+      "exit_code": 1,
+      "mode": "none",
+      "quality_findings": [
+        {
+          "fingerprint": "sha256:29c50df0da8b81401f979022684376f142ff79f432f25c921918e92c7f26ab6e",
+          "message": "Mutation capability probe unavailable; base test gate unchanged",
+          "rule_id": "ici.legacy.test.target"
+        }
+      ],
+      "status": "FAIL",
+      "summary": "1/1 Tests Passed | Line: 0.0%, Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0",
+      "targets": [
+        {
+          "file_path": "tests/test_calc.py",
+          "message": "Test passed successfully",
+          "metrics": {},
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "tests/test_calc.py::test_ok"
+        },
+        {
+          "file_path": "tests",
+          "message": "Mutation capability probe unavailable; base test gate unchanged",
+          "metrics": {
+            "available": false,
+            "returncode": -1,
+            "tool": "auto"
+          },
+          "start_line": 1,
+          "status": "SKIP",
+          "target_name": "[test-quality] Mutation capability"
+        },
+        {
+          "file_path": ".",
+          "message": "Overall line coverage 0.0% is below the configured minimum 80.0%",
+          "metrics": {
+            "actual": 0.0,
+            "covered_lines": 0,
+            "executable_lines": 1,
+            "gated": true,
+            "threshold": 80.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Coverage:Overall line"
+        },
+        {
+          "file_path": ".",
+          "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+          "metrics": {
+            "actual": 100.0,
+            "covered_functions": 0,
+            "functions": 0,
+            "gated": true,
+            "threshold": 90.0
+          },
+          "start_line": 1,
+          "status": "PASS",
+          "target_name": "Coverage:Functions"
+        },
+        {
+          "file_path": ".",
+          "message": "TEM score 0.00 is below the configured minimum 4.00",
+          "metrics": {
+            "actual": 0.0,
+            "threshold": 4.0
+          },
+          "start_line": 1,
+          "status": "WARN",
+          "target_name": "Threshold: TEM score"
+        }
+      ],
+      "test_quality": {
+        "enabled": true,
+        "flaky_test_inventory": [],
+        "flaky_tests": 0,
+        "mode": "report",
+        "mutation_available": 0,
+        "mutation_probes": 1,
+        "mutation_status": "unavailable",
+        "mutation_unavailable": 1,
+        "profile": "deep",
+        "repeat_cases": 1,
+        "repeat_reruns": 0,
+        "repeat_runs": 1,
+        "repeat_timeouts": 0,
+        "repeat_unavailable": 0,
+        "slow_test_inventory": [],
+        "slow_tests": 0,
+        "slow_tests_observed": 0
+      }
+    },
     "mutation_failing": {
       "config": "[ici]\nprofile = \"deep\"\n[project]\nsource_dirs = [\"src\"]\n[engines]\n[engines.test]\nenabled = true\nrequired = true\npython = \"<PYTHON>\"\n[engines.test.quality]\nenabled = true\nmode = 'report'\n[engines.test.quality.mutation]\nenabled = true\ncommand = ['/bin/false']\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.type]\nenabled = false\n[engines.python_compat]\nenabled = false\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.build]\nenabled = false\n[engines.integration]\nenabled = false\n",
       "exit_code": 1,

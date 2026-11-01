@@ -195,3 +195,37 @@ fn legacy_project_without_venv_is_blocked_instead_of_running_under_path_python()
         .unwrap();
     assert_eq!(test["state"], "SUCCEEDED", "{test:#}");
 }
+
+/// Intended difference (root decision requested): frozen next checks a declared bare name at plan
+/// time as a relative file and blocks it ('no such file: python3'), while frozen legacy
+/// `_resolve_python` runs the declared `engines.test.python` name through the PATH. Native keeps
+/// the documented SPEC-01 §3 `_anchor` semantics for both schemas: a declared bare name is the
+/// user's own PATH lookup (never a fallback), so the three checks plan with that interpreter.
+#[test]
+#[ignore = "explicit project CPython (ICI_TEST_PYTHON)"]
+fn declared_bare_interpreter_name_is_the_users_path_lookup() {
+    let oracle: Value = serde_json::from_str(ORACLE).unwrap();
+    let frozen = &oracle["runs"]["declared_bare"];
+    for check in CHECKS {
+        assert_eq!(frozen["checks"][check]["kind"], "blocked");
+    }
+    let work = tempfile::tempdir().unwrap();
+    let bin = work.path().join("path-bin");
+    fs::create_dir_all(&bin).unwrap();
+    std::os::unix::fs::symlink(python(), bin.join("python3")).unwrap();
+    let path = format!("{}:/usr/bin:/bin", bin.display());
+    let root = project(work.path(), frozen["config"].as_str().unwrap(), false);
+    let (checks, edges) = shaped(&plan(&root, &path), &root);
+    for check in CHECKS {
+        assert_eq!(checks[check]["kind"], "process", "{check}: {checks:#}");
+        assert_eq!(
+            checks[check]["interpreter"],
+            json!(bin.join("python3").display().to_string()),
+            "{check}"
+        );
+    }
+    assert_eq!(
+        edges,
+        json!({"project.python.coverage": ["project.python.test"]})
+    );
+}

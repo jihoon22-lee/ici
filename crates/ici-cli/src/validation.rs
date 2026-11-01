@@ -284,6 +284,7 @@ pub fn bind(
                 Some(tool) if command.is_empty() => tool.id.clone(),
                 _ => selected.into(),
             };
+            options.mutation_command = !command.is_empty();
             options.mutation_tool = mutation_tool;
             options.mutation_argv = mutation_argv;
         }

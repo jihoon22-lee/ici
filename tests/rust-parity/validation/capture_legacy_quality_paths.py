@@ -46,6 +46,10 @@ SCENARIOS = {
         "none",
         "[engines.test.quality.mutation]\nenabled = true\ncommand = ['/bin/true']\n",
     ),
+    "mutation_command_missing": (
+        "none",
+        "[engines.test.quality.mutation]\nenabled = true\ncommand = ['/nonexistent/mutation']\n",
+    ),
     "mutation_failing": (
         "none",
         "[engines.test.quality.mutation]\nenabled = true\ncommand = ['/bin/false']\n",

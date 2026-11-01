@@ -172,10 +172,21 @@ fn quality_repeat_without_per_test_verdicts_is_the_frozen_collection_warning() {
 
 #[test]
 #[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
-fn mutation_capability_targets_match_frozen_for_missing_available_and_failing_tools() {
-    for scenario in ["mutation_missing", "mutation_available", "mutation_failing"] {
-        compare(scenario);
-    }
+fn missing_mutation_tool_is_the_frozen_skip_without_a_probe() {
+    compare("mutation_missing");
+}
+
+#[test]
+#[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
+fn succeeding_mutation_probe_command_is_the_frozen_available_pass() {
+    compare("mutation_available");
+}
+
+#[test]
+#[ignore = "explicit project CPython with pytest and coverage (ICI_TEST_PYTHON)"]
+fn failing_or_absent_mutation_probe_command_is_the_frozen_probe_unavailable_skip() {
+    compare("mutation_failing");
+    compare("mutation_command_missing");
 }
 
 /// Frozen falls back to pytest summary counts ('[Python] Passed (1)' 'Pytest summary: passed')

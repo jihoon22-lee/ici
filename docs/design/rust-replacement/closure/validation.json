@@ -1883,7 +1883,7 @@
       "difference_reason": "Intended (ADR-0008, R05): summary counts are not per-test evidence, so native never builds case targets, coverage/TEM verdicts or a flaky comparison from them; the run is incomplete instead of the frozen FAIL. The 'Base run outcomes' target therefore never appears natively."
     },
     "finding_site:src/ici/engines/test_quality.py:405:24": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-validation/src/python_quality.rs",
         "crates/ici-validation/src/model.rs",
@@ -1892,8 +1892,8 @@
         "crates/ici-validation/src/python.rs"
       ],
       "evidence": [
-        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
-        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
       ],
       "fixtures": {
         "positive": [
@@ -1906,10 +1906,11 @@
           "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
         ]
       },
-      "comparison": "Frozen: a quality repeat that times out is '[test-quality] Repeat run N' WARN 'pytest repeat run timed out' with metrics {run, timeout} and repeat_timeouts=1. Native previously added returncode and used the generic message for other failures. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario timeout)."
+      "comparison": "Frozen: a quality repeat that times out is '[test-quality] Repeat run N' WARN 'pytest repeat run timed out' with metrics {run, timeout} and repeat_timeouts=1. Native previously added returncode and used the generic message for other failures. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario timeout).",
+      "difference_reason": "No intended difference. Kept at verified: the repeat-failure scenario is itself the row's positive case, and no distinct failure-mode fixture (e.g. a cancelled repeat) is compared with a frozen run."
     },
     "finding_site:src/ici/engines/test_quality.py:418:24": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-validation/src/python_quality.rs",
         "crates/ici-validation/src/model.rs",
@@ -1918,8 +1919,8 @@
         "crates/ici-validation/src/python.rs"
       ],
       "evidence": [
-        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
-        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
       ],
       "fixtures": {
         "positive": [
@@ -1932,10 +1933,11 @@
           "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
         ]
       },
-      "comparison": "Frozen: a repeat that is truncated, signalled or exits outside 0/1 is '[test-quality] Repeat run N' WARN 'pytest repeat run did not produce bounded evidence' with metrics {run, returncode} (signal as negative return code) and repeat_unavailable=1. Native previously said 'did not produce bounded per-test evidence' with extra timeout metrics. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario exit)."
+      "comparison": "Frozen: a repeat that is truncated, signalled or exits outside 0/1 is '[test-quality] Repeat run N' WARN 'pytest repeat run did not produce bounded evidence' with metrics {run, returncode} (signal as negative return code) and repeat_unavailable=1. Native previously said 'did not produce bounded per-test evidence' with extra timeout metrics. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario exit).",
+      "difference_reason": "No intended difference. Kept at verified: the repeat-failure scenario is itself the row's positive case, and no distinct failure-mode fixture (e.g. a cancelled repeat) is compared with a frozen run."
     },
     "finding_site:src/ici/engines/test_quality.py:434:24": {
-      "status": "complete",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-validation/src/python_quality.rs",
         "crates/ici-validation/src/model.rs",
@@ -1944,8 +1946,8 @@
         "crates/ici-validation/src/python.rs"
       ],
       "evidence": [
-        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
-        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
       ],
       "fixtures": {
         "positive": [
@@ -1958,7 +1960,8 @@
           "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
         ]
       },
-      "comparison": "Frozen: a bounded repeat (exit 0/1) without per-test verdicts is '[test-quality] Repeat run N' WARN 'pytest repeat run had no per-test collection evidence' with metrics {run}. Native previously merged it with the unbounded case. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario quiet_repeat)."
+      "comparison": "Frozen: a bounded repeat (exit 0/1) without per-test verdicts is '[test-quality] Repeat run N' WARN 'pytest repeat run had no per-test collection evidence' with metrics {run}. Native previously merged it with the unbounded case. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario quiet_repeat).",
+      "difference_reason": "No intended difference. Kept at verified: the repeat-failure scenario is itself the row's positive case, and no distinct failure-mode fixture (e.g. a cancelled repeat) is compared with a frozen run."
     },
     "finding_site:src/ici/engines/test_quality.py:502:16": {
       "status": "difference_review",
@@ -1995,18 +1998,18 @@
         "crates/ici-validation/src/python.rs"
       ],
       "evidence": [
-        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
-        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_quality_paths.rs::mutation_capability_targets_match_frozen_for_missing_available_and_failing_tools"
+          "crates/ici-cli/tests/legacy_quality_paths.rs::missing_mutation_tool_is_the_frozen_skip_without_a_probe"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning"
+          "crates/ici-cli/tests/legacy_quality_paths.rs::succeeding_mutation_probe_command_is_the_frozen_available_pass"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+          "crates/ici-cli/tests/legacy_quality_paths.rs::failing_or_absent_mutation_probe_command_is_the_frozen_probe_unavailable_skip"
         ]
       },
       "comparison": "Frozen: an enabled mutation probe with no supported tool on PATH is '[test-quality] Mutation capability' SKIP 'No supported mutation tool was found; base test gate unchanged' {available:false, tool:'auto'}, mutation_status unavailable. Native previously said 'mutation capability is unavailable; base test gate is unchanged' with a returncode metric and no tool label. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario mutation_missing)."
@@ -2021,21 +2024,21 @@
         "crates/ici-validation/src/python.rs"
       ],
       "evidence": [
-        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
-        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_quality_paths.rs::mutation_capability_targets_match_frozen_for_missing_available_and_failing_tools"
+          "crates/ici-cli/tests/legacy_quality_paths.rs::succeeding_mutation_probe_command_is_the_frozen_available_pass"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning"
+          "crates/ici-cli/tests/legacy_quality_paths.rs::missing_mutation_tool_is_the_frozen_skip_without_a_probe"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+          "crates/ici-cli/tests/legacy_quality_paths.rs::failing_or_absent_mutation_probe_command_is_the_frozen_probe_unavailable_skip"
         ]
       },
-      "comparison": "Frozen: an explicit mutation command is probed; exit 0 is PASS 'Mutation tool capability available: <tool>' and a failing probe SKIP 'Mutation capability probe unavailable; base test gate unchanged', both with {available, tool, returncode} where tool is the configured tool ('auto') for a command and the found tool for an auto search (scenarios mutation_available, mutation_failing). Native previously reported 'explicit mutation capability probe completed; mutations were not performed'. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario mutation_available)."
+      "comparison": "Frozen: an explicit mutation command is probed; exit 0 is PASS 'Mutation tool capability available: <tool>' and a failing probe SKIP 'Mutation capability probe unavailable; base test gate unchanged', both with {available, tool, returncode} where tool is the configured tool ('auto') for a command and the found tool for an auto search (scenarios mutation_available, mutation_failing). Native previously reported 'explicit mutation capability probe completed; mutations were not performed'. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario mutation_available). An explicit command whose executable is absent is frozen's probe-unavailable SKIP with returncode -1 (scenario mutation_command_missing), not 'No supported mutation tool was found' (native defect fixed)."
     },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
       "status": "difference_review",

@@ -253,7 +253,10 @@ fn mutation(
     target.status = if available { "PASS" } else { "SKIP" }.into();
     target.message = match (probe, available) {
         (_, true) => format!("Mutation tool capability available: {tool}"),
-        (None, _) if plan.context.options.mutation_tool.is_none() => {
+        (None, _)
+            if plan.context.options.mutation_tool.is_none()
+                && !plan.context.options.mutation_command =>
+        {
             "No supported mutation tool was found; base test gate unchanged".into()
         }
         _ => "Mutation capability probe unavailable; base test gate unchanged".into(),
@@ -265,6 +268,9 @@ fn mutation(
             "returncode".into(),
             json!(probe.and_then(|outcome| outcome.exit_code)),
         );
+    } else if plan.context.options.mutation_command {
+        // Frozen runs the configured command; an absent executable is its runner's -1.
+        target.metrics.insert("returncode".into(), json!(-1));
     }
     output.targets.push(target);
     output.extra["mutation"] = json!({"mutation_status":if available{"available"}else{"unavailable"},"mutation_probes":1,"mutation_available":u8::from(available),"mutation_unavailable":u8::from(!available),"tool":plan.context.options.mutation_tool.as_ref().map(|tool|&tool.id),"argv":plan.tasks.iter().find(|task|task.id==id).map(|task|&task.argv)});
