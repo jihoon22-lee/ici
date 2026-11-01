@@ -30,6 +30,14 @@
 
 ### 변경
 
+- 컴파일 데이터베이스가 있는 레거시 C++ `ici verify`의 compile_db 커버리지·구성·플래그 정책 대상, 요약과
+  점수가 v0.13.0과 같습니다. 정책 위반은 그대로 gate를 실패시킵니다.
+- 컴파일 데이터베이스 기반 `ici dead`가 v0.13.0처럼 첫 실패 구성의 `C++UnusedFunctionError`, 또는
+  `C++UnusedFunctions`/`Compiler:-Wunused-function` 대상과 정확한 결과·소스 범위를 보고합니다.
+- 컴파일 데이터베이스가 있는 C++ lint가 GCC JSON 진단, 구성 다이제스트 기반 `C++Syntax:<digest>` 이름,
+  clang-tidy/clazy 부재 대상을 v0.13.0과 같게 보고합니다.
+- 컴파일러 include 추적으로 찾은 순환의 요약·메시지·도구 이름이 v0.13.0과 같습니다. 산출물은 있으나
+  `readelf`를 찾지 못하면 v0.13.0처럼 `BinaryCompatibility:AnalysisUnavailable` 오류로 보고합니다.
 - 레거시 deep `ici verify`에서 build 엔진 없이 integration/binary_compat을 켜면 v0.13.0과 같이 실행 전에
   거부합니다(종료 코드 1, 리포트 없음).
 - 소스가 없는 레거시 Python 프로젝트의 `ici build`가 v0.13.0과 같은 `BuildArtifacts` FAIL(종료 코드 1)을
