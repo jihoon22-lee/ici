@@ -559,9 +559,9 @@ fn publish_reads_the_result_before_the_page_with_the_frozen_refusal_class() {
     let invocation = ici_cli::registry::parse(["ici", "next", "publish"]).unwrap();
     let environment = std::collections::BTreeMap::new();
     let refusal = |expected: &str| {
-        let error = ici_cli::commands::dispatch(&invocation, root.path(), &environment)
-            .err()
-            .expect("refused");
+        let Err(error) = ici_cli::commands::dispatch(&invocation, root.path(), &environment) else {
+            panic!("publish without a readable result was not refused");
+        };
         let line = ici_cli::commands::diagnostic(&error);
         assert!(line.starts_with(expected), "{line}");
         assert!(!line.contains("publish page"), "{line}");
