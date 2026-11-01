@@ -346,6 +346,7 @@ pub(in crate::export_context) fn execute(
     Ok(PreparedContext {
         plan: plan.clone(),
         context,
+        non_elf: vec![],
         artifacts: direct
             .binaries
             .iter()
