@@ -209,9 +209,10 @@
   },
   "check:python.coverage": {
    "comparison": "Validation facet (closure sweep): the modern python.coverage check is coverage.py run/json evidence over the declared sources (adapters/providers/coverage.py, engines/coverage_policy.py thresholds). Declared-source measurement is replayed against frozen (tests/rust-parity/validation/python-coverage-scope-oracle.json) with the actual project CPython 3.10.21 + pytest + coverage; coverage-policy finding sites coverage_policy.py:165/198/218/247/264/297/316 are complete in this fragment; a missing coverage tool keeps real pytest evidence and follows the legacy/explicit required policy.",
-   "difference_reason": "Frozen defect corrected: a declared Python source that the tests never imported was omitted from frozen's coverage (silently raising the percentage); native measures it at 0% (python_coverage_scope.rs never_imported_declared_source_is_measured_zero_instead_of_omitted), and an unmeasurable declared source keeps coverage incomplete with the reason on the legacy line.",
+   "difference_reason": "Frozen defect corrected: a declared Python source that the tests never imported was omitted from frozen's coverage (silently raising the percentage); native measures it at 0% (python_coverage_scope.rs never_imported_declared_source_is_measured_zero_instead_of_omitted), and an unmeasurable declared source keeps coverage incomplete with the reason on the legacy line. Decisions-worker audit of adapters/providers/coverage.py: native percentages now use the frozen round(percent, 1) (python.rs::coverage_percent_tests); frozen always emitted `coverage.branches` (0.0 % without counts when nothing was measured) and `coverage.lines` (0.0 with 0/0 for an empty scope), native emits a percentage only when its denominator is positive and carries numerator/denominator on branches too (python_coverage_scope.rs asserts the frozen 0.0 and the native absence).",
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log",
+    "decisions worker 2026-11-02: `cargo test -p ici-cli --locked -j2 --test coverage_regression --test legacy_test_metrics --test legacy_test_parity --test python_coverage_scope --test run_tem --test pytest_next_parity -- --include-ignored`, `cargo test -p ici-validation --locked -j2 --test contracts --test native_python --test quality_details -- --include-ignored` and `--lib coverage_percent` passed with ICI_TEST_PYTHON (CPython 3.10.21 + pytest + coverage); clippy -D warnings clean (log /tmp/ici-rust-replacement-20261028/w-dec-coverage.log)."
    ],
    "fixtures": {
     "failure": [
@@ -221,7 +222,8 @@
      "crates/ici-cli/tests/native_validation_extra.rs::missing_coverage_keeps_real_pytest_evidence_and_respects_legacy_and_explicit_required_policy"
     ],
     "positive": [
-     "crates/ici-cli/tests/python_coverage_scope.rs::never_imported_declared_source_is_measured_zero_instead_of_omitted"
+     "crates/ici-cli/tests/python_coverage_scope.rs::never_imported_declared_source_is_measured_zero_instead_of_omitted",
+     "crates/ici-validation/src/python.rs::coverage_percent_tests::coverage_percentages_round_to_one_decimal_like_python"
     ]
    },
    "rust_paths": [
@@ -2151,9 +2153,11 @@
  },
  "source_files": {
   "src/ici/adapters/providers/coverage.py": {
-   "disposition": "unreviewed",
-   "reason": "Not read in full; next coverage.py provider (coverage json export/parse) feeding coverage_policy rows. No finding site of its own in this area.",
-   "requirements": []
+   "disposition": "mapped",
+   "reason": "Complete 152-line module read (decisions worker 2026-11-02). plan (coverage json over the shared run's data file, report path and its directory declared, never cached, 300 s bound, declared sources channel) maps to the python.coverage `.report` step planned by ici_validation::python; parse (did-not-finish refusal, absent/unreadable/inconsistent JSON refused rather than a zero verdict, coverage.lines/branches percentages, coverage.functions over the declared .py sources where any body line ran) maps to python::observe_coverage with coverage::parse_python, the producer/digest check and function facts. Rounding now equals frozen; the omitted 0 % branch value and the never-imported-source correction are recorded on check:python.coverage. Log: /tmp/ici-rust-replacement-20261028/w-dec-coverage.log.",
+   "requirements": [
+    "check:python.coverage"
+   ]
   },
   "src/ici/adapters/providers/integration.py": {
    "disposition": "mapped",

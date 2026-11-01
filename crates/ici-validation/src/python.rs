@@ -471,7 +471,7 @@ fn observe_coverage(
             output
                 .observation
                 .measurements
-                .push(pair(name, covered, total));
+                .push(coverage_percent(name, covered, total));
         }
     }
     // With a file gate the policy owns the per-file inventory (frozen `Coverage:File`).
@@ -864,6 +864,14 @@ pub(crate) fn finding(
     ));
     item
 }
+/// Frozen adapters/providers/coverage.py reports every percentage as `round(percent, 1)`.
+fn coverage_percent(name: &str, covered: u64, total: u64) -> Measurement {
+    let mut metric = pair(name, covered, total);
+    metric.value = format!("{:.1}", metric.value)
+        .parse()
+        .unwrap_or(metric.value);
+    metric
+}
 pub(crate) fn pair(name: &str, numerator: u64, denominator: u64) -> Measurement {
     let mut metric = Measurement::measured(
         name,
@@ -882,4 +890,19 @@ pub(crate) fn pair(name: &str, numerator: u64, denominator: u64) -> Measurement 
     }
     .into();
     metric
+}
+#[cfg(test)]
+mod coverage_percent_tests {
+    #[test]
+    fn coverage_percentages_round_to_one_decimal_like_python() {
+        for (covered, total, expected) in [(1, 3, 33.3), (2, 3, 66.7), (1, 8, 12.5), (5, 5, 100.0)]
+        {
+            let metric = super::coverage_percent("coverage.lines", covered, total);
+            assert_eq!(metric.value, expected);
+            assert_eq!(
+                (metric.numerator, metric.denominator),
+                (Some(covered), Some(total))
+            );
+        }
+    }
 }
