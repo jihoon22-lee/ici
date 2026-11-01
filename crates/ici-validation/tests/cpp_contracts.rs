@@ -55,7 +55,7 @@ fn ctest_partial_skipped_and_missing_terminal_counts_are_distinct_from_failures(
             1,
         ),
         (
-            "1/1 Test #1: suite ........ ***Not Run (Disabled) 0.00 sec\n0% tests passed, 1 tests failed out of 1\n",
+            "1/1 Test #1: suite ........ ***Not Run (Disabled) 0.00 sec\n100% tests passed, 0 tests failed out of 0\n",
             0,
             TaskState::Failed,
             0,
@@ -88,6 +88,44 @@ fn ctest_partial_skipped_and_missing_terminal_counts_are_distinct_from_failures(
             );
         }
     }
+}
+#[test]
+fn ctest_terminal_count_leaves_disabled_tests_out_like_actual_ctest() {
+    // Verdict and summary lines as ctest 4.2.3 printed them for one passing, one DISABLED, one
+    // SKIP_RETURN_CODE and one missing-executable test (parity-fixtures/cpp/test-cmake).
+    let root = tempfile::tempdir().unwrap();
+    let planned = plan(&request(root.path(), ValidationKind::Ctest)).unwrap();
+    let id = planned.tasks[0].id.clone();
+    let text = "1/4 Test #1: test_pass ........................   Passed    0.00 sec\n\
+        2/4 Test #2: test_skipped .....................***Not Run (Disabled)   0.00 sec\n\
+        3/4 Test #3: test_skipcode ....................***Skipped   0.00 sec\n\
+        4/4 Test #4: test_missing .....................***Not Run   0.00 sec\n\
+        67% tests passed, 1 tests failed out of 3\n";
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, text, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    let limitations = output.observation.limitations.join("; ");
+    assert!(!limitations.contains("terminal count"), "{limitations}");
+    assert!(
+        limitations.contains("3 CTest suites were not run"),
+        "{limitations}"
+    );
+    let miscounted = text.replace("out of 3", "out of 4");
+    let output = observe(
+        &planned,
+        &BTreeMap::from([(id.clone(), outcome(&id, &miscounted, "", 8))]),
+        &CapturedArtifacts::default(),
+    );
+    assert!(
+        output
+            .observation
+            .limitations
+            .iter()
+            .any(|item| item.contains("terminal count does not match")),
+        "{output:?}"
+    );
 }
 #[test]
 fn qtest_retains_following_failure_location_and_validates_totals() {

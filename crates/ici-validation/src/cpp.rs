@@ -385,10 +385,14 @@ pub(crate) fn observe_ctest(
     let mut passed = 0;
     let mut total = 0;
     let mut skipped = 0;
+    // CTest leaves DISABLED tests out of its "out of N" line (ctest 4.2.3: Passed, Skipped,
+    // Not Run and Failed count; "Not Run (Disabled)" does not).
+    let mut disabled = 0;
     let mut observed = BTreeMap::new();
     for case in cases.captures_iter(&text) {
         total += 1;
         let verdict = case[2].trim_start_matches('*').trim();
+        disabled += u64::from(verdict.ends_with("(Disabled)"));
         let path = source(plan, &case[1]);
         let mut target = InspectionTarget::at(&path, 1);
         target.target_name = case[1].into();
@@ -442,7 +446,7 @@ pub(crate) fn observe_ctest(
     if summary
         .captures(&text)
         .and_then(|capture| capture[1].parse::<u64>().ok())
-        != Some(total)
+        != Some(total - disabled)
     {
         return Err(ValidationError(
             "CTest terminal count does not match case evidence".into(),
