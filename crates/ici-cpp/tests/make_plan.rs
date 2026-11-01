@@ -245,6 +245,43 @@ fn execute(
     Ok(scheduler.run(&plan.tasks, &cancellation).unwrap().outcomes)
 }
 
+/// Frozen `make_plan` shares one Make shadow across variants: the owner ignores the variant,
+/// and a projected `native-*` variant build is owned by the build it was projected from, so it
+/// adopts the shadow its legacy preparation created. A different build is a different owner.
+#[test]
+fn make_shadow_owner_is_the_source_build_not_the_variant_or_projected_id() {
+    let root = tempfile::tempdir().unwrap();
+    let root_path = root.path().canonicalize().unwrap();
+    project(&root_path);
+    let table = json!({"enabled":true,"shadow_dir":"out","build_argv":["make","all"],"coverage_build_argv":["make","coverage"]});
+    let digest = |id: &str, owner: Option<&str>, variant: &str| {
+        let request = BuildRequest {
+            id: id.into(),
+            shadow_owner_id: owner.map(str::to_owned),
+            system: "make".into(),
+            variant: variant.into(),
+            make: Some(settings(table.clone(), variant)),
+            ..Default::default()
+        };
+        plan_build(&root_path, &request).unwrap().owner_digest
+    };
+    let legacy = digest("legacy-0123456789abcdef", None, "release");
+    assert_eq!(digest("legacy-0123456789abcdef", None, "coverage"), legacy);
+    assert_eq!(
+        digest(
+            "native-0123456789abcdef01234567",
+            Some("legacy-0123456789abcdef"),
+            "coverage"
+        ),
+        legacy
+    );
+    assert_ne!(
+        digest("native-0123456789abcdef01234567", None, "coverage"),
+        legacy
+    );
+    assert_ne!(digest("other", None, "release"), legacy);
+}
+
 #[test]
 #[ignore = "explicit actual GNU Make preparation acceptance (ICI_TEST_MAKE, ICI_TEST_CXX)"]
 fn actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow() {

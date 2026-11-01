@@ -266,11 +266,12 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
     };
     let shadow_path = root.join(&shadow);
     let project = root.join(&request.project);
-    // Configured Make shares one shadow across variants (frozen `make_plan`), so its owner is
-    // the project root and that shadow: a non-primary variant's projected build id (`native-*`)
-    // reuses the shadow its legacy preparation adopted.
+    // Configured Make shares one shadow across variants (frozen `make_plan`), so its owner
+    // excludes the variant; a non-primary variant's projected build (`native-*`) is owned by the
+    // build it was projected from, so it reuses the shadow that preparation adopted.
     let identity = if make.is_some() {
-        json!({"schema":"ici.rust.make-owner/v2","root":root,"system":"make","shadow":shadow})
+        let owner = request.shadow_owner_id.as_ref().unwrap_or(&request.id);
+        json!({"schema":"ici.rust.make-owner/v1","root":root,"id":owner,"system":"make","shadow":shadow})
     } else {
         json!({"schema":"ici.rust.build-owner/v1","root":root,"id":request.id,"variant":request.variant,"project":request.project})
     };

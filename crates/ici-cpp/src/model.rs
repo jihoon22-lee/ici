@@ -153,6 +153,10 @@ pub struct BuildRequest {
     /// Required for `system = "make"`: the validated frozen `build.make` contract.
     #[serde(default)]
     pub make: Option<crate::MakeSettings>,
+    /// The build that owns a shared configured Make shadow when `id` is a projected variant
+    /// build (`native-*`) of it; `None` means `id` itself.
+    #[serde(default)]
+    pub shadow_owner_id: Option<String>,
 }
 impl Default for BuildRequest {
     fn default() -> Self {
@@ -176,6 +180,7 @@ impl Default for BuildRequest {
             extra_qmake_args: vec![],
             qmake_default_config: false,
             make: None,
+            shadow_owner_id: None,
         }
     }
 }

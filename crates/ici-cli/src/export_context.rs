@@ -230,6 +230,11 @@ fn plan_selected_preparation(
         && component.settings.get("native_release_artifacts") != Some(&Value::Bool(true));
     let mut request = BuildRequest {
         id: build_id.clone(),
+        shadow_owner_id: declared
+            .as_ref()
+            .and_then(|build| build.settings.get("make_shadow_owner"))
+            .and_then(Value::as_str)
+            .map(str::to_owned),
         system: system.clone(),
         project: descriptor.clone(),
         variant,
@@ -769,6 +774,10 @@ pub fn overlay(project: &ResolvedProject, prepared: &[PreparedContext]) -> Resol
                 .strip_prefix(&format!("{}/", plan.build.shadow))
                 .unwrap_or(executable);
             build.settings["test_argv"] = json!([relative]);
+        }
+        if plan.build.system == "make" && id != plan.build_id {
+            // The projected variant build shares the configured Make shadow of its source build.
+            build.settings["make_shadow_owner"] = json!(plan.build_id);
         }
         if !context.test_executables.is_empty() || !context.test_compile_failures.is_empty() {
             build.settings["direct_test_executables"] = json!(context.test_executables);
