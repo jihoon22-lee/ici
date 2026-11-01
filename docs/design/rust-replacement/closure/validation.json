@@ -1,7 +1,7 @@
 {
   "requirements": {
     "capability:build-artifact-abi": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-cli/src/artifact_build.rs",
         "crates/ici-cli/src/cpp.rs"
@@ -35,10 +35,10 @@
           "crates/ici-cli/tests/artifact_contract.rs::internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint"
         ]
       },
-      "comparison": "Composite capability, verified (not complete). Closed: build.py Python facets (92, 338, 373 complete), declared-artifact contract (languages/artifacts.py 121/142 complete), release:shadow artifact identities and the ABI shadow selector; build.py C++ sites and binary_compat sites are verified. Open: binary_abi 33:11 and binarycompat 137:11 (not_started), binary_compat 247 C++ facet, and _elf.py audit (cpp worker)."
+      "comparison": "Composite capability, implemented (not verified): the contract-defining facet named below is not proven. Closed: build.py Python facets (92, 338, 373 complete), declared-artifact contract (languages/artifacts.py 121/142 complete), release:shadow artifact identities and the ABI shadow selector; build.py C++ sites and binary_compat sites are verified. Open: binary_abi 33:11 and binarycompat 137:11 (not_started), binary_compat 247 C++ facet, and _elf.py audit (cpp worker). Not verified because the ELF/ABI facets named in the contract are open."
     },
     "capability:legacy-python-sanitize": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-validation/src/python_sanitize.rs",
         "crates/ici-cli/src/validation.rs"
@@ -60,7 +60,7 @@
           "crates/ici-cli/tests/legacy_python_sanitize_scopes.rs::collection_errors_and_failures_without_resource_warnings_are_frozen_scope_errors"
         ]
       },
-      "comparison": "Composite capability, verified (not complete). Python half closed: every _sanitize_python_scope finding site (143, 155, 219, 238) is complete against frozen runs: clean PASS, located and unlocated ResourceWarning FAIL, every missing-scope variant (required ERROR / not-required SKIP) and the tool-failure scope error. Open: a hybrid C++ and Python project keeping its Python scope beside cpp.sanitize (engines/sanitize.py _analysis_scopes) is not compared with a frozen run, and the C++ sanitizer half (engines/sanitize.py, adapters/providers/sanitize.py, _sanitizer_diagnostics) is the cpp worker's."
+      "comparison": "Composite capability, implemented (not verified): the contract-defining facet named below is not proven. Python half closed: every _sanitize_python_scope finding site (143, 155, 219, 238) is complete against frozen runs: clean PASS, located and unlocated ResourceWarning FAIL, every missing-scope variant (required ERROR / not-required SKIP) and the tool-failure scope error. Open: a hybrid C++ and Python project keeping its Python scope beside cpp.sanitize (engines/sanitize.py _analysis_scopes) is not compared with a frozen run, and the C++ sanitizer half (engines/sanitize.py, adapters/providers/sanitize.py, _sanitizer_diagnostics) is the cpp worker's. Not verified because the hybrid case is the contract itself."
     },
     "capability:python-packaging-wheel": {
       "status": "verified",
@@ -115,14 +115,15 @@
       "comparison": "Composite capability, verified (not complete). Closed parts: check:integration and integration finding sites (difference_review), pycompat provider sites; project-interpreter selection (frozen resolve_python: declared executable, else only the component .venv/bin/python; never PATH python, venv/ or ici's own runtime; python.test/coverage/compat-runtime blocked with the frozen 'no project interpreter — none of 1 candidate(s) could be used; looked at <component>/.venv/bin/python; declare [python] executable or provide a .venv inside the component' reason, no test->coverage edge) — crates/ici-cli/tests/interpreter_selection.rs against tests/rust-parity/validation/interpreter-selection-oracle.json (/tmp/ici-rust-replacement-20261028/w-validation-interpreter.log, regressions /tmp/ici-rust-replacement-20261028/w-validation-interpreter-regress.log, -regress2.log). Legacy interpreter rules (root decision D1/D2, 2026-11-01): for legacy-schema historical commands (`ici test`/`sanitize`/`python-compat`/`verify`) native follows frozen legacy `_resolve_python`: engines.test.python (a bare name is a PATH lookup in the run environment and adds no PATH directory), then <root>/.venv/bin/python, then .venv/Scripts/python.exe, then the released pyz launcher rule that produced frozen sys.executable (first of $ICI_PYTHON, python3.14..python3.10, python3 on the run PATH passing a Python >= 3.10 check, probed with the allowlisted -I runtime metadata script, 5 s/64 KiB, argv only). Frozen python_compat with empty interpreters and integration {python:current} (symlink-resolved) use the launcher rule alone. The choice is recorded as a 'legacy pyz launcher rule selected <path> (<candidate>, Python X.Y)...' limitation in result.json/observation; nothing qualifying blocks with a hint naming engines.test.python and ICI_PYTHON. Compared against a private copy of the released dist/ici.pyz (sha256 9e5f5751..., 283 ici/ sources byte-identical to the frozen tree): tests/rust-parity/validation/legacy-launcher-interpreter-oracle.json via capture_legacy_launcher_interpreter.py (/tmp/ici-rust-replacement-20261028/w-validation-d1-frozen-capture.log), crates/ici-cli/tests/legacy_launcher_interpreter.rs (/tmp/ici-rust-replacement-20261028/w-validation-d1-launcher.log). Next/v2 stay strict (declared executable or component .venv only, never PATH, never the probe): `ici next plan` on a legacy file stays blocked and process-free (frozen next refuses a legacy file: 'none declares a [workspace]'). A declared bare name on next/v2 blocks with frozen next's exact text 'no project interpreter — no such file: python3; set components[0].python.executable to change it' even with a .venv (interpreter_selection.rs::declared_bare_interpreter_name_blocks_on_the_next_schema_like_frozen; sparse v2 has no frozen counterpart and uses key python.executable; /tmp/ici-rust-replacement-20261028/w-validation-d2-interpreter.log); a declared missing path keeps the native 'project Python \"<value>\": ...' wording. Intended differences: where nothing qualifies the frozen launcher exits 1 before ici runs (Korean ICI_PYTHON hint, no report) while native runs and blocks the Python checks (exit 3); native skips empty PATH components where `command -v` would search the cwd. Legacy python_compat is now the frozen engine view (legacy_python_compat_parity.rs, 11 frozen scenarios). Open facets: check:integration and integration 143:12/333:16 (difference_review), python_compat 214:16 (difference_review, config refuses an invalid pyproject.toml), whole-file audits of pycompat.py/test.py."
     },
     "capability:test-quality-tem": {
-      "status": "verified",
+      "status": "implemented",
       "rust_paths": [
         "crates/ici-validation/src/python_quality.rs",
         "crates/ici-cli/src/legacy_execute.rs"
       ],
       "evidence": [
         "tests/rust-parity/validation/legacy-quality-paths-oracle.json (11 frozen scenarios) and verify-exit-floor-oracle.json",
-        ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)"
+        ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 8 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-modes.log)"
       ],
       "fixtures": {
         "positive": [
@@ -137,7 +138,7 @@
           "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
         ]
       },
-      "comparison": "Composite capability, verified (not complete). Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); a legacy-schema `ici verify` exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; frozen exit 1, verify-exit-floor-oracle.json legacy). The floor is restricted to the legacy schema (root D3): frozen v0.13.0 rejects schema_version=2 ('schema_version is an unknown configuration key') and next [engines] keys ('engines: unknown key') with exit 2, so no modern frozen schema exits 1 for this verdict and a modern-schema verify keeps the native gate exit (crates/ici-cli/tests/verify_exit_floor.rs, log /tmp/ici-rust-replacement-20261028/w-validation-d3-exit-floor.log). Open: base-run summary-count fallback (difference_review). Open facets: the C++ halves of engines/test.py (9 not_started sites, cpp worker), quality/coverage difference_review sites, and line-by-line audits of application/tem.py, application/testing.py and analysis/coverage_support.py."
+      "comparison": "Composite capability, implemented (not verified): the contract-defining facet named below is not proven. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); a legacy-schema `ici verify` exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; frozen exit 1, verify-exit-floor-oracle.json legacy). The floor is restricted to the legacy schema (root D3): frozen v0.13.0 rejects schema_version=2 ('schema_version is an unknown configuration key') and next [engines] keys ('engines: unknown key') with exit 2, so no modern frozen schema exits 1 for this verdict and a modern-schema verify keeps the native gate exit (crates/ici-cli/tests/verify_exit_floor.rs, log /tmp/ici-rust-replacement-20261028/w-validation-d3-exit-floor.log). Open: base-run summary-count fallback (difference_review). Open facets: the C++ halves of engines/test.py (9 not_started sites, cpp worker), quality/coverage difference_review sites, and line-by-line audits of application/tem.py, application/testing.py and analysis/coverage_support.py. Not verified because the TEM formula boundaries (application/tem.py) are not audited."
     },
     "check:integration": {
       "status": "difference_review",
@@ -2379,62 +2380,6 @@
         "capability:runtime-integration"
       ]
     },
-    "src/ici/adapters/providers/binarycompat.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full. Finding site 137:11 (next ici.binary.* finding normalization) is not_started. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": [
-        "finding_site:src/ici/adapters/providers/binarycompat.py:137:11"
-      ]
-    },
-    "src/ici/adapters/providers/cpptest.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full. Finding sites 144:12, 191:20, 212:27 are not_started. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": [
-        "finding_site:src/ici/adapters/providers/cpptest.py:144:12",
-        "finding_site:src/ici/adapters/providers/cpptest.py:191:20",
-        "finding_site:src/ici/adapters/providers/cpptest.py:212:27"
-      ]
-    },
-    "src/ici/adapters/providers/gcov.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full; gcov coverage provider (C++ coverage). C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": []
-    },
-    "src/ici/analysis/gcov_json.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full; gcov JSON parsing (C++ coverage). C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": []
-    },
-    "src/ici/analysis/_elf.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full; ELF facts reader under capability:build-artifact-abi (not_started composite). C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": [
-        "capability:build-artifact-abi"
-      ]
-    },
-    "src/ici/analysis/binary_abi.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full. Finding site 33:11 (binary_finding) is not_started; part of capability:build-artifact-abi. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": [
-        "finding_site:src/ici/analysis/binary_abi.py:33:11",
-        "capability:build-artifact-abi"
-      ]
-    },
-    "src/ici/adapters/providers/sanitize.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full. Finding sites 212:11, 233:11 (next sanitizer findings) are not_started. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": [
-        "finding_site:src/ici/adapters/providers/sanitize.py:212:11",
-        "finding_site:src/ici/adapters/providers/sanitize.py:233:11"
-      ]
-    },
-    "src/ici/analysis/_sanitizer_diagnostics.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full. Finding site 393:11 is not_started. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": [
-        "finding_site:src/ici/analysis/_sanitizer_diagnostics.py:393:11"
-      ]
-    },
     "src/ici/engines/sanitize.py": {
       "disposition": "unreviewed",
       "reason": "Python-scope dispatch read (lines 100-135 _analysis_scopes; _missing_python_scope/_append_scope_error/_incomplete_message/_tool_failure_message/_process_incomplete helpers 790-905 used by the Python scope, see _sanitize_python_scope.py). Finding sites 200:16, 385:24, 566:12, 630:21, 669:16, 838:12, 865:12 are not_started; the C++ sanitizer flow is the C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
@@ -2448,16 +2393,6 @@
         "finding_site:src/ici/engines/sanitize.py:865:12",
         "capability:legacy-python-sanitize"
       ]
-    },
-    "src/ici/engines/thread_sanitize.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full; ThreadSanitizer engine variant of the C++ sanitizer. C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": []
-    },
-    "src/ici/core/_cmake_test_results.py": {
-      "disposition": "unreviewed",
-      "reason": "Not read in full; CTest/CMake test result parsing (C++ test facet). C++ facet owned by the cpp closure worker (root assignment: C++ halves of test.py, cpptest, C++ sanitize, _sanitizer_diagnostics:393, binary_compat 247); not audited by the validation worker.",
-      "requirements": []
     },
     "src/ici/engines/test.py": {
       "disposition": "unreviewed",
