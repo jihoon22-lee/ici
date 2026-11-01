@@ -9,8 +9,5 @@
  },
  "next_plan:require_full_partial": {
   "reason": "Native additionally lists the unselected component in coverage_gaps; scope.require_full, exit code and task ids are equal to frozen."
- },
- "next_plan:bare_local_interpreter": {
-  "reason": "A bare --local-config interpreter name (python3) is a PATH lookup natively, as frozen Executable.searches_path and SPEC-01 section 3 document; the frozen plan reported it as 'no such file'. The replay therefore uses an absolute nonexistent interpreter, which both name in the blocked reason of the same tasks."
  }
 }

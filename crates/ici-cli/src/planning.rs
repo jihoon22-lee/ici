@@ -94,13 +94,19 @@ pub fn prepare_with_contexts(
         .value("local_config")
         .or_else(|| invocation.value("local_path"))
         .map(|path| under(cwd, path));
-    let resolve = if crate::legacy::is_legacy(invocation) {
+    // Historical commands (engines, verify, doctor, publish, export) root at the working directory.
+    let resolve = if crate::cutover::stable(&invocation.command()) {
         ici_config::resolve_legacy_command_with_environment
     } else {
         ici_config::resolve_with_environment
     };
+    let prefix = if crate::legacy::is_legacy(invocation) {
+        crate::commands::STABLE_CONFIG_PREFIX
+    } else {
+        crate::commands::CONFIG_PREFIX
+    };
     let project = resolve(cwd, explicit.as_deref(), local.as_deref(), environment)
-        .map_err(|e| CliError(e.to_string()))?;
+        .map_err(|e| crate::commands::classed(prefix, e))?;
     let project = crate::export_context::overlay(&project, contexts);
     let mut prepared = prepare_resolved_omitting(
         invocation,
@@ -304,6 +310,16 @@ fn prepare_resolved_omitting(
         checks: selected_checks,
         legacy_profiles: crate::legacy::is_legacy(invocation),
     };
+    // Frozen `_scope`/`_profile`: an unknown component or language, and a request that selects
+    // no check, are configuration refusals of the requested scope (`config: `, exit 2).
+    let scope_prefix = if crate::legacy::is_legacy(invocation) {
+        crate::commands::STABLE_CONFIG_PREFIX
+    } else {
+        crate::commands::CONFIG_PREFIX
+    };
+    request
+        .scope(&project)
+        .map_err(|e| crate::commands::classed(scope_prefix, e))?;
     let mut cpp = crate::cpp::CppPlans::default();
     cpp.legacy_projection = crate::legacy::is_legacy(invocation);
     cpp.legacy_standalone = cpp.legacy_projection && invocation.command() != "verify";
@@ -484,20 +500,55 @@ fn prepare_resolved_omitting(
                 .get(tool_id)
                 .and_then(|setting| setting.path.as_deref())
                 .map(|path| under(&project.root, path));
-            let tool = match (ToolRequest {
-                id: tool_id.into(),
-                explicit,
-                project_root: component_root.clone(),
-                pack_root: pack.clone(),
-                path_env: environment.get("PATH").cloned(),
-            })
-            .resolve()
+            // Frozen legacy engines found mypy and ruff their own way (`validation::legacy_mypy`,
+            // `validation::legacy_ruff`); the selection is recorded in the run limitations.
+            let mut legacy_tool = None;
+            let tool = if tool_id == "mypy"
+                && explicit.is_none()
+                && crate::legacy::is_legacy(invocation)
+                && project.schema_family == ici_config::SchemaFamily::Legacy
             {
-                Ok(tool) => tool,
-                Err(error) => {
-                    return Ok(Work::Blocked {
-                        reason: error.to_string(),
-                    });
+                match crate::validation::legacy_mypy(
+                    &project,
+                    invocation.command() == "verify",
+                    environment,
+                ) {
+                    Ok((tool, module, note)) => {
+                        legacy_tool = Some((module, note));
+                        tool
+                    }
+                    Err(reason) => return Ok(Work::Blocked { reason }),
+                }
+            } else if let Some(selected) = (tool_id == "ruff"
+                && explicit.is_none()
+                && crate::legacy::is_legacy(invocation)
+                && project.schema_family == ici_config::SchemaFamily::Legacy)
+                .then(|| crate::validation::legacy_ruff(&project, environment))
+                .flatten()
+            {
+                match selected {
+                    Ok((tool, note)) => {
+                        legacy_tool = Some((false, note));
+                        tool
+                    }
+                    Err(reason) => return Ok(Work::Blocked { reason }),
+                }
+            } else {
+                match (ToolRequest {
+                    id: tool_id.into(),
+                    explicit,
+                    project_root: component_root.clone(),
+                    pack_root: pack.clone(),
+                    path_env: environment.get("PATH").cloned(),
+                })
+                .resolve()
+                {
+                    Ok(tool) => tool,
+                    Err(error) => {
+                        return Ok(Work::Blocked {
+                            reason: error.to_string(),
+                        });
+                    }
                 }
             };
             let targets: Vec<_> = component
@@ -574,6 +625,12 @@ fn prepare_resolved_omitting(
                     .map(String::from)
                     .to_vec();
                 }
+                if legacy_tool.as_ref().is_some_and(|(module, _)| *module) {
+                    provider_request
+                        .options
+                        .legacy_args
+                        .splice(0..0, ["-m".to_string(), "mypy".to_string()]);
+                }
             }
             provider_request.options.python_version = component
                 .settings
@@ -597,6 +654,9 @@ fn prepare_resolved_omitting(
                 });
             let mut provider = ici_providers::plan(&provider_request)
                 .map_err(|e| ApplicationError(e.to_string()))?;
+            if let Some((_, note)) = legacy_tool {
+                provider.limitations.push(note);
+            }
             provider.scope_complete = evidence.complete;
             provider.limitations.extend(evidence.limitations.clone());
             provider.task.cacheable = provider.scope_complete && !provider.task.mutating();
@@ -611,7 +671,13 @@ fn prepare_resolved_omitting(
             Ok(work)
         },
     )
-    .map_err(|e| CliError(e.to_string()))?;
+    .map_err(|e| {
+        if e.0 == ici_application::plan::NOTHING_SELECTED {
+            crate::commands::classed(scope_prefix, e)
+        } else {
+            CliError(e.to_string())
+        }
+    })?;
     tools.extend(cpp.tools.clone());
     let probes = providers
         .iter()

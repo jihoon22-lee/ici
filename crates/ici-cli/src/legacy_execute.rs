@@ -16,11 +16,8 @@ pub fn command(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
-    if crate::cutover::applies(invocation, cwd, environment) {
+    if crate::cutover::applies(invocation, cwd) {
         return crate::cutover::verify(invocation, cwd, environment);
-    }
-    if let Some(refusal) = crate::cutover::refuse_engine(invocation, cwd, environment) {
-        return Ok(refusal);
     }
     if invocation.flag("fail_on_new") && invocation.value("baseline").is_none() {
         return Err(CliError("--fail-on-new requires --baseline".into()));

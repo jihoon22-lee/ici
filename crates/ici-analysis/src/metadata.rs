@@ -80,13 +80,17 @@ pub fn load(request: &AnalysisRequest) -> Result<Option<ProjectMetadata>, Source
             "pyproject.toml exceeds the 2 MiB bound",
         ));
     }
+    // Frozen `load_python_metadata`: undecodable and unparseable files share one message.
     let text = std::str::from_utf8(&input.bytes).map_err(|_| {
-        SourceError::new("metadata-encoding", "pyproject.toml must be strict UTF-8")
+        SourceError::new(
+            "metadata-encoding",
+            "pyproject.toml could not be read and parsed safely",
+        )
     })?;
     let document = text.parse::<DocumentMut>().map_err(|_| {
         SourceError::new(
             "invalid-metadata",
-            "pyproject.toml could not be parsed safely",
+            "pyproject.toml could not be read and parsed safely",
         )
     })?;
     if document

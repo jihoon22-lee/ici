@@ -283,6 +283,11 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
                 argv.extend(targets);
             } else {
                 for target in &request.options.legacy_targets {
+                    // Frozen `_mypy_targets` names the project root itself as `.`.
+                    if target == "." {
+                        argv.push(request.workspace_root.to_string_lossy().into_owned());
+                        continue;
+                    }
                     ici_domain::validation::relative_path(target, false)
                         .map_err(|e| ProviderError(e.to_string()))?;
                     argv.push(

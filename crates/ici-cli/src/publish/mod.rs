@@ -408,7 +408,8 @@ pub fn command_with_transport(
         .value("local_path")
         .or_else(|| invocation.value("local_config"))
         .map(|path| under(cwd, path));
-    let config = ici_config::inspect_configuration_with_environment(
+    let config = crate::cutover::inspect(
+        invocation,
         cwd,
         explicit.as_deref(),
         local.as_deref(),

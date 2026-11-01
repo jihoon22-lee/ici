@@ -17,8 +17,8 @@ pub use migration_report::{
 };
 pub use model::*;
 pub use resolve::{
-    inspect_configuration_with_environment, merge, resolve,
-    resolve_legacy_command_with_environment, resolve_with_environment,
+    inspect_configuration_with_environment, inspect_legacy_command_with_environment, merge,
+    resolve, resolve_legacy_command_with_environment, resolve_with_environment,
 };
 
 pub use schema_keys::{LEGACY_KEYS, LOCAL_KEYS, NEXT_KEYS};
@@ -41,6 +41,7 @@ pub fn parse_document(
     Ok(parsed.value)
 }
 
+pub use discovery::find_workspace_root;
 pub use native::discover_type_provider;
 
 /// Inventory supporting runtime/test source inputs using the same bounded, no-follow discovery

@@ -11,6 +11,36 @@ use std::{
 #[error("{0}")]
 pub struct CliError(pub String);
 pub type Result<T> = std::result::Result<T, CliError>;
+/// Frozen diagnostic classes that carry their own stderr prefix: next-path configuration and
+/// scope refusals (`config: `), the stable loader (`Configuration error: `) and the stored
+/// result readers of `report` (`report: `) and `diff` (`diff: `).
+pub const CONFIG_PREFIX: &str = "config: ";
+pub const STABLE_CONFIG_PREFIX: &str = "Configuration error: ";
+/// A configuration refusal in one frozen diagnostic class: every problem line carries the prefix,
+/// as frozen echoed each `NextConfigError` problem on its own `config: ` line.
+pub fn classed(prefix: &str, problem: impl Display) -> CliError {
+    CliError(
+        problem
+            .to_string()
+            .lines()
+            .map(|line| format!("{prefix}{line}"))
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
+}
+/// The stderr line for a refused command: a classed diagnostic as frozen printed it, anything
+/// else under the native `ici: ` prefix. Secrets are redacted either way.
+pub fn diagnostic(error: &CliError) -> String {
+    let text = ici_execution::redaction::redact_text(&error.to_string());
+    if [CONFIG_PREFIX, STABLE_CONFIG_PREFIX, "report: ", "diff: "]
+        .iter()
+        .any(|prefix| text.starts_with(prefix))
+    {
+        format!("{text}\n")
+    } else {
+        format!("ici: {text}\n")
+    }
+}
 fn error(e: impl Display) -> CliError {
     CliError(e.to_string())
 }
@@ -60,10 +90,7 @@ fn plan(
                     Some(announcement),
                     CommandOutput {
                         stdout: String::new(),
-                        stderr: format!(
-                            "ici: {}\n",
-                            ici_execution::redaction::redact_text(&failure.to_string())
-                        ),
+                        stderr: diagnostic(&failure),
                         exit_code: 2,
                     },
                 )),
@@ -88,6 +115,9 @@ pub fn dispatch(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<CommandOutput> {
+    if let Some(refusal) = crate::cutover::stable_refusal(invocation, cwd, environment)? {
+        return Ok(refusal);
+    }
     match invocation.command().as_str() {
         "next plan" => plan(invocation, cwd, environment, false),
         "analyze" if invocation.flag("plan") => plan(invocation, cwd, environment, true),
@@ -294,8 +324,21 @@ fn diff(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
         &root,
         invocation.value("current").unwrap_or(crate::DEFAULT_RESULT),
     );
-    let old = native_comparison_result(&old_path)?;
-    let current = native_comparison_result(&new_path)?;
+    // Frozen `cmd_diff`: an unreadable stored result is a `diff: ` refusal naming the file.
+    let read = |path: &Path, label: &str| {
+        native_comparison_result(path).map_err(|e| {
+            CliError(if path.is_file() {
+                format!(
+                    "diff: {label}{} is not a result this version can read: {e}",
+                    path.display()
+                )
+            } else {
+                format!("diff: {label}{} cannot be read: {e}", path.display())
+            })
+        })
+    };
+    let old = read(&old_path, "baseline ")?;
+    let current = read(&new_path, "")?;
     let (Some(old), Some(current)) = (old, current) else {
         return Ok(CommandOutput{stdout:"incompatible: historical results are readable but have no native completed-check scope; original reports are unchanged\n".into(),stderr:String::new(),exit_code:2});
     };

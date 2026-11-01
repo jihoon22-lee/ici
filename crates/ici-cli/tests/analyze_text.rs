@@ -189,11 +189,7 @@ fn native_analyze_prints_the_frozen_frame_on_the_same_projects() {
                     let (announce, refusal) =
                         frozen_err.split_at(frozen_err.find("config: ").unwrap());
                     assert!(stderr.starts_with(announce), "{name}: {stderr}");
-                    assert_eq!(
-                        &stderr[announce.len()..],
-                        refusal.replacen("config: ", "ici: ", 1),
-                        "{name}"
-                    );
+                    assert_eq!(&stderr[announce.len()..], refusal, "{name}");
                 } else {
                     assert_eq!(stderr, frozen_err, "{name}");
                     RunResult::from_json(stdout.trim_end()).unwrap();
@@ -206,11 +202,7 @@ fn native_analyze_prints_the_frozen_frame_on_the_same_projects() {
             assert_eq!(native[..2], frozen[..2], "{name}: announcement");
             if expected_exit == 2 {
                 assert_eq!(native.len(), 2, "{name}");
-                assert_eq!(
-                    stderr,
-                    frozen_err.replacen("config: ", "ici: ", 1),
-                    "{name}"
-                );
+                assert_eq!(stderr, frozen_err, "{name}");
                 continue;
             }
             assert_eq!(native[2], frozen[2], "{name}: verdict");

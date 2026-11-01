@@ -57,13 +57,9 @@ fn plans_announce_and_workspace_engines_refuse_like_frozen() {
             // Frozen `next plan` refuses before announcing (config: … exit 2).
             assert_eq!((expected_exit, frozen_out), (2, ""));
             assert!(frozen_err.starts_with("config: "));
-            match outcome {
-                Err(error) => assert!(error.to_string().contains("no component selected")),
-                Ok(output) => {
-                    assert_eq!(output.exit_code, 2, "{name}");
-                    assert!(!output.stdout.contains("root: ") && !output.stderr.contains("root: "));
-                }
-            }
+            // The refusal carries the frozen class prefix (`commands::diagnostic` prints it as is).
+            let error = outcome.unwrap_err();
+            assert_eq!(commands::diagnostic(&error), frozen_err, "{name}");
             continue;
         }
         let output = outcome.unwrap();
@@ -85,13 +81,9 @@ fn plans_announce_and_workspace_engines_refuse_like_frozen() {
             assert_eq!(two_lines(&stderr), two_lines(frozen_err), "{name}");
             serde_json::from_str::<Value>(&stdout).unwrap();
         } else if name.ends_with("_nothing_selected") {
-            // `analyze --plan` announces, then refuses (native `ici:` prefix for `config:`).
+            // `analyze --plan` announces, then refuses with frozen's `config: ` line.
             assert_eq!(two_lines(&stdout), two_lines(frozen_out), "{name}");
-            assert_eq!(
-                stderr,
-                frozen_err.replacen("config: ", "ici: ", 1),
-                "{name}"
-            );
+            assert_eq!(stderr, frozen_err, "{name}");
         } else {
             assert_eq!(two_lines(&stdout), two_lines(frozen_out), "{name}");
             assert!(stderr.is_empty(), "{name}: {stderr}");

@@ -168,17 +168,22 @@ fn configuration_refusals_keep_their_recorded_exit_classes() {
     let native = replay(&oracle, "target_version_config_error");
     assert_eq!(native.code, 2, "{}", native.output);
     assert!(native.report.is_none());
+    // Frozen `Configuration error: engines.python_compat.target_version must be empty or a
+    // Python 3 minor such as 3.10`: same class prefix, key and wording; native adds the
+    // file:line:column origin between them (cli-gaps-differences.json, legacy_invalid_*).
+    let frozen_text = frozen["output"].as_str().unwrap();
+    let (prefix, rest) = frozen_text.split_at("Configuration error: ".len());
+    let (key, wording) = rest.split_once(' ').unwrap();
+    assert!(native.output.starts_with(prefix), "{}", native.output);
     assert!(
         native
             .output
-            .contains("engines.python_compat.target_version"),
+            .trim_end()
+            .ends_with(&format!("{key}: {wording}")),
         "{}",
         native.output
     );
-    let frozen = &oracle["runs"]["analysis_unavailable_toml"];
-    assert_eq!(frozen["exit_code"], 1);
-    assert_eq!(frozen["status"], "ERROR");
-    let native = replay(&oracle, "analysis_unavailable_toml");
-    assert_eq!(native.code, 2, "{}", native.output);
-    assert!(native.output.contains("invalid TOML"), "{}", native.output);
+    // An unparseable pyproject.toml is the frozen AnalysisUnavailable ERROR engine (exit 1,
+    // report written): configuration discovery never claims the packaging file.
+    compare(&oracle, "analysis_unavailable_toml");
 }
