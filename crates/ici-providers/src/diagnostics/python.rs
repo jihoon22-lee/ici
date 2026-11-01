@@ -74,15 +74,7 @@ pub(super) fn format(
     for line in stdout.lines().filter(|line| !line.trim().is_empty()) {
         if let Some(path) = line.strip_prefix("Would reformat: ") {
             if seen.insert(path.to_string()) {
-                parsed.findings.push(finding(
-                    plan,
-                    path,
-                    1,
-                    None,
-                    "format",
-                    "file would be reformatted",
-                    "low",
-                )?);
+                parsed.findings.push(format_finding(plan, path, 1, None)?);
             }
         } else if line.starts_with("unformatted:") {
             if header {
@@ -97,14 +89,11 @@ pub(super) fn format(
             }
             header = false;
             if seen.insert(captures[1].to_string()) {
-                parsed.findings.push(finding(
+                parsed.findings.push(format_finding(
                     plan,
                     &captures[1],
                     number(&captures[2])?,
                     Some(number(&captures[3])?),
-                    "format",
-                    "file would be reformatted",
-                    "low",
                 )?);
             }
         } else if let Some(captures) = count.captures(line.trim()) {
@@ -127,6 +116,27 @@ pub(super) fn format(
         ));
     }
     Ok(parsed)
+}
+/// Frozen `ruff.py` format finding: rule `ruff.format`, category `format` and no native rule id
+/// (the fingerprint still hashes the frozen `format` rule token).
+fn format_finding(
+    plan: &ProviderPlan,
+    path: &str,
+    line: u32,
+    column: Option<u32>,
+) -> Result<ici_domain::Finding, ProviderError> {
+    let mut result = finding(
+        plan,
+        path,
+        line,
+        column,
+        "format",
+        "file would be reformatted",
+        "low",
+    )?;
+    result.native_rule_id = String::new();
+    result.category = "format".into();
+    Ok(result)
 }
 pub(super) fn ty(stdout: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError> {
     let document: Value = serde_json::from_str(stdout).map_err(|e| ProviderError(e.to_string()))?;
