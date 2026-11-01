@@ -378,7 +378,7 @@ pub(crate) fn observe_ctest(
         String::from_utf8_lossy(&outcome.stdout),
         String::from_utf8_lossy(&outcome.stderr)
     );
-    let cases = Regex::new(r"Test\s+#\d+:\s+(.+?)\s*\.{3,}\s*(.+?)\s+[\d.]+\s*sec\b")
+    let cases = Regex::new(r"Test\s+#(\d+):\s+(.+?)\s*\.{3,}\s*(.+?)\s+[\d.]+\s*sec\b")
         .expect("constant regex");
     let summary =
         Regex::new(r"\d+% tests passed,\s*\d+ tests failed out of (\d+)").expect("constant regex");
@@ -389,13 +389,26 @@ pub(crate) fn observe_ctest(
     // Not Run and Failed count; "Not Run (Disabled)" does not).
     let mut disabled = 0;
     let mut observed = BTreeMap::new();
-    for case in cases.captures_iter(&text) {
+    // `--parallel` prints cases in completion order; the CTest index (frozen JUnit order) is the
+    // stable case order.
+    let mut ordered: Vec<(u64, &str, &str)> = cases
+        .captures_iter(&text)
+        .map(|case| {
+            (
+                case[1].parse().unwrap_or(u64::MAX),
+                case.get(2).expect("name").as_str(),
+                case.get(3).expect("verdict").as_str(),
+            )
+        })
+        .collect();
+    ordered.sort_by_key(|(index, _, _)| *index);
+    for (_, name, verdict) in ordered {
         total += 1;
-        let verdict = case[2].trim_start_matches('*').trim();
+        let verdict = verdict.trim_start_matches('*').trim();
         disabled += u64::from(verdict.ends_with("(Disabled)"));
-        let path = source(plan, &case[1]);
+        let path = source(plan, name);
         let mut target = InspectionTarget::at(&path, 1);
-        target.target_name = case[1].into();
+        target.target_name = name.into();
         target.message = verdict.into();
         if verdict == "Passed" {
             passed += 1;
@@ -411,12 +424,12 @@ pub(crate) fn observe_ctest(
             output.observation.findings.push(finding(
                 plan,
                 "ctest.failed",
-                &format!("test {}: {verdict}", &case[1]),
+                &format!("test {name}: {verdict}"),
                 &path,
                 1,
             ));
         }
-        let node = format!("ctest:{}", &case[1]);
+        let node = format!("ctest:{name}");
         let status = match target.status.as_str() {
             "PASS" => "PASSED",
             "SKIP" => "SKIPPED",

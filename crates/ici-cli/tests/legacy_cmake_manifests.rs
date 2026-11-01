@@ -72,17 +72,29 @@ fn run(oracle: &Value, case: &Value) -> Value {
     git(&["commit", "-qm", "fixture"]);
     let commit = git(&["rev-parse", "HEAD"]);
     let command = case["command"].as_str().unwrap();
-    let invocation = registry::parse(["ici", command, "--report"]).unwrap();
+    let args: Vec<&str> = case["args"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect();
+    let invocation =
+        registry::parse(["ici", command].into_iter().chain(args).chain(["--report"])).unwrap();
     let environment = BTreeMap::from([
         ("PATH".to_string(), "/usr/bin:/bin".to_string()),
         ("HOME".to_string(), work.path().display().to_string()),
     ]);
-    // The suite exit code is not part of this comparison: on these fixtures the sanitizer
-    // engine differs (frozen ERROR on a disabled CTest case, native NOT_RUN), an open sanitize row.
-    commands::dispatch(&invocation, &root, &environment).unwrap();
+    let output = commands::dispatch(&invocation, &root, &environment).unwrap();
     let report: Value =
         serde_json::from_slice(&fs::read(root.join(format!("{command}_report.json"))).unwrap())
             .unwrap();
+    // The owned CMake preparation never reads as input drift: the initial plan's legacy
+    // fallback compiler is carried (re-measured) into the final re-plan.
+    let reasons = report["native_run"]["gate"]["reasons"].to_string();
+    assert!(
+        !reasons.contains("inputs changed while running"),
+        "{reasons}"
+    );
     let engines: Vec<Value> = if command == "verify" {
         report["results"].as_array().unwrap().clone()
     } else {
@@ -101,7 +113,7 @@ fn run(oracle: &Value, case: &Value) -> Value {
             )
         })
         .collect();
-    json!({"engines": engines})
+    json!({"exit_code": output.exit_code, "engines": engines})
 }
 
 /// Frozen view with the same reductions: digests and commit are run identity values and the
@@ -109,7 +121,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
 /// `.ici/rust-v1/build/` (frozen `build/ici-cmake[-asan]`), so `shadow_root` and the command's
 /// directory and `--parallel <jobs>` differ, and the digests hash the native run identity.
 fn frozen(case: &Value) -> Value {
-    let mut frozen = json!({"engines": case["frozen"]["engines"]});
+    let mut frozen =
+        json!({"exit_code": case["frozen"]["exit_code"], "engines": case["frozen"]["engines"]});
     for manifests in frozen["engines"].as_object_mut().unwrap().values_mut() {
         if let Some(items) = manifests.as_array_mut() {
             for manifest in items.iter_mut() {
@@ -160,6 +173,11 @@ fn legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests() {
             .unwrap()
             .iter()
             .any(|artifact| artifact["id"] == "coverage:shadow:libcalc.a")
+    );
+    // The deep profile publishes the thread-sanitize session's manifest.
+    assert_eq!(
+        cases["verify-deep-plain"]["frozen"]["engines"]["thread_sanitize"][0]["variant"],
+        "thread-sanitize"
     );
     assert!(mismatches.is_empty(), "{mismatches:?}");
 }

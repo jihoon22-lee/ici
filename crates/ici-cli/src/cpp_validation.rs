@@ -310,6 +310,7 @@ fn bind_inner(
             build_roots: vec![project.root.clone(), directory.clone()],
             // Frozen legacy commands count a CTest case that did not run as a SKIP target.
             ctest_not_run_measured: run_request.legacy_profiles,
+            legacy_unlocated_sanitizer_scope: run_request.legacy_profiles,
             ..Default::default()
         },
     };

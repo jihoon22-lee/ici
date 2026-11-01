@@ -732,11 +732,36 @@ pub fn execute(
                                     &mut output,
                                     &planned.check.id,
                                 ),
-                                Some("cmake") => crate::cpp::legacy_ctest_sanitizer(
-                                    &mut output,
-                                    &planned.check.id,
-                                    "CMakeLists.txt",
-                                ),
+                                Some("cmake") => {
+                                    let testfile = plans
+                                        .first()
+                                        .and_then(|plan| plan.context.options.build_dir.clone())
+                                        .map(|directory| directory.join("CTestTestfile.cmake"))
+                                        .unwrap_or_default();
+                                    // Frozen `engines.<sanitize|thread_sanitize>.required`
+                                    // (default true) decides whether a case that was not
+                                    // executed is an ERROR or a SKIP scope.
+                                    let section = if planned.check.id == "cpp.tsan" {
+                                        "/engines/thread_sanitize/required"
+                                    } else {
+                                        "/engines/sanitize/required"
+                                    };
+                                    let required = prepared
+                                        .project
+                                        .components
+                                        .iter()
+                                        .find(|component| component.id == planned.component_id)
+                                        .and_then(|component| component.settings.pointer(section))
+                                        .and_then(serde_json::Value::as_bool)
+                                        != Some(false);
+                                    crate::cpp::legacy_ctest_sanitizer(
+                                        &mut output,
+                                        &planned.check.id,
+                                        "CMakeLists.txt",
+                                        &testfile,
+                                        required,
+                                    );
+                                }
                                 _ => {}
                             }
                         }
@@ -945,6 +970,19 @@ pub fn execute(
                         context.plan.component_id, context.plan.build.variant
                     ))
                     .or_insert_with(|| tool.clone());
+            }
+        }
+        // Preparation keeps the initial plan's tools (e.g. the legacy C++ fallback compiler
+        // planned before the owned CMake database existed) beside the rebound plan; the final
+        // re-plan carries the same roles, each still re-measured, so they are not input drift.
+        for (role, tool) in &prepared.tools {
+            if !after.tools.contains_key(role) {
+                let current =
+                    ici_execution::process::executable_digest(&tool.path).map_err(error)?;
+                if current != tool.digest {
+                    return Ok(false);
+                }
+                after.tools.insert(role.clone(), tool.clone());
             }
         }
         inputs::capture_preserving(&after, &snapshot, &input_limits, &[])
@@ -1734,11 +1772,28 @@ fn build_system(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,
 ) -> Option<String> {
-    prepared
+    let component = prepared
         .project
         .components
         .iter()
-        .find(|component| component.id == planned.component_id)
-        .and_then(|component| crate::cpp::linked_build(&prepared.project, component))
+        .find(|component| component.id == planned.component_id)?;
+    // A runtime check runs on its own prepared variant (a legacy direct test compile is not the
+    // component's linked build); other checks use the linked build.
+    let variants: &[&str] = match planned.check.id.as_str() {
+        "cpp.test" | "cpp.coverage" => &["coverage", "test"],
+        "cpp.sanitize" => &["sanitize"],
+        "cpp.tsan" => &["thread-sanitize"],
+        _ => &[],
+    };
+    variants
+        .iter()
+        .find_map(|variant| {
+            let id = component
+                .settings
+                .pointer(&format!("/native_build_variants/{variant}/build_id"))?
+                .as_str()?;
+            prepared.project.builds.iter().find(|build| build.id == id)
+        })
+        .or_else(|| crate::cpp::linked_build(&prepared.project, component))
         .and_then(|build| build.system.clone())
 }

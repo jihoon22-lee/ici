@@ -294,6 +294,9 @@ pub fn command(
             &mut document,
             &crate::legacy_support::inputs(&prepared, &profile),
         );
+        // Frozen `verify` serializes the analysis context it prepared; single engines have none.
+        document["analysis_context"] =
+            crate::legacy_context::analysis_context(&prepared, &document, &profile);
         stored = StoredResult::from_value(document).map_err(error)?;
     }
     let options = RenderOptions {
@@ -658,8 +661,65 @@ fn shape_engine(
             "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
         ));
         exit_code = exit_code.max(code);
+    } else if family == "test"
+        && legacy_schema
+        && !coverage_required
+        && let Some(reason) = optional_cpp_coverage_missing(value)
+    {
+        // Frozen optional C++ coverage without a production source to measure: the test verdict
+        // stands beside an ESTIMATED coverage evidence (frozen invents 85%/95%; native does not),
+        // so the suite keeps the frozen WARN class instead of a NOT_RUN ERROR.
+        let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
+        let cases: Vec<_> = value["targets"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .filter(|target| {
+                target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("[C++] "))
+            })
+            .collect();
+        let passed = cases
+            .iter()
+            .filter(|target| target["status"] == "PASS")
+            .count();
+        let total = cases.len();
+        value["status"] = serde_json::json!(status);
+        value["evidence"] = serde_json::json!("ESTIMATED");
+        // The adapted target findings follow the engine evidence (`ESTIMATED` -> `medium`).
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            if finding["rule_id"] == "ici.legacy.test.target" {
+                finding["confidence"] = serde_json::json!("medium");
+            }
+        }
+        value["summary"] = serde_json::json!(format!(
+            "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
+        ));
+        exit_code = exit_code.max(code);
+        replaced = true;
     }
     Ok((replaced, exit_code))
+}
+
+/// A measured legacy C++ test run whose optional coverage check had nothing to measure (frozen
+/// falls back to its fixed estimate there).
+fn optional_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let test = checks
+        .iter()
+        .find(|check| check["check_id"] == "cpp.test")?;
+    let coverage = checks
+        .iter()
+        .find(|check| check["check_id"] == "cpp.coverage")?;
+    let reason = coverage["summary"].as_str()?;
+    (checks.len() == 2
+        && test["state"] == "SUCCEEDED"
+        && test["evidence_complete"] == true
+        && coverage["state"] == "BLOCKED"
+        && reason == "direct GCOV coverage has no non-main production sources")
+        .then(|| reason.to_owned())
 }
 
 pub(crate) fn open_page(

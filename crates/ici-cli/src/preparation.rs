@@ -265,7 +265,15 @@ pub fn execute(
                 )
             };
             match result {
-                Ok(context) => contexts.push(context),
+                Ok(context) => {
+                    if let Some(failure) = &context.build_failure {
+                        limitations.push(format!(
+                            "{} {} build failed; its configured compilation database is analysed like frozen, which never builds this shadow: {failure}",
+                            plan.component_id, plan.build.variant
+                        ));
+                    }
+                    contexts.push(context);
+                }
                 Err(failure) => {
                     let reason = failure.to_string();
                     if let Some(check) = prepared.plan.checks.iter().find(|check| {
@@ -334,6 +342,36 @@ pub fn execute(
                         if prepared.legacy_projection {
                             crate::cpp::legacy_direct_tests(&mut output, &failures);
                         }
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
+                    // Frozen SanitizeEngine/ThreadSanitizeEngine `_prepare_sanitizer_adapter`: an
+                    // adapter configure or build that fails is one `C++Sanitizer` ERROR scope at
+                    // the descriptor with the session error (`_fail_adapter_scope`); nothing runs.
+                    if prepared.legacy_projection
+                        && plan.build.system != "direct-gcc"
+                        && let Some(check_id) = match plan.build.variant.as_str() {
+                            "sanitize" => Some("cpp.sanitize"),
+                            "thread-sanitize" => Some("cpp.tsan"),
+                            _ => None,
+                        }
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == check_id
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(failed) = observed.targets.iter().find(|target| {
+                            matches!(target.target_name.as_str(), "BuildAdapter" | "BuildError")
+                        })
+                    {
+                        let mut output = crate::cpp::legacy_sanitizer_configuration_error(
+                            &check.task_id,
+                            &failed.file_path,
+                            &failed.message,
+                        );
+                        output.observation.limitations = observed.observation.limitations.clone();
+                        output.observation.limitations.push(failed.message.clone());
                         if crate::execute::redact(&mut output).is_ok() {
                             outputs.insert(check.task_id.clone(), output);
                             observed_failures.insert(check.task_id.clone());

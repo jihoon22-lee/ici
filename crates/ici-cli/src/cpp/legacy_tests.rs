@@ -214,6 +214,11 @@ pub fn test_build_failure(
     );
     if let Some(finding) = output.observation.findings.last_mut() {
         finding.category = "build".into();
+        if legacy {
+            // Finding text is trimmed; the frozen row keeps the target's untrimmed message.
+            output.extra["finding_details"] = json!({finding.fingerprint.clone():
+                {"legacy_path": target.file_path, "legacy_message": target.message}});
+        }
     }
     output.targets.push(target);
     Some(output)
@@ -260,6 +265,44 @@ fn skip_return_code(testfile: &Path, name: &str) -> Option<u32> {
     value.parse().ok()
 }
 
+/// The native `ctest.failed` finding of a case whose target the legacy view relocated names the
+/// relocated target (`legacy_path`/`legacy_message`), so it becomes that frozen target-adapted
+/// row instead of an extra native row at the owned CTestTestfile.
+fn map_case_findings(
+    output: &mut AnalysisOutput,
+    native_path: &str,
+    name: &str,
+    verdict: &str,
+    target: &InspectionTarget,
+) {
+    let message = format!("test {name}: {verdict}");
+    let fingerprints: Vec<String> = output
+        .observation
+        .findings
+        .iter()
+        .filter(|finding| {
+            finding.native_rule_id == "ctest.failed"
+                && finding.primary_location.path == native_path
+                && finding.message == message
+        })
+        .map(|finding| finding.fingerprint.clone())
+        .collect();
+    if fingerprints.is_empty() {
+        return;
+    }
+    if !output.extra["finding_details"].is_object() {
+        output.extra["finding_details"] = json!({});
+    }
+    for fingerprint in fingerprints {
+        let details = &mut output.extra["finding_details"][&fingerprint];
+        if !details.is_object() {
+            *details = json!({});
+        }
+        details["legacy_path"] = json!(target.file_path);
+        details["legacy_message"] = json!(target.message);
+    }
+}
+
 /// Frozen `TestEngine._run_cpp_tests_via_adapter` targets for CTest cases: `[C++] <name>` at the
 /// resolved test source, PASS "C++ Test Passed", FAIL "Execution Failed: <message>", and a case
 /// that did not run SKIP "Execution skipped: <message>".
@@ -271,6 +314,7 @@ pub fn legacy_ctest_tests(
 ) {
     // Every target of a CTest suite check is one case (native locates a case at a declared
     // source whose stem contains its name, else at the CTestTestfile).
+    let mut relocated = vec![];
     for target in &mut output.targets {
         if target.target_name.starts_with('[')
             || !matches!(target.status.as_str(), "PASS" | "FAIL" | "SKIP")
@@ -278,6 +322,7 @@ pub fn legacy_ctest_tests(
             continue;
         }
         let name = target.target_name.clone();
+        let native = (target.file_path.clone(), target.message.clone());
         if target.message == "Skipped"
             && let Some(code) = skip_return_code(testfile, &name)
         {
@@ -292,6 +337,10 @@ pub fn legacy_ctest_tests(
             "FAIL" => format!("Execution Failed: {}", junit_message(&target.message)),
             _ => format!("Execution skipped: {}", junit_message(&target.message)),
         };
+        relocated.push((native, name, target.clone()));
+    }
+    for ((path, verdict), name, target) in relocated {
+        map_case_findings(output, &path, &name, &verdict, &target);
     }
 }
 
@@ -359,27 +408,39 @@ pub fn legacy_sanitizer_no_scope(id: &str, check_id: &str) -> AnalysisOutput {
     output
 }
 
-/// Frozen SanitizeEngine/ThreadSanitizeEngine adapter (CMake/ctest) targets: a case without a
-/// diagnostic is `[C++ <label>] <name>` at the descriptor ("Sanitizers reported no
-/// diagnostics" / "Sanitizer run failed: <message>"), a case whose run printed a sanitizer report
-/// is replaced by the located diagnostic targets, and the summary is the frozen clean or
-/// "<n> <noun> Defect(s) Detected" text.
-pub fn legacy_ctest_sanitizer(output: &mut AnalysisOutput, check_id: &str, descriptor: &str) {
+/// Frozen SanitizeEngine/ThreadSanitizeEngine adapter (CMake/ctest) targets in CTest case order:
+/// a case without a diagnostic is `[C++ <label>] <name>` at the descriptor ("Sanitizers reported
+/// no diagnostics" / "Sanitizer run failed: <message>"), a failed case whose output printed a
+/// sanitizer report is replaced by its located diagnostic targets, and a case that was not
+/// executed (DISABLED, SKIP_RETURN_CODE) is "Sanitizer test was not executed: <reason>" — an
+/// ERROR scope under `required = true` (the default; engine ERROR with the first three reasons),
+/// otherwise a SKIP scope (partial or skipped verdict, ESTIMATED evidence).
+pub fn legacy_ctest_sanitizer(
+    output: &mut AnalysisOutput,
+    check_id: &str,
+    descriptor: &str,
+    testfile: &Path,
+    required: bool,
+) {
     if !matches!(output.status.as_str(), "PASS" | "FAIL")
         || !output.observation.evidence_is_complete()
     {
         return;
     }
-    let (label, summary, noun) = if check_id == "cpp.tsan" {
+    let (label, clean, partial, skipped_summary, noun) = if check_id == "cpp.tsan" {
         (
             "TSan",
             "Thread Safety & TSan Clean (0 Defects)",
+            "ThreadSanitizer partially executed: one or more applicable scopes were skipped",
+            "ThreadSanitizer skipped: no applicable C++ checks were executed",
             "Thread Safety",
         )
     } else {
         (
             "ASan/UBSan",
             "Memory Safety & Sanitize Clean (0 Defects)",
+            "Sanitize partially executed: one or more applicable scopes were skipped",
+            "Sanitize skipped: no applicable checks were executed",
             "Memory / Resource",
         )
     };
@@ -389,37 +450,164 @@ pub fn legacy_ctest_sanitizer(output: &mut AnalysisOutput, check_id: &str, descr
             "ASan/UBSan Error" | "TSan Error" | "LSan Error" | "SanitizerDiagnosticLocation"
         )
     };
-    let diagnostics = output.targets.iter().any(|target| !case(target));
-    let mut reshaped = vec![];
-    for target in &output.targets {
-        if !case(target) {
-            reshaped.push(target.clone());
+    // Diagnostic targets keep the order of their diagnostics (an unlocated report is the
+    // `SanitizerDiagnosticLocation` ERROR scope); each names the CTest case that printed it.
+    // Ordered validation keeps each plan's extra under its task id.
+    let diagnostics = output
+        .extra
+        .get("sanitizer_diagnostics")
+        .or_else(|| output.extra[&output.observation.task_id].get("sanitizer_diagnostics"));
+    let owners: Vec<Option<String>> = diagnostics
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .map(|item| item["test_name"].as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default();
+    let mut owners = owners.into_iter();
+    let mut unattributed = vec![];
+    let mut attributed: BTreeMap<String, Vec<InspectionTarget>> = BTreeMap::new();
+    for target in output.targets.iter().filter(|target| !case(target)) {
+        match owners.next().flatten() {
+            Some(name) => attributed.entry(name).or_default().push(target.clone()),
+            None => unattributed.push(target.clone()),
+        }
+    }
+    let cases: Vec<_> = output
+        .targets
+        .iter()
+        .filter(|target| case(target) && target.target_name != "Instrumented suite")
+        .cloned()
+        .collect();
+    // Diagnostics no case claims stay first, as before attribution.
+    let mut errors: Vec<String> = unattributed
+        .iter()
+        .filter(|target| target.status == "ERROR")
+        .map(|target| target.message.clone())
+        .collect();
+    errors.dedup();
+    let mut reshaped = unattributed;
+    let unclaimed = !reshaped.is_empty();
+    let mut mapped = vec![];
+    let (mut measured, mut skipped, mut failed) = (0usize, 0usize, false);
+    for target in &cases {
+        let name = target.target_name.clone();
+        if target.status == "FAIL"
+            && let Some(diagnostics) = attributed.remove(&name)
+        {
+            measured += 1;
+            failed = true;
+            for diagnostic in &diagnostics {
+                // Frozen records an unlocated report once among the engine's tool errors.
+                if diagnostic.status == "ERROR" && !errors.contains(&diagnostic.message) {
+                    errors.push(diagnostic.message.clone());
+                }
+            }
+            // The case's own ctest.failed finding is that frozen diagnostic row.
+            mapped.push((target.clone(), diagnostics[0].clone()));
+            reshaped.extend(diagnostics);
             continue;
         }
-        if target.target_name == "Instrumented suite" || (diagnostics && target.status == "FAIL") {
+        if unclaimed && target.status == "FAIL" {
+            // A report this projection could not attribute replaces the failed cases.
+            measured += 1;
+            failed = true;
             continue;
         }
         let mut projected = InspectionTarget::at(descriptor, 1);
-        projected.target_name = format!("[C++ {label}] {}", target.target_name);
+        projected.target_name = format!("[C++ {label}] {name}");
         projected.status = target.status.clone();
         projected.message = match target.status.as_str() {
-            "PASS" => "Sanitizers reported no diagnostics".into(),
-            "FAIL" => format!("Sanitizer run failed: {}", junit_message(&target.message)),
-            _ => format!(
-                "Sanitizer test was not executed: {}",
-                junit_message(&target.message)
-            ),
+            "PASS" => {
+                measured += 1;
+                "Sanitizers reported no diagnostics".into()
+            }
+            "FAIL" => {
+                measured += 1;
+                failed = true;
+                let message = format!("Sanitizer run failed: {}", junit_message(&target.message));
+                let mut relocated = projected.clone();
+                relocated.message = message.clone();
+                mapped.push((target.clone(), relocated));
+                message
+            }
+            _ => {
+                skipped += 1;
+                let reason = match skip_return_code(testfile, &name) {
+                    Some(code) if target.message == "Skipped" => format!("SKIP_RETURN_CODE={code}"),
+                    _ => junit_message(&target.message),
+                };
+                let message = format!("Sanitizer test was not executed: {reason}");
+                projected.status = if required { "ERROR" } else { "SKIP" }.into();
+                if required {
+                    errors.push(message.clone());
+                }
+                message
+            }
         };
         reshaped.push(projected);
+    }
+    // Attributed diagnostics whose case did not fail are still reported.
+    for diagnostic in attributed.into_values().flatten() {
+        if diagnostic.status == "ERROR" && !errors.contains(&diagnostic.message) {
+            errors.push(diagnostic.message.clone());
+        }
+        reshaped.push(diagnostic);
+    }
+    for (native, relocated) in mapped {
+        map_case_findings(
+            output,
+            &native.file_path,
+            &native.target_name,
+            &native.message,
+            &relocated,
+        );
     }
     let issues = reshaped
         .iter()
         .filter(|target| matches!(target.status.as_str(), "WARN" | "FAIL"))
         .count();
     output.targets = reshaped;
-    output.summary = if output.status == "PASS" {
-        summary.into()
-    } else {
-        format!("{issues} {noun} Defect(s) Detected")
+    let estimated = |output: &mut AnalysisOutput| {
+        output.observation.measurements.push(Measurement {
+            name: "legacy.sanitizer.skipped_scopes".into(),
+            value: skipped as f64,
+            evidence: ici_domain::EvidenceLevel::Estimated,
+            unit: "scopes".into(),
+            numerator: None,
+            denominator: None,
+        });
     };
+    if skipped > 0 {
+        output.observation.limitations.push(format!(
+            "{skipped} CTest case(s) were not executed under the sanitizers"
+        ));
+    }
+    if !errors.is_empty() {
+        output.status = "ERROR".into();
+        output.summary = errors
+            .iter()
+            .take(3)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ");
+    } else if measured > 0 && skipped > 0 {
+        if !failed {
+            output.status = "WARN".into();
+        }
+        output.summary = partial.into();
+        estimated(output);
+    } else if measured > 0 {
+        output.summary = if output.status == "PASS" {
+            clean.into()
+        } else {
+            format!("{issues} {noun} Defect(s) Detected")
+        };
+    } else if skipped > 0 {
+        output.status = "SKIP".into();
+        output.summary = skipped_summary.into();
+        estimated(output);
+    }
 }
