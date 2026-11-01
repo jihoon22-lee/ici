@@ -1081,10 +1081,14 @@
   "src/ici/core/redaction.py": {
    "disposition": "unreviewed",
    "requirements": [
+    "capability:compile-context-export",
     "capability:execution-cancel-save-redact",
+    "command:ici export-compilation-context",
+    "finding_site:src/ici/core/redaction.py:360:11",
+    "finding_site:src/ici/core/redaction.py:447:11",
     "finding_site:src/ici/core/redaction.py:491:8"
    ],
-   "reason": "Engine/finding/delta/capability/argv redaction reviewed (redaction.py:491 complete); open because redaction.py:360/447 are only verified and the compilation argv helpers are producer-side."
+   "reason": "Outline and report-boundary half re-checked (decisions worker, 2026-11-02): engine/finding/location/metric/fix/delta/baseline/support-matrix/capability-inventory/argv redaction maps to redaction.py:360, 447 and 491 (all complete) and capability:execution-cancel-save-redact (complete). Still open: lines 24-283, the compilation-context helpers (_SECRET_FLAGS/_SECRET_DEFINE_RE define redaction, _COMPILE_PATH_FLAGS/_COMPILE_PATH_PREFIXES path relativization, -Wl, linker argv, attached-value flags, compilation unit/diagnostic/analysis-context redaction) are produced on the C++ export path natively; they map to capability:compile-context-export (cpp.json not_started) and command:ici export-compilation-context (cpp facet verified), so the module cannot be mapped before the cpp facet closes them."
   },
   "src/ici/core/result_keys.py": {
    "disposition": "retired",
@@ -1160,12 +1164,13 @@
    "reason": "Complete 418-line module read (decisions worker, 2026-11-02) and compared with crates/ici-reporting/src/issues.rs and render.rs. _actionable (INFO and suppressed excluded), _representative order, _generic_components (identity rule/fingerprint/path, overlap-only unions), _merge_locations (overlap, never adjacency; sorted labels), _clone_groups (CloneGroup#<id> label match, overlapping occurrence, `<n> matched lines`/`matched code`, location count, snippet fallback), _group_sort_key and project_issue_groups totals are pinned by the fifteen frozen issue-groups.json cases and four new frozen clone-occurrence edges (capture_issue_edges.py -> issue-edges.json; issues.rs::clone_occurrence_edges_match_frozen). Defects fixed: an occurrence whose end line precedes its start was clamped to its start and still matched (frozen _canonical_occurrence drops it); a group without locations was bucketed `(multiple files)` instead of frozen `(no location)` under --group-by file. select_issue_groups' per-engine bound, verbose, hidden finding/group counts and issue_bucket labels map to render.rs (limits.rs::console_caps_per_engine_verbose_and_unicode_width_preserve_original_inventory); ConsoleOptions' negative max_findings refusal is the CLI parser's (registry.rs). Known remaining difference: an absolute occurrence path inside the project root is canonicalized by frozen canonical_project_path but skipped by native (native occurrences are already project-relative). Gates: /tmp/ici-rust-replacement-20261028/w-dec-reporting-audit.log."
   },
   "src/ici/reporters/python_issue_projection.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
+    "capability:report-console-markdown-json-html-sarif",
     "finding_site:src/ici/reporters/python_issue_projection.py:288:11",
     "finding_site:src/ici/reporters/python_issue_projection.py:313:11"
    ],
-   "reason": "Covered by the frozen issue-groups.json cases; not re-audited in this pass."
+   "reason": "Complete 340-line module read (decisions worker, 2026-11-02) and compared with crates/ici-reporting/src/issues.rs (python/trusted/contextual/identity/can_merge/find/project). _TRUSTED_CONTEXTS and _CONTEXTUAL_GROUPS (weak-hash md5/sha1, dynamic-execution eval/exec), _python_source (case-insensitive .py/.pyi), _candidate_keys (precise end line and both columns required, external identities never merge, canonical path), overlapping-pair buckets, the same-engine refusal, union-find clusters, _project_single (canonical rule id and provenance for mergeable Python), _project_merged (`a + b` engine name, producer counts, representative order severity/path/line/engine/fingerprint, merged display locations, related locations without duplicates, provenance with tool name/version) are pinned by the fifteen frozen issue-groups.json cases (seven precise aliases, line-only, different columns, C++ path, same engine, identity overlap, distinct fingerprints, clone, info/suppressed) and the frozen alias/merge-group registry tests in issues.rs (every_alias_engine_and_context_resolves_to_the_frozen_canonical_rule_and_merge_group, reviewed_alias_table_is_the_frozen_mapping_registry, casefold_tokens_match_python_for_the_full_folding_characters). Gates: /tmp/ici-rust-replacement-20261028/w-dec-reporting-audit.log."
   },
   "src/ici/reporters/issue_models.py": {
    "disposition": "mapped",
