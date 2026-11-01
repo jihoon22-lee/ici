@@ -245,7 +245,7 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "verify/result",
         "written",
         r#"["out/base.html", "out/base.json"]"#,
-        "Approved native design (execution plan: results point to an offline HTML page): text-mode next verify also writes the offline page next to --result (out/base.html); the result itself is frozen's.",
+        "Plan-described native behaviour for root decision (the execution plan describes an offline HTML page for analyze results): text-mode next verify also writes the offline page next to --result (out/base.html); the result itself is frozen's.",
     ),
     (
         "global/unknown-command",
