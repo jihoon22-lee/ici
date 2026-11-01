@@ -1079,7 +1079,7 @@ pub fn analyze_compiler_include_cycles(
         let mut target = InspectionTarget::at(&observation.source, 1);
         target.target_name = "CppIncludeTrace".into();
         target.message =
-            "Compiler include tracing completed for this translation-unit configuration".into();
+            "Compiler include tracing completed for this translation-unit configuration.".into();
         target.metrics = BTreeMap::from([
             ("configuration".into(), json!(observation.configuration)),
             ("resolved_edges".into(), json!(seen.len())),
@@ -1137,9 +1137,27 @@ pub fn analyze_compiler_include_cycles(
     }
     if output.observation.state == TaskState::Succeeded {
         output.status = if cycles.is_empty() { "PASS" } else { "WARN" }.into();
+        // Frozen `CycleEngine` wording for a completed compiler-traced include graph.
+        output.summary = if cycles.is_empty() {
+            "No cyclic dependencies detected".into()
+        } else {
+            format!("Dependency cycles: {} found", cycles.len())
+        };
     }
     measurement(&mut output, "cycles_found", cycles.len() as u64, false);
     output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit)});
+    if request.options["legacy_projection"].as_bool() == Some(true) {
+        // Frozen `CycleEngine` names each trace process "compiler include trace"; adapted legacy
+        // findings take their tool name from the first one. Only the observed compiler path is
+        // recorded: the trace argv and return code are not carried by the observation.
+        let tools: Vec<_> = context
+            .units
+            .iter()
+            .filter(|unit| actual.contains(&(unit.source.clone(), unit.configuration.clone())))
+            .map(|unit| json!({"name":"compiler include trace","path":unit.compiler}))
+            .collect();
+        output.extra["tool_evidence"] = json!(tools);
+    }
     output
 }
 

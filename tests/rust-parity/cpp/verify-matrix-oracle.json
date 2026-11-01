@@ -21245,6 +21245,2721 @@
   "profile_fast": "[ici]\nprofile='fast'\n",
   "required_flipped": "[engines.cycle]\nrequired=true\n[engines.exception]\nrequired=false\n[engines.type]\nrequired=false\n[engines.resource]\nrequired=true\n[engines.security]\nrequired=true\n[engines.python_compat]\nrequired=true\n[engines.sanitize]\nrequired=false\n[engines.test]\nrequired=false\n[engines.lint]\nrequired=false\n[engines.line]\nrequired=false\n[engines.compile_db]\nrequired=false\n[engines.complexity]\nrequired=false\n[engines.dup]\nrequired=false\n"
  },
+ "database": "[{\"directory\": \".\", \"file\": \"src/extra.cc\", \"arguments\": [\"g++\", \"-std=c++17\", \"-c\", \"src/extra.cc\"]}, {\"directory\": \".\", \"file\": \"src/main.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-c\", \"src/main.cpp\"]}, {\"directory\": \".\", \"file\": \"src/util.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-c\", \"src/util.cpp\"]}]\n",
+ "database_cases": {
+  "discovered": {
+   "engines": [
+    {
+     "engine_name": "line",
+     "evidence": "MEASURED",
+     "extra_keys": [
+      "all",
+      "blank",
+      "code",
+      "comment",
+      "files_data",
+      "metrics_summary",
+      "top_files",
+      "top_files_all",
+      "total"
+     ],
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy line InspectionTarget contract.",
+       "fingerprint": "sha256:1c56f85af480af6bc6f5bc8862b393d34f1ecd91209b5e5d567a8fcac14004f8",
+       "fixes": [],
+       "message": "10 code lines",
+       "metrics": {
+        "blank": {
+         "unit": "",
+         "value": 0
+        },
+        "code": {
+         "unit": "",
+         "value": 10
+        },
+        "comment": {
+         "unit": "",
+         "value": 0
+        },
+        "total": {
+         "unit": "",
+         "value": 10
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 10,
+        "label": "C++",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.line.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy line InspectionTarget contract.",
+       "fingerprint": "sha256:1dec1e3917ca3ff2aac24ef5fbe40b73f6aebfccd7e602b216c6cb392d00d546",
+       "fixes": [],
+       "message": "37 code lines",
+       "metrics": {
+        "blank": {
+         "unit": "",
+         "value": 0
+        },
+        "code": {
+         "unit": "",
+         "value": 37
+        },
+        "comment": {
+         "unit": "",
+         "value": 0
+        },
+        "total": {
+         "unit": "",
+         "value": 37
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 37,
+        "label": "C++",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.line.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy line InspectionTarget contract.",
+       "fingerprint": "sha256:22b962f7cf756db04a28a813d6403dba2d21f0ba410a72231b7087c6030c303f",
+       "fixes": [],
+       "message": "2 code lines",
+       "metrics": {
+        "blank": {
+         "unit": "",
+         "value": 0
+        },
+        "code": {
+         "unit": "",
+         "value": 2
+        },
+        "comment": {
+         "unit": "",
+         "value": 0
+        },
+        "total": {
+         "unit": "",
+         "value": 2
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 2,
+        "label": "C++",
+        "path": "src/b.hpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.line.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy line InspectionTarget contract.",
+       "fingerprint": "sha256:bae843c9c4371bd7b1fdd5d990e2dc0330ec24ac01e719caeea3793b26ca0f1b",
+       "fixes": [],
+       "message": "4 code lines",
+       "metrics": {
+        "blank": {
+         "unit": "",
+         "value": 0
+        },
+        "code": {
+         "unit": "",
+         "value": 4
+        },
+        "comment": {
+         "unit": "",
+         "value": 0
+        },
+        "total": {
+         "unit": "",
+         "value": 4
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 4,
+        "label": "C++",
+        "path": "src/a.hpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.line.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy line InspectionTarget contract.",
+       "fingerprint": "sha256:c46d048227645b0ad49d30667e5be744e36b23ee14329772d7686bbf9266b320",
+       "fixes": [],
+       "message": "7 code lines",
+       "metrics": {
+        "blank": {
+         "unit": "",
+         "value": 0
+        },
+        "code": {
+         "unit": "",
+         "value": 7
+        },
+        "comment": {
+         "unit": "",
+         "value": 0
+        },
+        "total": {
+         "unit": "",
+         "value": 7
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 7,
+        "label": "C++",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.line.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "PASS",
+     "summary": "Total 60 lines (60 code, 0 comment, 0 blank) across 5 files",
+     "targets": [
+      {
+       "end_line": 4,
+       "file_path": "src/a.hpp",
+       "message": "4 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/b.hpp",
+       "message": "2 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "10 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "37 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "7 code lines",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++"
+      }
+     ]
+    },
+    {
+     "engine_name": "lint",
+     "evidence": "ESTIMATED",
+     "extra_keys": [
+      "clang_tidy_configurations_checked",
+      "clang_tidy_mode",
+      "clang_tidy_sources_checked",
+      "clazy_configurations_checked",
+      "clazy_mode",
+      "clazy_profile",
+      "clazy_provider",
+      "clazy_sources_checked",
+      "cpp_analysis_mode",
+      "cpp_configurations_checked",
+      "cpp_context_missing",
+      "cpp_diagnostic_categories",
+      "cpp_diagnostic_category_policy",
+      "cpp_diagnostic_families",
+      "cpp_fixits",
+      "cpp_fixits_total",
+      "cpp_related_notes",
+      "cpp_sources_checked",
+      "metrics_summary",
+      "python_files_parsed",
+      "qt5_compile_units",
+      "qt6_compile_units",
+      "qt_codegen_inputs_checked",
+      "qt_codegen_moc_checked",
+      "qt_codegen_mode",
+      "qt_codegen_qrc_checked",
+      "qt_codegen_ui_checked",
+      "violations_count"
+     ],
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+       "fingerprint": "sha256:1d78f7353993e01a72c8361ed2f40bd9672ff90b2c62f105f98df4025f16974b",
+       "fixes": [],
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Syntax:d7616a9d200c",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": "C++Syntax:d7616a9d200c"
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+       "fingerprint": "sha256:63468824abad547650d3458a45e23865a509c2b3a02996f2de5ae715996dd609",
+       "fixes": [],
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "ClangTidyUnavailable",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+       "fingerprint": "sha256:768aff80a728cf0c7caba8efcb70c3f2e7eb05a7fa85467ca059d0b577165243",
+       "fixes": [],
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "metrics": {},
+       "primary_location": {
+        "end_column": 25,
+        "end_line": 9,
+        "label": "",
+        "path": "src/extra.cc",
+        "start_column": 19,
+        "start_line": 9
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+       "fingerprint": "sha256:79089588f44e95aba5cc278901cd12e522e0ed8a621956c07c58da485656abbc",
+       "fixes": [],
+       "message": "error: expected class-name before '(' token",
+       "metrics": {},
+       "primary_location": {
+        "end_column": 24,
+        "end_line": 3,
+        "label": "",
+        "path": "src/extra.cc",
+        "start_column": 24,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "high",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+       "fingerprint": "sha256:8dee119dc1343c9aaa74ce76561e29ebd72dd5224420f5e5dae8c0522b7d6349",
+       "fixes": [],
+       "message": "warning: 'throw' will always call 'terminate'",
+       "metrics": {},
+       "primary_location": {
+        "end_column": 55,
+        "end_line": 3,
+        "label": "Compiler:-Wterminate",
+        "path": "src/util.cpp",
+        "start_column": 27,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": "-Wterminate"
+      },
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+       "fingerprint": "sha256:b77e263ada8db7f6817bd76bfb48927f35d5279d3157a77c6f84e23580fdb330",
+       "fixes": [],
+       "message": "warning: 'throw' will always call 'terminate'",
+       "metrics": {},
+       "primary_location": {
+        "end_column": 25,
+        "end_line": 9,
+        "label": "Compiler:-Wterminate",
+        "path": "src/extra.cc",
+        "start_column": 19,
+        "start_line": 9
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": "-Wterminate"
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+       "fingerprint": "sha256:e84fbc9828db504a46db34bc1d2d3cdbba4aa812e5edfe84aa5c61014e08f17a",
+       "fixes": [],
+       "message": "clazy is unavailable or incompletely probed",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "ClazyUnavailable",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "explanation": "Compiler diagnostic from a sanitized translation-unit replay.",
+       "fingerprint": "sha256:f081a56b1f5d55efe5b5eebe9e6e25ae1ba78afe8927a080e067a4bf3165902d",
+       "fixes": [],
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "metrics": {},
+       "primary_location": {
+        "end_column": 55,
+        "end_line": 3,
+        "label": "C++Syntax",
+        "path": "src/util.cpp",
+        "start_column": 27,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "snippet": "",
+       "tool_name": "g++",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "FAIL",
+     "summary": "1 Errors, 6 Warnings Found",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "error: expected class-name before '(' token",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 9,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:d7616a9d200c"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "warning: 'throw' will always call 'terminate'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Compiler:-Wterminate"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "note: in C++11 destructors default to 'noexcept'",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "C++Syntax"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clang-tidy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClangTidyUnavailable"
+      },
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "clazy is unavailable or incompletely probed",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "ClazyUnavailable"
+      }
+     ]
+    },
+    {
+     "engine_name": "compile_db",
+     "evidence": "MEASURED",
+     "extra_keys": [
+      "configurations",
+      "coverage_percent",
+      "covered_units",
+      "database_path",
+      "issues_count",
+      "production_units"
+     ],
+     "findings": [
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+       "fingerprint": "sha256:0f7bffbf6cd7c2c59e9d7d4cc2379f4bf3cdac649f3324946c5146ee9719ef94",
+       "fixes": [],
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": 1,
+        "label": "ici.compile-db.configuration",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+       "fingerprint": "sha256:2222fe526d2b4ac7d7d904b2c4f30f1372b5e2ad46a250797c000f30358a063d",
+       "fixes": [],
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": 1,
+        "label": "ici.compile-db.configuration",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+       "fingerprint": "sha256:5014eb44c2eafcf2639b759513d2545c04395f936df120854722ed5a78cfe2ec",
+       "fixes": [],
+       "message": "Compilation configuration was inspected.",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": 1,
+        "label": "ici.compile-db.configuration",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+       "fingerprint": "sha256:9bd80362b76e08e856ca5dd17852750f9337cf1e9fa327946151d87f67560012",
+       "fixes": [],
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": {
+         "unit": "",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 1,
+        "label": "ici.compile-db.coverage",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+       "fingerprint": "sha256:d28ae63bd0519790b418234820518ca09cdd22a59e5d62c0e6b7429df5e0cee1",
+       "fixes": [],
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": {
+         "unit": "",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 1,
+        "label": "ici.compile-db.coverage",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "build",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy compile_db InspectionTarget contract.",
+       "fingerprint": "sha256:e68f4a86b7f066303d85cedf7ab354344250282edd348a584985f719f335c8db",
+       "fixes": [],
+       "message": "Production translation unit is covered by the compilation database.",
+       "metrics": {
+        "configurations": {
+         "unit": "",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": 1,
+        "label": "ici.compile-db.coverage",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": 100.0,
+     "required": true,
+     "score": 100.0,
+     "status": "PASS",
+     "summary": "Compilation DB: 3/3 production units covered, 3 configurations, 0 failures, 0 warnings.",
+     "targets": [
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/extra.cc",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/main.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "end_line": 1,
+       "file_path": "src/util.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ]
+    },
+    {
+     "engine_name": "test",
+     "evidence": "ESTIMATED",
+     "extra_keys": [
+      "branch_coverage",
+      "coverage_files",
+      "coverage_policy",
+      "coverage_provenance",
+      "coverage_source",
+      "coverage_totals",
+      "flaky_test_inventory",
+      "flaky_tests",
+      "function_coverage",
+      "function_rows",
+      "line_coverage",
+      "metrics_summary",
+      "mutation_available",
+      "mutation_probes",
+      "mutation_status",
+      "mutation_unavailable",
+      "pass_rate",
+      "passed_tests",
+      "quality_enabled",
+      "repeat_cases",
+      "repeat_reruns",
+      "repeat_runs",
+      "repeat_timeouts",
+      "repeat_unavailable",
+      "skipped_tests",
+      "slow_test_inventory",
+      "slow_tests",
+      "slow_tests_observed",
+      "tem_score",
+      "test_quality",
+      "test_suites",
+      "total_tests"
+     ],
+     "findings": [
+      {
+       "category": "test",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy test InspectionTarget contract.",
+       "fingerprint": "sha256:d6a228f045ac92514a5c50aac1b294c535702d984c1f34ec9406ead59c66c7b2",
+       "fixes": [],
+       "message": "No tests collected",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "[C++] Tests",
+        "path": "tests",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "high",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": 5.0,
+     "required": true,
+     "score": 0.0,
+     "status": "FAIL",
+     "summary": "0/0 Tests Passed | Line: 45.0% (est), Func: 50.0%, Branch: 45.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No tests collected",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "[C++] Tests"
+      }
+     ]
+    },
+    {
+     "engine_name": "type",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [
+      "metrics_summary",
+      "mypy_profile",
+      "mypy_project_config_discovery",
+      "type_issues"
+     ],
+     "findings": [
+      {
+       "category": "type",
+       "confidence": "low",
+       "explanation": "Adapted from the legacy type InspectionTarget contract.",
+       "fingerprint": "sha256:0975ab75d22297888ac927522cb58fd163624f9b07b1a72ab44687d87c18e2d8",
+       "fixes": [],
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++TypeCheck",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.type.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "type",
+       "confidence": "low",
+       "explanation": "Adapted from the legacy type InspectionTarget contract.",
+       "fingerprint": "sha256:a464da519a08520cf478c91756f0292ca8b7cf46e8aa7e07827c379dd0303951",
+       "fixes": [],
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++TypeCheck",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.type.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "type",
+       "confidence": "low",
+       "explanation": "Adapted from the legacy type InspectionTarget contract.",
+       "fingerprint": "sha256:b7cc6e2c98048ca916a38c54ecf882cc1bf4da291847e7a4ca6655183cd6590d",
+       "fixes": [],
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++TypeCheck",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.type.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "SKIP",
+     "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ type checking is not implemented; source was not type-checked",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++TypeCheck"
+      }
+     ]
+    },
+    {
+     "engine_name": "python_compat",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [],
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "explanation": "Adapted from the legacy python_compat InspectionTarget contract.",
+       "fingerprint": "sha256:b3c8753872f64f09dc87ff96e55760ace2adf8529a9dafb70fd675557f043649",
+       "fixes": [],
+       "message": "No applicable Python source files were selected",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "PythonRuntime:NotApplicable",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "max_score": null,
+     "required": false,
+     "score": null,
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "resource",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [],
+     "findings": [
+      {
+       "category": "resource",
+       "confidence": "low",
+       "explanation": "Adapted from the legacy resource InspectionTarget contract.",
+       "fingerprint": "sha256:3d64cd579703b1f68664ab9fb39fda2f9c17b2c3dfa8b220c2d343dc47612bd7",
+       "fixes": [],
+       "message": "No applicable Python source files were selected",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "Resource:NotApplicable",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.resource.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": "Resource:NotApplicable"
+      }
+     ],
+     "max_score": null,
+     "required": false,
+     "score": null,
+     "status": "SKIP",
+     "summary": "Resource analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Resource:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "security",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [],
+     "findings": [
+      {
+       "category": "security",
+       "confidence": "low",
+       "explanation": "Adapted from the legacy security InspectionTarget contract.",
+       "fingerprint": "sha256:45a516730e21fe0b3154b6e6e1a4b796e7bba6bbaeaa71c7d388ee24195ad234",
+       "fixes": [],
+       "message": "No applicable Python source files were selected",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "Security:NotApplicable",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.security.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": "Security:NotApplicable"
+      }
+     ],
+     "max_score": null,
+     "required": false,
+     "score": null,
+     "status": "SKIP",
+     "summary": "Security analysis skipped: no Python source files",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "Security:NotApplicable"
+      }
+     ]
+    },
+    {
+     "engine_name": "cycle",
+     "evidence": "MEASURED",
+     "extra_keys": [
+      "ambiguous_cpp_includes",
+      "cpp_configurations_checked",
+      "cpp_cycles",
+      "cpp_include_diagnostics_truncated",
+      "cpp_include_resolution",
+      "cpp_include_scope_counts",
+      "py_cycles",
+      "resolved_cpp_includes",
+      "total_cycles",
+      "unresolved_cpp_includes"
+     ],
+     "findings": [
+      {
+       "category": "architecture",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+       "fingerprint": "sha256:08c60d871b1c6e4d65fa32733d95a3042e3c7fed150edbf1e2d0670f2fdcabaf",
+       "fixes": [],
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "metrics": {
+        "resolved_edges": {
+         "unit": "",
+         "value": 176
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppIncludeTrace",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "architecture",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+       "fingerprint": "sha256:32c27b0ecd31dc276c8f7fd8fcc9cf399fce7ae3c60ea52cfc629b12dae4f850",
+       "fixes": [],
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "metrics": {
+        "resolved_edges": {
+         "unit": "",
+         "value": 36
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppIncludeTrace",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "architecture",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy cycle InspectionTarget contract.",
+       "fingerprint": "sha256:ec952438c26289ce72b1f4a68664b86bfa3a7492cd9ccd8d97eaf7acc8a429a9",
+       "fixes": [],
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "metrics": {
+        "resolved_edges": {
+         "unit": "",
+         "value": 176
+        }
+       },
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppIncludeTrace",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": false,
+     "score": null,
+     "status": "PASS",
+     "summary": "No cyclic dependencies detected",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      }
+     ]
+    },
+    {
+     "engine_name": "complexity",
+     "evidence": "ESTIMATED",
+     "extra_keys": [
+      "cpp_boundary_configurations_checked",
+      "cpp_boundary_errors",
+      "cpp_boundary_mode",
+      "cpp_boundary_sources_checked",
+      "cpp_boundary_warnings",
+      "cpp_estimated_boundaries",
+      "cpp_exact_boundaries",
+      "cpp_scope_exclusions",
+      "issues_count",
+      "max_complexity",
+      "metrics_summary",
+      "top_complex_funcs",
+      "total_functions"
+     ],
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:01ce32d5220939252d8c4da426bfe055ef5ce879873b16766ce1233e05de02f9",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 58,
+        "end_line": 3,
+        "label": "~Guard()",
+        "path": "src/util.cpp",
+        "start_column": 16,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:20faf698a70104138d89b9166752798297ae3e69d858a476fe27b14c70e8f324",
+       "fixes": [],
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 2
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": 102,
+        "end_line": 6,
+        "label": "cc_one()",
+        "path": "src/extra.cc",
+        "start_column": 1,
+        "start_line": 6
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:23bff1f44514c6bba61e18f179d56bfaa077ee0ca3ff7612ba8b29151c8158b3",
+       "fixes": [],
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 2
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": 103,
+        "end_line": 7,
+        "label": "dup_two()",
+        "path": "src/util.cpp",
+        "start_column": 1,
+        "start_line": 7
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:4f08cde7ae5500a253220cee13baeeb1ab123ffc4f1804380708384f8964f68b",
+       "fixes": [],
+       "message": "Complexity: 4, Nesting: 3",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 4
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 1
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 3
+        }
+       },
+       "primary_location": {
+        "end_column": 5,
+        "end_line": 31,
+        "label": "nested()",
+        "path": "src/main.cpp",
+        "start_column": 5,
+        "start_line": 23
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:5962062e0501babf9d532e771ae39721c8ccb55e176e380e79aed1ae884036e7",
+       "fixes": [],
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 2
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": 54,
+        "end_line": 8,
+        "label": "f()",
+        "path": "src/extra.cc",
+        "start_column": 1,
+        "start_line": 8
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:6f82ce5d616c72345b0c279c0637162e71ea40b301c334b898a9b7da8bf17f74",
+       "fixes": [],
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 2
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": 103,
+        "end_line": 6,
+        "label": "dup_one()",
+        "path": "src/util.cpp",
+        "start_column": 1,
+        "start_line": 6
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:74b39c47f151016560aa7894ac212ade2ad4f16a128036761d5075d002d14bba",
+       "fixes": [],
+       "message": "Complexity: 11, Nesting: 3",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 11
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 3
+        }
+       },
+       "primary_location": {
+        "end_column": 1,
+        "end_line": 16,
+        "label": "branchy()",
+        "path": "src/main.cpp",
+        "start_column": 1,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:877c79351d0165eefa3eb0c1f3b49b05fded7b78972fd3618378d953470c5912",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 28,
+        "end_line": 9,
+        "label": "~Z()",
+        "path": "src/extra.cc",
+        "start_column": 12,
+        "start_line": 9
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:912739f75c2916af0d5869e24cb8a01a45eb02a3002207a9f9f806682dd89bfe",
+       "fixes": [],
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 2
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": 62,
+        "end_line": 10,
+        "label": "g()",
+        "path": "src/extra.cc",
+        "start_column": 1,
+        "start_line": 10
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:9acc870c233d89d4865d530d0a4ee9f37932594dc592e8055bc69f93835785d8",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 42,
+        "end_line": 4,
+        "label": "unused_helper()",
+        "path": "src/util.cpp",
+        "start_column": 1,
+        "start_line": 4
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:9b5bfd30995d48305dbfcf08a6c2e44c918e59d6c1949c0e18c5b6de7a436705",
+       "fixes": [],
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 2
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": 102,
+        "end_line": 7,
+        "label": "cc_two()",
+        "path": "src/extra.cc",
+        "start_column": 1,
+        "start_line": 7
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:aee156b0a4ac5ad68e116b2c6afe6772dfa559d84f645a1e40099f6d4d342a50",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 49,
+        "end_line": 5,
+        "label": "internal_only()",
+        "path": "src/util.cpp",
+        "start_column": 1,
+        "start_line": 5
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:b94f02e2b0a83779067216691ddf2cb4b55dfc002f660e7a6a52e8bb6699189e",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 38,
+        "end_line": 4,
+        "label": "cc_helper()",
+        "path": "src/extra.cc",
+        "start_column": 1,
+        "start_line": 4
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:bb248b34a57ff6c821a74d7c82b3a36e76c56e851ebd2f774b5d495d08880a07",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 60,
+        "end_line": 3,
+        "label": "~Guard()",
+        "path": "src/extra.cc",
+        "start_column": 18,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:d499eb7a142646664b7ff4b03152bacfb6d26cd6e38aafe1bc94ca2e11ce7ea3",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 47,
+        "end_line": 5,
+        "label": "cc_internal()",
+        "path": "src/extra.cc",
+        "start_column": 1,
+        "start_line": 5
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:f6b69ee9d0bbcadddc8dd986a57a0af405a8b5bfecca8c826edd4c5b391064d7",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 35,
+        "end_line": 2,
+        "label": "simple()",
+        "path": "src/main.cpp",
+        "start_column": 1,
+        "start_line": 2
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:fccfd567adbb7f9c531e4a88a00b989075fd60d0ee81ee21ec8641e33d032231",
+       "fixes": [],
+       "message": "Complexity: 2, Nesting: 1",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 2
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 1
+        }
+       },
+       "primary_location": {
+        "end_column": 5,
+        "end_line": 22,
+        "label": "operator()",
+        "path": "src/main.cpp",
+        "start_column": 5,
+        "start_line": 19
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy complexity InspectionTarget contract.",
+       "fingerprint": "sha256:fdba284a702c04df25c9ae7040587cc66cd8a39c57b83683bc2f853a451ec9ac",
+       "fixes": [],
+       "message": "Complexity: 1, Nesting: 0",
+       "metrics": {
+        "complexity": {
+         "unit": "",
+         "value": 1
+        },
+        "excluded_nested_lambdas": {
+         "unit": "",
+         "value": 0
+        },
+        "nesting": {
+         "unit": "levels",
+         "value": 0
+        }
+       },
+       "primary_location": {
+        "end_column": 1,
+        "end_line": 37,
+        "label": "main()",
+        "path": "src/main.cpp",
+        "start_column": 1,
+        "start_line": 33
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": 11.0,
+     "status": "PASS",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 15) across 18 functions (0 issues)",
+     "targets": [
+      {
+       "end_line": 3,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "cc_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "cc_internal()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "cc_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "cc_two()"
+      },
+      {
+       "end_line": 8,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "f()"
+      },
+      {
+       "end_line": 9,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 9,
+       "status": "PASS",
+       "target_name": "~Z()"
+      },
+      {
+       "end_line": 10,
+       "file_path": "src/extra.cc",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 10,
+       "status": "PASS",
+       "target_name": "g()"
+      },
+      {
+       "end_line": 2,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 2,
+       "status": "PASS",
+       "target_name": "simple()"
+      },
+      {
+       "end_line": 16,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 11, Nesting: 3",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "branchy()"
+      },
+      {
+       "end_line": 22,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 19,
+       "status": "PASS",
+       "target_name": "operator()"
+      },
+      {
+       "end_line": 31,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 4, Nesting: 3",
+       "start_line": 23,
+       "status": "PASS",
+       "target_name": "nested()"
+      },
+      {
+       "end_line": 37,
+       "file_path": "src/main.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 33,
+       "status": "PASS",
+       "target_name": "main()"
+      },
+      {
+       "end_line": 3,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 3,
+       "status": "PASS",
+       "target_name": "~Guard()"
+      },
+      {
+       "end_line": 4,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 4,
+       "status": "PASS",
+       "target_name": "unused_helper()"
+      },
+      {
+       "end_line": 5,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "internal_only()"
+      },
+      {
+       "end_line": 6,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 6,
+       "status": "PASS",
+       "target_name": "dup_one()"
+      },
+      {
+       "end_line": 7,
+       "file_path": "src/util.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 7,
+       "status": "PASS",
+       "target_name": "dup_two()"
+      }
+     ]
+    },
+    {
+     "engine_name": "sanitize",
+     "evidence": "ESTIMATED",
+     "extra_keys": [
+      "sanitize_issues",
+      "sanitizer_diagnostics"
+     ],
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy sanitize InspectionTarget contract.",
+       "fingerprint": "sha256:b6030115aff3a08ecfa6ed01743dfe6d952e2ac827c1dd828b1d78b0795a6eda",
+       "fixes": [],
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++Sanitizer",
+        "path": "tests",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "SKIP",
+     "summary": "Sanitize skipped: no applicable checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "tests",
+       "message": "No C++ sanitizer test sources were selected; compilation was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "C++Sanitizer"
+      }
+     ]
+    },
+    {
+     "engine_name": "dead",
+     "evidence": "NOT_RUN",
+     "extra_keys": [
+      "analysis_provenance",
+      "cpp_linker_ambiguous_sections_excluded",
+      "cpp_linker_details",
+      "cpp_linker_discarded_sections_observed",
+      "cpp_linker_mode",
+      "cpp_linker_policy",
+      "cpp_linker_sections_kept_by_another_target",
+      "cpp_linker_sources_checked",
+      "cpp_linker_symbols_count",
+      "cpp_linker_targets_checked",
+      "cpp_linker_warnings",
+      "cpp_scope_evidence",
+      "cpp_unused_configurations_checked",
+      "cpp_unused_details",
+      "cpp_unused_functions_count",
+      "cpp_unused_mode",
+      "cpp_unused_non_tu_diagnostics_excluded",
+      "cpp_unused_policy",
+      "cpp_unused_sources_checked",
+      "cpp_unused_warnings",
+      "dead_symbols_count",
+      "language_evidence",
+      "metrics_summary",
+      "source_bytes_analyzed",
+      "source_exclusion_counts",
+      "source_files_analyzed",
+      "source_files_excluded",
+      "source_files_snapshotted"
+     ],
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "low",
+       "explanation": "This target records the bounded TU-local compiler unused-function scope.",
+       "fingerprint": "sha256:4d622d9ae25d5ab9a983af476a2cc51ddb910079d90251fac25eb1ce8875abb1",
+       "fixes": [],
+       "message": "C++ unused-function compiler exited with code 1: src/extra.cc",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "C++UnusedFunctionError",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "Restore a complete, safe compilation context when exact analysis did not run.",
+       "rule_id": "ici.legacy.dead.target",
+       "severity": "critical",
+       "snippet": "",
+       "tool_name": "g++ unused-function",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "ERROR",
+     "summary": "C++ unused-function compiler exited with code 1: src/extra.cc",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ unused-function compiler exited with code 1: src/extra.cc",
+       "start_line": 1,
+       "status": "ERROR",
+       "target_name": "C++UnusedFunctionError"
+      }
+     ]
+    },
+    {
+     "engine_name": "dup",
+     "evidence": "ESTIMATED",
+     "extra_keys": [
+      "analysis_provenance",
+      "clone_groups",
+      "clone_groups_count",
+      "duplication_pct",
+      "fingerprint_algorithm",
+      "fingerprint_algorithms",
+      "metrics_summary",
+      "python_semantic_exclusion_counts",
+      "python_semantic_exclusions",
+      "python_semantic_fingerprint_algorithm",
+      "python_semantic_groups_reported",
+      "python_semantic_groups_suppressed",
+      "python_semantic_mode",
+      "python_semantic_nodes_observed",
+      "python_semantic_parent_regions_excluded",
+      "python_semantic_policy",
+      "python_semantic_regions_eligible",
+      "python_semantic_regions_observed",
+      "python_semantic_serialized_chars",
+      "python_semantic_shape_policy",
+      "python_semantic_shape_version",
+      "python_semantic_trivial_regions_excluded",
+      "region_policy",
+      "signal_policy",
+      "source_bytes_analyzed",
+      "source_exclusion_counts",
+      "source_files_analyzed",
+      "source_files_excluded",
+      "tokenizer_versions"
+     ],
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+       "fingerprint": "sha256:58c891d38945a728cdc40820efbb31e1d7b7ada719a2f714005f7816ba569528",
+       "fixes": [],
+       "message": "Source was analyzed and has no reported duplicate region",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DuplicateScan",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+       "fingerprint": "sha256:acf9ee7ad5e3943a3fb8fcdb0282bf113d74099b940f931d8d63a6af80ab01da",
+       "fixes": [],
+       "message": "Source was analyzed and has no reported duplicate region",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DuplicateScan",
+        "path": "src/a.hpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+       "fingerprint": "sha256:d1c698e8f518aed8511dd393b846e73109c1fb1cfd6566a1c0eff5b4b3d06718",
+       "fixes": [],
+       "message": "Source was analyzed and has no reported duplicate region",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DuplicateScan",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+       "fingerprint": "sha256:ef24e76d7dd429fdd7c69cf8d8dae6cd60991dec85b5f03d5f61a6fa426c1d10",
+       "fixes": [],
+       "message": "Source was analyzed and has no reported duplicate region",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DuplicateScan",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "explanation": "Adapted from the legacy dup InspectionTarget contract.",
+       "fingerprint": "sha256:f7e64436deb199fe816cd3745c6f30347ea45d235522032dcd62a467cac71da5",
+       "fixes": [],
+       "message": "Source was analyzed and has no reported duplicate region",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DuplicateScan",
+        "path": "src/b.hpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": 0.0,
+     "status": "PASS",
+     "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/a.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/b.hpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ]
+    },
+    {
+     "engine_name": "exception",
+     "evidence": "MEASURED",
+     "extra_keys": [
+      "metrics_summary",
+      "violations_count"
+     ],
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:1653b161d2ec35b1807c669eb4561b5ded99d2418086144ecf859321f5881799",
+       "fixes": [],
+       "message": "C++ exception constructs were inspected",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppExceptionSafety",
+        "path": "src/main.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:18c9156cd317c1dacee27f34811428cd267e4e6d06c1bf8ab72710d92b367d02",
+       "fixes": [],
+       "message": "Silent catch(...) block without logging or re-throw",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CatchAllSwallowed",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 10
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "high",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:19995a54f4b52a4b7cd594e5481efcacb8330cf62dcab3cd1b0a0bc234863b0c",
+       "fixes": [],
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DestructorThrow",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 9
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "high",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:247cc7d89979ec01570c3851585f982beb75eedba93d783c210fd28f13484a97",
+       "fixes": [],
+       "message": "C++ exception constructs were inspected; see findings above",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppExceptionSafety",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:345a5f1d2226f2967ec6c54a045e464dca12a00184f2630af4065f51d6919b42",
+       "fixes": [],
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DestructorThrow",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "high",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:496dd0618e8966ec86e7db977c7fc36309c5f520a4ec836dac3dc8edc27b553b",
+       "fixes": [],
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "DestructorThrow",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 3
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "high",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:b4353a0651103e247a98611f81ca1a991a7e75552697f4c7fb5fe282deef22ae",
+       "fixes": [],
+       "message": "Silent catch(...) block without logging or re-throw",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CatchAllSwallowed",
+        "path": "src/extra.cc",
+        "start_column": null,
+        "start_line": 8
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "high",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "explanation": "Adapted from the legacy exception InspectionTarget contract.",
+       "fingerprint": "sha256:e39375eb43814fa708029938dfd14e98198610cd0fb1b459cb2c17f1a76f507b",
+       "fixes": [],
+       "message": "C++ exception constructs were inspected; see findings above",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "CppExceptionSafety",
+        "path": "src/util.cpp",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.exception.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "FAIL",
+     "summary": "5 Critical Exception Violations, 0 Warnings",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 9,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 8,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "Silent catch(...) block without logging or re-throw",
+       "start_line": 10,
+       "status": "FAIL",
+       "target_name": "CatchAllSwallowed"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/extra.cc",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/main.cpp",
+       "message": "C++ exception constructs were inspected",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ destructor throws an exception and may call std::terminate",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "DestructorThrow"
+      },
+      {
+       "end_line": null,
+       "file_path": "src/util.cpp",
+       "message": "C++ exception constructs were inspected; see findings above",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppExceptionSafety"
+      }
+     ]
+    }
+   ],
+   "exit_code": 1,
+   "suite_status": "ERROR"
+  }
+ },
+ "database_configs": {
+  "discovered": ""
+ },
  "exports": {
   "explicit_database": {
    "exit_code": 0,

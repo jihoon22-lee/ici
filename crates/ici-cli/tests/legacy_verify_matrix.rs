@@ -590,3 +590,56 @@ fn legacy_python_only_suite_keeps_the_frozen_cpp_not_applicable_engines() {
     }
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }
+
+/// `ici verify` with a discovered root compile_commands.json naming every production unit.
+/// The source engines, the compiler-traced cycle verdict and the not-applicable engines equal
+/// frozen. Open (recorded on their rows): the exact-context legacy projections of lint
+/// (C++Syntax:<configuration> targets), compile_db (coverage/configuration targets and summary)
+/// and dead (C++UnusedFunctionError) still report native modern shapes.
+#[test]
+#[ignore = "explicit actual g++ legacy verify with a compilation database: ICI_TEST_CXX must be the oracle g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"]
+fn legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines() {
+    let oracle = oracle();
+    let environment = compiler_environment(&oracle);
+    let base = oracle["base"].as_str().unwrap();
+    const OPEN: [&str; 3] = ["lint", "compile_db", "dead"];
+    let mut mismatches = Vec::new();
+    for (name, frozen) in oracle["database_cases"].as_object().unwrap() {
+        let config = format!(
+            "{base}{}",
+            oracle["database_configs"][name].as_str().unwrap()
+        );
+        let work = tempfile::tempdir().unwrap();
+        let root = work.path().join("project");
+        copy_tree(
+            &Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../parity-fixtures/cpp/legacy-scope-fixture"),
+            &root,
+        );
+        fs::write(root.join("ici.toml"), config).unwrap();
+        fs::write(
+            root.join("compile_commands.json"),
+            oracle["database"].as_str().unwrap(),
+        )
+        .unwrap();
+        let invocation = registry::parse(["ici", "verify", "--report"]).unwrap();
+        commands::dispatch(&invocation, &root, &environment).unwrap();
+        let report: Value =
+            serde_json::from_slice(&fs::read(root.join("verify_report.json")).unwrap()).unwrap();
+        let engines = report["results"].as_array().unwrap();
+        let expected = frozen["engines"].as_array().unwrap();
+        let names = |list: &[Value]| -> Vec<Value> {
+            list.iter()
+                .map(|engine| engine["engine_name"].clone())
+                .collect()
+        };
+        assert_eq!(names(engines), names(expected), "{name}: engine set");
+        for (actual, expected) in engines.iter().zip(expected) {
+            if OPEN.contains(&expected["engine_name"].as_str().unwrap()) {
+                continue;
+            }
+            compare_engine(name, actual, expected, &mut mismatches);
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}

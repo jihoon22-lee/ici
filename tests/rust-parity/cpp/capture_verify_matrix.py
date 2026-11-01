@@ -95,13 +95,19 @@ CASES = {
 
 
 def execute(
-    arguments: list[str], config: str | None, output: str, binary: str | None = None
+    arguments: list[str],
+    config: str | None,
+    output: str,
+    binary: str | None = None,
+    files: dict[str, str] | None = None,
 ) -> tuple[int, dict]:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
         shutil.copytree(FIXTURE, project)
+        for name, text in (files or {}).items():
+            (project / name).write_text(text, encoding="utf-8")
         if config is not None:
             (project / "ici.toml").write_text(config, encoding="utf-8")
         environment = {"PATH": "/usr/bin:/bin", "HOME": str(WORK)}
@@ -148,8 +154,27 @@ def legacy_engine(engine: dict) -> dict:
     }
 
 
-def run(config: str, binary: str | None = None) -> dict:
-    exit_code, report = execute(["verify", "--report"], BASE + config, "verify_report.json", binary)
+# A root compile_commands.json naming every production translation unit (relative directory).
+UNITS = ("src/extra.cc", "src/main.cpp", "src/util.cpp")
+FULL_DATABASE = (
+    "["
+    + ", ".join(
+        f'{{"directory": ".", "file": "{unit}", "arguments": ["g++", "-std=c++17", "-c", "{unit}"]}}'
+        for unit in UNITS
+    )
+    + "]\n"
+)
+DATABASE_CASES = {"discovered": ""}
+
+
+def run(config: str, binary: str | None = None, database: bool = False) -> dict:
+    exit_code, report = execute(
+        ["verify", "--report"],
+        BASE + config,
+        "verify_report.json",
+        binary,
+        {"compile_commands.json": FULL_DATABASE} if database else {},
+    )
     return {
         "exit_code": exit_code,
         "suite_status": report["suite_status"],
@@ -344,6 +369,7 @@ if __name__ == "__main__":
         compare(sys.argv[2])
     else:
         cases = {name: run(config) for name, config in CASES.items()}
+        database_cases = {name: run(config, None, True) for name, config in DATABASE_CASES.items()}
         commands = {command: single(command) for command in COMMANDS}
         # `analyze` needs no config (a legacy ici.toml is refused); `next verify` needs a root.
         next_cases = {
@@ -361,6 +387,9 @@ if __name__ == "__main__":
             "base": BASE,
             "configs": CASES,
             "cases": cases,
+            "database": FULL_DATABASE,
+            "database_configs": DATABASE_CASES,
+            "database_cases": database_cases,
             "commands": commands,
             "next_config": NEXT_CONFIG,
             "next": next_cases,
