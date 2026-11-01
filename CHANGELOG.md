@@ -27,6 +27,16 @@
 
 ### 변경
 
+- C++ 프로젝트의 기존 `ici verify`가 v0.13.0과 같은 엔진 집합(standard 프로필의 sanitize, deep 전용
+  cognitive)과 설정에 없는 엔진의 기본 required 값을 사용합니다.
+- C/C++ 프로젝트에서 type/resource/security/python_compat 엔진이 v0.13.0과 같은 적용 불가 대상을 보고하고,
+  type 엔진은 required로 유지됩니다.
+- 실행할 수 없는 C++ dead-code 자동 정책은 required가 아니며 NOT_RUN으로 표시됩니다. C++ 중복 검사는
+  ESTIMATED 증거로 표시됩니다.
+- compile_db와 컴파일러 진단 대상이 v0.13.0과 같은 종료 줄을 가지며, C++ line 보기에서 `ici.toml` 같은
+  비소스 파일을 대상으로 표시하지 않습니다.
+- 기존 Make/CMake/qmake 빌드의 PE(MZ)·Mach-O 산출물도 ABI 호환성 검사에서 v0.13.0처럼 비-ELF(허용 시 SKIP,
+  아니면 FAIL)로 보고하며, 게시 산출물에는 포함하지 않습니다.
 - 레거시 `ici publish`/`verify --publish`의 PR 댓글이 이전 제품과 같은 형식(TEM 헤더, 상태 통계표,
   baseline 변화, 엔진 상세, 다중 프로젝트 표)으로 게시됩니다.
 - `verify`가 ruff/mypy 미설치를 개별 명령과 같은 방식으로 판정하고 `--profile` 엔진 선택을 따릅니다. 손상된
