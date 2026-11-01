@@ -36,34 +36,41 @@
    "status": "complete"
   },
   "capability:doctor-env-cache": {
-   "comparison": "Native doctor/env/cache behaviour is exercised through the actual binary (runtime description without private environment, probe scope, shell loaders, cache inventory/clear preservation). Compared with frozen doctor.py/core/env.py/core/support.py output field by field in /tmp/ici-rust-replacement-20261028/w-config-doctor-content.log; every content difference is listed in difference_reason. Doctor's configuration gate, cwd rooting and doctor.required_tools equal frozen (cli_gaps.rs).",
-   "difference_reason": "Native doctor describes the native runtime and tool pack instead of a Python interpreter search (no ICI_PYTHON/PYTHON_CANDIDATES in the Rust product, ADR-0008). Recorded doctor content differences against frozen doctor.py/core/env.py/core/support.py: (1) the frozen `paths` section (find_infra_root, NAS shared and NAS C++ library directories) and find_uv are not reported — AGENTS §8 (R01) forbids the product to know NAS/shared-library paths; native reports workspace, configuration files and native tool pack; (2) `running_python` is null and python_candidates are the project Python tools found by the native resolver, not the core interpreter search (ADR-0008: no Python in the product); (3) support_matrix entries are the native plan's checks per component (evidence NOT_RUN, confidence low, project_frameworks []), not the frozen 38 SupportDeclaration rows with Qt framework detection and tool-promotion policies — e.g. frozen effective_required_tools coverage/mypy/pytest/python3/ruff vs native python/ruff/ty for one mypy_required/ruff_required/coverage_required project, and frozen project_languages [] vs native [python] for a configless directory whose .py file is outside the default source_dirs; (4) the Rich table and brief renderers print the native fields. Doctor's configuration gate, rooting and `doctor.required_tools` are frozen's (cli_gaps.rs). (5) capability_inventory: counts omit `optional` and add blocked_required_checks/version_probes; tool rows carry origin/sha256 instead of state/version_tuple/probe_argv/returncode/timed_out/truncated/evidence.",
+   "comparison": "Native doctor/env/cache behaviour is exercised through the actual binary (runtime description without private environment, probe scope, shell loaders, cache inventory/clear preservation). The historical `ici doctor` on a legacy-schema or configless project evaluates frozen's core/support.py matrix (38 declarations, project languages from the default source_dirs, Qt framework detection, profiles) and frozen derive_tool_policy (engine:language provenance, required dominates and absorbs optional, mypy/ruff/coverage/clang-tidy/clazy/linker policies, doctor.required_tools as doctor.config), and its tool inventory rows are exactly the policy tools: 14 frozen `ici doctor --json` cases (tests/rust-parity/doctor/legacy-doctor-oracle.json, incl. a subdirectory below a legacy root and a configless file outside the source dirs) replay equal for required_tools, effective_required_tools, analysis_profile, support_matrix, every policy row's available/required/optional/required_by/optional_by and the capability status. `ici next doctor` and native (v2/next) projects keep the native plan diagnosis. Doctor's configuration gate, cwd rooting and doctor.required_tools equal frozen (cli_gaps.rs). Rust defects fixed: legacy doctor listed native plan tools (python/ruff/ty) instead of frozen's policy (coverage/mypy/pytest/python3/ruff for one mypy_required/ruff_required/coverage_required project) and a native-shaped support matrix instead of frozen's.",
+   "difference_reason": "Recorded doctor content differences against frozen doctor.py/core/env.py/core/toolchain.py, each intended: (1) the frozen `paths` section (find_infra_root, NAS shared and NAS C++ library directories) and find_uv are not reported — AGENTS §8 (R01) forbids the product to know NAS/shared-library paths; native reports workspace, configuration files and native tool pack (doctor_commands.rs legacy_json_and_brief_describe_native_runtime_and_do_not_inherit_private_environment); (2) `running_python` is null and python_candidates are project Python executables found by the native resolver, not the core interpreter search (ADR-0008: no Python in the product); (3) frozen probed all 31 DEFAULT_TOOL_PROBES and listed unrelated host tools with required=false/optional=false; native probes only the policy (legacy) or plan (native) tools plus doctor.required_tools, a bounded survey (tests/rust-parity/doctor/README.md); (4) frozen probed mypy/pytest/coverage as `<.venv python or ici's own interpreter> -m <module>`; native resolves those executables from the project .venv/PATH, so their availability (and the capability status it decides) is native's (legacy_doctor.rs `corrected`); (5) capability_inventory counts omit `optional` and add blocked_required_checks/version_probes; tool rows carry origin/sha256/probe instead of state/version_tuple/probe_argv/returncode/timed_out/truncated/evidence; (6) the Rich table and brief renderers print the native fields (runtime line instead of os/shell/python lines).",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test doctor_commands --test native_env --test config_commands ... -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-config-commands.log",
-    "frozen (PYTHONPATH oracle, .venv python) and native `ici doctor --json` on one mypy_required/ruff_required/coverage_required python project (at its root and from a subdirectory whose .py file is outside the default source_dirs): top-level keys, effective_required_tools, project_languages, running_python, paths and capability_inventory shape; /tmp/ici-rust-replacement-20261028/w-config-doctor-content.log"
+    "frozen (PYTHONPATH oracle, .venv python) and native `ici doctor --json` on one mypy_required/ruff_required/coverage_required python project (at its root and from a subdirectory whose .py file is outside the default source_dirs): top-level keys, effective_required_tools, project_languages, running_python, paths and capability_inventory shape; /tmp/ici-rust-replacement-20261028/w-config-doctor-content.log",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/doctor/capture_legacy_doctor.py (14 frozen v0.13.0 `ici doctor --json` cases, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory); /tmp/ici-rust-replacement-20261028/w-sweep-doctor-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_doctor --test doctor_commands --test cli_gaps --test native_env --test config_commands --test legacy_python_engines -- --include-ignored (all passed); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-doctor.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-cli/tests/doctor_commands.rs::invalid_scope_is_an_actionable_error_and_does_not_run_probes",
      "crates/ici-cli/tests/native_env.rs::unsafe_path_entries_and_ambiguous_shell_selection_are_refused",
-     "crates/ici-cli/tests/config_commands.rs::cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files"
+     "crates/ici-cli/tests/config_commands.rs::cache_clear_refuses_symlink_ancestors_and_preserves_legacy_or_user_files",
+     "crates/ici-cli/tests/legacy_doctor.rs::legacy_doctor_reports_a_missing_configured_required_tool"
     ],
     "negative": [
      "crates/ici-cli/tests/doctor_commands.rs::disabled_tool_checks_do_not_probe_or_become_required",
-     "crates/ici-cli/tests/native_env.rs::tcsh_loader_preserves_quotes_history_characters_and_existing_path"
+     "crates/ici-cli/tests/native_env.rs::tcsh_loader_preserves_quotes_history_characters_and_existing_path",
+     "crates/ici-cli/tests/legacy_doctor.rs::legacy_doctor_keeps_unpromoted_disabled_and_inapplicable_rows_frozen"
     ],
     "positive": [
      "crates/ici-cli/tests/doctor_commands.rs::legacy_json_and_brief_describe_native_runtime_and_do_not_inherit_private_environment",
      "crates/ici-cli/tests/native_env.rs::sh_loader_preserves_literal_installation_path_and_existing_path",
-     "crates/ici-cli/tests/config_commands.rs::cache_inventory_explains_corruption_and_clear_preserves_unknown_files"
+     "crates/ici-cli/tests/config_commands.rs::cache_inventory_explains_corruption_and_clear_preserves_unknown_files",
+     "crates/ici-cli/tests/legacy_doctor.rs::legacy_doctor_promotes_the_frozen_policy_tools"
     ]
    },
    "rust_paths": [
     "crates/ici-cli/src/doctor.rs",
     "crates/ici-cli/src/setup.rs",
-    "crates/ici-cli/src/commands.rs"
+    "crates/ici-cli/src/commands.rs",
+    "crates/ici-cli/src/legacy_support.rs",
+    "crates/ici-reporting/src/legacy_support.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "capability:legacy-command-config-result-projection": {
    "comparison": "Config/CLI facet: the configuration a historical command projects onto its result is the working directory's (frozen load_config(base=cwd)), refused before running with frozen's gate messages, and the legacy type/lint tool selection (PATH/.venv mypy and ruff, `-m mypy` under verify) is frozen's and recorded in the run limitations (named fixtures). Projection facet (python worker): every historical engine result carries frozen's per-engine keys. support_matrix is the frozen core/support.py registry (38 declarations, exact) evaluated like frozen: a single-engine report carries that engine's rows under the configured ici.profile (so `ici cognitive` under standard reads enabled=false/NOT_RUN), verify carries the suite matrix under the selected --profile and null per result; languages (sources/headers, configured type, pyproject/CMakeLists/*.pro fallback), frameworks (Qt pkg-config or root build-file marker) and tool policies (ruff/mypy/coverage required, clang_tidy/clazy, dead cpp_unused/cpp_linker) equal frozen in every captured case. cache_hit/cache_key: bool and null-or-sha256 like frozen; miss on a first run, false/null under --no-cache, and second-run hits equal frozen per engine except the recorded native-namespace differences. artifact_manifests: [] for every Python engine, as frozen (a Python release build publishes none). tool_evidence: frozen's ruff check / ruff format capability / ruff format / mypy records and the not-found record, in frozen order with frozen's exits and errors. Defects fixed: missing support_matrix/cache_hit/cache_key/artifact_manifests keys, missing Ruff/mypy tool_evidence, legacy Python dup/dead evidence MEASURED instead of ESTIMATED, no `ruff format --help` capability probe and no text-dialect reader for a formatter without JSON output. In a hybrid Python+C++ `ici lint`, Ruff is the engine's first tool evidence like frozen, so the adapted findings name `ruff check` (legacy_lint_branches.rs lint-hybrid-mixed now compares tool_name unmasked; /tmp/ici-rust-replacement-20261028/w-py3-hybrid-lint.log).",
@@ -10850,25 +10857,30 @@
    "status": "complete"
   },
   "config_key:legacy:engines.type.mypy_required": {
-   "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.type.mypy_required:positive, engines.type.mypy_required:failure0 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts. Runtime consumer: crates/ici-cli/src/legacy_execute.rs reads the key; with Mypy absent the legacy type view is ERROR / NOT_RUN 'Mypy is required but was not found' as frozen engines/type_check.py:164 (tests/rust-parity/python/legacy-engines.json tool case type/mypy-missing-required, replayed by crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views with --include-ignored); frozen exit 1 becomes 3 under the accepted incomplete-run exit policy. OPEN: frozen core/support.py:608 also promotes mypy to a required doctor tool; native doctor lists its native plan tools instead (ty for the type scope) and does not promote mypy (capability:doctor-env-cache).",
-   "difference_reason": "Exit 3 for the incomplete required tool (accepted policy, reporting.json command:ici verify). Native doctor does not promote mypy.",
+   "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.type.mypy_required:positive, engines.type.mypy_required:failure0 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key keeps the frozen default value; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts. Runtime consumer: crates/ici-cli/src/legacy_execute.rs reads the key; with Mypy absent the legacy type view is ERROR / NOT_RUN 'Mypy is required but was not found' as frozen engines/type_check.py:164 (tests/rust-parity/python/legacy-engines.json tool case type/mypy-missing-required, replayed by crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views with --include-ignored); frozen exit 1 becomes 3 under the accepted incomplete-run exit policy. Doctor consumer (closure sweep): frozen core/support.py `_tool_policy` promotes mypy to a required `type:python` tool when the key is true and the type engine is enabled; the historical native `ici doctor` on a legacy or configless project now evaluates the same frozen support matrix and derive_tool_policy (crates/ici-cli/src/doctor.rs legacy_support/legacy_tools) instead of native plan tools (no `ty` for the type scope), replayed against 14 frozen `ici doctor --json` cases (tests/rust-parity/doctor/legacy-doctor-oracle.json): mypy required by type:python with mypy_required, optional without it, absent when [engines.type] enabled=false.",
+   "difference_reason": "Exit 3 for the incomplete required tool (accepted policy, reporting.json command:ici verify).",
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python -I tests/rust-parity/config/capture_legacy_schema.py <oracle> tests/rust-parity/config/legacy-schema-oracle.json (728 frozen v0.13.0 load_config cases, 222 accepted, 3 frozen CLI exit-2 samples)",
     "cargo test -p ici-config --locked (legacy_schema_oracle 3 tests, resolution 35, migration_report 2) and cargo test -p ici-cli --test config_oracle/config_commands/plan_commands/integration_legacy/native_validation_extra/published_abi/python_compat_cli --locked; all passed; cargo clippy -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-legacy-schema.log",
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_engines -- --include-ignored (2 passed, pinned ruff/mypy); /tmp/ici-rust-replacement-20261028/w-config-tool-policy.log; frozen/native doctor --json on [engines.type] mypy_required/[engines.lint] ruff_required/[engines.test] coverage_required: frozen effective_required_tools coverage, mypy, pytest, python3, ruff; native python, ruff, ty (/tmp/ici-rust-replacement-20261028/w-config-doctor-content.log)"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_python_engines -- --include-ignored (2 passed, pinned ruff/mypy); /tmp/ici-rust-replacement-20261028/w-config-tool-policy.log; frozen/native doctor --json on [engines.type] mypy_required/[engines.lint] ruff_required/[engines.test] coverage_required: frozen effective_required_tools coverage, mypy, pytest, python3, ruff; native python, ruff, ty (/tmp/ici-rust-replacement-20261028/w-config-doctor-content.log)",
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/doctor/capture_legacy_doctor.py (14 frozen v0.13.0 `ici doctor --json` cases, ruff 0.16.4 and mypy 2.3.1 linked into one PATH directory); /tmp/ici-rust-replacement-20261028/w-sweep-doctor-capture.log",
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_doctor --test doctor_commands --test cli_gaps --test native_env --test config_commands --test legacy_python_engines -- --include-ignored (all passed); cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-sweep-doctor.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
      "crates/ici-cli/tests/config_oracle.rs::every_frozen_legacy_refusal_exits_two_from_a_historical_command_and_names_the_key",
-     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views"
+     "crates/ici-cli/tests/legacy_python_engines.rs::legacy_python_tool_engines_match_frozen_mypy_and_ruff_views",
+     "crates/ici-cli/tests/legacy_doctor.rs::legacy_doctor_reports_a_missing_configured_required_tool"
     ],
     "negative": [
-     "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_defaults_match_frozen_default_policy_leaf_for_leaf"
+     "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_defaults_match_frozen_default_policy_leaf_for_leaf",
+     "crates/ici-cli/tests/legacy_doctor.rs::legacy_doctor_keeps_unpromoted_disabled_and_inapplicable_rows_frozen"
     ],
     "positive": [
      "crates/ici-config/tests/legacy_schema_oracle.rs::legacy_key_cases_replay_frozen_accept_reject_values_and_keys",
-     "crates/ici-config/tests/legacy_schema_oracle.rs::sparse_v2_gives_legacy_tables_the_same_native_verdicts"
+     "crates/ici-config/tests/legacy_schema_oracle.rs::sparse_v2_gives_legacy_tables_the_same_native_verdicts",
+     "crates/ici-cli/tests/legacy_doctor.rs::legacy_doctor_promotes_the_frozen_policy_tools"
     ]
    },
    "rust_paths": [
@@ -10876,9 +10888,10 @@
     "crates/ici-config/src/schema_keys.rs",
     "crates/ici-config/src/resolve.rs",
     "crates/ici-config/src/legacy-defaults.json",
-    "crates/ici-cli/src/legacy_execute.rs"
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-cli/src/doctor.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "config_key:legacy:engines.type.required": {
    "comparison": "Config facet (schema, effective value, origin, refusal): frozen tests/rust-parity/config/legacy-schema-oracle.json cases engines.type.required:positive, engines.type.required:failure0, engines.type.required:failure1 replayed against ici_config::inspect_configuration_with_environment; accepted values equal the frozen effective value with an ici.toml root origin; absent key has no frozen default and native invents none; every refusal names the frozen key and exits 2 through the actual `ici line` binary. Native validation is aggregated (bounded to 64 located diagnostics, each with file/line/key) where frozen raised the first ConfigError; message wording differs, the dotted key matches. Native error exit is 2 like frozen \"Configuration error\" exit 2. Native also gives sparse schema_version=2 files the same legacy-table verdicts.",
