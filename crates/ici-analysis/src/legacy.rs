@@ -248,6 +248,35 @@ fn owned(request: &AnalysisRequest, excluding: bool) -> Vec<&SourceInput> {
 /// Python scan as ESTIMATED evidence, whatever it found; the modern view keeps the native
 /// measurement's own evidence.
 pub(crate) fn frozen_evidence(kind: &str, output: &mut AnalysisOutput) {
+    // Frozen resource.py:180: a file past MAX_RESOURCE_AST_NODES is `Resource:AnalysisUnavailable`
+    // at line 1 and the first such file names the summary.
+    if kind == "resource" {
+        let mut first = None;
+        for target in &mut output.targets {
+            if target.target_name == "PythonAnalysis:resource-ast-limit" {
+                target.target_name = "Resource:AnalysisUnavailable".into();
+                target.status = "ERROR".into();
+                target.start_line = 1;
+                target.end_line = None;
+                target.start_column = None;
+                target.end_column = None;
+                first.get_or_insert_with(|| format!("{}:1: {}", target.file_path, target.message));
+            }
+        }
+        if let Some(first) = first {
+            fail(output, format!("Resource analysis incomplete: {first}"));
+        }
+    }
+    // Frozen dup.py:207: a bounded comparison stop is the `DuplicateComparisonLimit` ERROR.
+    if kind == "dup"
+        && output.observation.state == TaskState::Failed
+        && let [target] = output.targets.as_mut_slice()
+        && target.target_name == "DuplicateAnalysisError"
+        && target.message.contains("exceeds MAX_DUPLICATE_")
+    {
+        target.target_name = "DuplicateComparisonLimit".into();
+        output.summary = "Duplicate analysis exceeded a bounded comparison limit".into();
+    }
     if !matches!(kind, "dup" | "dead") || output.observation.state != TaskState::Succeeded {
         return;
     }

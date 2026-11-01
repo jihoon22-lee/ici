@@ -1,0 +1,176 @@
+{
+ "base": "[project]\ntype='python'\nsource_dirs=['src']\n",
+ "cases": {
+  "dup/raw-match-limit": {
+   "command": "dup",
+   "files": {
+    "src/a.py": [
+     "functions",
+     200
+    ]
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Duplicate analysis exceeded a bounded comparison limit",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "Raw duplicate match count exceeds MAX_DUPLICATE_RAW_MATCHES=10000",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "DuplicateComparisonLimit"
+     }
+    ]
+   }
+  },
+  "dup/window-occurrence-limit": {
+   "command": "dup",
+   "files": {
+    "src/a.py": [
+     "functions",
+     2100
+    ]
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Duplicate analysis exceeded a bounded comparison limit",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Shared duplicate-window occurrence count exceeds MAX_DUPLICATE_WINDOW_OCCURRENCES=2048",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "DuplicateComparisonLimit"
+     }
+    ]
+   }
+  },
+  "resource/ast-at-limit": {
+   "command": "resource",
+   "files": {
+    "src/a.py": [
+     "statements",
+     24998,
+     2
+    ]
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Resource/correctness analysis clean across 1 file(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     }
+    ]
+   }
+  },
+  "resource/ast-over-limit": {
+   "command": "resource",
+   "files": {
+    "src/a.py": [
+     "statements",
+     24998,
+     3
+    ]
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: src/a.py:1: Python resource AST exceeds the bounded limit (100000 nodes)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Python resource AST exceeds the bounded limit (100000 nodes)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:AnalysisUnavailable"
+     }
+    ]
+   }
+  },
+  "resource/ast-over-limit-second-file": {
+   "command": "resource",
+   "files": {
+    "src/a.py": "f = open('x')\n",
+    "src/b.py": [
+     "statements",
+     24998,
+     3
+    ]
+   },
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "exit_code": 1,
+    "status": "ERROR",
+    "summary": "Resource analysis incomplete: src/b.py:1: Python resource AST exceeds the bounded limit (100000 nodes)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     },
+     {
+      "file_path": "src/b.py",
+      "message": "Python resource AST exceeds the bounded limit (100000 nodes)",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "Resource:AnalysisUnavailable"
+     },
+     {
+      "file_path": "src/a.py",
+      "message": "f from builtins.open may remain open on an exit path",
+      "start_column": 5,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "Resource:OpenWithoutWith"
+     }
+    ]
+   }
+  },
+  "resource/long-logical-statement": {
+   "command": "resource",
+   "files": {
+    "src/a.py": [
+     "constants",
+     99994
+    ]
+   },
+   "frozen": {
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "status": "PASS",
+    "summary": "Resource/correctness analysis clean across 1 file(s)",
+    "targets": [
+     {
+      "file_path": "src/a.py",
+      "message": "Bounded intraprocedural resource-flow analysis completed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Resource:ASTFlow"
+     }
+    ]
+   }
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}
