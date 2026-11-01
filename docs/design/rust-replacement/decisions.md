@@ -63,6 +63,7 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 |doctor가 내부 검사로 기술한 외부 runtime/test|기존 doctor golden에 in-process 표기|R1/R3/R6: 실제 resolver/plan과 같은 실행 효과·도구 요구를 표시|
 |`pull_request` 이벤트의 게시 commit|`application/publish.py`가 `GITHUB_SHA`(합성 merge commit)를 우선해 PR head와 비교하는 순서 guard가 모든 PR 실행을 stale로 판정|R7: `pull_request.head.sha` 우선, 없으면 `GITHUB_SHA`. 원격 경로·viewer URL도 PR head 기준(`publish_commands.rs::pull_request_publication_uses_the_pr_head_for_the_path_and_the_ordering_guard`, `publish/mod.rs` tests)|
 |clang-tidy/Clazy probe와 실행 환경|`_cpp_lint`가 도구 probe는 전체 환경으로, 실제 실행은 최소 환경으로 해 `LD_LIBRARY_PATH`가 필요한 Clazy가 probe를 통과한 뒤 모든 실행에서 실패|R3/R6: probe와 실행은 같은 환경을 사용. probe 자체가 실패(loader 오류·exit 127)하면 v0.13.0처럼 `Unavailable`(lint WARN, ESTIMATED), probe 통과 후 실행 실패만 실행 오류(cpp fragment fixture)|
+|clang-tidy 다중 소스 진행 줄|clang-tidy 18+가 여러 소스를 분석하며 stderr에 내는 `[n/N] Processing file <src>.` 줄 때문에 `providers/tidy.py`가 실행 전체를 해석 불가로 거부|R3: 정확히 그 형식(1부터 증가하는 번호, 소스 수와 같은 N, 소스 목록의 경로)만 무시하고 다른 출력은 계속 거부. CLI `cpp.tidy`는 소스마다 별도 실행이라 provider 경로에서만 발생(cpp fragment fixture)|
 
 교정 행은 R0에서 기대값을 고정한 것이며 해당 구현/회귀 fixture는 담당 WP의 closure에
 반드시 연결한다. golden을 무조건 재생성해 기존 결함이나 새로운 회귀를 숨기지 않는다.

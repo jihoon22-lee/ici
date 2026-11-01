@@ -30,6 +30,14 @@
 
 ### 변경
 
+- clang-tidy가 여러 소스를 분석할 때 출력하는 `[n/N] Processing file` 진행 줄을 정확히 그 형식만 무시하고, 그 밖의
+  출력은 계속 거부합니다. `ici next`의 clang-tidy 진단 메시지는 v0.13.0과 같은 `warning: ` 접두어를 유지해
+  fingerprint가 기존 결과와 같습니다.
+- 레거시 C++ 구문 검사에 v0.13.0과 같은 전체 600초 시간 예산을 적용하고, 예산을 다 쓰면 남은 단위 수를 알리는
+  `C++SyntaxBudgetError`를 보고합니다. 소스가 2048개를 넘으면 검사 전체를 막지 않고 한도 초과를 보고합니다.
+- C++ 소스가 없는 `type='hybrid'` 프로젝트의 `ici line`이 Python 줄 수를 측정하고 종료 코드 0으로 끝납니다.
+  CMake 프로젝트의 레거시 `ici verify` 보고서에 빌드 산출물 목록(`ici.artifacts/v2` `artifact_manifests`)이 다시
+  포함됩니다.
 - 레거시 엔진 리포트(`<engine>_report.json`)와 `verify_report.json`의 엔진 항목에 v0.13.0과 같은 `support_matrix`,
   `cache_hit`/`cache_key`, `artifact_manifests`, Ruff/mypy `tool_evidence`를 다시 기록합니다. `cache_key`는 새
   캐시의 키라 값은 v0.13.0과 다릅니다.
