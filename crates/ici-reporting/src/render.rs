@@ -920,7 +920,14 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
     ] {
         if !view.document[key].is_null() {
             let _ = write!(out, "<h2>{}</h2>", html(key));
-            rich(&view.document[key], &mut out)?;
+            if key == "support_matrix" {
+                rich(
+                    &support_attention_first(&view.document[key], &mut out),
+                    &mut out,
+                )?;
+            } else {
+                rich(&view.document[key], &mut out)?;
+            }
         }
     }
     for document in &options.auxiliary {
@@ -963,6 +970,29 @@ pub fn render_html(stored: &StoredResult, options: &RenderOptions) -> Result<Str
         ));
     }
     Ok(out)
+}
+/// Frozen `sections/support._needs_attention`: an applicable entry that is disabled or not
+/// MEASURED is listed first (stable order otherwise) under an attention count.
+fn support_attention_first(matrix: &Value, out: &mut String) -> Value {
+    let attention = |entry: &Value| {
+        entry["applicable"] == true && (entry["enabled"] != true || entry["evidence"] != "MEASURED")
+    };
+    let mut ordered = matrix.clone();
+    let mut count = 0;
+    if let Some(entries) = ordered["entries"].as_array_mut() {
+        count = entries.iter().filter(|entry| attention(entry)).count();
+        entries.sort_by_key(|entry| !attention(entry));
+    }
+    let _ = write!(
+        out,
+        "<p data-support-attention>{}</p>",
+        if count > 0 {
+            format!("{count} item(s) need attention")
+        } else {
+            "No active capability caveats".into()
+        }
+    );
+    ordered
 }
 fn plain_or_empty(value: &Value) -> String {
     if value.is_null() {

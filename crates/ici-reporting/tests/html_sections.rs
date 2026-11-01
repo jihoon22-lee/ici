@@ -229,3 +229,36 @@ fn test_suites_keep_failures_visible_and_fold_passing_cases() {
     assert!(suite_c.contains("<p>PASS — all 0 cases passed</p>"));
     assert!(!suite_c[..suite_c.find("</p>").unwrap() + 30].contains("Show all 0 cases"));
 }
+
+#[test]
+fn support_entries_needing_attention_are_listed_first_with_a_count() {
+    let mut value = rich();
+    let entry = value["support_matrix"]["entries"][0].clone();
+    let mut healthy = entry.clone();
+    healthy["engine_name"] = Value::from("line");
+    healthy["evidence"] = Value::from("MEASURED");
+    healthy["enabled"] = Value::from(true);
+    healthy["applicable"] = Value::from(true);
+    let mut inapplicable = healthy.clone();
+    inapplicable["engine_name"] = Value::from("dead");
+    inapplicable["applicable"] = Value::from(false);
+    inapplicable["evidence"] = Value::from("NOT_RUN");
+    let mut disabled = healthy.clone();
+    disabled["engine_name"] = Value::from("security");
+    disabled["enabled"] = Value::from(false);
+    value["support_matrix"]["entries"] =
+        serde_json::json!([healthy, inapplicable, disabled, entry]);
+    let html = page(&value);
+    assert!(html.contains("<p data-support-attention>2 item(s) need attention</p>"));
+    let section = &html[html.find("<h2>support_matrix</h2>").unwrap()..];
+    let at = |name: &str| section.find(&format!(">{name}<")).unwrap();
+    // Disabled and ESTIMATED applicable entries first (stable), then healthy and inapplicable.
+    assert!(
+        at("security") < at("complexity")
+            && at("complexity") < at("line")
+            && at("line") < at("dead")
+    );
+    let mut calm = rich();
+    calm["support_matrix"]["entries"] = serde_json::json!([]);
+    assert!(page(&calm).contains("<p data-support-attention>No active capability caveats</p>"));
+}
