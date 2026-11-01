@@ -927,6 +927,19 @@ pub fn execute(
                     .or_insert_with(|| tool.clone());
             }
         }
+        // Preparation keeps the initial plan's tools (e.g. the legacy C++ fallback compiler
+        // planned before the owned CMake database existed) beside the rebound plan; the final
+        // re-plan carries the same roles, each still re-measured, so they are not input drift.
+        for (role, tool) in &prepared.tools {
+            if !after.tools.contains_key(role) {
+                let current =
+                    ici_execution::process::executable_digest(&tool.path).map_err(error)?;
+                if current != tool.digest {
+                    return Ok(false);
+                }
+                after.tools.insert(role.clone(), tool.clone());
+            }
+        }
         inputs::capture_preserving(&after, &snapshot, &input_limits, &[])
             .map(|new| !inputs::changed(&prepared, &after, &snapshot, &new))
     }) {

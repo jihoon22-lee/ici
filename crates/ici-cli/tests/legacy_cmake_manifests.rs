@@ -83,6 +83,13 @@ fn run(oracle: &Value, case: &Value) -> Value {
     let report: Value =
         serde_json::from_slice(&fs::read(root.join(format!("{command}_report.json"))).unwrap())
             .unwrap();
+    // The owned CMake preparation never reads as input drift: the initial plan's legacy
+    // fallback compiler is carried (re-measured) into the final re-plan.
+    let reasons = report["native_run"]["gate"]["reasons"].to_string();
+    assert!(
+        !reasons.contains("inputs changed while running"),
+        "{reasons}"
+    );
     let engines: Vec<Value> = if command == "verify" {
         report["results"].as_array().unwrap().clone()
     } else {
