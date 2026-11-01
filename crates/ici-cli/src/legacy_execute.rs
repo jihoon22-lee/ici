@@ -195,7 +195,7 @@ pub fn command(
             }
         }
     }
-    let mut stored = crate::report::load(&run.result_path)?;
+    let mut stored = crate::report::load(&root, &run.result_path)?;
     let shaping = Shaping {
         prepared: &prepared,
         root: &root,

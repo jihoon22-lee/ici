@@ -129,8 +129,8 @@ pub fn command(
         // result and its text ends at `saved <path>`; the page is `next report`'s job. Only
         // `ici analyze` adds the offline page and the finding preview (execution plan §2.1).
         if invocation.command() == "analyze" {
-            let stored = crate::report::load(&run.result_path)?;
             let root = crate::commands::artifact_root(cwd);
+            let stored = crate::report::load(&root, &run.result_path)?;
             let options = ici_reporting::RenderOptions {
                 source_root: Some(root.to_string_lossy().into_owned()),
                 ..Default::default()
@@ -200,7 +200,7 @@ pub fn execute(
     let baseline_document = baseline_path
         .as_ref()
         .map(|path| {
-            crate::report::load(path).map_err(|e| {
+            crate::report::load(&prepared.project.root, path).map_err(|e| {
                 if crate::legacy::is_legacy(invocation) {
                     e
                 } else if path.is_file() {
@@ -229,7 +229,10 @@ pub fn execute(
             .and_then(|value| RunResult::from_value(value).ok()),
     });
     validate_destination(&result_path, false)?;
-    validate_destination(&crate::report::details_path(&result_path, &run_id)?, true)?;
+    validate_destination(
+        &crate::report::details_path(&prepared.project.root, &result_path, &run_id)?,
+        true,
+    )?;
     if result_path.exists() {
         storage::read_result(&result_path).map_err(|failure| CliError(format!("existing result is not a native run artifact; choose a new --result path: {failure}")))?;
     }
@@ -1236,7 +1239,7 @@ pub fn execute(
         legacy_baseline,
         baseline_gate_failures,
     };
-    crate::report::save_details(&executed)?;
+    crate::report::save_details(&prepared.project.root, &executed)?;
     Ok(executed)
 }
 pub(crate) fn execute_artifact_prepare(
