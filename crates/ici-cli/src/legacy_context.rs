@@ -382,6 +382,8 @@ fn project(prepared: &PreparedPlan, document: &Value, commit: Option<&str>) -> V
         .components
         .iter()
         .flat_map(|component| component.source_dirs.iter().cloned())
+        // Frozen `get_source_dirs` keeps only configured directories that exist.
+        .filter(|directory| crate::files::under(root, directory).is_dir())
         .collect();
     source_dirs.sort();
     source_dirs.dedup();

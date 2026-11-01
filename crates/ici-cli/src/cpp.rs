@@ -1638,6 +1638,7 @@ pub fn legacy_cmake_artifact_manifest(
     shadow: &Path,
     variant: &str,
     command: &[String],
+    producer: &str,
 ) -> Option<Value> {
     const MAGICS: [&[u8]; 6] = [
         b"\x7fELF",
@@ -1751,7 +1752,7 @@ pub fn legacy_cmake_artifact_manifest(
             "path": relative, "scope": "shadow", "kind": kind,
             "sha256": ici_domain::sha256(&bytes), "size": bytes.len(),
             "mode": std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o7777,
-            "producer": "cmake.build", "id": id, "target": target, "command": command,
+            "producer": producer, "id": id, "target": target, "command": command,
         }));
     }
     let shadow_root = shadow

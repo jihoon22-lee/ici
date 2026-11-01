@@ -1,0 +1,1206 @@
+{
+ "base": "[project]\ntype='cpp'\n",
+ "cases": {
+  "sanitize-tests": {
+   "command": "sanitize",
+   "config": "source_dirs=['tests']\n",
+   "fixture": "test-qmake",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:3186e8ca572a8dea2ca70b56f1347bef1b701e8aba4e3e4b84c86711a304b6e1",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_unit",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       }
+      ],
+      "score": null,
+      "status": "FAIL",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_unit"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "test-tests": {
+   "command": "test",
+   "config": "source_dirs=['tests']\n",
+   "fixture": "test-qmake",
+   "frozen": {
+    "analysis_context": null,
+    "counters": {},
+    "engines": {
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:486a1c294a604631e9364a438129eb53ef397d4ae918f7a4391be80ce4fb6183",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 5,
+         "end_line": 11,
+         "label": "Coverage:Function:Unit::unexpectedlyPasses()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 8
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6f6558d0497af64301182690ad141c531a1a71c47604b00020ba933b99cfc24f",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_unit",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:7e367076dedd0e0d3753f5edde3c77d1b0eb034cb72d592b8e5c48e53d6de687",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 41,
+         "end_line": 7,
+         "label": "Coverage:Function:Unit::fails()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 7
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:b1b32752d5998a992d444da4f87308061f5aaf72f528d01d8133ca43d4c48839",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 36,
+         "end_line": 6,
+         "label": "Coverage:Function:Unit::passes()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 6
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:b6a52f52c586dee0e693ceabcb674d302613c4775120e7b6850e14ad5249b5f8",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 49,
+         "end_line": 12,
+         "label": "Coverage:Function:Unit::skipped()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 12
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:f78160122cfdde29bacdf394b1d3898375cdd8dbc92cb4d129a26be18350502a",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fb4f231c662fe826b71cb19cc0e13c4e09840623c7249e177ac2d6b70e6c3b7d",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 15,
+         "label": "Coverage:Function:main",
+         "path": "tests/test_unit.cpp",
+         "start_column": 1,
+         "start_line": 15
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       }
+      ],
+      "score": 0.0,
+      "status": "FAIL",
+      "summary": "0/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 60.0% -> TEM: 0.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_unit"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 8,
+         "executable_lines": 8,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 8,
+         "executable_lines": 8,
+         "gated": true,
+         "missed_lines": 0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 5,
+         "functions": 5,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit6passesEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::passes()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit5failsEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::fails()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit18unexpectedlyPassesEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::unexpectedlyPasses()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit7skippedEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 12,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::skipped()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "main",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 15,
+        "status": "PASS",
+        "target_name": "Coverage:Function:main"
+       }
+      ]
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-missing-src": {
+   "command": "verify",
+   "config": "source_dirs=['src']\n",
+   "fixture": "test-qmake",
+   "frozen": {
+    "analysis_context": {
+     "artifact_manifests": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "--jobs=12"
+         ],
+         "id": "coverage:shadow:test_unit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_unit",
+         "producer": "qmake.build",
+         "scope": "shadow",
+         "sha256": "sha256:4969509c114aaa3ef1b015652059dbdf0e7a24dd1b4d938803f89dbef021cf0d",
+         "size": 41152,
+         "target": "test_unit"
+        }
+       ],
+       "config_digest": "sha256:1ca6edbb7cd48a0c80322a69eed752692270ee15e6cbf8406982dfd2df1ce6a8",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-qmake",
+       "source_commit": "1e8bdf26f8ec87a609f1b0ccdf4935d7d0045ad5",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "coverage"
+      },
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "--jobs=12"
+         ],
+         "id": "sanitize:shadow:test_unit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_unit",
+         "producer": "qmake.build",
+         "scope": "shadow",
+         "sha256": "sha256:d2b00d8e6d3e65ae984c6f2ea8e1ce7ee356fbca54c916f667d8751b738739b5",
+         "size": 873976,
+         "target": "test_unit"
+        }
+       ],
+       "config_digest": "sha256:1ca6edbb7cd48a0c80322a69eed752692270ee15e6cbf8406982dfd2df1ce6a8",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-qmake-asan",
+       "source_commit": "1e8bdf26f8ec87a609f1b0ccdf4935d7d0045ad5",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "sanitize"
+      }
+     ],
+     "compilation": {
+      "database_path": null,
+      "diagnostics": [],
+      "generator": "",
+      "origin": "",
+      "units": [],
+      "unity_build": null
+     },
+     "identity": {
+      "config_digest": "sha256:1ca6edbb7cd48a0c80322a69eed752692270ee15e6cbf8406982dfd2df1ce6a8",
+      "source_commit": "1e8bdf26f8ec87a609f1b0ccdf4935d7d0045ad5",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+     },
+     "profile": "standard",
+     "project": {
+      "backend": "qmake",
+      "backend_descriptor": "project.pro",
+      "backend_reason": "project.pro at the project root selected the qmake backend",
+      "compilable_cpp_sources": [],
+      "cpp_headers": [],
+      "cpp_include_flags": [],
+      "cpp_sources": [],
+      "external_cpp_dirs": [],
+      "name": "project",
+      "python_sources": [],
+      "source_dirs": [],
+      "type": "cpp",
+      "version": "v1e8bdf2"
+     },
+     "requested_variants": [
+      "coverage",
+      "sanitize"
+     ],
+     "schema_version": "ici.analysis-context/v1"
+    },
+    "counters": {
+     "error_count": 0,
+     "failed_count": 2,
+     "max_tem_score": 5.0,
+     "passed_count": 3,
+     "skipped_count": 9,
+     "suite_status": "FAIL",
+     "tem_score": 0.0,
+     "total_count": 14,
+     "warned_count": 0
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "No production C/C++ translation units are in scope."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Dead-code analysis skipped: no owned source files"
+     },
+     "dup": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Duplicate analysis skipped: no owned source files"
+     },
+     "exception": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Exception safety analysis skipped: no applicable source files"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 0 lines (0 code, 0 comment, 0 blank) across 0 files"
+     },
+     "lint": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Lint analysis skipped: no applicable source files"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:3186e8ca572a8dea2ca70b56f1347bef1b701e8aba4e3e4b84c86711a304b6e1",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_unit",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       }
+      ],
+      "score": null,
+      "status": "FAIL",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_unit"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "ESTIMATED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "medium",
+        "fingerprint": "sha256:6f6558d0497af64301182690ad141c531a1a71c47604b00020ba933b99cfc24f",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_unit",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       }
+      ],
+      "score": 0.0,
+      "status": "FAIL",
+      "summary": "0/1 Tests Passed | Line: 100.0% (est), Func: 100.0%, Branch: 100.0% -> TEM: 0.00 / 5.0; Coverage evidence ESTIMATED (optional; not threshold evidence)",
+      "targets": [
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_unit"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  },
+  "verify-tests": {
+   "command": "verify",
+   "config": "source_dirs=['tests']\n",
+   "fixture": "test-qmake",
+   "frozen": {
+    "analysis_context": {
+     "artifact_manifests": [
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "--jobs=12"
+         ],
+         "id": "coverage:shadow:test_unit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_unit",
+         "producer": "qmake.build",
+         "scope": "shadow",
+         "sha256": "sha256:880577cef8b7a5570843c7ed1425d4dbbc15d01d39ead45dba502c46c974428e",
+         "size": 41152,
+         "target": "test_unit"
+        }
+       ],
+       "config_digest": "sha256:aa93b7fdf8c18966ce05281c59634e8c4ef2ae46f88da0bf5c81bd0ec2782a5a",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-qmake",
+       "source_commit": "f21862454dcaaf880cdd66767b3033221e3c3a07",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "coverage"
+      },
+      {
+       "artifacts": [
+        {
+         "command": [
+          "make",
+          "--jobs=12"
+         ],
+         "id": "sanitize:shadow:test_unit",
+         "kind": "executable",
+         "mode": 493,
+         "path": "test_unit",
+         "producer": "qmake.build",
+         "scope": "shadow",
+         "sha256": "sha256:d2b00d8e6d3e65ae984c6f2ea8e1ce7ee356fbca54c916f667d8751b738739b5",
+         "size": 873976,
+         "target": "test_unit"
+        }
+       ],
+       "config_digest": "sha256:aa93b7fdf8c18966ce05281c59634e8c4ef2ae46f88da0bf5c81bd0ec2782a5a",
+       "project_root": ".",
+       "schema_version": "ici.artifacts/v2",
+       "shadow_root": "build/ici-qmake-asan",
+       "source_commit": "f21862454dcaaf880cdd66767b3033221e3c3a07",
+       "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203",
+       "variant": "sanitize"
+      }
+     ],
+     "compilation": {
+      "database_digest": "sha256:39b225670272eba3b1ca4b7b94c55909b9814bd5d542054cf287611623705c0f",
+      "database_path": "build/ici-qmake-build/compile_commands.json",
+      "diagnostics": [],
+      "generator": "qmake",
+      "origin": "qmake",
+      "units": [
+       {
+        "argv": [
+         "[external]",
+         "-c",
+         "-pipe",
+         "-O2",
+         "-Wall",
+         "-Wextra",
+         "-D_REENTRANT",
+         "-DQT_NO_DEBUG",
+         "-DQT_TESTLIB_LIB",
+         "-DQT_CORE_LIB",
+         "-DQT_TESTCASE_BUILDDIR=\"build/ici-qmake-build/tests\"",
+         "-I../../../tests",
+         "-I.",
+         "-I[external]",
+         "-I[external]",
+         "-I[external]",
+         "-I.",
+         "-I[external]",
+         "-o",
+         "test_unit.o",
+         "../../../tests/test_unit.cpp"
+        ],
+        "compiler": "x86_64-linux-gnu-g++-15",
+        "configuration": "sha256:7d895756dc620b2b147a0d5977e48641fdd8e431b6e6f301791d6f43834fe1a6",
+        "defines": [
+         {
+          "name": "_REENTRANT",
+          "value": null
+         },
+         {
+          "name": "QT_NO_DEBUG",
+          "value": null
+         },
+         {
+          "name": "QT_TESTLIB_LIB",
+          "value": null
+         },
+         {
+          "name": "QT_CORE_LIB",
+          "value": null
+         },
+         {
+          "name": "QT_TESTCASE_BUILDDIR",
+          "value": "\"<ROOT>/build/ici-qmake-build/tests\""
+         }
+        ],
+        "diagnostics": [],
+        "directory": "build/ici-qmake-build/tests",
+        "include_paths": [
+         {
+          "exists": true,
+          "kind": "include",
+          "path": "tests",
+          "scope": "project"
+         },
+         {
+          "exists": true,
+          "kind": "include",
+          "path": "build/ici-qmake-build/tests",
+          "scope": "project"
+         },
+         {
+          "exists": true,
+          "kind": "include",
+          "path": "[external]",
+          "scope": "external"
+         },
+         {
+          "exists": true,
+          "kind": "include",
+          "path": "[external]",
+          "scope": "external"
+         },
+         {
+          "exists": true,
+          "kind": "include",
+          "path": "[external]",
+          "scope": "external"
+         },
+         {
+          "exists": true,
+          "kind": "include",
+          "path": "build/ici-qmake-build/tests",
+          "scope": "project"
+         },
+         {
+          "exists": true,
+          "kind": "include",
+          "path": "[external]",
+          "scope": "external"
+         }
+        ],
+        "language": "c++",
+        "output": "build/ici-qmake-build/tests/test_unit.o",
+        "source": "tests/test_unit.cpp",
+        "standard": "",
+        "sysroot": "",
+        "sysroot_scope": "",
+        "target": ""
+       }
+      ],
+      "unity_build": null
+     },
+     "identity": {
+      "config_digest": "sha256:aa93b7fdf8c18966ce05281c59634e8c4ef2ae46f88da0bf5c81bd0ec2782a5a",
+      "source_commit": "f21862454dcaaf880cdd66767b3033221e3c3a07",
+      "toolchain_digest": "sha256:4859faf08a9b68e3d45cd2b8dcc15c166acb0e12c68e63e385467bbdace07203"
+     },
+     "profile": "standard",
+     "project": {
+      "backend": "qmake",
+      "backend_descriptor": "project.pro",
+      "backend_reason": "project.pro at the project root selected the qmake backend",
+      "compilable_cpp_sources": [
+       "tests/test_unit.cpp"
+      ],
+      "cpp_headers": [],
+      "cpp_include_flags": [],
+      "cpp_sources": [
+       "tests/test_unit.cpp"
+      ],
+      "external_cpp_dirs": [],
+      "name": "project",
+      "python_sources": [],
+      "source_dirs": [
+       "tests"
+      ],
+      "type": "cpp",
+      "version": "vf218624"
+     },
+     "requested_variants": [
+      "coverage",
+      "sanitize"
+     ],
+     "schema_version": "ici.analysis-context/v1"
+    },
+    "counters": {
+     "error_count": 0,
+     "failed_count": 2,
+     "max_tem_score": 5.0,
+     "passed_count": 7,
+     "skipped_count": 4,
+     "suite_status": "FAIL",
+     "tem_score": 0.0,
+     "total_count": 14,
+     "warned_count": 1
+    },
+    "engines": {
+     "compile_db": {
+      "evidence": "MEASURED",
+      "score": 100.0,
+      "status": "PASS",
+      "summary": "Compilation DB: 1/1 production units covered, 1 configurations, 0 failures, 0 warnings."
+     },
+     "complexity": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (0 issues)"
+     },
+     "cycle": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No cyclic dependencies detected"
+     },
+     "dead": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "No dead-code findings detected in the analyzed scopes"
+     },
+     "dup": {
+      "evidence": "ESTIMATED",
+      "score": 0.0,
+      "status": "PASS",
+      "summary": "Code Duplication Rate: 0.0% (0 distinct clone groups found, 0 from Python AST shapes)"
+     },
+     "exception": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Exception Handling Safety Clean"
+     },
+     "line": {
+      "evidence": "MEASURED",
+      "score": null,
+      "status": "PASS",
+      "summary": "Total 16 lines (14 code, 0 comment, 2 blank) across 1 files"
+     },
+     "lint": {
+      "evidence": "ESTIMATED",
+      "score": null,
+      "status": "WARN",
+      "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed"
+     },
+     "python_compat": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Python compatibility analysis skipped: no Python source files"
+     },
+     "resource": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Resource analysis skipped: no Python source files"
+     },
+     "sanitize": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "correctness",
+        "confidence": "high",
+        "fingerprint": "sha256:3186e8ca572a8dea2ca70b56f1347bef1b701e8aba4e3e4b84c86711a304b6e1",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++ ASan/UBSan] test_unit",
+         "path": "project.pro",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.sanitize.target",
+        "severity": "high",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       }
+      ],
+      "score": null,
+      "status": "FAIL",
+      "summary": "1 Memory / Resource Defect(s) Detected",
+      "targets": [
+       {
+        "file_path": "project.pro",
+        "message": "Sanitizer run failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++ ASan/UBSan] test_unit"
+       }
+      ]
+     },
+     "security": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Security analysis skipped: no Python source files"
+     },
+     "test": {
+      "evidence": "MEASURED",
+      "findings": [
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:486a1c294a604631e9364a438129eb53ef397d4ae918f7a4391be80ce4fb6183",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 5,
+         "end_line": 11,
+         "label": "Coverage:Function:Unit::unexpectedlyPasses()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 8
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:58c29469870cecff48031a6c4d3c438f5bef73401f72e7aa033ed1f22afb2fd3",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Functions",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:6f6558d0497af64301182690ad141c531a1a71c47604b00020ba933b99cfc24f",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "[C++] test_unit",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "high",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:7e367076dedd0e0d3753f5edde3c77d1b0eb034cb72d592b8e5c48e53d6de687",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 41,
+         "end_line": 7,
+         "label": "Coverage:Function:Unit::fails()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 7
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:b1b32752d5998a992d444da4f87308061f5aaf72f528d01d8133ca43d4c48839",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 36,
+         "end_line": 6,
+         "label": "Coverage:Function:Unit::passes()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 6
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:b6a52f52c586dee0e693ceabcb674d302613c4775120e7b6850e14ad5249b5f8",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 49,
+         "end_line": 12,
+         "label": "Coverage:Function:Unit::skipped()",
+         "path": "tests/test_unit.cpp",
+         "start_column": 10,
+         "start_line": 12
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:f78160122cfdde29bacdf394b1d3898375cdd8dbc92cb4d129a26be18350502a",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:File",
+         "path": "tests/test_unit.cpp",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fb4f231c662fe826b71cb19cc0e13c4e09840623c7249e177ac2d6b70e6c3b7d",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "primary_location": {
+         "end_column": 1,
+         "end_line": 15,
+         "label": "Coverage:Function:main",
+         "path": "tests/test_unit.cpp",
+         "start_column": 1,
+         "start_line": 15
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       },
+       {
+        "category": "test",
+        "confidence": "high",
+        "fingerprint": "sha256:fe82dd32c644e2722df26b66b3ee803e88c2f38d7540249cebd14d6bc9fcd923",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "primary_location": {
+         "end_column": null,
+         "end_line": null,
+         "label": "Coverage:Overall line",
+         "path": ".",
+         "start_column": null,
+         "start_line": 1
+        },
+        "rule_id": "ici.legacy.test.target",
+        "severity": "info",
+        "tool_name": "build backend selection: project.pro at the project root selected the qmake backend"
+       }
+      ],
+      "score": 0.0,
+      "status": "FAIL",
+      "summary": "0/1 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 60.0% -> TEM: 0.00 / 5.0",
+      "targets": [
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Execution Failed: make check failed — Unit::fails: '1 + 1 == 3' returned FALSE. (); Unit::unexpectedlyPasses: 'true' returned TRUE unexpectedly. ()",
+        "metrics": {},
+        "start_line": 1,
+        "status": "FAIL",
+        "target_name": "[C++] test_unit"
+       },
+       {
+        "file_path": ".",
+        "message": "Overall line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 8,
+         "executable_lines": 8,
+         "gated": true,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Overall line"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "File line coverage 100.0% meets the configured minimum 80.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_lines": 8,
+         "executable_lines": 8,
+         "gated": true,
+         "missed_lines": 0,
+         "threshold": 80.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:File"
+       },
+       {
+        "file_path": ".",
+        "message": "Aggregate function coverage 100.0% meets the configured minimum 90.0%",
+        "metrics": {
+         "actual": 100.0,
+         "covered_functions": 5,
+         "functions": 5,
+         "gated": true,
+         "threshold": 90.0
+        },
+        "start_line": 1,
+        "status": "PASS",
+        "target_name": "Coverage:Functions"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::passes() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit6passesEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 6,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::passes()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::fails() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit5failsEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 7,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::fails()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::unexpectedlyPasses() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit18unexpectedlyPassesEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 8,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::unexpectedlyPasses()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function Unit::skipped() was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "_ZN4Unit7skippedEv",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 12,
+        "status": "PASS",
+        "target_name": "Coverage:Function:Unit::skipped()"
+       },
+       {
+        "file_path": "tests/test_unit.cpp",
+        "message": "Function main was exercised by the aggregate project test suite",
+        "metrics": {
+         "covered": true,
+         "gated": false,
+         "symbol": "main",
+         "test_scope": "aggregate-project-suite"
+        },
+        "start_line": 15,
+        "status": "PASS",
+        "target_name": "Coverage:Function:main"
+       }
+      ]
+     },
+     "type": {
+      "evidence": "NOT_APPLICABLE",
+      "score": null,
+      "status": "SKIP",
+      "summary": "Type checking not applicable: no Python sources; C++ is unsupported"
+     }
+    },
+    "exit_code": 1
+   }
+  }
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "qmake": "QMake version 3.1"
+}

@@ -287,7 +287,15 @@ pub fn plan_with_checks(
                     .files
                     .iter()
                     .any(|f| file_language(f) == Some(check.language.as_str()));
-            let work = if has_sources {
+            // Frozen legacy runtime engines run the build system's own tests even when the
+            // configured source directories select no C/C++ source (a tests-only qmake tree).
+            let legacy_runtime = request.legacy_profiles
+                && check.language == "cpp"
+                && matches!(
+                    check.id.as_str(),
+                    "cpp.test" | "cpp.coverage" | "cpp.sanitize" | "cpp.tsan"
+                );
+            let work = if has_sources || legacy_runtime {
                 bind(component, &check, &task_id)?
             } else {
                 Work::Blocked {

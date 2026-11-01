@@ -14,6 +14,7 @@ pub(crate) fn attach(
         ValidationKind::PythonTest
         | ValidationKind::Ctest
         | ValidationKind::Qtest
+        | ValidationKind::MakeCheck
         | ValidationKind::CppExecutable => "test",
         ValidationKind::PythonCoverage | ValidationKind::Gcov => "coverage",
         _ => return,
@@ -34,6 +35,7 @@ pub(crate) fn attach(
         }
         ValidationKind::Ctest => "ctest",
         ValidationKind::Qtest => "qtest",
+        ValidationKind::MakeCheck => "make-check",
         ValidationKind::CppExecutable => "cpp-executable",
         ValidationKind::Gcov => plan
             .context

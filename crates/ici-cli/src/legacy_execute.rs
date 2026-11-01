@@ -482,7 +482,7 @@ fn shape_engine(
     let mut exit_code = 0;
     if family == "test"
         && legacy_schema
-        && let Some(languages) = no_tests_collected(&root, value)
+        && let Some(languages) = no_tests_collected(&root, value, cpp_in_scope(prepared))
             .or_else(|| empty_pytest_suite(value))
             .or_else(|| python_without_tests_dir(&root, value))
     {
@@ -718,7 +718,8 @@ fn optional_cpp_coverage_missing(engine: &serde_json::Value) -> Option<String> {
         && test["state"] == "SUCCEEDED"
         && test["evidence_complete"] == true
         && coverage["state"] == "BLOCKED"
-        && reason == "direct GCOV coverage has no non-main production sources")
+        && (reason == "direct GCOV coverage has no non-main production sources"
+            || reason == crate::cpp_validation::NO_PRODUCTION_COVERAGE))
         .then(|| reason.to_owned())
 }
 
@@ -822,7 +823,22 @@ pub fn write_result_export(path: &Path, stored: &StoredResult, source: &Path) ->
 /// The frozen legacy test engine attempts a suite only for `tests/**/test_*.py` or
 /// `tests/**/*.cpp`. When no such file exists and every native test/coverage check was blocked
 /// before running, return the languages the frozen engine would report as having no tests.
-fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'static str>> {
+/// Frozen `_run_project_tests` reports "[C++] Tests" only when the configured scope selected a
+/// C++ source; legacy C++ runtime checks are bound even over an empty scope.
+fn cpp_in_scope(prepared: &crate::planning::PreparedPlan) -> bool {
+    prepared.project.components.iter().any(|component| {
+        component
+            .files
+            .iter()
+            .any(|file| ici_application::plan::file_language(file) == Some("cpp"))
+    })
+}
+
+fn no_tests_collected(
+    root: &Path,
+    engine: &serde_json::Value,
+    cpp_scope: bool,
+) -> Option<Vec<&'static str>> {
     let checks = engine["extra"]["native_checks"].as_array()?;
     // Only "no runnable suite exists" blocks qualify; any other block (interpreter, config,
     // tool) stays incomplete evidence. A CMake project without `enable_testing()` writes no
@@ -832,6 +848,7 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
             summary.starts_with("no sources in scope")
                 || summary == "C++ runtime checks require a declared component build"
                 || summary.starts_with("CTest inventory is unavailable: ")
+                || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
         })
     };
     if checks.is_empty()
@@ -866,14 +883,16 @@ fn no_tests_collected(root: &Path, engine: &serde_json::Value) -> Option<Vec<&'s
     }
     let mut languages = vec![];
     for (prefix, label) in [("python.", "Python"), ("cpp.", "C++")] {
-        if checks.iter().any(|check| {
-            check["check_id"]
-                .as_str()
-                .is_some_and(|id| id.starts_with(prefix))
-                && !check["summary"]
+        if (label != "C++" || cpp_scope)
+            && checks.iter().any(|check| {
+                check["check_id"]
                     .as_str()
-                    .is_some_and(|summary| summary.starts_with("no sources in scope"))
-        }) {
+                    .is_some_and(|id| id.starts_with(prefix))
+                    && !check["summary"]
+                        .as_str()
+                        .is_some_and(|summary| summary.starts_with("no sources in scope"))
+            })
+        {
             languages.push(label);
         }
     }
@@ -937,6 +956,23 @@ fn python_sources_unselected(engine: &serde_json::Value) -> bool {
         })
 }
 
+/// Every native check of the engine is a C++ check refused at planning because the configured
+/// source directories selected no C/C++ source ("no sources in scope for cpp").
+fn cpp_sources_unselected(engine: &serde_json::Value) -> bool {
+    engine["extra"]["native_checks"]
+        .as_array()
+        .is_some_and(|checks| {
+            !checks.is_empty()
+                && checks.iter().all(|check| {
+                    check["state"] == "BLOCKED"
+                        && check["check_id"]
+                            .as_str()
+                            .is_some_and(|id| id.starts_with("cpp."))
+                        && check["summary"] == "no sources in scope for cpp"
+                })
+        })
+}
+
 /// Frozen `LintEngine.run` with neither a Python nor a C++ source selected (LintScope): every
 /// native lint check was refused at planning for its language's empty scope.
 fn no_lint_sources(engine: &serde_json::Value) -> bool {
@@ -960,10 +996,13 @@ type NoSources = (
     String,
     Option<(&'static str, &'static str)>,
 );
-/// Frozen single-engine verdicts when the Python project selected no Python source: every
-/// native check of the engine was refused at planning ("no sources in scope for python").
+/// Frozen single-engine verdicts when the project selected no source of its language: every
+/// native check of the engine was refused at planning ("no sources in scope for python|cpp").
+/// A C++ project's engines run over the empty scope too (its build system's tests still run).
 fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) -> Option<NoSources> {
-    if !python_sources_unselected(engine) && !(family == "lint" && no_lint_sources(engine)) {
+    let cpp = cpp_sources_unselected(engine);
+    if !python_sources_unselected(engine) && !cpp && !(family == "lint" && no_lint_sources(engine))
+    {
         return None;
     }
     let none = "No applicable Python source files were selected";
@@ -1031,12 +1070,29 @@ fn no_python_sources(family: &str, engine: &serde_json::Value, warn_cc: &str) ->
             "No cyclic dependencies detected".into(),
             None,
         ),
-        // Frozen `ComplexityEngine` over no function: a measured PASS naming the warning limit.
+        // Frozen `CompileDbEngine` without a production translation unit.
+        "compile_db" if cpp => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "No production C/C++ translation units are in scope.".into(),
+            None,
+        ),
+        // Frozen `ComplexityEngine` over no function: a PASS naming the warning limit (the C++
+        // brace scanner's boundary mode stays heuristic, so its evidence is ESTIMATED).
         "complexity" => (
             "PASS",
-            "MEASURED",
+            if cpp { "ESTIMATED" } else { "MEASURED" },
             format!("Max Cyclomatic Complexity: 0 (limit {warn_cc}) across 0 functions (0 issues)"),
             None,
+        ),
+        "type" if cpp => (
+            "SKIP",
+            "NOT_APPLICABLE",
+            "Type checking not applicable: no Python sources; C++ is unsupported".into(),
+            Some((
+                "C++TypeCheck",
+                "No applicable C++ source files were selected; type checking was not run",
+            )),
         ),
         // Frozen `_mark_python_type_check_skipped`: Mypy was not run, nothing is type-checkable.
         "type" => (

@@ -679,6 +679,14 @@ pub fn execute(
                                     "CMakeLists.txt",
                                     &testfile,
                                 );
+                            } else if prepared.legacy_projection
+                                && matches!(system.as_deref(), Some("qmake" | "make"))
+                            {
+                                crate::cpp::legacy_make_check_tests(
+                                    &mut output,
+                                    &prepared.project.root,
+                                    &build_descriptor(&prepared, planned),
+                                );
                             }
                         }
                         if prepared.legacy_projection && planned.check.id == "cpp.binary-compat" {
@@ -692,12 +700,13 @@ pub fn execute(
                                 .unwrap_or_default();
                             crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
                         }
-                        // Frozen CMake build sessions of `ici verify` (with an analysis context;
-                        // standalone commands have none) publish their linked outputs
+                        // Frozen CMake/qmake build sessions of `ici verify` (with an analysis
+                        // context; standalone commands have none) publish their linked outputs
                         // (`_capture_artifact_manifest`) on the test/sanitize engines.
+                        let system = build_system(&prepared, planned);
                         if prepared.legacy_projection
                             && !prepared.cpp.legacy_standalone
-                            && build_system(&prepared, planned).as_deref() == Some("cmake")
+                            && matches!(system.as_deref(), Some("cmake" | "qmake"))
                             && let Some(variant) = match planned.check.id.as_str() {
                                 "cpp.test" => Some("coverage"),
                                 "cpp.sanitize" => Some("sanitize"),
@@ -714,12 +723,15 @@ pub fn execute(
                             })
                             && let Some(build) = session.plan.build.tasks.iter().find(|task| {
                                 task.argv.get(1).map(String::as_str) == Some("--build")
+                                    || (system.as_deref() == Some("qmake")
+                                        && task.id.ends_with(":compile"))
                             })
                             && let Some(manifest) = crate::cpp::legacy_cmake_artifact_manifest(
                                 &prepared.project.root,
                                 &shadow,
                                 variant,
                                 &build.argv,
+                                &format!("{}.build", system.as_deref().unwrap_or("cmake")),
                             )
                         {
                             output.extra["legacy_artifact_manifests"] = json!([manifest]);
@@ -732,7 +744,7 @@ pub fn execute(
                                     &mut output,
                                     &planned.check.id,
                                 ),
-                                Some("cmake") => {
+                                Some(system @ ("cmake" | "qmake" | "make")) => {
                                     let testfile = plans
                                         .first()
                                         .and_then(|plan| plan.context.options.build_dir.clone())
@@ -754,10 +766,17 @@ pub fn execute(
                                         .and_then(|component| component.settings.pointer(section))
                                         .and_then(serde_json::Value::as_bool)
                                         != Some(false);
+                                    // A qmake `make check` or Make test command has no CTest
+                                    // inventory and locates its scopes at the root descriptor.
+                                    let descriptor = if system != "cmake" {
+                                        build_descriptor(&prepared, planned)
+                                    } else {
+                                        "CMakeLists.txt".into()
+                                    };
                                     crate::cpp::legacy_ctest_sanitizer(
                                         &mut output,
                                         &planned.check.id,
-                                        "CMakeLists.txt",
+                                        &descriptor,
                                         &testfile,
                                         required,
                                     );
@@ -1768,6 +1787,20 @@ fn tidy_task(
         .map(|check| check.task_id.clone())
 }
 
+/// The root build descriptor of the check's build (frozen `select_backend(...).descriptor`).
+fn build_descriptor(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+) -> String {
+    prepared
+        .project
+        .components
+        .iter()
+        .find(|component| component.id == planned.component_id)
+        .and_then(|component| crate::cpp::linked_build(&prepared.project, component))
+        .and_then(|build| build.project.clone())
+        .unwrap_or_else(|| ".".into())
+}
 fn build_system(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,

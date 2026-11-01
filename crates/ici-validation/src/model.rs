@@ -13,6 +13,8 @@ pub enum ValidationKind {
     PythonSanitize,
     Ctest,
     Qtest,
+    /// A legacy build system's own test target (`make check`), read per test binary.
+    MakeCheck,
     CppExecutable,
     Sanitizer,
     ThreadSanitizer,
@@ -30,6 +32,7 @@ impl ValidationKind {
             Self::PythonSanitize => "python-resource-warnings",
             Self::Ctest => "ctest",
             Self::Qtest => "qtest",
+            Self::MakeCheck => "make-check",
             Self::CppExecutable => "cpp-executable",
             Self::Sanitizer => "sanitize",
             Self::ThreadSanitizer => "thread-sanitize",
@@ -106,6 +109,8 @@ pub struct ValidationOptions {
     /// A visible help/version probe chooses JSON or legacy text; never a failed-probe fallback.
     pub gcov_capability_probe: bool,
     pub sanitizer_suite_kind: Option<ValidationKind>,
+    /// A `make check` transcript also carries QtTest xunit documents (frozen `_qmake_results`).
+    pub make_check_qtest: bool,
     pub instrumented_artifacts: Vec<String>,
     /// One explicitly mapped source for a plain executable verdict, including shared GCOV evidence.
     pub executable_test_source: Option<String>,
@@ -184,6 +189,7 @@ impl Default for ValidationOptions {
             gcov_preexisting_data: vec![],
             gcov_capability_probe: false,
             sanitizer_suite_kind: None,
+            make_check_qtest: false,
             instrumented_artifacts: vec![],
             executable_test_source: None,
             modules: vec![],

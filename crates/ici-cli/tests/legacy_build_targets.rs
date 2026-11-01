@@ -132,7 +132,12 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
         .chain(["/usr/bin".into(), "/bin".into()])
         .collect::<Vec<_>>()
         .join(":");
-    let environment = BTreeMap::from([("PATH".to_string(), path)]);
+    // The frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8 (PEP 538) for its build
+    // children, so legacy qmake6 never prints its non-UTF-8 locale warning into the excerpt.
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), path),
+        ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
+    ]);
     let cases = oracle["cases"].as_object().unwrap();
     assert_eq!(cases.len(), 16);
     for (name, case) in cases {

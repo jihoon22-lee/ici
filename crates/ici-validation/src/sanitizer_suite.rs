@@ -16,10 +16,13 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
         .expect("selected suite kind");
     if !matches!(
         kind,
-        ValidationKind::Ctest | ValidationKind::Qtest | ValidationKind::CppExecutable
+        ValidationKind::Ctest
+            | ValidationKind::Qtest
+            | ValidationKind::MakeCheck
+            | ValidationKind::CppExecutable
     ) {
         return Err(ValidationError(
-            "sanitizer suite kind must be CTest, QTest or plain C++ executable".into(),
+            "sanitizer suite kind must be CTest, QTest, make check or plain C++ executable".into(),
         ));
     }
     if kind == ValidationKind::CppExecutable {
@@ -83,6 +86,15 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 "2".into(),
             ],
         )
+    } else if kind == ValidationKind::MakeCheck {
+        // The build system's own test target runs the instrumented binaries; each declared
+        // executable of the variant shadow is probed for its sanitizer runtime below.
+        if request.options.argv.first().map(Path::new) != Some(request.tool.path.as_path()) {
+            return Err(ValidationError(
+                "make check sanitizer suite argv must match its selected make identity".into(),
+            ));
+        }
+        planning::task(request, "suite", request.options.argv[1..].to_vec())
     } else {
         if request.options.instrumented_artifacts.len() != 1
             || request
@@ -361,11 +373,17 @@ pub(crate) fn observe_framework(
     let result = match kind {
         ValidationKind::Ctest => crate::cpp::observe_ctest(&suite, &outcomes, &mut measured),
         ValidationKind::Qtest => crate::cpp::observe_qtest(&suite, &outcomes, &mut measured),
+        ValidationKind::MakeCheck => {
+            crate::cpp::observe_make_check(&suite, &outcomes, &mut measured)
+        }
         ValidationKind::CppExecutable => {
             crate::standalone::observe(&suite, &outcomes, &mut measured)
         }
         _ => Err(ValidationError("unsupported sanitizer framework".into())),
     };
+    if let Some(cases) = measured.extra.get("make_check_cases") {
+        output.extra["make_check_cases"] = cases.clone();
+    }
     output.extra["sanitizer_test_evidence"] = json!({"kind":kind,"complete":result.is_ok(),"targets":measured.targets,"findings":measured.observation.findings,"summary":measured.summary,"test_outcomes":measured.extra.get("test_outcomes")});
     output.targets.extend(measured.targets);
     output

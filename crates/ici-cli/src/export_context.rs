@@ -236,6 +236,8 @@ fn plan_selected_preparation(
         jobs: 2,
         ici_binary: Some(ici_binary.into()),
         environment: BTreeMap::new(),
+        // Frozen legacy `qmake_configure_argv` keeps the mkspec's default CONFIG in every variant.
+        qmake_default_config: project.schema_family == ici_config::SchemaFamily::Legacy,
         extra_cmake_args: if analysis_database {
             vec!["-DCMAKE_UNITY_BUILD=OFF".into()]
         } else {

@@ -146,6 +146,10 @@ pub struct BuildRequest {
     pub extra_link_flags: Vec<String>,
     #[serde(default)]
     pub extra_qmake_args: Vec<String>,
+    /// Frozen legacy qmake configures (`qmake_configure_argv`) never choose a debug/release
+    /// CONFIG: every variant keeps the mkspec default. Native variants select debug or release.
+    #[serde(default)]
+    pub qmake_default_config: bool,
     /// Required for `system = "make"`: the validated frozen `build.make` contract.
     #[serde(default)]
     pub make: Option<crate::MakeSettings>,
@@ -170,6 +174,7 @@ impl Default for BuildRequest {
             extra_cxx_flags: vec![],
             extra_link_flags: vec![],
             extra_qmake_args: vec![],
+            qmake_default_config: false,
             make: None,
         }
     }
@@ -206,6 +211,8 @@ pub struct QmakeCaptureRequest {
     pub arguments: Vec<String>,
     #[serde(default)]
     pub assignments: Vec<String>,
+    #[serde(default)]
+    pub default_config: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
