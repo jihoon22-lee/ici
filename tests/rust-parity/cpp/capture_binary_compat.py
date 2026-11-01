@@ -50,17 +50,28 @@ CASES = {
     },
     "unpublished-selection": {"ici.toml": BASE + ENABLE + "artifacts=['release:shadow:nope']\n"},
     "missing-readelf": {},
+    "truncated-readelf": {},
 }
 # Executables hidden from PATH per case: PATH becomes a symlink farm of every other entry.
-HIDDEN = {"missing-readelf": ["readelf"]}
+HIDDEN = {"missing-readelf": ["readelf"], "truncated-readelf": ["readelf"]}
+# Hidden executables replaced by a script in the farm: a readelf that runs and exits 0 but
+# returns only the first lines of its evidence.
+REPLACED = {
+    "truncated-readelf": {
+        "readelf": '#!/bin/sh\n/usr/bin/readelf "$@" | head -n 4\nexit 0\n',
+    }
+}
 
 
-def search_path(hidden: list[str]) -> str:
+def search_path(hidden: list[str], replaced: dict | None = None) -> str:
     directories = [*TOOLS, "/usr/bin", "/bin"]
     if not hidden:
         return os.pathsep.join(directories)
     farm = WORK / "path"
     farm.mkdir()
+    for name, text in (replaced or {}).items():
+        (farm / name).write_text(text, encoding="utf-8")
+        (farm / name).chmod(0o755)
     for directory in directories:
         for entry in sorted(os.listdir(directory)):
             if entry not in hidden and not (farm / entry).exists():
@@ -68,7 +79,7 @@ def search_path(hidden: list[str]) -> str:
     return str(farm)
 
 
-def run(changes: dict, hidden: list[str]) -> dict:
+def run(changes: dict, hidden: list[str], replaced: dict | None = None) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -81,7 +92,7 @@ def run(changes: dict, hidden: list[str]) -> dict:
             [PYTHON, "-m", "ici", "verify", "--profile", "deep", "--report"],
             cwd=project,
             env={
-                "PATH": search_path(hidden),
+                "PATH": search_path(hidden, replaced),
                 "HOME": str(WORK),
                 "PYTHONPATH": str(ORACLE / "src"),
             },
@@ -107,8 +118,12 @@ def run(changes: dict, hidden: list[str]) -> dict:
 
 
 cases = {
-    name: {"changes": changes, "frozen": run(changes, HIDDEN.get(name, []))}
+    name: {
+        "changes": changes,
+        "frozen": run(changes, HIDDEN.get(name, []), REPLACED.get(name)),
+    }
     | ({"hidden": HIDDEN[name]} if name in HIDDEN else {})
+    | ({"replaced": REPLACED[name]} if name in REPLACED else {})
     for name, changes in CASES.items()
 }
 (ROOT / "tests/rust-parity/cpp/binary-compat-oracle.json").write_text(

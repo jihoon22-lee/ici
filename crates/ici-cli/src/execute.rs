@@ -251,6 +251,8 @@ pub fn execute(
     let mut python = ici_analysis::AnalysisSession::new();
     let mut cpp = ici_cpp::CppAnalysisSession::new();
     let mut outputs = pre_outputs;
+    // Legacy lint syntax outputs projected so far (task id -> heuristic fallback).
+    let mut projected_lint = BTreeMap::<String, bool>::new();
     let mut step_outcomes = BTreeMap::new();
     let mut owned_runs = BTreeMap::new();
     let mut enrichment_incomplete = BTreeMap::new();
@@ -558,12 +560,38 @@ pub fn execute(
                                         && check.check.id == "cpp.tidy"
                                 })
                                 .and_then(|check| prepared.cpp.planned(&check.task_id));
-                            crate::cpp::legacy_fallback_lint(
+                            let tooling = tooling.or_else(|| {
+                                tidy_task(&prepared, planned).and_then(|task| outputs.get(&task))
+                            });
+                            if crate::cpp::legacy_fallback_lint(
                                 &mut output,
                                 tooling,
                                 prepared.cpp.legacy_standalone,
                                 configurations.as_ref(),
-                            );
+                            ) {
+                                projected_lint.insert(id.clone(), configurations.is_none());
+                            }
+                        }
+                        if prepared.legacy_projection && planned.check.id == "cpp.tidy" {
+                            // Frozen LintEngine verdict over the syntax targets already observed.
+                            if let Some((diagnostics, fallback)) = prepared
+                                .plan
+                                .checks
+                                .iter()
+                                .find(|check| {
+                                    check.component_id == planned.component_id
+                                        && check.check.id == "cpp.diagnostics"
+                                })
+                                .and_then(|check| {
+                                    Some((
+                                        check.task_id.clone(),
+                                        *projected_lint.get(&check.task_id)?,
+                                    ))
+                                })
+                                && let Some(syntax) = outputs.get_mut(&diagnostics)
+                            {
+                                crate::cpp::legacy_lint_verdict(syntax, Some(&output), fallback);
+                            }
                         }
                         output
                     } else if let Some(plans) = prepared.validations.get(id) {
@@ -1512,6 +1540,19 @@ fn state_label(state: ici_domain::TaskState) -> String {
 }
 
 /// The build system of the planned C++ check's linked component build (`direct-gcc`, `cmake`...).
+/// The `cpp.tidy` task of a check's component.
+fn tidy_task(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+) -> Option<String> {
+    prepared
+        .plan
+        .checks
+        .iter()
+        .find(|check| check.component_id == planned.component_id && check.check.id == "cpp.tidy")
+        .map(|check| check.task_id.clone())
+}
+
 fn build_system(
     prepared: &crate::planning::PreparedPlan,
     planned: &ici_application::plan::PlannedCheck,

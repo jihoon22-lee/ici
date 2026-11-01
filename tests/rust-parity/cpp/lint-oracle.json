@@ -563,5 +563,527 @@
   }
  },
  "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
- "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "tool_cases": {
+  "clazy-only": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "status": "WARN",
+    "summary": "clang-tidy is unavailable or incompletely probed",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:eb9b50ec9185"
+     }
+    ]
+   },
+   "tools": [
+    "clazy"
+   ]
+  },
+  "clazy-unloadable": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "status": "WARN",
+    "summary": "clang-tidy is unavailable or incompletely probed; clazy is unavailable or incompletely probed",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClangTidyUnavailable"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "tools": [
+    "clazy-raw"
+   ]
+  },
+  "tidy-and-clazy": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "MEASURED",
+    "status": "WARN",
+    "summary": "0 Errors, 2 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "start_column": 41,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "ClangTidy:performance-unnecessary-value-param"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: Division by zero",
+      "start_column": 18,
+      "start_line": 7,
+      "status": "WARN",
+      "target_name": "ClangAnalyzer:clang-analyzer-core.DivideZero"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:eb9b50ec9185"
+     }
+    ]
+   },
+   "tools": [
+    "clang-tidy",
+    "clazy"
+   ]
+  },
+  "tidy-and-clazy-qt": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-DQT_CORE_LIB\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-DQT_CORE_LIB\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-DQT_CORE_LIB\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "status": "WARN",
+    "summary": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.; Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:53b4219812e7"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:1f9f9d4835b3"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:60c08aaf72fd"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "QtCompatibility:UnknownMajor"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "QtCompatibility:UnknownMajor"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Qt code is present, but the exact translation unit does not identify Qt 5 or Qt 6.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "QtCompatibility:UnknownMajor"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:53b4219812e7"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:1f9f9d4835b3"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "start_column": 41,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "ClangTidy:performance-unnecessary-value-param"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: Division by zero",
+      "start_column": 18,
+      "start_line": 7,
+      "status": "WARN",
+      "target_name": "ClangAnalyzer:clang-analyzer-core.DivideZero"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:53b4219812e7"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "warning: qgetenv().isEmpty() allocates. Use qEnvironmentVariableIsEmpty() instead",
+      "start_column": 28,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "Clazy:clazy-qgetenv"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "clazy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Clazy:60c08aaf72fd"
+     }
+    ]
+   },
+   "tools": [
+    "clang-tidy",
+    "clazy"
+   ]
+  },
+  "tidy-only": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/qt.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/qt.cpp\"]}, {\"directory\": \"{root}\", \"file\": \"src/tidy.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/tidy.cpp\"]}]"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "built": false,
+    "evidence": "ESTIMATED",
+    "status": "WARN",
+    "summary": "clazy is unavailable or incompletely probed",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "start_column": 41,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "ClangTidy:performance-unnecessary-value-param"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: Division by zero",
+      "start_column": 18,
+      "start_line": 7,
+      "status": "WARN",
+      "target_name": "ClangAnalyzer:clang-analyzer-core.DivideZero"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "tools": [
+    "clang-tidy"
+   ]
+  },
+  "tidy-partial-database": {
+   "command": "verify",
+   "config": "",
+   "files": {
+    "build/compile_commands.json": "[{\"directory\": \"{root}\", \"file\": \"src/clean.cpp\", \"arguments\": [\"g++\", \"-std=c++17\", \"-Iinclude\", \"-c\", \"src/clean.cpp\"]}]"
+   },
+   "fixture": "lint-fixture",
+   "frozen": {
+    "built": false,
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "Compilation context is missing 2 production source command(s); clang-tidy context is missing 2 production source command(s)",
+    "targets": [
+     {
+      "file_path": "src/broken.cpp",
+      "message": "No exact translation-unit command covers this production source.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextMissing"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "No exact translation-unit command covers this production source.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++SyntaxContextMissing"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/broken.cpp",
+      "message": "No exact translation-unit command covers this production source.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyContextMissing"
+     },
+     {
+      "file_path": "src/noted.cpp",
+      "message": "No exact translation-unit command covers this production source.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyContextMissing"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:49e88acfcb0f"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy is unavailable or incompletely probed",
+      "start_column": null,
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "ClazyUnavailable"
+     }
+    ]
+   },
+   "tools": [
+    "clang-tidy"
+   ]
+  }
+ },
+ "tool_versions": {
+  "clang-tidy": "Ubuntu LLVM version 21.1.8\n  Optimized build.",
+  "clazy": "Ubuntu LLVM version 21.1.8\n  Optimized build.\nclazy version 1.17"
+ }
 }

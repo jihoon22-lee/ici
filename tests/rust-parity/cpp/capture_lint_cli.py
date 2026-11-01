@@ -1,10 +1,18 @@
 """Development-only frozen legacy C++ lint captures; never called by the Rust product.
 
-Heuristic fallback only (no compilation database) with PATH=/usr/bin:/bin, where clang-tidy and
-clazy-standalone are absent; g++ wording depends on its version, which is recorded.
+`cases`: heuristic fallback (no compilation database) with PATH=/usr/bin:/bin, where clang-tidy
+and clazy-standalone are absent; g++ wording depends on its version, which is recorded.
+
+`tool_cases`: `ici verify` with an exact compilation database and a temporary bin directory
+first on PATH holding `clang-tidy` (a symlink to ICI_TEST_CLANG_TIDY) and/or `clazy-standalone`
+(the names core/toolchain.py probes). Frozen runs clang tools with a replaced minimal
+environment (core/cpp_replay.replay_environment), so a clazy that needs LD_LIBRARY_PATH is
+wrapped in a script that sets ICI_TEST_CLANG_LIBRARY_PATH itself; the `clazy-unloadable` case
+links the raw binary instead.
 """
 
 import json
+import os
 import shutil
 import subprocess
 import tempfile
@@ -60,7 +68,7 @@ CASES = {
 }
 
 
-def run(fixture: str, command: str, config: str, files: dict) -> dict:
+def run(fixture: str, command: str, config: str, files: dict, path: str = "/usr/bin:/bin") -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -73,7 +81,7 @@ def run(fixture: str, command: str, config: str, files: dict) -> dict:
         result = subprocess.run(
             [PYTHON, "-m", "ici", command, "--report"],
             cwd=project,
-            env={"PATH": "/usr/bin:/bin", "HOME": str(WORK), "PYTHONPATH": str(ORACLE / "src")},
+            env={"PATH": path, "HOME": str(WORK), "PYTHONPATH": str(ORACLE / "src")},
             capture_output=True,
             text=True,
             timeout=900,
@@ -109,9 +117,91 @@ cases = {
     }
     for name, (fixture, command, config, files) in CASES.items()
 }
+TOOLS = Path(tempfile.gettempdir()) / "ici-cpp-lint-tools"
+QT = "-DQT_CORE_LIB"
+# name: (fixture, database sources (None: every src/ file), extra compiler flags, tools)
+TOOL_CASES = {
+    "tidy-only": ("lint-tidy", None, [], ("clang-tidy",)),
+    "clazy-only": ("lint-tidy", None, [], ("clazy",)),
+    "tidy-and-clazy": ("lint-tidy", None, [], ("clang-tidy", "clazy")),
+    # clazy --only-qt reports only for Qt code (QT_CORE_LIB), which also turns on frozen
+    # Qt compatibility verification (QtCompatibility targets).
+    "tidy-and-clazy-qt": ("lint-tidy", None, [QT], ("clang-tidy", "clazy")),
+    "tidy-partial-database": ("lint-fixture", ["src/clean.cpp"], [], ("clang-tidy",)),
+    "clazy-unloadable": ("lint-tidy", None, [], ("clazy-raw",)),
+}
+
+
+def tool_bin(directory: Path, tools: tuple[str, ...]) -> str:
+    directory.mkdir(parents=True)
+    for tool in tools:
+        if tool == "clang-tidy":
+            os.symlink(os.environ["ICI_TEST_CLANG_TIDY"], directory / "clang-tidy")
+        elif tool == "clazy-raw":
+            os.symlink(os.environ["ICI_TEST_CLAZY"], directory / "clazy-standalone")
+        else:
+            wrapper = directory / "clazy-standalone"
+            wrapper.write_text(
+                '#!/bin/sh\nLD_LIBRARY_PATH={} exec {} "$@"\n'.format(
+                    os.environ["ICI_TEST_CLANG_LIBRARY_PATH"], os.environ["ICI_TEST_CLAZY"]
+                ),
+                encoding="utf-8",
+            )
+            wrapper.chmod(0o755)
+    return f"{directory}:/usr/bin:/bin"
+
+
+def database(fixture: str, sources: list[str] | None, flags: list[str]) -> str:
+    if sources is None:
+        sources = sorted(f"src/{path.name}" for path in (FIXTURES / fixture / "src").iterdir())
+    return json.dumps(
+        [
+            {
+                "directory": "{root}",
+                "file": source,
+                "arguments": ["g++", "-std=c++17", *flags, "-Iinclude", "-c", source],
+            }
+            for source in sources
+        ]
+    )
+
+
+tool_cases = {}
+for name, (fixture, sources, flags, tools) in TOOL_CASES.items():
+    shutil.rmtree(TOOLS, ignore_errors=True)
+    try:
+        path = tool_bin(TOOLS / "bin", tools)
+        files = {"build/compile_commands.json": database(fixture, sources, flags)}
+        tool_cases[name] = {
+            "fixture": fixture,
+            "command": "verify",
+            "config": "",
+            "files": files,
+            "tools": list(tools),
+            "frozen": run(fixture, "verify", "", files, path),
+        }
+    finally:
+        shutil.rmtree(TOOLS, ignore_errors=True)
+VERSIONS = {
+    name: subprocess.run(
+        [os.environ[variable], "--version"],
+        env={"LD_LIBRARY_PATH": os.environ["ICI_TEST_CLANG_LIBRARY_PATH"]},
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    for name, variable in (("clang-tidy", "ICI_TEST_CLANG_TIDY"), ("clazy", "ICI_TEST_CLAZY"))
+}
 (ROOT / "tests/rust-parity/cpp/lint-oracle.json").write_text(
     json.dumps(
-        {"oracle": EXPECTED, "gxx": GXX, "base": BASE, "cases": cases},
+        {
+            "oracle": EXPECTED,
+            "gxx": GXX,
+            "base": BASE,
+            "cases": cases,
+            "tool_cases": tool_cases,
+            "tool_versions": VERSIONS,
+        },
         indent=1,
         sort_keys=True,
         ensure_ascii=False,
@@ -119,4 +209,4 @@ cases = {
     + "\n",
     encoding="utf-8",
 )
-print(f"{len(cases)} lint cases with {GXX}")
+print(f"{len(cases)} lint cases and {len(tool_cases)} clang tool cases with {GXX}")

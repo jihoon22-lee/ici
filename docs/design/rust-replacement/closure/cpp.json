@@ -380,16 +380,30 @@
       "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
     },
     "check:cpp.tidy": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:59) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
+      ],
+      "comparison": "Frozen LintEngine clang-tidy and clazy runs on an exact compilation context (analysis/_clang_tidy.py run_clang_tidy, analysis/_clazy.py run_clazy) against the actual tools. Rust's legacy cpp.tidy projection (crate::cpp::legacy_tooling) turns each native clang-tidy/clazy provider run on a recorded unit into the frozen targets: a clean run is `ClangTidy:<compile_db configuration digest[:12]>` / `Clazy:<digest>` PASS '<tool> completed without diagnostics.' at the source, each primary diagnostic `ClangTidy:<check>` / `ClangAnalyzer:<clang-analyzer-*>` / `Clazy:clazy-<check>` with '<kind>: <message>' at its line and column (errors FAIL, otherwise WARN), a failed run `<Tool>ExecutionError` ERROR with the frozen _process_error text; the clang-tidy block (or ClangTidyUnavailable) precedes the clazy block (or ClazyUnavailable), a tool that ran reports each production source without a recorded command as `<Tool>ContextMissing` ERROR before its runs, and an unresolvable second tool keeps its Unavailable WARN target and estimated evidence. The frozen LintEngine verdict (crate::cpp::legacy_lint_verdict) is recomputed over the syntax and tooling targets once the tooling ran: '0 Violations Found', the first two tool warnings, '<F> Errors, <W> Warnings Found', or the joined tool errors. All 5 comparable cases match exactly.",
+      "difference_reason": "Open: (1) tidy-and-clazy-qt: Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py), so the three QtCompatibility:UnknownMajor targets and the summary/evidence they decide are absent there (clang tool targets match); (2) intended: clazy-unloadable - frozen probes `clazy-standalone --version` in its replaced environment and reports ClazyUnavailable when the binary cannot load; Rust resolves the executable without a capability probe and reports each failed run as ClazyExecutionError ('clazy failed with exit code 127 (fatal=0, ...)') with an ERROR/NOT_RUN verdict; (3) the legacy findings rows of these targets (engines/lint.py:251) are not compared; (4) clang-tidy/clazy note targets (ClangTidyNote/ClangAnalyzerNote/ClazyNote), ExecutionError from a real non-zero exit, Budget/Replay/Context errors and several configurations of one source are not captured."
     },
     "check:cpp.tsan": {
       "status": "not_started",
@@ -706,6 +720,8 @@
       "status": "difference_review",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs"
       ],
@@ -714,15 +730,18 @@
           "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
           "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context",
           "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report",
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ]
       },
       "evidence": [
@@ -732,10 +751,12 @@
         "source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --test legacy_lint --test legacy_python_engines --test legacy_cpp_metrics --locked -j2 -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-cpp3-commands.log; regression ici-cpp/ici-analysis/ici-reporting/ici-application and 21 ici-cli C++/legacy test binaries --include-ignored (346 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-next-regress.log; post-merge of feat/rust-application 47405cd: /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
         "Rust defects fixed (cd6ed47): standalone `ici lint` diagnostics carry no end line (frozen text parse) while `ici verify` replays the fallback with -fdiagnostics-format=json and keeps the JSON ranges; every diagnostic, each note included, is a frozen compiler finding (correctness, medium confidence, count-based label, no related locations, tool g++) instead of a duplicated adapted finding with exact confidence; adapted targets name g++ as their tool like frozen tool_evidence[0].",
         "Frozen `ici verify --report` with a discovered root compile_commands.json (FULL_DATABASE: 3 units, directory '.', `g++ -std=c++17 -c <unit>`) captured by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, PYTHONHASHSEED=0, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into section database_cases of tests/rust-parity/cpp/verify-matrix-oracle.json: cases discovered and flag_policy (compile_db required_flags=['-Wall'], forbidden_flags=['-std=c++17']); the other sections were recaptured unchanged.",
-        "With a database (database_cases discovered, flag_policy, unused_clean) the legacy `ici verify` lint engine now equals frozen in status, evidence (ESTIMATED), summary ('1 Errors, 6 Warnings Found' / the two tool warnings), every target and every finding: the recorded diagnostics replay requests GCC JSON diagnostics in legacy mode (ranges), the clean unit is C++Syntax:<first 12 hex of the frozen compile_db canonical_digest of directory/argv/output> (d7616a9d200c reproduced), diagnostics are exact, the compiler runs are the tool evidence, and unresolvable clang-tidy/clazy give the frozen ClangTidyUnavailable/ClazyUnavailable targets at '.' with estimated evidence. Before: NOT_RUN, 'compiler: N diagnostic(s)' summaries and modern targets (/tmp/ici-rust-replacement-20261028/w-cpp3-database-open.log). cargo test -p ici-cli --test legacy_verify_matrix -- --include-ignored (7 passed); regression ici-cli/ici-cpp/ici-application/ici-reporting --include-ignored 369 passed and 1 failure render::on_demand_tests (state 'pending' under load; passes alone: /tmp/ici-rust-replacement-20261028/w-cpp3-render-rerun.log): /tmp/ici-rust-replacement-20261028/w-cpp3-lintdb-full.log"
+        "With a database (database_cases discovered, flag_policy, unused_clean) the legacy `ici verify` lint engine now equals frozen in status, evidence (ESTIMATED), summary ('1 Errors, 6 Warnings Found' / the two tool warnings), every target and every finding: the recorded diagnostics replay requests GCC JSON diagnostics in legacy mode (ranges), the clean unit is C++Syntax:<first 12 hex of the frozen compile_db canonical_digest of directory/argv/output> (d7616a9d200c reproduced), diagnostics are exact, the compiler runs are the tool evidence, and unresolvable clang-tidy/clazy give the frozen ClangTidyUnavailable/ClazyUnavailable targets at '.' with estimated evidence. Before: NOT_RUN, 'compiler: N diagnostic(s)' summaries and modern targets (/tmp/ici-rust-replacement-20261028/w-cpp3-database-open.log). cargo test -p ici-cli --test legacy_verify_matrix -- --include-ignored (7 passed); regression ici-cli/ici-cpp/ici-application/ici-reporting --include-ignored 369 passed and 1 failure render::on_demand_tests (state 'pending' under load; passes alone: /tmp/ici-rust-replacement-20261028/w-cpp3-render-rerun.log): /tmp/ici-rust-replacement-20261028/w-cpp3-lintdb-full.log",
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
       ],
       "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 8 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). Frozen standalone `ici lint` ignores a discovered or explicit compilation database and a declared Make build (same fallback targets, nothing built); Rust's standalone legacy lint (CppPlans::legacy_standalone: legacy projection outside `ici verify`) binds cpp.diagnostics/cpp.tidy with an empty compilation context, does not pull in the cpp.compile prerequisite (crate::legacy::select, needs cleared in planning.rs) and prepares no build variant, so it matches all three and builds nothing. The single-command capture also proves this command's required flag, summary, score and every legacy finding (rule, message, severity, confidence, category, tool, explanation, remediation, location, fingerprint) on the legacy-scope fixture.",
-      "difference_reason": "Open: (1) `ici verify` lint with a database now matches frozen for the GCC path with clang-tidy and clazy both unresolvable; a resolvable clang-tidy/clazy alongside an exact context, several configurations of one source (the clean-unit digest takes the first) and frozen output-path normalization differences are not captured; (2) a required-tool ERROR keeps MEASURED evidence (reporting); (3) execution/replay/budget error targets (C++SyntaxExecutionError, ContextMissing, ReplayError, BudgetError) and Qt codegen targets are not captured; (4) mixed Python+C++ lint summaries are not compared. Open with a database: a required but missing clang-tidy/clazy now gives the frozen no-context ERROR-target pattern (uncaptured); when one clang tool resolves and the other does not, the missing tool's Unavailable target is not emitted."
+      "difference_reason": "Open: (1) resolvable clang-tidy/clazy with an exact context now match frozen (lint-oracle.json tool_cases) except: (1) tidy-and-clazy-qt: Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py), so the three QtCompatibility:UnknownMajor targets and the summary/evidence they decide are absent there (clang tool targets match); (2) intended: clazy-unloadable - frozen probes `clazy-standalone --version` in its replaced environment and reports ClazyUnavailable when the binary cannot load; Rust resolves the executable without a capability probe and reports each failed run as ClazyExecutionError ('clazy failed with exit code 127 (fatal=0, ...)') with an ERROR/NOT_RUN verdict; (3) the legacy findings rows of these targets (engines/lint.py:251) are not compared; (4) clang-tidy/clazy note targets (ClangTidyNote/ClangAnalyzerNote/ClazyNote), ExecutionError from a real non-zero exit, Budget/Replay/Context errors and several configurations of one source are not captured. (5) a required-tool ERROR keeps MEASURED evidence (reporting); (6) C++SyntaxExecutionError/ReplayError/BudgetError/ContextError targets and Qt codegen targets are not captured; (7) mixed Python+C++ lint summaries are not compared."
     },
     "command:ici next verify": {
       "status": "difference_review",
@@ -5527,27 +5548,34 @@
       "status": "difference_review",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
-          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 8 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', the lint engine of `ici verify --report`, and standalone `ici lint` with a discovered build/compile_commands.json, with an explicit project.compile_database, and with a declared [build.make] build whose Makefile would fail (each records whether build/ici-make was produced); status, summary, evidence, exit code and the full ordered target list.",
-        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1, 8 oracle cases) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log, /tmp/ici-rust-replacement-20261028/w-cpp-lintdb.log, /tmp/ici-rust-replacement-20261028/w-cpp-lintdb-reg.log"
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1, 8 oracle cases) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log, /tmp/ici-rust-replacement-20261028/w-cpp-lintdb.log, /tmp/ici-rust-replacement-20261028/w-cpp-lintdb-reg.log",
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
       ],
       "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 8 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). Frozen standalone `ici lint` ignores a discovered or explicit compilation database and a declared Make build (same fallback targets, nothing built); Rust's standalone legacy lint (CppPlans::legacy_standalone: legacy projection outside `ici verify`) binds cpp.diagnostics/cpp.tidy with an empty compilation context, does not pull in the cpp.compile prerequisite (crate::legacy::select, needs cleared in planning.rs) and prepares no build variant, so it matches all three and builds nothing.",
-      "difference_reason": "Open: (1) `ici verify` lint with a compilation database (frozen exact replay path with analysis context) is not captured; (2) a required-tool ERROR keeps MEASURED evidence (reporting); (3) execution/replay/budget error targets (C++SyntaxExecutionError, ContextMissing, ReplayError, BudgetError) and Qt codegen targets are not captured; (4) mixed Python+C++ lint summaries are not compared."
+      "difference_reason": "Open: (1) resolvable clang-tidy/clazy with an exact context now match frozen (lint-oracle.json tool_cases) except: (1) tidy-and-clazy-qt: Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py), so the three QtCompatibility:UnknownMajor targets and the summary/evidence they decide are absent there (clang tool targets match); (2) intended: clazy-unloadable - frozen probes `clazy-standalone --version` in its replaced environment and reports ClazyUnavailable when the binary cannot load; Rust resolves the executable without a capability probe and reports each failed run as ClazyExecutionError ('clazy failed with exit code 127 (fatal=0, ...)') with an ERROR/NOT_RUN verdict; (3) the legacy findings rows of these targets (engines/lint.py:251) are not compared; (4) clang-tidy/clazy note targets (ClangTidyNote/ClangAnalyzerNote/ClazyNote), ExecutionError from a real non-zero exit, Budget/Replay/Context errors and several configurations of one source are not captured. (5) a required-tool ERROR keeps MEASURED evidence (reporting); (6) C++SyntaxExecutionError/ReplayError/BudgetError/ContextError targets and Qt codegen targets are not captured; (7) mixed Python+C++ lint summaries are not compared."
     },
     "descriptor:python_compat": {
       "status": "verified",
@@ -5939,46 +5967,62 @@
       "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
-        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log",
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
       ],
-      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: ClangTidyUnavailable at '.' — WARN by default, absent when clang_tidy='off'; message 'clang-tidy requires an approved capability inventory and exact compilation context' under `ici lint` and 'clang-tidy is unavailable or incompletely probed' under verify without the tool.",
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: ClangTidyUnavailable at '.' — WARN by default, absent when clang_tidy='off'; message 'clang-tidy requires an approved capability inventory and exact compilation context' under `ici lint` and 'clang-tidy is unavailable or incompletely probed' under verify without the tool. With resolvable tools on an exact context: the clean-run `<Tool>:<digest>` PASS, `<Tool>ContextMissing` ERROR and the second tool's Unavailable target now match frozen (lint-oracle.json tool_cases). Rust's legacy cpp.tidy projection (crate::cpp::legacy_tooling) turns each native clang-tidy/clazy provider run on a recorded unit into the frozen targets: a clean run is `ClangTidy:<compile_db configuration digest[:12]>` / `Clazy:<digest>` PASS '<tool> completed without diagnostics.' at the source, each primary diagnostic `ClangTidy:<check>` / `ClangAnalyzer:<clang-analyzer-*>` / `Clazy:clazy-<check>` with '<kind>: <message>' at its line and column (errors FAIL, otherwise WARN), a failed run `<Tool>ExecutionError` ERROR with the frozen _process_error text; the clang-tidy block (or ClangTidyUnavailable) precedes the clazy block (or ClazyUnavailable), a tool that ran reports each production source without a recorded command as `<Tool>ContextMissing` ERROR before its runs, and an unresolvable second tool keeps its Unavailable WARN target and estimated evidence. The frozen LintEngine verdict (crate::cpp::legacy_lint_verdict) is recomputed over the syntax and tooling targets once the tooling ran: '0 Violations Found', the first two tool warnings, '<F> Errors, <W> Warnings Found', or the joined tool errors. All 5 comparable cases match exactly.",
       "difference_reason": "Open: 'clang-tidy requires an exact compilation database' (tool present, no database, verify) is implemented but not captured; required clang-tidy ERROR keeps MEASURED evidence (reporting)."
     },
     "finding_site:src/ici/analysis/_clazy.py:63:11": {
       "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
         "failure": [
-          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
         ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/lint-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; PATH=/usr/bin:/bin without clang-tidy/clazy-standalone; g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted by the Rust test; fixed capture path): 5 cases over parity-fixtures/cpp/lint-fixture (error, -W warnings, a deprecation warning with its 'declared here' note, a clean file, an include/ header) and lint-warnings (warnings only): `ici lint --report`, clang_tidy='off', clazy='required', and the lint engine of `ici verify --report`; status, summary, evidence, exit code and the full ordered target list.",
-        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log"
+        "ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_lint (1) plus regression report_commands, publish_commands, doctor_commands, native_cpp, native_cpp_direct, legacy_cpp_metrics, legacy_sanitize, legacy_build_targets, legacy_binary_compat, legacy_make_build, legacy_direct_build, native_preparation, native_validation_extra, legacy_no_tests, legacy_test_parity, legacy_python_sanitize, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli --locked -j2 -- --include-ignored: all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint.log",
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
       ],
-      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: ClazyUnavailable at '.', WARN by default and ERROR (summary = the message, exit 1) with clazy='required'.",
+      "comparison": "Frozen legacy LintEngine C++ heuristic fallback (no compilation database; `ici lint` has no analysis context at all): per-source g++ text diagnostics become `Compiler:<-W rule>` or `C++Syntax` targets with '<kind>: <message>' (errors FAIL; warnings, notes, remarks WARN; each note its own C++Syntax target after its parent), a clean source becomes `C++Syntax:fallback` PASS 'Compiler syntax analysis completed without diagnostics.', ClangTidyUnavailable/ClazyUnavailable targets follow at '.', and the summary is '0 Violations Found' / the first two tool warnings when nothing failed / '<F> Errors, <W> Warnings Found' (W counts WARN targets plus the fallback tool warning). Rust's legacy projection (crate::cpp::legacy_fallback_lint over the cpp.diagnostics fallback output and crate::cpp::legacy_tooling_unavailable for cpp.tidy, execute.rs/cpp.rs) matches all 5 oracle cases exactly (targets in order, summary, status, evidence, exit 1 for errors and exit 0 for warnings only). This site: ClazyUnavailable at '.', WARN by default and ERROR (summary = the message, exit 1) with clazy='required'. With resolvable tools on an exact context: the clean-run `<Tool>:<digest>` PASS, `<Tool>ContextMissing` ERROR and the second tool's Unavailable target now match frozen (lint-oracle.json tool_cases). Rust's legacy cpp.tidy projection (crate::cpp::legacy_tooling) turns each native clang-tidy/clazy provider run on a recorded unit into the frozen targets: a clean run is `ClangTidy:<compile_db configuration digest[:12]>` / `Clazy:<digest>` PASS '<tool> completed without diagnostics.' at the source, each primary diagnostic `ClangTidy:<check>` / `ClangAnalyzer:<clang-analyzer-*>` / `Clazy:clazy-<check>` with '<kind>: <message>' at its line and column (errors FAIL, otherwise WARN), a failed run `<Tool>ExecutionError` ERROR with the frozen _process_error text; the clang-tidy block (or ClangTidyUnavailable) precedes the clazy block (or ClazyUnavailable), a tool that ran reports each production source without a recorded command as `<Tool>ContextMissing` ERROR before its runs, and an unresolvable second tool keeps its Unavailable WARN target and estimated evidence. The frozen LintEngine verdict (crate::cpp::legacy_lint_verdict) is recomputed over the syntax and tooling targets once the tooling ran: '0 Violations Found', the first two tool warnings, '<F> Errors, <W> Warnings Found', or the joined tool errors. All 5 comparable cases match exactly.",
       "difference_reason": "Open (reporting): a required-tool ERROR is NOT_RUN evidence in frozen; the projection derives NOT_RUN only from a non-succeeded task, so Rust reports MEASURED for that ERROR (asserted). The tool-present/no-database message is not captured."
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:510:11": {
@@ -6060,16 +6104,28 @@
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:1030:27": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:1030); enclosing frozen function _normalize_clang_tidy) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
+      ],
+      "comparison": "Frozen ClangTidy:/ClangAnalyzer:<rule> primary diagnostic targets of the clang tool text parser (rule normalization, '<kind>: <message>', line, column, WARN for warnings) on real tool output. Rust's legacy cpp.tidy projection (crate::cpp::legacy_tooling) turns each native clang-tidy/clazy provider run on a recorded unit into the frozen targets: a clean run is `ClangTidy:<compile_db configuration digest[:12]>` / `Clazy:<digest>` PASS '<tool> completed without diagnostics.' at the source, each primary diagnostic `ClangTidy:<check>` / `ClangAnalyzer:<clang-analyzer-*>` / `Clazy:clazy-<check>` with '<kind>: <message>' at its line and column (errors FAIL, otherwise WARN), a failed run `<Tool>ExecutionError` ERROR with the frozen _process_error text; the clang-tidy block (or ClangTidyUnavailable) precedes the clazy block (or ClazyUnavailable), a tool that ran reports each production source without a recorded command as `<Tool>ContextMissing` ERROR before its runs, and an unresolvable second tool keeps its Unavailable WARN target and estimated evidence. The frozen LintEngine verdict (crate::cpp::legacy_lint_verdict) is recomputed over the syntax and tooling targets once the tooling ran: '0 Violations Found', the first two tool warnings, '<F> Errors, <W> Warnings Found', or the joined tool errors. All 5 comparable cases match exactly.",
+      "difference_reason": "Open: notes, error-kind (FAIL) diagnostics and compiler -W warnings inside clazy output are not captured; (1) tidy-and-clazy-qt: Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py), so the three QtCompatibility:UnknownMajor targets and the summary/evidence they decide are absent there (clang tool targets match); (2) intended: clazy-unloadable - frozen probes `clazy-standalone --version` in its replaced environment and reports ClazyUnavailable when the binary cannot load; Rust resolves the executable without a capability probe and reports each failed run as ClazyExecutionError ('clazy failed with exit code 127 (fatal=0, ...)') with an ERROR/NOT_RUN verdict; (3) the legacy findings rows of these targets (engines/lint.py:251) are not compared; (4) clang-tidy/clazy note targets (ClangTidyNote/ClangAnalyzerNote/ClazyNote), ExecutionError from a real non-zero exit, Budget/Replay/Context errors and several configurations of one source are not captured."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:358:8": {
       "status": "not_started",
@@ -6156,28 +6212,52 @@
       "difference_reason": "Open: JSON diagnostics are not part of the fallback oracle."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:704:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:704); enclosing frozen function _append_clazy_diagnostic) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
+      ],
+      "comparison": "Frozen Clazy:<rule> primary diagnostic targets of the clang tool text parser (rule normalization, '<kind>: <message>', line, column, WARN for warnings) on real tool output. Rust's legacy cpp.tidy projection (crate::cpp::legacy_tooling) turns each native clang-tidy/clazy provider run on a recorded unit into the frozen targets: a clean run is `ClangTidy:<compile_db configuration digest[:12]>` / `Clazy:<digest>` PASS '<tool> completed without diagnostics.' at the source, each primary diagnostic `ClangTidy:<check>` / `ClangAnalyzer:<clang-analyzer-*>` / `Clazy:clazy-<check>` with '<kind>: <message>' at its line and column (errors FAIL, otherwise WARN), a failed run `<Tool>ExecutionError` ERROR with the frozen _process_error text; the clang-tidy block (or ClangTidyUnavailable) precedes the clazy block (or ClazyUnavailable), a tool that ran reports each production source without a recorded command as `<Tool>ContextMissing` ERROR before its runs, and an unresolvable second tool keeps its Unavailable WARN target and estimated evidence. The frozen LintEngine verdict (crate::cpp::legacy_lint_verdict) is recomputed over the syntax and tooling targets once the tooling ran: '0 Violations Found', the first two tool warnings, '<F> Errors, <W> Warnings Found', or the joined tool errors. All 5 comparable cases match exactly.",
+      "difference_reason": "Open: notes, error-kind (FAIL) diagnostics and compiler -W warnings inside clazy output are not captured; (1) tidy-and-clazy-qt: Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py), so the three QtCompatibility:UnknownMajor targets and the summary/evidence they decide are absent there (clang tool targets match); (2) intended: clazy-unloadable - frozen probes `clazy-standalone --version` in its replaced environment and reports ClazyUnavailable when the binary cannot load; Rust resolves the executable without a capability probe and reports each failed run as ClazyExecutionError ('clazy failed with exit code 127 (fatal=0, ...)') with an ERROR/NOT_RUN verdict; (3) the legacy findings rows of these targets (engines/lint.py:251) are not compared; (4) clang-tidy/clazy note targets (ClangTidyNote/ClangAnalyzerNote/ClazyNote), ExecutionError from a real non-zero exit, Budget/Replay/Context errors and several configurations of one source are not captured."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:705:19": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:705); enclosing frozen function _append_clazy_diagnostic) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
+      ],
+      "comparison": "Frozen Clazy:<rule> primary diagnostic targets of the clang tool text parser (rule normalization, '<kind>: <message>', line, column, WARN for warnings) on real tool output. Rust's legacy cpp.tidy projection (crate::cpp::legacy_tooling) turns each native clang-tidy/clazy provider run on a recorded unit into the frozen targets: a clean run is `ClangTidy:<compile_db configuration digest[:12]>` / `Clazy:<digest>` PASS '<tool> completed without diagnostics.' at the source, each primary diagnostic `ClangTidy:<check>` / `ClangAnalyzer:<clang-analyzer-*>` / `Clazy:clazy-<check>` with '<kind>: <message>' at its line and column (errors FAIL, otherwise WARN), a failed run `<Tool>ExecutionError` ERROR with the frozen _process_error text; the clang-tidy block (or ClangTidyUnavailable) precedes the clazy block (or ClazyUnavailable), a tool that ran reports each production source without a recorded command as `<Tool>ContextMissing` ERROR before its runs, and an unresolvable second tool keeps its Unavailable WARN target and estimated evidence. The frozen LintEngine verdict (crate::cpp::legacy_lint_verdict) is recomputed over the syntax and tooling targets once the tooling ran: '0 Violations Found', the first two tool warnings, '<F> Errors, <W> Warnings Found', or the joined tool errors. All 5 comparable cases match exactly.",
+      "difference_reason": "Open: notes, error-kind (FAIL) diagnostics and compiler -W warnings inside clazy output are not captured; (1) tidy-and-clazy-qt: Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py), so the three QtCompatibility:UnknownMajor targets and the summary/evidence they decide are absent there (clang tool targets match); (2) intended: clazy-unloadable - frozen probes `clazy-standalone --version` in its replaced environment and reports ClazyUnavailable when the binary cannot load; Rust resolves the executable without a capability probe and reports each failed run as ClazyExecutionError ('clazy failed with exit code 127 (fatal=0, ...)') with an ERROR/NOT_RUN verdict; (3) the legacy findings rows of these targets (engines/lint.py:251) are not compared; (4) clang-tidy/clazy note targets (ClangTidyNote/ClangAnalyzerNote/ClazyNote), ExecutionError from a real non-zero exit, Budget/Replay/Context errors and several configurations of one source are not captured."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:148:11": {
       "status": "not_started",
@@ -6381,16 +6461,30 @@
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:299:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:299); enclosing frozen function _run_exact) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-oracle.json `tool_cases` captured by development-only tests/rust-parity/cpp/capture_lint_cli.py (oracle 6fe3e40; Ubuntu LLVM 21.1.8 clang-tidy and clazy 1.17 from ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY, versions recorded; a temporary bin directory first on PATH holding `clang-tidy` and/or `clazy-standalone`, the names core/toolchain.py probes, clazy wrapped to set ICI_TEST_CLANG_LIBRARY_PATH because frozen replaces the clang tools' environment): `ici verify --report` with an exact build/compile_commands.json over parity-fixtures/cpp/lint-tidy (a clean unit; performance-unnecessary-value-param and clang-analyzer-core.DivideZero findings; a clazy-qgetenv finding under -DQT_CORE_LIB) and lint-fixture with a one-source database; 6 cases tidy-only, clazy-only, tidy-and-clazy, tidy-and-clazy-qt, tidy-partial-database, clazy-unloadable; lint engine status, summary, evidence and the full ordered target list.",
+        "ICI_TEST_* from opus-env.sh: cargo test -p ici-cli --test legacy_lint --locked -j2 -- --include-ignored (2 tests: 8 fallback and 6 clang tool cases) passed; full ici-cli --include-ignored regression (63 test binaries, 275 tests, 0 failures); strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-lint-tools-capture.log, w-cpp-lint-tools.log, w-cpp-lint-tools-regress.log"
+      ],
+      "comparison": "Frozen `_cpp_lint` C++SyntaxContextMissing: one WARN 'No exact translation-unit command covers this production source.' per production source without a recorded command, before the replayed units, and the tool error 'Compilation context is missing <n> production source command(s)' that leads the ERROR summary (joined with the clang-tidy 'context is missing' error). Rust (crate::cpp config_scope preserve_diagnostic_scope under the legacy projection, legacy_fallback_lint over the recorded subset) matches the tidy-partial-database case exactly: targets, ERROR, NOT_RUN and summary. Rust's legacy cpp.tidy projection (crate::cpp::legacy_tooling) turns each native clang-tidy/clazy provider run on a recorded unit into the frozen targets: a clean run is `ClangTidy:<compile_db configuration digest[:12]>` / `Clazy:<digest>` PASS '<tool> completed without diagnostics.' at the source, each primary diagnostic `ClangTidy:<check>` / `ClangAnalyzer:<clang-analyzer-*>` / `Clazy:clazy-<check>` with '<kind>: <message>' at its line and column (errors FAIL, otherwise WARN), a failed run `<Tool>ExecutionError` ERROR with the frozen _process_error text; the clang-tidy block (or ClangTidyUnavailable) precedes the clazy block (or ClazyUnavailable), a tool that ran reports each production source without a recorded command as `<Tool>ContextMissing` ERROR before its runs, and an unresolvable second tool keeps its Unavailable WARN target and estimated evidence. The frozen LintEngine verdict (crate::cpp::legacy_lint_verdict) is recomputed over the syntax and tooling targets once the tooling ran: '0 Violations Found', the first two tool warnings, '<F> Errors, <W> Warnings Found', or the joined tool errors. All 5 comparable cases match exactly.",
+      "difference_reason": "Open: only a database that omits two sources is captured; context error diagnostics (C++SyntaxContextDiagnostic ERROR) still stop the projection."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:315:12": {
       "status": "not_started",
@@ -6766,6 +6860,7 @@
         "crates/ici-cli/src/cpp_validation.rs",
         "crates/ici-cli/src/execute.rs",
         "crates/ici-cli/src/planning.rs",
+        "crates/ici-cpp/src/elf.rs",
         "crates/ici-validation/src/cpp.rs"
       ],
       "fixtures": {
@@ -6784,10 +6879,11 @@
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
         "Merged feat/rust-application 273aa5f (reporting: legacy engines keep the frozen status class and summary, no check-id ERROR prefix); after the merge the legacy_build_targets, legacy_binary_compat and legacy_sanitize oracles compare ERROR summaries exactly (cargo test -p ici-cli --test legacy_sanitize --test legacy_build_targets --test legacy_binary_compat --test legacy_make_build --test artifact_contract --test legacy_direct_build --locked -j2 -- --include-ignored: 2+1+1+6+1+3 passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-evidence.log).",
         "The unpublished-selection case now equals frozen (validation 10444b8 merged at 47405cd; legacy_binary_compat has no carve-out); /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
-        "Case missing-readelf added to development-only tests/rust-parity/cpp/capture_binary_compat.py (oracle 6fe3e40; PATH is a symlink farm of the TOOLS dirs, /usr/bin and /bin without readelf; the other 7 cases recaptured unchanged): frozen binary_compat ERROR 'Binary compatibility analysis incomplete: readelf capability is unavailable' with BinaryCompatibility:AnalysisUnavailable at '.', build PASS. Before the fix native reported SKIP 'readelf: not found; prepare the project tool or install the verified native tool pack' with no target. ICI_TEST_MAKE/ICI_TEST_CXX cargo test -p ici-cli --test legacy_binary_compat -- --include-ignored (1 passed, 8 cases, the replay builds the same farm): /tmp/ici-rust-replacement-20261028/w-cpp3-readelf.log"
+        "Case missing-readelf added to development-only tests/rust-parity/cpp/capture_binary_compat.py (oracle 6fe3e40; PATH is a symlink farm of the TOOLS dirs, /usr/bin and /bin without readelf; the other 7 cases recaptured unchanged): frozen binary_compat ERROR 'Binary compatibility analysis incomplete: readelf capability is unavailable' with BinaryCompatibility:AnalysisUnavailable at '.', build PASS. Before the fix native reported SKIP 'readelf: not found; prepare the project tool or install the verified native tool pack' with no target. ICI_TEST_MAKE/ICI_TEST_CXX cargo test -p ici-cli --test legacy_binary_compat -- --include-ignored (1 passed, 8 cases, the replay builds the same farm): /tmp/ici-rust-replacement-20261028/w-cpp3-readelf.log",
+        "tests/rust-parity/cpp/binary-compat-oracle.json case truncated-readelf (capture_binary_compat.py: readelf replaced in the PATH farm by a script that exits 0 with only the first 4 lines of /usr/bin/readelf output): frozen binary_compat ERROR 'Binary compatibility analysis incomplete: readelf output is missing ELF header facts' with one BinaryCompatibility:AnalysisUnavailable ERROR at '.'; Rust matched after the fix (crate::cpp::legacy_binary_compat maps the native readelf-header-missing/readelf-bounds parse errors to the frozen messages); cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored (9 cases) passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat-truncated.log, w-cpp-binary-compat-truncated-rust.log"
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: an analysis error gives `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' with the first error and summary 'Binary compatibility analysis incomplete: <error>'. Rust matches the required-without-artifacts case target and status. A legacy run whose selected artifacts exist but whose readelf does not resolve now gives the frozen ERROR target and summary (planning.rs legacy_binary_selection maps the blocked readelf resolution).",
-      "difference_reason": "Intended: modern `ici analyze` keeps the honest blocked readelf resolution. Open: readelf that runs but returns incomplete evidence ('readelf did not produce complete evidence for <artifact>') is not captured."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: an analysis error gives `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' with the first error and summary 'Binary compatibility analysis incomplete: <error>'. Rust matches the required-without-artifacts case target and status. A legacy run whose selected artifacts exist but whose readelf does not resolve now gives the frozen ERROR target and summary (planning.rs legacy_binary_selection maps the blocked readelf resolution). A readelf that runs and exits 0 but returns incomplete ELF header evidence now matches frozen exactly (truncated-readelf): ERROR, the 'analysis incomplete' summary and the AnalysisUnavailable target.",
+      "difference_reason": "Intended: modern `ici analyze` keeps the honest blocked readelf resolution. Open: only the missing-header incompleteness is captured; an invalid ABI version or a header conflict (Rust readelf-header-conflict, which frozen does not detect) keep the native error summary."
     },
     "finding_site:src/ici/engines/build.py:230:16": {
       "status": "verified",

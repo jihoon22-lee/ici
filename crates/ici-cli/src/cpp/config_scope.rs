@@ -86,7 +86,33 @@ impl CppPlans {
         if context.complete() {
             return;
         }
-        for path in &context.uncovered_sources {
+        if self.legacy_projection {
+            // Frozen `_cpp_lint`: one WARN per production source without a command, before the
+            // replayed units, and the tool error the LintEngine summary leads with.
+            let missing: Vec<_> = context
+                .uncovered_sources
+                .iter()
+                .map(|path| {
+                    let mut target = InspectionTarget::at(path, 1);
+                    target.target_name = "C++SyntaxContextMissing".into();
+                    target.status = "WARN".into();
+                    target.message =
+                        "No exact translation-unit command covers this production source.".into();
+                    target
+                })
+                .collect();
+            output.extra["legacy_context_missing"] = json!(context.uncovered_sources);
+            output.extra["legacy_tool_errors"] = json!([format!(
+                "Compilation context is missing {} production source command(s)",
+                missing.len()
+            )]);
+            output.targets.splice(0..0, missing);
+        }
+        for path in context
+            .uncovered_sources
+            .iter()
+            .filter(|_| !self.legacy_projection)
+        {
             let mut target = InspectionTarget::at(path, 1);
             target.target_name = "C++SyntaxContextMissing".into();
             target.status = "ERROR".into();

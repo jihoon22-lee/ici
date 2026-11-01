@@ -73,7 +73,7 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
         .join(":");
     let base = oracle["base"].as_str().unwrap();
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 8);
+    assert_eq!(cases.len(), 9);
     for (name, case) in cases {
         // A case may hide executables: PATH becomes a symlink farm of every other entry.
         let farm = tempfile::tempdir().unwrap();
@@ -81,6 +81,16 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
             .as_array()
             .map(|items| items.iter().filter_map(Value::as_str).collect())
             .unwrap_or_default();
+        // A hidden executable may be replaced by a script (a readelf that exits 0 with only
+        // the first lines of its evidence).
+        if let Some(replaced) = case["replaced"].as_object() {
+            use std::os::unix::fs::PermissionsExt;
+            for (tool, text) in replaced {
+                let script = farm.path().join(tool);
+                fs::write(&script, text.as_str().unwrap()).unwrap();
+                fs::set_permissions(&script, fs::Permissions::from_mode(0o755)).unwrap();
+            }
+        }
         let search = if hidden.is_empty() {
             path.clone()
         } else {
