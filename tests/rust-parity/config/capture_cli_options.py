@@ -411,6 +411,7 @@ CASES = {
     "global/unknown-command": (TREE, ["bogus"], []),
     "global/unknown-option": (TREE, ["--bogus"], []),
     "global/version": (TREE, ["--version"], []),
+    "global/missing-command": (TREE, [], []),
 }
 CLASS = re.compile(r"^([a-z][a-z-]*): ")
 

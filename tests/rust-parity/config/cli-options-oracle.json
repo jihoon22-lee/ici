@@ -770,6 +770,25 @@
    },
    "steps": []
   },
+  "global/missing-command": {
+   "argv": [],
+   "env": {},
+   "files": {
+    "app/main.py": "def f():\n    return 1\n",
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nprofile = \"fast\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[[components]]\nid = \"lib\"\nroot = \"lib\"\nlanguages = [\"cpp\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",
+    "lib/a.cpp": "int f() { return 1; }\n"
+   },
+   "frozen": {
+    "exit_code": 2,
+    "message": null,
+    "outcome": null,
+    "refusal": null,
+    "result": null,
+    "stdout": null,
+    "written": []
+   },
+   "steps": []
+  },
   "global/unknown-command": {
    "argv": [
     "bogus"

@@ -23,7 +23,7 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "analyze/baseline-missing",
         "message",
         r#""config: baseline <root>/out/none.json cannot be read: No such file or directory (os error 2)""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the OS error is Rust's text instead of the Python exception text.",
     ),
     (
         "analyze/config-invalid",
@@ -47,31 +47,31 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "diff/next-missing-baseline",
         "message",
         r#""diff: baseline <root>/out/none.json cannot be read: No such file or directory (os error 2)""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the OS error is Rust's text instead of the Python exception text.",
     ),
     (
         "diff/next-missing-current",
         "message",
         r#""diff: <root>/out/none.json cannot be read: No such file or directory (os error 2)""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the OS error is Rust's text instead of the Python exception text.",
     ),
     (
         "diff/top-missing-baseline",
         "message",
         r#""diff: baseline <root>/out/none.json cannot be read: No such file or directory (os error 2)""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the OS error is Rust's text instead of the Python exception text.",
     ),
     (
         "diff/next-unreadable-baseline",
         "message",
         r#""diff: baseline <root>/out/bad.json is not a result this version can read: Expected legacy ici.result/v3 or historical version:3 archive""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the native stored-result reader words the refusal itself (its last tried alternative, the legacy ici.result/v3 or historical archive reader) where frozen named the found schema_id.",
     ),
     (
         "diff/top-unreadable-baseline",
         "message",
         r#""diff: baseline <root>/out/bad.json is not a result this version can read: Expected legacy ici.result/v3 or historical version:3 archive""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the native stored-result reader words the refusal itself (its last tried alternative, the legacy ici.result/v3 or historical archive reader) where frozen named the found schema_id.",
     ),
     (
         "doctor/config-missing",
@@ -191,7 +191,7 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "report/auxiliary-missing",
         "message",
         r#""report: cannot read supporting evidence <root>/out/none.json: No such file or directory (os error 2)""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the OS error is Rust's text instead of the Python exception text.",
     ),
     (
         "report/auxiliary-with-sarif",
@@ -227,7 +227,7 @@ const CORRECTIONS: &[(&str, &str, &str, &str)] = &[
         "report/result-unreadable",
         "message",
         r#""report: <root>/out/bad.json is not a result this version can read: Expected legacy ici.result/v3 or historical version:3 archive""#,
-        "Native refusal line: same class, exit code and named file; the problem is worded by the native loader (file:line:column: key: problem) instead of the Python exception text.",
+        "Same class, exit 2 and named file; the native stored-result reader words the refusal itself (its last tried alternative, the legacy ici.result/v3 or historical archive reader) where frozen named the found schema_id.",
     ),
     (
         "verify/config-missing",
@@ -557,6 +557,7 @@ cases! {
     analyze_missing_baseline_is_refused_before_the_run_as_frozen: "analyze" "failure" 1;
     global_version_matches_frozen: "global" "positive" 1;
     global_unknown_command_and_option_are_usage_errors_as_frozen: "global" "negative" 2;
+    global_missing_command_is_a_usage_error_as_frozen: "global" "failure" 1;
 }
 
 #[test]
@@ -574,5 +575,5 @@ fn every_reviewed_difference_names_a_captured_case_and_a_reason() {
         );
         assert!(!reason.is_empty(), "{name}: {fact}");
     }
-    assert_eq!(oracle["cases"].as_object().unwrap().len(), 75);
+    assert_eq!(oracle["cases"].as_object().unwrap().len(), 76);
 }
