@@ -436,7 +436,7 @@ pub fn execute(
                 "task.completed",
                 Some(&check.task_id),
                 Some(&check.component_id),
-                &format!("{:?}", output.observation.state),
+                &crate::execute::state_label(output.observation.state),
             );
             outputs.insert(check.task_id.clone(), output);
             executed_checks.push(check);

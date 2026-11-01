@@ -122,6 +122,27 @@ impl TaskOutcome {
     pub fn prerequisite_succeeded(&self) -> bool {
         self.completed() && self.exit_code == Some(0)
     }
+    /// How the process ended, for user-visible messages: `exit N`, `terminated by signal N`, or
+    /// `no exit status` (it did not start, or no status was observed) — never Rust Debug text.
+    pub fn ending(&self) -> String {
+        exit_ending(self.exit_code, self.signal)
+    }
+    /// The wire label of the task state (`SUCCEEDED`, `FAILED`, ...), as results spell it.
+    pub fn state_label(&self) -> String {
+        serde_json::to_value(self.state)
+            .ok()
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .unwrap_or_default()
+    }
+}
+
+/// [`TaskOutcome::ending`] from the raw exit code and signal number.
+pub fn exit_ending(exit_code: Option<i32>, signal: Option<i32>) -> String {
+    match (exit_code, signal) {
+        (Some(code), _) => format!("exit {code}"),
+        (None, Some(signal)) => format!("terminated by signal {signal}"),
+        (None, None) => "no exit status".into(),
+    }
 }
 
 #[derive(Clone)]

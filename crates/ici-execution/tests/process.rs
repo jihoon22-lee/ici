@@ -273,3 +273,23 @@ fn substituted_fifo_executable_fails_without_blocking_hash_or_spawn() {
     assert_eq!(outcome.cleanup.group, None);
     assert!(outcome.error.unwrap().contains("regular file"));
 }
+
+/// User-visible process endings name the plain exit code or the signal, never `Some(2)`.
+#[test]
+fn process_endings_are_plain_exit_codes_signals_or_no_status() {
+    let mut outcome = ici_execution::TaskOutcome::empty("probe");
+    assert_eq!(outcome.ending(), "no exit status");
+    assert_eq!(outcome.state_label(), "FAILED");
+    outcome.exit_code = Some(2);
+    assert_eq!(outcome.ending(), "exit 2");
+    outcome.exit_code = None;
+    outcome.signal = Some(9);
+    assert_eq!(outcome.ending(), "terminated by signal 9");
+    assert_eq!(
+        ici_execution::process::exit_ending(Some(0), Some(15)),
+        "exit 0"
+    );
+    for text in [outcome.ending(), outcome.state_label()] {
+        assert!(!text.contains("Some(") && !text.contains("None"), "{text}");
+    }
+}

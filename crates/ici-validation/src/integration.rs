@@ -87,8 +87,12 @@ pub(crate) fn observe(
         "exit".to_string(),
         outcome.exit_code == Some(plan.context.options.expected_exit),
         format!(
-            "expected exit {}, got {:?}",
-            plan.context.options.expected_exit, outcome.exit_code
+            "expected exit {}, got {}",
+            plan.context.options.expected_exit,
+            // Frozen adapters/providers/integration.py: `got {outcome.exit_code}` (Python None).
+            outcome
+                .exit_code
+                .map_or_else(|| "None".into(), |code| code.to_string())
         ),
     )];
     for (name, text, must, must_not) in [

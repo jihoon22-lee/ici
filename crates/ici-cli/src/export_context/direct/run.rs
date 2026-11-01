@@ -63,7 +63,7 @@ fn run_tasks(
             "task.completed",
             Some(&outcome.task_id),
             Some(&plan.component_id),
-            &format!("{:?}", outcome.state),
+            &outcome.state_label(),
         );
     }
     Ok(outcomes)
