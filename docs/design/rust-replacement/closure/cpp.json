@@ -9,8 +9,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/engines/build.py:1, src/ici/engines/binary_compat.py:1, src/ici/analysis/_elf.py:1, src/ici/analysis/binary_abi.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/engines/build.py:1, src/ici/engines/binary_compat.py:1, src/ici/analysis/_elf.py:1, src/ici/analysis/binary_abi.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "capability:compile-context-export": {
       "status": "not_started",
@@ -21,8 +21,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/core/context.py:1, src/ici/core/compilation_export.py:1, src/ici/compilation_export_cli.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/core/context.py:1, src/ici/core/compilation_export.py:1, src/ici/compilation_export_cli.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "capability:cpp-parser-heuristic-confidence": {
       "status": "not_started",
@@ -33,8 +33,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/analysis/_cpp_function_boundaries.py:1, src/ici/analysis/_cpp_function_boundary_parser.py:1, src/ici/analysis/_cpp_cognitive.py:1, src/ici/analysis/cpp_complexity.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_function_boundaries.py:1, src/ici/analysis/_cpp_function_boundary_parser.py:1, src/ici/analysis/_cpp_cognitive.py:1, src/ici/analysis/cpp_complexity.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "capability:cpp-qt-generated-input": {
       "status": "not_started",
@@ -45,8 +45,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/analysis/_qt_codegen.py:1, src/ici/analysis/_clazy.py:1, src/ici/analysis/_clang_tidy.py:1, src/ici/analysis/_cpp_include_trace.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_qt_codegen.py:1, src/ici/analysis/_clazy.py:1, src/ici/analysis/_clang_tidy.py:1, src/ici/analysis/_cpp_include_trace.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "capability:legacy-cpp-linker-dead": {
       "status": "not_started",
@@ -57,8 +57,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/engines/dead.py:1, src/ici/analysis/_cpp_linker_dead_symbols.py:1, src/ici/analysis/_cpp_linker_dead_aggregation.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:1, src/ici/analysis/_cpp_linker_dead_symbols.py:1, src/ici/analysis/_cpp_linker_dead_aggregation.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "capability:legacy-python-sanitize": {
       "status": "not_started",
@@ -69,8 +69,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/engines/sanitize.py:1, src/ici/analysis/_sanitize_python_scope.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/engines/sanitize.py:1, src/ici/analysis/_sanitize_python_scope.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "capability:qmake-recorder": {
       "status": "not_started",
@@ -81,8 +81,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/core/qmake_context.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/core/qmake_context.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "capability:test-quality-tem": {
       "status": "not_started",
@@ -93,8 +93,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen capability row (src/ici/engines/test.py:1, src/ici/application/testing.py:1, src/ici/application/tem.py:1, src/ici/analysis/coverage_support.py:1).",
-      "difference_reason": "Open: capability not compared with frozen as a whole; see the rows for its component sites."
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:1, src/ici/application/testing.py:1, src/ici/application/tem.py:1, src/ici/analysis/coverage_support.py:1) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "check:cpp.artifact": {
       "status": "not_started",
@@ -105,20 +105,34 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:148).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:148) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
     },
     "check:cpp.binary-compat": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:192).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ check facet: binary_compat targets/summaries of 6 of 7 frozen deep cases.",
+      "difference_reason": "Open: an unpublished artifacts selection stays SKIP where frozen is ERROR (binary_compat.py:247); frozen records one check per ELF artifact while native runs one task."
     },
     "check:cpp.cognitive": {
       "status": "verified",
@@ -151,16 +165,29 @@
       "difference_reason": ""
     },
     "check:cpp.compile": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:34).",
-      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/verify-matrix-oracle.json (capture_verify_matrix.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ check facet: no-database compile_db targets equal frozen (end line, sentence message, WARN/FAIL by mode).",
+      "difference_reason": "Open: database-backed compile coverage/configurations not compared."
     },
     "check:cpp.complexity": {
       "status": "verified",
@@ -201,8 +228,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:132).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:132) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
     },
     "check:cpp.cycle": {
       "status": "verified",
@@ -233,16 +260,29 @@
       "difference_reason": "Frozen cycle report order follows Python set iteration in Tarjan (nondeterministic without PYTHONHASHSEED); Rust reports cycles in sorted component order, so with max_reported smaller than the cycle count the chosen subset may differ while count and every path/message match."
     },
     "check:cpp.diagnostics": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:47).",
-      "difference_reason": "Open, measured gap (probe /tmp/ici-rust-replacement-20261028/w-cpp-lint, no compilation database, g++ fallback): frozen `ici lint --report` gives FAIL exit 1, summary '1 Errors, 4 Warnings Found', targets Compiler:-Wunused-variable WARN 'warning: unused variable ...', C++Syntax FAIL 'error: ... was not declared in this scope', C++Syntax:fallback PASS 'Compiler syntax analysis completed without diagnostics.' for a clean source, and ClangTidyUnavailable/ClazyUnavailable WARN at '.'; Rust gives exit 1 but summary 'compiler: 2 diagnostic(s); ...', target names '-Wunused-variable'/'diagnostic', warnings as FAIL, messages without the kind prefix, an unnamed PASS target and no tidy/clazy targets. Port needs frozen _cpp_diagnostics target naming/kind mapping, _cpp_lint fallback/execution-error targets and the LintEngine summary/tool-warning rules, then a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/verify-matrix-oracle.json (capture_verify_matrix.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ check facet: g++ heuristic fallback diagnostics in the verify suite equal frozen (names, messages, end lines, notes).",
+      "difference_reason": "Open: compilation-database diagnostics and JSON diagnostics not compared."
     },
     "check:cpp.dup": {
       "status": "implemented",
@@ -291,16 +331,29 @@
       "difference_reason": "Modern analyze path only (legacy has no difference): it keeps syntax-tree semantics. A throw inside a lambda in a destructor is not a destructor throw, a `throw()` dynamic exception specification is not a throw (the frozen heuristic reports it), and each throw statement is its own located target with end line and columns (two throws on one line give two targets). Fixture: crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs on the same oracle corpus (frozen lines [3,4,10,17,22,25,27,32,37] versus modern [3,4,4,17,22,25,32,37,37])."
     },
     "check:cpp.line": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:21).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/verify-matrix-oracle.json (capture_verify_matrix.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ check facet: verify matrix line engine targets equal frozen (non-source extras such as ici.toml are counted but not targets).",
+      "difference_reason": "Open: line limits/gate_dirs on C++ (engines.line rows are difference_review)."
     },
     "check:cpp.sanitize": {
       "status": "not_started",
@@ -311,8 +364,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:166).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:166) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
     },
     "check:cpp.test": {
       "status": "not_started",
@@ -323,8 +376,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:75).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:75) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
     },
     "check:cpp.tidy": {
       "status": "not_started",
@@ -335,8 +388,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:59).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:59) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
     },
     "check:cpp.tsan": {
       "status": "not_started",
@@ -347,8 +400,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen check row (src/ici/languages/cpp/checks.py:175).",
-      "difference_reason": "Open: C++ check declaration site not compared one-to-one with the Rust check registry."
+      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:175) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
     },
     "command:ici analyze": {
       "status": "not_started",
@@ -359,8 +412,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:182, src/ici/cli/analyze.py:29).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:182, src/ici/cli/analyze.py:29) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici build": {
       "status": "difference_review",
@@ -518,8 +571,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:394, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:394, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici exception": {
       "status": "not_started",
@@ -530,8 +583,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:400, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:400, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici export-compilation-context": {
       "status": "not_started",
@@ -542,8 +595,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:188, src/ici/compilation_export_cli.py:29).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:188, src/ici/compilation_export_cli.py:29) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici line": {
       "status": "not_started",
@@ -554,8 +607,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:346, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:346, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici lint": {
       "status": "difference_review",
@@ -592,8 +645,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/cli/next_path.py:476, src/ici/cli/next_path.py:477).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/cli/next_path.py:476, src/ici/cli/next_path.py:477) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici python-compat": {
       "status": "not_started",
@@ -604,8 +657,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:316, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:316, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici resource": {
       "status": "not_started",
@@ -616,8 +669,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:322, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:322, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici sanitize": {
       "status": "not_started",
@@ -628,8 +681,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:376, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:376, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici security": {
       "status": "not_started",
@@ -640,8 +693,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:328, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:328, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici test": {
       "status": "not_started",
@@ -652,8 +705,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:358, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:358, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici thread-sanitize": {
       "status": "not_started",
@@ -664,8 +717,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:382, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:382, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici type": {
       "status": "not_started",
@@ -676,8 +729,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen command row (src/ici/__main__.py:364, src/ici/__main__.py:459).",
-      "difference_reason": "Open: C++ facet of this command not compared end to end with the frozen CLI beyond the rows it aggregates."
+      "comparison": "C++ facet of this frozen row (src/ici/__main__.py:364, src/ici/__main__.py:459) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen capture of this command over a C++ project exists yet; the verify matrix proves the shared legacy engine projection (same engine bodies) but the single command path (subject-required forcing, family console, exit class) is not replayed for C++."
     },
     "command:ici verify": {
       "status": "verified",
@@ -713,64 +766,124 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries are not compared (native wording, like the single-engine C++ oracles). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: options (baseline, html, sarif, publish) are other facets; Qt, compilation-database, build and test-bearing C++ trees are not in this matrix."
     },
     "config:src/ici/_analysis_config.py:23:0": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_analysis_config.py:23).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_analysis_config.py:58:14": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_analysis_config.py:58).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make.enabled reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_analysis_config.py:63:18": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_analysis_config.py:63).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make.out_of_tree reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_analysis_config.py:67:51": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_analysis_config.py:67).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make.workdir reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_analysis_config.py:90:23": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_analysis_config.py:90).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make.build_argv reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_config_paths.py:43:23": {
       "status": "not_started",
@@ -781,44 +894,80 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_config_paths.py:43).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/_config_paths.py:43) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/_config_paths.py:63:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_config_paths.py:63).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make.out_of_tree reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_config_paths.py:64:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_config_paths.py:64).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make.workdir reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_config_paths.py:71:46": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_misconfiguration_fails_like_frozen_without_running_make"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_config_paths.py:71).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): frozen Make adapter expectations in legacy_make_build.rs; oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the build.make reader: an actual legacy Make build runs in the configured workdir/shadow with build_argv/jobs/clean and a misconfigured Make table fails like frozen without running make.",
+      "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_config_paths.py:76:11": {
       "status": "not_started",
@@ -829,8 +978,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_config_paths.py:76).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/_config_paths.py:76) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/_config_paths.py:81:11": {
       "status": "not_started",
@@ -841,8 +990,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/_config_paths.py:81).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/_config_paths.py:81) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:330:15": {
       "status": "not_started",
@@ -853,8 +1002,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:330).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:330) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:331:16": {
       "status": "not_started",
@@ -865,8 +1014,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:331).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:331) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:332:18": {
       "status": "not_started",
@@ -877,8 +1026,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:332).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:332) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:333:16": {
       "status": "not_started",
@@ -889,8 +1038,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:333).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:333) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:334:16": {
       "status": "not_started",
@@ -901,8 +1050,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:334).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:334) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:335:18": {
       "status": "not_started",
@@ -913,8 +1062,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:335).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:335) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:424:17": {
       "status": "not_started",
@@ -925,8 +1074,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:424).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:424) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:71:46": {
       "status": "not_started",
@@ -937,8 +1086,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:71).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:71) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:735:30": {
       "status": "not_started",
@@ -949,8 +1098,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config/schema.py:735).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:735) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config_schema.py:220:17": {
       "status": "not_started",
@@ -961,8 +1110,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:220).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:220) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config_schema.py:221:17": {
       "status": "not_started",
@@ -973,32 +1122,56 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:221).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:221) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config_schema.py:416:14": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:416).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/metric-cli-oracle.json (capture_metric_cli.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the engines.complexity.warn_cc reader: legacy C++ complexity/cognitive thresholds (defaults, low, equal and nesting configs) give the frozen targets, statuses and exit codes; an inverted or invalid threshold stops before analysis with exit 2.",
+      "difference_reason": null
     },
     "config:src/ici/config_schema.py:417:14": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:417).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/metric-cli-oracle.json (capture_metric_cli.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the engines.complexity.fail_cc reader: legacy C++ complexity/cognitive thresholds (defaults, low, equal and nesting configs) give the frozen targets, statuses and exit codes; an inverted or invalid threshold stops before analysis with exit 2.",
+      "difference_reason": null
     },
     "config:src/ici/config_schema.py:440:15": {
       "status": "not_started",
@@ -1009,8 +1182,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:440).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:440) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config_schema.py:441:15": {
       "status": "not_started",
@@ -1021,32 +1194,56 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:441).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:441) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config_schema.py:530:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:530).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/metric-cli-oracle.json (capture_metric_cli.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the engines.cognitive.warn reader: legacy C++ complexity/cognitive thresholds (defaults, low, equal and nesting configs) give the frozen targets, statuses and exit codes; an inverted or invalid threshold stops before analysis with exit 2.",
+      "difference_reason": null
     },
     "config:src/ici/config_schema.py:531:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:531).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/metric-cli-oracle.json (capture_metric_cli.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of the engines.cognitive.fail reader: legacy C++ complexity/cognitive thresholds (defaults, low, equal and nesting configs) give the frozen targets, statuses and exit codes; an inverted or invalid threshold stops before analysis with exit 2.",
+      "difference_reason": null
     },
     "config:src/ici/config_schema.py:63:0": {
       "status": "not_started",
@@ -1057,8 +1254,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:63).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:63) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config_schema.py:99:0": {
       "status": "not_started",
@@ -1069,8 +1266,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: C++ consumer facet of this frozen config definition not compared; schema parsing belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config_key:legacy:build": {
       "status": "not_started",
@@ -1081,8 +1278,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:59).",
-      "difference_reason": "Open: C++ consumer facet of this legacy key not compared with frozen."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:59) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this legacy table's C++ consumer effect is not varied in a frozen C++ capture beyond the base [project] type='cpp' source_dirs=['src'] of every C++ oracle."
     },
     "config_key:legacy:build.make": {
       "status": "complete",
@@ -1580,20 +1777,34 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.allow_non_elf": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of engines.binary_compat.allow_non_elf: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (non-elf-allowed SKIP NonElf vs non-elf-rejected FAIL) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.binary_compat.allowed_needed": {
       "status": "not_started",
@@ -1604,8 +1815,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.artifacts": {
       "status": "not_started",
@@ -1616,20 +1827,34 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.enabled": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.binary_compat.enabled: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.binary_compat.enabled was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); tests/rust-parity/cpp/verify-matrix-oracle.json (capture_verify_matrix.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of engines.binary_compat.enabled: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (enabled deep pipeline vs the verify matrix profile_deep (frozen default off)) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.binary_compat.expected_class": {
       "status": "not_started",
@@ -1640,8 +1865,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.expected_machine": {
       "status": "not_started",
@@ -1652,8 +1877,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.forbid_absolute_rpath": {
       "status": "not_started",
@@ -1664,8 +1889,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.forbid_build_paths": {
       "status": "not_started",
@@ -1676,20 +1901,34 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.forbidden_needed": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of engines.binary_compat.forbidden_needed: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (violations (libc.so.6 forbidden) vs pass) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.binary_compat.max_artifacts": {
       "status": "not_started",
@@ -1700,8 +1939,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.max_cxxabi": {
       "status": "not_started",
@@ -1712,20 +1951,34 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.max_glibc": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of engines.binary_compat.max_glibc: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (violations (max_glibc 2.0) vs pass) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.binary_compat.max_glibcxx": {
       "status": "not_started",
@@ -1736,8 +1989,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.mode": {
       "status": "not_started",
@@ -1760,20 +2013,34 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
-      "difference_reason": "Open: the C++ effect of legacy engines.binary_compat keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this binary_compat key is not varied in the frozen deep capture (tests/rust-parity/cpp/binary-compat-oracle.json covers allow_non_elf, forbidden_needed, max_glibc, required, enabled and artifacts)."
     },
     "config_key:legacy:engines.binary_compat.required": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of engines.binary_compat.required: not yet compared (the shared enabled/mode/required selection path is proven for the matrix keys).",
-      "difference_reason": "Open: engines.binary_compat.required was not varied in the C++ verify matrix (tests/rust-parity/cpp/verify-matrix-oracle.json); its C++ effect is not compared with frozen."
+      "evidence": [
+        "Frozen oracle(s): tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py); oracle 6fe3e40.",
+        "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log"
+      ],
+      "comparison": "C++ facet of engines.binary_compat.required: the frozen deep `ici verify` pipeline over parity-fixtures/cpp/package-make (no-artifacts-required ERROR vs no-artifacts SKIP) gives the same binary_compat status, summary and every target through actual Make/g++/readelf.",
+      "difference_reason": null
     },
     "config_key:legacy:engines.build": {
       "status": "not_started",
@@ -1784,7 +2051,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.build keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.build.enabled": {
@@ -1865,7 +2132,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.cognitive keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.cognitive.enabled": {
@@ -2208,7 +2475,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.complexity keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.complexity.enabled": {
@@ -2569,7 +2836,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.dead keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.dead.cpp_unused": {
@@ -2751,7 +3018,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.dup.include_generated": {
@@ -2815,7 +3082,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.dup.mode": {
@@ -2839,7 +3106,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.dup.required": {
@@ -2884,7 +3151,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the C++ effect of legacy engines.dup keys (enabled/mode/required and engine-specific settings) is not compared with the frozen engine; the legacy gate mapping is shared legacy policy."
     },
     "config_key:legacy:engines.exception": {
@@ -3239,7 +3506,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.lint.clang_tidy_config": {
@@ -3251,7 +3518,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.lint.clazy": {
@@ -3288,7 +3555,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.lint.clazy_profile": {
@@ -3300,7 +3567,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.lint.enabled": {
@@ -3390,7 +3657,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture). This key's C++ effect has not been compared."
     },
     "config_key:legacy:engines.python_compat": {
@@ -3838,7 +4105,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.enabled": {
@@ -3862,7 +4129,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.min_branch_cov": {
@@ -3874,7 +4141,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.min_changed_line_cov": {
@@ -3898,7 +4165,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.min_file_statements": {
@@ -3910,7 +4177,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.min_func_cov": {
@@ -3922,7 +4189,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.min_line_cov": {
@@ -3934,7 +4201,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.min_tem_score": {
@@ -3970,7 +4237,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:99).",
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: legacy engines.test keys wait for the validation worker's merge (C++ test runner and coverage)."
     },
     "config_key:legacy:engines.test.quality": {
@@ -4426,8 +4693,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:59).",
-      "difference_reason": "Open: C++ consumer facet of this legacy key not compared with frozen."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:59) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this legacy table's C++ consumer effect is not varied in a frozen C++ capture beyond the base [project] type='cpp' source_dirs=['src'] of every C++ oracle."
     },
     "config_key:legacy:project.compile_database": {
       "status": "verified",
@@ -4507,8 +4774,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config_schema.py:63).",
-      "difference_reason": "Open: C++ consumer facet of this legacy key not compared with frozen."
+      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:63) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: this legacy table's C++ consumer effect is not varied in a frozen C++ capture beyond the base [project] type='cpp' source_dirs=['src'] of every C++ oracle."
     },
     "config_key:next-v1:builds": {
       "status": "not_started",
@@ -4519,8 +4786,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:287).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:287) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.artifacts": {
       "status": "not_started",
@@ -4531,8 +4798,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:135).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:135) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.directory": {
       "status": "not_started",
@@ -4543,8 +4810,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:129).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:129) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.prepare": {
       "status": "not_started",
@@ -4555,8 +4822,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:131).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:131) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.project": {
       "status": "not_started",
@@ -4567,8 +4834,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:128).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:128) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.system": {
       "status": "not_started",
@@ -4579,8 +4846,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:127).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:127) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.variant": {
       "status": "not_started",
@@ -4591,8 +4858,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:130).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:130) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:component.build": {
       "status": "not_started",
@@ -4603,8 +4870,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:221).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:221) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:component.cpp": {
       "status": "not_started",
@@ -4615,8 +4882,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:226).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:226) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:component.external": {
       "status": "not_started",
@@ -4627,8 +4894,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:236).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:236) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:component.sources": {
       "status": "not_started",
@@ -4639,8 +4906,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:222).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:222) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:component.vendor": {
       "status": "not_started",
@@ -4651,8 +4918,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:233).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:233) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:components[].build": {
       "status": "not_started",
@@ -4663,8 +4930,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:221).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:221) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:components[].cpp": {
       "status": "not_started",
@@ -4675,8 +4942,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:226).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:226) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:components[].cpp.qt": {
       "status": "not_started",
@@ -4687,8 +4954,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:154).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:154) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:components[].external": {
       "status": "not_started",
@@ -4699,8 +4966,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:236).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:236) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:components[].sources": {
       "status": "not_started",
@@ -4711,8 +4978,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:222).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:222) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:components[].vendor": {
       "status": "not_started",
@@ -4723,8 +4990,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:233).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:233) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:cpp.qt": {
       "status": "not_started",
@@ -4735,8 +5002,8 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen config_key row (src/ici/config/documents.py:154).",
-      "difference_reason": "Open: next-v1 build/component C++ consumer facet not compared with frozen; schema acceptance belongs to the config area."
+      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:154) is not compared yet; see difference_reason.",
+      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "descriptor:binary_compat": {
       "status": "not_started",
@@ -4747,7 +5014,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen descriptor row (src/ici/core/pipeline.py:159).",
+      "comparison": "C++ facet of this frozen row (src/ici/core/pipeline.py:159) is not compared yet; see difference_reason.",
       "difference_reason": "Open: descriptor-level parity needs every check, command and finding-site row of this descriptor closed first; see those rows."
     },
     "descriptor:build": {
@@ -4759,7 +5026,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen descriptor row (src/ici/core/pipeline.py:150).",
+      "comparison": "C++ facet of this frozen row (src/ici/core/pipeline.py:150) is not compared yet; see difference_reason.",
       "difference_reason": "Open: descriptor-level parity needs every check, command and finding-site row of this descriptor closed first; see those rows."
     },
     "descriptor:cognitive": {
@@ -5312,7 +5579,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/adapters/providers/compiler.py:225); enclosing frozen function parse.",
+      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/compiler.py:225); enclosing frozen function parse) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler provider site not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:144:12": {
@@ -5324,7 +5591,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/adapters/providers/cpptest.py:144); enclosing frozen function _parse_ctest.",
+      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:144); enclosing frozen function _parse_ctest) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:191:20": {
@@ -5336,7 +5603,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/adapters/providers/cpptest.py:191); enclosing frozen function _parse_qtest.",
+      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:191); enclosing frozen function _parse_qtest) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:212:27": {
@@ -5348,7 +5615,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/adapters/providers/cpptest.py:212); enclosing frozen function _parse_qtest.",
+      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:212); enclosing frozen function _parse_qtest) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared."
     },
     "finding_site:src/ici/adapters/providers/sanitize.py:212:11": {
@@ -5360,7 +5627,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/adapters/providers/sanitize.py:212); enclosing frozen function _diagnostic_finding.",
+      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/sanitize.py:212); enclosing frozen function _diagnostic_finding) is not compared yet; see difference_reason.",
       "difference_reason": "Open: sanitizer provider parsing not compared with frozen."
     },
     "finding_site:src/ici/adapters/providers/sanitize.py:233:11": {
@@ -5372,7 +5639,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/adapters/providers/sanitize.py:233); enclosing frozen function _suite_failure_finding.",
+      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/sanitize.py:233); enclosing frozen function _suite_failure_finding) is not compared yet; see difference_reason.",
       "difference_reason": "Open: sanitizer provider parsing not compared with frozen."
     },
     "finding_site:src/ici/analysis/_clang_tidy.py:57:11": {
@@ -5460,7 +5727,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_cognitive.py:557); enclosing frozen function _append_source_error.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_cognitive.py:557); enclosing frozen function _append_source_error) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed boundary modes and source/range error targets of the cognitive metric not compared; the heuristic legacy projection is verified (check:cpp.cognitive)."
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:649:8": {
@@ -5472,7 +5739,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_cognitive.py:649); enclosing frozen function _append_range_error.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_cognitive.py:649); enclosing frozen function _append_range_error) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed boundary modes and source/range error targets of the cognitive metric not compared; the heuristic legacy projection is verified (check:cpp.cognitive)."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:1012:19": {
@@ -5484,7 +5751,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:1012); enclosing frozen function _normalize_clang_tidy.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:1012); enclosing frozen function _normalize_clang_tidy) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:1014:23": {
@@ -5496,7 +5763,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:1014); enclosing frozen function _normalize_clang_tidy.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:1014); enclosing frozen function _normalize_clang_tidy) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:1030:27": {
@@ -5508,7 +5775,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:1030); enclosing frozen function _normalize_clang_tidy.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:1030); enclosing frozen function _normalize_clang_tidy) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:358:8": {
@@ -5520,7 +5787,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:358); enclosing frozen function _json_diagnostic.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:358); enclosing frozen function _json_diagnostic) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:359:19": {
@@ -5532,7 +5799,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:359); enclosing frozen function _json_diagnostic.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:359); enclosing frozen function _json_diagnostic) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:462:20": {
@@ -5604,7 +5871,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:704); enclosing frozen function _append_clazy_diagnostic.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:704); enclosing frozen function _append_clazy_diagnostic) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:705:19": {
@@ -5616,7 +5883,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_diagnostics.py:705); enclosing frozen function _append_clazy_diagnostic.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_diagnostics.py:705); enclosing frozen function _append_clazy_diagnostic) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler diagnostic projection for compile/diagnostics checks not compared with frozen on a compilation database; only the GCC text grammar is verified in ici-providers."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:148:11": {
@@ -5628,7 +5895,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:148); enclosing frozen function _context_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:148); enclosing frozen function _context_target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:218:8": {
@@ -5640,7 +5907,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:218); enclosing frozen function _consume_successful_trace.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:218); enclosing frozen function _consume_successful_trace) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:271:8": {
@@ -5652,7 +5919,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:271); enclosing frozen function _evaluate_trace.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:271); enclosing frozen function _evaluate_trace) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:308:12": {
@@ -5664,7 +5931,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:308); enclosing frozen function build_compiler_cpp_graph.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:308); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:326:12": {
@@ -5676,7 +5943,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:326); enclosing frozen function build_compiler_cpp_graph.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:326); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:342:12": {
@@ -5688,7 +5955,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:342); enclosing frozen function build_compiler_cpp_graph.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:342); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:369:16": {
@@ -5700,7 +5967,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:369); enclosing frozen function build_compiler_cpp_graph.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:369); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:399:16": {
@@ -5712,7 +5979,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_graph.py:399); enclosing frozen function build_compiler_cpp_graph.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:399); enclosing frozen function build_compiler_cpp_graph) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle)."
     },
     "finding_site:src/ici/analysis/_cpp_include_trace.py:124:11": {
@@ -5724,7 +5991,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_include_trace.py:124); enclosing frozen function _missing_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_trace.py:124); enclosing frozen function _missing_target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler include-trace parsing not compared with frozen on a recorded compilation database."
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:142:8": {
@@ -5736,7 +6003,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_linker_dead_symbols.py:142); enclosing frozen function _append_error.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_linker_dead_symbols.py:142); enclosing frozen function _append_error) is not compared yet; see difference_reason.",
       "difference_reason": "Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run)."
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:797:13": {
@@ -5748,7 +6015,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_linker_dead_symbols.py:797); enclosing frozen function _inspect_removal.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_linker_dead_symbols.py:797); enclosing frozen function _inspect_removal) is not compared yet; see difference_reason.",
       "difference_reason": "Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run)."
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8": {
@@ -5760,7 +6027,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_linker_dead_symbols.py:847); enclosing frozen function _record_pass_targets.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_linker_dead_symbols.py:847); enclosing frozen function _record_pass_targets) is not compared yet; see difference_reason.",
       "difference_reason": "Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:159:16": {
@@ -5793,7 +6060,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:169); enclosing frozen function _evaluate_process.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:169); enclosing frozen function _evaluate_process) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:208:12": {
@@ -5805,7 +6072,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:208); enclosing frozen function _run_command.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:208); enclosing frozen function _run_command) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:246:11": {
@@ -5817,7 +6084,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:246); enclosing frozen function _context_diagnostic_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:246); enclosing frozen function _context_diagnostic_target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:299:12": {
@@ -5829,7 +6096,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:299); enclosing frozen function _run_exact.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:299); enclosing frozen function _run_exact) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:315:12": {
@@ -5841,7 +6108,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:315); enclosing frozen function _run_exact.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:315); enclosing frozen function _run_exact) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:328:12": {
@@ -5853,7 +6120,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:328); enclosing frozen function _run_exact.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:328); enclosing frozen function _run_exact) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:347:16": {
@@ -5865,7 +6132,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:347); enclosing frozen function _run_exact.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:347); enclosing frozen function _run_exact) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:372:16": {
@@ -5877,7 +6144,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:372); enclosing frozen function _run_exact.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:372); enclosing frozen function _run_exact) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:457:16": {
@@ -5889,7 +6156,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:457); enclosing frozen function _run_fallback.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:457); enclosing frozen function _run_fallback) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:471:16": {
@@ -5901,7 +6168,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:471); enclosing frozen function _run_fallback.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:471); enclosing frozen function _run_fallback) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:498:16": {
@@ -5913,7 +6180,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:498); enclosing frozen function _run_fallback.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:498); enclosing frozen function _run_fallback) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:546:12": {
@@ -5925,7 +6192,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:546); enclosing frozen function run_cpp_lint.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:546); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:568:16": {
@@ -5937,7 +6204,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:568); enclosing frozen function run_cpp_lint.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:568); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:588:16": {
@@ -5949,7 +6216,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:588); enclosing frozen function run_cpp_lint.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:588); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:604:12": {
@@ -5961,7 +6228,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_lint.py:604); enclosing frozen function run_cpp_lint.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:604); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:144:11": {
@@ -5973,7 +6240,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_unused_functions.py:144); enclosing frozen function _error_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_unused_functions.py:144); enclosing frozen function _error_target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:674:16": {
@@ -5985,7 +6252,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_unused_functions.py:674); enclosing frozen function _merge_observations.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_unused_functions.py:674); enclosing frozen function _merge_observations) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:698:21": {
@@ -5997,7 +6264,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_unused_functions.py:698); enclosing frozen function _merge_observations.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_unused_functions.py:698); enclosing frozen function _merge_observations) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:741:12": {
@@ -6009,7 +6276,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/_cpp_unused_functions.py:741); enclosing frozen function _record_invalidated_observations.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_unused_functions.py:741); enclosing frozen function _record_invalidated_observations) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
     },
     "finding_site:src/ici/analysis/binary_abi.py:33:11": {
@@ -6041,7 +6308,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/analysis/cycles.py:491); enclosing frozen function _append_python_cycle_targets.",
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/cycles.py:491); enclosing frozen function _append_python_cycle_targets) is not compared yet; see difference_reason.",
       "difference_reason": "Open: this cycles.py site (compiler-context or Python path) is not compared; the legacy heuristic C++ include graph is verified on check:cpp.cycle."
     },
     "finding_site:src/ici/analysis/cycles.py:518:12": {
@@ -6469,7 +6736,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/cognitive.py:120); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/cognitive.py:120); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: cognitive engine error/boundary site not compared; legacy heuristic projection verified."
     },
     "finding_site:src/ici/engines/cognitive.py:50:20": {
@@ -6481,7 +6748,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/cognitive.py:50); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/cognitive.py:50); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: cognitive engine error/boundary site not compared; legacy heuristic projection verified."
     },
     "finding_site:src/ici/engines/cognitive.py:79:20": {
@@ -6493,7 +6760,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/cognitive.py:79); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/cognitive.py:79); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: cognitive engine error/boundary site not compared; legacy heuristic projection verified."
     },
     "finding_site:src/ici/engines/compile_db.py:208:16": {
@@ -6505,7 +6772,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/compile_db.py:208); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/compile_db.py:208); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compile_db engine not compared with frozen."
     },
     "finding_site:src/ici/engines/compile_db.py:71:11": {
@@ -6517,7 +6784,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/compile_db.py:71); enclosing frozen function _target.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/compile_db.py:71); enclosing frozen function _target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compile_db engine not compared with frozen."
     },
     "finding_site:src/ici/engines/compile_db.py:90:11": {
@@ -6529,7 +6796,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/compile_db.py:90); enclosing frozen function _diagnostic_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/compile_db.py:90); enclosing frozen function _diagnostic_target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compile_db engine not compared with frozen."
     },
     "finding_site:src/ici/engines/complexity.py:186:28": {
@@ -6541,7 +6808,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/complexity.py:186); enclosing frozen function _analyze_python_complexity.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/complexity.py:186); enclosing frozen function _analyze_python_complexity) is not compared yet; see difference_reason.",
       "difference_reason": "Open: complexity engine error/boundary site not compared; legacy heuristic projection verified."
     },
     "finding_site:src/ici/engines/complexity.py:481:16": {
@@ -6553,7 +6820,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/complexity.py:481); enclosing frozen function _finish_cpp_analysis.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/complexity.py:481); enclosing frozen function _finish_cpp_analysis) is not compared yet; see difference_reason.",
       "difference_reason": "Open: complexity engine error/boundary site not compared; legacy heuristic projection verified."
     },
     "finding_site:src/ici/engines/complexity.py:556:15": {
@@ -6595,7 +6862,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:111); enclosing frozen function _collect_sources.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:111); enclosing frozen function _collect_sources) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:134:12": {
@@ -6649,7 +6916,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:219); enclosing frozen function _analyze_linker_scope.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:219); enclosing frozen function _analyze_linker_scope) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:270:12": {
@@ -6661,7 +6928,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:270); enclosing frozen function _append_empty_scope_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:270); enclosing frozen function _append_empty_scope_target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:577:20": {
@@ -6673,7 +6940,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:577); enclosing frozen function _run_cpp_scope.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:577); enclosing frozen function _run_cpp_scope) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:669:16": {
@@ -6685,7 +6952,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:669); enclosing frozen function _cpp_findings.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:669); enclosing frozen function _cpp_findings) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:719:16": {
@@ -6697,7 +6964,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:719); enclosing frozen function _linker_findings.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:719); enclosing frozen function _linker_findings) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:885:15": {
@@ -6709,7 +6976,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dead.py:885); enclosing frozen function _scope_finding.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:885); enclosing frozen function _scope_finding) is not compared yet; see difference_reason.",
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dup.py:100:20": {
@@ -6721,7 +6988,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:100); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:100); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:121:20": {
@@ -6733,7 +7000,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:121); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:121); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:149:20": {
@@ -6745,7 +7012,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:149); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:149); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:207:20": {
@@ -6757,7 +7024,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:207); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:207); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:279:16": {
@@ -6769,7 +7036,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:279); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:279); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:401:16": {
@@ -6781,7 +7048,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:401); enclosing frozen function _semantic_error_targets.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:401); enclosing frozen function _semantic_error_targets) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:569:20": {
@@ -6793,7 +7060,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:569); enclosing frozen function _cluster_python_semantic_regions.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:569); enclosing frozen function _cluster_python_semantic_regions) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:721:20": {
@@ -6805,7 +7072,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/dup.py:721); enclosing frozen function _cluster_matches.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:721); enclosing frozen function _cluster_matches) is not compared yet; see difference_reason.",
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/exception.py:150:12": {
@@ -6817,7 +7084,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/exception.py:150); enclosing frozen function _append_analysis_error.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/exception.py:150); enclosing frozen function _append_analysis_error) is not compared yet; see difference_reason.",
       "difference_reason": "Open: exception engine source-input error site not compared (the C++ exception rules are verified on check:cpp.exception)."
     },
     "finding_site:src/ici/engines/exception.py:52:16": {
@@ -6829,7 +7096,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/exception.py:52); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/exception.py:52); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: exception engine source-input error site not compared (the C++ exception rules are verified on check:cpp.exception)."
     },
     "finding_site:src/ici/engines/line.py:185:16": {
@@ -6841,7 +7108,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/line.py:185); enclosing frozen function _record_file.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/line.py:185); enclosing frozen function _record_file) is not compared yet; see difference_reason.",
       "difference_reason": "Open: line engine C++ site not compared by the cpp area."
     },
     "finding_site:src/ici/engines/lint.py:251:16": {
@@ -6853,7 +7120,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/lint.py:251); enclosing frozen function _cpp_findings.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/lint.py:251); enclosing frozen function _cpp_findings) is not compared yet; see difference_reason.",
       "difference_reason": "Open: legacy lint engine C++ site (ClangTidyUnavailable/ClazyUnavailable and policy targets) not compared with the frozen engine; needs frozen runs with and without clang-tidy-21/clazy-standalone from the tool spike."
     },
     "finding_site:src/ici/engines/lint.py:92:16": {
@@ -6865,7 +7132,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/lint.py:92); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/lint.py:92); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: legacy lint engine C++ site (ClangTidyUnavailable/ClazyUnavailable and policy targets) not compared with the frozen engine; needs frozen runs with and without clang-tidy-21/clazy-standalone from the tool spike."
     },
     "finding_site:src/ici/engines/sanitize.py:200:16": {
@@ -6877,7 +7144,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:200); enclosing frozen function run.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/sanitize.py:200); enclosing frozen function run) is not compared yet; see difference_reason.",
       "difference_reason": "Open: the no-scope `Sanitize` SKIP target at '.' (no C++ sources, no C++ tests and no Python scope) is not compared; the C++ test-less SKIP path now matches frozen (tests/rust-parity/cpp/sanitize-oracle.json), so the earlier exit 3 observation no longer applies."
     },
     "finding_site:src/ici/engines/sanitize.py:385:24": {
@@ -6912,7 +7179,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:566); enclosing frozen function _append_adapter_case_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/sanitize.py:566); enclosing frozen function _append_adapter_case_target) is not compared yet; see difference_reason.",
       "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
     },
     "finding_site:src/ici/engines/sanitize.py:630:21": {
@@ -6947,7 +7214,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/sanitize.py:669); enclosing frozen function _normalized_findings.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/sanitize.py:669); enclosing frozen function _normalized_findings) is not compared yet; see difference_reason.",
       "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
     },
     "finding_site:src/ici/engines/sanitize.py:838:12": {
@@ -7010,7 +7277,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:352); enclosing frozen function _mark_zero_tests.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:352); enclosing frozen function _mark_zero_tests) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:611:20": {
@@ -7022,7 +7289,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:611); enclosing frozen function _run_cpp_tests_via_adapter.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:611); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:632:20": {
@@ -7034,7 +7301,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:632); enclosing frozen function _run_cpp_tests_via_adapter.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:632); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:643:20": {
@@ -7046,7 +7313,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:643); enclosing frozen function _run_cpp_tests_via_adapter.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:643); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:654:20": {
@@ -7058,7 +7325,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:654); enclosing frozen function _run_cpp_tests_via_adapter.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:654); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:716:20": {
@@ -7070,7 +7337,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:716); enclosing frozen function _run_cpp_test_case.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:716); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:774:16": {
@@ -7082,7 +7349,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:774); enclosing frozen function _run_cpp_test_case.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:774); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:811:16": {
@@ -7094,7 +7361,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:811); enclosing frozen function _run_cpp_test_case.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:811); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:821:12": {
@@ -7106,7 +7373,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:821); enclosing frozen function _run_cpp_test_case.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:821); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test.py:839:12": {
@@ -7118,7 +7385,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test.py:839); enclosing frozen function _append_cpp_tool_target.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:839); enclosing frozen function _append_cpp_tool_target) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
     },
     "finding_site:src/ici/engines/test_coverage.py:384:16": {
@@ -7130,7 +7397,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_coverage.py:384); enclosing frozen function _measure_coverage.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_coverage.py:384); enclosing frozen function _measure_coverage) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ coverage/test parity waits for the validation worker's merge; not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:196:16": {
@@ -7142,7 +7409,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:196); enclosing frozen function _quality_findings.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:196); enclosing frozen function _quality_findings) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:355:20": {
@@ -7154,7 +7421,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:355); enclosing frozen function _run_deep_test_quality.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:355); enclosing frozen function _run_deep_test_quality) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:381:16": {
@@ -7166,7 +7433,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:381); enclosing frozen function _run_deep_test_quality.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:381); enclosing frozen function _run_deep_test_quality) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:405:24": {
@@ -7178,7 +7445,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:405); enclosing frozen function _run_deep_test_quality.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:405); enclosing frozen function _run_deep_test_quality) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:418:24": {
@@ -7190,7 +7457,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:418); enclosing frozen function _run_deep_test_quality.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:418); enclosing frozen function _run_deep_test_quality) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:434:24": {
@@ -7202,7 +7469,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:434); enclosing frozen function _run_deep_test_quality.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:434); enclosing frozen function _run_deep_test_quality) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:502:16": {
@@ -7214,7 +7481,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:502); enclosing frozen function _append_flaky_targets.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:502); enclosing frozen function _append_flaky_targets) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:550:16": {
@@ -7226,7 +7493,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:550); enclosing frozen function _probe_mutation_capability.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:550); enclosing frozen function _probe_mutation_capability) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:580:12": {
@@ -7238,7 +7505,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:580); enclosing frozen function _probe_mutation_capability.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:580); enclosing frozen function _probe_mutation_capability) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
@@ -7250,7 +7517,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/test_quality.py:87); enclosing frozen function _threshold_breaches.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:87); enclosing frozen function _threshold_breaches) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/type_check.py:426:16": {
@@ -7262,7 +7529,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/type_check.py:426); enclosing frozen function _mark_cpp_type_check_skipped.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/type_check.py:426); enclosing frozen function _mark_cpp_type_check_skipped) is not compared yet; see difference_reason.",
       "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
     },
     "finding_site:src/ici/engines/type_check.py:436:16": {
@@ -7274,7 +7541,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/type_check.py:436); enclosing frozen function _mark_cpp_type_check_skipped.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/type_check.py:436); enclosing frozen function _mark_cpp_type_check_skipped) is not compared yet; see difference_reason.",
       "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
     },
     "finding_site:src/ici/engines/type_check.py:452:12": {
@@ -7286,7 +7553,7 @@
         "failure": []
       },
       "evidence": [],
-      "comparison": "Full C++ behavior audit pending for this exact frozen finding_site row (src/ici/engines/type_check.py:452); enclosing frozen function _mark_python_type_check_skipped.",
+      "comparison": "C++ facet of this frozen row (src/ici/engines/type_check.py:452); enclosing frozen function _mark_python_type_check_skipped) is not compared yet; see difference_reason.",
       "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
     },
     "finding_site:src/ici/languages/artifacts.py:121:11": {
