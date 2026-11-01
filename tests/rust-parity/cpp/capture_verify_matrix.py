@@ -249,6 +249,46 @@ def export(files: dict[str, str], options: list[str]) -> dict:
     }
 
 
+PYTHON_BASE = "[project]\ntype='python'\nsource_dirs=['src']\n"
+PYTHON_SOURCE = "def f(x):\n    return x + 1\n"
+
+
+def python_suite(profile: str) -> dict:
+    """A legacy suite with no C/C++ source still lists compile_db and thread_sanitize."""
+    shutil.rmtree(WORK, ignore_errors=True)
+    WORK.mkdir()
+    try:
+        project = WORK / "project"
+        (project / "src/pkg").mkdir(parents=True)
+        (project / "src/pkg/__init__.py").write_text(PYTHON_SOURCE, encoding="utf-8")
+        (project / "ici.toml").write_text(PYTHON_BASE, encoding="utf-8")
+        subprocess.run(
+            [PYTHON, "-m", "ici", "verify", "--profile", profile, "--report"],
+            cwd=project,
+            env={
+                "PATH": "/usr/bin:/bin",
+                "HOME": str(WORK),
+                "PYTHONPATH": str(ORACLE / "src"),
+                "PYTHONHASHSEED": "0",
+            },
+            capture_output=True,
+            text=True,
+            timeout=600,
+            check=False,
+        )
+        report = json.loads((project / "verify_report.json").read_text(encoding="utf-8"))
+    finally:
+        shutil.rmtree(WORK, ignore_errors=True)
+    return {
+        "engine_names": [engine["engine_name"] for engine in report["results"]],
+        "engines": [
+            legacy_engine(engine)
+            for engine in report["results"]
+            if engine["engine_name"] in {"compile_db", "thread_sanitize"}
+        ],
+    }
+
+
 def legacy_refusal(arguments: list[str]) -> int:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
@@ -312,6 +352,7 @@ if __name__ == "__main__":
             "next_verify": next_run(["next", "verify"], NEXT_CONFIG),
         }
         exports = {name: export(*case) for name, case in EXPORTS.items()}
+        python_suites = {profile: python_suite(profile) for profile in ("fast", "standard", "deep")}
         output = ROOT / "tests/rust-parity/cpp/verify-matrix-oracle.json"
         gxx = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
         document = {
@@ -324,6 +365,9 @@ if __name__ == "__main__":
             "next_config": NEXT_CONFIG,
             "next": next_cases,
             "exports": exports,
+            "python_base": PYTHON_BASE,
+            "python_source": PYTHON_SOURCE,
+            "python_suites": python_suites,
         }
         output.write_text(json.dumps(document, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         print(f"{len(cases)} cases, {len(commands)} commands, {len(next_cases)} next -> {output}")

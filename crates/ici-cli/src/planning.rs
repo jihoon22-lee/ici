@@ -249,6 +249,7 @@ fn prepare_resolved_omitting(
     }
     if crate::legacy::is_legacy(invocation) {
         supplemental.extend(crate::cpp::legacy_not_applicable_checks());
+        supplemental.extend(crate::cpp::legacy_cpp_absent_checks(&project));
     }
     definitions.extend(supplemental.iter().cloned());
     crate::validation::apply_legacy_coverage_defaults(invocation, &mut project);

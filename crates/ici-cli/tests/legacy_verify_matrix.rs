@@ -542,3 +542,51 @@ fn legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands() 
             .any(|check| check.check.id == "cpp.cognitive")
     );
 }
+
+/// A legacy suite without any C/C++ component still lists the frozen compile_db (and, in deep,
+/// thread_sanitize) engines as SKIP NOT_APPLICABLE rows, in the frozen engine order.
+#[test]
+fn legacy_python_only_suite_keeps_the_frozen_cpp_not_applicable_engines() {
+    let oracle = oracle();
+    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let suites = oracle["python_suites"].as_object().unwrap();
+    assert_eq!(suites.len(), 3);
+    let mut mismatches = Vec::new();
+    for (profile, frozen) in suites {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir_all(root.path().join("src/pkg")).unwrap();
+        fs::write(
+            root.path().join("src/pkg/__init__.py"),
+            oracle["python_source"].as_str().unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            root.path().join("ici.toml"),
+            oracle["python_base"].as_str().unwrap(),
+        )
+        .unwrap();
+        let invocation =
+            registry::parse(["ici", "verify", "--profile", profile.as_str(), "--report"]).unwrap();
+        commands::dispatch(&invocation, root.path(), &environment).unwrap();
+        let report: Value =
+            serde_json::from_slice(&fs::read(root.path().join("verify_report.json")).unwrap())
+                .unwrap();
+        let names: Value = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|engine| engine["engine_name"].clone())
+            .collect();
+        assert_eq!(names, frozen["engine_names"], "{profile}: engine order");
+        for expected in frozen["engines"].as_array().unwrap() {
+            let actual = report["results"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|engine| engine["engine_name"] == expected["engine_name"])
+                .unwrap();
+            compare_engine(profile, actual, expected, &mut mismatches);
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}

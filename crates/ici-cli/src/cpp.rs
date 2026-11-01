@@ -2946,6 +2946,69 @@ fn legacy_not_applicable(
 }
 
 /// These legacy descriptors inspect Python scope and still owe C++ callers an applicability result.
+/// Frozen `ici verify` always lists its C/C++ compilation-database and ThreadSanitizer engines.
+/// A legacy suite without any C/C++ component has no `cpp.compile`/`cpp.tsan` to carry them, so
+/// these Python-scoped stand-ins report the frozen not-applicable results.
+pub fn legacy_cpp_absent_checks(project: &ResolvedProject) -> Vec<CheckDefinition> {
+    if project
+        .components
+        .iter()
+        .any(|component| component.languages.iter().any(|language| language == "cpp"))
+    {
+        return vec![];
+    }
+    [
+        (
+            "python.compile-db",
+            "C/C++ compilation database applicability",
+        ),
+        ("python.tsan", "C/C++ ThreadSanitizer applicability"),
+    ]
+    .into_iter()
+    .map(|(id, title)| CheckDefinition {
+        id: id.into(),
+        title: title.into(),
+        language: "python".into(),
+        // Frozen CompileDbEngine and ThreadSanitizeEngine default `required` to true.
+        required: true,
+        ..type_not_applicable_check()
+    })
+    .collect()
+}
+/// The frozen engine results for [`legacy_cpp_absent_checks`]: `CompileDbEngine` with no
+/// production translation unit and `ThreadSanitizeEngine` with no C/C++ source.
+pub fn legacy_cpp_absent_output(check_id: &str, task_id: &str) -> Option<AnalysisOutput> {
+    let (summary, target) = match check_id {
+        "python.compile-db" => ("No production C/C++ translation units are in scope.", None),
+        "python.tsan" => (
+            "ThreadSanitizer skipped: no applicable C++ checks were executed",
+            Some((
+                "ThreadSanitizer",
+                "No applicable C++ sources were selected; ThreadSanitizer was not run",
+            )),
+        ),
+        _ => return None,
+    };
+    let mut output = AnalysisOutput::new(task_id, "ici.cpp");
+    output.status = "SKIP".into();
+    output.summary = summary.into();
+    output.observation.measurements.push(Measurement {
+        name: "cpp_sources".into(),
+        value: 0.0,
+        evidence: ici_domain::EvidenceLevel::NotApplicable,
+        unit: "files".into(),
+        numerator: None,
+        denominator: None,
+    });
+    if let Some((name, message)) = target {
+        let mut item = InspectionTarget::at(".", 1);
+        item.target_name = name.into();
+        item.status = "SKIP".into();
+        item.message = message.into();
+        output.targets.push(item);
+    }
+    Some(output)
+}
 pub fn legacy_not_applicable_checks() -> Vec<CheckDefinition> {
     [
         ("cpp.type", "C/C++ type engine applicability"),

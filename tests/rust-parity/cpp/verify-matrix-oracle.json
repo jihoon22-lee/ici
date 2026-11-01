@@ -21975,5 +21975,154 @@
   }
  },
  "next_config": "schema_version = 1\n[workspace]\nname = \"project\"\n\n[[components]]\nid = \"src\"\nroot = \"src\"\nlanguages = [\"cpp\"]\n",
- "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python_base": "[project]\ntype='python'\nsource_dirs=['src']\n",
+ "python_source": "def f(x):\n    return x + 1\n",
+ "python_suites": {
+  "deep": {
+   "engine_names": [
+    "line",
+    "lint",
+    "compile_db",
+    "test",
+    "type",
+    "python_compat",
+    "cognitive",
+    "resource",
+    "security",
+    "cycle",
+    "complexity",
+    "sanitize",
+    "thread_sanitize",
+    "dead",
+    "dup",
+    "exception"
+   ],
+   "engines": [
+    {
+     "engine_name": "compile_db",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [],
+     "findings": [],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope.",
+     "targets": []
+    },
+    {
+     "engine_name": "thread_sanitize",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [
+      "sanitizer_diagnostics",
+      "thread_sanitize_issues"
+     ],
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "explanation": "Adapted from the legacy thread_sanitize InspectionTarget contract.",
+       "fingerprint": "sha256:c55c00734c75ba6f7b0705dc685797ed102fcb7a069cab866df84e71144ce923",
+       "fixes": [],
+       "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+       "metrics": {},
+       "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "label": "ThreadSanitizer",
+        "path": ".",
+        "start_column": null,
+        "start_line": 1
+       },
+       "related_locations": [],
+       "remediation": "",
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "info",
+       "snippet": "",
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "SKIP",
+     "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
+     "targets": [
+      {
+       "end_line": null,
+       "file_path": ".",
+       "message": "No applicable C++ sources were selected; ThreadSanitizer was not run",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "ThreadSanitizer"
+      }
+     ]
+    }
+   ]
+  },
+  "fast": {
+   "engine_names": [
+    "line",
+    "lint",
+    "compile_db",
+    "type",
+    "python_compat",
+    "resource",
+    "security",
+    "cycle",
+    "complexity",
+    "dead",
+    "dup",
+    "exception"
+   ],
+   "engines": [
+    {
+     "engine_name": "compile_db",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [],
+     "findings": [],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope.",
+     "targets": []
+    }
+   ]
+  },
+  "standard": {
+   "engine_names": [
+    "line",
+    "lint",
+    "compile_db",
+    "test",
+    "type",
+    "python_compat",
+    "resource",
+    "security",
+    "cycle",
+    "complexity",
+    "sanitize",
+    "dead",
+    "dup",
+    "exception"
+   ],
+   "engines": [
+    {
+     "engine_name": "compile_db",
+     "evidence": "NOT_APPLICABLE",
+     "extra_keys": [],
+     "findings": [],
+     "max_score": null,
+     "required": true,
+     "score": null,
+     "status": "SKIP",
+     "summary": "No production C/C++ translation units are in scope.",
+     "targets": []
+    }
+   ]
+  }
+ }
 }

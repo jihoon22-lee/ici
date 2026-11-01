@@ -484,7 +484,11 @@ pub fn execute(
                         Some(&planned.component_id),
                         "native analysis",
                     );
-                    let mut output = if let Some(output) = crate::validation::internal(
+                    let mut output = if let Some(output) =
+                        crate::cpp::legacy_cpp_absent_output(&planned.check.id, id)
+                    {
+                        output
+                    } else if let Some(output) = crate::validation::internal(
                         &prepared.project,
                         inputs::component(&prepared, planned),
                         &planned.check.id,
