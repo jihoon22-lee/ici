@@ -255,6 +255,21 @@ impl CppPlans {
         self.compiler_components
             .insert(id.into(), component.id.clone());
 
+        // Frozen next planning: a component with no linked build and no discovered database
+        // blocks its compilation-backed checks before anything runs.
+        if !self.legacy_projection
+            && matches!(check.id.as_str(), "cpp.compile" | "cpp.diagnostics")
+            && context.database_path.is_none()
+            && context.units.is_empty()
+            && context.diagnostics.is_empty()
+            && linked_build(project, component).is_none()
+            && !self.compile_scope_is_empty(id)
+        {
+            return Some(blocked(format!(
+                "no compilation database for the component's C++ scope \u{2014} no build unit is linked to {}; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
+                component.id
+            )));
+        }
         match check.id.as_str() {
             "cpp.complexity" | "cpp.cognitive" => {
                 self.bind_boundaries(project, component, &context, check, id, environment)

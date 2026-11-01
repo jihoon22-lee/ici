@@ -297,11 +297,88 @@ fn cpp_analyze_and_next_verify_match_the_frozen_checks_findings_and_gate() {
             .map(|item| project(item, &["task_id", "check_id", "evidence_complete"]))
             .collect();
         check("checks", checks, &frozen_checks);
+        let states: Value = result["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["state"].clone())
+            .collect();
+        let frozen_states: Value = frozen["checks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| item["state"].clone())
+            .collect();
+        check("states", states, &frozen_states);
+        let keys = [
+            "task_id",
+            "rule_id",
+            "message",
+            "severity",
+            "confidence",
+            "evidence",
+            "primary_location",
+            "related_locations",
+            "fingerprint",
+        ];
+        let found: Vec<Value> = result["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| project(item, &keys))
+            .collect();
+        let expected = frozen["findings"].as_array().unwrap();
+        check("findings.len", found.len().into(), &expected.len().into());
+        for (actual, frozen) in found.iter().zip(expected) {
+            let mut actual = actual.clone();
+            let mut frozen = frozen.clone();
+            if frozen["rule_id"] == "cycle.include" {
+                // Recorded difference: frozen hashed absolute checkout paths in Python set
+                // order; native names the cycle from its first sorted member at the include.
+                for key in [
+                    "fingerprint",
+                    "message",
+                    "primary_location",
+                    "related_locations",
+                ] {
+                    actual[key] = Value::Null;
+                    frozen[key] = Value::Null;
+                }
+            }
+            if name == "next_verify" {
+                // Recorded difference: frozen next paths are relative to the component root
+                // (`src`); native keeps workspace-relative paths, so the identity differs too.
+                if let Some(path) = frozen["primary_location"]["path"].as_str() {
+                    frozen["primary_location"]["path"] = format!("src/{path}").into();
+                }
+                actual["fingerprint"] = Value::Null;
+                frozen["fingerprint"] = Value::Null;
+            }
+            check("finding", actual, &frozen);
+        }
         check(
-            "findings.len",
-            result["findings"].as_array().unwrap().len().into(),
-            &frozen["findings"].as_array().unwrap().len().into(),
+            "gate.selected",
+            result["gate"]["selected"].clone(),
+            &frozen["gate"]["selected"],
         );
+        check(
+            "execution",
+            result["execution"].clone(),
+            &frozen["execution"],
+        );
+        check("metrics", result["metrics"].clone(), &frozen["metrics"]);
+        // The compilation blocking reasons are frozen's own words.
+        for reason in frozen["gate"]["reasons"].as_array().unwrap() {
+            let reason = reason.as_str().unwrap();
+            if reason.contains(".cpp.compile:") || reason.contains(".cpp.diagnostics:") {
+                let present = result["gate"]["reasons"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|item| item == reason);
+                check("gate.reason", present.into(), &Value::from(true));
+            }
+        }
     }
     // Intended difference (ADR-0008, one config model): frozen `analyze` refused a legacy
     // component ici.toml (exit 2, nothing written); native projects it through the explicit

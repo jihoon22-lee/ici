@@ -16,6 +16,8 @@ mod idna_tables;
 pub use facts::{ClassFact, FunctionFact, SourceFacts};
 mod finding;
 mod legacy;
+/// Frozen `languages/hygiene.py` provider identity, shared with the C++ hygiene rules.
+pub use finding::sha1_short;
 pub use legacy::lint_syntax_error;
 mod lines;
 mod metadata;
