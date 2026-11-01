@@ -192,9 +192,11 @@ fn diff(frozen: &Value, native: &Value, path: &str, out: &mut Vec<String>) {
 /// native engine view exactly as it changes frozen's. Negative: keys with no C++ effect
 /// (Python-only modes, ruff_required, test.python, python_semantic, cpp_boundaries=off without
 /// clang) leave both views unchanged. Failure: cpp_boundaries/cpp_linker/cpp_unused `required`
-/// without their exact input are the frozen ERROR verdicts and exit 1.
+/// without their exact input are the frozen ERROR verdicts and exit 1. ICI_TEST_CXX must be the
+/// oracle g++, and its directory, /usr/bin and /bin must lack clang-tidy, clazy-standalone and
+/// clang++ (the capture ran without them).
 #[test]
-#[ignore = "explicit actual g++ legacy C++ config-key runs: ICI_TEST_CXX must be the oracle g++ and /usr/bin must lack clang-tidy/clazy-standalone/clang++"]
+#[ignore = "explicit actual g++ legacy C++ config-key runs (ICI_TEST_CXX)"]
 fn legacy_cpp_config_keys_change_native_engines_like_frozen() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/config-keys-oracle.json"
