@@ -232,10 +232,11 @@
    "status": "complete"
   },
   "check:python.test": {
-   "comparison": "Validation facet (closure sweep): the modern python.test check's behaviour is the frozen next pytest provider (adapters/providers/pytest.py + analysis/pytest_output.py) and the project-interpreter selection (application/tooling.py resolve_python). Frozen `next verify` pytest identities (tests/rust-parity/validation/pytest-next-oracle.json: failed-case node findings with frozen raw identity, collection errors keeping the suite incomplete) and the frozen interpreter selection (interpreter-selection-oracle.json: declared [python] executable, else only the component .venv; missing declared interpreter blocks; legacy bare names are PATH lookups) replay through the native CLI with the actual project CPython 3.10.21 + pytest; unittest fallback, skip/fail/empty states and baseline carry-over are native actual-tool tests. Finding sites pytest.py:138/156 and test_output.py:83/146/195/226 are complete in this fragment.",
-   "difference_reason": "Frozen defect not reproduced: frozen next verify added a spurious summary collection-error finding beside a failed case (pytest_next_parity.rs failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone).",
+   "comparison": "Validation facet (closure sweep): the modern python.test check's behaviour is the frozen next pytest provider (adapters/providers/pytest.py + analysis/pytest_output.py) and the project-interpreter selection (application/tooling.py resolve_python). Frozen `next verify` pytest identities (tests/rust-parity/validation/pytest-next-oracle.json: failed-case node findings with frozen raw identity, collection errors keeping the suite incomplete) and the frozen interpreter selection (interpreter-selection-oracle.json: declared [python] executable, else only the component .venv; missing declared interpreter blocks; legacy bare names are PATH lookups) replay through the native CLI with the actual project CPython 3.10.21 + pytest; unittest fallback, skip/fail/empty states and baseline carry-over are native actual-tool tests. Finding sites pytest.py:138/156 and test_output.py:83/146/195/226 are complete in this fragment. Provider exit contract and limitations replayed against frozen next verify: a green suite is SUCCEEDED with pytest.cases 1/1 in both; nothing collected (exit 5) is FAILED/incomplete in both (native words it `pytest did not report a completed nonempty suite (exit 5)`; the exit was Rust Debug `Some(5)` before this sweep, fixed in ici-validation python.rs and the legacy empty-suite matcher).",
+   "difference_reason": "Frozen defect not reproduced: frozen next verify added a spurious summary collection-error finding beside a failed case (pytest_next_parity.rs failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone). For root review: a suite whose every case skipped is FAILED/incomplete in native ('all pytest cases skipped; nothing was verified') where frozen kept python.test SUCCEEDED with the limitation 'no test ran green (1 skipped of 1 collected)' and complete evidence; this changes the check state and the gate. Frozen defect not reproduced: pytest.exit(returncode=2) after collecting a test was SUCCEEDED with 'pytest collected no tests' in frozen; native refuses the aborted run (FAILED, exit 2 named).",
    "evidence": [
-    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log"
+    "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test pytest_next_parity --test python_coverage_scope --test python_compat_cli --test interpreter_selection --test native_validation_extra --test legacy_test_metrics -- --include-ignored (all passed, ICI_TEST_PYTHON CPython 3.10.21 with pytest/coverage, ICI_TEST_PYTHON_BARE); /tmp/ici-rust-replacement-20261028/w-sweep-python-runtime-checks.log",
+    "source opus-env.sh (ICI_TEST_PYTHON=/home/jihoon/projects/ici/.venv/bin/python, pytest 9.1.1, coverage 7.15.4); frozen capture tests/rust-parity/validation/capture_pytest_next.py (green, all-skipped, no-tests, pytest.exit(2) added; earlier scenarios byte-identical); cargo test -p ici-cli --locked -j2 --no-fail-fast --test pytest_next_parity --test legacy_test_metrics --test legacy_commands --test native_validation_extra -- --include-ignored (3+2+7+27 passed); cargo test -p ici-validation and the five empty-suite CLI binaries: 23 binaries ok; /tmp/ici-rust-replacement-20261028/w-sweep-pytest.log, /tmp/ici-rust-replacement-20261028/w-sweep-pytest-regress.log"
    ],
    "fixtures": {
     "failure": [
@@ -247,7 +248,8 @@
     ],
     "positive": [
      "crates/ici-cli/tests/pytest_next_parity.rs::failed_case_identity_matches_frozen_and_the_spurious_summary_collection_error_is_gone",
-     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states"
+     "crates/ici-cli/tests/native_validation_extra.rs::missing_pytest_uses_real_unittest_with_optional_coverage_and_preserves_fail_skip_empty_states",
+     "crates/ici-cli/tests/pytest_next_parity.rs::green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract"
     ]
    },
    "rust_paths": [
@@ -255,7 +257,7 @@
     "crates/ici-validation/src/python_unittest.rs",
     "crates/ici-cli/src/validation.rs"
    ],
-   "status": "complete"
+   "status": "difference_review"
   },
   "finding_site:src/ici/adapters/providers/integration.py:143:12": {
    "comparison": "Native per-aspect provider findings exist (integration.exit, integration.<stream>-contains/-not-contains, integration.output) but the CLI binds every declared case with its name, so both modern and legacy runs emit one case-level ici.hybrid.process-contract finding.",
@@ -2163,9 +2165,10 @@
    ]
   },
   "src/ici/adapters/providers/pytest.py": {
-   "disposition": "unreviewed",
-   "reason": "Whole file read. Per-node FAILED/ERROR findings (138:12) and collection-error findings (156:12) are complete with frozen raw identities; argv shape (-p no:cacheprovider -v --tb=short, coverage run --branch --data-file wrap) is reproduced by ici-validation planning.rs. Open: the frozen next limitation texts ('no test ran green (N skipped of M collected)', 'pytest collected no tests', failed_to_parse 'pytest was interrupted before reporting') and the exit contract (0 success, 1/2 findings) are native-worded/structured and not compared against a frozen run.",
+   "disposition": "mapped",
+   "reason": "Whole file read. Per-node FAILED/ERROR findings (138:12) and collection-error findings (156:12) are complete with frozen raw identities; argv shape is reproduced by ici-validation planning.rs. The exit contract and limitations (0 green, 5 nothing collected, findings-class 2 without a collection error, every case skipped) are now replayed against frozen next verify (pytest_next_parity.rs green_skipped_empty_and_exited_suites_keep_the_frozen_provider_contract): green and exit 5 agree; the all-skipped policy and the pytest.exit(2) frozen defect are recorded on check:python.test (difference_review). Row closed with /tmp/ici-rust-replacement-20261028/w-sweep-pytest.log.",
    "requirements": [
+    "check:python.test",
     "finding_site:src/ici/adapters/providers/pytest.py:138:12",
     "finding_site:src/ici/adapters/providers/pytest.py:156:12"
    ]
