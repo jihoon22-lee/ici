@@ -1,0 +1,197 @@
+{
+  "app": "def f(x: int) -> int:\n    return x + \"1\"\n",
+  "config": "[ici]\nprofile = \"standard\"\n[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines]\n[engines.line]\nenabled = false\n[engines.lint]\nenabled = false\n[engines.compile_db]\nenabled = false\n[engines.test]\nenabled = false\n[engines.type]\nenabled = true\n[engines.cognitive]\nenabled = false\n[engines.resource]\nenabled = false\n[engines.security]\nenabled = false\n[engines.cycle]\nenabled = false\n[engines.complexity]\nenabled = false\n[engines.sanitize]\nenabled = false\n[engines.thread_sanitize]\nenabled = false\n[engines.dead]\nenabled = false\n[engines.dup]\nenabled = false\n[engines.exception]\nenabled = false\n[engines.binary_compat]\nenabled = false\n[engines.python_compat]\nenabled = false\n",
+  "pyz_sha256": "9e5f5751df033a2d51e9d09457bb35b7e81b05bf7cb750e93e31e62e61bef44f",
+  "runs": {
+    "type_no_mypy": {
+      "command": "type",
+      "engine": {
+        "evidence": "ESTIMATED",
+        "status": "WARN",
+        "summary": "0 Type Findings, 1 Warnings; Mypy is unavailable; AST fallback is ESTIMATED",
+        "targets": [],
+        "tool_evidence": [
+          {
+            "argv": [],
+            "error": "tool not found; no command was executed",
+            "name": "mypy",
+            "path": ""
+          }
+        ]
+      },
+      "exit_code": 0,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": []
+    },
+    "type_path_before_venv": {
+      "command": "type",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "WARN",
+        "summary": "1 Type Findings, 0 Warnings",
+        "targets": [
+          "MypyError"
+        ],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<VENV_BIN>/mypy",
+              "."
+            ],
+            "error": "",
+            "name": "mypy",
+            "path": "<VENV_BIN>/mypy"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": [
+        "mypy-broken"
+      ]
+    },
+    "type_path_mypy": {
+      "command": "type",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "WARN",
+        "summary": "1 Type Findings, 0 Warnings",
+        "targets": [
+          "MypyError"
+        ],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<VENV_BIN>/mypy",
+              "."
+            ],
+            "error": "",
+            "name": "mypy",
+            "path": "<VENV_BIN>/mypy"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": []
+    },
+    "type_venv_mypy": {
+      "command": "type",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "WARN",
+        "summary": "1 Type Findings, 0 Warnings",
+        "targets": [
+          "MypyError"
+        ],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<ROOT>/.venv/bin/mypy",
+              "."
+            ],
+            "error": "",
+            "name": "mypy",
+            "path": "<ROOT>/.venv/bin/mypy"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": [
+        "mypy"
+      ]
+    },
+    "verify_launcher_module": {
+      "command": "verify",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "WARN",
+        "summary": "1 Type Findings, 0 Warnings",
+        "targets": [
+          "MypyError"
+        ],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<VENV_BIN>/python3.10",
+              "-m",
+              "mypy",
+              "."
+            ],
+            "error": "",
+            "name": "mypy",
+            "path": "<VENV_BIN>/python3.10"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "path": [
+        "<VENV_BIN>"
+      ],
+      "venv": []
+    },
+    "verify_launcher_without_mypy": {
+      "command": "verify",
+      "engine": {
+        "evidence": "ESTIMATED",
+        "status": "WARN",
+        "summary": "0 Type Findings, 1 Warnings; Mypy is unavailable; AST fallback is ESTIMATED",
+        "targets": [],
+        "tool_evidence": [
+          {
+            "argv": [],
+            "error": "tool not found; no command was executed",
+            "name": "mypy",
+            "path": ""
+          }
+        ]
+      },
+      "exit_code": 0,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": []
+    },
+    "verify_venv_python_module": {
+      "command": "verify",
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "WARN",
+        "summary": "1 Type Findings, 0 Warnings",
+        "targets": [
+          "MypyError"
+        ],
+        "tool_evidence": [
+          {
+            "argv": [
+              "<ROOT>/.venv/bin/python",
+              "-m",
+              "mypy",
+              "."
+            ],
+            "error": "",
+            "name": "mypy",
+            "path": "<ROOT>/.venv/bin/python"
+          }
+        ]
+      },
+      "exit_code": 0,
+      "path": [
+        "<BARE_BIN>"
+      ],
+      "venv": [
+        "python"
+      ]
+    }
+  },
+  "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

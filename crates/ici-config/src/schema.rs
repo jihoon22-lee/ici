@@ -438,10 +438,7 @@ fn validate_type(
         if last == "target_version" && !text.is_empty() {
             let minor = text.strip_prefix("3.").and_then(|s| s.parse::<u8>().ok());
             if minor.is_none_or(|m| m < 7) {
-                return Err(parsed.error(
-                    display,
-                    "target_version must be a Python 3 minor, for example 3.10",
-                ));
+                return Err(parsed.error(display, "must be empty or a Python 3 minor such as 3.10"));
             }
         }
     }

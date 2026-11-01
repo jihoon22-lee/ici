@@ -37,7 +37,36 @@ pub(crate) struct Selected {
     pub document: Option<Parsed>,
 }
 
-pub(crate) fn select(cwd: &Path, explicit: Option<&Path>) -> Result<Selected, ConfigError> {
+/// Frozen `config/discovery.find_workspace_root`: the nearest directory, at or above `start`
+/// and not past the checkout root, whose `ici.toml` parses as TOML and declares a top-level
+/// `workspace` (`_declares_workspace_strict`: an unreadable or unparseable file is not claimed).
+/// A `schema_version = 2` file is the native schema every command reads, so it is never a
+/// next-v1 root that the historical commands must refuse.
+pub fn find_workspace_root(start: &Path) -> Option<PathBuf> {
+    let start = start.canonicalize().ok()?;
+    for directory in start.ancestors() {
+        let candidate = directory.join("ici.toml");
+        if candidate.is_file()
+            && let Ok(parsed) = Parsed::read(&candidate, false, "root")
+            && parsed.value.get("workspace").is_some()
+            && parsed.value.get("schema_version").and_then(|v| v.as_i64()) != Some(2)
+        {
+            return Some(directory.into());
+        }
+        if VCS.iter().any(|marker| directory.join(marker).exists()) {
+            return None;
+        }
+    }
+    None
+}
+
+/// `walk = false` is the frozen historical loader (`load_config(base=cwd)`): only the working
+/// directory's own configuration is read and the working directory is the project root.
+pub(crate) fn select(
+    cwd: &Path,
+    explicit: Option<&Path>,
+    walk: bool,
+) -> Result<Selected, ConfigError> {
     let origin = Origin {
         file: cwd.display().to_string(),
         line: 1,
@@ -81,7 +110,7 @@ pub(crate) fn select(cwd: &Path, explicit: Option<&Path>) -> Result<Selected, Co
     }
     let mut fallback = cwd.clone();
     let mut unregistered: Option<PathBuf> = None;
-    for directory in cwd.ancestors() {
+    for directory in cwd.ancestors().take(if walk { usize::MAX } else { 1 }) {
         let ici = directory.join("ici.toml");
         if ici.exists() {
             let parsed = Parsed::read(&ici, false, "root")?;
@@ -95,15 +124,17 @@ pub(crate) fn select(cwd: &Path, explicit: Option<&Path>) -> Result<Selected, Co
             }
         } else {
             let pyproject = directory.join("pyproject.toml");
-            if pyproject.is_file() {
-                let raw = Parsed::read(&pyproject, false, "root")?;
-                if raw.value.get("tool").and_then(|v| v.get("ici")).is_some() {
-                    let parsed = Parsed::parse(&pyproject, raw.text, true, "root")?;
-                    return Ok(Selected {
-                        root: directory.into(),
-                        document: Some(parsed),
-                    });
-                }
+            // pyproject.toml belongs to its packaging tools: frozen never read it for ici
+            // configuration, and one that does not parse cannot declare [tool.ici].
+            if pyproject.is_file()
+                && let Ok(raw) = Parsed::read(&pyproject, false, "root")
+                && raw.value.get("tool").and_then(|v| v.get("ici")).is_some()
+            {
+                let parsed = Parsed::parse(&pyproject, raw.text, true, "root")?;
+                return Ok(Selected {
+                    root: directory.into(),
+                    document: Some(parsed),
+                });
             }
         }
         if VCS.iter().any(|marker| directory.join(marker).exists()) {
@@ -303,8 +334,10 @@ fn is_nested_workspace(directory: &Path) -> Result<bool, ConfigError> {
             || parsed.value.get("schema_version").and_then(|v| v.as_i64()) == Some(2));
     }
     let pyproject = directory.join("pyproject.toml");
-    if pyproject.is_file() {
-        let parsed = Parsed::read(&pyproject, false, "root")?;
+    // An unparseable pyproject.toml cannot declare [tool.ici]; its packaging tools report it.
+    if pyproject.is_file()
+        && let Ok(parsed) = Parsed::read(&pyproject, false, "root")
+    {
         return Ok(parsed
             .value
             .get("tool")

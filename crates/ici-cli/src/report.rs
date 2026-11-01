@@ -162,7 +162,19 @@ pub fn command(invocation: &Invocation, cwd: &Path) -> Result<CommandOutput> {
         &root,
         invocation.value("result").unwrap_or(crate::DEFAULT_RESULT),
     );
-    let stored = load(&source)?;
+    // Frozen `cmd_report`: a missing or unreadable stored result is a `report: ` refusal.
+    if !source.is_file() {
+        return Err(CliError(format!(
+            "report: no result at {}; run `ici next verify` first",
+            source.display()
+        )));
+    }
+    let stored = load(&source).map_err(|e| {
+        CliError(format!(
+            "report: {} is not a result this version can read: {e}",
+            source.display()
+        ))
+    })?;
     let mut options = RenderOptions {
         source_root: Some(root.to_string_lossy().into_owned()),
         ..Default::default()

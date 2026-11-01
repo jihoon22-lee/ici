@@ -31,10 +31,7 @@ fn main() {
             std::process::exit(output.exit_code);
         }
         Err(error) => {
-            eprintln!(
-                "ici: {}",
-                ici_execution::redaction::redact_text(&error.to_string())
-            );
+            eprint!("{}", ici_cli::commands::diagnostic(&error));
             std::process::exit(2);
         }
     }

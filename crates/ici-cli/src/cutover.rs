@@ -27,30 +27,68 @@ const STABLE_ONLY: [(&str, Option<&str>); 6] = [
     ("--group-by", None),
 ];
 
-/// Frozen `find_workspace_root(cwd) is not None`: the resolved root config is a next workspace.
-fn workspace(cwd: &Path, environment: &BTreeMap<String, String>) -> bool {
-    ici_config::resolve_with_environment(cwd, None, None, environment)
-        .is_ok_and(|project| project.schema_family == ici_config::SchemaFamily::NextV1)
+const WORKSPACE_REFUSAL: &str = "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n";
+
+/// Frozen `__main__.main_callback` `find_workspace_root(Path.cwd()) is not None`.
+fn workspace(cwd: &Path) -> bool {
+    ici_config::find_workspace_root(cwd).is_some()
 }
-pub fn applies(
+pub fn applies(invocation: &Invocation, cwd: &Path) -> bool {
+    invocation.command() == "verify" && workspace(cwd)
+}
+/// The subcommands frozen `main_callback` loads the stable configuration for: every command
+/// except the next path (`next`, `analyze`, `report`, `diff`, `init`, `import-report`), the
+/// read-only `env`/`cache`, and `verify` on a `[workspace]` root (the cutover). Native-only
+/// commands (`setup`) are not frozen subcommands and read no project configuration.
+fn stable(command: &str) -> bool {
+    matches!(
+        command,
+        "verify" | "doctor" | "publish" | "export-compilation-context"
+    ) || crate::legacy::engine(command).is_some()
+}
+/// Frozen `main_callback`: the stable configuration is read from the working directory before
+/// the subcommand runs, and a configuration error stops it with exit 2 — named as the
+/// `[workspace]` refusal when a next workspace root is found at or above the working directory,
+/// else `Configuration error: <problem>`. Nothing runs and nothing is written.
+///
+/// `Ok(Some)` is the `[workspace]` refusal, `Err` a classed `Configuration error: ` refusal
+/// (printed as is by `commands::diagnostic`), `Ok(None)` lets the subcommand run.
+pub fn stable_refusal(
     invocation: &Invocation,
     cwd: &Path,
     environment: &BTreeMap<String, String>,
-) -> bool {
-    invocation.command() == "verify" && workspace(cwd, environment)
-}
-/// Frozen `__main__.main` callback: a historical engine subcommand on a `[workspace]` root is
-/// refused before anything runs, because the stable configuration reader cannot read it.
-pub fn refuse_engine(
-    invocation: &Invocation,
-    cwd: &Path,
-    environment: &BTreeMap<String, String>,
-) -> Option<CommandOutput> {
-    (invocation.command() != "verify" && workspace(cwd, environment)).then(|| CommandOutput {
+) -> Result<Option<CommandOutput>> {
+    let command = invocation.command();
+    if !stable(&command) {
+        return Ok(None);
+    }
+    let next_root = workspace(cwd);
+    if next_root && command == "verify" {
+        return Ok(None);
+    }
+    let problem =
+        match ici_config::inspect_legacy_command_with_environment(cwd, None, None, environment) {
+            Err(error) => error.to_string(),
+            // The stable reader rejects every next-v1 key; native reads its own v2 schema everywhere.
+            Ok(inspection) if inspection.schema_family == ici_config::SchemaFamily::NextV1 => {
+                format!(
+                    "{}: a schema_version = 1 ici-next file is not a stable configuration",
+                    inspection.config_source.as_deref().unwrap_or(cwd).display()
+                )
+            }
+            Ok(_) => return Ok(None),
+        };
+    if !next_root {
+        return Err(crate::commands::classed(
+            crate::commands::STABLE_CONFIG_PREFIX,
+            ici_execution::redaction::redact_text(&problem),
+        ));
+    }
+    Ok(Some(CommandOutput {
         stdout: String::new(),
-        stderr: "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n".into(),
+        stderr: WORKSPACE_REFUSAL.into(),
         exit_code: EXIT_CONFIG,
-    })
+    }))
 }
 
 fn parse(argv: &[&str]) -> Result<Invocation> {
@@ -113,7 +151,18 @@ pub fn verify(
     if let Some(baseline) = invocation.value("baseline") {
         argv.extend(["--baseline", baseline]);
     }
-    let verified = crate::execute::command(&parse(&argv)?, cwd, environment, false)?;
+    let verified = match crate::execute::command(&parse(&argv)?, cwd, environment, false) {
+        Ok(verified) => verified,
+        // Frozen prints the cutover line first, then the next path's own refusal.
+        Err(error) => {
+            stderr.push_str(&crate::commands::diagnostic(&error));
+            return Ok(CommandOutput {
+                stdout: String::new(),
+                stderr,
+                exit_code: EXIT_CONFIG,
+            });
+        }
+    };
     let mut stdout = verified.stdout;
     stderr.push_str(&verified.stderr);
     let mut exit_code = verified.exit_code;

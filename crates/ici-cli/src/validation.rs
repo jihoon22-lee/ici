@@ -835,6 +835,134 @@ fn launcher_python(
     Err(looked)
 }
 
+/// Frozen `core/env.find_project_executable`: the project `.venv` Unix then Windows layout.
+fn project_executable(root: &Path, name: &str) -> Option<PathBuf> {
+    use std::os::unix::fs::PermissionsExt;
+    ["bin", "Scripts"]
+        .iter()
+        .flat_map(|directory| {
+            ["", ".exe"].map(|suffix| {
+                root.join(".venv")
+                    .join(directory)
+                    .join(format!("{name}{suffix}"))
+            })
+        })
+        .find(|path| {
+            path.metadata()
+                .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+        })
+}
+
+/// The mypy a legacy-schema historical command runs (frozen `TypeCheckEngine._find_mypy_cmd`).
+/// A standalone `ici type` has no analysis context: `shutil.which("mypy")`, then the project
+/// `.venv` mypy. `ici verify` probes mypy as a Python module (`core/toolchain` `python_module`):
+/// `<interpreter> -m mypy`, where the interpreter is the project `.venv` python or else
+/// `sys.executable` — under the released pyz, the launcher rule's choice. The returned flag says
+/// the tool is that interpreter and `-m mypy` precedes the arguments. `Err` is "Mypy is
+/// unavailable" with the candidates that were looked at.
+pub(crate) fn legacy_mypy(
+    project: &ResolvedProject,
+    verify: bool,
+    environment: &BTreeMap<String, String>,
+) -> Result<(ResolvedTool, bool, String), String> {
+    let root = &project.root;
+    let accept = |path: PathBuf, source| {
+        ToolRequest {
+            id: if verify { "python" } else { "mypy" }.into(),
+            explicit: Some(path),
+            project_root: root.clone(),
+            pack_root: None,
+            path_env: None,
+        }
+        .resolve()
+        .map(|mut tool| {
+            tool.source = source;
+            tool
+        })
+        .map_err(|failure| failure.reason)
+    };
+    use ici_providers::resolver::ToolSource;
+    if !verify {
+        let path_env = environment.get("PATH").map_or("", String::as_str);
+        if let Some(path) = command_v("mypy", root, path_env) {
+            let note = format!("legacy `ici type` selected PATH mypy {}", path.display());
+            return accept(path, ToolSource::Path).map(|tool| (tool, false, note));
+        }
+        if let Some(path) = project_executable(root, "mypy") {
+            let note = format!(
+                "legacy `ici type` selected the project mypy {}",
+                path.display()
+            );
+            return accept(path, ToolSource::Project).map(|tool| (tool, false, note));
+        }
+        return Err(
+            "mypy: not found on PATH or in the project .venv (legacy `ici type` lookup)".into(),
+        );
+    }
+    let (interpreter, note) = match [".venv/bin/python", ".venv/Scripts/python.exe"]
+        .iter()
+        .map(|relative| root.join(relative))
+        .find(|path| {
+            use std::os::unix::fs::PermissionsExt;
+            path.metadata()
+                .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+        }) {
+        Some(path) => {
+            let note = format!(
+                "legacy verify runs mypy as a module of the project interpreter {}",
+                path.display()
+            );
+            (accept(path, ToolSource::Project)?, note)
+        }
+        None => {
+            let (tool, note) = launcher_python(project, environment).map_err(|looked| {
+                format!(
+                    "mypy: no interpreter for `-m mypy`; looked at {}",
+                    looked.join(", ")
+                )
+            })?;
+            (
+                tool,
+                format!("{note}: legacy verify runs mypy as its module"),
+            )
+        }
+    };
+    // Frozen `collect_tool_capability`: `<interpreter> -m mypy --version` must succeed, else mypy
+    // is unavailable and the engine falls back to the estimated AST annotation scan.
+    let mut task = ici_domain::TaskSpec::command(
+        "legacy-mypy.version",
+        "python-runtime",
+        vec![
+            interpreter.path.to_string_lossy().into_owned(),
+            "-m".into(),
+            "mypy".into(),
+            "--version".into(),
+        ],
+        root.to_string_lossy(),
+    );
+    task.kind = ici_domain::TaskKind::Probe;
+    task.timeout_seconds = Some(LAUNCHER_PROBE_SECONDS * 6.0);
+    task.output_limit_bytes = Some(LAUNCHER_PROBE_BYTES);
+    task.env_overlay
+        .insert("PYTHONDONTWRITEBYTECODE".into(), "1".into());
+    let outcome = ici_execution::process::Runner::with_environment(environment.clone())
+        .run(&task, &ici_execution::process::Cancellation::default());
+    if outcome.exit_code != Some(0) || outcome.timed_out || outcome.error.is_some() {
+        return Err(format!(
+            "mypy: `{} -m mypy --version` did not succeed ({})",
+            interpreter.path.display(),
+            outcome
+                .error
+                .clone()
+                .unwrap_or_else(|| match outcome.exit_code {
+                    Some(code) => format!("exit {code}"),
+                    None => "timed out or terminated".into(),
+                })
+        ));
+    }
+    Ok((interpreter, true, note))
+}
+
 /// The configuration key that names the component's interpreter, as frozen next spells it.
 fn python_key(project: &ResolvedProject, component: &Component) -> String {
     match project.schema_family {

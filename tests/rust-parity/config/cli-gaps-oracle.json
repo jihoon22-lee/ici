@@ -1,0 +1,723 @@
+{
+ "cases": {
+  "bare_local_interpreter_plan": {
+   "argv": [
+    "next",
+    "plan",
+    "--json",
+    "--local-config",
+    "local.toml"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "root: <root>\nscope: components=app languages=python profile=standard\n",
+   "stdout": "{\"builds\":[],\"coverage_gaps\":[],\"graph\":{\"edges\":{},\"mutating\":{},\"shared\":{}},\"limitations\":[],\"plans\":[{\"checks\":[{\"check\":\"python.line\",\"kind\":\"internal\",\"task_id\":\"app.python.line\"},{\"blocked\":\"no project interpreter — no such file: ici-parity-missing-python; set components.app.python.executable to change it\",\"check\":\"python.test\",\"kind\":\"blocked\",\"task_id\":\"app.python.test\"},{\"blocked\":\"no project interpreter — no such file: ici-parity-missing-python; set components.app.python.executable to change it\",\"check\":\"python.coverage\",\"kind\":\"blocked\",\"task_id\":\"app.python.coverage\"},{\"check\":\"python.complexity\",\"kind\":\"internal\",\"task_id\":\"app.python.complexity\"},{\"check\":\"python.cognitive\",\"kind\":\"internal\",\"task_id\":\"app.python.cognitive\"},{\"check\":\"python.cycle\",\"kind\":\"internal\",\"task_id\":\"app.python.cycle\"},{\"check\":\"python.dup\",\"kind\":\"internal\",\"task_id\":\"app.python.dup\"},{\"check\":\"python.security\",\"kind\":\"internal\",\"task_id\":\"app.python.security\"},{\"check\":\"python.resource\",\"kind\":\"internal\",\"task_id\":\"app.python.resource\"},{\"check\":\"python.exception\",\"kind\":\"internal\",\"task_id\":\"app.python.exception\"},{\"check\":\"python.dead\",\"kind\":\"internal\",\"task_id\":\"app.python.dead\"},{\"check\":\"python.compat\",\"kind\":\"internal\",\"task_id\":\"app.python.compat\"},{\"blocked\":\"no project interpreter — no such file: ici-parity-missing-python; set components.app.python.executable to change it\",\"check\":\"python.compat-runtime\",\"kind\":\"blocked\",\"task_id\":\"app.python.compat-runtime\"}],\"component\":\"app\"}],\"root\":\"<root>\",\"schema_id\":\"ici.next.plan\",\"schema_version\":1,\"scope\":{\"components\":[\"app\"],\"languages\":[\"python\"],\"profile\":\"standard\",\"require_full\":false}}\n",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "local.toml": "components.app.python.executable = \"ici-parity-missing-python\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "configless_pyproject_plan": {
+   "argv": [
+    "analyze",
+    "--plan"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=project languages=python profile=standard\nproject: 13 check(s)\nproject:\n  project.python.line: Line counts (ici)\n  project.python.lint: blocked — ruff is not available\n  project.python.format: blocked — ruff is not available\n  project.python.type: blocked — mypy is not available\n  project.python.complexity: Cyclomatic complexity (ici)\n  project.python.cognitive: Cognitive complexity (ici)\n  project.python.cycle: Import cycles (ici)\n  project.python.dup: Duplicate code (ici)\n  project.python.security: Security hygiene (ici)\n  project.python.resource: Resource hygiene (ici)\n  project.python.exception: Exception safety (ici)\n  project.python.dead: Dead code (ici)\n  project.python.compat: Compatibility floor (ici)\n  note: static selection: tests, runtime checks and build artifact checks omitted\n",
+   "tree": {
+    "main.py": "def hello():\n    return 1\n",
+    "pyproject.toml": "[project\n"
+   },
+   "written": []
+  },
+  "configless_root_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 40 lines (40 code, 0 comment, 0 blank) across 1 files\n Code Lines    [██████████████████████████████████████████████████]     40 \n(100.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 40 Lines\n",
+   "tree": {
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "configless_subdir_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 2 lines (2 code, 0 comment, 0 blank) across 1 files\n Code Lines    [██████████████████████████████████████████████████]      2 \n(100.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 2 Lines\n",
+   "tree": {
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "configless_subdir_line_report": {
+   "argv": [
+    "line",
+    "--report"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 2 lines (2 code, 0 comment, 0 blank) across 1 files\n Code Lines    [██████████████████████████████████████████████████]      2 \n(100.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 2 Lines\nReport saved to: line_report.json\n",
+   "tree": {
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": [
+    "sub/line_report.json"
+   ]
+  },
+  "diff_without_baseline": {
+   "argv": [
+    "diff",
+    "missing.json"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "diff: baseline <root>/missing.json cannot be read: [Errno 2] No such file or directory: '<root>/missing.json'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_analyze": {
+   "argv": [
+    "analyze"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>: found ici.toml above <root> but none declares a [workspace]: <root>/ici.toml (the search stopped at the checkout root <root>) (a component file is registered by a root, not promoted to one; pass --config to run it on its own)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_build": {
+   "argv": [
+    "build"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_doctor": {
+   "argv": [
+    "doctor"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_next_plan": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>: found ici.toml above <root> but none declares a [workspace]: <root>/ici.toml (the search stopped at the checkout root <root>) (a component file is registered by a root, not promoted to one; pass --config to run it on its own)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_invalid_verify": {
+   "argv": [
+    "verify"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: engines.line.warn_limit must be an integer\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n[engines.line]\nwarn_limit = \"many\"\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_pyproject_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "",
+   "stdout": "✔ Total 6 lines (6 code, 0 comment, 0 blank) across 3 files\n Code Lines    [██████████████████████████████████████████████████]      6 \n(100.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 6 Lines\n",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n",
+    "main.py": "def hello():\n    return 1\n",
+    "pyproject.toml": "[project\n"
+   },
+   "written": []
+  },
+  "legacy_root_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "",
+   "stdout": "✔ Total 45 lines (45 code, 0 comment, 0 blank) across 3 files\n Code Lines    [██████████████████████████████████████████████████]     45 \n(100.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 45 Lines\n",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "legacy_root_subdir_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "sub",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 2 lines (2 code, 0 comment, 0 blank) across 1 files\n Code Lines    [██████████████████████████████████████████████████]      2 \n(100.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 2 Lines\n",
+   "tree": {
+    "ici.toml": "[project]\ntype = \"python\"\nsource_dirs = [\".\"]\n",
+    "src/root.py": "x0 = 0\nx1 = 1\nx2 = 2\nx3 = 3\nx4 = 4\nx5 = 5\nx6 = 6\nx7 = 7\nx8 = 8\nx9 = 9\nx10 = 10\nx11 = 11\nx12 = 12\nx13 = 13\nx14 = 14\nx15 = 15\nx16 = 16\nx17 = 17\nx18 = 18\nx19 = 19\nx20 = 20\nx21 = 21\nx22 = 22\nx23 = 23\nx24 = 24\nx25 = 25\nx26 = 26\nx27 = 27\nx28 = 28\nx29 = 29\nx30 = 30\nx31 = 31\nx32 = 32\nx33 = 33\nx34 = 34\nx35 = 35\nx36 = 36\nx37 = 37\nx38 = 38\nx39 = 39\n",
+    "sub/src/inner.py": "def inner():\n    return 1\n"
+   },
+   "written": []
+  },
+  "next_invalid_analyze": {
+   "argv": [
+    "analyze"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>/ici.toml: workspace.bogus: unknown key\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nbogus = 1\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "next_invalid_doctor": {
+   "argv": [
+    "next",
+    "doctor"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>/ici.toml: workspace.bogus: unknown key\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nbogus = 1\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "next_invalid_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nbogus = 1\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "next_invalid_plan": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>/ici.toml: workspace.bogus: unknown key\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nbogus = 1\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "next_invalid_stable_verify": {
+   "argv": [
+    "verify"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "ici-next: [workspace] config found — running the next engine path (`ici next verify` is the same run)\nconfig: <root>/ici.toml: workspace.bogus: unknown key\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nbogus = 1\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "next_invalid_verify": {
+   "argv": [
+    "next",
+    "verify"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>/ici.toml: workspace.bogus: unknown key\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\nbogus = 1\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "next_pyproject_plan": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "",
+   "stdout": "root: <root>\nscope: components=app languages=python profile=standard\ndemo: 13 check(s)\napp:\n  app.python.line: Line counts (ici)\n  app.python.test: blocked — no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.coverage: blocked — no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n  app.python.complexity: Cyclomatic complexity (ici)\n  app.python.cognitive: Cognitive complexity (ici)\n  app.python.cycle: Import cycles (ici)\n  app.python.dup: Duplicate code (ici)\n  app.python.security: Security hygiene (ici)\n  app.python.resource: Resource hygiene (ici)\n  app.python.exception: Exception safety (ici)\n  app.python.dead: Dead code (ici)\n  app.python.compat: Compatibility floor (ici)\n  app.python.compat-runtime: blocked — no project interpreter — none of 1 candidate(s) could be used; looked at <root>/.venv/bin/python; declare [python] executable or provide a .venv inside the component\n",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n",
+    "pyproject.toml": "[project\n"
+   },
+   "written": []
+  },
+  "publish_without_result": {
+   "argv": [
+    "next",
+    "publish"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "publish: cannot read result <root>/.ici/next/result.json: [Errno 2] No such file or directory: '<root>/.ici/next/result.json'\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "report_without_result": {
+   "argv": [
+    "report"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "report: no result at <root>/.ici/next/result.json; run `ici next verify` first\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "scope_unknown_component": {
+   "argv": [
+    "next",
+    "plan",
+    "--component",
+    "ghost"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: no component 'ghost'; declared: app\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "scope_unknown_language": {
+   "argv": [
+    "analyze",
+    "--language",
+    "cobol"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: no component selected a check; a run that checks nothing cannot pass\n",
+   "stdout": "root: <root>\nscope: components=app languages=all profile=standard\n",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "scope_verify_unknown_component": {
+   "argv": [
+    "next",
+    "verify",
+    "--component",
+    "ghost"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: no component 'ghost'; declared: app\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "unparseable_analyze": {
+   "argv": [
+    "analyze"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>/ici.toml: not valid TOML: Invalid initial character for a key part (at line 1, column 3)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[[\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "unparseable_cache": {
+   "argv": [
+    "cache"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "",
+   "stdout": "Cache directory: <home>/.cache/ici/analysis\nEntries: 0 valid, 0 corrupt, 0 bytes\nKey contract: ici.analysis-cache-key/v4\nInvalidated by project root, source/build-config content, effective ici config, tool versions, engine implementation, build variant, or ici version.\n",
+   "tree": {
+    "ici.toml": "[[\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "unparseable_doctor": {
+   "argv": [
+    "doctor"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: could not parse configuration <root>/ici.toml: Invalid initial character for a key part (at line 1, column 3)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[[\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "unparseable_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: could not parse configuration <root>/ici.toml: Invalid initial character for a key part (at line 1, column 3)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[[\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "unparseable_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: could not parse configuration <root>/ici.toml: Invalid initial character for a key part (at line 1, column 3)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[[\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "unparseable_next_plan": {
+   "argv": [
+    "next",
+    "plan"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "config: <root>/ici.toml: not valid TOML: Invalid initial character for a key part (at line 1, column 3)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[[\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "unparseable_verify": {
+   "argv": [
+    "verify"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: could not parse configuration <root>/ici.toml: Invalid initial character for a key part (at line 1, column 3)\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "[[\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_build": {
+   "argv": [
+    "build"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_cache": {
+   "argv": [
+    "cache"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "",
+   "stdout": "Cache directory: <home>/.cache/ici/analysis\nEntries: 0 valid, 0 corrupt, 0 bytes\nKey contract: ici.analysis-cache-key/v4\nInvalidated by project root, source/build-config content, effective ici config, tool versions, engine implementation, build variant, or ici version.\n",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_doctor": {
+   "argv": [
+    "doctor"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_doctor_json": {
+   "argv": [
+    "doctor",
+    "--json"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_env": {
+   "argv": [
+    "env"
+   ],
+   "cwd": ".",
+   "exit_code": 0,
+   "home_written": [],
+   "stderr": "",
+   "stdout": "export PATH=\"<home>/.local/bin:$PATH\"\n",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_export": {
+   "argv": [
+    "export-compilation-context"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_publish": {
+   "argv": [
+    "publish"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Configuration error: this workspace declares a [workspace] (ici-next) config, which stable subcommands cannot read — use `ici next --help` for the commands that can\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_setup": {
+   "argv": [
+    "setup",
+    "--inspect"
+   ],
+   "cwd": ".",
+   "exit_code": 2,
+   "home_written": [],
+   "stderr": "Usage: -c [OPTIONS] COMMAND [ARGS]...\nTry '-c --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ No such command 'setup'.                                                     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n",
+   "stdout": "",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n"
+   },
+   "written": []
+  },
+  "workspace_subdir_line": {
+   "argv": [
+    "line"
+   ],
+   "cwd": "pkg",
+   "exit_code": 0,
+   "home_written": [
+    "ici/ici.toml"
+   ],
+   "stderr": "[ici] 기본 전역 설정을 생성했습니다: <home>/ici/ici.toml\n",
+   "stdout": "✔ Total 1 lines (1 code, 0 comment, 0 blank) across 1 files\n Code Lines    [██████████████████████████████████████████████████]      1 \n(100.0%)\n Comment Lines [                                                  ]      0 \n(0.0%)\n Blank Lines   [                                                  ]      0 \n(0.0%)\n\n Total Volume: 1 Lines\n",
+   "tree": {
+    "ici.toml": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \".\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n",
+    "main.py": "def hello():\n    return 1\n",
+    "pkg/src/b.py": "B = 1\n"
+   },
+   "written": []
+  }
+ },
+ "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "python": "3.10.21"
+}
