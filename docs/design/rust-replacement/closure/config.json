@@ -66,35 +66,57 @@
    "status": "verified"
   },
   "capability:legacy-command-config-result-projection": {
-   "comparison": "Config/CLI facet only: the configuration a historical command projects onto its result is the working directory's (frozen load_config(base=cwd)), refused before running with frozen's gate messages, and the legacy type/lint tool selection (PATH/.venv mypy and ruff, `-m mypy` under verify) is frozen's and recorded in the run limitations (named fixtures). OPEN (cross-area, legacy report projection): every native single-engine report and every `results[]` entry of a native verify_report.json omits the frozen keys `support_matrix` (frozen evaluate_support_matrix per engine, __main__.py:434, engines/verify.py:326), `cache_hit`, `cache_key` and `artifact_manifests`, and adds `native_run` (verify also adds top-level `native_run`/`project_name`); the legacy type/lint reports carry no mypy/ruff tool_evidence entries. No row records this as an intended difference (/tmp/ici-rust-replacement-20261028/w-config-legacy-report-keys.log).",
-   "difference_reason": "Pending root decision: whether the legacy report projection must emit the per-engine support_matrix/cache_hit/cache_key/artifact_manifests keys and the external tool_evidence entries frozen v0.13.0 wrote, or record their absence as an intended difference.",
+   "comparison": "Config/CLI facet: the configuration a historical command projects onto its result is the working directory's (frozen load_config(base=cwd)), refused before running with frozen's gate messages, and the legacy type/lint tool selection (PATH/.venv mypy and ruff, `-m mypy` under verify) is frozen's and recorded in the run limitations (named fixtures). Projection facet (python worker): every historical engine result carries frozen's per-engine keys. support_matrix is the frozen core/support.py registry (38 declarations, exact) evaluated like frozen: a single-engine report carries that engine's rows under the configured ici.profile (so `ici cognitive` under standard reads enabled=false/NOT_RUN), verify carries the suite matrix under the selected --profile and null per result; languages (sources/headers, configured type, pyproject/CMakeLists/*.pro fallback), frameworks (Qt pkg-config or root build-file marker) and tool policies (ruff/mypy/coverage required, clang_tidy/clazy, dead cpp_unused/cpp_linker) equal frozen in every captured case. cache_hit/cache_key: bool and null-or-sha256 like frozen; miss on a first run, false/null under --no-cache, and second-run hits equal frozen per engine except the recorded native-namespace differences. artifact_manifests: [] for every Python engine, as frozen (a Python release build publishes none). tool_evidence: frozen's ruff check / ruff format capability / ruff format / mypy records and the not-found record, in frozen order with frozen's exits and errors. Defects fixed: missing support_matrix/cache_hit/cache_key/artifact_manifests keys, missing Ruff/mypy tool_evidence, legacy Python dup/dead evidence MEASURED instead of ESTIMATED, no `ruff format --help` capability probe and no text-dialect reader for a formatter without JSON output.",
+   "difference_reason": "Intended differences (named in the tests): cache_key is the native observation-cache key (a sha256 digest in the native namespace; a digest of the sorted task keys for an engine of several checks), so its value never equals frozen's; native single-engine commands use the native cache (frozen never consulted it and always wrote false/null); native reuses dead-code and Python compile_db results (frozen did not) and never reuses legacy Ruff/mypy runs (frozen did); tool_evidence argv is the native argv (absolute targets, --no-cache, --) and the python_compat runtime record is ADR-0008's fixed metadata probe instead of `python -VV`; native reports add `native_run` (and verify top-level `project_name`). OPEN (cpp facet, C++ owner): frozen projected the ici.artifacts/v1|v2 manifests of compiled C++ build sessions into results[build].artifact_manifests; native keeps the key and type ([]) but does not map its C++ build manifests (extra.artifact_manifests) yet. OPEN (cross-area planning): `type='hybrid'` without C++ sources plans a BLOCKED cpp.line, so `ici line` reads NOT_RUN and exits 3 where frozen counted the Python sources (MEASURED, exit 0); recorded as KNOWN_ENGINE_EVIDENCE in legacy_report_keys.rs.",
    "evidence": [
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test cli_gaps -- --include-ignored (10 passed); /tmp/ici-rust-replacement-20261028/w-config-cli-gaps3.log",
     "source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_type_interpreter --test legacy_python_engines --test legacy_lint --test legacy_python_no_tests --test legacy_verify_matrix --test legacy_quality_paths -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-config-type-interpreter2.log",
-    "frozen (PYTHONPATH oracle, .venv python) and native `ici line --report` / `ici verify --report --no-cache` on one python project, report top-level and per-engine keys; /tmp/ici-rust-replacement-20261028/w-config-legacy-report-keys.log"
+    "frozen (PYTHONPATH oracle, .venv python) and native `ici line --report` / `ici verify --report --no-cache` on one python project, report top-level and per-engine keys; /tmp/ici-rust-replacement-20261028/w-config-legacy-report-keys.log",
+    "PYTHONPATH oracle .venv CPython 3.10.21: python3 tests/rust-parity/python/capture_legacy_support.py (38 declarations, 19 evaluate_support_matrix cases) and capture_legacy_report_keys.py (21 single-engine `ici <engine> --report` cases, 2 verify cases x miss/hit/--no-cache, 1 Python build verify) with ruff 0.16.4/mypy 2.3.1; /tmp/ici-rust-replacement-20261028/w-py3-report-keys-capture.log",
+    "source opus-env.sh; cargo test -p ici-reporting --test legacy_support; -p ici-reporting --lib legacy_cache; -p ici-cli --test legacy_report_keys -- --include-ignored (3 passed); /tmp/ici-rust-replacement-20261028/w-py3-support-gates.log, /tmp/ici-rust-replacement-20261028/w-py3-cache-gates.log",
+    "Ruff 0.5.7 (pip install --no-cache-dir ruff==0.5.7 in a scratch venv, binary at /tmp/ici-rust-replacement-20261028/w-py3-tools/ruff-0.5.7/ruff, sha256 92f4ebc9...): python3 tests/rust-parity/python/capture_legacy_ruff_text_format.py (6 cases); ICI_TEST_RUFF_TEXT_FORMAT=<that ruff> cargo test -p ici-cli --test legacy_ruff_text_format -- --include-ignored (1 passed) and -p ici-providers --include-ignored (all passed), strict clippy ici-providers/ici-reporting/ici-cli; /tmp/ici-rust-replacement-20261028/w-py3-ruff-text-capture.log, /tmp/ici-rust-replacement-20261028/w-py3-tool-evidence-gates.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-cli/tests/cli_gaps.rs::configuration_and_scope_refusals_carry_the_frozen_class_prefix",
-     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen"
+     "crates/ici-cli/tests/cli_gaps.rs::workspace_roots_refuse_stable_subcommands_like_frozen",
+     "crates/ici-reporting/tests/legacy_support.rs::support_evaluation_fails_closed_on_missing_or_malformed_results",
+     "crates/ici-providers/tests/diagnostics.rs::legacy_text_format_and_failed_probes_fail_closed"
     ],
     "negative": [
      "crates/ici-cli/tests/cli_gaps.rs::the_stable_loader_gate_lets_readable_configurations_and_exempt_commands_through",
      "crates/ici-cli/tests/cli_gaps.rs::doctor_export_and_publish_read_only_the_working_directory_configuration",
-     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_below_a_native_v2_root_ignore_the_file_above"
+     "crates/ici-cli/tests/cli_gaps.rs::historical_commands_below_a_native_v2_root_ignore_the_file_above",
+     "crates/ici-cli/tests/legacy_report_keys.rs::python_build_under_verify_publishes_no_legacy_artifact_manifest_like_frozen",
+     "crates/ici-reporting/src/projection.rs::engine_cache_key_is_native_and_a_hit_needs_every_check_reused",
+     "crates/ici-providers/tests/diagnostics.rs::legacy_format_probe_selects_the_text_dialect_only_without_usable_json_output"
     ],
     "positive": [
      "crates/ici-cli/tests/cli_gaps.rs::historical_commands_are_rooted_at_the_working_directory",
-     "crates/ici-cli/tests/legacy_type_interpreter.rs::legacy_type_lint_and_verify_select_mypy_and_ruff_like_the_frozen_engines"
+     "crates/ici-cli/tests/legacy_type_interpreter.rs::legacy_type_lint_and_verify_select_mypy_and_ruff_like_the_frozen_engines",
+     "crates/ici-reporting/tests/legacy_support.rs::support_declarations_are_the_frozen_registry",
+     "crates/ici-reporting/tests/legacy_support.rs::support_evaluation_matches_frozen_profiles_policies_and_language_evidence",
+     "crates/ici-cli/tests/legacy_report_keys.rs::single_engine_reports_carry_the_frozen_support_matrix",
+     "crates/ici-cli/tests/legacy_report_keys.rs::verify_reports_carry_the_frozen_suite_support_matrix_and_null_engine_matrices",
+     "crates/ici-cli/tests/legacy_ruff_text_format.rs::legacy_lint_reads_the_text_dialect_of_a_formatter_without_json_like_frozen"
     ]
    },
    "rust_paths": [
+    "crates/ici-analysis/src/legacy.rs",
     "crates/ici-cli/src/cutover.rs",
+    "crates/ici-cli/src/execute.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-cli/src/legacy_support.rs",
     "crates/ici-cli/src/planning.rs",
+    "crates/ici-cli/src/report.rs",
     "crates/ici-cli/src/validation.rs",
-    "crates/ici-cli/src/legacy_execute.rs"
+    "crates/ici-providers/src/diagnostics/legacy_ruff.rs",
+    "crates/ici-providers/src/diagnostics/mod.rs",
+    "crates/ici-providers/src/plan.rs",
+    "crates/ici-reporting/src/legacy_support.rs",
+    "crates/ici-reporting/src/projection.rs"
    ],
-   "status": "difference_review"
+   "status": "verified"
   },
   "capability:wire-result-events": {
    "comparison": "Config-area facet only: event task/component ids. Frozen RunEvent required an identifier whenever an id was present; native now refuses empty, padded, control-bearing or >256-character ids and emits workspace-level events without a component instead of an empty one. Run v2/event order/run_id/stdout-stderr split remain the runtime facet.",
