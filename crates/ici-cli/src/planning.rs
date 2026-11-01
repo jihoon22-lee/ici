@@ -1343,6 +1343,14 @@ fn legacy_binary_selection(
             required.then_some("no published executable or shared-library artifacts"),
         ));
     }
+    // Frozen `BinaryCompatEngine._readelf`: selected artifacts with no resolvable readelf
+    // raise "readelf capability is unavailable" (ERROR, NOT_RUN) instead of a blocked check.
+    if reason.starts_with("readelf: ") {
+        return Some(crate::cpp::legacy_binary_compat_unavailable(
+            task_id,
+            Some("readelf capability is unavailable"),
+        ));
+    }
     let unpublished = [
         "is not an observed output",
         "is not in the linked build inventory",

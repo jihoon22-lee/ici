@@ -5826,7 +5826,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:144); enclosing frozen function _parse_ctest) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared."
+      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared. Open (cpp worker, 2026-11-01): next-path ctest.failed finding. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:191:20": {
       "status": "not_started",
@@ -5838,7 +5838,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:191); enclosing frozen function _parse_qtest) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared."
+      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared. Open (cpp worker, 2026-11-01): next-path qtest.<verdict> finding. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:212:27": {
       "status": "not_started",
@@ -5850,7 +5850,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/cpptest.py:212); enclosing frozen function _parse_qtest) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared."
+      "difference_reason": "Blocked: C++ test provider parity waits for the validation worker's merge; not compared. Open (cpp worker, 2026-11-01): next-path qtest finding relocated to its source location. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/adapters/providers/sanitize.py:212:11": {
       "status": "not_started",
@@ -5862,7 +5862,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/sanitize.py:212); enclosing frozen function _diagnostic_finding) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: sanitizer provider parsing not compared with frozen."
+      "difference_reason": "Open: sanitizer provider parsing not compared with frozen. Open (cpp worker, 2026-11-01): next-path sanitizer diagnostic finding. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/adapters/providers/sanitize.py:233:11": {
       "status": "not_started",
@@ -5874,7 +5874,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/sanitize.py:233); enclosing frozen function _suite_failure_finding) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: sanitizer provider parsing not compared with frozen."
+      "difference_reason": "Open: sanitizer provider parsing not compared with frozen. Open (cpp worker, 2026-11-01): next-path ici.sanitize.suite-failure finding. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/analysis/_clang_tidy.py:57:11": {
       "status": "verified",
@@ -6701,7 +6701,7 @@
       "difference_reason": "Open: selections by explicit artifact id and multi-artifact shadows are not captured; the next-path (non-legacy) target shape stays the ici-validation 'ELF/ABI artifact' form by design."
     },
     "finding_site:src/ici/engines/binary_compat.py:247:16": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/cpp_validation.rs",
@@ -6710,8 +6710,12 @@
         "crates/ici-validation/src/cpp.rs"
       ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "failure": [
           "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
         ]
@@ -6720,10 +6724,11 @@
         "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_binary_compat --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --test published_abi --test python_binary_scope --locked -j2 -- --include-ignored --test-threads=2: all passed (1+1+6+3+1+1+1+28+6+27+7+4+3); strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-binary-compat.log",
         "Merged feat/rust-application 273aa5f (reporting: legacy engines keep the frozen status class and summary, no check-id ERROR prefix); after the merge the legacy_build_targets, legacy_binary_compat and legacy_sanitize oracles compare ERROR summaries exactly (cargo test -p ici-cli --test legacy_sanitize --test legacy_build_targets --test legacy_binary_compat --test legacy_make_build --test artifact_contract --test legacy_direct_build --locked -j2 -- --include-ignored: 2+1+1+6+1+3 passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-evidence.log).",
-        "The unpublished-selection case now equals frozen (validation 10444b8 merged at 47405cd; legacy_binary_compat has no carve-out); /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log"
+        "The unpublished-selection case now equals frozen (validation 10444b8 merged at 47405cd; legacy_binary_compat has no carve-out); /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
+        "Case missing-readelf added to development-only tests/rust-parity/cpp/capture_binary_compat.py (oracle 6fe3e40; PATH is a symlink farm of the TOOLS dirs, /usr/bin and /bin without readelf; the other 7 cases recaptured unchanged): frozen binary_compat ERROR 'Binary compatibility analysis incomplete: readelf capability is unavailable' with BinaryCompatibility:AnalysisUnavailable at '.', build PASS. Before the fix native reported SKIP 'readelf: not found; prepare the project tool or install the verified native tool pack' with no target. ICI_TEST_MAKE/ICI_TEST_CXX cargo test -p ici-cli --test legacy_binary_compat -- --include-ignored (1 passed, 8 cases, the replay builds the same farm): /tmp/ici-rust-replacement-20261028/w-cpp3-readelf.log"
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: an analysis error gives `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' with the first error and summary 'Binary compatibility analysis incomplete: <error>'. Rust matches the required-without-artifacts case target and status.",
-      "difference_reason": "Open: readelf missing/incomplete evidence (BinaryCompatibility:AnalysisUnavailable for a missing readelf) is not captured against frozen. The unpublished-selection half is closed."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: an analysis error gives `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' with the first error and summary 'Binary compatibility analysis incomplete: <error>'. Rust matches the required-without-artifacts case target and status. A legacy run whose selected artifacts exist but whose readelf does not resolve now gives the frozen ERROR target and summary (planning.rs legacy_binary_selection maps the blocked readelf resolution).",
+      "difference_reason": "Intended: modern `ici analyze` keeps the honest blocked readelf resolution. Open: readelf that runs but returns incomplete evidence ('readelf did not produce complete evidence for <artifact>') is not captured."
     },
     "finding_site:src/ici/engines/build.py:230:16": {
       "status": "verified",
@@ -7002,40 +7007,71 @@
       "difference_reason": "Open: cognitive engine error/boundary site not compared; legacy heuristic projection verified."
     },
     "finding_site:src/ici/engines/compile_db.py:208:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/compile_db.py:208); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compile_db engine not compared with frozen."
+      "evidence": [
+        "Frozen `ici verify --report` with a discovered root compile_commands.json (FULL_DATABASE: 3 units, directory '.', `g++ -std=c++17 -c <unit>`) captured by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, PYTHONHASHSEED=0, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into section database_cases of tests/rust-parity/cpp/verify-matrix-oracle.json: cases discovered and flag_policy (compile_db required_flags=['-Wall'], forbidden_flags=['-std=c++17']); the other sections were recaptured unchanged.",
+        "Before the fix the native legacy compile_db with a database reported CompilationInput PASS targets, summary '3 compile configurations, 0 uncovered sources' and no score (log /tmp/ici-rust-replacement-20261028/w-cpp3-database-open.log). source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --locked -j2 -- --include-ignored (7 passed); regression cargo test -p ici-cli -p ici-cpp -p ici-application --locked -j2 -- --include-ignored (352 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-compiledb-full.log, /tmp/ici-rust-replacement-20261028/w-cpp3-compiledb-flags.log"
+      ],
+      "comparison": "Frozen coverage target per production translation unit with a selected database (PASS covered with configurations metric; FAIL missing). Rust legacy_database_output emits the same targets, order, metric and messages; replayed for cases discovered, flag_policy and unused_clean.",
+      "difference_reason": "Open: a production unit missing from a selected database (FAIL coverage) is not captured; native keeps its modern incomplete projection for an incomplete context."
     },
     "finding_site:src/ici/engines/compile_db.py:71:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/compile_db.py:71); enclosing frozen function _target) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compile_db engine not compared with frozen."
+      "evidence": [
+        "Frozen `ici verify --report` with a discovered root compile_commands.json (FULL_DATABASE: 3 units, directory '.', `g++ -std=c++17 -c <unit>`) captured by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, PYTHONHASHSEED=0, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into section database_cases of tests/rust-parity/cpp/verify-matrix-oracle.json: cases discovered and flag_policy (compile_db required_flags=['-Wall'], forbidden_flags=['-std=c++17']); the other sections were recaptured unchanged.",
+        "Before the fix the native legacy compile_db with a database reported CompilationInput PASS targets, summary '3 compile configurations, 0 uncovered sources' and no score (log /tmp/ici-rust-replacement-20261028/w-cpp3-database-open.log). source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --locked -j2 -- --include-ignored (7 passed); regression cargo test -p ici-cli -p ici-cpp -p ici-application --locked -j2 -- --include-ignored (352 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-compiledb-full.log, /tmp/ici-rust-replacement-20261028/w-cpp3-compiledb-flags.log"
+      ],
+      "comparison": "Frozen `_target` (line 1 to 1, ici.compile-db.<rule>) for coverage, configuration, required-flag and forbidden-flag targets and the missing-database coverage target: Rust produces the same rule names, statuses, messages and end line in both the missing-database matrix cases and the database cases.",
+      "difference_reason": ""
     },
     "finding_site:src/ici/engines/compile_db.py:90:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "implemented",
+      "rust_paths": [
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
         "positive": [],
         "negative": [],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/compile_db.py:90); enclosing frozen function _diagnostic_target) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compile_db engine not compared with frozen."
+      "evidence": [
+        "Frozen `ici verify --report` with a discovered root compile_commands.json (FULL_DATABASE: 3 units, directory '.', `g++ -std=c++17 -c <unit>`) captured by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, PYTHONHASHSEED=0, PATH=/usr/bin:/bin, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0) into section database_cases of tests/rust-parity/cpp/verify-matrix-oracle.json: cases discovered and flag_policy (compile_db required_flags=['-Wall'], forbidden_flags=['-std=c++17']); the other sections were recaptured unchanged."
+      ],
+      "comparison": "Frozen `_diagnostic_target` (diagnostic code as rule, _FAIL_DIAGNOSTICS fail, entry_index metric) is ported in legacy_database_output with the same 37 codes.",
+      "difference_reason": "Open: reached only for a complete context, where fail-level ingestion diagnostics cannot occur; an incomplete database keeps the native modern projection. No frozen capture with context diagnostics."
     },
     "finding_site:src/ici/engines/complexity.py:186:28": {
       "status": "not_started",
@@ -7383,7 +7419,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/sanitize.py:200); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the no-scope `Sanitize` SKIP target at '.' (no C++ sources, no C++ tests and no Python scope) is not compared; the C++ test-less SKIP path now matches frozen (tests/rust-parity/cpp/sanitize-oracle.json), so the earlier exit 3 observation no longer applies."
+      "difference_reason": "Open: the no-scope `Sanitize` SKIP target at '.' (no C++ sources, no C++ tests and no Python scope) is not compared; the C++ test-less SKIP path now matches frozen (tests/rust-parity/cpp/sanitize-oracle.json), so the earlier exit 3 observation no longer applies. Open (cpp worker, 2026-11-01): sanitize/thread_sanitize no-scope SKIP target at '.'. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/sanitize.py:385:24": {
       "status": "verified",
@@ -7418,7 +7454,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/sanitize.py:566); enclosing frozen function _append_adapter_case_target) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here. Open (cpp worker, 2026-11-01): [C++ <label>] <case> target of a sanitized collective suite case. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/sanitize.py:630:21": {
       "status": "verified",
@@ -7453,7 +7489,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/sanitize.py:669); enclosing frozen function _normalized_findings) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here."
+      "difference_reason": "Open: sanitizer engine site not compared with frozen (frozen SKIP exit 2 versus Rust SKIP exit 3 observed on a test-less Make fixture); ASan/UBSan variants were not run here. Open (cpp worker, 2026-11-01): native sanitizer diagnostic finding with the legacy rule identity. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/sanitize.py:838:12": {
       "status": "implemented",
@@ -7528,7 +7564,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:611); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): [C++] build target of a declared C++ test session (build step result). No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:632:20": {
       "status": "not_started",
@@ -7540,7 +7576,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:632); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): [C++] <case> target of a collective C++ suite case (passed). No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:643:20": {
       "status": "not_started",
@@ -7552,7 +7588,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:643); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): [C++] <case> target of a collective C++ suite case (failed). No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:654:20": {
       "status": "not_started",
@@ -7564,7 +7600,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:654); enclosing frozen function _run_cpp_tests_via_adapter) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): [C++] <case> target of a collective C++ suite case (not run/error). No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:716:20": {
       "status": "not_started",
@@ -7576,7 +7612,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:716); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): per-file C++ test compile process terminated/tool error target. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:774:16": {
       "status": "not_started",
@@ -7588,7 +7624,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:774); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): per-file C++ test 'Compilation Error: <stderr>' target. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:811:16": {
       "status": "not_started",
@@ -7600,7 +7636,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:811); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): per-file C++ test 'C++ Test Passed' target. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:821:12": {
       "status": "not_started",
@@ -7612,7 +7648,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:821); enclosing frozen function _run_cpp_test_case) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): per-file C++ test 'Execution Failed: <output>' target. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test.py:839:12": {
       "status": "not_started",
@@ -7624,7 +7660,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/engines/test.py:839); enclosing frozen function _append_cpp_tool_target) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared."
+      "difference_reason": "Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Open (cpp worker, 2026-11-01): per-file C++ test ERROR target. No frozen capture compares it yet. The native producers are crates/ici-validation/src/cpp.rs (ctest/qtest/collective suites), crates/ici-validation/src/sanitizer_suite.rs and crates/ici-cli/src/legacy_execute.rs (validation area); a frozen capture over parity-fixtures/cpp with real g++/ctest runs is required before this row can move."
     },
     "finding_site:src/ici/engines/test_coverage.py:384:16": {
       "status": "not_started",
@@ -8196,13 +8232,14 @@
       "reason": "Unreviewed: Open: cognitive engine error/boundary site not compared; legacy heuristic projection verified. Exact frozen hash afeb2ab5acfcdb16ea582ca91abfbd9119e6b3e2b19ab5a0fa1a528182dd6bee and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
     },
     "src/ici/engines/compile_db.py": {
-      "disposition": "unreviewed",
+      "disposition": "mapped",
       "requirements": [
+        "descriptor:compile_db",
         "finding_site:src/ici/engines/compile_db.py:208:16",
         "finding_site:src/ici/engines/compile_db.py:71:11",
         "finding_site:src/ici/engines/compile_db.py:90:11"
       ],
-      "reason": "Unreviewed: Open: compile_db engine not compared with frozen. Exact frozen hash e91baddd5c4df4c8aa86654a85c43675d018bee39e68a12ab7c790c874e29d73 and 7 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Whole file read (7 symbols: _FAIL_DIAGNOSTICS, _diagnostic_status, _target, _diagnostic_target, _configuration_targets, CompileDatabaseEngine.run/_result). Missing database (WARN/FAIL coverage, ESTIMATED, score 0) and complete selected database (coverage, configuration, required/forbidden flags, summary, coverage score) map to crates/ici-cpp/src/compiler.rs analyze_compile_context/legacy_database_output and are replayed against frozen (verify-matrix-oracle.json cases and database_cases). Open on rows: incomplete-database and context-diagnostic paths, the no-analysis-context ERROR and the no-production SKIP wording."
     },
     "src/ici/engines/complexity.py": {
       "disposition": "unreviewed",
