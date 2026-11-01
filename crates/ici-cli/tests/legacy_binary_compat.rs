@@ -79,22 +79,14 @@ fn legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline() {
         let actual = engines(case, base, &environment);
         for (engine, frozen) in case["frozen"].as_object().unwrap() {
             let actual = actual[engine].clone();
-            match (name.as_str(), engine.as_str()) {
-                // Open: an unpublished selection falls back to the python.binary-compat entry,
-                // which stays blocked instead of the frozen AnalysisUnavailable ERROR.
-                ("unpublished-selection", "binary_compat") => {
-                    assert_eq!(frozen["status"], "ERROR");
-                    assert_eq!(actual["status"], "SKIP", "{name}");
-                    continue;
-                }
-                // Open: a Make build without linked outputs stops at artifact preparation
-                // (SKIP) instead of the frozen BuildAdapter PASS (0) + BuildArtifacts FAIL.
-                ("no-artifacts" | "no-artifacts-required", "build") => {
-                    assert_eq!(frozen["status"], "FAIL");
-                    assert_eq!(actual["status"], "SKIP", "{name}");
-                    continue;
-                }
-                _ => {}
+            // Open: a Make build without linked outputs stops at artifact preparation
+            // (SKIP) instead of the frozen BuildAdapter PASS (0) + BuildArtifacts FAIL.
+            if matches!(name.as_str(), "no-artifacts" | "no-artifacts-required")
+                && engine == "build"
+            {
+                assert_eq!(frozen["status"], "FAIL");
+                assert_eq!(actual["status"], "SKIP", "{name}");
+                continue;
             }
             assert_eq!(&actual, frozen, "{name} {engine}");
         }

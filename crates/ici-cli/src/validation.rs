@@ -274,9 +274,17 @@ pub fn bind(
             let selected = mutation
                 .and_then(|value| value.get("tool"))
                 .and_then(Value::as_str)
+                .filter(|tool| matches!(*tool, "auto" | "mutmut" | "cosmic-ray" | "mutpy"))
                 .unwrap_or("auto");
             let (mutation_tool, mutation_argv) =
                 mutation_probe(project, &cwd, environment, selected, &command);
+            // Frozen labels an explicit command with the configured tool and an auto search
+            // with the tool it found.
+            options.mutation_label = match &mutation_tool {
+                Some(tool) if command.is_empty() => tool.id.clone(),
+                _ => selected.into(),
+            };
+            options.mutation_command = !command.is_empty();
             options.mutation_tool = mutation_tool;
             options.mutation_argv = mutation_argv;
         }
@@ -622,12 +630,35 @@ fn project_python(
     cwd: &Path,
     environment: &BTreeMap<String, String>,
 ) -> Result<ResolvedTool, String> {
-    configured_python(
-        project,
-        cwd,
-        component.python_executable.as_deref().unwrap_or("python"),
-        environment,
-    )
+    if let Some(declared) = component.python_executable.as_deref() {
+        // A declared interpreter is checked and never replaced by the convention; a bare name is
+        // the user's own PATH lookup (frozen `_anchor`), not a fallback.
+        return configured_python(project, cwd, declared, environment);
+    }
+    // Frozen `resolve_python`: the only undeclared candidate is the component's `.venv`. ici's
+    // own runtime, `venv/`, the tool pack and PATH `python` are never the project interpreter.
+    let convention = cwd.join(".venv/bin/python");
+    ToolRequest {
+        id: "python".into(),
+        explicit: Some(convention.clone()),
+        project_root: cwd.into(),
+        pack_root: None,
+        path_env: None,
+    }
+    .resolve()
+    .map_err(|_| {
+        // Frozen legacy engines fell back to ici's own interpreter here (`sys.executable`); the
+        // native product has none, so a legacy project names its key instead.
+        let declare = if project.schema_family == ici_config::SchemaFamily::Legacy {
+            "set engines.test.python or provide a .venv in the project"
+        } else {
+            "declare [python] executable or provide a .venv inside the component"
+        };
+        format!(
+            "no project interpreter \u{2014} none of 1 candidate(s) could be used; looked at {}; {declare}",
+            convention.display()
+        )
+    })
 }
 fn runtime_matrix(
     project: &ResolvedProject,

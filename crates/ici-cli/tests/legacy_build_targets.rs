@@ -175,11 +175,13 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
                 assert_eq!(actual["targets"][0]["file_path"], "src/main.cpp");
                 continue;
             }
-            // Open (Python/config): a legacy `type='python'` project without sources has no
-            // component, so Rust stops before the BuildEngine's `BuildArtifacts` FAIL.
+            // `ici build` renders the legacy view only on the console; the saved native details
+            // keep the blocked native check. Exit and console line are compared here, the shaped
+            // engine in `sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail`.
             "no-artifacts" => {
-                assert_eq!(frozen["targets"][0]["target_name"], "BuildArtifacts");
-                assert_eq!(actual["exit_code"], 3);
+                for key in ["exit_code", "stdout"] {
+                    assert_eq!(actual[key], frozen[key], "{name} {key}");
+                }
                 continue;
             }
             // CMake/qmake failures quote the first 200 characters of stderr. That excerpt is cut
@@ -222,5 +224,89 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
         }
         // The frozen console (one rich-wrapped engine line) is compared byte for byte too.
         assert_eq!(&actual, frozen, "{name}");
+    }
+}
+
+/// Frozen `BuildEngine.run` for a legacy `type='python'` project that selects no Python source:
+/// no artifact is created, which is the measured `BuildArtifacts` FAIL. `ici build` exits 1 with
+/// the frozen console line; deep `ici verify --report` records the frozen engine (status, summary,
+/// evidence, required, target and legacy finding identity), and `pass_warn` keeps it a WARN.
+/// It needs no compiler, so it runs in the default suite.
+#[test]
+fn sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/build-targets-oracle.json"
+    ))
+    .unwrap();
+    let case = &oracle["cases"]["no-artifacts"];
+    let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+    let actual = run(case, &environment);
+    for key in ["exit_code", "stdout"] {
+        assert_eq!(actual[key], case["frozen"][key], "{key}");
+    }
+    let verify: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/validation/build-sourceless-oracle.json"
+    ))
+    .unwrap();
+    for (mode, frozen) in verify["runs"].as_object().unwrap() {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir(root.path().join("src")).unwrap();
+        fs::write(
+            root.path().join("ici.toml"),
+            frozen["config"].as_str().unwrap(),
+        )
+        .unwrap();
+        fs::write(
+            root.path().join("pyproject.toml"),
+            "[project]\nname='pkg'\nversion='2.3.4'\n",
+        )
+        .unwrap();
+        let process = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["verify", "--report", "--no-cache"])
+            .current_dir(root.path())
+            .env_clear()
+            .envs(&environment)
+            .output()
+            .unwrap();
+        assert_eq!(
+            i64::from(process.status.code().unwrap()),
+            frozen["exit_code"].as_i64().unwrap(),
+            "{mode}"
+        );
+        let report: Value =
+            serde_json::from_slice(&fs::read(root.path().join("verify_report.json")).unwrap())
+                .unwrap();
+        assert_eq!(report["suite_status"], frozen["suite_status"], "{mode}");
+        let engine = report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "build")
+            .unwrap();
+        for key in ["status", "summary", "evidence", "required", "targets"] {
+            assert_eq!(engine[key], frozen["build"][key], "{mode} {key}");
+        }
+        let identity = |findings: &Value| {
+            findings
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|finding| {
+                    json!([
+                        finding["rule_id"],
+                        finding["fingerprint"],
+                        finding["severity"],
+                        finding["confidence"],
+                        finding["message"],
+                        finding["primary_location"]
+                    ])
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            identity(&engine["findings"]),
+            identity(&frozen["build"]["findings"]),
+            "{mode}"
+        );
     }
 }

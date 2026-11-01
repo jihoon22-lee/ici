@@ -27,6 +27,32 @@
         }
       ]
     },
+    "empty": {
+      "engine": {
+        "evidence": "NOT_RUN",
+        "status": "ERROR",
+        "summary": "Pytest collected 0 tests"
+      },
+      "exit_code": 1,
+      "findings": [
+        {
+          "fingerprint": "sha256:1acccd4ff85ec3af7e16a74a32ba1559251b11b2993774950144fc00ae343bfb",
+          "line": 1,
+          "message": "Pytest collected 0 tests",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target"
+        }
+      ],
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "Pytest collected 0 tests",
+          "start_line": 1,
+          "status": "ERROR",
+          "target_name": "PythonResourceWarnings"
+        }
+      ]
+    },
     "leak": {
       "engine": {
         "evidence": "MEASURED",
@@ -52,6 +78,32 @@
           "target_name": "ResourceWarning"
         }
       ]
+    },
+    "unlocated": {
+      "engine": {
+        "evidence": "MEASURED",
+        "status": "FAIL",
+        "summary": "1 Memory / Resource Defect(s) Detected"
+      },
+      "exit_code": 1,
+      "findings": [
+        {
+          "fingerprint": "sha256:c02b637370200280e11b9562717711606a9374ae5da4f7985c790ba110599bb6",
+          "line": 1,
+          "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: /tmp/ici-legacy-pysan-4tpw5mry collected 1 item tests/test_calc.py F [100%] =================================== FAILURES ============================",
+          "path": "tests",
+          "rule_id": "ici.legacy.sanitize.target"
+        }
+      ],
+      "targets": [
+        {
+          "file_path": "tests",
+          "message": "============================= test session starts ============================== platform linux -- Python 3.10.21, pytest-9.1.1, pluggy-1.6.0 rootdir: /tmp/ici-legacy-pysan-4tpw5mry collected 1 item tests/test_calc.py F [100%] =================================== FAILURES ============================",
+          "start_line": 1,
+          "status": "FAIL",
+          "target_name": "ResourceWarning"
+        }
+      ]
     }
   },
   "scenarios": {
@@ -59,9 +111,17 @@
       "src/calc.py": "def add(a, b):\n    return a + b\n",
       "tests/test_calc.py": "from calc import add\n\n\ndef test_add():\n    assert add(1, 2) == 3\n"
     },
+    "empty": {
+      "src/calc.py": "X = 1\n",
+      "tests/test_calc.py": "X = 1\n"
+    },
     "leak": {
       "src/calc.py": "import warnings\n\n\ndef read(path):\n    warnings.warn(f'unclosed file {path}', ResourceWarning)\n    return 'x'\n",
       "tests/test_calc.py": "from calc import read\n\n\ndef test_read():\n    assert read('x.txt') == 'x'\n"
+    },
+    "unlocated": {
+      "src/calc.py": "X = 1\n",
+      "tests/test_calc.py": "def test_x():\n    raise RuntimeError('ResourceWarning')\n"
     }
   },
   "source": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"

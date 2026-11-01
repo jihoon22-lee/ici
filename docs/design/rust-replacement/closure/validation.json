@@ -20,7 +20,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: none."
+      "comparison": "OPEN: Composite capability; Python half: clean, located leak, unlocated ResourceWarning and empty-suite scopes compared with the frozen legacy golden (tests/rust-parity/validation/legacy-python-sanitize-oracle.json); _sanitize_python_scope 155/219 are difference_review (snippet bytes; incomplete exit 3). C++ sanitizer half (engines/sanitize.py, adapters/providers/sanitize.py, _sanitizer_diagnostics) is the cpp worker's."
     },
     "capability:python-packaging-wheel": {
       "status": "not_started",
@@ -42,7 +42,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: check:integration and integration finding sites (difference_review), pycompat provider sites."
+      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: check:integration and integration finding sites (difference_review), pycompat provider sites; project-interpreter selection (frozen resolve_python: declared executable, else only the component .venv/bin/python; never PATH python, venv/ or ici's own runtime; python.test/coverage/compat-runtime blocked with the frozen 'no project interpreter — none of 1 candidate(s) could be used; looked at <component>/.venv/bin/python; declare [python] executable or provide a .venv inside the component' reason, no test->coverage edge) — crates/ici-cli/tests/interpreter_selection.rs against tests/rust-parity/validation/interpreter-selection-oracle.json (/tmp/ici-rust-replacement-20261028/w-validation-interpreter.log, regressions /tmp/ici-rust-replacement-20261028/w-validation-interpreter-regress.log, -regress2.log). Interpreter differences: a declared bare name (e.g. python3) is the user's own PATH lookup (frozen `_anchor` documents it, frozen plan-time existence check blocked it as 'no such file: python3'); a declared missing interpreter keeps the native 'project Python \"<value>\": ...' wording; legacy projects without .venv or engines.test.python are blocked (exit 3, hint 'set engines.test.python or provide a .venv in the project') where frozen legacy engines ran under ici's own sys.executable (AGENTS §8, ADR-0008)."
     },
     "capability:test-quality-tem": {
       "status": "not_started",
@@ -53,7 +53,7 @@
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open)."
+      "comparison": "OPEN: Composite capability; stays open until its constituent finding sites (listed in this fragment as not_started) are closed. Closed parts: coverage policy, TEM, legacy test summary and case/coverage identities (deep quality sites open); quality repeat timeout/unbounded/no-verdict and mutation missing/available/failing targets (complete, legacy_quality_paths.rs); legacy `ici verify` now exits 1 for a FAIL/ERROR legacy suite even when the native gate keeps the verdict advisory (coverage minima the frozen TestEngine turns into FAIL; native defect fixed in legacy_execute.rs). Open: base-run summary-count fallback (difference_review)."
     },
     "check:integration": {
       "status": "difference_review",
@@ -61,7 +61,8 @@
         "crates/ici-validation/src/integration.rs",
         "crates/ici-cli/src/validation.rs",
         "crates/ici-cli/src/execute.rs",
-        "crates/ici-config/src/schema.rs"
+        "crates/ici-config/src/schema.rs",
+        "crates/ici-cli/src/legacy.rs"
       ],
       "fixtures": {
         "positive": [
@@ -75,13 +76,15 @@
           "crates/ici-cli/tests/native_validation_extra.rs::optional_empty_integration_is_located_not_applicable_and_required_empty_scope_is_incomplete",
           "crates/ici-cli/tests/integration_binding.rs::integration_build_placeholders_require_the_components_link_or_declared_need",
           "crates/ici-cli/tests/native_validation_extra.rs::canonical_declared_integration_artifacts_require_exact_typed_membership_and_containment",
-          "crates/ici-cli/tests/integration_legacy.rs::frozen_transport_bounds_block_before_any_case_runs"
+          "crates/ici-cli/tests/integration_legacy.rs::frozen_transport_bounds_block_before_any_case_runs",
+          "crates/ici-cli/tests/integration_legacy.rs::standard_legacy_verify_and_v2_integration_without_build_are_not_refused"
         ],
         "failure": [
           "crates/ici-validation/tests/cpp_contracts.rs::integration_checks_declared_streams_exit_and_fresh_output_without_touching_user_files",
           "crates/ici-validation/tests/native_cpp.rs::real_integration_process_checks_exit_streams_and_output_freshness",
           "crates/ici-cli/tests/native_validation_extra.rs::optional_integration_failure_keeps_one_rich_case_finding_and_existing_output",
-          "crates/ici-cli/tests/integration_legacy.rs::advisory_case_before_required_failure_never_downgrades_the_engine_status"
+          "crates/ici-cli/tests/integration_legacy.rs::advisory_case_before_required_failure_never_downgrades_the_engine_status",
+          "crates/ici-cli/tests/integration_legacy.rs::legacy_deep_verify_refuses_integration_and_binary_compat_without_build_like_frozen"
         ]
       },
       "evidence": [
@@ -89,10 +92,11 @@
         "cargo test -p ici-cli --test integration_legacy/integration_binding/published_abi --locked -- --include-ignored; native_validation_extra integration filter --include-ignored; ici-validation cpp_contracts+native_cpp integration filter --include-ignored; all passed; /tmp/ici-rust-replacement-20261028/w-validation-integration.log and w-validation-regression.log",
         "cargo clippy -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-validation-integration-clippy.log",
         "python3 tests/rust-parity/validation/capture_integration_blocked.py (frozen legacy `ici verify --profile deep`: unknown python target, unknown placeholder, build disabled) -> tests/rust-parity/validation/integration-blocked-oracle.json",
-        "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log"
+        "/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log",
+        "python3 tests/rust-parity/validation/capture_integration_blocked.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/integration-blocked-oracle.json (/tmp/ici-rust-replacement-20261028/w-validation-integration-blocked.log); cargo test -p ici-cli --test integration_legacy --locked -- --include-ignored: 9 passed (/tmp/ici-rust-replacement-20261028/w-validation-integration-nobuild.log); published_abi/native_cpp/python_binary_scope/legacy_binary_compat --include-ignored all passed (/tmp/ici-rust-replacement-20261028/w-validation-nobuild-neighbours.log)"
       ],
-      "comparison": "Reviewed frozen engines/integration.py, analysis/_integration.py, application/integration.py, adapters/providers/integration.py and languages/integration.py in full. The frozen legacy oracle golden is replayed through native `ici verify`: exit code, engine status/summary/required/evidence, all targets, the per-case table (assertion map, return codes, truncation flags) and all four finding fingerprints (finding_fingerprint(rule, ici.toml:1, symbol=case name) for ici.hybrid.process-contract and the adapted ici.legacy.integration.target rows), severities, confidences, messages and tool_rule_ids are identical; the projected v3 tool_evidence (per-case name, argv, returncode, stderr preview) now also gives adapted rows the frozen tool_name (including its first-evidence quirk). Deep-profile only, opt-in by declared cases; SKIP/NOT_APPLICABLE located target for empty optional scope and incomplete required-empty scope; whole-token {python:NAME}/{artifact:ID} placeholders; replace-not-merge environment (inherit_env subset + declared env); max_cases 1..32, max_output_bytes 1024..8 MiB, 64 argv tokens of <=1024 chars within 32 KiB, 32 bounded needles, python target name/value and inherit_env name bounds; timeout, truncation, signal, cancellation are incomplete process evidence rather than findings; required case FAIL vs advisory WARN; the case order no longer lets an earlier advisory WARN hide a later required FAIL (native defect fixed in execute.rs).",
-      "difference_reason": "Native never deletes declared outputs before a case (frozen _prepare_outputs unlinks stale files); it preserves user files and requires CLOCK_REALTIME_COARSE freshness against the pre-start inventory, so a stale file is a measured output assertion failure (cpp_contracts/native_validation_extra fixtures). {python:current} means the component's declared project interpreter, never ici's own runtime (frozen used sys.executable). Cases are executed independently and an incomplete case leaves the check incomplete instead of aborting later cases; invalid configuration is refused at plan time; the legacy view renders it as frozen's ERROR 'Integration:ConfigurationError' target with the frozen fingerprint. Shadow build outputs are addressed by BUILD/PATH or the frozen VARIANT:shadow:PATH (and >512-char path-<sha256>) identity of a prepared native variant; a bare shadow-relative path is not guessed. Per-aspect next findings: native case-level ids in the modern view, legacy ids in the legacy view (root 22:35 item 4). The shared ici-config argv bound counts UTF-8 bytes where frozen counts code points. Remaining verdict differences for the root: (a) frozen deep `ici verify` refuses the whole pipeline (PipelineDefinitionError, exit 1, no report) when integration is enabled and engines.build is disabled, while native runs the integration cases without the build (PASS, exit 0; golden scenario no_build); (b) legacy `ici verify` exits 3 for an incomplete suite where frozen exits 1."
+      "comparison": "Reviewed frozen engines/integration.py, analysis/_integration.py, application/integration.py, adapters/providers/integration.py and languages/integration.py in full. The frozen legacy oracle golden is replayed through native `ici verify`: exit code, engine status/summary/required/evidence, all targets, the per-case table (assertion map, return codes, truncation flags) and all four finding fingerprints (finding_fingerprint(rule, ici.toml:1, symbol=case name) for ici.hybrid.process-contract and the adapted ici.legacy.integration.target rows), severities, confidences, messages and tool_rule_ids are identical; the projected v3 tool_evidence (per-case name, argv, returncode, stderr preview) now also gives adapted rows the frozen tool_name (including its first-evidence quirk). Deep-profile only, opt-in by declared cases; SKIP/NOT_APPLICABLE located target for empty optional scope and incomplete required-empty scope; whole-token {python:NAME}/{artifact:ID} placeholders; replace-not-merge environment (inherit_env subset + declared env); max_cases 1..32, max_output_bytes 1024..8 MiB, 64 argv tokens of <=1024 chars within 32 KiB, 32 bounded needles, python target name/value and inherit_env name bounds; timeout, truncation, signal, cancellation are incomplete process evidence rather than findings; required case FAIL vs advisory WARN; the case order no longer lets an earlier advisory WARN hide a later required FAIL (native defect fixed in execute.rs). A legacy-schema deep `ici verify` with integration or binary_compat enabled and engines.build disabled is refused before any engine runs, exactly like frozen descriptors_for_profile: exit 1, the frozen 'PipelineDefinitionError: engine <name> has disabled dependencies in deep: build' line, no report and no native result; a standard legacy run and a v2 project (declared check, no legacy build dependency) are not refused (golden scenarios no_build, binary_compat_no_build, no_build_standard).",
+      "difference_reason": "Native never deletes declared outputs before a case (frozen _prepare_outputs unlinks stale files); it preserves user files and requires CLOCK_REALTIME_COARSE freshness against the pre-start inventory, so a stale file is a measured output assertion failure (cpp_contracts/native_validation_extra fixtures). {python:current} means the component's declared project interpreter, never ici's own runtime (frozen used sys.executable). Cases are executed independently and an incomplete case leaves the check incomplete instead of aborting later cases; invalid configuration is refused at plan time; the legacy view renders it as frozen's ERROR 'Integration:ConfigurationError' target with the frozen fingerprint. Shadow build outputs are addressed by BUILD/PATH or the frozen VARIANT:shadow:PATH (and >512-char path-<sha256>) identity of a prepared native variant; a bare shadow-relative path is not guessed. Per-aspect next findings: native case-level ids in the modern view, legacy ids in the legacy view (root 22:35 item 4). The shared ici-config argv bound counts UTF-8 bytes where frozen counts code points. Remaining verdict difference for the root: legacy `ici verify` exits 3 for an incomplete suite where frozen exits 1."
     },
     "finding_site:src/ici/adapters/providers/binarycompat.py:137:11": {
       "status": "not_started",
@@ -717,26 +721,50 @@
       "comparison": "A clean pytest run with ResourceWarning promoted to errors keeps the frozen 'PythonResourceWarnings' PASS target at tests:1 with the frozen message and legacy fingerprint; status PASS, evidence MEASURED, summary 'Memory Safety & Sanitize Clean (0 Defects)', exit 0 equal to the golden (clean scenario); the leak scenario is the negative."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:155:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_sanitize.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_python_sanitize.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-python-sanitize-oracle.json (frozen legacy `ici sanitize --report`; scenarios clean, leak, empty, unlocated; clean/leak unchanged; /tmp/ici-rust-replacement-20261028/w-validation-pysan-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_python_sanitize --locked -- --include-ignored: passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan.log); ici-validation all tests --include-ignored passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan-validation.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ]
       },
-      "comparison": "OPEN: the unlocated 'ResourceWarning' FAIL target at tests:1 carrying an output snippet (a ResourceWarning with no project frame). The frozen legacy Python sanitize golden covers the clean and the located-warning cases only; native python_sanitize.rs has the unlocated anchor path but it is not replayed against a frozen scenario."
+      "comparison": "Frozen: a failing ResourceWarning run whose output names ResourceWarning but has no `file.py:N: ...ResourceWarning` line is one unlocated 'ResourceWarning' FAIL target at tests:1 whose message is the first 300 characters of the whitespace-joined pytest output, with an ici.legacy.sanitize.target finding; summary '1 Memory / Resource Defect(s) Detected', exit 1 (scenario unlocated). Native: same target name, status, path, line, snippet rule (300 characters, whitespace-joined), rule id, summary and exit; located warnings (scenario leak) and clean runs stay byte-equal.",
+      "difference_reason": "The snippet bytes (and so the finding fingerprint) differ: each side snips its own pytest output; frozen's header carries its temporary rootdir and quiet progress line, native runs pytest -v under its own owned run directory. Neither is reproducible across machines."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:219:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python_sanitize.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_python_sanitize.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-python-sanitize-oracle.json (frozen legacy `ici sanitize --report`; scenarios clean, leak, empty, unlocated; clean/leak unchanged; /tmp/ici-rust-replacement-20261028/w-validation-pysan-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_python_sanitize --locked -- --include-ignored: passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan.log); ici-validation all tests --include-ignored passed (/tmp/ici-rust-replacement-20261028/w-validation-pysan-validation.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit"
+        ]
       },
-      "comparison": "OPEN: the per-file 'PythonResourceWarnings' status target (scope-level target on a non-tests file path). The frozen legacy Python sanitize golden covers the clean and the located-warning cases only; native python_sanitize.rs has the unlocated anchor path but it is not replayed against a frozen scenario."
+      "comparison": "Frozen _missing_python_scope: pytest exit 5 is 'PythonResourceWarnings' ERROR at tests:1 'Pytest collected 0 tests' (exit 0 without a parseable result: 'Pytest returned success without parseable test results'), engine ERROR/NOT_RUN with that summary (scenario empty). Native previously reported no target and the summary 'Python ResourceWarning check has no completed executed test scope'; it now emits the frozen target, message, summary, evidence and legacy fingerprint (sha256:1acccd4f...).",
+      "difference_reason": "The empty scope is incomplete evidence, so legacy `ici sanitize` exits 3 (generic legacy Incomplete->3 mapping, root decision) where frozen exits 1. Frozen's not-required SKIP variant (engines.sanitize.required=false) and the 'Pytest is unavailable: <snippet>' variant are not captured; native keeps the ERROR target for both."
     },
     "finding_site:src/ici/analysis/_sanitize_python_scope.py:238:16": {
       "status": "complete",
@@ -783,169 +811,368 @@
       "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
     },
     "finding_site:src/ici/engines/binary_compat.py:106:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
         "positive": [],
-        "negative": [],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "failure": []
       },
-      "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen: no selected manifest artifact gives `BinaryCompatibility:NotApplicable` SKIP at '.', summary 'Binary compatibility not applicable: no selected manifest artifacts'. Rust legacy planning maps the empty ABI scope to crate::cpp::legacy_binary_compat_unavailable and clears the build prerequisite; the no-artifacts case matches exactly."
     },
     "finding_site:src/ici/engines/binary_compat.py:140:28": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Cases non-elf-allowed (positive), pass (negative: ELF only) and non-elf-rejected replay through the actual Make/g++/readelf deep pipeline with frozen targets and summaries. Rust defect fixed: the legacy Make/CMake/qmake shadow inventory (export_context.rs) read 20 header bytes with read_exact and kept only ELF ET_EXEC/ET_DYN outputs, so a PE (MZ) or Mach-O output that frozen _linked_artifact_paths lists never reached the ABI check. Rust now records those outputs as a legacy-only build setting (legacy_non_elf_artifacts) that cpp_validation::abi_scope adds to the implicit ABI selection; build.artifacts (which drives publishing) still holds only the measured ELF outputs.",
+      "difference_reason": "Open: the ici.binary.non-elf finding's fingerprint/severity/location are not compared field by field (the oracle records engine targets only); no test asserts directly that the non-ELF output stays out of published build artifacts (the code path keeps build.artifacts ELF-only)."
     },
     "finding_site:src/ici/engines/binary_compat.py:158:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen: a manifest artifact without the ELF magic is `BinaryCompatibility:NonElf` SKIP 'Manifest artifact is not ELF and policy allows it' with allow_non_elf, otherwise `BinaryCompatibility:<id>` FAIL 'Selected binary manifest artifact is not an ELF object' plus an ici.binary.non-elf finding. Cases non-elf-rejected (positive), pass (negative: ELF only) and non-elf-allowed replay through the actual Make/g++/readelf deep pipeline with frozen targets and summaries. Rust defect fixed: the legacy Make/CMake/qmake shadow inventory (export_context.rs) read 20 header bytes with read_exact and kept only ELF ET_EXEC/ET_DYN outputs, so a PE (MZ) or Mach-O output that frozen _linked_artifact_paths lists never reached the ABI check. Rust now records those outputs as a legacy-only build setting (legacy_non_elf_artifacts) that cpp_validation::abi_scope adds to the implicit ABI selection; build.artifacts (which drives publishing) still holds only the measured ELF outputs.",
+      "difference_reason": "Open: the ici.binary.non-elf finding's fingerprint/severity/location are not compared field by field (the oracle records engine targets only); no test asserts directly that the non-ELF output stays out of published build artifacts (the code path keeps build.artifacts ELF-only)."
     },
     "finding_site:src/ici/engines/binary_compat.py:209:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-validation/src/cpp.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/binary-compat-oracle.json captured by development-only tests/rust-parity/cpp/capture_binary_compat.py: frozen `ici verify --profile deep --report` (oracle 6fe3e40) with [engines.build] and [engines.binary_compat] enabled on parity-fixtures/cpp/package-make, 7 cases (pass; forbidden_needed/max_glibc violations; allowed and rejected MZ non-ELF output; Make producing no linked output, optional and required; unpublished artifacts selection); build and binary_compat status, summary and every target.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen: one `BinaryCompatibility:<variant>:shadow:<path>` target per inspected ELF at its shadow-relative path, PASS 'ELF dependency, loader path, and ABI evidence verified' or FAIL '<n> binary compatibility violation(s)', summary 'ELF compatibility: N checked, V violation(s), S skipped'. Rust reshapes the measured ici-validation ELF output for the legacy projection (crate::cpp::legacy_binary_compat, hooked in execute.rs); pass and forbidden_needed/max_glibc violation cases match exactly.",
+      "difference_reason": "Open: selections by explicit artifact id and multi-artifact shadows are not captured; the next-path (non-legacy) target shape stays the ici-validation 'ELF/ABI artifact' form by design."
     },
     "finding_site:src/ici/engines/binary_compat.py:247:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/validation.rs"
+      ],
+      "evidence": [
+        "Frozen golden tests/rust-parity/cpp/binary-compat-oracle.json case unpublished-selection (frozen deep `ici verify --report`, artifacts=['release:shadow:nope'] on parity-fixtures/cpp/package-make)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_binary_compat --locked -- --include-ignored: 1 passed, all 7 cases incl. unpublished-selection byte-equal (/tmp/ici-rust-replacement-20261028/w-validation-binary-unpublished.log); published_abi/native_cpp/python_binary_scope/integration_legacy/legacy_build_targets/native_cpp_direct --include-ignored passed (/tmp/ici-rust-replacement-20261028/w-validation-binary-neighbours.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/integration_legacy.rs::shadow_identity_selects_one_binary_compat_target_from_the_linked_build_inventory"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "comparison": "OPEN: ELF/ABI compatibility findings; native ici-validation cpp.rs + ici-cpp ElfPolicy exist and the release:shadow selector is closed, but these frozen finding sites (rule ids, messages, located targets) were not replayed against a frozen readelf golden in this branch."
+      "comparison": "Validation facet (selection/identity). Frozen: an explicit engines.binary_compat.artifacts identity that the release build did not publish is `BinaryCompatibility:AnalysisUnavailable` ERROR at '.' line 1 'configured artifact was not published: <id>' with summary 'Binary compatibility analysis incomplete: configured artifact was not published: <id>'. Native previously dropped cpp.binary-compat when abi_scope refused the selection (the python.binary-compat fallback then stayed SKIP) and the rebound C++ binding returned a raw block; an explicit selection now keeps the C++ check and the legacy view maps the post-build 'is not an observed output' refusal to the frozen ERROR target and summary (engine status, summary and every target equal the golden). A published selection still binds exactly one target (negative).",
+      "difference_reason": "Open (C++ facet, cpp worker): readelf missing/incomplete evidence (frozen RuntimeError -> the same AnalysisUnavailable ERROR) is not captured against a frozen run."
     },
     "finding_site:src/ici/engines/build.py:230:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/artifact_build/declarations.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ]
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen _publish_declared_artifacts records `DeclaredArtifacts` PASS only with a shared analysis context; the frozen `ici build` command creates the BuildEngine without one, so any [build.artifacts] declaration there is a `BuildError` 'declared artifacts require a shared analysis context' (ERROR, exit 1) after the binary and loaders were written. Rust records `DeclaredArtifacts` PASS 'Recorded 1 declared artifact(s)' and exits 0.",
+      "difference_reason": "Intended difference (root decision 2026-10-30): frozen `ici build` runs the BuildEngine without an analysis context, so every [build.artifacts] declaration ends in the blanket BuildError 'declared artifacts require a shared analysis context' (ERROR, exit 1). Rust gives the real verdict: a kept declaration is recorded (`DeclaredArtifacts` PASS 'Recorded 1 declared artifact(s)', exit 0), and a broken one, with no match or only an outside-workspace link, is a BuildError ERROR at '.' 'Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt' with exit 1, the same exit and status as frozen. A broken contract never exits 0 (declared-artifacts-missing/-external cases; previously Rust stopped at INCOMPLETE exit 3)."
     },
     "finding_site:src/ici/engines/build.py:338:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen _package_python: one `PythonLibrary` PASS per copied source at <version>/x86_64/lib/<relative>, 'Packaged Python source <relative>'; Rust matches the Python-only case exactly.",
+      "difference_reason": "Open (Python facet): the frozen _package_python source collision, symlinked source and outside-root error branches are not captured against a frozen run."
     },
     "finding_site:src/ici/engines/build.py:373:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen _package_python launchers: `PythonLauncher` PASS at <version>/x86_64/bin/<script>, 'Callable launcher for <module:callable>'; Rust matches the [project.scripts] case exactly.",
+      "difference_reason": "Open (Python facet): the frozen _package_python source collision, symlinked source and outside-root error branches are not captured against a frozen run. Open: invalid entrypoint / unsafe name / missing module error branches are not captured (Python facet)."
     },
     "finding_site:src/ici/engines/build.py:590:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
         "positive": [],
         "negative": [],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ]
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen direct g++ compile failure: one `CppBinary` FAIL at the package binary path with 'C++ compilation failed: ' + the first 200 characters of g++ stderr (absolute paths), summary 'Build did not produce a complete artifact set', exit 1. Rust now prints the same summary and exit and gate FAIL, but reports the located per-source compiler diagnostic (src/main.cpp) because it compiles objects separately.",
+      "difference_reason": "Intended difference (root decision 2026-10-30, AGENTS §5.1 location tracking): Rust reports the located per-source compiler diagnostic (src/main.cpp:1, rule and message) instead of frozen's single CppBinary FAIL at the package path carrying the first 200 characters of g++ stderr, whose absolute host paths make the record machine dependent. Frozen's exit code 1, FAIL status and 'Build did not produce a complete artifact set' summary are kept and asserted by the direct-compile-failure case."
     },
     "finding_site:src/ici/engines/build.py:611:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen direct g++ success: `CppBinary` PASS at <version>/x86_64/bin/<name>, 'Compiled C++17 binary (<seconds>s)'. Rust labels the published executable the same way (crates/ici-cli/src/preparation.rs::legacy_direct_binary_message, the summed wall time of the observed compile and link tasks, formatted with two decimals) and matches the direct case exactly apart from the wall-clock value."
     },
     "finding_site:src/ici/engines/build.py:686:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
         "negative": [],
         "failure": []
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen _generate_env_scripts: `EnvironmentScript` PASS 'Generated env.sh' and 'Generated env.csh' at <version>/x86_64/; Rust matches the targets in every successful case (make, direct, cmake, python) and the loader bytes/modes (tests/rust-parity/cpp/package-tree-oracle.json).",
+      "difference_reason": "Open: the env-script write failure path ('Could not generate environment scripts') is not captured."
     },
     "finding_site:src/ici/engines/build.py:725:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ]
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen adapter build failure: one `BuildAdapter` FAIL per session error at the descriptor, summary 'Build did not produce a complete artifact set', exit 1. Rust crate::cpp::build_failure matches the Make build failure case exactly. CMake and qmake build failures (core/cmake.py `_fail`) now take the same shape in Rust (export_context: a failed cmake/qmake compile step is an observed BuildAdapter FAIL '<backend> build failed: <first 200 characters of stderr>' at the descriptor, a failed configure a BuildError ERROR whose message is the summary), exit 1; the cmake-compile-failure, cmake-configure-failure and qmake-compile-failure cases match frozen exit, status, summary, target name, status, path and line.",
+      "difference_reason": "Difference for root review: the stderr excerpt itself is host-dependent and compared only as a common prefix (qmake: '<backend> build failed: ' head and a compiler error): frozen cuts stderr at 200 characters, so the cut point moves with the project path length; qmake's build-tree-relative paths depend on the shadow depth; and frozen's compiler quotes are Unicode because the Python interpreter coerces LC_CTYPE=C.UTF-8 (PEP 538) for its child processes while the Rust product passes the caller's locale through."
     },
     "finding_site:src/ici/engines/build.py:745:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
         "failure": []
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen _build_with_adapter success: `BuildAdapter[<backend>]` PASS at the descriptor, '<select_backend reason>; produced N artifact(s)' where N is _count_adapter_artifacts over the shadow (no analysis context under `ici build`, so CMake compiler-id executables count: 3 for the CMake fixture). Rust prepends crate::cpp::legacy_adapter_success with crate::cpp::legacy_shadow_linked_outputs; the make and cmake cases match exactly, ahead of the env-script targets. The qmake case (pkg.pro, /usr/bin/qmake6) matches exactly: 'pkg.pro at the project root selected the qmake backend; produced 1 artifact(s)'.",
+      "difference_reason": "Open: CMake with a passed-over .pro (both descriptors present) is implemented but not captured here."
     },
     "finding_site:src/ici/engines/build.py:802:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/planning.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
+        "Validation rerun after the integration merge: cargo test -p ici-cli --test legacy_build_targets --test legacy_binary_compat --test published_abi --test native_cpp --test integration_legacy --test python_binary_scope --test legacy_verify_matrix (+ Python/legacy suites) --locked -- --include-ignored, all passed (/tmp/ici-rust-replacement-20261028/w-validation-merge2.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log)"
+      ],
       "fixtures": {
         "positive": [],
-        "negative": [],
-        "failure": []
+        "negative": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ]
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Validation facet: the C++ facet's frozen comparison (closure/cpp.json) was re-proven by rerunning its fixtures in this branch; this branch adds no different behaviour for the row. Frozen _record_error: `BuildError` ERROR targets at '.' or the given path; summary joins the first three errors; exit 1. Rust matches the target, status and exit for the unadapted Makefile (planning.rs unadapted_descriptor arm), the main-count refusal ('C++ adapter required: expected exactly one int main definition, found 0', new planning.rs direct-reason arm) and the Make misconfiguration cases.",
+      "difference_reason": "Open: the other _record_error callers (Python source collisions, launcher failures, g++ missing/timeout/signal, env-script write failure) are not captured; the frozen ERROR evidence is NOT_RUN while Rust projects MEASURED (see sanitize.py:838:12)."
     },
     "finding_site:src/ici/engines/build.py:92:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-cli/src/artifact_build.rs"
+      ],
+      "evidence": [
+        "Frozen goldens: tests/rust-parity/cpp/build-targets-oracle.json case no-artifacts (frozen `ici build`, exit 1, console '✘ Build did not produce a complete artifact set') and tests/rust-parity/validation/build-sourceless-oracle.json from python3 tests/rust-parity/validation/capture_build_sourceless.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> (frozen deep `ici verify --report`, default and pass_warn modes; /tmp/ici-rust-replacement-20261028/w-validation-build-sourceless-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_build_targets --locked -- --include-ignored: 2 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-sourceless.log); legacy_make_build --include-ignored 6 passed (/tmp/ici-rust-replacement-20261028/w-validation-build-make.log); legacy_python_engines/legacy_commands/legacy_no_tests/legacy_mode_scope passed (/tmp/ici-rust-replacement-20261028/w-validation-build-sourceless-neighbours.log)"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success"
+        ]
       },
-      "comparison": "OPEN: Legacy build engine targets (configure/build/package/env script); native build is ici-cli artifact_build + cpp preparation (cpp-shared). Not replayed against a frozen legacy `ici build` golden."
+      "comparison": "Python facet. Frozen BuildEngine.run: a legacy type='python' project that selects no Python source creates no library, launcher or binary, so with no tool error it appends `BuildArtifacts` FAIL at '.' line 1 'No Python library, launcher, or C++ binary artifact was created' and summarises 'Build did not produce a complete artifact set' (MEASURED; mode pass_warn gives WARN). Native legacy `ici build` previously stopped with the blocked python.artifact check (exit 3); the legacy view now replaces that block with the frozen verdict: `ici build` exits 1 with the frozen console line, and deep `ici verify --report` reproduces status, summary, evidence, required=false, the target and the ici.legacy.build.target finding (rule id, fingerprint, severity, confidence, message, location) and suite WARN/exit 0 in both modes. Artifact-producing and tool-failure builds never add the target (byte-equal frozen cases python, make-failure, cmake-configure-failure).",
+      "difference_reason": "Frozen _prepare_output_tree creates the empty <version>/x86_64/{bin,lib} tree before discovering there is nothing to build; native creates no output directory for a build that produces nothing. The saved native details keep the blocked python.artifact check (the legacy verdict is a presentation of it)."
     },
     "finding_site:src/ici/engines/coverage_policy.py:165:11": {
       "status": "complete",
@@ -1535,15 +1762,27 @@
       "difference_reason": "Native locates each case at its test definition line instead of the frozen line-1 placeholder (legacy identity excludes the line, so fingerprints are unchanged). Accepted by the root (22:35)."
     },
     "finding_site:src/ici/engines/test_output.py:226:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+        ]
       },
-      "comparison": "OPEN: Summary-count fallback targets ('[Python] Passed (N)' etc.) for pytest output without per-node lines; native requires per-node verdicts and reports the suite incomplete instead; difference not yet recorded with a golden."
+      "comparison": "Frozen _parse_pytest_stdout summary fallback: pytest output without per-node lines yields '[Python] <Passed|XFail|Skipped|Failed|XPass> (N)' targets at tests:1 ('Pytest summary: passed', ...; metrics test_cases=N) from the last summary counts (golden scenario quiet_base: '[Python] Passed (1)'). Native requires per-node verdicts: the suite is incomplete with 'pytest reported test cases without per-test verdicts; suite evidence is incomplete' (exit 3) and is never reported as 'No tests collected'.",
+      "difference_reason": "Intended (ADR-0008, R05): summary counts carry no node identity or location, so native does not turn them into per-case targets, pass rates, coverage or TEM verdicts; frozen's FAIL/exit 1 becomes an incomplete run (exit 3)."
     },
     "finding_site:src/ici/engines/test_output.py:83:20": {
       "status": "difference_review",
@@ -1620,48 +1859,109 @@
       "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:381:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-validation/src/python.rs",
+        "crates/ici-validation/src/python_quality.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 7 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 5 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::quality_repeat_without_per_test_verdicts_is_the_frozen_collection_warning"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+        ]
       },
-      "comparison": "OPEN: '[test-quality] Base run outcomes' (base run without per-node verdicts). The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
+      "comparison": "Frozen: when the base pytest run prints no per-test verdict (quiet run, golden scenario quiet_base) the TestEngine falls back to summary counts ('[Python] Passed (1)' PASS 'Pytest summary: passed') and the quality pass adds '[test-quality] Base run outcomes' WARN 'base pytest run had no per-test outcome evidence; flaky comparison is unavailable' {run:1}, exit 1 (coverage gate). Native keeps the measured reason 'pytest reported test cases without per-test verdicts; suite evidence is incomplete', exit 3; it no longer misreports such a run as '[Python] Tests' 'No tests collected' (native defect fixed in python.rs).",
+      "difference_reason": "Intended (ADR-0008, R05): summary counts are not per-test evidence, so native never builds case targets, coverage/TEM verdicts or a flaky comparison from them; the run is incomplete instead of the frozen FAIL. The 'Base run outcomes' target therefore never appears natively."
     },
     "finding_site:src/ici/engines/test_quality.py:405:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/model.rs",
+        "crates/ici-cli/src/validation.rs",
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-validation/src/python.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::unbounded_quality_repeat_exit_is_the_frozen_repeat_run_warning"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+        ]
       },
-      "comparison": "OPEN: '[test-quality] Repeat run N' for a timed-out repeat. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
+      "comparison": "Frozen: a quality repeat that times out is '[test-quality] Repeat run N' WARN 'pytest repeat run timed out' with metrics {run, timeout} and repeat_timeouts=1. Native previously added returncode and used the generic message for other failures. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario timeout).",
+      "difference_reason": "No intended difference. Kept at verified: the repeat-failure scenario is itself the row's positive case, and no distinct failure-mode fixture (e.g. a cancelled repeat) is compared with a frozen run."
     },
     "finding_site:src/ici/engines/test_quality.py:418:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/model.rs",
+        "crates/ici-cli/src/validation.rs",
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-validation/src/python.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::unbounded_quality_repeat_exit_is_the_frozen_repeat_run_warning"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+        ]
       },
-      "comparison": "OPEN: '[test-quality] Repeat run N' for a repeat without per-test evidence. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
+      "comparison": "Frozen: a repeat that is truncated, signalled or exits outside 0/1 is '[test-quality] Repeat run N' WARN 'pytest repeat run did not produce bounded evidence' with metrics {run, returncode} (signal as negative return code) and repeat_unavailable=1. Native previously said 'did not produce bounded per-test evidence' with extra timeout metrics. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario exit).",
+      "difference_reason": "No intended difference. Kept at verified: the repeat-failure scenario is itself the row's positive case, and no distinct failure-mode fixture (e.g. a cancelled repeat) is compared with a frozen run."
     },
     "finding_site:src/ici/engines/test_quality.py:434:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/model.rs",
+        "crates/ici-cli/src/validation.rs",
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-validation/src/python.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::quality_repeat_without_per_test_verdicts_is_the_frozen_collection_warning"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::timed_out_quality_repeat_is_the_frozen_repeat_run_warning"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::base_run_without_per_test_verdicts_stays_incomplete_instead_of_summary_counts"
+        ]
       },
-      "comparison": "OPEN: '[test-quality] Repeat run N' for a repeat with a changed collection. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
+      "comparison": "Frozen: a bounded repeat (exit 0/1) without per-test verdicts is '[test-quality] Repeat run N' WARN 'pytest repeat run had no per-test collection evidence' with metrics {run}. Native previously merged it with the unbounded case. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario quiet_repeat).",
+      "difference_reason": "No intended difference. Kept at verified: the repeat-failure scenario is itself the row's positive case, and no distinct failure-mode fixture (e.g. a cancelled repeat) is compared with a frozen run."
     },
     "finding_site:src/ici/engines/test_quality.py:502:16": {
       "status": "difference_review",
@@ -1689,26 +1989,56 @@
       "difference_reason": "Native locates each quality target and finding at the pytest test definition instead of frozen's line 1 (legacy identities exclude the line; accepted by the root 22:35 item 2 as for pytest cases). Native test_quality adds evidence/repeat_observations and omits frozen's analysis-context 'profile' key."
     },
     "finding_site:src/ici/engines/test_quality.py:550:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/model.rs",
+        "crates/ici-cli/src/validation.rs",
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-validation/src/python.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::missing_mutation_tool_is_the_frozen_skip_without_a_probe"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::succeeding_mutation_probe_command_is_the_frozen_available_pass"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::failing_or_absent_mutation_probe_command_is_the_frozen_probe_unavailable_skip"
+        ]
       },
-      "comparison": "OPEN: '[test-quality] Mutation capability' SKIP (no mutation tool). The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
+      "comparison": "Frozen: an enabled mutation probe with no supported tool on PATH is '[test-quality] Mutation capability' SKIP 'No supported mutation tool was found; base test gate unchanged' {available:false, tool:'auto'}, mutation_status unavailable. Native previously said 'mutation capability is unavailable; base test gate is unchanged' with a returncode metric and no tool label. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario mutation_missing)."
     },
     "finding_site:src/ici/engines/test_quality.py:580:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "evidence": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-validation/src/python_quality.rs",
+        "crates/ici-validation/src/model.rs",
+        "crates/ici-cli/src/validation.rs",
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-validation/src/python.rs"
+      ],
+      "evidence": [
+        "python3 tests/rust-parity/validation/capture_legacy_quality_paths.py --oracle <frozen 6fe3e40> --python <project CPython 3.10.21> --out tests/rust-parity/validation/legacy-quality-paths-oracle.json (frozen deep legacy `ici verify --report`, 8 scenarios; /tmp/ici-rust-replacement-20261028/w-validation-quality-paths-capture.log)",
+        ". opus-env.sh; cargo test -p ici-cli --test legacy_quality_paths --locked -- --include-ignored --test-threads=1: 7 passed (/tmp/ici-rust-replacement-20261028/w-validation-quality-paths.log); regressions: ici-validation all tests --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-validation.log) and 28 ici-cli Python/legacy test files --include-ignored (/tmp/ici-rust-replacement-20261028/w-validation-quality-regress-cli.log) passed"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::succeeding_mutation_probe_command_is_the_frozen_available_pass"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::missing_mutation_tool_is_the_frozen_skip_without_a_probe"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_quality_paths.rs::failing_or_absent_mutation_probe_command_is_the_frozen_probe_unavailable_skip"
+        ]
       },
-      "comparison": "OPEN: '[test-quality] Mutation capability' measured status. The frozen deep `ici verify` golden (tests/rust-parity/validation/legacy-quality-oracle.json) covers only slow and flaky observations; native has this path (crates/ici-validation/src/python_quality.rs, unit-tested in crates/ici-validation/tests/quality_details.rs) but it has not been replayed against a frozen scenario for this target."
+      "comparison": "Frozen: an explicit mutation command is probed; exit 0 is PASS 'Mutation tool capability available: <tool>' and a failing probe SKIP 'Mutation capability probe unavailable; base test gate unchanged', both with {available, tool, returncode} where tool is the configured tool ('auto') for a command and the found tool for an auto search (scenarios mutation_available, mutation_failing). Native previously reported 'explicit mutation capability probe completed; mutations were not performed'. The target (file 'tests', line 1, name, status, message, metrics), its ici.legacy.test.target finding (rule id, message, fingerprint), the repeat/mutation counters of extra.test_quality and the frozen exit code 1 equal the golden. (scenario mutation_available). An explicit command whose executable is absent is frozen's probe-unavailable SKIP with returncode -1 (scenario mutation_command_missing), not 'No supported mutation tool was found' (native defect fixed)."
     },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
       "status": "difference_review",
@@ -1796,6 +2126,51 @@
       "reason": "Deep-only, tool-less, opt-in integration check definition reproduced by the native catalog (check:integration).",
       "requirements": [
         "check:integration"
+      ]
+    },
+    "src/ici/engines/test_interpreter.py": {
+      "disposition": "unreviewed",
+      "reason": "Whole file read. _resolve_python order (engines.test.python, project .venv, sys.executable) maps to native validation::project_python with the recorded sys.executable difference (crates/ici-cli/tests/interpreter_selection.rs::legacy_project_without_venv_is_blocked_instead_of_running_under_path_python). Open: _find_coverage_cmd probe error texts (timed out / truncated / terminated / exit N) and _interpreter_from_command pytest-argv normalisation are not compared with a frozen legacy capture.",
+      "requirements": [
+        "capability:runtime-integration"
+      ]
+    },
+    "src/ici/engines/test_quality.py": {
+      "disposition": "unreviewed",
+      "reason": "Partially reviewed (lines 225-593: settings parsing, repeat/flaky/mutation paths). Sites 196/355/502/87 difference_review, 405/418/434/550/580 complete, 381 difference_review (summary-count base run). Open before mapping: settings clamping (repeat_runs/timeout/slow threshold/max_slow_tests bounds, invalid mutation tool -> auto) are not compared with a frozen capture; lines 1-224 (report/warn mode verdicts) not re-read in this pass.",
+      "requirements": [
+        "capability:test-quality-tem",
+        "finding_site:src/ici/engines/test_quality.py:381:16",
+        "finding_site:src/ici/engines/test_quality.py:405:24",
+        "finding_site:src/ici/engines/test_quality.py:418:24",
+        "finding_site:src/ici/engines/test_quality.py:434:24",
+        "finding_site:src/ici/engines/test_quality.py:550:16",
+        "finding_site:src/ici/engines/test_quality.py:580:12"
+      ]
+    },
+    "src/ici/analysis/_sanitize_python_scope.py": {
+      "disposition": "unreviewed",
+      "reason": "Lines 120-263 reviewed: PASS scope, located and unlocated ResourceWarning targets, _missing_python_scope (0 tests / unparseable) and _resolve_python order map to finding sites 155/219 (difference_review) and capability:runtime-integration. Open: 'Pytest is unavailable: <snippet>', not-required SKIP variant, process-incomplete and tool-failure scope errors (_append_scope_error) are not captured against a frozen run.",
+      "requirements": [
+        "capability:legacy-python-sanitize",
+        "finding_site:src/ici/analysis/_sanitize_python_scope.py:155:20",
+        "finding_site:src/ici/analysis/_sanitize_python_scope.py:219:12"
+      ]
+    },
+    "src/ici/engines/build.py": {
+      "disposition": "unreviewed",
+      "reason": "run() (lines 40-150) reviewed: BuildArtifacts FAIL (92:16 complete, Python facet) and summaries; the remaining target sites are re-proven C++ facets (verified). Open: _package_python collision/symlink/outside-root error branches and _prepare_output_tree side effects (frozen creates an empty <version>/x86_64 tree).",
+      "requirements": [
+        "finding_site:src/ici/engines/build.py:92:16",
+        "finding_site:src/ici/engines/build.py:338:16",
+        "finding_site:src/ici/engines/build.py:373:16"
+      ]
+    },
+    "src/ici/engines/binary_compat.py": {
+      "disposition": "unreviewed",
+      "reason": "Error aggregation (lines 225-260) reviewed: unpublished explicit selection -> AnalysisUnavailable ERROR now equal to frozen (247:16 verified). Other sites are re-proven C++ facets. Open: readelf missing/incomplete evidence (cpp worker).",
+      "requirements": [
+        "finding_site:src/ici/engines/binary_compat.py:247:16"
       ]
     }
   }
