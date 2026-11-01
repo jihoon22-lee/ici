@@ -812,6 +812,11 @@ fn prepare_resolved_omitting(
                     // Undeclared legacy builds are resolved by the native descriptor reader.
                     selected_component.settings["native_requested_variant"] = json!(variant);
                 }
+                if variant == "release"
+                    && (selected.contains("cpp.artifact") || selected.contains("cpp.binary-compat"))
+                {
+                    selected_component.settings["native_release_artifacts"] = json!(true);
+                }
                 let binary =
                     std::env::current_exe().map_err(|error| CliError(error.to_string()))?;
                 match crate::export_context::plan_preparation(

@@ -265,16 +265,20 @@ pub fn qmake_capture_command(request: &QmakeCaptureRequest) -> Result<Vec<String
             quote(binary),
             quote(&cxx)
         ),
-        format!(
-            "CONFIG+={}",
-            if request.variant.eq_ignore_ascii_case("release") {
-                "release"
-            } else {
-                "debug"
-            }
-        ),
-        "CONFIG-=debug_and_release".into(),
     ]);
+    if !request.default_config {
+        argv.extend([
+            format!(
+                "CONFIG+={}",
+                if request.variant.eq_ignore_ascii_case("release") {
+                    "release"
+                } else {
+                    "debug"
+                }
+            ),
+            "CONFIG-=debug_and_release".into(),
+        ]);
+    }
     Ok(argv)
 }
 

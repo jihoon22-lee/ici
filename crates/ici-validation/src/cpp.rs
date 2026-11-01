@@ -35,7 +35,7 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             test.kind = TaskKind::Test;
             plan.tasks.push(test);
         }
-        ValidationKind::Qtest => {
+        ValidationKind::Qtest | ValidationKind::MakeCheck => {
             let mut test = planning::task(request, "suite", arguments(plan)?);
             test.kind = TaskKind::Test;
             plan.tasks.push(test);
@@ -139,10 +139,15 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
                 })?;
             if !matches!(
                 request.options.shared_test_kind,
-                Some(ValidationKind::Ctest | ValidationKind::Qtest | ValidationKind::CppExecutable)
+                Some(
+                    ValidationKind::Ctest
+                        | ValidationKind::Qtest
+                        | ValidationKind::MakeCheck
+                        | ValidationKind::CppExecutable
+                )
             ) {
                 return Err(ValidationError(
-                    "gcov shared suite must declare CTest, QTest or plain C++ executable kind"
+                    "gcov shared suite must declare CTest, QTest, make check or plain C++ executable kind"
                         .into(),
                 ));
             }
@@ -292,6 +297,7 @@ pub(crate) fn test_evidence(
     match suite_plan.kind {
         ValidationKind::Ctest => observe_ctest(&suite_plan, &outcomes, &mut output),
         ValidationKind::Qtest => observe_qtest(&suite_plan, &outcomes, &mut output),
+        ValidationKind::MakeCheck => observe_make_check(&suite_plan, &outcomes, &mut output),
         ValidationKind::CppExecutable => {
             crate::standalone::observe(&suite_plan, &outcomes, &mut output)
         }
@@ -484,6 +490,111 @@ pub(crate) fn observe_ctest(
         return Err(ValidationError(
             "CTest failed without attributable test failures".into(),
         ));
+    }
+    Ok(())
+}
+/// Frozen `core/cmake.run_tests` for a build system's own test target: the transcript
+/// (`stdout + stderr`) read per test binary, QtTest failures merged for qmake, and a sanitizer
+/// report attributed (`_attach_sanitizer_output`). A timed-out or truncated run is incomplete.
+pub(crate) fn observe_make_check(
+    plan: &ValidationPlan,
+    outcomes: &BTreeMap<String, TaskOutcome>,
+    output: &mut AnalysisOutput,
+) -> Result<(), ValidationError> {
+    let outcome = suite(plan, outcomes)?;
+    let label = if plan.context.options.make_check_qtest {
+        "make check"
+    } else {
+        "Make test command"
+    };
+    if outcome.timed_out || outcome.truncated {
+        let reason = if outcome.timed_out {
+            "timed out"
+        } else {
+            "truncated its output"
+        };
+        return Err(ValidationError(format!(
+            "{label} {reason}; test evidence is incomplete"
+        )));
+    }
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&outcome.stdout),
+        String::from_utf8_lossy(&outcome.stderr)
+    );
+    let code = outcome.exit_code.unwrap_or(-1);
+    let cases = if plan.context.options.make_check_qtest {
+        crate::make_check::qmake_results(&text, code)
+    } else {
+        crate::make_check::parse_make_check_stdout(&text, code)
+    };
+    let cases = crate::make_check::attach_sanitizer_output(cases, &text);
+    let (mut passed, mut skipped) = (0u64, 0u64);
+    let mut observed = BTreeMap::new();
+    let mut rows = vec![];
+    for case in &cases {
+        let path = source(plan, &case.name);
+        let mut target = InspectionTarget::at(&path, 1);
+        target.target_name = case.name.clone();
+        target.message = case.message.clone();
+        let status = if case.passed {
+            passed += 1;
+            target.status = "PASS".into();
+            "PASSED"
+        } else if !case.executed {
+            skipped += 1;
+            target.status = "SKIP".into();
+            "SKIPPED"
+        } else {
+            target.status = "FAIL".into();
+            output.observation.findings.push(finding(
+                plan,
+                "make-check.failed",
+                &format!("test {}: {}", case.name, case.message),
+                &path,
+                1,
+            ));
+            "FAILED"
+        };
+        if observed
+            .insert(format!("make-check:{}", case.name), status)
+            .is_some()
+            || observed.len() > 2048
+        {
+            return Err(ValidationError(
+                "make check repeats test identities or exceeds 2048 binaries".into(),
+            ));
+        }
+        rows.push(
+            json!({"name":case.name,"passed":case.passed,"executed":case.executed,
+            "message":case.message,"diagnostic_output":case.diagnostic_output,
+            "diagnostic_output_truncated":case.diagnostic_output_truncated}),
+        );
+        output.targets.push(target);
+    }
+    let total = cases.len() as u64;
+    output.extra["test_outcomes"] = json!(observed);
+    output.extra["make_check_cases"] = json!(rows);
+    if total > 0 {
+        output
+            .observation
+            .measurements
+            .push(pair("make-check.cases", passed, total));
+    }
+    output.summary = format!("{passed}/{total} {label} tests passed");
+    if !planning::completed(outcome) && outcome.exit_code.is_none() {
+        return Err(ValidationError(format!("{label} did not complete")));
+    }
+    if total == 0 {
+        return Err(ValidationError(format!(
+            "{label} reported no test binaries"
+        )));
+    }
+    if skipped > 0 {
+        output
+            .observation
+            .limitations
+            .push(format!("{skipped} {label} tests were not executed"));
     }
     Ok(())
 }

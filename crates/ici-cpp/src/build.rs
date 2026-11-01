@@ -266,9 +266,12 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
     };
     let shadow_path = root.join(&shadow);
     let project = root.join(&request.project);
-    // Configured Make shares one shadow across variants, so its owner excludes the variant.
+    // Configured Make shares one shadow across variants (frozen `make_plan`), so its owner
+    // excludes the variant; a non-primary variant's projected build (`native-*`) is owned by the
+    // build it was projected from, so it reuses the shadow that preparation adopted.
     let identity = if make.is_some() {
-        json!({"schema":"ici.rust.make-owner/v1","root":root,"id":request.id,"system":"make","shadow":shadow})
+        let owner = request.shadow_owner_id.as_ref().unwrap_or(&request.id);
+        json!({"schema":"ici.rust.make-owner/v1","root":root,"id":owner,"system":"make","shadow":shadow})
     } else {
         json!({"schema":"ici.rust.build-owner/v1","root":root,"id":request.id,"variant":request.variant,"project":request.project})
     };
@@ -404,17 +407,19 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
             if !request.compiler_cxx.is_empty() {
                 probe_argv.push(format!("QMAKE_CXX={}", request.compiler_cxx));
             }
-            probe_argv.extend([
-                format!(
-                    "CONFIG+={}",
-                    if request.variant.eq_ignore_ascii_case("release") {
-                        "release"
-                    } else {
-                        "debug"
-                    }
-                ),
-                "CONFIG-=debug_and_release".into(),
-            ]);
+            if !request.qmake_default_config {
+                probe_argv.extend([
+                    format!(
+                        "CONFIG+={}",
+                        if request.variant.eq_ignore_ascii_case("release") {
+                            "release"
+                        } else {
+                            "debug"
+                        }
+                    ),
+                    "CONFIG-=debug_and_release".into(),
+                ]);
+            }
             tasks.push(task(probe_id.clone(), "qmake", probe_argv, &shadow_path));
             let capture_request = QmakeCaptureRequest {
                 root: root.to_path_buf(),
@@ -427,6 +432,7 @@ pub fn plan_build(root: &Path, request: &BuildRequest) -> Result<BuildPlan, CppE
                 journal: journal.clone(),
                 arguments: request.extra_qmake_args.clone(),
                 assignments: qmake_assignments(request),
+                default_config: request.qmake_default_config,
             };
             let encoded = ici_domain::canonical_json(&capture_request)
                 .map_err(|error| CppError::new("capture-request", error.to_string()))?;

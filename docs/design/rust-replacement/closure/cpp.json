@@ -36,7 +36,8 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid"
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid"
@@ -47,10 +48,11 @@
       },
       "evidence": [
         "Frozen `ici verify --report` analysis_context captured by tests/rust-parity/cpp/capture_analysis_context.py (oracle 6fe3e40) into tests/rust-parity/cpp/analysis-context-oracle.json for a C++ (parity-fixtures/cpp/test-cmake/plain), a Python and a hybrid project; /tmp/ici-rust-replacement-20261028/w-cpp8-context-capture.log",
-        "cargo test -p ici-cli --test legacy_analysis_context --locked -j2 -- --include-ignored: 1 passed (3 cases equal after removing run-specific commit/digest/shadow-path/size values, each checked for shape); /tmp/ici-rust-replacement-20261028/w-cpp8-context-rust.log"
+        "cargo test -p ici-cli --test legacy_analysis_context --locked -j2 -- --include-ignored: 1 passed (3 cases equal after removing run-specific commit/digest/shadow-path/size values, each checked for shape); /tmp/ici-rust-replacement-20261028/w-cpp8-context-rust.log",
+        "cargo test -p ici-cli --locked -j2 --test legacy_analysis_context -- --include-ignored (cpp, python, hybrid, cpp-unity); /tmp/ici-rust-replacement-20261028/w-cpp9-unity-rust.log"
       ],
-      "comparison": "C++ facet of this frozen row (src/ici/core/context.py:1, src/ici/core/compilation_export.py:1, src/ici/compilation_export_cli.py:1): the frozen `verify` report serialization of prepare_analysis_context (reporters/json_rep._serialize_analysis_context) is rebuilt by crates/ici-cli/src/legacy_context.rs from the native run: project model (name, git-describe-style version, type, source_dirs, python/cpp sources, headers, compilable sources, external dirs, include flags, select_backend backend/descriptor/reason), identity, profile, compilation (database path/digest, cmake/qmake origin of a prepared database, CMake cache generator, units with frozen _redact_compilation_argv argv and relative paths, diagnostics), requested_variants (descriptor build variants per profile and engines.*.enabled in BuildVariant order) and the artifact manifests. Replayed against frozen for C++, Python and hybrid projects.",
-      "difference_reason": "Recorded: shadow tree paths (.ici/rust-v1/build/... vs build/ici-cmake-build), the config/toolchain/database/configuration digests and artifact sizes are the native run's; unity_build is null (native leaves CMAKE_UNITY_BUILD unset; frozen configures OFF); a tagged checkout's version uses the short commit, not `git describe --tags` (no process runs during report assembly); pkg-config include flags are not appended. Open: `ici export-compilation-context` and the context sites (_cpp_include_trace.py:124, compile_db.py:71/90/208, _cpp_diagnostics.py database mode) are compared only through tests/rust-parity/cpp/compilation-export-oracle.json; deep-profile release variants and qmake/make databases are not captured."
+      "comparison": "C++ facet of this frozen row (src/ici/core/context.py:1, src/ici/core/compilation_export.py:1, src/ici/compilation_export_cli.py:1): the frozen `verify` report serialization of prepare_analysis_context (reporters/json_rep._serialize_analysis_context) is rebuilt by crates/ici-cli/src/legacy_context.rs from the native run: project model (name, git-describe-style version, type, source_dirs, python/cpp sources, headers, compilable sources, external dirs, include flags, select_backend backend/descriptor/reason), identity, profile, compilation (database path/digest, cmake/qmake origin of a prepared database, CMake cache generator, units with frozen _redact_compilation_argv argv and relative paths, diagnostics), requested_variants (descriptor build variants per profile and engines.*.enabled in BuildVariant order) and the artifact manifests. Replayed against frozen for C++, Python and hybrid projects. Rust defects fixed for the qmake facet: include_paths `exists` was always null (the projection read a field native names `present`) and listed -idirafter/forced includes frozen never records; a captured qmake database's generator is `qmake` like frozen qmake_context; legacy qmake preparation prefers qmake6 like frozen `_configure_qmake` (Qt 6 headers, QtCompatibility:Qt6). Recorded: the qmake capture keeps the compiler invocation alias (g++) where frozen resolves it to its realpath (x86_64-linux-gnu-g++-15), because a multicall driver chooses its mode from argv[0].",
+      "difference_reason": "Recorded: shadow tree paths (.ici/rust-v1/build/... vs build/ici-cmake-build), the config/toolchain/database/configuration digests and artifact sizes are the native run's; unity_build now matches (Rust defect fixed: the legacy release analysis database is configured -DCMAKE_UNITY_BUILD=OFF like frozen cmake.py analysis_database; cpp-unity case); a tagged checkout's version uses the short commit, not `git describe --tags` (no process runs during report assembly); pkg-config include flags are not appended. Open: `ici export-compilation-context` and the context sites (_cpp_include_trace.py:124, compile_db.py:71/90/208, _cpp_diagnostics.py database mode) are compared only through tests/rust-parity/cpp/compilation-export-oracle.json; deep-profile release variants and Make databases are not captured; a qmake project's analysis_context (database units, generator qmake, qmake.build artifact manifests) is compared by crates/ici-cli/tests/legacy_qmake_verify.rs."
     },
     "capability:cpp-parser-heuristic-confidence": {
       "status": "not_started",
@@ -183,19 +185,22 @@
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cpp/src/compiler.rs",
-        "crates/ici-cli/src/inputs.rs"
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
           "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis",
+          "crates/ici-cpp/tests/source.rs::genuine_syntax_errors_in_a_qt_class_still_error"
         ]
       },
       "evidence": [
@@ -203,9 +208,10 @@
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
         "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "cargo test -p ici-cpp -j2 -- --include-ignored; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log"
       ],
-      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
+      "comparison": "Legacy C++ projection of the cognitive check matches the frozen CLI oracle (status, exit code, targets). Compiler-backed boundary modes and source/range error targets (_cpp_cognitive.py:557/649) remain open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json. Qt access-specifier extensions and meta-object markers parse like their expansion (see check:cpp.complexity); the base-clause-members correction applies to cognitive the same way.",
       "difference_reason": ""
     },
     "check:cpp.compile": {
@@ -238,19 +244,23 @@
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
         "crates/ici-cpp/src/compiler.rs",
-        "crates/ici-cli/src/inputs.rs"
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
           "crates/ici-cpp/tests/source.rs::frozen_cpp_source_metric_oracle_preserves_function_ownership_and_values",
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
+          "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes",
+          "crates/ici-cpp/src/source.rs::tests::look_alike_identifiers_scopes_literals_and_directives_are_not_rewritten"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::inverted_or_invalid_cpp_metric_thresholds_stop_before_analysis",
+          "crates/ici-cpp/tests/source.rs::genuine_syntax_errors_in_a_qt_class_still_error"
         ]
       },
       "evidence": [
@@ -258,22 +268,35 @@
         "cargo test -p ici-cli --test legacy_cpp_metrics --locked -j2 -- --test-threads=2; 2 passed (all 8 oracle cases identical); strict ici-cpp/ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics.log",
         "cargo test -p ici-cpp --test source --test compiler --test duplicates -- --include-ignored and ici-cli native_cpp actual_compiler_facets_keep_estimated_scores... with ICI_REQUIRE_BUILD_ADAPTERS=1 (Clang 21.1.8); all passed; /tmp/ici-rust-replacement-20261028/w-cpp-metrics-regress.log",
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
-        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log"
+        "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
+        "cargo test -p ici-cpp -j2 -- --include-ignored (all suites pass, incl. source.rs Qt cases and source::tests mask unit tests); /tmp/ici-rust-replacement-20261028/w-cpp9-qt-syntax.log. Frozen 6fe3e40 vs native `ici complexity|exception --report` over a Qt class with private slots/signals/public Q_SLOTS: both exit 0, PASS; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log"
       ],
-      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json.",
+      "comparison": "Legacy C++ projection of the complexity check matches the frozen CLI oracle (status, exit code, targets). Full engine audit (compiler-backed exact/partial/mixed boundary modes, error targets, extra summary fields) remains open. Legacy scope is project_cpp_sources only (.cpp/.cc/.cxx/.c); Rust previously also measured headers and now excludes them in legacy projection. Modern defaults (complexity warn 15 / fail 25, cognitive warn 30 / fail 60; modern finding FAIL when value > fail, WARN when value > warn or nesting > warn_nesting) follow frozen src/ici/languages/metrics.py:53-54 (COMPLEXITY_THRESHOLDS = (\"complexity\", 15, 25, 4), COGNITIVE_THRESHOLDS = (\"cognitive\", 30, 60, 4)) and its modern _finding; the legacy projection keeps the legacy engine cutoffs captured in metric-cli-oracle.json. Qt access-specifier extensions (signals:, Q_SIGNALS:, public/protected/private slots:, Q_SLOTS) and meta-object markers (Q_OBJECT, Q_PROPERTY(...), Q_INVOKABLE, QTEST_*_MAIN(...), statement-leading emit/Q_EMIT, ...) are normalized length-preserving in the grammar copy only (ici_cpp::source::mask_qt_extensions, parser id source-v2-qt), so a QObject/QTest class no longer reads as a syntax-recovery ERROR (frozen reads the text lexically and passes). Recorded known corrections (tests/rust-parity/cpp/known-corrections.json base-clause-members, access-label-start-line): frozen drops every inline member of a class with a base clause and starts a function on a preceding access label; native measures those members and starts at the declaration.",
       "difference_reason": ""
     },
     "check:cpp.coverage": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cpp/src/qmake.rs",
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-cpp/src/build.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:132) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
+      "evidence": [
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log."
+      ],
+      "comparison": "C++ facet on a legacy qmake project: the coverage variant runs qmake without CONFIG debug/release like frozen, so gcov line/branch coverage over the tests scope matches frozen; an empty production scope refuses coverage ('GCOV coverage has no production sources in the configured scope') and the test verdict stays ESTIMATED like frozen's optional coverage. A legacy Make coverage_build_argv/coverage_test_argv run (tests/rust-parity/cpp/make-test-oracle.json) gives frozen's gcov line/function/branch figures over the Make shadow on frozen's non-header, non-main source set (a header in src no longer fails coverage with 'gcov evidence omits declared source files').",
+      "difference_reason": "Recorded: no invented '(est)' coverage or TEM score. Open: CMake gcov coverage is compared in other rows."
     },
     "check:cpp.cycle": {
       "status": "verified",
@@ -350,12 +373,14 @@
       "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/source_rules.rs",
-        "crates/ici-cpp/src/legacy_exceptions.rs"
+        "crates/ici-cpp/src/legacy_exceptions.rs",
+        "crates/ici-cpp/src/source.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_lines_match_frozen_masked_line_heuristic",
+          "crates/ici-cpp/tests/source.rs::qt_access_specifier_extensions_and_markers_do_not_make_source_rules_error"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_metric_and_exception_scope_excludes_headers_and_matches_frozen_targets",
@@ -363,15 +388,17 @@
           "crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs"
         ],
         "failure": [
-          "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax"
+          "crates/ici-cpp/tests/source.rs::exception_rules_mask_literals_preserve_pass_and_find_actual_syntax",
+          "crates/ici-cpp/tests/source.rs::genuine_syntax_errors_in_a_qt_class_still_error"
         ]
       },
       "evidence": [
         "Frozen source-scope CLI oracle captured by development-only tests/rust-parity/cpp/capture_legacy_scope_cli.py into legacy-scope-oracle.json (complexity/cognitive/exception over .cpp/.cc/.hpp fixture); cargo test -p ici-cli --test legacy_cpp_metrics (3 passed, exact target lists/exit codes) plus ici-cpp source tests and strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp-legacy-scope.log",
         "Batch regression with ICI_REQUIRE_BUILD_ADAPTERS=1: all ici-cli legacy_* tests and native_cpp --include-ignored pass except legacy_test_metrics (2 Python tests) and native_cpp actual_legacy_abi_preparation_preserves_original_artifact_inputs_after_owned_scope_switch, which fail identically at base 2fd8cef (pre-existing, not cpp-closure changes); /tmp/ici-rust-replacement-20261028/w-cpp-batch-regress.log and w-cpp-base-check.log",
-        "Frozen exception corpus oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici exception --report`) into exception-oracle.json over parity-fixtures/cpp/exception-fixture (one-line, multi-throw, split declaration/definition, lambda-in-destructor, noexcept(false) on its own line, try/catch inside a destructor, rethrow, comment/string throw, `throw()` specification, defaulted destructor, nested local class, template out-of-class destructor, raw strings, a line-splice comment, char-literal braces, escaped string quotes and a CRLF file); cargo test -p ici-cli --test legacy_cpp_metrics (5 passed) and -p ici-cpp --test source (11 passed); /tmp/ici-rust-replacement-20261028/w-cpp-exception.log, w-cpp-exception2.log, w-cpp-exception3.log"
+        "Frozen exception corpus oracle captured by tests/rust-parity/cpp/capture_legacy_scope_cli.py (oracle 6fe3e40, frozen .venv `python -m ici exception --report`) into exception-oracle.json over parity-fixtures/cpp/exception-fixture (one-line, multi-throw, split declaration/definition, lambda-in-destructor, noexcept(false) on its own line, try/catch inside a destructor, rethrow, comment/string throw, `throw()` specification, defaulted destructor, nested local class, template out-of-class destructor, raw strings, a line-splice comment, char-literal braces, escaped string quotes and a CRLF file); cargo test -p ici-cli --test legacy_cpp_metrics (5 passed) and -p ici-cpp --test source (11 passed); /tmp/ici-rust-replacement-20261028/w-cpp-exception.log, w-cpp-exception2.log, w-cpp-exception3.log",
+        "cargo test -p ici-cpp -j2 -- --include-ignored; frozen vs native `ici exception --report` over a Qt slots/signals class: both PASS/MEASURED 'Exception Handling Safety Clean', exit 0; /tmp/ici-rust-replacement-20261028/w-cpp9-qt-frozen.log"
       ],
-      "comparison": "Legacy C++ exception projection matches the frozen CLI byte-for-byte on two oracle corpora (status, exit 1, every target name/status/message/line/file): sources only (.cpp/.cc/.cxx/.c, headers excluded), the frozen _mask_cpp_literals blanking ported exactly (comments, line splices, string/char/raw literals), destructor bodies tracked by brace depth with every line spelling `throw` reported once (so the lambda throw on line 10 and the two throws on lines 4 and 37 keep exactly the frozen targets: no frozen finding is lost), empty catch(...) found by the frozen first-`}` regex, start-line-only targets, per-file order destructor throws then catch-alls then CppExceptionSafety PASS.",
+      "comparison": "Legacy C++ exception projection matches the frozen CLI byte-for-byte on two oracle corpora (status, exit 1, every target name/status/message/line/file): sources only (.cpp/.cc/.cxx/.c, headers excluded), the frozen _mask_cpp_literals blanking ported exactly (comments, line splices, string/char/raw literals), destructor bodies tracked by brace depth with every line spelling `throw` reported once (so the lambda throw on line 10 and the two throws on lines 4 and 37 keep exactly the frozen targets: no frozen finding is lost), empty catch(...) found by the frozen first-`}` regex, start-line-only targets, per-file order destructor throws then catch-alls then CppExceptionSafety PASS. A Qt class (private slots:, signals:, Q_OBJECT, QTEST_APPLESS_MAIN) is no longer a source-syntax ERROR (frozen PASS); a genuine syntax error in a Qt class still errors.",
       "difference_reason": "Modern analyze path only (legacy has no difference): it keeps syntax-tree semantics. A throw inside a lambda in a destructor is not a destructor throw, a `throw()` dynamic exception specification is not a throw (the frozen heuristic reports it), and each throw statement is its own located target with end line and columns (two throws on one line give two targets). Fixture: crates/ici-cpp/tests/source.rs::modern_exception_rules_use_syntax_where_the_frozen_line_heuristic_differs on the same oracle corpus (frozen lines [3,4,10,17,22,25,27,32,37] versus modern [3,4,4,17,22,25,32,37,37])."
     },
     "check:cpp.line": {
@@ -400,28 +427,45 @@
       "difference_reason": "Open: line limits/gate_dirs on C++ (engines.line rows are difference_review)."
     },
     "check:cpp.sanitize": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/sanitizer_suite.rs",
+        "crates/ici-cli/src/cpp_validation.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
+        ],
         "negative": [],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:166) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
+      "evidence": [
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json case sanitize-tests; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log."
+      ],
+      "comparison": "C++ facet on a legacy qmake project: the ASan/UBSan shadow runs frozen `make check TESTARGS=-xunitxml`; targets, messages, findings and exit match frozen.",
+      "difference_reason": "Open: CMake sanitizer suites and Make sanitize_test_argv are not captured."
     },
     "check:cpp.test": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-validation/src/make_check.rs",
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs"
+      ],
       "fixtures": {
-        "positive": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-validation/tests/make_check_oracle.rs::make_check_transcripts_match_the_frozen_parsers_exactly"
+        ],
         "negative": [],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:75) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
+      "evidence": [
+        "Frozen oracles (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json and make-check-oracle.json; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log."
+      ],
+      "comparison": "C++ facet on a legacy qmake project: frozen `make check TESTARGS=-xunitxml` transcript, xunit merge and sanitizer attachment are byte-compared over 16 transcripts (real qmake6 run plus synthetic failure/skip/malformed/sanitizer cases), and the verify/test runs give identical targets, messages, findings and exits.",
+      "difference_reason": "Open: Make build.make.test_argv transcripts and CMake/CTest C++ test runs are compared in other rows."
     },
     "check:cpp.tidy": {
       "status": "verified",
@@ -527,7 +571,7 @@
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets (1 test, 16 oracle cases, now driving the real `ici` executable because the qmake adapter re-enters it as its compiler capture shim) plus regression native_cpp, native_cpp_direct, native_validation_extra, native_preparation, legacy_make_build, legacy_direct_build, legacy_cpp_metrics, legacy_test_parity, legacy_no_tests, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli, legacy_python_sanitize, legacy_sanitize, artifact_contract, legacy_binary_compat, legacy_lint, report_commands, publish_commands, doctor_commands, published_abi, python_binary_scope, compilation_commands --locked -j2 -- --include-ignored: all 25 binaries passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-bt.log, w-cpp-bt-reg.log"
       ],
       "comparison": "C++ Make facet of legacy `ici build` compared with the frozen BuildEngine: success (PASS, exit 0, 'Build Completed: <name> <version> into <version>/x86_64', env.sh/env.csh), Make misconfiguration and failing recipes (exit 1, 'Build did not produce a complete artifact set', BuildAdapter at Makefile:1) and an unadapted Makefile (ERROR, exit 1, frozen message, no g++). Planning distinguishes typed outcomes (export_context::PreparationUnavailable): NothingToPrepare (no declared build and no selectable descriptor) keeps the legacy direct-compile fallback or limitation; Misconfigured (missing or symlinked workdir, unavailable argv[0], invalid declared system, refused shadow) never falls back: it blocks the variant's dependent checks with the located reason, and legacy `ici build` reports the frozen FAIL (exit 1) with the reason at the descriptor. Execution-time Make step failures are observed the same way (configure -> BuildError ERROR, clean/build -> BuildAdapter FAIL 'Make <step> command did not complete successfully').",
-      "difference_reason": "Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process.  CMake/qmake configure and build failures now take the frozen BuildError/BuildAdapter shape with exit 1 (build-targets-oracle.json cmake-*-failure, qmake-compile-failure; the stderr excerpt is compared as a common prefix, see build.py:725:20). Open: Python packaging and [build.artifacts] are not compared here. Root decision (18:45) implemented: under `ici build` the build checks are required for that invocation (legacy::select), and a build failure is a measured verdict with a blocking `build.adapter` finding at the Makefile (or the compiler finding at the direct-compile source), so the stored gate is FAIL with exit 1 and the legacy engine prints FAIL; legacy `ici verify` stays INCOMPLETE exit 3 and modern `ici analyze` INCOMPLETE exit 3. Packaging now matches frozen exactly (root decision 18:45): legacy adapter builds (Make, CMake, qmake) publish <version>/x86_64 with empty bin/ and lib/ plus the frozen env.sh/env.csh bytes; the direct g++ build publishes bin/<name>; directories follow the process umask like frozen mkdir. Next-schema projects (rejected by the frozen pyz) keep publishing measured binaries, and only a package that publishes a shared library adds lib/ to LD_LIBRARY_PATH (the frozen pyz never publishes one). Root item 4 resolved for the cpp side: build failures are now measured verdicts, so the legacy projection prints frozen FAIL for adapter and recipe failures; the unadapted-Makefile BuildError is ERROR in frozen too. The former 'cpp.artifact: ' ERROR-summary prefix is gone since the reporting merge 273aa5f (legacy_build_targets compares ERROR summaries exactly). Also open (reporting/legacy projection): frozen `ici build` prints only the engine line ('✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64', '✘ <summary>'), Rust prints the full analysis envelope (build-targets-oracle.json `stdout`; re-checked after 273aa5f)."
+      "difference_reason": "Rust refuses a missing or symlinked workdir and an unavailable configured executable at plan time, before any process starts, so the BuildAdapter message carries the specific reason (for example 'build.make.workdir \"native\" must be an existing project directory without symlink traversal') where frozen only said 'Make build command did not complete successfully' after attempting the process.  CMake/qmake configure and build failures now take the frozen BuildError/BuildAdapter shape with exit 1 (build-targets-oracle.json cmake-*-failure, qmake-compile-failure; the stderr excerpt is compared as a common prefix, see build.py:725:20). Open: Python packaging and [build.artifacts] are not compared here. Root decision (18:45) implemented: under `ici build` the build checks are required for that invocation (legacy::select), and a build failure is a measured verdict with a blocking `build.adapter` finding at the Makefile (or the compiler finding at the direct-compile source), so the stored gate is FAIL with exit 1 and the legacy engine prints FAIL; legacy `ici verify` stays INCOMPLETE exit 3 and modern `ici analyze` INCOMPLETE exit 3. Packaging now matches frozen exactly (root decision 18:45): legacy adapter builds (Make, CMake, qmake) publish <version>/x86_64 with empty bin/ and lib/ plus the frozen env.sh/env.csh bytes; the direct g++ build publishes bin/<name>; directories follow the process umask like frozen mkdir. Next-schema projects (rejected by the frozen pyz) keep publishing measured binaries, and only a package that publishes a shared library adds lib/ to LD_LIBRARY_PATH (the frozen pyz never publishes one). Root item 4 resolved for the cpp side: build failures are now measured verdicts, so the legacy projection prints frozen FAIL for adapter and recipe failures; the unadapted-Makefile BuildError is ERROR in frozen too. The former 'cpp.artifact: ' ERROR-summary prefix is gone since the reporting merge 273aa5f (legacy_build_targets compares ERROR summaries exactly). Also open (reporting/legacy projection): frozen `ici build` prints only the engine line ('✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64', '✘ <summary>'), Rust prints the full analysis envelope (build-targets-oracle.json `stdout`; re-checked after 273aa5f). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "command:ici cognitive": {
       "status": "verified",
@@ -904,12 +948,15 @@
       "rust_paths": [
         "crates/ici-cli/src/legacy_execute.rs",
         "crates/ici-cli/src/cpp.rs",
-        "crates/ici-cpp/src/source_rules.rs"
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-validation/src/sanitizer_suite.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
-          "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report"
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_sanitize.rs::legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen"
@@ -922,10 +969,11 @@
         "Frozen oracle(s) (6fe3e40): tests/rust-parity/cpp/sanitize-oracle.json.",
         "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_metrics --test legacy_sanitize --test legacy_no_tests (and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log",
         "Frozen captures by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, frozen .venv, PYTHONHASHSEED=0, PATH=/usr/bin:/bin without clang-tidy/clazy-standalone, fixed project path /tmp/ici-cpp-verify-matrix-capture/project, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted) into tests/rust-parity/cpp/verify-matrix-oracle.json over parity-fixtures/cpp/legacy-scope-fixture; rerun twice byte-identical. Section commands: all 15 frozen single-engine commands (`__main__._ENGINE_COMMANDS`: line, type, resource, security, python-compat, thread-sanitize, dup, dead, cognitive, complexity, cycle, exception, test, sanitize, lint) with --report: exit code, status, required, evidence, summary, score, max_score, every target (name/status/message/start/end line/path) and every legacy finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, explanation, remediation, related_locations, fixes, metrics, snippet, primary_location, fingerprint).",
-        "source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --test legacy_lint --test legacy_python_engines --test legacy_cpp_metrics --locked -j2 -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-cpp3-commands.log; regression ici-cpp/ici-analysis/ici-reporting/ici-application and 21 ici-cli C++/legacy test binaries --include-ignored (346 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-next-regress.log; post-merge of feat/rust-application 47405cd: /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log"
+        "source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --test legacy_lint --test legacy_python_engines --test legacy_cpp_metrics --locked -j2 -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-cpp3-commands.log; regression ici-cpp/ici-analysis/ici-reporting/ici-application and 21 ici-cli C++/legacy test binaries --include-ignored (346 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-next-regress.log; post-merge of feat/rust-application 47405cd: /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json case sanitize-tests; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log."
       ],
-      "comparison": "C++ facet of `ici sanitize --report`: frozen captures over parity-fixtures/cpp/sanitize-* give the same targets and summaries for actual direct g++ ASan/UBSan runs, the test-less SKIP and the missing sanitizer argv ERROR. The single-command capture also proves this command's required flag, summary, score and every legacy finding (rule, message, severity, confidence, category, tool, explanation, remediation, location, fingerprint) on the legacy-scope fixture.",
-      "difference_reason": "Open: CMake/qmake sanitizer builds and the no-scope '.' Sanitize SKIP target are not captured."
+      "comparison": "C++ facet of `ici sanitize --report`: frozen captures over parity-fixtures/cpp/sanitize-* give the same targets and summaries for actual direct g++ ASan/UBSan runs, the test-less SKIP and the missing sanitizer argv ERROR. The single-command capture also proves this command's required flag, summary, score and every legacy finding (rule, message, severity, confidence, category, tool, explanation, remediation, location, fingerprint) on the legacy-scope fixture. Legacy qmake `ici sanitize` builds the ASan/UBSan qmake shadow and runs `make check TESTARGS=-xunitxml` there; targets '[C++ ASan/UBSan] <bin>' at the descriptor, messages, findings and exit 1 match frozen. A legacy Make sanitize_build_argv/sanitize_test_argv run matches frozen (PASS exit 0, FAIL exit 1).",
+      "difference_reason": "Open: CMake sanitizer builds and the no-scope '.' Sanitize SKIP target are not captured. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "command:ici security": {
       "status": "verified",
@@ -962,10 +1010,13 @@
         "positive": [
           "crates/ici-cli/tests/legacy_no_tests.rs::test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity",
           "crates/ici-cli/tests/legacy_verify_matrix.rs::every_legacy_single_command_on_a_cpp_project_matches_the_frozen_engine_report",
-          "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected"
+          "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected"
+          "crates/ici-cli/tests/legacy_no_tests.rs::a_declared_cpp_test_file_is_never_reported_as_no_tests_collected",
+          "crates/ici-cli/tests/legacy_no_tests.rs::test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_no_tests.rs::test_less_cpp_trees_keep_the_frozen_no_tests_verdict_target_and_identity"
@@ -976,10 +1027,12 @@
         "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_cpp_metrics --test legacy_sanitize --test legacy_no_tests (and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log",
         "Frozen captures by development-only tests/rust-parity/cpp/capture_verify_matrix.py (oracle 6fe3e40, frozen .venv, PYTHONHASHSEED=0, PATH=/usr/bin:/bin without clang-tidy/clazy-standalone, fixed project path /tmp/ici-cpp-verify-matrix-capture/project, g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 recorded and asserted) into tests/rust-parity/cpp/verify-matrix-oracle.json over parity-fixtures/cpp/legacy-scope-fixture; rerun twice byte-identical. Section commands: all 15 frozen single-engine commands (`__main__._ENGINE_COMMANDS`: line, type, resource, security, python-compat, thread-sanitize, dup, dead, cognitive, complexity, cycle, exception, test, sanitize, lint) with --report: exit code, status, required, evidence, summary, score, max_score, every target (name/status/message/start/end line/path) and every legacy finding (rule_id, message, severity, confidence, category, tool_name, tool_rule_id, explanation, remediation, related_locations, fixes, metrics, snippet, primary_location, fingerprint).",
         "source opus-env.sh; cargo test -p ici-cli --test legacy_verify_matrix --test legacy_lint --test legacy_python_engines --test legacy_cpp_metrics --locked -j2 -- --include-ignored (all passed); /tmp/ici-rust-replacement-20261028/w-cpp3-commands.log; regression ici-cpp/ici-analysis/ici-reporting/ici-application and 21 ici-cli C++/legacy test binaries --include-ignored (346 passed, 0 failed): /tmp/ici-rust-replacement-20261028/w-cpp3-next-regress.log; post-merge of feat/rust-application 47405cd: /tmp/ici-rust-replacement-20261028/w-cpp3-postmerge.log",
-        "Frozen `ici test --report` on parity-fixtures/cpp/legacy-no-tests/src-sources plus tests/test_calc.cpp (oracle 6fe3e40, PATH=/usr/bin:/bin): FAIL MEASURED, exit 1, targets [C++] test_calc.cpp PASS, Coverage:Overall line/Functions/Function:add(int, int) WARN, Threshold: TEM score WARN; native equal except the intended Branch SKIP. Regression: cargo test -p ici-validation -- --include-ignored and the ici-cli C++ legacy suites (/tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress3.log; legacy_no_tests updated to the frozen verdict), plus cargo test -p ici-cli -p ici-reporting --locked (/tmp/ici-rust-replacement-20261028/w-cpp8-cli-full.log)"
+        "Frozen `ici test --report` on parity-fixtures/cpp/legacy-no-tests/src-sources plus tests/test_calc.cpp (oracle 6fe3e40, PATH=/usr/bin:/bin): FAIL MEASURED, exit 1, targets [C++] test_calc.cpp PASS, Coverage:Overall line/Functions/Function:add(int, int) WARN, Threshold: TEM score WARN; native equal except the intended Branch SKIP. Regression: cargo test -p ici-validation -- --include-ignored and the ici-cli C++ legacy suites (/tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress3.log; legacy_no_tests updated to the frozen verdict), plus cargo test -p ici-cli -p ici-reporting --locked (/tmp/ici-rust-replacement-20261028/w-cpp8-cli-full.log)",
+        "Frozen 6fe3e40 legacy `ici test --report` on parity-fixtures/cpp/legacy-no-tests/cmake-no-ctest (CMake project without enable_testing and without tests/) captured by tests/rust-parity/validation/capture_legacy_cpp_no_tests.py into legacy-cpp-no-tests-oracle.json (FAIL '[C++] Tests' at tests 'No tests collected', exit 1); cargo test -p ici-cli --locked -j2 --test legacy_no_tests -- --include-ignored: 3 passed; frozen/native verify comparison appended; /tmp/ici-rust-replacement-20261028/w-cpp9-noctest-rust.log and w-cpp9-regressions.log",
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json case test-tests; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log."
       ],
-      "comparison": "C++ facet of `ici test --report` on test-less C++ trees: the frozen 'No tests collected' FAIL target, finding identity and exit 1 (validation's capture). The single-command capture also proves this command's required flag, summary, score and every legacy finding (rule, message, severity, confidence, category, tool, explanation, remediation, location, fingerprint) on the legacy-scope fixture.",
-      "difference_reason": "Open: C++ trees with real tests/coverage (gcov, CTest, Make test_argv) are the validation area's rows; the no-test summary/evidence keep validation's recorded difference. A declared tests/*.cpp beside an unadapted root Makefile now runs with direct g++ and measures coverage like frozen (FAIL, exit 1; it was BLOCKED, exit 3), asserted target by target."
+      "comparison": "C++ facet of `ici test --report` on test-less C++ trees: the frozen 'No tests collected' FAIL target, finding identity and exit 1 (validation's capture). The single-command capture also proves this command's required flag, summary, score and every legacy finding (rule, message, severity, confidence, category, tool, explanation, remediation, location, fingerprint) on the legacy-scope fixture. Rust defect fixed: a CMake project without enable_testing() (no CTestTestfile.cmake) and without tests/**/*.cpp was SKIP/NOT_RUN 'CTest inventory is unavailable' (exit 3) where frozen reports the located 'No tests collected' FAIL (exit 1); the missing inventory now counts as 'no runnable suite' when no test file exists. Under verify the suite is ERROR in both (required sanitize SKIP) and native exits 3 by the accepted incomplete-evidence policy. Legacy qmake `ici test` (parity-fixtures/cpp/test-qmake) runs frozen `make check TESTARGS=-xunitxml` and reports identical '[C++] <bin>' targets at the test source, messages ('C++ Test Passed' / 'Execution Failed: ...'), findings, fingerprints and exit 1. A legacy [build.make] test_argv/coverage_test_argv runs in the workdir through frozen parse_make_check_stdout and matches frozen targets, findings and exit codes (tests/rust-parity/cpp/make-test-oracle.json); gcov uses frozen's non-header, non-main source set.",
+      "difference_reason": "Open: a missing coverage_build_argv is a frozen ERROR (exit 1) where native SKIPs NOT_RUN (exit 3). The no-test summary/evidence keep validation's recorded difference. A declared tests/*.cpp beside an unadapted root Makefile runs with direct g++ and measures coverage like frozen (FAIL, exit 1). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "command:ici thread-sanitize": {
       "status": "verified",
@@ -1046,14 +1099,17 @@
         "crates/ici-cli/src/export_context.rs",
         "crates/ici-cli/src/legacy_context.rs",
         "crates/ici-cli/src/export_context/direct.rs",
-        "crates/ici-cli/src/cpp/legacy_tests.rs"
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-validation/src/make_check.rs",
+        "crates/ici-cli/src/cpp_validation.rs"
       ],
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_descriptor_profiles_are_applied_once_for_verify_and_single_commands",
           "crates/ici-cli/tests/legacy_cmake_verify.rs::legacy_cmake_verify_matches_frozen_exit_codes_and_engine_verdicts",
-          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid"
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
@@ -1080,10 +1136,12 @@
         "cargo test -p ici-cli --test legacy_cmake_verify --locked -j2 -- --include-ignored: 1 passed (8 cases equal after the named reductions; gate never INCOMPLETE); /tmp/ici-rust-replacement-20261028/w-cpp8-verify-rust.log",
         "Frozen `ici verify --report` analysis_context captured by tests/rust-parity/cpp/capture_analysis_context.py (oracle 6fe3e40) into tests/rust-parity/cpp/analysis-context-oracle.json for a C++ (parity-fixtures/cpp/test-cmake/plain), a Python and a hybrid project; /tmp/ici-rust-replacement-20261028/w-cpp8-context-capture.log",
         "cargo test -p ici-cli --test legacy_analysis_context --locked -j2 -- --include-ignored: 1 passed (3 cases equal after removing run-specific commit/digest/shadow-path/size values, each checked for shape); /tmp/ici-rust-replacement-20261028/w-cpp8-context-rust.log",
-        "Regression: cargo test -p ici-validation -- --include-ignored and the ici-cli C++ legacy suites (/tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress3.log; legacy_no_tests updated to the frozen verdict), plus cargo test -p ici-cli -p ici-reporting --locked (/tmp/ici-rust-replacement-20261028/w-cpp8-cli-full.log)"
+        "Regression: cargo test -p ici-validation -- --include-ignored and the ici-cli C++ legacy suites (/tmp/ici-rust-replacement-20261028/w-cpp8-sanitize-regress3.log; legacy_no_tests updated to the frozen verdict), plus cargo test -p ici-cli -p ici-reporting --locked (/tmp/ici-rust-replacement-20261028/w-cpp8-cli-full.log)",
+        "Root ruling unity_build: python3 tests/rust-parity/cpp/capture_analysis_context.py (frozen 6fe3e40, 4 cases incl. cpp-unity; /tmp/ici-rust-replacement-20261028/w-cpp9-unity-capture.log); cargo test -p ici-cli --locked -j2 --test legacy_analysis_context -- --include-ignored: 1 passed with unity_build compared (no longer nulled); /tmp/ici-rust-replacement-20261028/w-cpp9-unity-rust.log; legacy_cmake_manifests, legacy_cmake_verify, ici-cpp linker and native_cpp linker tests --include-ignored pass.",
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json by development-only tests/rust-parity/cpp/capture_qmake_verify.py (qmake6, PATH=/usr/bin:/bin, parity-fixtures/cpp/test-qmake with source_dirs=['tests'] and ['src']). source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_qmake_verify -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp9-regress-rust.log."
       ],
-      "comparison": "C++ facet: legacy `ici verify` on a C++ project selects the frozen descriptor set per profile (fast/standard/deep) and per engines.*.enabled, applies mode and required like frozen, and reproduces every engine status/required/evidence/target. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target. Descriptor-free and unadapted-Makefile C++ projects with tests (sanitize-direct-clean, sanitize-tested): Rust defects fixed: the direct g++ test preparation refused an unadapted root Makefile and its compile became the release analysis context (input snapshot failure, exit 3); the coverage/test checks looked up the release build instead of their own variant; an optional coverage check with no non-main production source left the test engine NOT_RUN (suite ERROR) where frozen keeps the measured test verdict with ESTIMATED coverage (suite WARN, exit 0). The suite report now carries the frozen top-level analysis_context (ici.analysis-context/v1: project model, identity, profile, compilation database units, requested variants, artifact manifests) built from the recorded native facts.",
-      "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: options (baseline, html, sarif, publish) are other facets; Qt, compilation-database, build and test-bearing C++ trees are not in this matrix. Recorded (legacy_cmake_verify.rs::comparable): native keeps a met TEM minimum (PASS) and an empty branch axis (SKIP) as Threshold targets (AGENTS 5-1, every evaluated gate is reported) where frozen lists only breaches; the make-unadapted test summary/score have no fabricated 85%/95% estimate (verdict class and ESTIMATED evidence match). analysis_context: shadow paths, digests and artifact sizes are the native run's; unity_build is null because native does not force -DCMAKE_UNITY_BUILD=OFF on the release analysis database (frozen false). Open: a qmake tests-only project whose configured source_dirs is missing (parity-fixtures/cpp/test-qmake with source_dirs=['src']) is BLOCKED \"no sources in scope for cpp\" (exit 3) where frozen runs the qmake tests and sanitizer (FAIL, exit 1)."
+      "comparison": "C++ facet: legacy `ici verify` on a C++ project selects the frozen descriptor set per profile (fast/standard/deep) and per engines.*.enabled, applies mode and required like frozen, and reproduces every engine status/required/evidence/target. Rust defects fixed for this facet: a legacy `ici verify` selected native check profiles (cognitive in standard, sanitize only in deep, test in fast) instead of the frozen descriptor profiles; omitted `required` keys used native defaults instead of the frozen `cfg.get('required', False)` engines (cycle, cognitive, resource, security, python_compat, binary_compat, integration); C/C++ type/resource/security/python_compat applicability used per-file native targets instead of the frozen C++TypeCheck per translation unit and the single '.' NotApplicable target; type was not required; the verify view lacked the frozen 'No tests collected' FAIL; an unavailable automatic C++ dead policy was required with MEASURED evidence instead of not required/NOT_RUN; the legacy C++ dup scan was MEASURED instead of ESTIMATED; compile_db and compiler diagnostic targets lacked frozen end lines (and the coverage sentence period); the C++ line view listed ici.toml as a target. Descriptor-free and unadapted-Makefile C++ projects with tests (sanitize-direct-clean, sanitize-tested): Rust defects fixed: the direct g++ test preparation refused an unadapted root Makefile and its compile became the release analysis context (input snapshot failure, exit 3); the coverage/test checks looked up the release build instead of their own variant; an optional coverage check with no non-main production source left the test engine NOT_RUN (suite ERROR) where frozen keeps the measured test verdict with ESTIMATED coverage (suite WARN, exit 0). The suite report now carries the frozen top-level analysis_context (ici.analysis-context/v1: project model, identity, profile, compilation database units, requested variants, artifact manifests) built from the recorded native facts. Legacy qmake: tests run as frozen `make check TESTARGS=-xunitxml` in the qmake shadow (new ici-validation MakeCheck kind, parsers byte-compared with frozen parse_make_check_stdout/parse_qtest_xunit/_qmake_results/_attach_sanitizer_output over 16 transcripts in tests/rust-parity/cpp/make-check-oracle.json), qmake runs without CONFIG debug/release like frozen (so gcov branch coverage is the frozen -O2 figure), and the sanitizer runs the same make check in the ASan shadow. For source_dirs=['tests'] and the missing source_dirs=['src'] every engine status/summary/score/target/finding and the exit code (1) match frozen; the missing scope reports compile_db SKIP 'No production C/C++ translation units are in scope.', type 'No applicable C++ source files were selected', and optional coverage ESTIMATED like frozen. analysis_context matches after path normalisation: project source_dirs keep only existing directories (frozen get_source_dirs), qmake artifact manifests (producer qmake.build) and the qmake database units.",
+      "difference_reason": "Recorded: Qt base-clause-members/access-label-start-line complexity corrections (tests/rust-parity/cpp/known-corrections.json); empty tool_name/process_evidence_index; met Threshold targets reported; native shadow paths/argv spelling and the qmake capture's g++ alias (frozen realpath); the qmake build runs `make -B -j2` where frozen ran `make clean` then `make --jobs=N`; with an empty configured scope the native gate keeps the refused C++ checks as INCOMPLETE evidence while the legacy verdicts and exit 1 are frozen's. In a shared release build with artifacts native's database unity_build reads the project cache where frozen's separate analysis shadow reads false. Open: deep-profile release variants are not captured in analysis_context. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "config:src/ici/_analysis_config.py:23:0": {
       "status": "verified",
@@ -1760,16 +1818,18 @@
       "difference_reason": ""
     },
     "config_key:legacy:build.make.coverage_test_argv": {
-      "status": "implemented",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
         "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/cpp_validation.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
@@ -1778,10 +1838,11 @@
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
-        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/make-test-oracle.json case test-coverage-argv; /tmp/ici-rust-replacement-20261028/w-cpp9-make-test-rust.log."
       ],
-      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
+      "comparison": "Frozen TestEngine tests in the coverage session, so coverage_test_argv (else test_argv) is the test command: with test_argv=['make','check'] and coverage_test_argv=['make','check-all'] both frozen and Rust run check-all once (cpp.test and cpp.coverage share that suite) and report 1/2 with the frozen targets, findings and exit 1.",
+      "difference_reason": "None for the compared fields; empty tool_name is the accepted difference."
     },
     "config_key:legacy:build.make.enabled": {
       "status": "complete",
@@ -1907,28 +1968,35 @@
       "difference_reason": ""
     },
     "config_key:legacy:build.make.sanitize_test_argv": {
-      "status": "implemented",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
         "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-validation/src/sanitizer_suite.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::make_shadow_owner_is_the_source_build_not_the_variant_or_projected_id"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
-        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/make-test-oracle.json cases sanitize-pass and sanitize-argv; /tmp/ici-rust-replacement-20261028/w-cpp9-make-test-rust.log."
       ],
-      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
+      "comparison": "`ici sanitize` builds sanitize_build_argv in the shared Make shadow and runs sanitize_test_argv (else test_argv) in the workdir through the MakeCheck sanitizer suite, probing every declared executable of the shadow for its sanitizer runtime: '[C++ ASan/UBSan] test_calc' PASS 'Sanitizers reported no diagnostics' (exit 0) and with sanitize_test_argv=['make','check-all'] test_limit FAIL 'Sanitizer run failed: make check failed' (exit 1), both at Makefile like frozen.",
+      "difference_reason": "Fixed with this row: a projected variant build (native-*) of a configured Make shadow now carries its source build id as the shadow owner (BuildRequest.shadow_owner_id, overlay setting make_shadow_owner), so it adopts the shadow its legacy preparation created like frozen's one shared Make shadow; it was 'build directory belongs to another request/project'. Another build sharing the shadow is still a different owner (crates/ici-cpp/tests/make_plan.rs::make_shadow_owner_is_the_source_build_not_the_variant_or_projected_id)."
     },
     "config_key:legacy:build.make.shadow_dir": {
       "status": "complete",
@@ -1944,7 +2012,8 @@
         "positive": [
           "crates/ici-cpp/tests/make_plan.rs::actual_make_runs_in_workdir_with_ordered_clean_configured_jobs_and_shared_owned_shadow",
           "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_runs_in_workdir_with_configured_jobs_clean_and_owned_default_shadow",
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cpp/tests/make_plan.rs::make_shadow_owner_is_the_source_build_not_the_variant_or_projected_id"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
@@ -1969,28 +2038,38 @@
       "difference_reason": "Rust adopts a Make shadow only when it is missing, empty, carries this owner's .ici-owner.json, or is recorded in .ici/rust-v1/owners/make/<sha>.json for this root/build/shadow (outside the build-id namespace, so a clean recipe that recreates the shadow keeps working). The frozen pyz leaves no ownership marker in build/ici-make (verified against oracle 6fe3e40 core/make.py: only mkdir(exist_ok=True)), so a nonempty pyz-era shadow cannot be proven ici-created and is refused at planning time, before any Make command or filesystem change, with the located message 'build.make.shadow_dir \"build/ici-make\" already contains files that ici did not create (frozen pyz Make builds leave no ownership marker); remove that directory or set build.make.shadow_dir to an empty or new path', which appears in the plan limitations and the build output; the bytes stay unchanged. Symlinked shadows and foreign markers are refused the same way; frozen mkdir(exist_ok) adopted any directory. Shadows under .ici are refused to keep the Rust namespace private. Intended improvement (root decision 18:45): `ici doctor` (limitations plus a 'prepare: blocked' line per component), `ici next doctor`, `ici next plan` and `ici analyze --plan` run a static, read-only preparation preflight and show this refusal with the cause and the fix, without building, writing a marker or a result (fixture crates/ici-cli/tests/legacy_make_build.rs::doctor_and_next_plan_show_static_preparation_refusals_without_building)."
     },
     "config_key:legacy:build.make.test_argv": {
-      "status": "implemented",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
         "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/cpp_validation.rs",
+        "crates/ici-validation/src/make_check.rs",
+        "crates/ici-validation/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tests.rs",
+        "crates/ici-cli/src/execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
+          "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes",
+          "crates/ici-validation/tests/make_check_oracle.rs::make_check_transcripts_match_the_frozen_parsers_exactly"
         ],
         "negative": [
           "crates/ici-cpp/tests/make_plan.rs::make_settings_match_every_frozen_make_plan_case"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
+        ]
       },
       "evidence": [
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
-        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
+        "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log",
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/make-test-oracle.json by development-only tests/rust-parity/cpp/capture_make_test.py (GNU Make 4.4.1, /usr/bin/g++, PATH=/usr/bin:/bin) over parity-fixtures/cpp/test-make: 5 cases (test-pass, test-fail, test-coverage-argv, sanitize-pass, sanitize-argv). source opus-env.sh; cargo test -p ici-cli --locked -j2 --test legacy_qmake_verify -- --include-ignored: passed; /tmp/ici-rust-replacement-20261028/w-cpp9-make-test-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp9-cli-full.log."
       ],
-      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
+      "comparison": "Frozen `core/cmake.run_tests` (Make backend): the variant's test argv runs in build.make.workdir and stdout+stderr go through parse_make_check_stdout and _attach_sanitizer_output. Rust binds a legacy [build.make] test argv (selected by ici_cpp::make_settings for the build variant, argv[0] resolved like the build argv) as an ici-validation MakeCheck task without the xunit merge (label 'Make test command'); the projection gives '[C++] <test>' at the test source with 'C++ Test Passed' / 'Execution Failed: make check failed', and gcov runs over the Make shadow on the frozen non-header, non-main source set. `ici test` with test_argv=['make','check'] (1/1, line 80%, branch 50% WARN -> FAIL exit 1) and ['make','check-all'] (1/2, the Error line fails test_limit) match frozen target by target, finding by finding (fingerprints) and by exit code.",
+      "difference_reason": "Recorded: empty tool_name; met Threshold targets reported. Native gcov evidence is MEASURED like frozen."
     },
     "config_key:legacy:build.make.thread_sanitize_build_argv": {
       "status": "verified",
@@ -2031,7 +2110,8 @@
         "crates/ici-cpp/src/make.rs",
         "crates/ici-cpp/src/build.rs",
         "crates/ici-cpp/src/model.rs",
-        "crates/ici-cli/src/export_context.rs"
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-cli/src/cpp_validation.rs"
       ],
       "fixtures": {
         "positive": [
@@ -2046,8 +2126,8 @@
         "Frozen make_plan oracle captured by development-only tests/rust-parity/cpp/capture_make_plan.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I) into tests/rust-parity/cpp/make-plan-oracle.json: 46 release/variant cases with exact accept set, substituted argv, workdir, shadow and error messages.",
         "cargo test -p ici-cpp --test make_plan --test builds --test owned_objects --locked -j2 -- --include-ignored --test-threads=2 (ICI_TEST_MAKE=/usr/bin/make GNU Make, ICI_TEST_CXX=/usr/bin/g++); 5+9+1 passed; strict ici-cpp Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-make-options.log"
       ],
-      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root).",
-      "difference_reason": "Open, blocked by root decision: Make test execution and transcript parsing (frozen parse_make_check_stdout) wait until the validation worker's branch is merged; only argv validation and variant selection are proven here."
+      "comparison": "Make test_argv/variant test_argv: frozen runs the argv in the workdir and parses `./name` echo lines from stdout+stderr (parse_make_check_stdout, sanitizer transcript attachment). Rust make_settings selects/validates the same argv (golden: variant fallback to test_argv, coverage_test_argv override, $ rejection), but validation never consumes it for legacy projects: crates/ici-cli/src/cpp_validation.rs suite_argv reads only build.settings and component.settings /build/make (the legacy table lives in project.effective), and even when present binds argv[0] as a single declared QTest executable. Arbitrary `make check` needs a transcript ValidationKind in shared ici-validation (ownership with the validation area/root). Rust binds thread_sanitize_test_argv (else test_argv) through the same MakeCheck sanitizer path proven for sanitize_test_argv (tests/rust-parity/cpp/make-test-oracle.json).",
+      "difference_reason": "Open: no actual ThreadSanitizer Make run is captured against frozen (the fixture Makefile has no thread-sanitize build)."
     },
     "config_key:legacy:build.make.workdir": {
       "status": "complete",
@@ -5108,16 +5188,24 @@
       "difference_reason": "The implemented source/metadata path is explicit; no standalone binary producer or sanitizer parity is claimed from CMake/qmake support or accepted configuration."
     },
     "config_key:legacy:project.source_dirs": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
+        ],
         "failure": []
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:63) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: this legacy table's C++ consumer effect is not varied in a frozen C++ capture beyond the base [project] type='cpp' source_dirs=['src'] of every C++ oracle."
+      "evidence": [
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json cases verify-tests (source_dirs=['tests']) and verify-missing-src (source_dirs=['src'] absent); /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log."
+      ],
+      "comparison": "C++ facet: source_dirs=['tests'] scopes the qmake project's sources to tests/ and a configured but missing 'src' leaves no production C/C++ scope; both give frozen's engine verdicts and exit 1, and analysis_context project.source_dirs lists only existing configured directories like frozen get_source_dirs ([] for a missing src).",
+      "difference_reason": "Recorded: with no production scope the native gate keeps refused C++ checks as INCOMPLETE evidence; legacy verdicts and exit code are frozen's."
     },
     "config_key:next-v1:builds": {
       "status": "not_started",
@@ -7147,7 +7235,7 @@
         "build-targets-oracle.json now has 12 cases: declared-artifacts-missing and declared-artifacts-external (a [build.artifacts] glob with no match / matching only a symlink outside the workspace) were added and the 10 earlier cases reproduced unchanged. ICI_TEST_MAKE/CXX/CMAKE ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_lint --test legacy_make_build --test legacy_direct_build --test native_preparation --test native_cpp_direct --test native_validation_extra --test legacy_binary_compat --locked -j2 -- --include-ignored: all passed; strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-decisions.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _publish_declared_artifacts records `DeclaredArtifacts` PASS only with a shared analysis context; the frozen `ici build` command creates the BuildEngine without one, so any [build.artifacts] declaration there is a `BuildError` 'declared artifacts require a shared analysis context' (ERROR, exit 1) after the binary and loaders were written. Rust records `DeclaredArtifacts` PASS 'Recorded 1 declared artifact(s)' and exits 0.",
-      "difference_reason": "Intended difference (root decision 2026-10-30): frozen `ici build` runs the BuildEngine without an analysis context, so every [build.artifacts] declaration ends in the blanket BuildError 'declared artifacts require a shared analysis context' (ERROR, exit 1). Rust gives the real verdict: a kept declaration is recorded (`DeclaredArtifacts` PASS 'Recorded 1 declared artifact(s)', exit 0), and a broken one, with no match or only an outside-workspace link, is a BuildError ERROR at '.' 'Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt' with exit 1, the same exit and status as frozen. A broken contract never exits 0 (declared-artifacts-missing/-external cases; previously Rust stopped at INCOMPLETE exit 3)."
+      "difference_reason": "Intended difference (root decision 2026-10-30): frozen `ici build` runs the BuildEngine without an analysis context, so every [build.artifacts] declaration ends in the blanket BuildError 'declared artifacts require a shared analysis context' (ERROR, exit 1). Rust gives the real verdict: a kept declaration is recorded (`DeclaredArtifacts` PASS 'Recorded 1 declared artifact(s)', exit 0), and a broken one, with no match or only an outside-workspace link, is a BuildError ERROR at '.' 'Declared artifacts could not be recorded: declared artifact glob matched nothing: report: reports/*.txt' with exit 1, the same exit and status as frozen. A broken contract never exits 0 (declared-artifacts-missing/-external cases; previously Rust stopped at INCOMPLETE exit 3). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:338:16": {
       "status": "verified",
@@ -7169,7 +7257,7 @@
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _package_python: one `PythonLibrary` PASS per copied source at <version>/x86_64/lib/<relative>, 'Packaged Python source <relative>'; Rust matches the Python-only case exactly.",
-      "difference_reason": "Open: the Python source collision/symlink/outside-root error branches are not captured (Python facet)."
+      "difference_reason": "Open: the Python source collision/symlink/outside-root error branches are not captured (Python facet). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:373:16": {
       "status": "verified",
@@ -7191,7 +7279,7 @@
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _package_python launchers: `PythonLauncher` PASS at <version>/x86_64/bin/<script>, 'Callable launcher for <module:callable>'; Rust matches the [project.scripts] case exactly.",
-      "difference_reason": "Open: invalid entrypoint / unsafe name / missing module error branches are not captured (Python facet)."
+      "difference_reason": "Open: invalid entrypoint / unsafe name / missing module error branches are not captured (Python facet). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:590:16": {
       "status": "verified",
@@ -7214,7 +7302,7 @@
         "build-targets-oracle.json now has 12 cases: declared-artifacts-missing and declared-artifacts-external (a [build.artifacts] glob with no match / matching only a symlink outside the workspace) were added and the 10 earlier cases reproduced unchanged. ICI_TEST_MAKE/CXX/CMAKE ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_lint --test legacy_make_build --test legacy_direct_build --test native_preparation --test native_cpp_direct --test native_validation_extra --test legacy_binary_compat --locked -j2 -- --include-ignored: all passed; strict Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-decisions.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen direct g++ compile failure: one `CppBinary` FAIL at the package binary path with 'C++ compilation failed: ' + the first 200 characters of g++ stderr (absolute paths), summary 'Build did not produce a complete artifact set', exit 1. Rust now prints the same summary and exit and gate FAIL, but reports the located per-source compiler diagnostic (src/main.cpp) because it compiles objects separately.",
-      "difference_reason": "Intended difference (root decision 2026-10-30, AGENTS §5.1 location tracking): Rust reports the located per-source compiler diagnostic (src/main.cpp:1, rule and message) instead of frozen's single CppBinary FAIL at the package path carrying the first 200 characters of g++ stderr, whose absolute host paths make the record machine dependent. Frozen's exit code 1, FAIL status and 'Build did not produce a complete artifact set' summary are kept and asserted by the direct-compile-failure case."
+      "difference_reason": "Intended difference (root decision 2026-10-30, AGENTS §5.1 location tracking): Rust reports the located per-source compiler diagnostic (src/main.cpp:1, rule and message) instead of frozen's single CppBinary FAIL at the package path carrying the first 200 characters of g++ stderr, whose absolute host paths make the record machine dependent. Frozen's exit code 1, FAIL status and 'Build did not produce a complete artifact set' summary are kept and asserted by the direct-compile-failure case. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:611:12": {
       "status": "verified",
@@ -7235,7 +7323,8 @@
         "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log"
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen direct g++ success: `CppBinary` PASS at <version>/x86_64/bin/<name>, 'Compiled C++17 binary (<seconds>s)'. Rust labels the published executable the same way (crates/ici-cli/src/preparation.rs::legacy_direct_binary_message, the summed wall time of the observed compile and link tasks, formatted with two decimals) and matches the direct case exactly apart from the wall-clock value."
+      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen direct g++ success: `CppBinary` PASS at <version>/x86_64/bin/<name>, 'Compiled C++17 binary (<seconds>s)'. Rust labels the published executable the same way (crates/ici-cli/src/preparation.rs::legacy_direct_binary_message, the summed wall time of the observed compile and link tasks, formatted with two decimals) and matches the direct case exactly apart from the wall-clock value.",
+      "difference_reason": "Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:686:16": {
       "status": "verified",
@@ -7257,7 +7346,7 @@
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _generate_env_scripts: `EnvironmentScript` PASS 'Generated env.sh' and 'Generated env.csh' at <version>/x86_64/; Rust matches the targets in every successful case (make, direct, cmake, python) and the loader bytes/modes (tests/rust-parity/cpp/package-tree-oracle.json).",
-      "difference_reason": "Open: the env-script write failure path ('Could not generate environment scripts') is not captured."
+      "difference_reason": "Open: the env-script write failure path ('Could not generate environment scripts') is not captured. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:725:20": {
       "status": "verified",
@@ -7284,7 +7373,7 @@
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets (1 test, 16 oracle cases, now driving the real `ici` executable because the qmake adapter re-enters it as its compiler capture shim) plus regression native_cpp, native_cpp_direct, native_validation_extra, native_preparation, legacy_make_build, legacy_direct_build, legacy_cpp_metrics, legacy_test_parity, legacy_no_tests, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli, legacy_python_sanitize, legacy_sanitize, artifact_contract, legacy_binary_compat, legacy_lint, report_commands, publish_commands, doctor_commands, published_abi, python_binary_scope, compilation_commands --locked -j2 -- --include-ignored: all 25 binaries passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-bt.log, w-cpp-bt-reg.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen adapter build failure: one `BuildAdapter` FAIL per session error at the descriptor, summary 'Build did not produce a complete artifact set', exit 1. Rust crate::cpp::build_failure matches the Make build failure case exactly. CMake and qmake build failures (core/cmake.py `_fail`) now take the same shape in Rust (export_context: a failed cmake/qmake compile step is an observed BuildAdapter FAIL '<backend> build failed: <first 200 characters of stderr>' at the descriptor, a failed configure a BuildError ERROR whose message is the summary), exit 1; the cmake-compile-failure, cmake-configure-failure and qmake-compile-failure cases match frozen exit, status, summary, target name, status, path and line.",
-      "difference_reason": "Difference for root review: the stderr excerpt itself is host-dependent and compared only as a common prefix (qmake: '<backend> build failed: ' head and a compiler error): frozen cuts stderr at 200 characters, so the cut point moves with the project path length; qmake's build-tree-relative paths depend on the shadow depth; and frozen's compiler quotes are Unicode because the Python interpreter coerces LC_CTYPE=C.UTF-8 (PEP 538) for its child processes while the Rust product passes the caller's locale through."
+      "difference_reason": "Difference for root review: the stderr excerpt itself is host-dependent and compared only as a common prefix (qmake: '<backend> build failed: ' head and a compiler error): frozen cuts stderr at 200 characters, so the cut point moves with the project path length; qmake's build-tree-relative paths depend on the shadow depth; and frozen's compiler quotes are Unicode because the Python interpreter coerces LC_CTYPE=C.UTF-8 (PEP 538) for its child processes while the Rust product passes the caller's locale through. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:745:12": {
       "status": "verified",
@@ -7309,7 +7398,7 @@
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets (1 test, 16 oracle cases, now driving the real `ici` executable because the qmake adapter re-enters it as its compiler capture shim) plus regression native_cpp, native_cpp_direct, native_validation_extra, native_preparation, legacy_make_build, legacy_direct_build, legacy_cpp_metrics, legacy_test_parity, legacy_no_tests, legacy_commands, legacy_mode_scope, legacy_line_scope, legacy_gcov_cli, legacy_python_sanitize, legacy_sanitize, artifact_contract, legacy_binary_compat, legacy_lint, report_commands, publish_commands, doctor_commands, published_abi, python_binary_scope, compilation_commands --locked -j2 -- --include-ignored: all 25 binaries passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-bt.log, w-cpp-bt-reg.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _build_with_adapter success: `BuildAdapter[<backend>]` PASS at the descriptor, '<select_backend reason>; produced N artifact(s)' where N is _count_adapter_artifacts over the shadow (no analysis context under `ici build`, so CMake compiler-id executables count: 3 for the CMake fixture). Rust prepends crate::cpp::legacy_adapter_success with crate::cpp::legacy_shadow_linked_outputs; the make and cmake cases match exactly, ahead of the env-script targets. The qmake case (pkg.pro, /usr/bin/qmake6) matches exactly: 'pkg.pro at the project root selected the qmake backend; produced 1 artifact(s)'.",
-      "difference_reason": "Open: CMake with a passed-over .pro (both descriptors present) is implemented but not captured here."
+      "difference_reason": "Open: CMake with a passed-over .pro (both descriptors present) is implemented but not captured here. Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:802:12": {
       "status": "verified",
@@ -7334,7 +7423,7 @@
         "Merged feat/rust-application 273aa5f (reporting: legacy engines keep the frozen status class and summary, no check-id ERROR prefix); after the merge the legacy_build_targets, legacy_binary_compat and legacy_sanitize oracles compare ERROR summaries exactly (cargo test -p ici-cli --test legacy_sanitize --test legacy_build_targets --test legacy_binary_compat --test legacy_make_build --test artifact_contract --test legacy_direct_build --locked -j2 -- --include-ignored: 2+1+1+6+1+3 passed; /tmp/ici-rust-replacement-20261028/w-cpp-sanitize-evidence.log)."
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen _record_error: `BuildError` ERROR targets at '.' or the given path; summary joins the first three errors; exit 1. Rust matches the target, status and exit for the unadapted Makefile (planning.rs unadapted_descriptor arm), the main-count refusal ('C++ adapter required: expected exactly one int main definition, found 0', new planning.rs direct-reason arm) and the Make misconfiguration cases.",
-      "difference_reason": "Open: the other _record_error callers (Python source collisions, launcher failures, g++ missing/timeout/signal, env-script write failure) are not captured; the frozen ERROR evidence is NOT_RUN while Rust projects MEASURED (see sanitize.py:838:12)."
+      "difference_reason": "Open: the other _record_error callers (Python source collisions, launcher failures, g++ missing/timeout/signal, env-script write failure) are not captured; the frozen ERROR evidence is NOT_RUN while Rust projects MEASURED (see sanitize.py:838:12). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:92:16": {
       "status": "not_started",
@@ -7359,7 +7448,7 @@
         "Validation 10444b8 (merged at 47405cd) closed the Python half: legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail replays the frozen BuildArtifacts FAIL for a source-less type=python project (`ici build` exit/stdout and deep verify engine)."
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: no artifact and no error gives `BuildArtifacts` FAIL at '.', 'No Python library, launcher, or C++ binary artifact was created', exit 1 (case no-artifacts: legacy type='python' without Python sources).",
-      "difference_reason": "Open (C++ half): a Make build that links no output stops at artifact preparation (build SKIP) instead of frozen BuildAdapter PASS + BuildArtifacts FAIL (legacy_binary_compat.rs no-artifacts carve-out)."
+      "difference_reason": "Open (C++ half): a Make build that links no output stops at artifact preparation (build SKIP) instead of frozen BuildAdapter PASS + BuildArtifacts FAIL (legacy_binary_compat.rs no-artifacts carve-out). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/cognitive.py:120:16": {
       "status": "not_started",

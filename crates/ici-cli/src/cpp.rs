@@ -1638,6 +1638,7 @@ pub fn legacy_cmake_artifact_manifest(
     shadow: &Path,
     variant: &str,
     command: &[String],
+    producer: &str,
 ) -> Option<Value> {
     const MAGICS: [&[u8]; 6] = [
         b"\x7fELF",
@@ -1751,7 +1752,7 @@ pub fn legacy_cmake_artifact_manifest(
             "path": relative, "scope": "shadow", "kind": kind,
             "sha256": ici_domain::sha256(&bytes), "size": bytes.len(),
             "mode": std::os::unix::fs::PermissionsExt::mode(&metadata.permissions()) & 0o7777,
-            "producer": "cmake.build", "id": id, "target": target, "command": command,
+            "producer": producer, "id": id, "target": target, "command": command,
         }));
     }
     let shadow_root = shadow
@@ -3445,7 +3446,7 @@ impl CppPlans {
                         "task.completed",
                         Some(&outcome.task_id),
                         Some(&component.id),
-                        &format!("{:?}", outcome.state),
+                        &outcome.state_label(),
                     );
                     let probe = probes
                         .iter()
@@ -3569,7 +3570,7 @@ impl CppPlans {
                         "task.completed",
                         Some(&outcome.task_id),
                         Some(&component.id),
-                        &format!("{:?}", outcome.state),
+                        &outcome.state_label(),
                     );
                     outcomes.insert(outcome.task_id.clone(), outcome);
                 }
@@ -3660,7 +3661,7 @@ impl CppPlans {
                     "task.completed",
                     Some(&outcome.task_id),
                     Some(&component.id),
-                    &format!("{:?}", outcome.state),
+                    &outcome.state_label(),
                 );
                 let provider = providers
                     .iter()
@@ -3988,7 +3989,7 @@ fn run_cpp_tasks(
             "task.completed",
             Some(&outcome.task_id),
             Some(component),
-            &format!("{:?}", outcome.state),
+            &outcome.state_label(),
         );
     }
     Ok(schedule.outcomes)
