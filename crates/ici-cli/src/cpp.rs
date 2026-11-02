@@ -20,6 +20,7 @@ use ici_providers::{
 };
 pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
+pub use legacy_tooling::set_legacy_tooling_budget_for_tests;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -92,6 +93,12 @@ pub struct CppPlans {
     legacy_unit_notes: BTreeMap<String, Vec<legacy_syntax::UnitNote>>,
     /// Frozen capability version banners of the legacy lint replay compilers (by path).
     compiler_versions: BTreeMap<String, String>,
+    /// Legacy lint tooling tasks whose clazy is the `clazy` compiler wrapper: the approved
+    /// clang++ it runs (frozen `CLANGXX`).
+    legacy_clazy_wrappers: BTreeMap<String, PathBuf>,
+    /// Legacy lint `cpp.tidy` runs of clang-tidy and clazy over their selected units in frozen
+    /// order, by task.
+    legacy_tool_plans: BTreeMap<String, Vec<legacy_tooling::ToolPlan>>,
 }
 impl CppPlans {
     fn resolve_searches(
@@ -896,7 +903,10 @@ impl CppPlans {
             );
             return Ok(Work::Internal);
         }
-        if context.units.is_empty() && self.legacy_projection {
+        if context.units.is_empty()
+            && self.legacy_projection
+            && (self.legacy_standalone || context.database_path.is_none())
+        {
             // Frozen LintEngine without an exact context: one ClangTidyUnavailable and one
             // ClazyUnavailable target at "." (WARN, or ERROR when the tool is required).
             let mut unavailable = vec![];
@@ -949,7 +959,7 @@ impl CppPlans {
                 .insert(id.into(), legacy_tooling_unavailable(id, &unavailable));
             return Ok(Work::Internal);
         }
-        if context.units.is_empty() {
+        if context.units.is_empty() && !self.legacy_projection {
             return Err("clang tooling requires usable recorded compilation units".into());
         }
         // Legacy: unresolvable clang tools are reported unavailable whatever the unit count.
@@ -980,8 +990,8 @@ impl CppPlans {
             // Frozen capability probe (D-A): a resolvable tool whose `--version` probe fails in
             // the run environment is the frozen `<Tool>Unavailable`, not an execution error.
             // The probed banner is the frozen capability version of the tool's findings.
-            let resolved = match resolved {
-                Ok(tool) if self.legacy_projection => match legacy_tooling::legacy_version_banner(
+            let probe = |tool: ResolvedTool, versions: &mut BTreeMap<String, String>| {
+                match legacy_tooling::legacy_version_banner(
                     &tool.path,
                     &project.root,
                     environment,
@@ -992,12 +1002,66 @@ impl CppPlans {
                     },
                 ) {
                     Some(banner) => {
-                        self.compiler_versions
-                            .insert(tool.path.to_string_lossy().into_owned(), banner);
+                        versions.insert(tool.path.to_string_lossy().into_owned(), banner);
                         Ok(tool)
                     }
                     None => Err("capability probe failed".to_owned()),
-                },
+                }
+            };
+            let resolved = match resolved {
+                Ok(tool) if self.legacy_projection => probe(tool, &mut self.compiler_versions),
+                other => other,
+            };
+            // Frozen `ToolProbe("clazy", ("clazy-standalone", "clazy"))`: without a complete
+            // clazy-standalone the `clazy` compiler wrapper is the next candidate, and it needs
+            // an approved clang++ capability (frozen `_ready_tool`).
+            let resolved = match resolved {
+                Err(_) if self.legacy_projection && kind == ProviderKind::Clazy => {
+                    let wrapper = ToolRequest {
+                        id: "clazy".into(),
+                        explicit: None,
+                        ..request.clone()
+                    }
+                    .resolve()
+                    .map_err(|error| error.to_string())
+                    .and_then(|tool| probe(tool, &mut self.compiler_versions));
+                    match wrapper {
+                        Ok(tool) => {
+                            let clangxx = ToolRequest {
+                                id: "clang++".into(),
+                                explicit: None,
+                                ..request.clone()
+                            }
+                            .resolve()
+                            .ok()
+                            .filter(|clangxx| {
+                                legacy_tooling::legacy_version_banner(
+                                    &clangxx.path,
+                                    &project.root,
+                                    environment,
+                                    "clang++",
+                                )
+                                .is_some()
+                            });
+                            match clangxx {
+                                Some(clangxx) => {
+                                    self.legacy_clazy_wrappers
+                                        .insert(id.into(), clangxx.path.clone());
+                                    Ok(tool)
+                                }
+                                None => {
+                                    missing.push((
+                                        "ClazyUnavailable",
+                                        "the clazy compiler wrapper requires an approved clang++ capability".into(),
+                                        mode(field) == "required",
+                                    ));
+                                    continue;
+                                }
+                            }
+                        }
+                        Err(error) => Err(error),
+                    }
+                }
                 other => other,
             };
             match resolved {
@@ -1031,6 +1095,16 @@ impl CppPlans {
             self.preparation_failures
                 .insert(id.into(), legacy_tooling_unavailable(id, &missing));
             return Ok(Work::Internal);
+        }
+        if self.legacy_projection && !selected.is_empty() {
+            return self.bind_legacy_tooling(
+                project,
+                component,
+                context,
+                id,
+                environment,
+                &selected,
+            );
         }
         if context.units.len() > 2048 {
             return Err("clang tooling exceeds 2048 selected compilation units".into());
@@ -1191,6 +1265,290 @@ impl CppPlans {
             }
         }
         self.diagnostics.insert(id.into(), providers);
+        Ok(Work::steps(tasks, false))
+    }
+    /// Frozen legacy LintEngine clang-tidy / clazy runs (`run_clang_tidy` / `run_clazy`) over an
+    /// exact context: per tool a project-level stop (context ingestion errors, the configured
+    /// clang-tidy config, the selected-unit bound) or, per selected unit in frozen order, the
+    /// error that replaces its run (unit context errors, a rejected replay, a discovered
+    /// `.clang-tidy`) or its task with the frozen tooling argv (`tooling_arguments` plus the
+    /// selected GCC's library projection).
+    fn bind_legacy_tooling(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        context: &CompilationContext,
+        id: &str,
+        environment: &BTreeMap<String, String>,
+        selected: &[(ProviderKind, ResolvedTool)],
+    ) -> Result<Work, String> {
+        use legacy_tooling::{ToolPlan, ToolUnit, UnitStep};
+        let config = component.settings.pointer("/engines/lint");
+        let root = project
+            .root
+            .canonicalize()
+            .unwrap_or_else(|_| project.root.clone());
+        let ingestion = context
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.level == "error");
+        // Frozen `load_compilation_context` order: (source, directory, configuration digest).
+        let mut units: Vec<(usize, CompilationUnit)> =
+            context.units.iter().cloned().enumerate().collect();
+        units.sort_by_cached_key(|(_, unit)| {
+            (
+                unit.source.clone(),
+                unit.directory.clone(),
+                legacy_configuration_key(unit),
+            )
+        });
+        let wrapper = self.legacy_clazy_wrappers.get(id).cloned();
+        let mut plans = vec![];
+        let mut providers = vec![];
+        let mut tasks = vec![];
+        for (kind, tool) in selected {
+            let clazy = *kind == ProviderKind::Clazy;
+            let (name, prefix, suffix) = if clazy {
+                ("clazy", "Clazy", "clazy")
+            } else {
+                ("clang-tidy", "ClangTidy", "tidy")
+            };
+            let explicit = if clazy {
+                Ok(None)
+            } else {
+                legacy_tooling::legacy_explicit_config(
+                    &root,
+                    config
+                        .and_then(|cfg| cfg.get("clang_tidy_config"))
+                        .and_then(Value::as_str),
+                )
+            };
+            let mut plan = ToolPlan {
+                clazy,
+                terminal: None,
+                units: vec![],
+            };
+            plan.terminal = if ingestion {
+                Some((
+                    format!("{prefix}ContextError"),
+                    format!("{name} did not run because compilation context ingestion has errors"),
+                ))
+            } else if let Err(message) = &explicit {
+                Some(("ClangTidyConfigError".into(), message.clone()))
+            } else if units.len() > legacy_syntax::MAX_SELECTED_UNITS {
+                Some((
+                    format!("{prefix}ContextError"),
+                    format!("{name} translation-unit count exceeds the bounded limit"),
+                ))
+            } else {
+                None
+            };
+            let explicit = explicit.unwrap_or_default();
+            if plan.terminal.is_some() {
+                plans.push(plan);
+                continue;
+            }
+            let checks = if clazy {
+                let checks = string_list(config.and_then(|cfg| cfg.get("clazy_checks")));
+                if checks.is_empty() {
+                    config
+                        .and_then(|cfg| cfg.get("clazy_profile"))
+                        .and_then(Value::as_str)
+                        .unwrap_or("level0")
+                        .to_owned()
+                } else {
+                    checks.join(",")
+                }
+            } else {
+                string_list(config.and_then(|cfg| cfg.get("clang_tidy_checks"))).join(",")
+            };
+            for (index, unit) in &units {
+                let source = unit.source.clone();
+                let error = |name: String, message: String| ToolUnit {
+                    source: source.clone(),
+                    step: UnitStep::Error { name, message },
+                };
+                if legacy_syntax::unit_targets(unit).1.is_some() {
+                    plan.units.push(error(
+                        format!("{prefix}ContextError"),
+                        format!("{name} skipped a compilation unit with context errors: {source}"),
+                    ));
+                    continue;
+                }
+                let compiler = self.compiler(project, unit, environment)?;
+                let replay = match ici_cpp::replay_command(
+                    &project.root,
+                    unit,
+                    &compiler.path,
+                    ReplayPurpose::Diagnostics,
+                ) {
+                    Ok(replay) => replay,
+                    Err(failure) => {
+                        let (code, message) = legacy_syntax::frozen_replay(unit, &failure);
+                        plan.units.push(error(
+                            format!("{prefix}ReplayError"),
+                            format!("{name} replay {code}: {source}: {message}"),
+                        ));
+                        continue;
+                    }
+                };
+                let configuration = if clazy {
+                    None
+                } else if explicit.is_some() {
+                    explicit.clone()
+                } else {
+                    match legacy_tooling::legacy_discovered_config(&root, &replay.source) {
+                        Ok(found) => found,
+                        Err(message) => {
+                            plan.units
+                                .push(error("ClangTidyConfigError".into(), message));
+                            continue;
+                        }
+                    }
+                };
+                let task_id = format!("{id}.{suffix}{index}");
+                let mut task = ici_cpp::clang_tidy_boundary_task(
+                    &project.root,
+                    unit,
+                    &compiler.path,
+                    &tool.path,
+                    &ici_cpp::GccStdlibProjection::default(),
+                )
+                .map_err(|error| error.to_string())?;
+                // Frozen `tooling_arguments`: the syntax replay without its program, analysis
+                // suffix and source, with the warning policy already demoted.
+                let source_path = replay.source.display().to_string();
+                let mut arguments: Vec<String> = replay.argv[1..replay.argv.len() - 4]
+                    .iter()
+                    .filter(|argument| **argument != source_path)
+                    .cloned()
+                    .collect();
+                arguments.push("-fdiagnostics-color=never".into());
+                let mut searches =
+                    ici_cpp::gcc_include_search_tasks(&project.root, unit, &compiler.path)
+                        .map_err(|error| error.to_string())?;
+                if !searches.is_empty() {
+                    arguments.push("{observed-gcc-stdlib}".into());
+                }
+                let mut argv = vec![tool.path.to_string_lossy().into_owned()];
+                if clazy && let Some(clangxx) = &wrapper {
+                    // Frozen compiler-wrapper provider: clang++ runs the clazy plugin.
+                    argv.extend(arguments);
+                    argv.extend([
+                        "-Wall".into(),
+                        "-Wextra".into(),
+                        "-fsyntax-only".into(),
+                        source_path.clone(),
+                    ]);
+                    task.env_overlay
+                        .insert("CLANGXX".into(), clangxx.to_string_lossy().into_owned());
+                    task.env_overlay
+                        .insert("CLAZY_CHECKS".into(), checks.clone());
+                } else {
+                    if clazy {
+                        argv.extend([format!("--checks={checks}"), "--only-qt".into()]);
+                    } else {
+                        argv.push("--use-color=false".into());
+                        match &configuration {
+                            Some(path) => argv.push(format!("--config-file={}", path.display())),
+                            // Never inherit a user- or machine-level configuration.
+                            None => argv.push("--config={}".into()),
+                        }
+                        if !checks.is_empty() {
+                            argv.push(format!("--checks={checks}"));
+                        } else if configuration.is_none() {
+                            argv.push(
+                                "--checks=-*,bugprone-*,clang-analyzer-*,performance-*".into(),
+                            );
+                        }
+                    }
+                    argv.extend([source_path.clone(), "--".into()]);
+                    argv.extend(arguments);
+                }
+                let mut request = ProviderRequest::new(
+                    *kind,
+                    tool.clone(),
+                    &project.root,
+                    &task.cwd,
+                    vec![unit.source.clone()],
+                    &task_id,
+                );
+                request.component_id = Some(component.id.clone());
+                request.analysis_unit_ids = vec![unit_id(component, unit)];
+                request.variant = Some(unit.variant.clone());
+                request.options.database_dir = Some(project.root.to_string_lossy().into_owned());
+                let mut provider =
+                    ici_providers::plan(&request).map_err(|error| error.to_string())?;
+                task.id.clone_from(&task_id);
+                task.provider = kind.name().into();
+                task.analysis_unit_ids = request.analysis_unit_ids;
+                task.argv = argv;
+                // Frozen `_OUTPUT_CHARS`.
+                task.output_limit_bytes = Some(1_000_000);
+                if let Some(path) = &configuration {
+                    if let Ok(relative) = path.strip_prefix(&root) {
+                        self.compiler_configurations
+                            .entry(id.into())
+                            .or_default()
+                            .insert(relative.to_string_lossy().into_owned(), 1024 * 1024);
+                    }
+                    task.input_refs.push(path.to_string_lossy().into_owned());
+                }
+                task.input_refs = task
+                    .input_refs
+                    .iter()
+                    .map(|path| {
+                        if Path::new(path).is_absolute() {
+                            path.clone()
+                        } else {
+                            project.root.join(path).to_string_lossy().into_owned()
+                        }
+                    })
+                    .chain(
+                        context
+                            .database_path
+                            .iter()
+                            .map(|path| project.root.join(path).to_string_lossy().into_owned()),
+                    )
+                    .collect();
+                provider.task = task;
+                for (search_index, search) in searches.iter_mut().enumerate() {
+                    search.id = format!("{task_id}.search{search_index}");
+                    search.analysis_unit_ids = vec![unit_id(component, unit)];
+                }
+                if !searches.is_empty() {
+                    tasks.extend(searches.clone());
+                    self.tooling_searches.insert(task_id.clone(), searches);
+                }
+                tasks.push(provider.task.clone());
+                providers.push(provider);
+                plan.units.push(ToolUnit {
+                    source,
+                    step: UnitStep::Run(task_id),
+                });
+            }
+            plans.push(plan);
+        }
+        if providers.is_empty() {
+            // Nothing runs: the frozen targets are decided now.
+            let mut output = AnalysisOutput::new(id, "clang-tooling");
+            output.observation.state = TaskState::Succeeded;
+            legacy_tooling::legacy_tooling_projection(
+                &mut output,
+                vec![],
+                self.legacy_tooling_missing
+                    .get(id)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+                &context.uncovered_sources,
+                &plans,
+                &BTreeMap::new(),
+            );
+            self.preparation_failures.insert(id.into(), output);
+            return Ok(Work::Internal);
+        }
+        self.diagnostics.insert(id.into(), providers);
+        self.legacy_tool_plans.insert(id.into(), plans);
         Ok(Work::steps(tasks, false))
     }
     pub fn configuration_identity(&self) -> Value {
@@ -3069,7 +3427,6 @@ impl CppPlans {
         let unit = self.contexts.get(component)?.units.get(index)?;
         Some(legacy_tooling::legacy_tool_run(
             clazy,
-            index,
             &unit.source,
             &legacy_configuration_digest(unit)?,
             outcome,
@@ -3633,6 +3990,11 @@ impl CppPlans {
             );
         }
         if let Some(mut providers) = self.diagnostics.get(&request.task_id).cloned() {
+            let mut legacy_tool_plans = self
+                .legacy_tool_plans
+                .get(&request.task_id)
+                .filter(|_| self.legacy_projection && request.check_id == "cpp.tidy")
+                .cloned();
             let searches: Vec<_> = providers
                 .iter()
                 .flat_map(|provider| {
@@ -3681,6 +4043,35 @@ impl CppPlans {
                         Path::new(&provider.task.cwd),
                     ) {
                         Ok(projection) => projection,
+                        Err(error) if legacy_tool_plans.is_some() => {
+                            // Frozen `ClangTidyToolchainContextError` / `Clazy...`: that unit
+                            // does not run; the other units and tools still do.
+                            let (code, message) = legacy_tooling::legacy_gcc_projection_error(
+                                &outcomes[&searches[0].id],
+                                &outcomes[&searches[1].id],
+                                &error,
+                            );
+                            for plan in legacy_tool_plans.iter_mut().flatten() {
+                                for unit in &mut plan.units {
+                                    if matches!(&unit.step, legacy_tooling::UnitStep::Run(task) if *task == provider.task.id)
+                                    {
+                                        let (name, prefix) = if plan.clazy {
+                                            ("clazy", "Clazy")
+                                        } else {
+                                            ("clang-tidy", "ClangTidy")
+                                        };
+                                        unit.step = legacy_tooling::UnitStep::Error {
+                                            name: format!("{prefix}ToolchainContextError"),
+                                            message: format!(
+                                                "{name} GCC stdlib replay {code}: {}: {message}",
+                                                unit.source
+                                            ),
+                                        };
+                                    }
+                                }
+                            }
+                            continue;
+                        }
                         Err(error) => {
                             return failed(
                                 AnalysisOutput::new(&request.task_id, "clang-tooling"),
@@ -3688,11 +4079,18 @@ impl CppPlans {
                             );
                         }
                     };
-                    provider
+                    // The observed projection takes the placeholder's place (frozen appends it
+                    // to the tooling arguments, before the compiler wrapper's analysis suffix).
+                    let position = provider
                         .task
                         .argv
-                        .retain(|argument| argument != "{observed-gcc-stdlib}");
-                    provider.task.argv.extend(projection.arguments.clone());
+                        .iter()
+                        .position(|argument| argument == "{observed-gcc-stdlib}")
+                        .unwrap_or(provider.task.argv.len());
+                    provider.task.argv.splice(
+                        position..(position + 1).min(provider.task.argv.len()),
+                        projection.arguments.clone(),
+                    );
                     projections.insert(provider.task.id.clone(),json!({"stdlib":projection,"argv":provider.task.argv,"probe_tasks":searches}));
                 }
             }
@@ -3712,7 +4110,25 @@ impl CppPlans {
                 .legacy_unit_notes
                 .get(&request.task_id)
                 .filter(|_| self.legacy_projection && request.check_id == "cpp.diagnostics");
-            let scheduled = if let Some(notes) = legacy_notes {
+            let mut tool_stops = BTreeMap::new();
+            let scheduled = if let Some(plans) = &legacy_tool_plans {
+                // Frozen `_execute_selected_units`: per tool, one unit at a time under its
+                // global budget.
+                let by_id: BTreeMap<String, TaskSpec> = tasks
+                    .iter()
+                    .map(|task| (task.id.clone(), task.clone()))
+                    .collect();
+                legacy_tooling::run_budgeted(plans, &by_id, |task| {
+                    scheduler
+                        .run_with_start(&[task], cancellation, start)
+                        .map_err(|error| error.to_string())
+                        .map(|schedule| schedule.outcomes.into_iter().next().expect("one outcome"))
+                })
+                .map(|(outcomes, stops)| {
+                    tool_stops = stops;
+                    (outcomes, None)
+                })
+            } else if let Some(notes) = legacy_notes {
                 // Frozen `_run_exact`: one unit at a time under the global time budget.
                 let units: Vec<_> = notes
                     .iter()
@@ -3861,6 +4277,9 @@ impl CppPlans {
                         self.legacy_tool_run(&component.id, provider, &outcome, &output)
                 {
                     legacy_tool_runs.push(run);
+                    if provider.kind == ProviderKind::Clazy {
+                        legacy_tooling::legacy_clazy_note_findings(&mut output);
+                    }
                 }
                 outputs.push(output);
             }
@@ -3960,6 +4379,8 @@ impl CppPlans {
                         .map(Vec::as_slice)
                         .unwrap_or_default(),
                     &uncovered,
+                    legacy_tool_plans.as_deref().unwrap_or_default(),
+                    &tool_stops,
                 );
             }
             if request.check_id == "cpp.diagnostics" {

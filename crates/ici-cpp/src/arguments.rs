@@ -201,7 +201,21 @@ impl ResponseCache {
                     ));
                 }
                 if !self.files.contains_key(&path) {
-                    let bytes = read_contained(root, &path, MAX_RESPONSE_BYTES)?;
+                    // Frozen `_load_response_tokens` codes and messages.
+                    let bytes =
+                        read_contained(root, &path, MAX_RESPONSE_BYTES).map_err(|error| {
+                            if error.code == "missing" {
+                                CppError::new(
+                                    "response-file-missing",
+                                    "A compiler response file does not exist.",
+                                )
+                            } else {
+                                CppError::new(
+                                    format!("response-file-{}", error.code),
+                                    "A compiler response file could not be read safely.",
+                                )
+                            }
+                        })?;
                     self.bytes += bytes.len();
                     if self.bytes > MAX_RESPONSE_BYTES {
                         return Err(CppError::new(

@@ -33,6 +33,9 @@ pub(super) fn parse(
     } else {
         parse_text(&joined, plan)?
     };
+    if plan.kind == ProviderKind::ClangTidy {
+        clang_tidy_accounting(&joined, &parsed)?;
+    }
     cpp_details::finish(&mut parsed, plan);
     if plan.kind == ProviderKind::Compiler {
         parsed
@@ -40,6 +43,37 @@ pub(super) fn parse(
             .extend(plan.context.targets.iter().cloned());
     }
     Ok(parsed)
+}
+/// Frozen `_clang_tidy_accounting_error`: a "N warnings generated." summary (or a header-filter
+/// hint without any summary) that no diagnostic or suppression trailer accounts for is not a
+/// clean run.
+fn clang_tidy_accounting(output: &str, parsed: &Parsed) -> Result<(), ProviderError> {
+    let generated = Regex::new(r"^[1-9]\d* warnings? generated\.$").expect("constant regex");
+    let suppressed = Regex::new(r"^Suppressed [1-9]\d* warnings? \([^\r\n]{1,512}\)\.$")
+        .expect("constant regex");
+    let hint = Regex::new(r"^Use -header-filter=.{1,512}(?: or leave it as default)? to display errors from all non-system headers\.(?: Use -system-headers to display errors from system headers as well\.)?$").expect("constant regex");
+    let lines: Vec<&str> = output.lines().map(str::trim).collect();
+    let any = |pattern: &Regex| lines.iter().any(|line| pattern.is_match(line));
+    let accounted = !parsed.findings.is_empty()
+        || any(&suppressed)
+        || parsed
+            .limitations
+            .iter()
+            .any(|item| item == "external compiler diagnostic omitted from project locations");
+    if accounted {
+        return Ok(());
+    }
+    if any(&generated) {
+        return Err(ProviderError(
+            "clang-tidy generated-warning summary has no diagnostic accounting".into(),
+        ));
+    }
+    if any(&hint) {
+        return Err(ProviderError(
+            "clang-tidy header-filter hint has no diagnostic summary".into(),
+        ));
+    }
+    Ok(())
 }
 fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError> {
     // Frozen _TEXT_DIAGNOSTIC_RE: the column is optional (GCC -fno-show-column, old drivers).

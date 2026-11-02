@@ -171,7 +171,22 @@ pub fn legacy_projection(
                 .filter(|summary| !summary.is_empty())
                 .unwrap_or("analysis did not complete");
             let reasons = errored.entry(name.to_owned()).or_default();
-            if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
+            // The C++ lint checks record their individual frozen tool errors: the engine
+            // summary is the first three of all of them, in check order (frozen LintEngine).
+            let individual: Vec<&str> = output
+                .and_then(|output| output.extra.get("legacy_tool_errors"))
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(serde_json::Value::as_str)
+                .collect();
+            if !individual.is_empty() {
+                for error in individual {
+                    if reasons.len() < 3 {
+                        reasons.push(error.to_owned());
+                    }
+                }
+            } else if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
                 reasons.push(reason.to_owned());
             }
             engine["summary"] = json!(reasons.join("; "));
