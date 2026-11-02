@@ -8442,16 +8442,29 @@
       "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:588:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv",
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_refuses_an_unreadable_production_source_at_the_input_snapshot"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv",
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_refuses_an_unreadable_production_source_at_the_input_snapshot"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv",
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_refuses_an_unreadable_production_source_at_the_input_snapshot"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:588); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: lint-tool-branches-oracle.json case tools-unreadable-source (frozen `C++SyntaxContextError` ERROR 'C++ source is not a readable regular file: clean.cpp'): native refuses the whole run at its input snapshot (lint SKIP 'input snapshot failed', NOT_RUN, no targets, non-zero exit).",
+      "difference_reason": "Accepted defect correction (docs/design/rust-replacement/decisions.md row '읽을 수 없는 production source'): an unreadable production source is a whole-run input refusal natively instead of frozen per-step errors."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:604:12": {
       "status": "verified",
@@ -8478,40 +8491,76 @@
       "difference_reason": "Open facet: the same bound with a recorded compilation database (exact mode) is not captured."
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:144:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_unused_functions.py:144); enclosing frozen function _error_target) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: verify-matrix-oracle.json database_cases: a compiler run that does not complete atomically is the single `C++UnusedFunctionError` ERROR at its source (frozen message 'C++ unused-function compiler exited with code N: <source>') and the sources observed before it are discarded.",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:674:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_unused_functions.py:674); enclosing frozen function _merge_observations) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: verify-matrix database_cases and zoo quality-coverage: each clean exact unused-function source is the frozen `C++UnusedFunctions` PASS target with its message, the finding tool is the frozen compiler capability name ('g++ unused-function').",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:698:21": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_unused_functions.py:698); enclosing frozen function _merge_observations) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: verify-matrix database_cases and zoo quality-coverage: each agreed -Wunused-function diagnostic is the located `Compiler:-Wunused-function` WARN target (line/columns, message) with frozen severity/confidence/tool and cpp_unused_functions_count.",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_unused_functions.py:741:12": {
       "status": "not_started",
@@ -8974,41 +9023,61 @@
       "difference_reason": "Open: the other _record_error callers (Python source collisions, launcher failures, g++ missing/timeout/signal, env-script write failure) are not captured; the frozen ERROR evidence is NOT_RUN while Rust projects MEASURED (see sanitize.py:838:12). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
     },
     "finding_site:src/ici/engines/build.py:92:16": {
-      "status": "not_started",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/artifact_build.rs",
         "crates/ici-cli/src/cpp.rs",
         "crates/ici-cli/src/planning.rs",
-        "crates/ici-cli/src/preparation.rs"
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail"
+          "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail",
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result"
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
+          "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail",
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
         ],
-        "failure": []
+        "failure": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
+          "crates/ici-cli/tests/legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail",
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
       "evidence": [
         "Frozen oracle tests/rust-parity/cpp/build-targets-oracle.json captured by development-only tests/rust-parity/cpp/capture_build_targets.py: the frozen `ici build` command itself (oracle 6fe3e40) with its `_print_engine_result` wrapped to record the rendered BuildEngine result; 16 cases over parity-fixtures/cpp/package-{make,direct,cmake} with recorded edits (make, direct, cmake, qmake via /usr/bin/qmake6 with a pkg.pro, Make build failure, CMake configure and compile failures, qmake compile failure, direct compile failure, main-count, unadapted Makefile, Python-only package with a launcher, legacy type='python' without sources, three [build.artifacts] shapes); exit code, status, summary, every target (name, status, message, line, path; compile seconds normalized) and stdout.",
         "ICI_TEST_MAKE=/usr/bin/make ICI_TEST_CXX=/usr/bin/g++ ICI_TEST_CMAKE=/usr/bin/cmake ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --test artifact_contract --test native_preparation --test native_cpp --test native_cpp_direct --test native_validation_extra --test legacy_cpp_metrics --locked -j2 -- --include-ignored --test-threads=2: 1+6+3+1+1+1+28+6+27+7 passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-build-targets.log",
-        "Validation 10444b8 (merged at 47405cd) closed the Python half: legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail replays the frozen BuildArtifacts FAIL for a source-less type=python project (`ici build` exit/stdout and deep verify engine)."
+        "Validation 10444b8 (merged at 47405cd) closed the Python half: legacy_build_targets.rs::sourceless_legacy_python_build_is_the_frozen_build_artifacts_fail replays the frozen BuildArtifacts FAIL for a source-less type=python project (`ici build` exit/stdout and deep verify engine).",
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
       ],
-      "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen: no artifact and no error gives `BuildArtifacts` FAIL at '.', 'No Python library, launcher, or C++ binary artifact was created', exit 1 (case no-artifacts: legacy type='python' without Python sources).",
-      "difference_reason": "Open (C++ half): a Make build that links no output stops at artifact preparation (build SKIP) instead of frozen BuildAdapter PASS + BuildArtifacts FAIL (legacy_binary_compat.rs no-artifacts carve-out). Recorded: the replays pass LC_CTYPE=C.UTF-8 because the frozen interpreter coerces the C locale (PEP 538) for its build children; under a plain C locale native qmake6 children see the C locale and Qt prints its non-UTF-8 locale warning into stderr excerpts where frozen's would not."
+      "comparison": "C++ facet: build-targets-oracle.json and binary-compat-oracle.json: a build without a complete artifact set is the frozen `BuildArtifacts` FAIL at '.' ('No Python library, launcher, or C++ binary artifact was created'; WARN in pass_warn) with the frozen summary.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/cognitive.py:120:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/cognitive.py:120); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: cognitive engine error/boundary site not compared; legacy heuristic projection verified."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: config-keys-oracle.json runs: a C++ boundary tool error is the frozen `CppCognitiveAnalysisError` ERROR at '.' with the '; '-joined errors.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/cognitive.py:50:20": {
       "status": "not_started",
@@ -9133,16 +9202,26 @@
       "difference_reason": "Open: complexity engine error/boundary site not compared; legacy heuristic projection verified."
     },
     "finding_site:src/ici/engines/complexity.py:481:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/complexity.py:481); enclosing frozen function _finish_cpp_analysis) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: complexity engine error/boundary site not compared; legacy heuristic projection verified."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: config-keys-oracle.json runs: a C++ boundary tool error is the frozen `CppComplexityAnalysisError` ERROR at '.' with the '; '-joined errors.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/complexity.py:556:15": {
       "status": "verified",
@@ -9229,16 +9308,26 @@
       "difference_reason": ""
     },
     "finding_site:src/ici/engines/dead.py:219:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:219); enclosing frozen function _analyze_linker_scope) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: config-keys-oracle.json runs: a GNU ELF linker policy without the root CMake backend is the frozen `C++LinkerReachabilityUnavailable` target at the first C/C++ source (ERROR when required, SKIP otherwise) with its message.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/dead.py:270:12": {
       "status": "not_started",
@@ -9253,16 +9342,26 @@
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:577:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:577); enclosing frozen function _run_cpp_scope) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: include-scope-oracle.json case dead:off: `engines.dead.cpp_unused='off'` is the frozen `C++UnusedFunctionsDisabled` SKIP ('Compiler-backed C++ unused-function analysis is disabled') with the frozen summary and exit.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/dead.py:669:16": {
       "status": "not_started",
@@ -9349,16 +9448,32 @@
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:279:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-analysis/src/duplicates.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:279); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: config-keys runs, include-scope case dup and zoo quality-coverage: each analysed C++ source without a reported clone region is the frozen `DuplicateScan` PASS target.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/dup.py:401:16": {
       "status": "not_started",
@@ -9385,16 +9500,32 @@
       "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
     },
     "finding_site:src/ici/engines/dup.py:721:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-analysis/src/duplicates.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:721); enclosing frozen function _cluster_matches) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: config-keys runs, include-scope case dup and zoo quality-coverage: each lexical C++ clone instance is the frozen `CloneGroup#<n>` WARN target (region lines, message) and clone_groups_count.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/exception.py:150:12": {
       "status": "not_started",
@@ -10159,16 +10290,34 @@
       "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
     },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-validation/src/policy.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes",
+          "crates/ici-cli/src/cpp.rs::legacy_threshold_tests::only_breached_thresholds_remain_with_the_frozen_branch_rounding"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes",
+          "crates/ici-cli/src/cpp.rs::legacy_threshold_tests::only_breached_thresholds_remain_with_the_frozen_branch_rounding"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes",
+          "crates/ici-cli/src/cpp.rs::legacy_threshold_tests::only_breached_thresholds_remain_with_the_frozen_branch_rounding"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/test_quality.py:87); enclosing frozen function _threshold_breaches) is not compared yet; see difference_reason.",
-      "difference_reason": "Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: zoo quality-coverage and make-test-oracle.json (Make test_argv runs): a breached TEM/branch threshold is the frozen `Threshold: <label>` WARN at '.' with '<label> <actual> is below the configured minimum <threshold>' and metrics actual/threshold. Rust defects fixed: a met threshold was a PASS target (frozen reports only breaches) and the branch actual was unrounded (3.7037 vs frozen round(...,1) = 3.7).",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/type_check.py:426:16": {
       "status": "not_started",
@@ -10183,16 +10332,29 @@
       "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
     },
     "finding_site:src/ici/engines/type_check.py:436:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_with_a_compilation_database_matches_frozen_source_engines"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/type_check.py:436); enclosing frozen function _mark_cpp_type_check_skipped) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
+      "evidence": [
+        "source opus-env.sh; cargo test -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored (433 passed, 0 failed; includes legacy_verify_matrix, legacy_cpp_config_keys, legacy_cpp_metrics, legacy_binary_compat, legacy_build_targets, legacy_lint_tool_branches, legacy_qmake_verify, legacy_zoo_cpp): /tmp/ici-rust-replacement-20261028/w-cpp13-zoo-regress.log; earlier focused run /tmp/ici-rust-replacement-20261028/w-cpp13-sites-batch1.log"
+      ],
+      "comparison": "C++ facet: verify-matrix-oracle.json cases/commands/database_cases: every selected C++ source is the frozen `C++TypeCheck` SKIP target ('C++ type checking is not implemented; source was not type-checked') at line 1, in frozen order, with the frozen engine summary and exit.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/type_check.py:452:12": {
       "status": "not_started",
