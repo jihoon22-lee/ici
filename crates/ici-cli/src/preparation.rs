@@ -520,6 +520,33 @@ pub fn execute(
                         evidence.clone();
                 }
             }
+            // Frozen BuildEngine `tool_evidence`: the adapter session's backend selection and the
+            // configure/clean/build processes its release build ran.
+            if prepared.legacy_projection
+                && check.check.id == "cpp.artifact"
+                && prepared.project.schema_family == ici_config::SchemaFamily::Legacy
+                && let Some(session) = contexts.iter().find(|context| {
+                    context.plan.component_id == check.component_id
+                        && matches!(
+                            context.plan.build.system.as_str(),
+                            "cmake" | "qmake" | "make"
+                        )
+                        && context.plan.build.variant == "release"
+                })
+                && let Some(component) = prepared
+                    .project
+                    .components
+                    .iter()
+                    .find(|component| component.id == check.component_id)
+            {
+                output.extra["tool_evidence"] = crate::cpp::legacy_build_session_evidence(
+                    &prepared.project.root,
+                    &component.root,
+                    &session.plan.build.system,
+                    &session.plan.descriptor,
+                    &session.process_evidence,
+                );
+            }
             // Frozen deep BuildEngine release session of an adapter backend (`ici verify`
             // only) publishes its linked shadow outputs into the analysis context, like the
             // test/sanitize sessions do.

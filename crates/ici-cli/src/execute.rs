@@ -719,6 +719,36 @@ pub fn execute(
                                 .map(|directory| directory.to_string_lossy().into_owned())
                                 .unwrap_or_default();
                             crate::cpp::legacy_binary_compat(&mut output, &shadow, "release");
+                            // Frozen BinaryCompatibilityEngine: one `readelf binary
+                            // compatibility` record per inspected artifact, in run order.
+                            let evidence: Vec<serde_json::Value> = plans
+                                .iter()
+                                .flat_map(|plan| &plan.tasks)
+                                .filter_map(|task| {
+                                    let outcome = step_outcomes.get(&task.id)?;
+                                    let failed = outcome.exit_code != Some(0);
+                                    Some(json!({
+                                        "name": "readelf binary compatibility",
+                                        "path": task.argv.first().cloned().unwrap_or_default(),
+                                        "version": "",
+                                        "argv": task.argv,
+                                        "returncode": crate::cpp::frozen_returncode(outcome),
+                                        "timed_out": outcome.timed_out,
+                                        "truncated": outcome.truncated,
+                                        "error": if failed {
+                                            String::from_utf8_lossy(&outcome.stderr)
+                                                .chars()
+                                                .take(512)
+                                                .collect::<String>()
+                                        } else {
+                                            String::new()
+                                        },
+                                    }))
+                                })
+                                .collect();
+                            if !evidence.is_empty() {
+                                output.extra["tool_evidence"] = json!(evidence);
+                            }
                         }
                         // Frozen CMake/qmake build sessions of `ici verify` (with an analysis
                         // context; standalone commands have none) publish their linked outputs

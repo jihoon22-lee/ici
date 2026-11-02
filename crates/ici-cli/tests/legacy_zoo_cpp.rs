@@ -35,16 +35,12 @@ fn masked(name: &str) -> String {
     }
 }
 
-/// OPEN (recorded on capability:legacy-command-config-result-projection): the legacy adapter
-/// build and binary_compat engines carry no tool evidence natively, where frozen records the
-/// backend selection, the `make clean`/`make build` processes and one `readelf binary
-/// compatibility` process per artifact; their adapted findings therefore name no tool. The
-/// test requires the native list to stay empty here (a fix must update this list) and compares
-/// every other engine's tool-evidence names and return codes.
-const OPEN_TOOL_EVIDENCE: [(&str, &str); 2] = [
-    ("make-elf-integration", "build"),
-    ("make-elf-integration", "binary_compat"),
-];
+/// The legacy adapter build and binary_compat engines carry frozen's tool evidence natively too:
+/// the backend selection record, the `make clean`/`make build` processes and one `readelf binary
+/// compatibility` process per artifact, so their adapted findings name the same tool. Each
+/// engine's tool-evidence names and return codes are compared (argv paths name each product's
+/// own shadow tree).
+const OPEN_TOOL_EVIDENCE: [(&str, &str); 0] = [];
 
 /// Recorded (finding_site cycles.py:98:12 / compiler.rs): the native legacy cycle evidence names
 /// each `compiler include trace` and its compiler but carries no return code.

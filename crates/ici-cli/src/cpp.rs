@@ -22,6 +22,7 @@ use ici_providers::{
 };
 pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
+pub(crate) use legacy_tooling::frozen_returncode;
 pub use legacy_tooling::set_legacy_tooling_budget_for_tests;
 use serde_json::{Value, json};
 use std::{
@@ -3180,13 +3181,38 @@ pub fn legacy_adapter_success(
     descriptor: &str,
     produced: usize,
 ) -> InspectionTarget {
+    let name = Path::new(descriptor)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(descriptor)
+        .to_owned();
+    let reason = legacy_backend_reason(root, component_root, system, descriptor);
+    let backend = match system {
+        "cmake" => "cmake",
+        "qmake" => "qmake",
+        _ => "make",
+    };
+    let mut target = InspectionTarget::at(&name, 1);
+    target.target_name = format!("BuildAdapter[{backend}]");
+    target.message = format!("{reason}; produced {produced} artifact(s)");
+    target
+}
+
+/// Frozen `select_backend` reason of an adapter backend (`<descriptor> at the project root
+/// selected the … backend`, CMake naming a passed-over `.pro`).
+pub fn legacy_backend_reason(
+    root: &Path,
+    component_root: &str,
+    system: &str,
+    descriptor: &str,
+) -> String {
     let base = crate::files::under(root, component_root);
     let name = Path::new(descriptor)
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or(descriptor)
         .to_owned();
-    let reason = match system {
+    match system {
         "cmake" => {
             let mut reason =
                 "CMakeLists.txt at the project root selected the CMake backend".to_string();
@@ -3206,16 +3232,28 @@ pub fn legacy_adapter_success(
         }
         "qmake" => format!("{name} at the project root selected the qmake backend"),
         _ => format!("{name} at the project root selected the configured Make backend"),
-    };
-    let backend = match system {
-        "cmake" => "cmake",
-        "qmake" => "qmake",
-        _ => "make",
-    };
-    let mut target = InspectionTarget::at(&name, 1);
-    target.target_name = format!("BuildAdapter[{backend}]");
-    target.message = format!("{reason}; produced {produced} artifact(s)");
-    target
+    }
+}
+
+/// Frozen BuildEngine `tool_evidence` of an adapter session: the backend selection record
+/// (`build backend selection: <reason>`, no process) then the adapter processes it ran.
+pub fn legacy_build_session_evidence(
+    root: &Path,
+    component_root: &str,
+    system: &str,
+    descriptor: &str,
+    processes: &[Value],
+) -> Value {
+    let mut evidence = vec![json!({
+        "name": format!(
+            "build backend selection: {}",
+            legacy_backend_reason(root, component_root, system, descriptor)
+        ),
+        "path": "", "version": "", "argv": [], "returncode": null,
+        "timed_out": false, "truncated": false, "error": "",
+    })];
+    evidence.extend(processes.iter().cloned());
+    json!(evidence)
 }
 
 /// Frozen sanitizer engines compile only `tests/**/*.cpp` under the project root. `true` means

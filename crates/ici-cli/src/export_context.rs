@@ -64,6 +64,10 @@ pub struct PreparedContext {
     /// The frozen BuildEngine adapter failure of that build step (`<backend> build failed: …`),
     /// which a selected `cpp.artifact` reports while the source checks analyse the database.
     pub build_failure_output: Option<Box<AnalysisOutput>>,
+    /// Frozen BuildSession `ToolEvidence` of the adapter processes this preparation ran
+    /// (`make configure`/`make clean`/`make build`, `cmake configure`/`cmake build`,
+    /// `qmake configure`/`qmake build`), in run order.
+    pub process_evidence: Vec<Value>,
     _lease: Arc<BuildLease>,
 }
 
@@ -476,7 +480,11 @@ fn execute_native_preparation(
             )
         })
         .map_err(incomplete)?;
+    let mut process_evidence = vec![];
     for outcome in outcomes.outcomes {
+        if let Some(record) = adapter_process_evidence(plan, &outcome) {
+            process_evidence.push(record);
+        }
         events.emit(
             "task.completed",
             Some(&outcome.task_id),
@@ -569,6 +577,7 @@ fn execute_native_preparation(
                             evidence: None,
                             build_failure: Some(detail),
                             build_failure_output: Some(Box::new(output)),
+                            process_evidence,
                             _lease: lease.clone(),
                         });
                     }
@@ -677,8 +686,45 @@ fn execute_native_preparation(
         evidence: None,
         build_failure: None,
         build_failure_output: None,
+        process_evidence,
         _lease: lease.clone(),
     })
+}
+
+/// Frozen `core/cmake.py::_record`/`_run_make_command`: one `ToolEvidence` per adapter process,
+/// named by backend and phase. Native-only steps (the qmake capability probe) record nothing.
+fn adapter_process_evidence(
+    plan: &ContextPreparationPlan,
+    outcome: &ici_execution::TaskOutcome,
+) -> Option<Value> {
+    let task = plan
+        .build
+        .tasks
+        .iter()
+        .find(|task| task.id == outcome.task_id)?;
+    let phase = task
+        .id
+        .strip_prefix(&format!("build:{}:{}:", plan.build.id, plan.build.variant))?;
+    let name = match (plan.build.system.as_str(), phase) {
+        ("make", "configure") => "make configure",
+        ("make", "clean") => "make clean",
+        ("make", "compile") => "make build",
+        ("cmake", "configure") => "cmake configure",
+        ("cmake", "compile") => "cmake build",
+        ("qmake", "configure") => "qmake configure",
+        ("qmake", "compile") => "qmake build",
+        _ => return None,
+    };
+    Some(json!({
+        "name": name,
+        "path": task.argv.first().cloned().unwrap_or_default(),
+        "version": "",
+        "argv": task.argv,
+        "returncode": crate::cpp::frozen_returncode(outcome),
+        "timed_out": outcome.timed_out,
+        "truncated": outcome.truncated,
+        "error": "",
+    }))
 }
 
 /// The owned build's recorded compilation context. A handwritten Make backend need not write a
