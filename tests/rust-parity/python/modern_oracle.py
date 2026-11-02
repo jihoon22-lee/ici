@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import subprocess
@@ -373,5 +374,15 @@ def main() -> None:
     print(f"{len(fixture['cases'])} frozen modern Python projects match the recorded oracle")
 
 
+def _private_home():
+    """The shared private HOME/XDG context (tests/rust-parity/private_home.py), loaded by path."""
+    path = Path(__file__).resolve().parents[1] / "private_home.py"
+    spec = importlib.util.spec_from_file_location("rust_parity_private_home", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.private_home()
+
+
 if __name__ == "__main__":
-    main()
+    with _private_home():
+        main()
