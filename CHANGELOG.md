@@ -31,6 +31,14 @@
 
 ### 변경
 
+- 레거시 Make 변형들이 하나의 shadow 디렉터리를 공유할 때 같은 실행이 자기 build lease를 기다리다 모든 C++ 엔진이
+  시간 초과되던 문제를 고쳤습니다. 순수 C++ CMake 프로젝트의 `ici build`가 v0.13.0과 같이 종료 코드 0으로 끝납니다.
+- `coverage_build_argv`가 없는 레거시 Make 프로젝트의 `ici test`/`ici verify`가 v0.13.0과 같이 TestEngine
+  ERROR(종료 코드 1)로 판정되고, 소유 테스트가 없는 ThreadSanitizer 보고는 첫 실패 케이스에 붙습니다.
+- deep 프로필 release 산출물 manifest, Make 변형별 manifest, verify 분석 DB의 `unity_build` 값이 v0.13.0과 같습니다.
+- 레거시 C++ 엔진 설정 키(dup·cognitive·complexity·dead·build·enabled)와 `engines.binary_compat`의 모든 키가
+  v0.13.0 캡처와 같은 결과를 냅니다. ELF ABI finding은 shadow 기준 경로·fingerprint와 v0.13.0과 같은 따옴표 메시지를
+  쓰며, `max_artifacts`를 넘으면 SKIP 대신 분석 불가 ERROR로 보고합니다.
 - 레거시 `ici verify --sarif`가 v0.13.0의 SARIF 문서 형식(`ici/v3` fingerprint, `%SRCROOT%`, run properties,
   10 000개 rule 한도)을 그대로 만들어 code scanning의 기존 경고 중복 제거가 유지됩니다.
 - `--result`로 결과 경로를 지정해도 그 옆에 `.ici` 디렉터리를 만들지 않고, 세부 기록은 프로젝트의
