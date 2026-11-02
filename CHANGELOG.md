@@ -63,6 +63,10 @@
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
 - Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
   문자열로 기록됩니다.
+- 레거시 엔진 보고서의 `extra`에 v0.13.0에만 있던 키(lint·type·sanitize·dup·dead·test·exception·compile_db·cycle·
+  complexity/cognitive)를 같은 이름·자료형·빈 값 의미로 복원했습니다. native 증거는 기존 키를 바꾸지 않고 native
+  이름의 별도 키로 덧붙습니다. pytest만 있고 coverage가 없는 선택 coverage는 v0.13.0처럼 WARN과 종료 코드 0이며,
+  lint fallback도 `metrics_summary`를 기록합니다. 종료 코드 3은 필수 엔진의 증거가 실행되지 않았을 때만 사용합니다.
 - 레거시 `ici lint`/`verify` 보고서가 v0.13.0과 같은 lint `extra` 카운터(clang-tidy/Clazy 모드·진단 계열·fix-it)와
   도구 증거를 기록합니다. clang-tidy 설정의 위험 키 검사는 다시 단어 경계 기준이라 `notExtraArgs` 같은 다른 단어는
   거부하지 않습니다.
