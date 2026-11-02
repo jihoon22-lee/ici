@@ -48,6 +48,8 @@ const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
+const THRESHOLDS: &str =
+    include_str!("../../../tests/rust-parity/reporting/python-threshold-oracle.json");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Kind {
@@ -1000,6 +1002,47 @@ fn cpp_verify_sarif_equals_frozen_except_allowed() {
     let differences = sarif_differences("sarif/cpp", &case["sarif"], &native);
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0 == "sarif/cpp");
+}
+
+/// Frozen `TestEngine._threshold_breaches` for Python coverage (`capture_python_thresholds.py`):
+/// the saved `ici test --report` of each case equals frozen's in full. Positive (`breach`): the
+/// one breached branch minimum is a `Threshold: Branch coverage` WARN target and the met TEM
+/// minimum adds none; negative (`met`): no threshold target; failure (`failure`): a failing test
+/// is never judged against the thresholds.
+#[test]
+#[ignore = "explicit actual pytest and coverage interpreter, as captured (ICI_TEST_PYTHON)"]
+fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(THRESHOLDS).unwrap();
+    let mut differences = vec![];
+    for (name, expected) in [("breach", 1), ("met", 0), ("failure", 0)] {
+        let case = &oracle["cases"][name];
+        let (exits, native) = replay(
+            &case["tree"],
+            &Value::Null,
+            &[vec!["test".into(), "--report".into()]],
+            "test_report.json",
+            false,
+        );
+        assert_eq!(exits, codes(&case["exit_code"]), "{name}: exit");
+        let thresholds: Vec<&Value> = native["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|target| {
+                target["target_name"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("Threshold: "))
+            })
+            .collect();
+        assert_eq!(thresholds.len(), expected, "{name}: {thresholds:?}");
+        differences.extend(result_differences(
+            &format!("thresholds/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("thresholds"));
 }
 
 /// Failure mode of the text and SARIF projections: a changed, missing or added line is reported

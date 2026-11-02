@@ -13,6 +13,18 @@ const CASE_LINE: &str = "open (root decision needed): decisions.md \"pytest는 �
     없는 legacy test\" asks for frozen's line-1 pytest case, but validation.json \
     finding_site:src/ici/engines/test_output.py:195:16 accepted the definition line for every \
     legacy case target (covered or not); amend the row (approve) or revert 195:16 globally";
+const COVERED: &str = "open (validation/reporting): the measured legacy Python coverage result, first \
+    compared in full by the threshold fixture (python-threshold-oracle.json), lacks frozen's \
+    coverage_provenance python/scope shape and carries native keys nested inside frozen \
+    objects (coverage_policy, coverage_provenance, coverage_totals, test_quality) and native \
+    coverage_suites/test_execution; decisions.md \"legacy `extra` 안 native 증거 키\" approves only \
+    separate native keys beside frozen's, so these need a fix or a root ruling";
+const EMPTY_FILE: &str = "open (root ruling proposed): a measured file without statements has \
+    coverage_files cover null (native n/a for an empty denominator, the 22:35 ruling on \
+    validation.json finding_site:src/ici/engines/coverage_policy.py:247:12) where frozen wrote \
+    100.0, so frozen's (cover, file) row order differs too";
+const R14: &str = "validation.json finding_site:src/ici/engines/test_quality.py:87:16 difference_reason \
+    (root 22:35: Threshold targets are no longer counted as failed tests of a `.` test suite)";
 const R1: &str = "decisions.md identity row (native core/tool/policy/scope digest namespace)";
 const R2: &str = "producer version of the run (native ici version)";
 const R3: &str = "config.json capability:doctor-env-cache difference_reason (5)";
@@ -1387,6 +1399,48 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary/baseline", "results[line].extra.top_files_all[].path", Differs, Approved, R13),
     ("summary/baseline", "results[line].extra.top_files_all[].scope", Differs, Approved, R13),
     ("summary/baseline", "results[line].extra.top_files_all[].total", Differs, Approved, R13),
+    ("thresholds", ".duration", Differs, Incidental, R4),
+    ("thresholds", ".extra.coverage_files[].cover", Type, Open, EMPTY_FILE),
+    ("thresholds", ".extra.coverage_policy.anchor_path", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.component_id", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.min_file_statements", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.provider", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.raw_files", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.raw_metrics", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.schema_id", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.schema_version", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_policy.task_id", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_provenance.canonical_suite_id", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_provenance.excluded_sources", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_provenance.format", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_provenance.included_sources", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_provenance.limitations", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_provenance.python", Missing, Open, COVERED),
+    ("thresholds", ".extra.coverage_provenance.scope", Missing, Open, COVERED),
+    ("thresholds", ".extra.coverage_suites", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_totals.cb", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_totals.covered", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_totals.covered_functions", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_totals.functions", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_totals.nb", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("thresholds", ".extra.native_checks", NativeOnly, Approved, R10),
+    ("thresholds", ".extra.target_scopes", NativeOnly, Approved, R10),
+    ("thresholds", ".extra.test_execution", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.test_quality.evidence", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.test_quality.repeat_observations", NativeOnly, Open, COVERED),
+    ("thresholds", ".findings[].primary_location.start_line", Differs, Open, CASE_LINE),
+    ("thresholds", ".native_run", NativeOnly, Approved, R5),
+    ("thresholds", ".targets[].start_line", Differs, Open, CASE_LINE),
+    ("thresholds", ".tool_evidence[].argv", Len, Approved, R12),
+    ("thresholds", ".tool_evidence[].argv[]", Differs, Approved, R12),
+    ("thresholds/breach", ".extra.test_suites", Len, Approved, R14),
+    ("thresholds/met", ".extra.coverage_files[].branch_cover", Type, Open, EMPTY_FILE),
+    ("thresholds/met", ".extra.coverage_files[].cb", Differs, Open, EMPTY_FILE),
+    ("thresholds/met", ".extra.coverage_files[].covered", Differs, Open, EMPTY_FILE),
+    ("thresholds/met", ".extra.coverage_files[].file", Differs, Open, EMPTY_FILE),
+    ("thresholds/met", ".extra.coverage_files[].nb", Differs, Open, EMPTY_FILE),
+    ("thresholds/met", ".extra.coverage_files[].stmts", Differs, Open, EMPTY_FILE),
 ];
 
 /// Line allowances of the text projections the real CLI wrote (`--github-summary` step summary,

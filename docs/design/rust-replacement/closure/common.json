@@ -400,11 +400,11 @@
    "reason": "Complete module reviewed against native migration preview, immutable original/comment-preserving writer and read-only precedence explanation. Native sparse-v2 retains engine settings instead of the historical converter dropping unsupported tuning. Named positive/negative/failure fixtures verify scope, optional coverage, source changes and output ownership."
   },
   "src/ici/engines/line.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "command:ici line"
    ],
-   "reason": "Downgraded mapped->unreviewed (reporting closure worker, 2026-11-02 full saved-result comparison, crates/ici-cli/tests/legacy_engine_extras.rs, support/legacy_result_allowances.rs label summary/baseline, BASELINE open item): under `verify --baseline <file>` frozen's extra-scope collection counts the baseline JSON input (results[line].extra.all/files_data/top_files_all), native excludes the command's own input/output (planning::is_command_output); row command:ici verify (descriptor:line result); needs a root decision. Previous mapped reason: Module fully read; source/gate/extras collection, mixed language ownership, threshold cutoffs, mode exit contracts and fail-on-new are pinned by legacy_line_scope.rs/legacy_line_hybrid.rs, and the documentation-only and monorepo root-extra scopes now equal frozen captures (line-scope-oracle.json). Row command:ici line closed with /tmp/ici-rust-replacement-20261028/w-dec-line.log."
+   "reason": "Module fully read; source/gate/extras collection, mixed language ownership, threshold cutoffs, mode exit contracts and fail-on-new are pinned by legacy_line_scope.rs/legacy_line_hybrid.rs, and the documentation-only and monorepo root-extra scopes now equal frozen captures (line-scope-oracle.json). Row command:ici line closed with /tmp/ici-rust-replacement-20261028/w-dec-line.log. Re-mapped (reporting closure worker, 2026-11-02 second pass): the --baseline input row is the approved defect correction of decisions.md \"`verify --baseline`의 line 집계\" (R13); crates/ici-cli/tests/legacy_engine_extras.rs::baseline_input_line_row_is_the_only_difference_from_frozen proves every other row equals frozen in full and crates/ici-cli/tests/legacy_engine_extras.rs::an_unnamed_project_json_file_is_still_counted_under_baseline that only the named input is excluded."
   },
   "src/ici/reporters/baseline_view.py": {
    "disposition": "mapped",

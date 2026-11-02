@@ -2732,12 +2732,12 @@
    "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
   },
   "src/ici/engines/complexity.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "check:python.complexity",
     "finding_site:src/ici/engines/complexity.py:186:28"
    ],
-   "reason": "Downgraded mapped->unreviewed (reporting closure worker, 2026-11-02 full saved-result comparison, crates/ici-cli/tests/legacy_engine_extras.rs, support/legacy_result_allowances.rs label extras/hybrid, HYBRID open item): the hybrid Python/C++ legacy result of this engine differs from frozen's merge in this file: results[complexity] summary (function count) and score; rows descriptor:complexity, command:ici verify. Previous mapped reason: Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Legacy complexity report shape (F6): compared field for field with frozen `ici complexity --report` (legacy-inventory-oracle.json, crates/ici-cli/tests/legacy_python_inventory.rs); per-file native inventory rows are not legacy targets."
+   "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Legacy complexity report shape (F6): compared field for field with frozen `ici complexity --report` (legacy-inventory-oracle.json, crates/ici-cli/tests/legacy_python_inventory.rs); per-file native inventory rows are not legacy targets. Re-mapped (reporting closure worker, 2026-11-02 second pass): the hybrid merge differences that caused the downgrade are closed in crates/ici-cli/src/legacy_extra.rs (hybrid_tests) and the hybrid verify suite is compared in full by crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed."
   },
   "src/ici/engines/cycle.py": {
    "disposition": "mapped",
@@ -2747,7 +2747,7 @@
    "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Legacy cycle report shape (F6): compared field for field with frozen `ici cycle --report` (legacy-inventory-oracle.json, crates/ici-cli/tests/legacy_python_inventory.rs); per-file native inventory rows are not legacy targets."
   },
   "src/ici/engines/dead.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "capability:legacy-cpp-linker-dead",
     "check:python.dead",
@@ -2755,7 +2755,7 @@
     "finding_site:src/ici/engines/dead.py:270:12",
     "finding_site:src/ici/engines/dead.py:885:15"
    ],
-   "reason": "Downgraded mapped->unreviewed (reporting closure worker, 2026-11-02 full saved-result comparison, crates/ici-cli/tests/legacy_engine_extras.rs, support/legacy_result_allowances.rs label extras/hybrid, HYBRID open item): the hybrid Python/C++ legacy result of this engine differs from frozen's merge in this file: results[dead] status/summary/evidence (frozen WARN for the unavailable C++ dead analysis, native PASS); rows descriptor:dead, command:ici verify. Previous mapped reason: Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
+   "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Re-mapped (reporting closure worker, 2026-11-02 second pass): the hybrid merge differences that caused the downgrade are closed in crates/ici-cli/src/legacy_extra.rs (hybrid_tests) and the hybrid verify suite is compared in full by crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed."
   },
   "src/ici/engines/dup.py": {
    "disposition": "unreviewed",
@@ -2770,7 +2770,7 @@
     "finding_site:src/ici/engines/dup.py:569:20",
     "finding_site:src/ici/engines/dup.py:721:20"
    ],
-   "reason": "Downgraded mapped->unreviewed (reporting closure worker, 2026-11-02 full saved-result comparison, crates/ici-cli/tests/legacy_engine_extras.rs, support/legacy_result_allowances.rs label extras/hybrid, HYBRID open item): the hybrid Python/C++ legacy result of this engine differs from frozen's merge in this file: results[dup] target order (targets[].file_path) and score; rows descriptor:dup, command:ici verify. Previous mapped reason: Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
+   "reason": "Still unreviewed (reporting closure worker, 2026-11-02 second pass): the hybrid score (merged duplication_pct), summary and DuplicateScan path order now follow frozen's single scan (legacy_extra.rs merge_dup_checks, hybrid_tests), but the hybrid verdict stays each language check's own where frozen compares the merged rate with warn_pct/fail_pct and realigns the clone targets (differs when one language alone crosses a threshold the merged rate does not), and frozen's cross-language clone cluster order is not reconstructed; no fixture yet. Downgraded mapped->unreviewed (reporting closure worker, 2026-11-02 full saved-result comparison, crates/ici-cli/tests/legacy_engine_extras.rs, support/legacy_result_allowances.rs label extras/hybrid, HYBRID open item): the hybrid Python/C++ legacy result of this engine differs from frozen's merge in this file: results[dup] target order (targets[].file_path) and score; rows descriptor:dup, command:ici verify. Previous mapped reason: Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
   },
   "src/ici/engines/exception.py": {
    "disposition": "mapped",
@@ -2827,7 +2827,7 @@
    "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
   },
   "src/ici/engines/type_check.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "check:python.type",
     "finding_site:src/ici/engines/type_check.py:306:20",
@@ -2835,7 +2835,7 @@
     "finding_site:src/ici/engines/type_check.py:452:12",
     "finding_site:src/ici/engines/type_check.py:486:32"
    ],
-   "reason": "Downgraded mapped->unreviewed (reporting closure worker, 2026-11-02 full saved-result comparison, crates/ici-cli/tests/legacy_engine_extras.rs, support/legacy_result_allowances.rs label extras/hybrid, HYBRID open item): the hybrid Python/C++ legacy result of this engine differs from frozen's merge in this file: results[type] lacks frozen's C++-skip warning (summary, evidence, finding confidence) and the support_matrix.entries[type/python] row; rows descriptor:type, command:ici verify. Previous mapped reason: Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
+   "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Re-mapped (reporting closure worker, 2026-11-02 second pass): the hybrid merge differences that caused the downgrade are closed in crates/ici-cli/src/legacy_extra.rs (hybrid_tests) and the hybrid verify suite is compared in full by crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed."
   },
   "src/ici/languages/compat.py": {
    "disposition": "mapped",

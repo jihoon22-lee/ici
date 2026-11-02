@@ -849,14 +849,11 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
 /// Frozen `TestEngine.run` of a project without a test file (`_mark_zero_tests`): the counts and
 /// suites of the located FAIL targets, the empty coverage rows, no coverage policy/totals and the
 /// quality block of a run that attempted nothing (`empty_quality_info()` with the profile).
-fn complete_test(engine: &mut Value, context: &Context<'_>) {
-    if engine["extra"].get("no_tests_collected").is_none() {
-        complete_optional_coverage(engine, context.profile);
-        return;
-    }
-    let targets = targets(engine);
+/// Frozen `TestQualityMixin._build_test_suites`: one suite per target file in target order,
+/// coverage and test-quality targets excluded.
+fn frozen_test_suites(targets: &[Value]) -> Vec<Value> {
     let mut suites: Vec<Value> = vec![];
-    for target in &targets {
+    for target in targets {
         let name = target["target_name"].as_str().unwrap_or_default();
         if name.starts_with("Coverage:") || name.starts_with("[test-quality]") {
             continue;
@@ -884,6 +881,77 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
             "message": target["message"],
         }));
     }
+    suites
+}
+
+/// Frozen `_coverage_policy_snapshot` values of a measured Python coverage run: the line and
+/// function metrics and the per-file line coverage are the policy targets' (rounded) actuals,
+/// the branch metric rounded to one decimal; native's own policy keys stay beside them.
+fn frozen_coverage_policy(engine: &mut Value) {
+    let targets = targets(engine);
+    let policy = &mut engine["extra"]["coverage_policy"];
+    if !policy["metrics"].is_object() {
+        return;
+    }
+    let mut files = Map::new();
+    for target in &targets {
+        let actual = target["metrics"]["actual"].as_f64();
+        match (target["target_name"].as_str(), actual) {
+            (Some("Coverage:Overall line"), Some(actual)) => {
+                policy["metrics"]["line"] = json!(actual)
+            }
+            (Some("Coverage:Functions"), Some(actual)) => {
+                policy["metrics"]["function"] = json!(actual)
+            }
+            (Some("Coverage:File"), Some(actual)) => {
+                if let Some(path) = target["file_path"].as_str() {
+                    files.insert(path.to_owned(), json!(actual));
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(branch) = policy["metrics"]["branch"].as_f64() {
+        policy["metrics"]["branch"] =
+            json!(format!("{branch:.1}").parse::<f64>().unwrap_or(branch));
+    }
+    if !files.is_empty() || policy["files"].is_object() {
+        policy["files"] = Value::Object(files);
+    }
+}
+
+fn complete_test(engine: &mut Value, context: &Context<'_>) {
+    if engine["extra"].get("no_tests_collected").is_none() {
+        complete_optional_coverage(engine, context.profile);
+        let python = has_checks(engine, &["python.test"]);
+        if python {
+            // In target (pytest execution) order. The threshold breaches are not test cases
+            // (accepted on validation.json finding_site:src/ici/engines/test_quality.py:87:16:
+            // frozen `_build_test_suites` counted them as failed tests of a `.` suite).
+            let cases: Vec<Value> = targets(engine)
+                .into_iter()
+                .filter(|target| {
+                    !target["target_name"]
+                        .as_str()
+                        .is_some_and(|name| name.starts_with("Threshold: "))
+                })
+                .collect();
+            engine["extra"]["test_suites"] = json!(frozen_test_suites(&cases));
+            if engine["extra"]["test_quality"].is_object() {
+                insert_absent(
+                    &mut engine["extra"]["test_quality"],
+                    "profile",
+                    json!(context.profile),
+                );
+            }
+        }
+        if has_checks(engine, &["python.coverage"]) && !has_checks(engine, &["cpp.coverage"]) {
+            frozen_coverage_policy(engine);
+        }
+        return;
+    }
+    let targets = targets(engine);
+    let suites = frozen_test_suites(&targets);
     let skipped: u64 = targets
         .iter()
         .filter(|target| {
