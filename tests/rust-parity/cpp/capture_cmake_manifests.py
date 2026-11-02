@@ -21,13 +21,18 @@ PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-cmake-manifests"
 BASE = "[project]\ntype='cpp'\nsource_dirs=['src']\n"
 DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-# name: (fixture, command, extra arguments)
+BUILD = "[engines.build]\nenabled=true\n"
+# name: (fixture, command, extra arguments, configuration appended to BASE)
 CASES = {
-    "verify-suite": ("test-cmake/suite", "verify", []),
-    "verify-broken-build": ("test-cmake/broken-build", "verify", []),
-    "test-suite": ("test-cmake/suite", "test", []),
+    "verify-suite": ("test-cmake/suite", "verify", [], ""),
+    "verify-broken-build": ("test-cmake/broken-build", "verify", [], ""),
+    "test-suite": ("test-cmake/suite", "test", [], ""),
     # The deep profile adds the thread-sanitize build session.
-    "verify-deep-plain": ("test-cmake/plain", "verify", ["--profile", "deep"]),
+    "verify-deep-plain": ("test-cmake/plain", "verify", ["--profile", "deep"], ""),
+    # The enabled build engine publishes its release session manifest under verify (deep).
+    "verify-deep-build": ("test-cmake/plain", "verify", ["--profile", "deep"], BUILD),
+    # A failed release build publishes none.
+    "verify-deep-build-broken": ("test-cmake/broken-build", "verify", ["--profile", "deep"], BUILD),
 }
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
@@ -47,13 +52,13 @@ def shape(value):
     return value
 
 
-def run(fixture: str, command: str, args: list[str]) -> dict:
+def run(fixture: str, command: str, args: list[str], config: str) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
         shutil.copytree(ROOT / "parity-fixtures/cpp" / fixture, project)
-        (project / "ici.toml").write_text(BASE, encoding="utf-8")
+        (project / "ici.toml").write_text(BASE + config, encoding="utf-8")
         git = ["git", "-c", "user.email=ici@example.invalid", "-c", "user.name=ici"]
         subprocess.run(["git", "init", "-q", str(project)], check=True)
         subprocess.run([*git, "-C", str(project), "add", "-A"], check=True)
@@ -86,9 +91,10 @@ cases = {
         "fixture": fixture,
         "command": command,
         "args": args,
-        "frozen": run(fixture, command, args),
+        "config": config,
+        "frozen": run(fixture, command, args, config),
     }
-    for name, (fixture, command, args) in CASES.items()
+    for name, (fixture, command, args, config) in CASES.items()
 }
 (ROOT / "tests/rust-parity/cpp/cmake-manifests-oracle.json").write_text(
     json.dumps(

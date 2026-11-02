@@ -7,7 +7,7 @@ pub use artifact_facts::{compiled_artifact_kind, compiled_artifacts};
 pub use direct::{DirectPreparation, plan_legacy_direct_preparation};
 use ici_config::{Build, Component, ResolvedProject};
 use ici_cpp::{BuildLease, BuildPlan, BuildRequest, CompilationContext, ContextRequest};
-use ici_domain::sha256;
+use ici_domain::{AnalysisOutput, sha256};
 use ici_execution::{Cancellation, Scheduler};
 use ici_providers::resolver::{ResolvedTool, ToolRequest};
 pub use preparation_failure::{PreparationFailure, PreparationUnavailable};
@@ -40,7 +40,8 @@ pub struct ContextPreparationPlan {
     pub direct: Option<DirectPreparation>,
     /// Frozen legacy `prepare_cmake_compilation_context` only configures the release shadow
     /// (it builds only to generate missing sources), so a `verify` whose release build fails
-    /// still analyses the configured database. Set only when no check consumes release artifacts.
+    /// still analyses the configured database. A selected `cpp.artifact` (the BuildEngine) then
+    /// reports the build failure itself and `cpp.binary-compat` stays blocked.
     pub configured_context_on_build_failure: bool,
 }
 #[derive(Clone)]
@@ -60,6 +61,9 @@ pub struct PreparedContext {
     pub evidence: Option<Value>,
     /// The failed build step of a configured-only legacy release context (frozen never builds it).
     pub build_failure: Option<String>,
+    /// The frozen BuildEngine adapter failure of that build step (`<backend> build failed: …`),
+    /// which a selected `cpp.artifact` reports while the source checks analyse the database.
+    pub build_failure_output: Option<Box<AnalysisOutput>>,
     _lease: Arc<BuildLease>,
 }
 
@@ -523,6 +527,26 @@ fn execute_native_preparation(
                 // error, a failed build means no complete artifact set.
                 let step = outcome.task_id.rsplit(':').next().unwrap_or("compile");
                 let configuration = step == "configure";
+                let message = format!(
+                    "{} {} failed: {}",
+                    plan.build.system,
+                    if configuration { "configure" } else { "build" },
+                    String::from_utf8_lossy(&outcome.stderr)
+                        .chars()
+                        .take(200)
+                        .collect::<String>()
+                );
+                let mut output = crate::cpp::build_failure(
+                    &outcome.task_id,
+                    &plan.descriptor,
+                    &plan.descriptor,
+                    configuration,
+                    &message,
+                    &detail,
+                );
+                output.observation.exit_code = outcome.exit_code;
+                output.observation.timed_out = outcome.timed_out;
+                output.observation.truncated = outcome.truncated;
                 if !configuration && plan.configured_context_on_build_failure {
                     let context = prepared_context(plan);
                     if context.database_path.is_some()
@@ -544,30 +568,11 @@ fn execute_native_preparation(
                             test_compile_failures: BTreeMap::new(),
                             evidence: None,
                             build_failure: Some(detail),
+                            build_failure_output: Some(Box::new(output)),
                             _lease: lease.clone(),
                         });
                     }
                 }
-                let message = format!(
-                    "{} {} failed: {}",
-                    plan.build.system,
-                    if configuration { "configure" } else { "build" },
-                    String::from_utf8_lossy(&outcome.stderr)
-                        .chars()
-                        .take(200)
-                        .collect::<String>()
-                );
-                let mut output = crate::cpp::build_failure(
-                    &outcome.task_id,
-                    &plan.descriptor,
-                    &plan.descriptor,
-                    configuration,
-                    &message,
-                    &detail,
-                );
-                output.observation.exit_code = outcome.exit_code;
-                output.observation.timed_out = outcome.timed_out;
-                output.observation.truncated = outcome.truncated;
                 return Err(PreparationFailure::Observed {
                     phase: format!("{} {step}", plan.build.system),
                     output: Box::new(output),
@@ -671,6 +676,7 @@ fn execute_native_preparation(
         test_compile_failures: BTreeMap::new(),
         evidence: None,
         build_failure: None,
+        build_failure_output: None,
         _lease: lease.clone(),
     })
 }

@@ -6,6 +6,9 @@ use ici_cli::{commands, cpp::set_legacy_tooling_budget_for_tests, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, time::Duration};
 
+#[path = "support/lint_extra.rs"]
+mod lint_extra;
+
 const FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -227,6 +230,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
         "evidence": engine["evidence"],
         "targets": targets,
         "findings": engine["findings"],
+        "extra": engine["extra"],
+        "tool_evidence": engine["tool_evidence"],
     });
     captured["verify_exit_code"] = json!(output.exit_code);
     if case["tools"]
@@ -245,13 +250,13 @@ fn run(oracle: &Value, case: &Value) -> Value {
 }
 
 /// Security correction (docs/design/rust-replacement/decisions.md "clang-tidy 설정의 escape된
-/// 인자 키"): frozen ran clang-tidy with these configs (its raw-text, word-bounded key regex
-/// missed LLVM YAML double-quoted escapes and in-word mentions); native refuses them.
-const INTENDED_REFUSALS: [&str; 4] = [
+/// 인자 키"): frozen ran clang-tidy with these configs (its raw-text key regex missed LLVM YAML
+/// double-quoted escapes); native refuses them. The word-bounded literal match itself is kept, so
+/// `tidy-config-word-boundary` (in-word `notExtraArgs`) runs clang-tidy exactly like frozen.
+const INTENDED_REFUSALS: [&str; 3] = [
     "tidy-config-escaped-key",
     "tidy-config-quote-desync",
     "tidy-discovered-escaped-key",
-    "tidy-config-word-boundary",
 ];
 const REFUSAL: &str = "clang-tidy config may not add compiler arguments or inherit parent config";
 
@@ -369,6 +374,16 @@ fn legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv()
                     .iter()
                     .any(|argument| argument == "--checks=-*,readability-function-size")
             });
+        }
+        // The frozen LintEngine counters and tool evidence (not of an intended refusal, which
+        // runs no clang-tidy unit).
+        let differences = lint_extra::split(&mut actual, &mut frozen);
+        if !INTENDED_REFUSALS.contains(&name.as_str()) && !differences.is_empty() {
+            eprintln!(
+                "== {name} (extra/tool_evidence)\n{}",
+                differences.join("\n")
+            );
+            mismatches.push(format!("{name}/extra"));
         }
         let frozen = &frozen;
         if frozen.get("exit_code").is_some() {

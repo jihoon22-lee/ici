@@ -5,6 +5,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
 
+#[path = "support/lint_extra.rs"]
+mod lint_extra;
+
 const FIELDS: [&str; 7] = [
     "target_name",
     "status",
@@ -160,6 +163,10 @@ fn run_at(
         "targets": targets,
         "findings": engine["findings"],
     });
+    let (extra, tools) =
+        lint_extra::captured(&engine, &[(root.path().display().to_string(), "{root}")]);
+    captured["extra"] = extra;
+    captured["tool_evidence"] = tools;
     if command != "verify" {
         captured["exit_code"] = json!(output.exit_code);
     }
@@ -204,13 +211,22 @@ fn legacy_qt_codegen_and_major_evidence_match_frozen_lint_targets_and_findings()
     assert_eq!(cases.len(), 14);
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let actual = run(&oracle, case, &markers, &path);
-        if actual != case["frozen"] {
+        let mut actual = run(&oracle, case, &markers, &path);
+        let mut frozen = case["frozen"].clone();
+        let differences = lint_extra::split(&mut actual, &mut frozen);
+        if !differences.is_empty() {
+            eprintln!(
+                "== {name} (extra/tool_evidence)\n{}",
+                differences.join("\n")
+            );
+            mismatches.push(format!("{name}/extra"));
+        }
+        if actual != frozen {
             mismatches.push(name.clone());
             eprintln!(
                 "== {name}\nactual: {}\nfrozen: {}",
                 serde_json::to_string(&actual).unwrap(),
-                serde_json::to_string(&case["frozen"]).unwrap()
+                serde_json::to_string(&frozen).unwrap()
             );
         }
     }
@@ -245,11 +261,14 @@ fn legacy_qt_codegen_through_a_symlinked_root_never_reports_a_foreign_context_ro
     let path = format!("{directory}:/usr/bin:/bin");
     for name in ["qt5-linked", "qt6-linked", "qt-context-error"] {
         let case = &oracle["cases"][name];
-        let actual = run_at(&oracle, case, &markers, &path, true);
+        let mut actual = run_at(&oracle, case, &markers, &path, true);
         assert!(
             !actual.to_string().contains("QtCodegenContextError"),
             "{name}: {actual}"
         );
-        assert_eq!(actual, case["frozen"], "{name}");
+        let mut frozen = case["frozen"].clone();
+        let differences = lint_extra::split(&mut actual, &mut frozen);
+        assert!(differences.is_empty(), "{name}: {differences:?}");
+        assert_eq!(actual, frozen, "{name}");
     }
 }

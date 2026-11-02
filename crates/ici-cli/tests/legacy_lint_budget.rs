@@ -7,6 +7,9 @@ use ici_cli::{commands, cpp::set_legacy_syntax_budget_for_tests, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, time::Duration};
 
+#[path = "support/lint_extra.rs"]
+mod lint_extra;
+
 const FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -109,6 +112,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
         "evidence": engine["evidence"],
         "targets": targets,
         "findings": engine["findings"],
+        "extra": engine["extra"],
+        "tool_evidence": engine["tool_evidence"],
     });
     if command != "verify" {
         captured["exit_code"] = json!(output.exit_code);
@@ -148,12 +153,21 @@ fn legacy_cpp_lint_global_time_budget_matches_frozen_targets_summaries_and_evide
     assert_eq!(cases.len(), 5);
     let mut mismatches = vec![];
     for (name, case) in cases {
-        let actual = run(&oracle, case);
-        if actual != case["frozen"] {
+        let mut actual = run(&oracle, case);
+        let mut frozen = case["frozen"].clone();
+        let differences = lint_extra::split(&mut actual, &mut frozen);
+        if !differences.is_empty() {
+            eprintln!(
+                "== {name} (extra/tool_evidence)\n{}",
+                differences.join("\n")
+            );
+            mismatches.push(format!("{name}/extra"));
+        }
+        if actual != frozen {
             eprintln!(
                 "== {name}\nactual: {}\nfrozen: {}",
                 serde_json::to_string(&actual).unwrap(),
-                serde_json::to_string(&case["frozen"]).unwrap()
+                serde_json::to_string(&frozen).unwrap()
             );
             mismatches.push(name.clone());
         }

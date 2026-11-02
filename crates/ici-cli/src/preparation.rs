@@ -242,6 +242,9 @@ pub fn execute(
     let mut failures = vec![];
     let mut outputs = BTreeMap::new();
     let mut observed_failures = BTreeSet::new();
+    // `cpp.artifact` checks whose configured legacy release build failed: their BuildEngine
+    // result is that failure, so their own artifact preparation never runs.
+    let mut adapter_failures = BTreeSet::new();
     if intake_ok && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
@@ -273,6 +276,35 @@ pub fn execute(
                         limitations.push(format!(
                             "{} {} build failed; its configured compilation database is analysed like frozen, which never builds this shadow: {failure}",
                             plan.component_id, plan.build.variant
+                        ));
+                    }
+                    // Frozen BuildEngine `_compile_cpp`: the failed adapter build is its own
+                    // `BuildAdapter` FAIL, beside the source checks that keep the database;
+                    // only the checks that consume release artifacts stop.
+                    if let Some(failed) = &context.build_failure_output {
+                        let failure = crate::export_context::PreparationFailure::Observed {
+                            phase: format!("{} compile", plan.build.system),
+                            output: failed.clone(),
+                        };
+                        if let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id
+                                && check.check.id == "cpp.artifact"
+                        }) && let Some(mut observed) = failure.observed_for(&check.task_id)
+                        {
+                            if let Err(redaction) = crate::execute::redact(&mut observed) {
+                                limitations
+                                    .push(format!("build adapter evidence redaction: {redaction}"));
+                            } else {
+                                outputs.insert(check.task_id.clone(), observed);
+                                observed_failures.insert(check.task_id.clone());
+                                adapter_failures.insert(check.task_id.clone());
+                            }
+                        }
+                        failures.push((
+                            plan.component_id.clone(),
+                            plan.build.variant.clone(),
+                            failure.to_string(),
+                            true,
                         ));
                     }
                     contexts.push(context);
@@ -465,6 +497,9 @@ pub fn execute(
             if runtime.cancellation.is_cancelled() {
                 break;
             }
+            if adapter_failures.contains(&check.task_id) {
+                continue;
+            }
             let Some(build) = prepared.artifact_builds.get(&check.task_id).cloned() else {
                 continue;
             };
@@ -595,13 +630,18 @@ pub fn execute(
             prepared.graph.blocked.remove(&check.task_id);
         }
     }
+    // Nothing was published for a failed adapter build, so no output ownership is verified.
+    for task_id in &adapter_failures {
+        prepared.artifact_builds.remove(task_id);
+    }
     for (component, variant, reason, direct) in failures {
         for check in &prepared.plan.checks {
             if check.component_id != component || check.check.language != "cpp" {
                 continue;
             }
-            // A failed legacy direct release compile is the BuildEngine's own failure; the
-            // source checks keep their database-free analysis like frozen.
+            // A failed legacy direct release compile, or the failed build of a configured legacy
+            // CMake release context, is the BuildEngine's own failure; the source checks keep
+            // their analysis like frozen.
             let affected = if direct && variant == "release" {
                 matches!(
                     check.check.id.as_str(),

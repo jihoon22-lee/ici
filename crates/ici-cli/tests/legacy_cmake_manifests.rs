@@ -51,7 +51,15 @@ fn run(oracle: &Value, case: &Value) -> Value {
             .join(case["fixture"].as_str().unwrap()),
         &root,
     );
-    fs::write(root.join("ici.toml"), oracle["base"].as_str().unwrap()).unwrap();
+    fs::write(
+        root.join("ici.toml"),
+        format!(
+            "{}{}",
+            oracle["base"].as_str().unwrap(),
+            case["config"].as_str().unwrap_or("")
+        ),
+    )
+    .unwrap();
     let git = |args: &[&str]| {
         let output = Command::new("git")
             .args([
@@ -144,6 +152,9 @@ fn frozen(case: &Value) -> Value {
 /// Positive: `ici verify` on a CMake suite publishes one coverage (test) and one sanitize
 /// manifest with frozen paths, kinds, modes, ids and targets. Negative: standalone `ici test`
 /// has no analysis context and publishes none. Failure: a CMake build that fails publishes none.
+/// The enabled deep build engine publishes its release manifest (verify-deep-build); with a
+/// failing build it is the frozen BuildAdapter FAIL and the run exits 1 like frozen, because the
+/// source engines keep the configured database (verify-deep-build-broken).
 #[test]
 #[ignore = "explicit actual CMake/g++ build: /usr/bin/cmake (4.2.3) and /usr/bin/g++ must be the captured tools"]
 fn legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests() {

@@ -1,0 +1,934 @@
+{
+ "cases": {
+  "make-elf-integration": {
+   "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+   ],
+   "engines": {
+    "binary_compat": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "confidence": "high",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "path": "lib/libgreeter.so",
+       "rule_id": "ici.legacy.binary-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "readelf binary compatibility",
+       "tool_rule_id": "BinaryCompatibility:release:shadow:lib/libgreeter.so"
+      },
+      {
+       "confidence": "high",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "path": "app",
+       "rule_id": "ici.legacy.binary-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "readelf binary compatibility",
+       "tool_rule_id": "BinaryCompatibility:release:shadow:app"
+      }
+     ],
+     "status": "PASS",
+     "summary": "ELF compatibility: 2 checked, 0 violation(s), 0 skipped",
+     "targets": [
+      {
+       "file_path": "app",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:app"
+      },
+      {
+       "file_path": "lib/libgreeter.so",
+       "message": "ELF dependency, loader path, and ABI evidence verified",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BinaryCompatibility:release:shadow:lib/libgreeter.so"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/readelf",
+        "--file-header",
+        "--sections",
+        "--dynamic",
+        "--version-info",
+        "--wide",
+        "<root>/build/ici-make/app"
+       ],
+       "error": "",
+       "name": "readelf binary compatibility",
+       "path": "/usr/bin/readelf",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/readelf",
+        "--file-header",
+        "--sections",
+        "--dynamic",
+        "--version-info",
+        "--wide",
+        "<root>/build/ici-make/lib/libgreeter.so"
+       ],
+       "error": "",
+       "name": "readelf binary compatibility",
+       "path": "/usr/bin/readelf",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    },
+    "build": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "confidence": "high",
+       "message": "Generated env.csh",
+       "path": "v1.0.0/x86_64/env.csh",
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "path": "Makefile",
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Generated env.sh",
+       "path": "v1.0.0/x86_64/env.sh",
+       "rule_id": "ici.legacy.build.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "PASS",
+     "summary": "Build Completed: project v1.0.0 into v1.0.0/x86_64",
+     "targets": [
+      {
+       "file_path": "Makefile",
+       "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "BuildAdapter[make]"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.sh",
+       "message": "Generated env.sh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      },
+      {
+       "file_path": "v1.0.0/x86_64/env.csh",
+       "message": "Generated env.csh",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "EnvironmentScript"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [],
+       "error": "",
+       "name": "build backend selection: Makefile at the project root selected the configured Make backend",
+       "path": "",
+       "returncode": null,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/make",
+        "OUT=build/ici-make",
+        "clean"
+       ],
+       "error": "",
+       "name": "make clean",
+       "path": "/usr/bin/make",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/make",
+        "CXX=g++",
+        "OUT=build/ici-make",
+        "build"
+       ],
+       "error": "",
+       "name": "make build",
+       "path": "/usr/bin/make",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    },
+    "integration": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "confidence": "high",
+       "message": "All process and output artifact assertions passed",
+       "path": "ici.toml",
+       "rule_id": "ici.legacy.integration.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "integration case: native-self-test",
+       "tool_rule_id": "Integration:native-self-test"
+      }
+     ],
+     "status": "PASS",
+     "summary": "Integration contracts: 1 run, 0 violation(s)",
+     "targets": [
+      {
+       "file_path": "ici.toml",
+       "message": "All process and output artifact assertions passed",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "Integration:native-self-test"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "<root>/build/ici-make/app",
+        "--self-test"
+       ],
+       "error": "",
+       "name": "integration case: native-self-test",
+       "path": "<root>/build/ici-make/app",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 0,
+   "scenario": "cpp.make-elf-integration",
+   "suite_status": "PASS"
+  },
+  "malformed-compile-db": {
+   "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+   ],
+   "engines": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "confidence": "high",
+       "message": "Compilation configuration was inspected.",
+       "path": "src/main.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "A compilation database entry is not an object.",
+       "path": "compile_commands.json",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "high",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Production translation unit is covered by the compilation database.",
+       "path": "src/main.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "FAIL",
+     "summary": "Compilation DB: 1/1 production units covered, 1 configurations, 1 failures, 0 warnings.",
+     "targets": [
+      {
+       "file_path": "src/main.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "file_path": "compile_commands.json",
+       "message": "A compilation database entry is not an object.",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "ici.compile-db.invalid-entry"
+      },
+      {
+       "file_path": "src/main.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ],
+     "tool_evidence": []
+    }
+   },
+   "exit_code": 1,
+   "scenario": "cpp.malformed-compile-db",
+   "suite_status": "FAIL"
+  },
+  "static-build-context": {
+   "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+   ],
+   "engines": {
+    "compile_db": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "confidence": "high",
+       "message": "Compilation configuration was inspected.",
+       "path": "src/target17.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compilation configuration was inspected.",
+       "path": "src/warning.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Production translation unit is covered by the compilation database.",
+       "path": "src/target17.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Production translation unit is covered by the compilation database.",
+       "path": "src/warning.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Production translation unit is covered by the compilation database.",
+       "path": "src/unresolved.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compilation configuration was inspected.",
+       "path": "src/target20.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Production translation unit is covered by the compilation database.",
+       "path": "src/compile_error_user.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compilation configuration was inspected.",
+       "path": "src/compile_error_user.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Production translation unit is covered by the compilation database.",
+       "path": "src/target20.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compilation configuration was inspected.",
+       "path": "src/unresolved.cpp",
+       "rule_id": "ici.legacy.compile-db.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "PASS",
+     "summary": "Compilation DB: 5/5 production units covered, 5 configurations, 0 failures, 0 warnings.",
+     "targets": [
+      {
+       "file_path": "src/compile_error_user.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "file_path": "src/target17.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "file_path": "src/target20.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "file_path": "src/unresolved.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "file_path": "src/warning.cpp",
+       "message": "Production translation unit is covered by the compilation database.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.coverage"
+      },
+      {
+       "file_path": "src/compile_error_user.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "file_path": "src/target17.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "file_path": "src/target20.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "file_path": "src/unresolved.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      },
+      {
+       "file_path": "src/warning.cpp",
+       "message": "Compilation configuration was inspected.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ici.compile-db.configuration"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "cycle": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "confidence": "high",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "path": "src/compile_error_user.cpp",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "path": "src/target20.cpp",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compiler could not resolve active include \"generated/config.hpp\"; no dependency edge was recorded",
+       "path": "src/unresolved.cpp",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "path": "src/warning.cpp",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "path": "src/target17.cpp",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "compiler include trace",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "C++ include cycle (2 files): config.hpp -> cycle.hpp -> config.hpp",
+       "path": "include/first/config.hpp",
+       "rule_id": "ici.legacy.cycle.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "compiler include trace",
+       "tool_rule_id": "CppCycle:2"
+      }
+     ],
+     "status": "WARN",
+     "summary": "Dependency cycles: 1 found; C++ include graph incomplete: 0 ambiguous, 1 unresolved",
+     "targets": [
+      {
+       "file_path": "src/compile_error_user.cpp",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      },
+      {
+       "file_path": "src/target17.cpp",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      },
+      {
+       "file_path": "src/target20.cpp",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      },
+      {
+       "file_path": "src/warning.cpp",
+       "message": "Compiler include tracing completed for this translation-unit configuration.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "CppIncludeTrace"
+      },
+      {
+       "file_path": "src/unresolved.cpp",
+       "message": "Compiler could not resolve active include \"generated/config.hpp\"; no dependency edge was recorded",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppIncludeUnresolved"
+      },
+      {
+       "file_path": "include/first/config.hpp",
+       "message": "C++ include cycle (2 files): config.hpp -> cycle.hpp -> config.hpp",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CppCycle:2"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-w",
+        "-E",
+        "-H",
+        "-o",
+        "/dev/null",
+        "<root>/src/compile_error_user.cpp"
+       ],
+       "error": "",
+       "name": "compiler include trace",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-DQZ_CXX17=1",
+        "-I<root>/include/first",
+        "-I<root>/include/second",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-w",
+        "-E",
+        "-H",
+        "-o",
+        "/dev/null",
+        "<root>/src/target17.cpp"
+       ],
+       "error": "",
+       "name": "compiler include trace",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-DQZ_CXX20=1",
+        "-I<root>/include/second",
+        "-I<root>/include/first",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-fdiagnostics-color=never",
+        "-w",
+        "-E",
+        "-H",
+        "-o",
+        "/dev/null",
+        "<root>/src/target20.cpp"
+       ],
+       "error": "",
+       "name": "compiler include trace",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-w",
+        "-E",
+        "-H",
+        "-o",
+        "/dev/null",
+        "<root>/src/unresolved.cpp"
+       ],
+       "error": "",
+       "name": "compiler include trace",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-w",
+        "-E",
+        "-H",
+        "-o",
+        "/dev/null",
+        "<root>/src/warning.cpp"
+       ],
+       "error": "",
+       "name": "compiler include trace",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    },
+    "lint": {
+     "evidence": "MEASURED",
+     "findings": [
+      {
+       "confidence": "exact",
+       "message": "warning: unused variable 'unused_local'",
+       "path": "src/warning.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "start_line": 2,
+       "tool_name": "c++",
+       "tool_rule_id": "-Wunused-variable"
+      },
+      {
+       "confidence": "high",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "path": "src/target17.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": "C++Syntax:b514324da147"
+      },
+      {
+       "confidence": "exact",
+       "message": "fatal error: generated/config.hpp: No such file or directory",
+       "path": "src/unresolved.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "high",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "exact",
+       "message": "error: 'missing_symbol_for_quality_zoo' was not declared in this scope",
+       "path": "include/bad_compile.hpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "high",
+       "start_line": 4,
+       "tool_name": "c++",
+       "tool_rule_id": ""
+      },
+      {
+       "confidence": "high",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "path": "src/target20.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": "C++Syntax:65e1ec259ff1"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "2 Errors, 1 Warnings Found",
+     "targets": [
+      {
+       "file_path": "include/bad_compile.hpp",
+       "message": "error: 'missing_symbol_for_quality_zoo' was not declared in this scope",
+       "start_line": 4,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "file_path": "src/target17.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:b514324da147"
+      },
+      {
+       "file_path": "src/target20.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:65e1ec259ff1"
+      },
+      {
+       "file_path": "src/unresolved.cpp",
+       "message": "fatal error: generated/config.hpp: No such file or directory",
+       "start_line": 1,
+       "status": "FAIL",
+       "target_name": "C++Syntax"
+      },
+      {
+       "file_path": "src/warning.cpp",
+       "message": "warning: unused variable 'unused_local'",
+       "start_line": 2,
+       "status": "WARN",
+       "target_name": "Compiler:-Wunused-variable"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+        "<root>/src/compile_error_user.cpp"
+       ],
+       "error": "",
+       "name": "c++",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-DQZ_CXX17=1",
+        "-I<root>/include/first",
+        "-I<root>/include/second",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+        "<root>/src/target17.cpp"
+       ],
+       "error": "",
+       "name": "c++",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-DQZ_CXX20=1",
+        "-I<root>/include/second",
+        "-I<root>/include/first",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++20",
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+        "<root>/src/target20.cpp"
+       ],
+       "error": "",
+       "name": "c++",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+        "<root>/src/unresolved.cpp"
+       ],
+       "error": "",
+       "name": "c++",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+        "<root>/src/warning.cpp"
+       ],
+       "error": "",
+       "name": "c++",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 1,
+   "scenario": "cpp.static-build-context",
+   "suite_status": "FAIL"
+  }
+ },
+ "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

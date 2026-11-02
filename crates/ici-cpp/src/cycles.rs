@@ -395,7 +395,7 @@ fn legacy(
     output.extra = json!({"cycles":cycles,"graph":graph,"evidence":"estimated","cpp_cycles":cycles.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit),"cpp_include_resolution":"unique_project_path_suffix","resolved_cpp_includes":resolved,"ambiguous_cpp_includes":ambiguous,"unresolved_cpp_includes":diagnostics.len()-ambiguous,"include_diagnostics":diagnostics.len(),"cpp_include_diagnostics_truncated":diagnostics.len().saturating_sub(limit)});
 }
 /// Frozen `_find_actual_cycle_path`: follow real edges inside the component back to start.
-fn actual_cycle_path(
+pub(crate) fn actual_cycle_path(
     start: &str,
     members: &[String],
     graph: &BTreeMap<String, BTreeSet<String>>,
