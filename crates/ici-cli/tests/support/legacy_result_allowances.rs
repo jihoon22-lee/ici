@@ -2,13 +2,9 @@
 // (capture or exact replay label, normalized path, kind, class, reason with its citation).
 // `Incidental` = a field that differs run to run or host to host; `Approved` = an intended
 // difference recorded in decisions.md or a fragment difference_reason (cited); `Open` = a
-// difference not yet fixed or approved (the C++ tool argv/path native actually ran), listed so
-// it never passes silently. Paths: suite keys, `results[<engine>]`, `.key` for engine reports,
-// `[]` for list positions. Generated from the replay table, then reviewed.
-const ACTUAL: &str = "open (cpp area, root ruling requested): native records the compiler \
-    process it actually ran (decisions.md \"C++ 도구 증거는 실제 실행 기록\"): the PATH `/usr/bin/g++` \
-    with the native replay flag order and GNU byte-column flags, where frozen recorded its \
-    resolved capability path (`x86_64-linux-gnu-g++-15`) and its own argv";
+// difference not yet fixed or approved, listed so it never passes silently (none remain). Paths:
+// suite keys, `results[<engine>]`, `.key` for engine reports, `[]` for list positions. Generated
+// from the replay table, then reviewed.
 const R15: &str = "decisions.md \"pytest는 있으나 coverage가 없는 legacy test\" (amended): the \
     case start_line follows the accepted definition-line difference (validation.json \
     finding_site:src/ici/engines/test_output.py:195:16) with or without coverage";
@@ -32,6 +28,10 @@ const R13: &str = "decisions.md \"`verify --baseline`의 line 집계\" (defect c
     --baseline JSON row frozen counted is absent; every other row equals frozen in full \
     (legacy_engine_extras.rs::baseline_input_line_row_is_the_only_difference_from_frozen)";
 const R9: &str = "validation.json finding_site:src/ici/engines/test.py:352:12 difference_reason (no fabricated coverage/TEM/max_score/ESTIMATED)";
+const RCPP_TOOLS: &str = "decisions.md \"compiler·linker·binutils 실제 실행 증거\" (with \"C++ 도구 \
+    증거는 실제 실행 기록\"): tool evidence records the compiler process native actually ran, the PATH \
+    `/usr/bin/g++` with the native replay argv, where frozen recorded its resolved \
+    `x86_64-linux-gnu-g++-15` path and its own argv; verdicts, findings, locations and metrics equal frozen";
 
 #[rustfmt::skip]
 const ALLOWANCES: &[Allowance] = &[
@@ -934,13 +934,13 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/cpp-database", "results[complexity].duration", Differs, Incidental, R4),
     ("extras/cpp-database", "results[cycle].cache_key", Type, Approved, R6),
     ("extras/cpp-database", "results[cycle].duration", Differs, Incidental, R4),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].argv", Len, Open, ACTUAL),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].argv[]", Differs, Open, ACTUAL),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].path", Differs, Open, ACTUAL),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
     ("extras/cpp-database", "results[dead].duration", Differs, Incidental, R4),
-    ("extras/cpp-database", "results[dead].tool_evidence[].argv", Len, Open, ACTUAL),
-    ("extras/cpp-database", "results[dead].tool_evidence[].argv[]", Differs, Open, ACTUAL),
-    ("extras/cpp-database", "results[dead].tool_evidence[].path", Differs, Open, ACTUAL),
+    ("extras/cpp-database", "results[dead].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[dead].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[dead].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
     ("extras/cpp-database", "results[dup].cache_key", Type, Approved, R6),
     ("extras/cpp-database", "results[dup].duration", Differs, Incidental, R4),
     ("extras/cpp-database", "results[exception].cache_key", Type, Approved, R6),

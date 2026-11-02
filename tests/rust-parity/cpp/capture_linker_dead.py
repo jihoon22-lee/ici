@@ -1,10 +1,15 @@
 """Development-only frozen legacy GNU ELF linker dead-function captures; never Rust.
 
-Runs the frozen CLI `ici dead --report` (cpp_unused='off', cpp_linker='required') in a fresh
-copy of each parity-fixtures/cpp/linker-dead tree with PATH=/usr/bin:/bin and LANG/LC_ALL=C.UTF-8:
-`discarded` relinks two CMake executables sharing one object, where GNU ld discards one hidden
-function in both links (one `ici.dead.gnu-elf-discarded-function`); `clean` relinks one
-executable that uses every hidden function; `broken` fails its CMake configure. Keeps the exit
+Runs the frozen CLI `ici dead --report` in a fresh copy of each parity-fixtures/cpp/linker-dead
+tree (its ici.toml sets cpp_unused/cpp_linker; 'off'/'required' unless named below) with
+PATH=/usr/bin:/bin and LANG/LC_ALL=C.UTF-8: `discarded` relinks two CMake executables sharing
+one object, where GNU ld discards one hidden function in both links (one
+`ici.dead.gnu-elf-discarded-function`); `clean` relinks one executable that uses every hidden
+function; `broken` fails its CMake configure; `build-failure` configures and then fails its
+shadow build. Exclusions: `archive` has a static library target (a two-line link.txt);
+`archive-auto` is the same tree under cpp_linker='auto'; `shared` skips a shared library target
+and relinks the executable linking it; `lto` links its executable with -flto. `unused-and-linker`
+runs cpp_unused='required' beside cpp_linker='required' (both scopes merged). Keeps the exit
 code, status, evidence, required flag, summary, targets, findings, the whole engine extra and the
 tool evidence names and return codes, with the project root written as `<root>`.
 """

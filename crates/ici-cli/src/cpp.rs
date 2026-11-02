@@ -517,7 +517,20 @@ impl CppPlans {
                         .insert(component.id.clone(), replayed.clone());
                     replayed
                 } else {
-                    context.units.clone()
+                    // Frozen `expand_diagnostics` replays only the units of the component's own
+                    // sources (not build-generated or other components' rows; unity containers
+                    // stay, their observed coverage establishes membership), ordered by source,
+                    // then directory.
+                    let mut units: Vec<_> = context
+                        .units
+                        .iter()
+                        .filter(|unit| {
+                            context.unity_build || context.selected_sources.contains(&unit.source)
+                        })
+                        .cloned()
+                        .collect();
+                    units.sort_by(|a, b| (&a.source, &a.directory).cmp(&(&b.source, &b.directory)));
+                    units
                 };
                 if self.legacy_projection {
                     self.legacy_unit_notes.insert(id.into(), notes);
@@ -528,28 +541,35 @@ impl CppPlans {
                         Ok(tool) => tool,
                         Err(reason) => return Some(blocked(reason)),
                     };
-                    let replay = match ici_cpp::replay_command(
-                        &project.root,
-                        unit,
-                        &tool.path,
-                        ReplayPurpose::Diagnostics,
-                    ) {
-                        Ok(replay) => replay,
-                        Err(error) => return Some(blocked(error.to_string())),
+                    let purpose = if self.legacy_projection {
+                        ReplayPurpose::Diagnostics
+                    } else {
+                        ReplayPurpose::BuildDiagnostics
                     };
+                    let replay =
+                        match ici_cpp::replay_command(&project.root, unit, &tool.path, purpose) {
+                            Ok(replay) => replay,
+                            Err(error) => return Some(blocked(error.to_string())),
+                        };
                     let mut request = ProviderRequest::new(
                         ProviderKind::Compiler,
                         tool,
                         &project.root,
                         &replay.cwd,
                         vec![unit.source.clone()],
-                        format!("{id}.unit{index}"),
+                        if self.legacy_projection {
+                            format!("{id}.unit{index}")
+                        } else {
+                            // Frozen next per-TU task id `<task>.<task_slug(source)>-<n>`.
+                            format!("{id}.{}-{index}", task_slug(&unit.source))
+                        },
                     );
                     request.component_id = Some(component.id.clone());
                     request.analysis_unit_ids = vec![unit_id(component, unit)];
                     request.variant = Some(unit.variant.clone());
                     request.options.compiler_argv = replay.argv;
                     request.options.legacy = self.legacy_projection;
+                    request.options.next_compiler = !self.legacy_projection;
                     if self.legacy_projection {
                         // Frozen `compiler_diagnostic_command` requests GCC JSON diagnostics.
                         request
@@ -678,7 +698,14 @@ impl CppPlans {
         environment: &BTreeMap<String, String>,
     ) -> Result<Work, String> {
         let mut probes = vec![];
-        for (index, unit) in context.units.iter().enumerate() {
+        // Only the component's own units are traced (`analyze_compiler_include_cycles` expects
+        // exactly those); a build-generated or another component's database row is not, unless
+        // unity containers must establish the original membership.
+        let units = context
+            .units
+            .iter()
+            .filter(|unit| context.unity_build || component.files.contains(&unit.source));
+        for (index, unit) in units.enumerate() {
             let tool = self.compiler(project, unit, environment)?;
             let mut task = ici_cpp::compiler_probe_task(
                 &project.root,
@@ -752,6 +779,10 @@ impl CppPlans {
                     ) {
                         Ok(mut task) => {
                             bind_inputs(project, component, context, &unit, &mut task);
+                            // Frozen `build_compiler_cpp_graph` runs each trace through
+                            // `run_process` defaults: 300 s and 1,000,000 characters per stream.
+                            task.timeout_seconds = Some(300.0);
+                            task.output_limit_bytes = Some(1_000_000);
                             let task_id = task.id.clone();
                             probes.push(IncludeProbe {
                                 task,
@@ -1902,6 +1933,24 @@ fn tooling_config(
         }
     }
     Ok(selected)
+}
+/// Frozen `gates.task_slug`: the lower-cased source path with every run of characters outside
+/// `[a-z0-9]` replaced by `-`, then `-`/`.` trimmed; `tu` when nothing is left.
+fn task_slug(source: &str) -> String {
+    let mut slug = String::with_capacity(source.len());
+    for character in source.to_lowercase().chars() {
+        if character.is_ascii_lowercase() || character.is_ascii_digit() {
+            slug.push(character);
+        } else if !slug.ends_with('-') {
+            slug.push('-');
+        }
+    }
+    let slug = slug.trim_matches(|c| c == '-' || c == '.');
+    if slug.is_empty() {
+        "tu".into()
+    } else {
+        slug.into()
+    }
 }
 pub fn linked_build<'a>(
     project: &'a ResolvedProject,
@@ -4869,8 +4918,17 @@ impl CppPlans {
                     }
                 }
             }
+            // Frozen `load_compile_inputs` names the linked build directories, under which a
+            // recorded unit outside the component's sources is build-generated.
+            let mut request = request.clone();
+            request.options["build_directories"] = json!(
+                linked_build(project, component)
+                    .and_then(|build| build.directory.clone())
+                    .into_iter()
+                    .collect::<Vec<_>>()
+            );
             return ici_cpp::analyze_compile_context(
-                request,
+                &request,
                 &self.legacy_compile_context(&request.task_id, &context),
             );
         }
@@ -5721,6 +5779,19 @@ mod context_message_tests {
             super::legacy_context_message("response-file-cycle", "cycle"),
             "response-file-cycle: cycle"
         );
+    }
+}
+
+#[cfg(test)]
+mod task_slug_tests {
+    /// Frozen `gates.task_slug` (`re.sub(r"[^a-z0-9]+", "-", source.lower()).strip("-.")`).
+    #[test]
+    fn task_slug_matches_the_frozen_identifier_rule() {
+        assert_eq!(super::task_slug("src/a.cpp"), "src-a-cpp");
+        assert_eq!(super::task_slug("Lib/Big File.CC"), "lib-big-file-cc");
+        assert_eq!(super::task_slug("../x__y.cpp"), "x-y-cpp");
+        assert_eq!(super::task_slug("caf\u{e9}.cpp"), "caf-cpp");
+        assert_eq!(super::task_slug("..."), "tu");
     }
 }
 

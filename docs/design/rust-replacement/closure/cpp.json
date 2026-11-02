@@ -111,7 +111,7 @@
       "difference_reason": "Open: the analysis/_cpp_include_trace.py facet (include trace rows) is not closed; the Qt generated-code facet and the clazy/clang-tidy facets (incl. ClazyNote, compiler wrapper, every error branch: lint-tool-branches-oracle.json) are closed."
     },
     "capability:legacy-cpp-linker-dead": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp/linker.rs",
         "crates/ici-cli/src/cpp.rs",
@@ -121,22 +121,27 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_passes_every_linked_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_build_like_frozen"
         ]
       },
       "evidence": [
-        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
-        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json recaptured with 6 more trees (build-failure, archive, archive-auto, shared, lto, unused-and-linker; capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3); the discarded/clean/broken cases are byte-identical to the previous capture; /tmp/ici-rust-replacement-20261028/w-cpp-linker-cases-capture.log",
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 4 passed (discarded/clean/broken exact at the captured g++ 15.2.0/cmake 4.2.3, plus the non-ignored host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-split.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 5 passed (discarded, clean, broken, build-failure exact + the host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-cases.log"
       ],
-      "comparison": "C++ facet of the frozen GNU ELF linker dead capability (dead.py, _cpp_linker_dead_symbols.py, _cpp_linker_dead_aggregation.py) with cpp_unused='off', cpp_linker='required': discarded (WARN, one discarded function kept by another target excluded), clean (PASS), broken configure (ERROR, exit 1). Compared: exit code, status, evidence, required, summary, targets, findings, every frozen engine extra key (cpp_linker_*, cpp_unused_* off counters, cpp_scope_evidence, language_evidence, dead_symbols_count, metrics_summary, source counters) and the tool evidence name set. Not compared: cpp_unused='exact' beside the linker (merge of both scopes), archives/shared/LTO exclusions, the build-failure stop.",
-      "difference_reason": "Tool evidence records the processes native actually ran (decisions.md \"C++ 도구 증거는 실제 실행 기록\"): native configures/builds the shadow in the held link-reachability preparation (.ici/rust-v1/build/... instead of build/ici-cmake-link-reachability, `-DCMAKE_BUILD_TYPE=Debug -DCMAKE_BUILD_TYPE=Release` and `--parallel 2`), runs the PATH /usr/bin/c++ link driver, /usr/bin/readelf and /usr/bin/addr2line (frozen: their resolved x86_64-linux-gnu-* capability paths), probes the driver identity per link target, relinks without CMake's -Wl,--dependency-file (frozen records `<validated-link-command:...>` placeholders), and reads each direct object's readelf tables once up front (frozen: per discarded object only), so the clean scope findings' `+`-joined tool_name also lists the three readelf object reads. Root ruling requested together with the ACTUAL compiler argv/path allowance."
+      "comparison": "C++ facet of the frozen GNU ELF linker dead capability (dead.py, _cpp_linker_dead_symbols.py, _cpp_linker_dead_aggregation.py) with cpp_unused='off', cpp_linker='required': discarded (WARN, one discarded function kept by another target excluded), clean (PASS), broken configure (ERROR, exit 1). Compared: exit code, status, evidence, required, summary, targets, findings, every frozen engine extra key (cpp_linker_*, cpp_unused_* off counters, cpp_scope_evidence, language_evidence, dead_symbols_count, metrics_summary, source counters) and the tool evidence name set. Also compared: build-failure (the build stop). Captured but open: archive, lto, shared, archive-auto, unused-and-linker (see difference_reason).",
+      "difference_reason": "Approved intended difference (decisions.md \"compiler·linker·binutils 실제 실행 증거\" (with \"C++ 도구 증거는 실제 실행 기록\")): tool evidence records the processes native actually ran: the CMake configure/build of the held link-reachability preparation (.ici/rust-v1/build/... instead of build/ici-cmake-link-reachability, decisions.md \"native C++ shadow build 위치\"; `-DCMAKE_BUILD_TYPE=Release` once and `--parallel 2`), the PATH /usr/bin/c++ link driver, /usr/bin/readelf and /usr/bin/addr2line (frozen: resolved x86_64-linux-gnu-* capability paths), the driver identity per link target, the relink without CMake's -Wl,--dependency-file (frozen records `<validated-link-command:...>` placeholders) and each direct object's readelf tables read once up front (frozen: per discarded object only), so a clean scope finding's `+`-joined tool_name also lists the three object reads. The tests assert that every record is a PATH /usr/bin tool and the exact name delta. Open (captured, not reproduced; crates/ici-cli/tests/legacy_cpp_linker_dead.rs OPEN_CASES): `archive` and `lto` under cpp_linker='required' are frozen's `C++LinkerReachabilityError` 'Link target util was excluded: link command must contain exactly one shell-free line' / 'Link target app was excluded: link target uses flags outside the exact GNU ELF executable contract' after the configure/build records (ERROR, exit 1), where native's plan-time `discover_link_commands` refuses the whole scope (unsupported-link-argument 'libutil.a', SKIP, no target, no tool evidence, exit 3); `shared`: frozen skips the `-shared` target and relinks the executable (one discarded hidden function, WARN, exit 0), native refuses the `libutil.so` link argument; `archive-auto` (cpp_linker='auto'): frozen `C++LinkerReachabilityUnavailable` SKIP 'Exact GNU ELF reachability requires cmake' (exit 2) beside the disabled compiler scope; `unused-and-linker` (cpp_unused='required' + cpp_linker='required'): frozen merges both scopes into one WARN '2 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 1 target-local GNU ELF', native reports the two scopes apart (two summaries, PASS, no cpp_unused_*/source_* extras, no tool evidence). Fixing these needs frozen's per-target classification (skip: non-compiler driver, -shared, no direct object; exclude with a message: multi-line link.txt, unsafe flags, missing objects/output) in `ici_cpp::discover_link_commands` and the merged legacy dead projection."
     },
     "capability:legacy-python-sanitize": {
       "status": "not_started",
@@ -275,11 +280,13 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_root_compile_directory"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_build_compile_directory"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
@@ -292,10 +299,12 @@
         "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
         "Frozen tests/rust-parity/cpp/zoo-cpp-oracle.json captured by development-only tests/rust-parity/cpp/capture_zoo_cpp.py (oracle 6fe3e40, g++ 15.2.0; quality-zoo scenarios make-elf-integration, malformed-compile-db, static-build-context run with their own `verify --profile deep --no-cache` plus --report, LANG/LC_ALL=C.UTF-8, no git checkout); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-capture.log",
         "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log",
-        "/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log (next_component_scope 27 frozen cases)"
+        "/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log (next_component_scope 27 frozen cases)",
+        "Frozen tests/rust-parity/cpp/next-compiler-oracle.json (capture_next_compiler.py, oracle 6fe3e40, g++ 15.2.0, LANG/LC_ALL=C.UTF-8): `ici next plan --json`/`ici next verify --json` over a 3-unit component (warning, error, clean) plus a build-generated unit, compile directory root/out, cpp.tidy disabled; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test next_cpp_compiler --locked -j2 -- --include-ignored: 2 passed (non-ignored, needs only /usr/bin/g++); /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler.log"
       ],
       "comparison": "C++ check facet: no-database compile_db targets equal frozen (end line, sentence message, WARN/FAIL by mode). Legacy compile_db with a refused database row (zoo malformed-compile-db) equals frozen (invalid-entry FAIL beside the covered unit, exit 1).",
-      "difference_reason": "Open: database-backed compile coverage/configurations not compared. Next path (cpp13): a linked build without a database now blocks cpp.compile/cpp.diagnostics with frozen's gate_cpp reason, a conventional build/compile_commands.json is used and a malformed database fails like frozen (crates/ici-cli/tests/next_component_scope.rs, next-component-scope-oracle.json). Open next-path facets: native measures compilation_units/uncovered_sources where frozen measures units.covered (numerator/denominator, 'translation units') and units.generated (covered counts equal), and a malformed database's compile reason is native 'out/compile_commands.json: incomplete-compilation-context: …' where frozen says 'no compile invocation for 1/1 translation units: src/main.cpp'."
+      "difference_reason": "Open: database-backed compile coverage/configurations not compared. Next path (cpp13): a linked build without a database now blocks cpp.compile/cpp.diagnostics with frozen's gate_cpp reason, a conventional build/compile_commands.json is used and a malformed database fails like frozen (crates/ici-cli/tests/next_component_scope.rs, next-component-scope-oracle.json). Next-path metrics now equal frozen: `units.covered` (covered over expected selected TUs, 'translation units') and `units.generated` (database rows outside the selected sources under the linked build directory, carried as `build_directories`), compared in next_cpp_compiler.rs and in every next_component_scope.rs case. Open next-path facet: a malformed database's compile reason is native 'out/compile_commands.json: incomplete-compilation-context: …' where frozen says 'no compile invocation for 1/1 translation units: src/main.cpp'."
     },
     "check:cpp.complexity": {
       "status": "verified",
@@ -1622,7 +1631,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:331) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "difference_reason": "Open: frozen workspace/compile_units.py keys two C++ consumers on this field that native does not implement and no capture varies: `_database_path` labels the selected database \"<system> build '<id>' <variant>\", and `_build_targets` resolves qmake (SUBDIRS) or cmake (add_subdirectory) reach from `project` per system, adding `<system>-target-missing` when the component root is not reached and `build-definition-missing` for a make/explicit build whose definition file is absent; frozen cpp.compile lists these as limitations and planning.compile_limitations as gaps. Needs a frozen next capture varying system (cmake/qmake/make/explicit) and directory, and the native reach port."
     },
     "config:src/ici/config/schema.py:332:18": {
       "status": "verified",
@@ -1692,7 +1701,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:334) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "difference_reason": "Open: frozen workspace/compile_units.py keys two C++ consumers on this field that native does not implement and no capture varies: `_database_path` labels the selected database \"<system> build '<id>' <variant>\", and `_build_targets` resolves qmake (SUBDIRS) or cmake (add_subdirectory) reach from `project` per system, adding `<system>-target-missing` when the component root is not reached and `build-definition-missing` for a make/explicit build whose definition file is absent; frozen cpp.compile lists these as limitations and planning.compile_limitations as gaps. Needs a frozen next capture varying system (cmake/qmake/make/explicit) and directory, and the native reach port."
     },
     "config:src/ici/config/schema.py:335:18": {
       "status": "verified",
@@ -1724,16 +1733,30 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared)."
     },
     "config:src/ici/config/schema.py:424:17": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs",
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:424) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracles tests/rust-parity/cpp/next-component-scope-oracle.json (build = \"native\" linked cases, build-dangling, child-build-dangling) and tests/rust-parity/oracle/plan-text-oracle.json (a C++ component without a build and one linked to a declared CMake build). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of the component `build` reference (frozen config/schema.py _component build=table.text('build')): a component linked to a declared build takes that build's directory for its compilation database and plan lines (next-component-scope cases equal frozen in members, metrics, checks and gate); a C++ component without a build gets frozen's 'no build unit is linked' plan text; a dangling reference in the workspace file or a child component file is refused before any run like frozen (exit 2; native names the undeclared build at the component).",
+      "difference_reason": "Verified, not complete: like its sibling build rows (schema.py 330/332/333/335), the plan text of a linked build without a database keeps the two reviewed build/default lines recorded on those rows; no frozen `ici next verify` over a prepared build is captured."
     },
     "config:src/ici/config/schema.py:71:46": {
       "status": "verified",
@@ -1765,16 +1788,28 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared)."
     },
     "config:src/ici/config/schema.py:735:30": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/schema.rs",
+        "crates/ici-config/src/components.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:735) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/next-component-scope-oracle.json (development-only capture_next_component_scope.py, oracle 6fe3e40): cases qt-true, qt-false, qt-omitted, qt-not-boolean and child-file-qt-not-boolean. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of `[components.cpp] qt` / child `[cpp] qt` (frozen config/schema.py _cpp: CppSettings(qt=table.flag('qt')), table.done()). Frozen next composition never reads CppSettings.qt, so its C++ consumer effect is acceptance only: qt = true, false and omitted give the same frozen run (members, metrics, checks, gate, exit 0) and the native run equals frozen in each; `qt = \"yes\"` and a child file `qt = 1` are refused before any run like frozen (exit 2 naming the same key); `[components.cpp]` not a table and an unknown `[components.cpp]` key are refused the same way (cases cpp-not-a-table, cpp-unknown-key).",
+      "difference_reason": "Verified, not complete: the refusal text is native's located config diagnostic (the config rows' recorded wording); the test compares exit code 2 and the named key."
     },
     "config:src/ici/config_schema.py:220:17": {
       "status": "complete",
@@ -1979,16 +2014,33 @@
       "difference_reason": null
     },
     "config:src/ici/config_schema.py:63:0": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/schema_keys.rs",
+        "crates/ici-cli/src/legacy_context.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/native_cpp.rs::explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/compilation_commands.rs::explicit_database_failure_and_ambiguous_selection_never_prepare_or_fallback"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:63) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Child rows config_key:legacy:project.source_dirs, .cpp_pkg_config, .cpp_external_build_dirs and .compile_database (verified) plus frozen tests/rust-parity/cpp/line-hybrid-oracle.json and analysis-context-oracle.json. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of the legacy [project] table (frozen config_schema._PROJECT_KEYS: source_dirs, name, type, version, cpp_pkg_config, cpp_external_build_dirs, compile_database). Each C++ consumer is compared on its own verified row: source_dirs (legacy_qmake_verify), cpp_pkg_config and cpp_external_build_dirs (build-targets/sanitize oracles), compile_database (native_cpp, compilation_commands); type cpp versus hybrid (line-hybrid oracle, analysis-context oracle cpp/python/hybrid) and name in the frozen analysis_context project model (analysis-context oracle). version is not compared with frozen: the test asserts native's short-commit form 'v<7 hex>' and blanks it (recorded difference on capability:compile-context-export: no git describe during report assembly).",
+      "difference_reason": "Verified, not complete: the parent is bounded by its children; source_dirs has no failure fixture and the child rows stay verified."
     },
     "config:src/ici/config_schema.py:99:0": {
       "status": "not_started",
@@ -2000,7 +2052,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "difference_reason": "Open: `_ENGINE_KEYS` is the per-engine key table; its C++ facet is the union of the config_key:legacy:engines.* rows. The C++ engine keys of cognitive, complexity, dead, dup, build, lint, exception and the enabled/mode/required matrix are compared (legacy_cpp_config_keys.rs, legacy_verify_matrix.rs), but engines.test.* (coverage_required, max_coverage_regression, changed_lines, min_changed_line_cov, min_tem_score; owned by the C++ validation worker) are still open, so the table is not."
     },
     "config_key:legacy:build": {
       "status": "not_started",
@@ -3940,23 +3992,29 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_passes_every_linked_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_build_like_frozen"
         ]
       },
       "evidence": [
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json recaptured with 6 more trees (build-failure, archive, archive-auto, shared, lto, unused-and-linker; capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3); the discarded/clean/broken cases are byte-identical to the previous capture; /tmp/ici-rust-replacement-20261028/w-cpp-linker-cases-capture.log",
         "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
         "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 4 passed (discarded/clean/broken exact at the captured g++ 15.2.0/cmake 4.2.3, plus the non-ignored host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-split.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 5 passed (discarded, clean, broken, build-failure exact + the host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-cases.log"
       ],
-      "comparison": "C++ facet without a root CMake project (frozen run_cpp_linker_dead_symbols 'Exact GNU ELF reachability requires a root CMake project'): cpp_linker='auto' adds the C++LinkerReachabilityUnavailable SKIP target at the first C/C++ source and keeps the engine optional (exit 2); 'required' makes it ERROR with that summary (exit 1). Rust defect fixed: the legacy projection planned a link-reachability build anyway and reported a blocked native check (SKIP/required, exit 3). cpp_linker='required' beside cpp_unused='off' with a root CMake project (discarded/clean/broken configure) is compared by crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results (capability:legacy-cpp-linker-dead).",
+      "comparison": "C++ facet without a root CMake project (frozen run_cpp_linker_dead_symbols 'Exact GNU ELF reachability requires a root CMake project'): cpp_linker='auto' adds the C++LinkerReachabilityUnavailable SKIP target at the first C/C++ source and keeps the engine optional (exit 2); 'required' makes it ERROR with that summary (exit 1). Rust defect fixed: the legacy projection planned a link-reachability build anyway and reported a blocked native check (SKIP/required, exit 3). cpp_linker='required' beside cpp_unused='off' with a root CMake project (discarded/clean/broken configure) is compared by crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_{reports_the_discarded_function,passes_every_linked_source,stops_at_a_failed_configure}_like_frozen (capability:legacy-cpp-linker-dead).",
       "difference_reason": "Not complete: the exact GNU ELF reachability run on a root CMake project and the cpp_unused='off' + linker combination are not compared here (capability:legacy-cpp-linker-dead)."
     },
     "config_key:legacy:engines.dead.cpp_unused": {
@@ -6339,16 +6397,33 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:project": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/schema_keys.rs",
+        "crates/ici-cli/src/legacy_context.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/native_cpp.rs::explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/compilation_commands.rs::explicit_database_failure_and_ambiguous_selection_never_prepare_or_fallback"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:59) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: this legacy table's C++ consumer effect is not varied in a frozen C++ capture beyond the base [project] type='cpp' source_dirs=['src'] of every C++ oracle."
+      "evidence": [
+        "Child rows config_key:legacy:project.source_dirs, .cpp_pkg_config, .cpp_external_build_dirs and .compile_database (verified) plus frozen tests/rust-parity/cpp/line-hybrid-oracle.json and analysis-context-oracle.json. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of the legacy [project] table (frozen config_schema._PROJECT_KEYS: source_dirs, name, type, version, cpp_pkg_config, cpp_external_build_dirs, compile_database). Each C++ consumer is compared on its own verified row: source_dirs (legacy_qmake_verify), cpp_pkg_config and cpp_external_build_dirs (build-targets/sanitize oracles), compile_database (native_cpp, compilation_commands); type cpp versus hybrid (line-hybrid oracle, analysis-context oracle cpp/python/hybrid) and name in the frozen analysis_context project model (analysis-context oracle). version is not compared with frozen: the test asserts native's short-commit form 'v<7 hex>' and blanks it (recorded difference on capability:compile-context-export: no git describe during report assembly).",
+      "difference_reason": "Verified, not complete: the parent is bounded by its children; source_dirs has no failure fixture and the child rows stay verified."
     },
     "config_key:legacy:project.compile_database": {
       "status": "verified",
@@ -7658,16 +7733,36 @@
       "difference_reason": "Open: finding rule ids, messages, fingerprints and locations are not compared field by field (the legacy oracle records engine targets only); frozen locates findings at the shadow-relative artifact path while Rust uses the project path."
     },
     "finding_site:src/ici/adapters/providers/compiler.py:225:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-providers/src/diagnostics/mod.rs",
+        "crates/ici-providers/src/diagnostics/cpp.rs",
+        "crates/ici-providers/src/plan.rs",
+        "crates/ici-cpp/src/replay.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_root_compile_directory",
+          "crates/ici-providers/tests/diagnostics.rs::next_compiler_findings_keep_the_frozen_rule_message_and_native_rule"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_build_compile_directory",
+          "crates/ici-cli/src/cpp.rs::task_slug_tests::task_slug_matches_the_frozen_identifier_rule"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_root_compile_directory",
+          "crates/ici-providers/tests/diagnostics.rs::next_compiler_findings_keep_the_frozen_rule_message_and_native_rule"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/compiler.py:225); enclosing frozen function parse) is not compared yet; see difference_reason.",
-      "difference_reason": "Open (observed, not yet fixture-backed; probe 2026-11-02 frozen vs native `ici next verify --json` over a 3-unit compile_commands.json with -Wall, one warning and one error): locations, severity (error high, warning medium), confidence high and the gate (FAIL, '2 violation(s) found') agree; differences needing a root ruling on the next-path compiler finding identity (decisions.md identity row keeps frozen fingerprint v3 only for proven-compatible native rules): frozen plans one cpp.diagnostics task per TU (app.cpp.diagnostics.<slug>-<n>) where native runs one check task; frozen rule_id is compiler.<family> (compiler.compiler) where native uses compiler.<-W flag> / compiler.diagnostic; frozen keeps GCC's '<kind>: ' message prefix and the inherited-locale U+2018/U+2019 quotes where native strips the kind and replays under the C locale; frozen fingerprints sha256(provider, family, rule, file, line, column, message); native_rule_id None vs 'diagnostic' for an error. Native also reports cpp.diagnostics evidence_complete=false (header dependency closure not proven reusable)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-compiler-oracle.json (capture_next_compiler.py, oracle 6fe3e40, g++ 15.2.0, LANG/LC_ALL=C.UTF-8): `ici next plan --json`/`ici next verify --json` over a 3-unit component (warning, error, clean) plus a build-generated unit, compile directory root/out, cpp.tidy disabled; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test next_cpp_compiler --locked -j2 -- --include-ignored: 2 passed (non-ignored, needs only /usr/bin/g++); /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler.log",
+        "flock heavy.lock cargo test -p ici-providers --test diagnostics; cargo test -p ici-cli --lib task_slug; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-regress.log",
+        "Regressions: ici-providers, ici-cpp, next_component_scope, next_cpp_plan, next_cpp_cycles, plan_text_oracle, native_cpp, native_cpp_direct, legacy_direct_build, legacy_lint*, legacy_verify_matrix, legacy_zoo_cpp, legacy_cpp_include_context, legacy_qt_codegen, legacy_cmake_verify, legacy_qmake_verify (--include-ignored), strict Clippy ici-cpp/ici-providers/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-regress.log"
+      ],
+      "comparison": "C++ facet of compiler.py:225 (`CompilerDiagnosticsProvider.parse`) and gates.py `expand_diagnostics` on the next path (decisions.md \"next 경로 compiler finding\"). Equal to frozen: the per-TU task ids `app.cpp.diagnostics.<task_slug(source)>-<n>` in frozen order (source, directory), only the component's own units (no task for a build-generated database row; unity containers stay); each argv is the build's own flags after the frozen drop-list with `-fsyntax-only` (Rust defect fixed: the next replay added -Wall -Wextra and demoted -Werror, `ReplayPurpose::BuildDiagnostics` now keeps them verbatim) plus only five named output-format flags (colour off, option names, parseable fix-its, byte columns from 1); every finding's rule_id `compiler.compiler` (was compiler.<-W option>/compiler.diagnostic), message `<kind>: <text>` with GCC's UTF-8 quotes from the inherited locale (was the bare text), severity (error high, warning medium), confidence high, evidence MEASURED, native_rule_id the -W option or none for an error (was 'diagnostic'), line and column; the run's gate and exit code. The identity is scoped to the next cpp.diagnostics binding (`NativeOptions::next_compiler`); the legacy projection and the `ici build` direct replay keep `compiler.<rule>`. Fingerprints follow the native identity namespace (decisions.md identity row), not compared. Rust defect also fixed: a database row outside the component (a build-generated unit) made the next cpp.cycle trace it and fail (include-configuration-mismatch); next include traces now cover the component's own units only.",
+      "difference_reason": "Open, root ruling requested (stop-and-report per the \"next 경로 compiler finding\" row): (1) frozen plans and records one cpp.diagnostics check per TU (checks[].task_id `app.cpp.diagnostics.<slug>-<n>`, variant `compile-<digest>`, and each finding carries that TU task id and variant), native's plan model has one PlannedCheck per component and check (crates/ici-application/src/plan.rs: task_id = `<component>.<check>`, `validate_steps` admits only `<task_id>.*` steps), so native records one `app.cpp.diagnostics` check whose steps are the per-TU tasks with the frozen ids, and findings carry the check task id; the same model gap is recorded for cpp.test suite expansion (next_component_scope.rs `cmake-tests-declared`). (2) With the compile directory under the build directory (the usual CMake layout), frozen parses each diagnostic relative to that cwd and locates it at `[external]`; native locates the unit's workspace source (frozen's own location when the directory is the root). Both are pinned by crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_build_compile_directory."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:144:12": {
       "status": "verified",
@@ -8267,23 +8362,27 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles",
-          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify"
+          "crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_process_errors_match_frozen_wordings_and_counters"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_process_errors_match_frozen_wordings_and_counters"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_process_errors_match_frozen_wordings_and_counters"
         ]
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
         "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
         "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored after the standalone fix: 1 passed over 5 cases, including cycle:mixed (frozen standalone `ici cycle --report` on the mixed database tree stays on the heuristic graph, PASS ESTIMATED, exit 0); regressions legacy_cpp_metrics 8, legacy_verify_matrix 7, legacy_zoo_cpp 1, next_cpp_cycles 2 (--include-ignored), strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log, /tmp/ici-rust-replacement-20261028/w-cpp15-standalone-cycle-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored after the standalone fix: 1 passed over 5 cases, including cycle:mixed (frozen standalone `ici cycle --report` on the mixed database tree stays on the heuristic graph, PASS ESTIMATED, exit 0); regressions legacy_cpp_metrics 8, legacy_verify_matrix 7, legacy_zoo_cpp 1, next_cpp_cycles 2 (--include-ignored), strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log, /tmp/ici-rust-replacement-20261028/w-cpp15-standalone-cycle-regress.log",
+        "Frozen tests/rust-parity/cpp/include-trace-errors-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_trace_errors.py (oracle 6fe3e40, frozen `verify --profile deep --no-cache --report`, only the cycle engine, project.compile_database, a fake g++ driver first on PATH) over parity-fixtures/cpp/include-trace-errors: unexpected stdout, SIGKILL, stderr over 1,000,000 characters, a depth-jumping trace, a trailing non-trace diagnostic and one clean unit; /tmp/ici-rust-replacement-20261028/w-cpp-include-trace-capture.log. flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_trace_errors --test legacy_cpp_include_context --test next_cpp_cycles --test legacy_zoo_cpp --locked -j2 -- --include-ignored and cargo test -p ici-cpp: all passed (exit code, suite status, cycle status/evidence/summary, every frozen extra key, every target, finding and tool-evidence name/returncode/error equal frozen); /tmp/ici-rust-replacement-20261028/w-cpp-include-trace-gate.log. The new test is not ignored (the units include nothing, so any host g++ gives the same trace)."
       ],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:271, _evaluate_trace). Frozen CppIncludeTraceError ERROR at the unit source: mixed src/e.cpp (`#error`, exit 1, no located missing header) is 'Compiler include trace failed with exit code 1: src/e.cpp', the same text is the engine error and that trace's tool-evidence error, and the other units' traces are still analysed (CppIncludeTrace PASS for a.cpp and r.cpp in unit order, cpp_configurations_checked 3). The located missing-header stop stays the CppIncludeUnresolved path (zoo static-build-context). The timeout/truncation/signal/stdout/unparseable/unexpected-diagnostic texts of _trace_process_error and _consume_successful_trace are ported in legacy_includes::evaluate but not frozen-captured. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate. Standalone `ici cycle` builds no analysis context in frozen and keeps the heuristic graph whatever database is configured; Rust now gives cpp.cycle the empty context there too (it previously traced a complete database in `ici cycle` and, after the per-unit port, any present one).",
-      "difference_reason": "Open: only the exit-code failure is frozen-captured; the timed-out, truncated, terminated-unexpectedly, unexpected-stdout, not-parseable and unexpected-diagnostics wordings have no capture."
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:271, _evaluate_trace). Frozen CppIncludeTraceError ERROR at the unit source: mixed src/e.cpp (`#error`, exit 1, no located missing header) is 'Compiler include trace failed with exit code 1: src/e.cpp', the same text is the engine error and that trace's tool-evidence error, and the other units' traces are still analysed (CppIncludeTrace PASS for a.cpp and r.cpp in unit order, cpp_configurations_checked 3). The located missing-header stop stays the CppIncludeUnresolved path (zoo static-build-context). The timeout/truncation/signal/stdout/unparseable/unexpected-diagnostic texts of _trace_process_error and _consume_successful_trace are ported in legacy_includes::evaluate but not frozen-captured. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate. Standalone `ici cycle` builds no analysis context in frozen and keeps the heuristic graph whatever database is configured; Rust now gives cpp.cycle the empty context there too (it previously traced a complete database in `ici cycle` and, after the per-unit port, any present one). Process-error wordings (include-trace-errors oracle): 'Compiler include trace emitted unexpected stdout: <src>', '... terminated unexpectedly: <src>' (SIGKILL, tool-evidence returncode -9), '... was truncated: <src>' (stderr over frozen run_process's 1,000,000 characters), '... was not parseable: <src>: compiler include trace jumps over a parent depth' and '... contained unexpected diagnostics: <src>' equal frozen, each as the target, engine error and tool-evidence error, while the clean unit keeps its CppIncludeTrace PASS. Rust defect fixed: the legacy include trace ran with the native probe bounds (120 s, 8 MiB per stream) instead of frozen run_process defaults (300 s, 1,000,000 per stream), so a 1-8 MB trace was parsed where frozen reports it truncated; a depth-jumping trace said 'jumps over a parent or exceeds 4096 levels' where frozen says 'compiler include trace jumps over a parent depth' (native parse codes now map to frozen's parse_include_trace ValueError sentences: bounded shape, parent depth, stale path); a signal-terminated trace recorded returncode null where frozen records the negative signal (-9).",
+      "difference_reason": "Open: only the timed-out wording ('Compiler include trace timed out: <src>') has no frozen capture; it needs the 300 s run_process default to expire (the native bound is set to the same 300 s)."
     },
     "finding_site:src/ici/analysis/_cpp_include_graph.py:308:12": {
       "status": "verified",
@@ -8413,23 +8512,27 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_process_errors_match_frozen_wordings_and_counters"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_process_errors_match_frozen_wordings_and_counters"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles"
+          "crates/ici-cli/tests/legacy_cpp_include_context.rs::legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles",
+          "crates/ici-cli/tests/legacy_cpp_include_trace_errors.rs::legacy_include_trace_process_errors_match_frozen_wordings_and_counters"
         ]
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/include-context-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_context.py (oracle 6fe3e40, g++ 15.2.0, frozen `verify --profile deep --no-cache --report` with only the cycle engine and project.compile_database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8, PYTHONHASHSEED=0; every case asserted cpp_include_resolution == compiler_trace) over parity-fixtures/cpp/include-context {clean-cycle, mixed, no-units, unit-diagnostics}; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-capture.log",
         "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored: 1 passed (exit code, suite status, cycle status/evidence/summary, the 8 frozen _analyze_cpp_includes counters, every target in order, findings, tool-evidence name/returncode/error for all 4 cases); /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log",
         "Regressions: legacy_zoo_cpp --include-ignored (1 passed), legacy_cpp_metrics (8), next_cpp_cycles (2), native_cpp cycle filter, strict Clippy ici-cli/ici-execution; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context-regress.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored after the standalone fix: 1 passed over 5 cases, including cycle:mixed (frozen standalone `ici cycle --report` on the mixed database tree stays on the heuristic graph, PASS ESTIMATED, exit 0); regressions legacy_cpp_metrics 8, legacy_verify_matrix 7, legacy_zoo_cpp 1, next_cpp_cycles 2 (--include-ignored), strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log, /tmp/ici-rust-replacement-20261028/w-cpp15-standalone-cycle-regress.log"
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_context --locked -j2 -- --include-ignored after the standalone fix: 1 passed over 5 cases, including cycle:mixed (frozen standalone `ici cycle --report` on the mixed database tree stays on the heuristic graph, PASS ESTIMATED, exit 0); regressions legacy_cpp_metrics 8, legacy_verify_matrix 7, legacy_zoo_cpp 1, next_cpp_cycles 2 (--include-ignored), strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp15-include-context.log, /tmp/ici-rust-replacement-20261028/w-cpp15-standalone-cycle-regress.log",
+        "Frozen tests/rust-parity/cpp/include-trace-errors-oracle.json captured by development-only tests/rust-parity/cpp/capture_include_trace_errors.py (oracle 6fe3e40, frozen `verify --profile deep --no-cache --report`, only the cycle engine, project.compile_database, a fake g++ driver first on PATH) over parity-fixtures/cpp/include-trace-errors: unexpected stdout, SIGKILL, stderr over 1,000,000 characters, a depth-jumping trace, a trailing non-trace diagnostic and one clean unit; /tmp/ici-rust-replacement-20261028/w-cpp-include-trace-capture.log. flock heavy.lock cargo test -p ici-cli --test legacy_cpp_include_trace_errors --test legacy_cpp_include_context --test next_cpp_cycles --test legacy_zoo_cpp --locked -j2 -- --include-ignored and cargo test -p ici-cpp: all passed (exit code, suite status, cycle status/evidence/summary, every frozen extra key, every target, finding and tool-evidence name/returncode/error equal frozen); /tmp/ici-rust-replacement-20261028/w-cpp-include-trace-gate.log. The new test is not ignored (the units include nothing, so any host g++ gives the same trace)."
       ],
       "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_include_graph.py:399, build_compiler_cpp_graph runner exception). Unreachable through the CLI: frozen engines pass core.runner.run_process, which catches every exception (spawn failure included) and returns returncode -1, so a failed start is the _trace_process_error 'Compiler include trace terminated unexpectedly' CppIncludeTraceError (ported in legacy_includes::evaluate for an outcome with no exit code or a signal); only an injected raising runner reaches this target. Rust defect fixed: the legacy cycle engine only traced includes when the compilation context was complete and otherwise silently fell back to the heuristic suffix graph (PASS ESTIMATED 'No cyclic dependencies detected'), and one rejected replay or compiler resolution blocked the whole engine; frozen takes the compiler-traced graph for any present context and records each gap as a unit outcome. Native `ici analyze`/`next verify` keep the complete-context gate. Standalone `ici cycle` builds no analysis context in frozen and keeps the heuristic graph whatever database is configured; Rust now gives cpp.cycle the empty context there too (it previously traced a complete database in `ici cycle` and, after the per-unit port, any present one).",
-      "difference_reason": "CLI-unreachable branch (run_process never raises); its observable equivalent is the terminated-unexpectedly trace error, ported but not frozen-captured."
+      "difference_reason": "CLI-unreachable branch (run_process never raises); its observable equivalent, the terminated-unexpectedly trace error, is frozen-captured (include-trace-errors oracle, sig.cpp) and equal natively."
     },
     "finding_site:src/ici/analysis/_cpp_include_trace.py:124:11": {
       "status": "verified",
@@ -8467,22 +8570,27 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_passes_every_linked_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_build_like_frozen"
         ]
       },
       "evidence": [
-        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
-        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json recaptured with 6 more trees (build-failure, archive, archive-auto, shared, lto, unused-and-linker; capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3); the discarded/clean/broken cases are byte-identical to the previous capture; /tmp/ici-rust-replacement-20261028/w-cpp-linker-cases-capture.log",
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 4 passed (discarded/clean/broken exact at the captured g++ 15.2.0/cmake 4.2.3, plus the non-ignored host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-split.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 5 passed (discarded, clean, broken, build-failure exact + the host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-cases.log"
       ],
       "comparison": "C++ facet of _cpp_linker_dead_symbols.py:142 (`_append_error`): a CMake link-reachability configure that fails is one `C++LinkerReachabilityError` ERROR at CMakeLists.txt 'GNU ELF reachability configure did not complete' after the disabled compiler SKIP, ERROR NOT_RUN required, exit 1, low critical scope finding naming the cmake configure record (returncode 1, cmake version), cpp_linker_mode 'error' with zero counters. Rust defect fixed: native blocked the dead check ('explicit link-reachability preparation failed', SKIP, no targets, exit 3).",
-      "difference_reason": "Verified for the configure stop (broken case). The build stop ('GNU ELF reachability build did not complete', same projection with both cmake records) is implemented but not frozen-captured; the shadow-preparation, link-command validation and binutils error messages of `_append_error` are native failures with native messages and are not compared."
+      "difference_reason": "Verified for the configure stop (broken) and the build stop (build-failure: 'GNU ELF reachability build did not complete' with both cmake records, ERROR NOT_RUN, exit 1). Open (captured, not reproduced; crates/ici-cli/tests/legacy_cpp_linker_dead.rs OPEN_CASES): `archive` and `lto` under cpp_linker='required' are frozen's `C++LinkerReachabilityError` 'Link target util was excluded: link command must contain exactly one shell-free line' / 'Link target app was excluded: link target uses flags outside the exact GNU ELF executable contract' after the configure/build records (ERROR, exit 1), where native's plan-time `discover_link_commands` refuses the whole scope (unsupported-link-argument 'libutil.a', SKIP, no target, no tool evidence, exit 3); `shared`: frozen skips the `-shared` target and relinks the executable (one discarded hidden function, WARN, exit 0), native refuses the `libutil.so` link argument; `archive-auto` (cpp_linker='auto'): frozen `C++LinkerReachabilityUnavailable` SKIP 'Exact GNU ELF reachability requires cmake' (exit 2) beside the disabled compiler scope; `unused-and-linker` (cpp_unused='required' + cpp_linker='required'): frozen merges both scopes into one WARN '2 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 1 target-local GNU ELF', native reports the two scopes apart (two summaries, PASS, no cpp_unused_*/source_* extras, no tool evidence). Fixing these needs frozen's per-target classification (skip: non-compiler driver, -shared, no direct object; exclude with a message: multi-line link.txt, unsafe flags, missing objects/output) in `ici_cpp::discover_link_commands` and the merged legacy dead projection."
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:797:13": {
       "status": "complete",
@@ -8495,25 +8603,28 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_passes_every_linked_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ]
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
-        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 4 passed (discarded/clean/broken exact at the captured g++ 15.2.0/cmake 4.2.3, plus the non-ignored host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-split.log"
       ],
       "comparison": "C++ facet of _cpp_linker_dead_symbols.py:797 (`_inspect_removal`): a hidden function discarded from every target that links its object is one `GNU ld discarded function` WARN at its addr2line line ('GNU ld discarded function section from CMake target one in the isolated Release reachability link'), metrics link_target/symbol/section/link_command_digest (frozen digest of the target and the unfiltered link.txt argv), and one cpp_linker_details record (object_path relative to the shadow, tool g++ with the PATH g++ capability banner). Rust defects fixed: native target names/messages (LinkerReachability), native digest without the dependency-file flag, object_path in target metrics, workspace-relative object_path, `c++` driver banner. Compared: discarded case targets, findings, every frozen extra key.",
       "difference_reason": ""
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp/linker.rs",
         "crates/ici-cli/src/cpp.rs",
@@ -8523,22 +8634,25 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_passes_every_linked_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ]
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
-        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 4 passed (discarded/clean/broken exact at the captured g++ 15.2.0/cmake 4.2.3, plus the non-ignored host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-split.log"
       ],
       "comparison": "C++ facet of _cpp_linker_dead_symbols.py:847 (`_record_pass_targets`): every other owned source is a `GNU ld reachability scan` PASS 'Source participated in <n> supported target-local Release link(s)' with no metrics (discarded: src/one.cpp, src/two.cpp with n=2; clean: both sources with n=1), each with its exact scope finding ('This target records the bounded target-local GNU ELF section-GC scope.', tool names/versions of the linker evidence). Compared: targets, findings, extras (cpp_linker_sources_checked/targets_checked/discarded/ambiguous/kept counters, source_files_analyzed).",
-      "difference_reason": "The clean case's scope findings differ in tool_name: native reads every direct object's readelf -WS/-Ws/--section-groups tables up front, so its `+`-joined linker tool names also list those three reads where frozen (reading objects only for a discarded section) does not; the test masks those three names in the clean case only (the discarded case compares exactly). Pending the root ruling on ACTUAL linker tool evidence (capability:legacy-cpp-linker-dead)."
+      "difference_reason": "Approved intended difference (decisions.md \"compiler·linker·binutils 실제 실행 증거\" (with \"C++ 도구 증거는 실제 실행 기록\")): native reads every direct object's readelf -WS/-Ws/--section-groups tables once before any discarded section is known, so in a case without a discarded section (clean) the `+`-joined scope tool_name lists exactly those three names more than frozen (which reads object tables only for a discarded section). The test checks that delta exactly (native names = frozen names + the three reads, sorted join rebuilt); targets, messages, locations, metrics and every frozen extra key are equal."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:159:16": {
       "status": "verified",
@@ -9705,10 +9819,11 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/dead.py:111:16": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cpp/src/legacy_intake.rs",
-        "crates/ici-cli/src/cpp.rs"
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
         "positive": [
@@ -9731,10 +9846,12 @@
         "flock heavy.lock cargo test -p ici-cpp --lib legacy_intake -j2: 2 passed; cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 4 passed; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake-final.log",
         "Regressions: ici-cpp --lib 11, legacy_cpp_metrics 8, native_cpp 28 (--include-ignored), legacy_report_keys, legacy_engine_cache 3, legacy_verify_matrix 7, legacy_zoo_cpp 1, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake.log",
         "Root security item: the plan-time file intake (`legacy_source_intake_files`) counts candidates before any I/O, never opens excluded paths, decides the 8 MiB/64 MiB bounds from fstat before reading and holds one payload at a time; cargo test -p ici-cpp --lib 13 passed, legacy_cpp_metric_sources 4, legacy_cpp_metrics 8, legacy_cpp_unused_configurations 1, strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp16-intake-bounded.log",
-        "Database-backed intake: generated tree intake-database (a latin-1 src/latin.cpp with a compile_commands.json entry beside src/ok.cpp) replays frozen SourceInputError for dup and dead; the intake check is the first branch of CppPlans::run for a non-disabled legacy cpp.dead task, before any compiler/linker scheduling (report tool_evidence empty, no build/ output); /tmp/ici-rust-replacement-20261028/w-cpp16-intake-database.log, capture /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log"
+        "Database-backed intake: generated tree intake-database (a latin-1 src/latin.cpp with a compile_commands.json entry beside src/ok.cpp) replays frozen SourceInputError for dup and dead; the intake check is the first branch of CppPlans::run for a non-disabled legacy cpp.dead task, before any compiler/linker scheduling (report tool_evidence empty, no build/ output); /tmp/ici-rust-replacement-20261028/w-cpp16-intake-database.log, capture /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json recaptured with the whole dup/dead engine `extra` (capture_metric_sources.py, oracle 6fe3e40; every non-extra field unchanged); /tmp/ici-rust-replacement-20261028/w-cpp-intake-extras-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2 -- --include-ignored: 5 passed (all non-ignored, tool-free); regressions legacy_engine_extras 4, legacy_cpp_metrics 8, legacy_python_engines 2, legacy_cpp_unused_configurations 1, legacy_cpp_linker_dead 5, legacy_verify_matrix 7, legacy_zoo_cpp 1, legacy_report_keys 3, legacy_cpp_config_keys 1, legacy_python_inventory 5, legacy_sweep 4, legacy_commands 7; strict Clippy ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-intake-extras.log"
       ],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:111, DeadCodeEngine._collect_sources): when cpp_unused or cpp_linker is not off, frozen reads every C/C++ candidate (sources + headers) through read_analysis_sources before any compiler/linker scope, with or without a compilation database; the first intake fault in path order is the only target `SourceInputError` ERROR '<code>: <message>' at that file (or '.'), summary <message>, ERROR NOT_RUN, required kept (`_effective_required` analysis_failed). Rust defect fixed: legacy dead without a database never read the sources (SKIP 'exact native context unavailable', exit 2). Now `ici_cpp::legacy_source_intake` ports the frozen pass (dedupe, 8192 candidates, path sort, generated/vendor exclusion via include_generated/include_vendor, 2048 owned files, suffix, 8 MiB file, 64 MiB inventory, invalid-utf8, invalid-text) and runs first for every non-disabled legacy cpp.dead task; the plan keeps the check required when the component's sources fail the same intake. Replayed: unreadable, intake-database (with a compilation database), unreadable-header, intake-nul/too-large/inventory/too-many-files/too-many-candidates. Hybrid Python candidates belong to the python facet.",
-      "difference_reason": "Review (root decision needed, not an accepted policy yet): Recorded difference (fail-closed both): a source over the application's 16 MiB input snapshot bound (or a run over 512 MiB) never reaches the task, so instead of frozen's `SourceInputError` 'too-large' the run is refused: BLOCKED NOT_RUN 'input snapshot failed', exit 3 (crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run); 8-16 MiB sources replay frozen exactly. Frozen's outside-project/not-file/unreadable/changed/missing codes are unreachable: native discovery never follows symlinks or yields non-regular files and the snapshot digest is re-checked after execution. Accepted exit policy (root, reporting command:ici verify): the required failed check exits 3 where frozen exited 1. Report `extra` of these intake failures is not frozen-shaped (frozen dead keeps cpp_linker_*/cpp_unused_*/language_evidence/source_files_* zero values, dup source_* counts and analysis_provenance 'language-lexical-region-heuristic'); that shaping belongs to the extras worker (crates/ici-cli/src/cpp/legacy_engine_extra.rs)."
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:111, DeadCodeEngine._collect_sources): when cpp_unused or cpp_linker is not off, frozen reads every C/C++ candidate (sources + headers) through read_analysis_sources before any compiler/linker scope, with or without a compilation database; the first intake fault in path order is the only target `SourceInputError` ERROR '<code>: <message>' at that file (or '.'), summary <message>, ERROR NOT_RUN, required kept (`_effective_required` analysis_failed). Rust defect fixed: legacy dead without a database never read the sources (SKIP 'exact native context unavailable', exit 2). Now `ici_cpp::legacy_source_intake` ports the frozen pass (dedupe, 8192 candidates, path sort, generated/vendor exclusion via include_generated/include_vendor, 2048 owned files, suffix, 8 MiB file, 64 MiB inventory, invalid-utf8, invalid-text) and runs first for every non-disabled legacy cpp.dead task; the plan keeps the check required when the component's sources fail the same intake. Replayed: unreadable, intake-database (with a compilation database), unreadable-header, intake-nul/too-large/inventory/too-many-files/too-many-candidates. Hybrid Python candidates belong to the python facet. Report `extra` on every captured dup/dead case (intake stops, empty, excluded-only/mixed, dup normalization/comparison limits, unreadable): every frozen key and value equal (dup stops: only frozen `_source_evidence`, no policy/algorithm/semantic keys; dead: the not-applicable cpp_unused_* zero outcome, NOT_RUN scope evidence after an intake fault and NOT_APPLICABLE without readable candidates, the empty-project inventory), native-only keys limited to named native evidence keys (decisions.md \"legacy `extra` 안 native 증거 키\"). Rust defects fixed in crates/ici-cli/src/legacy_extra.rs (complete_dup stops, complete_dead/complete_cpp_dead no-source outcome; owned by the legacy-results worker, minimal change).",
+      "difference_reason": "Approved intended difference (decisions.md \"16 MiB를 넘는 C++ dead/dup source\"): 8-16 MiB sources replay frozen's `SourceInputError` 'too-large' exactly; a source over the application's 16 MiB input snapshot bound (or a run over 512 MiB) never reaches the task and the run is refused fail-closed: BLOCKED NOT_RUN 'input snapshot failed', exit 3 (crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run). Exit code (decisions.md \"legacy 종료 코드 3의 범위\"): the required intake failure keeps NOT_RUN evidence, so native exits 3 where frozen exited 1; every replay asserts 3 and then compares frozen's other fields. Frozen's outside-project/not-file/unreadable/changed/missing codes are not produced: native discovery never follows symlinks or yields non-regular files and the snapshot digest is re-checked after execution. The report `extra` of the intake stops now equals frozen's (see comparison)."
     },
     "finding_site:src/ici/engines/dead.py:134:12": {
       "status": "verified",
@@ -9882,19 +9999,22 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_passes_every_linked_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain"
         ]
       },
       "evidence": [
         "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
-        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 4 passed (discarded/clean/broken exact at the captured g++ 15.2.0/cmake 4.2.3, plus the non-ignored host-toolchain twin); /tmp/ici-rust-replacement-20261028/w-cpp-linker-split.log"
       ],
       "comparison": "C++ facet of dead.py:719 (`_linker_findings`): each discarded function is an `ici.dead.gnu-elf-discarded-function` finding (medium, exact, tool g++ with its capability version, tool_rule_id --gc-sections/--print-gc-sections, metrics link_targets {1, targets}, the frozen explanation/remediation, label when unique) beside the adapted legacy target finding (high, tool_evidence[0] = cmake linker-reachability configure). The disabled compiler scope finding is exact once the linker measured C++ evidence. Rust defect fixed: the native finding merged into the adapted target finding instead of the frozen exact finding.",
       "difference_reason": ""
@@ -9927,10 +10047,11 @@
       "difference_reason": "CI note: both replays are #[ignore] actual-g++ tests (CI runs no ICI_TEST_* tool); run locally with --include-ignored. Open beside this row (not a finding field): the unused-function tool_evidence argv/path record what native actually ran (decisions.md 'C++ 도구 증거는 실제 실행 기록'), pending a root ruling."
     },
     "finding_site:src/ici/engines/dup.py:100:20": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cpp/src/legacy_intake.rs",
-        "crates/ici-cpp/src/analysis.rs"
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
       ],
       "fixtures": {
         "positive": [
@@ -9953,10 +10074,12 @@
         "flock heavy.lock cargo test -p ici-cpp --lib legacy_intake -j2: 2 passed; cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 4 passed; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake-final.log",
         "Regressions: ici-cpp --lib 11, legacy_cpp_metrics 8, native_cpp 28 (--include-ignored), legacy_report_keys, legacy_engine_cache 3, legacy_verify_matrix 7, legacy_zoo_cpp 1, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake.log",
         "Root security item: the plan-time file intake (`legacy_source_intake_files`) counts candidates before any I/O, never opens excluded paths, decides the 8 MiB/64 MiB bounds from fstat before reading and holds one payload at a time; cargo test -p ici-cpp --lib 13 passed, legacy_cpp_metric_sources 4, legacy_cpp_metrics 8, legacy_cpp_unused_configurations 1, strict Clippy; /tmp/ici-rust-replacement-20261028/w-cpp16-intake-bounded.log",
-        "Database-backed intake: generated tree intake-database (a latin-1 src/latin.cpp with a compile_commands.json entry beside src/ok.cpp) replays frozen SourceInputError for dup and dead; the intake check is the first branch of CppPlans::run for a non-disabled legacy cpp.dead task, before any compiler/linker scheduling (report tool_evidence empty, no build/ output); /tmp/ici-rust-replacement-20261028/w-cpp16-intake-database.log, capture /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log"
+        "Database-backed intake: generated tree intake-database (a latin-1 src/latin.cpp with a compile_commands.json entry beside src/ok.cpp) replays frozen SourceInputError for dup and dead; the intake check is the first branch of CppPlans::run for a non-disabled legacy cpp.dead task, before any compiler/linker scheduling (report tool_evidence empty, no build/ output); /tmp/ici-rust-replacement-20261028/w-cpp16-intake-database.log, capture /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json recaptured with the whole dup/dead engine `extra` (capture_metric_sources.py, oracle 6fe3e40; every non-extra field unchanged); /tmp/ici-rust-replacement-20261028/w-cpp-intake-extras-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2 -- --include-ignored: 5 passed (all non-ignored, tool-free); regressions legacy_engine_extras 4, legacy_cpp_metrics 8, legacy_python_engines 2, legacy_cpp_unused_configurations 1, legacy_cpp_linker_dead 5, legacy_verify_matrix 7, legacy_zoo_cpp 1, legacy_report_keys 3, legacy_cpp_config_keys 1, legacy_python_inventory 5, legacy_sweep 4, legacy_commands 7; strict Clippy ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-intake-extras.log"
       ],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:100, DuplicateEngine source intake): frozen read_analysis_sources stops at the first intake fault and the engine reports only `SourceInputError` ERROR '<code>: <message>' at that source (or '.'), summary <message>, ERROR NOT_RUN, required. Rust defects fixed: only invalid-utf8 was ported (cpp15) and the native 2048-input/64 MiB bound counted excluded vendor/generated inputs; legacy dup now runs the shared `ici_cpp::legacy_source_intake` port first (NUL 'invalid-text', 8 MiB 'too-large', 64 MiB owned 'inventory-too-large', 2048 owned 'too-many-files', 8192 candidates incl. excluded 'too-many-candidates', 'unsupported-language') instead of the native bound. Readable sources keep the frozen DuplicateScan/clone targets (legacy_cpp_metrics).",
-      "difference_reason": "Review (root decision needed, not an accepted policy yet): Recorded difference (fail-closed both): a source over the application's 16 MiB input snapshot bound (or a run over 512 MiB) never reaches the task, so instead of frozen's `SourceInputError` 'too-large' the run is refused: BLOCKED NOT_RUN 'input snapshot failed', exit 3 (crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run); 8-16 MiB sources replay frozen exactly. Frozen's outside-project/not-file/unreadable/changed/missing codes are unreachable: native discovery never follows symlinks or yields non-regular files and the snapshot digest is re-checked after execution. Accepted exit policy (root, reporting command:ici verify): the required failed check exits 3 where frozen exited 1. Report `extra` of these intake failures is not frozen-shaped (frozen dead keeps cpp_linker_*/cpp_unused_*/language_evidence/source_files_* zero values, dup source_* counts and analysis_provenance 'language-lexical-region-heuristic'); that shaping belongs to the extras worker (crates/ici-cli/src/cpp/legacy_engine_extra.rs)."
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:100, DuplicateEngine source intake): frozen read_analysis_sources stops at the first intake fault and the engine reports only `SourceInputError` ERROR '<code>: <message>' at that source (or '.'), summary <message>, ERROR NOT_RUN, required. Rust defects fixed: only invalid-utf8 was ported (cpp15) and the native 2048-input/64 MiB bound counted excluded vendor/generated inputs; legacy dup now runs the shared `ici_cpp::legacy_source_intake` port first (NUL 'invalid-text', 8 MiB 'too-large', 64 MiB owned 'inventory-too-large', 2048 owned 'too-many-files', 8192 candidates incl. excluded 'too-many-candidates', 'unsupported-language') instead of the native bound. Readable sources keep the frozen DuplicateScan/clone targets (legacy_cpp_metrics). Report `extra` on every captured dup/dead case (intake stops, empty, excluded-only/mixed, dup normalization/comparison limits, unreadable): every frozen key and value equal (dup stops: only frozen `_source_evidence`, no policy/algorithm/semantic keys; dead: the not-applicable cpp_unused_* zero outcome, NOT_RUN scope evidence after an intake fault and NOT_APPLICABLE without readable candidates, the empty-project inventory), native-only keys limited to named native evidence keys (decisions.md \"legacy `extra` 안 native 증거 키\"). Rust defects fixed in crates/ici-cli/src/legacy_extra.rs (complete_dup stops, complete_dead/complete_cpp_dead no-source outcome; owned by the legacy-results worker, minimal change).",
+      "difference_reason": "Approved intended difference (decisions.md \"16 MiB를 넘는 C++ dead/dup source\"): 8-16 MiB sources replay frozen's `SourceInputError` 'too-large' exactly; a source over the application's 16 MiB input snapshot bound (or a run over 512 MiB) never reaches the task and the run is refused fail-closed: BLOCKED NOT_RUN 'input snapshot failed', exit 3 (crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run). Exit code (decisions.md \"legacy 종료 코드 3의 범위\"): the required intake failure keeps NOT_RUN evidence, so native exits 3 where frozen exited 1; every replay asserts 3 and then compares frozen's other fields. Frozen's outside-project/not-file/unreadable/changed/missing codes are not produced: native discovery never follows symlinks or yields non-regular files and the snapshot digest is re-checked after execution. The report `extra` of the intake stops now equals frozen's (see comparison)."
     },
     "finding_site:src/ici/engines/dup.py:121:20": {
       "status": "complete",
@@ -11374,7 +11497,7 @@
         "command:ici next verify",
         "command:ici analyze"
       ],
-      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/adapters/providers/compiler.py:225:16 (not_started), check:cpp.diagnostics (verified), command:ici next verify (difference_review), command:ici analyze (difference_review). Whole frozen file read (sha256 80a7b955b73797b880290371a96c928062b845824451f76f30eabf0d35e6fceb, 280 lines). Behaviour -> rows/Rust: Next-path compiler diagnostics provider: compiler family regex (c++/g++/gcc/clang++/clang/cc/em++/emcc with version suffix; unknown driver -> None/unsupported), transform_argv (prepend -fsyntax-only, verified drop lists with reasons: -o/-MF/-MT/-MQ/-MJ/-include-pch operands, -c/-S/-E/-M*/-pipe/-shared/-pie/-pg/--coverage/-ftest-coverage, -flto/-save-temps/-fdump/-fprofile-/-Wa,/-Wl,/-Wp,/-l/-L prefixes, unknown options kept, source re-positioned last), one uncached 300 s ANALYZE task per TU with exit contract 0/1, parse through parse_compiler_diagnostics, compiler.<family> findings (high for FAIL else medium, high confidence, workspace-relative span, external paths dropped, sha256 provider fingerprint) -> crates/ici-providers/src/plan.rs, crates/ici-cli/src/cpp.rs next compile tasks and crates/ici-cpp/src/compiler.rs."
+      "reason": "Unreviewed (C++ source audit, recounted 2026-11-03): blocked by finding_site:src/ici/adapters/providers/compiler.py:225:16 (difference_review), command:ici next verify (difference_review), command:ici analyze (difference_review). Whole frozen file read (sha256 80a7b955b73797b880290371a96c928062b845824451f76f30eabf0d35e6fceb, 280 lines). Behaviour -> rows/Rust: Next-path compiler diagnostics provider: compiler family regex (c++/g++/gcc/clang++/clang/cc/em++/emcc with version suffix; unknown driver -> None/unsupported), transform_argv (prepend -fsyntax-only, verified drop lists with reasons: -o/-MF/-MT/-MQ/-MJ/-include-pch operands, -c/-S/-E/-M*/-pipe/-shared/-pie/-pg/--coverage/-ftest-coverage, -flto/-save-temps/-fdump/-fprofile-/-Wa,/-Wl,/-Wp,/-l/-L prefixes, unknown options kept, source re-positioned last), one uncached 300 s ANALYZE task per TU with exit contract 0/1, parse through parse_compiler_diagnostics, compiler.<family> findings (high for FAIL else medium, high confidence, workspace-relative span, external paths dropped, sha256 provider fingerprint) -> crates/ici-providers/src/plan.rs, crates/ici-cli/src/cpp.rs next compile tasks and crates/ici-cpp/src/compiler.rs."
     },
     "src/ici/adapters/providers/cpptest.py": {
       "disposition": "unreviewed",
@@ -11507,7 +11630,7 @@
       "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:cpp-parser-heuristic-confidence (not_started), check:cpp.complexity (verified), check:cpp.cognitive (verified). Whole frozen file read (sha256 c0cf33356e5f857b3abe4e13c8f029226b64b00e7bd2ec5030596f2ee04f4223, 710 lines). Behaviour -> rows/Rust: readability-function-size output parser: suppression summaries (only all-external suppressions accepted, else refused), clang-tidy diagnostics with related notes filtered to the source file, parent warning / lines / statements / parameters notes (location match, duplicates, positive values, unexpected notes), bounded names, contained bounded UTF-8 source reads, masked source mapping (literals, digraphs, lambda count, function-like macros), macro-expansion exclusion window, body location by top-level brace pairs (requires-expressions, constructor-initializer braces, same-name check incl. operators, function-try catch extension, lines-note consistency), template prefix, preprocessor-conditional flag, parser budget, boundary bounds, merge across configurations (scope conflicts not promoted, metric variants estimated, coverage of successful configurations, preprocessor-dependent warnings, stable ordering) -> crates/ici-cpp/src/tidy_boundaries.rs."
     },
     "src/ici/analysis/_cpp_include_graph.py": {
-      "disposition": "unreviewed",
+      "disposition": "mapped",
       "requirements": [
         "finding_site:src/ici/analysis/_cpp_include_graph.py:148:11",
         "finding_site:src/ici/analysis/_cpp_include_graph.py:218:8",
@@ -11521,7 +11644,7 @@
         "descriptor:cycle",
         "finding_site:src/ici/analysis/cycles.py:491:12"
       ],
-      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.cycle (verified), descriptor:cycle (verified), finding_site:src/ici/analysis/_cpp_include_graph.py:148:11 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:218:8 (verified), finding_site:src/ici/analysis/_cpp_include_graph.py:271:8 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:308:12 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:326:12 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:342:12 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:369:16 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:399:16 (not_started), finding_site:src/ici/analysis/cycles.py:491:12 (not_started). Whole frozen file read (sha256 45ba2f247b57137b14f36afd6bf6dab00a95cb451185e7e8a2f46b4cf558d149, 418 lines). Behaviour -> rows/Rust: build_compiler_cpp_graph (compilation-database mode of the C++ cycle engine): known-file validation (CppIncludeContextError), context diagnostics as CppIncludeContextDiagnostic, context error stop, unity selection, CppIncludeContextMissing per uncovered source, no-units error, per-unit error diagnostics, includes replay (CppIncludeReplayError), compiler include trace evidence, process errors (timed out / truncated / signal / unexpected stdout), missing-include targets on non-zero exit, trace parse/unexpected errors, edge de-duplication, header scope counts (project / generated / third_party by path parts or include root kind / system), per-configuration graphs, CppIncludeTrace PASS targets with configuration/resolved_edges metrics -> crates/ici-cpp/src/compiler.rs, cycles.rs. Seven of the eight finding sites are not_started: the compiler-backed graph is not compared with frozen. Uncovered or suspected Rust gaps for the row worker: No Rust source contains the frozen target names CppIncludeTraceError, CppIncludeContextMissing, CppIncludeReplayError, CppIncludeContextDiagnostic or CppIncludeContextError (_cpp_include_graph.py:151,274,311,329,372) nor the trace error messages; these are the open finding sites 148/271/308/326/342/369/399 (compilation-database mode of descriptor:cycle)."
+      "reason": "Mapped. Whole frozen file read (sha256 45ba2f247b57137b14f36afd6bf6dab00a95cb451185e7e8a2f46b4cf558d149, 418 lines). Behaviour -> rows/Rust: build_compiler_cpp_graph (compilation-database mode of the C++ cycle engine): known-file validation (CppIncludeContextError), context diagnostics as CppIncludeContextDiagnostic, context error stop, unity selection, CppIncludeContextMissing per uncovered source, no-units error, per-unit error diagnostics, includes replay (CppIncludeReplayError), compiler include trace evidence, process errors (timed out / truncated / signal / unexpected stdout), missing-include targets on non-zero exit, trace parse/unexpected errors, edge de-duplication, header scope counts (project / generated / third_party by path parts or include root kind / system), per-configuration graphs, CppIncludeTrace PASS targets with configuration/resolved_edges metrics -> crates/ici-cpp/src/compiler.rs, cycles.rs, crates/ici-cli/src/cpp/legacy_includes.rs (legacy projection). Every requirement is verified or complete: finding_site:src/ici/analysis/_cpp_include_graph.py:148:11 (complete), finding_site:src/ici/analysis/_cpp_include_graph.py:218:8 (verified), finding_site:src/ici/analysis/_cpp_include_graph.py:271:8 (verified), finding_site:src/ici/analysis/_cpp_include_graph.py:308:12 (verified), finding_site:src/ici/analysis/_cpp_include_graph.py:326:12 (complete), finding_site:src/ici/analysis/_cpp_include_graph.py:342:12 (complete), finding_site:src/ici/analysis/_cpp_include_graph.py:369:16 (complete), finding_site:src/ici/analysis/_cpp_include_graph.py:399:16 (verified), check:cpp.cycle (verified), descriptor:cycle (verified), finding_site:src/ici/analysis/cycles.py:491:12 (complete in another fragment). Remaining recorded gaps live on the rows: the timed-out trace wording (271, 300 s) and per-configuration duplicate/trace metrics (218) have no frozen capture; 308 is race-only."
     },
     "src/ici/analysis/_cpp_include_trace.py": {
       "disposition": "unreviewed",
@@ -11539,7 +11662,7 @@
         "capability:legacy-cpp-linker-dead",
         "config_key:legacy:engines.dead.cpp_linker"
       ],
-      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:legacy-cpp-linker-dead (not_started), config_key:legacy:engines.dead.cpp_linker (verified). Whole frozen file read (sha256 7a3a8f5314278024ad487cb8f92318627496c938616b1d886916c26b17adc93a, 85 lines). Behaviour -> rows/Rust: discarded_by_every_linking_target: with fewer than two linked targets every removal is kept unchanged with 0 kept-count; otherwise a (object, section) removal is retained once only when every target that links the object discarded it, and each removal not discarded by all linking targets increments sections_kept_by_another_target -> crates/ici-cpp/src/linker.rs (kept-by-another aggregation, sections_kept_by_another_target). Behaviour not compared against frozen; capability:legacy-cpp-linker-dead is not_started."
+      "reason": "Unreviewed (C++ source audit, recounted 2026-11-03): every listed requirement is verified or complete, but capability:legacy-cpp-linker-dead keeps open frozen cases (crates/ici-cli/tests/legacy_cpp_linker_dead.rs OPEN_CASES archive, archive-auto, lto, shared, unused-and-linker: native plan-time link discovery refuses the scope and merged scopes are not merged), which this module's behaviour reaches. Whole frozen file read (sha256 7a3a8f5314278024ad487cb8f92318627496c938616b1d886916c26b17adc93a, 85 lines). Behaviour -> rows/Rust: discarded_by_every_linking_target: with fewer than two linked targets every removal is kept unchanged with 0 kept-count; otherwise a (object, section) removal is retained once only when every target that links the object discarded it, and each removal not discarded by all linking targets increments sections_kept_by_another_target -> crates/ici-cpp/src/linker.rs (kept-by-another aggregation, sections_kept_by_another_target). Behaviour not compared against frozen; capability:legacy-cpp-linker-dead is not_started."
     },
     "src/ici/analysis/_cpp_linker_dead_symbols.py": {
       "disposition": "unreviewed",
@@ -11551,7 +11674,7 @@
         "descriptor:dead",
         "config_key:legacy:engines.dead.cpp_linker"
       ],
-      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:legacy-cpp-linker-dead (not_started), finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:142:8 (not_started), finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:797:13 (not_started), finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8 (not_started), descriptor:dead (verified), config_key:legacy:engines.dead.cpp_linker (verified). Whole frozen file read (sha256 31225688c157d6f40ef57af7297e10b0d2a5bfda3f4b2ea1eac4ecd77d319b30, 1047 lines). Behaviour -> rows/Rust: GNU ELF linker reachability: policy off/auto/required; Linux + root CMake + non-unity gates (warnings); cmake/readelf/addr2line + GCC-family driver toolset; owned -link-reachability shadow configured Release with -g -ffunction-sections -fno-lto -fno-pie and -Wl,--gc-sections -Wl,--print-gc-sections -no-pie, Unix Makefiles, analysis database, cmake --build --parallel 1; link.txt discovery (<=256 files, 4 MiB, one shell-free line, shlex, <=32768 args / 1 MiB chars, no shell operators or @response files), CMake .dir target names, approved absolute GCC driver, non-shared, required flags and unsafe-flag rejection, direct objects inside shadow (<=4096), exactly one -o output; required policy turns exclusions into errors; GNU ld identity (-Wl,--version, not LLD); object->unit map from the shadow database and function-section eligibility; relink with digest-only evidence argv, removal regex and .text/.gnu.linkonce.t section filter (<=16384), readelf -Wh EXEC check; aggregation across targets; readelf -WS/-Ws/--section-groups, single LOCAL/HIDDEN/INTERNAL FUNC symbol excluding clone markers, addr2line -j <section> 0 location in project sources; 'GNU ld discarded function' WARN targets with link_target/symbol/section/link_command_digest metrics, 'GNU ld reachability scan' PASS targets, C++LinkerReachabilityError ERROR targets, source-unchanged check, counters (link_targets_checked, sources_checked, discarded_sections_observed, ambiguous_sections_excluded, sections_kept_by_another_target) -> crates/ici-cpp/src/linker.rs, crates/ici-cpp/src/build.rs, crates/ici-cli/src/cpp/linker.rs (native next path). Uncovered or suspected Rust gaps for the row worker: Legacy projection absent: no Rust spelling of target names C++LinkerReachabilityError (_cpp_linker_dead_symbols.py:145) or 'GNU ld reachability scan' (:850), nor of the messages 'Target <t> linker identity is not supported GNU ld' (:481), 'Target <t> did not produce an exact ELF executable' (:748), 'link command response files are outside the exact contract' (:332), 'Unity compilation is outside the GNU ELF reachability contract' (:981). Owned by capability:legacy-cpp-linker-dead (not_started) and its finding_site rows."
+      "reason": "Unreviewed (C++ source audit, recounted 2026-11-03): every listed requirement is verified or complete, but capability:legacy-cpp-linker-dead keeps open frozen cases (crates/ici-cli/tests/legacy_cpp_linker_dead.rs OPEN_CASES archive, archive-auto, lto, shared, unused-and-linker: native plan-time link discovery refuses the scope and merged scopes are not merged), which this module's behaviour reaches. Whole frozen file read (sha256 31225688c157d6f40ef57af7297e10b0d2a5bfda3f4b2ea1eac4ecd77d319b30, 1047 lines). Behaviour -> rows/Rust: GNU ELF linker reachability: policy off/auto/required; Linux + root CMake + non-unity gates (warnings); cmake/readelf/addr2line + GCC-family driver toolset; owned -link-reachability shadow configured Release with -g -ffunction-sections -fno-lto -fno-pie and -Wl,--gc-sections -Wl,--print-gc-sections -no-pie, Unix Makefiles, analysis database, cmake --build --parallel 1; link.txt discovery (<=256 files, 4 MiB, one shell-free line, shlex, <=32768 args / 1 MiB chars, no shell operators or @response files), CMake .dir target names, approved absolute GCC driver, non-shared, required flags and unsafe-flag rejection, direct objects inside shadow (<=4096), exactly one -o output; required policy turns exclusions into errors; GNU ld identity (-Wl,--version, not LLD); object->unit map from the shadow database and function-section eligibility; relink with digest-only evidence argv, removal regex and .text/.gnu.linkonce.t section filter (<=16384), readelf -Wh EXEC check; aggregation across targets; readelf -WS/-Ws/--section-groups, single LOCAL/HIDDEN/INTERNAL FUNC symbol excluding clone markers, addr2line -j <section> 0 location in project sources; 'GNU ld discarded function' WARN targets with link_target/symbol/section/link_command_digest metrics, 'GNU ld reachability scan' PASS targets, C++LinkerReachabilityError ERROR targets, source-unchanged check, counters (link_targets_checked, sources_checked, discarded_sections_observed, ambiguous_sections_excluded, sections_kept_by_another_target) -> crates/ici-cpp/src/linker.rs, crates/ici-cpp/src/build.rs, crates/ici-cli/src/cpp/linker.rs (native next path). Uncovered or suspected Rust gaps for the row worker: Legacy projection absent: no Rust spelling of target names C++LinkerReachabilityError (_cpp_linker_dead_symbols.py:145) or 'GNU ld reachability scan' (:850), nor of the messages 'Target <t> linker identity is not supported GNU ld' (:481), 'Target <t> did not produce an exact ELF executable' (:748), 'link command response files are outside the exact contract' (:332), 'Unity compilation is outside the GNU ELF reachability contract' (:981). Owned by capability:legacy-cpp-linker-dead (not_started) and its finding_site rows."
     },
     "src/ici/analysis/_cpp_lint.py": {
       "disposition": "unreviewed",
@@ -11959,7 +12082,7 @@
         "config_key:legacy:engines.dead.mode",
         "config_key:legacy:engines.dead.required"
       ],
-      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:legacy-cpp-linker-dead (not_started), descriptor:dead (verified), command:ici dead (implemented), config_key:legacy:engines.dead.cpp_unused (implemented), config_key:legacy:engines.dead.cpp_linker (verified), config_key:legacy:engines.dead.include_generated (verified), config_key:legacy:engines.dead.include_vendor (verified), finding_site:src/ici/engines/dead.py:111:16 (not_started), finding_site:src/ici/engines/dead.py:134:12 (verified), finding_site:src/ici/engines/dead.py:159:20 (verified), finding_site:src/ici/engines/dead.py:219:16 (verified), finding_site:src/ici/engines/dead.py:270:12 (not_started), finding_site:src/ici/engines/dead.py:577:20 (verified), finding_site:src/ici/engines/dead.py:669:16 (not_started), finding_site:src/ici/engines/dead.py:719:16 (not_started), finding_site:src/ici/engines/dead.py:885:15 (not_started). Whole frozen file read (sha256 7e197d4a517a1c77939c106cebcbf501653f2a199296c4f5542c7c1d2e08e35a, 917 lines). Behaviour -> rows/Rust: C++ facet of DeadCodeEngine (python fragment maps the Python facet): analysis context only when cpp_unused (default auto) or cpp_linker (default off) is not off; CACHE_REUSE_SAFE False; C++ candidates = project sources + headers + compilable sources, read through read_analysis_sources with include_generated/include_vendor, SourceInputError target; cpp_unused off -> C++UnusedFunctionsDisabled SKIP at '.' (or first source in _run_cpp_scope); no production TU -> unavailable warning; run_cpp_unused_functions; unavailable -> C++UnusedFunctionsUnavailable at the first C++ source (ERROR when required else SKIP); linker scope -> run_cpp_linker_dead_symbols with C++LinkerReachabilityUnavailable; empty scope DeadCode SKIP; _result_state summaries ('C++ dead-code analysis disabled by policy', 'C++ dead-code analysis not run: exact native context unavailable', 'Dead-code analysis skipped: no owned source files', 'No dead-code findings detected in the analyzed scopes', 'Python dead-code analysis completed, but exact C++ analysis was unavailable', 'N dead-code finding(s): P heuristic Python, C compiler-local C/C++, L target-local GNU ELF'); effective required relaxed for C++-only disabled/auto-unavailable scopes; extras dead_symbols_count, metrics_summary, analysis_provenance (python-ast-heuristic+cpp-compiler-unused-function+cpp-gnu-elf-section-gc or not-run), language_evidence {python, cpp}, cpp_unused_* and cpp_linker_* counters/details, cpp_scope_evidence, source counts; findings: exact -Wunused-function findings, ici.dead.gnu-elf-discarded-function findings, scope findings with severity by status and finite numeric metrics -> crates/ici-cli/src/cpp.rs (C++UnusedFunctionsDisabled/Unavailable, C++LinkerReachabilityUnavailable, 'C++ dead-code analysis not run: exact native context unavailable', legacy_unused_projection findings), crates/ici-cpp/src/compiler.rs, crates/ici-cpp/src/linker.rs. Uncovered or suspected Rust gaps for the row worker: Legacy C++ dead extras and summaries have no Rust spelling: extra keys cpp_unused_policy/mode/functions_count/configurations_checked/sources_checked/non_tu_diagnostics_excluded/warnings/details, cpp_linker_policy/mode/symbols_count/targets_checked/sources_checked/discarded_sections_observed/ambiguous_sections_excluded/sections_kept_by_another_target/warnings/details, cpp_scope_evidence, source_files_snapshotted, language_evidence.cpp and the provenance names cpp-compiler-unused-function / cpp-gnu-elf-section-gc (dead.py:285-291, 504-551; Rust legacy dead extra crates/ici-analysis/src/dead.rs:454 carries only the Python keys and language_evidence.python, which crates/ici-reporting/src/legacy_support.rs:311-320 reads per language); summaries 'C++ dead-code analysis disabled by policy' (:379) and 'Python dead-code analysis completed, but exact C++ analysis was unavailable' (:398); warning 'No production C/C++ translation unit is available for analysis' (:593); default 'Exact GNU ELF target-local reachability is unavailable' (:216). Suggested rows: descriptor:dead, command:ici dead, finding_site:src/ici/engines/dead.py:270:12. Linker finding ici.dead.gnu-elf-discarded-function with tool_rule_id '--gc-sections/--print-gc-sections' and link_targets metric (dead.py:709-749) has no Rust spelling; owned by capability:legacy-cpp-linker-dead (not_started) and finding_site:src/ici/engines/dead.py:719:16."
+      "reason": "Unreviewed (C++ source audit, recounted 2026-11-03): blocked by command:ici dead (implemented), config_key:legacy:engines.dead.cpp_unused (implemented). Whole frozen file read (sha256 7e197d4a517a1c77939c106cebcbf501653f2a199296c4f5542c7c1d2e08e35a, 917 lines). Behaviour -> rows/Rust: C++ facet of DeadCodeEngine (python fragment maps the Python facet): analysis context only when cpp_unused (default auto) or cpp_linker (default off) is not off; CACHE_REUSE_SAFE False; C++ candidates = project sources + headers + compilable sources, read through read_analysis_sources with include_generated/include_vendor, SourceInputError target; cpp_unused off -> C++UnusedFunctionsDisabled SKIP at '.' (or first source in _run_cpp_scope); no production TU -> unavailable warning; run_cpp_unused_functions; unavailable -> C++UnusedFunctionsUnavailable at the first C++ source (ERROR when required else SKIP); linker scope -> run_cpp_linker_dead_symbols with C++LinkerReachabilityUnavailable; empty scope DeadCode SKIP; _result_state summaries ('C++ dead-code analysis disabled by policy', 'C++ dead-code analysis not run: exact native context unavailable', 'Dead-code analysis skipped: no owned source files', 'No dead-code findings detected in the analyzed scopes', 'Python dead-code analysis completed, but exact C++ analysis was unavailable', 'N dead-code finding(s): P heuristic Python, C compiler-local C/C++, L target-local GNU ELF'); effective required relaxed for C++-only disabled/auto-unavailable scopes; extras dead_symbols_count, metrics_summary, analysis_provenance (python-ast-heuristic+cpp-compiler-unused-function+cpp-gnu-elf-section-gc or not-run), language_evidence {python, cpp}, cpp_unused_* and cpp_linker_* counters/details, cpp_scope_evidence, source counts; findings: exact -Wunused-function findings, ici.dead.gnu-elf-discarded-function findings, scope findings with severity by status and finite numeric metrics -> crates/ici-cli/src/cpp.rs (C++UnusedFunctionsDisabled/Unavailable, C++LinkerReachabilityUnavailable, 'C++ dead-code analysis not run: exact native context unavailable', legacy_unused_projection findings), crates/ici-cpp/src/compiler.rs, crates/ici-cpp/src/linker.rs. Uncovered or suspected Rust gaps for the row worker: Legacy C++ dead extras and summaries have no Rust spelling: extra keys cpp_unused_policy/mode/functions_count/configurations_checked/sources_checked/non_tu_diagnostics_excluded/warnings/details, cpp_linker_policy/mode/symbols_count/targets_checked/sources_checked/discarded_sections_observed/ambiguous_sections_excluded/sections_kept_by_another_target/warnings/details, cpp_scope_evidence, source_files_snapshotted, language_evidence.cpp and the provenance names cpp-compiler-unused-function / cpp-gnu-elf-section-gc (dead.py:285-291, 504-551; Rust legacy dead extra crates/ici-analysis/src/dead.rs:454 carries only the Python keys and language_evidence.python, which crates/ici-reporting/src/legacy_support.rs:311-320 reads per language); summaries 'C++ dead-code analysis disabled by policy' (:379) and 'Python dead-code analysis completed, but exact C++ analysis was unavailable' (:398); warning 'No production C/C++ translation unit is available for analysis' (:593); default 'Exact GNU ELF target-local reachability is unavailable' (:216). Suggested rows: descriptor:dead, command:ici dead, finding_site:src/ici/engines/dead.py:270:12. Linker finding ici.dead.gnu-elf-discarded-function with tool_rule_id '--gc-sections/--print-gc-sections' and link_targets metric (dead.py:709-749) has no Rust spelling; owned by capability:legacy-cpp-linker-dead (not_started) and finding_site:src/ici/engines/dead.py:719:16."
     },
     "src/ici/engines/dup.py": {
       "disposition": "unreviewed",
@@ -11976,7 +12099,7 @@
         "descriptor:dup",
         "command:ici dup"
       ],
-      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.dup (implemented), descriptor:dup (verified), command:ici dup (verified), config_key:legacy:engines.dead.include_generated (verified), finding_site:src/ici/engines/dup.py:100:20 (not_started), finding_site:src/ici/engines/dup.py:121:20 (not_started), finding_site:src/ici/engines/dup.py:149:20 (not_started), finding_site:src/ici/engines/dup.py:207:20 (not_started), finding_site:src/ici/engines/dup.py:279:16 (verified), finding_site:src/ici/engines/dup.py:401:16 (not_started), finding_site:src/ici/engines/dup.py:569:20 (not_started), finding_site:src/ici/engines/dup.py:721:20 (verified). Whole frozen file read (sha256 1e14b85153e3313b0521e8713c3e6dbe7118c087714839497f757ad14f942c50, 753 lines). Behaviour -> rows/Rust: C++ facet of DuplicateEngine (python fragment maps the Python/semantic facet): scope project_python_sources + project_cpp_sources + project_cpp_headers through read_analysis_sources with include_generated/include_vendor (is True only); SourceInputError ERROR '<code>: <message>' / NOT_RUN; no owned sources -> DuplicateCode SKIP ('All selected sources were excluded by the generated/vendor policy' or 'No applicable source files were selected') / NOT_APPLICABLE; C++ files tokenized by tokenize_cpp_lines + cpp_duplicate_regions, normalization failure -> SourceTokenizationError 'Source lexical normalization failed: <err>' with summary 'Duplicate analysis could not normalize <path>', max_normalized_chars 128 MiB / MAX_DUPLICATE_INDEXED_RECORDS 500000 bounds; raw matches with window min_window 6 and match limits -> DuplicateComparisonLimit ERROR; subsumption filter, clustering into CloneGroup#N WARN targets 'Duplicate code block (L lines) shared across K locations' with clone_group/duplicate_lines/fingerprint/fingerprint_algorithm metrics and type2-lexical-region groups; warn_pct 5 / fail_pct 15 strict cutoffs, mode pass_warn, WARN targets downgraded to PASS below warn, DuplicateScan PASS targets for unrepresented files; summary 'Code Duplication Rate: P% (G distinct clone groups found, S from Python AST shapes)'; score, evidence ESTIMATED; extras duplication_pct, clone_groups(_count), metrics_summary, fingerprint_algorithm(s), tokenizer_versions {cpp: cpp-lexical-v1, python: python-lexical-v1}, region_policy, signal_policy, python_semantic_*, source evidence -> crates/ici-analysis/src/duplicates.rs, crates/ici-analysis/src/legacy.rs (SourceInputError/SourceTokenizationError/DuplicateComparisonLimit), crates/ici-cpp/src/duplicates.rs tokenizer. Uncovered or suspected Rust gaps for the row worker: Legacy dup extras absent in Rust: frozen extra carries metrics_summary 'Duplication: P% (G groups)', fingerprint_algorithms, tokenizer_versions {cpp: 'cpp-lexical-v1', python: 'python-lexical-v1'}, region_policy 'language-function-scope-v1', signal_policy 'minimum-semantic-lines-v1' (dup.py:301-327, constants :46-53); no Rust file spells cpp-lexical-v1, language-function-scope-v1, minimum-semantic-lines-v1, tokenizer_versions or fingerprint_algorithms (crates/ici-analysis/src/duplicates.rs:698 builds the extra without them). Cross-area with the python fragment, which maps dup.py. Suggested rows: descriptor:dup, check:cpp.dup. No Rust spelling for the frozen normalization-bound messages 'Normalized duplicate-analysis input exceeds max_normalized_chars=<n>' and '... MAX_DUPLICATE_INDEXED_RECORDS=<n>' (dup.py:661-672). Suggested row: finding_site:src/ici/engines/dup.py:149:20."
+      "reason": "Unreviewed (C++ source audit, recounted 2026-11-03): blocked by check:cpp.dup (implemented). Whole frozen file read (sha256 1e14b85153e3313b0521e8713c3e6dbe7118c087714839497f757ad14f942c50, 753 lines). Behaviour -> rows/Rust: C++ facet of DuplicateEngine (python fragment maps the Python/semantic facet): scope project_python_sources + project_cpp_sources + project_cpp_headers through read_analysis_sources with include_generated/include_vendor (is True only); SourceInputError ERROR '<code>: <message>' / NOT_RUN; no owned sources -> DuplicateCode SKIP ('All selected sources were excluded by the generated/vendor policy' or 'No applicable source files were selected') / NOT_APPLICABLE; C++ files tokenized by tokenize_cpp_lines + cpp_duplicate_regions, normalization failure -> SourceTokenizationError 'Source lexical normalization failed: <err>' with summary 'Duplicate analysis could not normalize <path>', max_normalized_chars 128 MiB / MAX_DUPLICATE_INDEXED_RECORDS 500000 bounds; raw matches with window min_window 6 and match limits -> DuplicateComparisonLimit ERROR; subsumption filter, clustering into CloneGroup#N WARN targets 'Duplicate code block (L lines) shared across K locations' with clone_group/duplicate_lines/fingerprint/fingerprint_algorithm metrics and type2-lexical-region groups; warn_pct 5 / fail_pct 15 strict cutoffs, mode pass_warn, WARN targets downgraded to PASS below warn, DuplicateScan PASS targets for unrepresented files; summary 'Code Duplication Rate: P% (G distinct clone groups found, S from Python AST shapes)'; score, evidence ESTIMATED; extras duplication_pct, clone_groups(_count), metrics_summary, fingerprint_algorithm(s), tokenizer_versions {cpp: cpp-lexical-v1, python: python-lexical-v1}, region_policy, signal_policy, python_semantic_*, source evidence -> crates/ici-analysis/src/duplicates.rs, crates/ici-analysis/src/legacy.rs (SourceInputError/SourceTokenizationError/DuplicateComparisonLimit), crates/ici-cpp/src/duplicates.rs tokenizer. Uncovered or suspected Rust gaps for the row worker: Legacy dup extras absent in Rust: frozen extra carries metrics_summary 'Duplication: P% (G groups)', fingerprint_algorithms, tokenizer_versions {cpp: 'cpp-lexical-v1', python: 'python-lexical-v1'}, region_policy 'language-function-scope-v1', signal_policy 'minimum-semantic-lines-v1' (dup.py:301-327, constants :46-53); no Rust file spells cpp-lexical-v1, language-function-scope-v1, minimum-semantic-lines-v1, tokenizer_versions or fingerprint_algorithms (crates/ici-analysis/src/duplicates.rs:698 builds the extra without them). Cross-area with the python fragment, which maps dup.py. Suggested rows: descriptor:dup, check:cpp.dup. No Rust spelling for the frozen normalization-bound messages 'Normalized duplicate-analysis input exceeds max_normalized_chars=<n>' and '... MAX_DUPLICATE_INDEXED_RECORDS=<n>' (dup.py:661-672). Suggested row: finding_site:src/ici/engines/dup.py:149:20."
     },
     "src/ici/engines/exception.py": {
       "disposition": "unreviewed",

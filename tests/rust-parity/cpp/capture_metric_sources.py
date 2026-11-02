@@ -13,7 +13,8 @@ and `intake-too-large` (a source over the frozen 8 MiB bound), the inventory/cou
 `intake-database` (a non-UTF-8 source with a compilation database entry) and `excluded-only`
 (sources only under excluded vendor/generated directories) run dup and dead; `empty` also runs
 dup and dead; `dup-*` trees run the bounded duplicate normalization/comparison stops. Keeps
-the exit code, status, evidence, required flag, summary and targets.
+the exit code, status, evidence, required flag, summary and targets, and for dup/dead the whole
+engine extra (the project root written as `<root>`).
 """
 
 import json
@@ -132,10 +133,11 @@ def run(name: str, command: str) -> dict:
             timeout=600,
             check=False,
         )
-        report = json.loads((project / f"{command}_report.json").read_text(encoding="utf-8"))
+        text = (project / f"{command}_report.json").read_text(encoding="utf-8")
+        report = json.loads(text.replace(str(project), "<root>"))
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
-    return {
+    case = {
         "exit_code": result.returncode,
         "status": report["status"],
         "evidence": report["evidence"],
@@ -143,6 +145,9 @@ def run(name: str, command: str) -> dict:
         "summary": report["summary"],
         "targets": [{key: target.get(key) for key in FIELDS} for target in report["targets"]],
     }
+    if command in ("dup", "dead"):
+        case["extra"] = report["extra"]
+    return case
 
 
 COMMANDS = {

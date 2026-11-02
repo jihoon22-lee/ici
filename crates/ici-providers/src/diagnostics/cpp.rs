@@ -158,7 +158,10 @@ fn parse_text(output: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError
             let rule = captures.get(6).map_or("diagnostic", |value| value.as_str());
             // Frozen `ici next` ClangTidyProvider keeps the shared parser's `<kind>: <message>`
             // target message as the finding message, and its fingerprint covers that text.
-            let message = if plan.kind == ProviderKind::ClangTidy && !plan.context.legacy {
+            // Frozen `ici next` CompilerDiagnosticsProvider does the same (`warning: …`).
+            let message = if (plan.kind == ProviderKind::ClangTidy && !plan.context.legacy)
+                || plan.context.next_compiler
+            {
                 format!("{}: {}", &captures[4], &captures[5])
             } else {
                 captures[5].to_owned()

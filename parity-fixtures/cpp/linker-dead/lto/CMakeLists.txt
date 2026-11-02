@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(linker_lto LANGUAGES CXX)
+add_executable(app src/main.cpp)
+target_compile_options(app PRIVATE -flto)
+target_link_options(app PRIVATE -flto)

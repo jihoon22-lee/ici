@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(linker_shared LANGUAGES CXX)
+add_library(util SHARED src/util.cpp)
+add_executable(app src/main.cpp src/local.cpp)
+target_link_libraries(app PRIVATE util)
