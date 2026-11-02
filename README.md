@@ -15,15 +15,23 @@ ici report --result result.json --out report.html
 사용합니다. 테스트·coverage·sanitizer·배포는 `analyze`의 기본 선택에 포함되지 않습니다.
 Cargo Clippy는 build.rs/proc-macro를 실행할 수 있는 **prepare 작업**이며 fast에서 차단됩니다.
 
-0.13.0 일반 설치는 [GitHub Release](https://github.com/jihoon22-lee/ici/releases/tag/v0.13.0)의
-`ici-<version>-py3-none-any.whl`을 내려받고 `ici-package.sha256`으로 확인한 뒤,
-`uv tool install ./ici-<version>-py3-none-any.whl` 또는 격리된 venv에 pip로 설치합니다.
-시스템 Python 3.10 이상이 필요합니다. PyPI의 같은 이름 패키지를 가정하지 않습니다.
-설치·언어별 도구·지원 범위는 [범용 분석 가이드](docs/general-analysis.md)에 있습니다.
+ici는 Rust native 단일 제품입니다([ADR-0008](docs/design/ici-next/adr/0008-rust-native-replacement.md)).
+일반 설치는 [GitHub Release](https://github.com/jihoon22-lee/ici/releases)의
+`ici-<version>-x86_64-unknown-linux-musl.tar.gz`를 `.sha256`으로 확인한 뒤 함께 게시된
+`install-native.sh`로 root 없이 설치합니다. ici 자체는 Python 없이 실행되는 정적 실행 파일이며
+검증된 native Ruff/ty와 모든 라이선스 고지를 동봉합니다. 지원 상태는 측정한 Linux/WSL2 x86_64에
+한정된 `limited`입니다. 설치·업데이트·되돌리기는 [native 설치 가이드](docs/native-install.md),
+기존 pyz·uv·pip 설치에서 옮기는 방법(PATH 충돌, `ICI_PYTHON`, 종료 코드 3, baseline 재생성)은
+[이전 가이드](docs/migration-to-native.md), 언어별 도구·지원 범위는
+[범용 분석 가이드](docs/general-analysis.md)에 있습니다. PyPI의 같은 이름 패키지를 가정하지 않으며,
+Python wheel/sdist/pyz는 더 이상 발행하지 않습니다. v0.13.x Python 공개판은 그대로 보존되며 명시적인
+복귀 대상입니다.
 
-기존 `ici verify`와 `ici.pyz`는 호환 경로로 유지됩니다. `[workspace]` 설정의 verify와
-`analyze`는 공통 next application을 사용합니다. `ici next …` 명령도 계속 제공됩니다.
-결과는 `ici.next.run` v2, 이벤트는 `ici.next.event` v1, 종료 코드는 0/1/2/3/130을 유지합니다.
+기존 `ici verify`, 엔진별 명령, `[ici]`/`[engines]` 설정은 native 제품의 호환 경로로 유지됩니다.
+`[workspace]` 설정의 verify와 `analyze`는 공통 application을 사용합니다. `ici next …` 명령도 계속
+제공됩니다. 결과는 `ici.next.run` v2, 이벤트는 `ici.next.event` v1, 종료 코드는 0/1/2/3/130을
+유지합니다. legacy 명령에서 필수 증거가 불완전하면 v0.13.0의 1 대신 3으로 끝납니다. 새 결과와 cache는
+프로젝트의 `.ici/rust-v1/`에 쓰므로 `.ici/`를 `.gitignore`에 둡니다.
 보조자료 importer는 별도 `ici.auxiliary` v1을 쓰며 run gate를 변경하지 않습니다.
 
 RHEL/GHES 현장 인수와 전용 bundle은 환경별 지원 경로입니다. 현장 미검증을 일반
@@ -56,7 +64,9 @@ quality-zoo는 ici가 소유합니다. 소비자 [Lens](https://github.com/jihoo
 | 문서 | 설명 | 바로가기 |
 |---|---|---|
 | **🧭 ici-next 설계** | **전환의 canonical source.** 목표 아키텍처·SPEC 5종·ADR·실측 기록. 개발 완료, 현장 인수는 [field-acceptance checklist](docs/design/ici-next/field-acceptance.md) | [docs/design/ici-next/](docs/design/ici-next/README.md) |
-| **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 *(현행 stable)* | [docs/user-guide.md](docs/user-guide.md) |
+| **📦 native 설치·복구** | archive 확인, rootless 설치, `ici setup` 업데이트·되돌리기, 공개 v0.13.0 명시 복귀, XDG 경로, 라이선스 | [docs/native-install.md](docs/native-install.md) |
+| **🔁 pyz/uv/pip에서 이전** | PATH 충돌과 `ici doctor`, `.venv/bin/ici` 작업 갱신, `ICI_PYTHON`, 종료 코드 3, `.ici/rust-v1`, baseline 재생성 | [docs/migration-to-native.md](docs/migration-to-native.md) |
+| **🚀 사용자 가이드** | 빠른 시작, 설치, 전체 CLI 사용법 및 IDE 원클릭 점프 | [docs/user-guide.md](docs/user-guide.md) |
 | **📏 검증 엔진 레퍼런스** | 19개 엔진 descriptor (기본 fast 12 / standard 14 / deep 16, release contract opt-in 시 deep 19), TEM 스코어링 공식, `ici.toml` 정책 설정 *(현행 stable)* | [docs/engine-reference.md](docs/engine-reference.md) |
 | **⚙️ CI/CD 연동 가이드** | GitHub Actions, Step Summary, PR 어노테이션, 사내 폐쇄망 러너 *(현행 stable)* | [docs/ci-integration.md](docs/ci-integration.md) |
 | **🏛️ 시스템 아키텍처** | ZipApp 패키징, Polyglot 런처, 오케스트레이터 및 리포터 계층 설계 *(현행 stable)* | [docs/architecture.md](docs/architecture.md) |
@@ -67,13 +77,13 @@ quality-zoo는 ici가 소유합니다. 소비자 [Lens](https://github.com/jihoo
 
 ---
 
-## 기존 verify/pyz 호환 경로의 특징
+## 기존 verify 호환 경로의 특징
 
-1. **단일 ZipApp 배포 (`ici.pyz`)**:
-   - 가상환경 설치나 `pip` 없이 실행 파일 하나만 복사(`~/.local/bin/ici` 또는 `nas_shared/bin/ici`)하면 끝.
-   - 최초 실행 시 `~/.config/ici/ici.toml`에 전사 기본 정책이 자동 생성되며, `src` 외 `lib`/`app` 등 소스 레이아웃도 자동 탐색
-2. **스마트 런처 (Smart Polyglot)**:
-   - 시스템 기본 `python3`가 3.6/3.8인 구버전 환경에서도 `ICI_PYTHON` 또는 3.10+ 설치 경로를 스스로 찾아 실행.
+1. **단일 native archive 배포**:
+   - Python·가상환경·`pip` 없이 digest를 확인한 archive를 rootless로 설치(`$XDG_DATA_HOME/ici/native`). 정적 실행 파일이므로 시스템 Python 버전과 무관합니다.
+   - `src` 외 `lib`/`app` 등 소스 레이아웃을 자동 탐색합니다. 사용자 전역 `~/.config/ici/ici.toml`의 팀 정책은 새 schema에서 암묵적으로 합치지 않고 limitation으로 알립니다.
+2. **프로젝트 Python은 외부 도구**:
+   - pytest·coverage·mypy·runtime 호환 검사는 프로젝트 인터프리터로 실행합니다. legacy 설정에서는 v0.13.0 launcher 규칙대로 `ICI_PYTHON`·프로젝트 `.venv`·`python3.14`…`python3.10`이 프로젝트 인터프리터 후보이며, ici core는 그 인터프리터로 실행되지 않습니다.
 3. **19개 품질 검증 엔진 descriptor (fast 12 / standard 14 / deep 기본 16)**:
     - `line`: 파일당 순수 코드 500줄 초과 경고, 1000줄 초과 실패 + **계층형 디렉토리 트리 뷰** (`project.source_dirs` + 기본 소스 디렉터리 전용 스캔, `include_dirs`로 확장)
     - `lint`: Python Ruff 및 C/C++ compiler 진단, optional clang-tidy I4-1와 Qt-aware clazy I4-2
@@ -167,72 +177,53 @@ Python AST-shape 확장, C++ complexity 함수 경계, opt-in release contract e
 
 ## 💻 빠른 설치 및 사용법
 
-### 1. 단일 파일 실행
+### 1. native archive 설치와 실행
 ```bash
-# 산출물 복사 및 실행 권한 부여
-mkdir -p ~/.local/bin
-cp dist/ici.pyz ~/.local/bin/ici && chmod +x ~/.local/bin/ici
-export PATH="$HOME/.local/bin:$PATH"
+# release에서 archive, .sha256, install-native.sh를 내려받아 digest 확인 후 rootless 설치
+sha256sum --check --strict ici-<version>-x86_64-unknown-linux-musl.tar.gz.sha256
+sh install-native.sh --archive ici-<version>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/ici/native/bin:$PATH"
+ici --version
 
-# 환경 진단
+# 환경 진단 (PATH에 남은 pyz/uv/pip ici와 ICI_PYTHON도 보고)
 ici doctor
-ici doctor --brief  # capability status와 준비된 도구 수를 한 줄로 확인
-ici doctor --json  # 전체 capability inventory와 프로젝트별 support matrix
+ici doctor --brief  # capability status와 준비된 도구 수
+ici doctor --json   # 전체 capability inventory, support matrix, executables
 
-# 전체 검증 실행
+# 정적 분석과 저장 결과 렌더링
+ici analyze
+ici report --result .ici/rust-v1/result.json --out report.html
+
+# 기존 전체 검증
 ici verify --report --html verify_report.html --open
+
+# 업데이트·되돌리기 (사용자 설정·결과는 그대로)
+ici setup --archive ici-<new>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
+ici setup --rollback
 ```
 
 ### 2. 소스에서 빌드
 ```bash
-./scripts/build-pyz.sh    # dist/ici.pyz 생성
-./scripts/smoke.sh        # 격리 환경 스모크 테스트
+# packaging/native에 고정된 Ruff/ty, Rust musl std, musl 1.2.5 입력을 digest로 확인해 준비
+scripts/prepare-native-inputs.sh --output "$PWD/target/distribution/inputs"
+set -a; . target/distribution/inputs/native-build.env; set +a
+# 깨끗한 exact-source tree에서 static musl archive와 .sha256 생성
+scripts/build-native.sh --tools-dir "$ICI_NATIVE_TOOLS_DIR" \
+  --sysroot "$ICI_NATIVE_SYSROOT" --sysroot-sha256 "$ICI_NATIVE_SYSROOT_SHA256"
+# 독립 build 비교, 고지·라이선스, static ELF, rootless 설치, 오프라인 분석 검사
+scripts/check-native-release.sh --archive dist/ici-<version>-x86_64-unknown-linux-musl.tar.gz \
+  --compare <다른 --build-id로 만든 archive> --evidence /tmp/ici-release-check
 ```
 
-`build-pyz.sh`는 `uv.lock`을 단일 의존성 원천으로 사용하는 hermetic 재현 빌드입니다. 잠긴
-runtime 그룹은 `--no-dev`로 내보내고, wheel/ZipApp을 만드는 `package` 그룹은 별도로
-`--only-group package`로 내보냅니다. 두 requirements 파일 모두 lock에 기록된 hash를
-포함하며 `uv pip install --require-hashes --only-binary :all:`로 검증됩니다. sdist를
-실행하지 않으며, 빌드 entrypoint와 GitHub workflow는 uv `0.12.5`를 요구합니다. 현재 package 그룹은
-`hatchling`과 `shiv==1.0.8`이고, 이 도구들은 `build/package-tools`에만 설치되어
-배포 runtime에 들어가지 않습니다. 프로젝트 wheel은 Python 3.10 대상으로 만든 뒤 runtime
-site-packages에 의존성 없이 넣습니다. 빌드 스크립트는 선택한 Python 3.10+ helper interpreter
-하나를 선택해 package/build, 정리, 조립 단계 전체에 전달하므로 호출자의 bare `python3`
-선택에 의존하지 않습니다.
-
-빌드가 호출자의 환경에 좌우되지 않도록 `SOURCE_DATE_EPOCH=1700000000`(UTC
-`2023-11-14 22:13:20`), `PYTHONHASHSEED=0`, `PYTHONUTF8=1`, C locale, `TZ=UTC`,
-`umask 022`를 고정합니다.
-머신별 `direct_url.json`/`uv_cache.json`/`uv_build.json`, target `.lock`, 실행 파일
-링크는 제거되며, 설치된 runtime·bootstrap 입력 파일은 `0644`, directory는 `0755`로
-정규화됩니다. shiv가 자체 생성하는 top-level `environment.json`과 `__main__.py`는
-고정 `0600` metadata를 사용합니다. 입력은 열기 전 nonblocking `lstat`로 regular file임을
-확인하고 no-follow descriptor로 읽으므로 FIFO 같은 special file도 block 없이 fail-closed로
-거부됩니다. 기존 output의 symlink·special file도 거부됩니다. 최종 조립기는 열린
-non-symlink `dist` directory descriptor 안에 bounded payload를 임시 파일로 쓰고 `fsync`한
-뒤, 기존 output마다 hard-link backup을 먼저 만든 다음 각 이름을 같은 디렉터리에서
-원자적으로 교체합니다. 중간 교체나 사후 byte/mode 검증이 실패하면 이전의 일관된 output
-set을 복구하고, 원래 없던 이름은 제거합니다. 쓰기·flush·`fsync` 실패 때 임시 파일도
-정리되며, 최종 `dist/ici.pyz`와 `dist/ici`는 byte-identical `0755`인지 확인합니다.
-
-shiv `1.0.8`은 bootstrap 입력을 `importlib.resources`의 filesystem iteration 결과에 따라
-읽을 수 있어 checkout 환경에 따라 `_bootstrap/` 내부 archive member 순서가 달라질 수
-있습니다. 따라서 `build-pyz.sh`는 선택된 helper Python으로 `scripts/run_shiv.py`를
-호출하고, wrapper가 shiv의 bootstrap resource를 archive 이름 기준으로 정렬한 뒤 shiv에
-위임합니다. `verify-reproducibility.sh`는 중복 member를 거부하고
-`site-packages/` → `_bootstrap/` → `environment.json` → `__main__.py`의 canonical entry
-순서를 확인합니다. 이 검사는 archive entry order 계약에 한정되며 zlib 버전이나 플랫폼
-전체의 byte identity를 주장하는 검사는 아닙니다.
-
-재현성 검증은 `scripts/verify-reproducibility.sh`가 의도적으로 서로 다른 환경에서 두 번
-빌드하는 방식입니다. 첫 빌드는 `umask 077`, `SOURCE_DATE_EPOCH=1`,
-`PYTHONHASHSEED=random`, 다른 locale/UTF-8 설정, `TZ=Pacific/Honolulu`, 두 번째 빌드는 `umask 002`,
-`SOURCE_DATE_EPOCH=4102444800`, `PYTHONHASHSEED=123`, `TZ=Asia/Seoul`을 사용합니다.
-두 SHA-256이 같아야 하며, verifier는 모든 ZipApp member의 canonical epoch/mode, shiv
-environment timestamp와 canonical entry order, duplicate member 부재, 두 executable의
-byte/mode 일치, `site-packages/.lock` 부재와 git source status 불변도 확인합니다. entry-order
-계약과 cross-environment digest는 각각 독립적으로 확인하며, 최종 digest는 현재 작업의
-acceptance gate에서 다시 확정합니다.
+`build-native.sh`는 Rust 1.99.1(`rust-toolchain.toml`)과 `Cargo.lock`(`--locked`)을 요구하고,
+`git ls-files` 기준의 정규화된 source snapshot을 digest로 고정한 뒤 `target/distribution/` 아래에서만
+compile합니다. source·cargo·sysroot·build 경로는 remap하고 `SOURCE_DATE_EPOCH`는 HEAD commit 시각을
+씁니다. 공식 musl std의 파일 트리 digest와 Rust 표준 라이브러리 고지 catalogue가 고정값과 다르면
+거부하고, core에 ELF interpreter나 `DT_NEEDED`가 있으면 거부합니다. archive manifest에는 source
+revision·tree digest, Cargo.lock digest, compiler·linker·archiver digest와 build host의 kernel·CPU가
+기록됩니다. 그래서 두 build의 byte 동일성은 같은 host에서 비교하며, 다른 host에서 다시 build한
+archive가 같은 digest를 가진다고 주장하지 않습니다. `--allow-dirty`는 개발 snapshot이며 release가
+아닙니다. 빌드는 compiler나 도구를 암묵적으로 설치하거나 내려받지 않습니다.
 
 ### 3. 기준선 비교와 delta gate
 
@@ -406,6 +397,10 @@ response file도 깊이 4, 파일/aggregate 4 MiB와 동일한 per-row argument 
 
 | 명령어 | 설명 | 상세 가이드 |
 |---|---|---|
+| `ici analyze` | 테스트·배포 없이 정적 분석, 결과 `.ici/rust-v1/result.json`·오프라인 HTML 저장 (`--plan`, `--json`, `--events`, `--baseline`, `--require-full`) | [범용 분석 가이드](docs/general-analysis.md) |
+| `ici report` | 저장된 결과를 다시 렌더링 (분석·도구 실행 없음) | [범용 분석 가이드](docs/general-analysis.md) |
+| `ici init` / `ici diff` / `ici import-report` | 최소 설정 생성, 두 저장 결과 비교, SARIF/JUnit/LCOV 보조자료 가져오기 | [범용 분석 가이드](docs/general-analysis.md) |
+| `ici setup` | 검증된 native archive 설치·업데이트(`--archive`/`--url` + `--sha256`), `--inspect`, `--rollback`, `--activate` | [native 설치 가이드](docs/native-install.md) |
 | `ici verify` | 검증 엔진 일괄 실행 및 종합 대시보드 출력 (`--report`, `--html`, `--github-summary`, 선택적 `--publish`) | [사용자 가이드](docs/user-guide.md#2-검증-실행-ici-verify) |
 | `ici export-compilation-context` | 측정된 compile database를 redacted `ici.compilation-export/v1` JSON으로 내보내기 (`--database`, `--prepare`, `--output`, `--pretty`) | [사용자 가이드](docs/user-guide.md#standalone-compilation-context-export) |
 | `ici line` | 코드/주석/공백 분석 및 500/1000 라인 과대화 검증 | [엔진 레퍼런스](docs/engine-reference.md#21--line-코드-라인-및-파일-크기-분석기) |

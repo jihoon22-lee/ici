@@ -1,9 +1,11 @@
 # ici (Integrated CI) 사용자 가이드
 
-> 2026-10-28 제품 전환: 일반 설치·정적 분석의 주 경로는
-> [범용 분석 가이드](general-analysis.md)의 `ici analyze`와 Python wheel입니다.
-> 아래 기존 verify/pyz 및 폐쇄망 설명·과거 릴리스 증거는 호환/환경별 문맥으로 읽습니다.
-> `ici.next.run` v2/event v1과 기존 verify 동작은 유지합니다.
+> **native 제품 전환**: ici는 Rust native 단일 제품입니다. 설치·업데이트·되돌리기는
+> [native 설치 가이드](native-install.md), 기존 pyz·uv·pip 설치에서 옮기는 방법(PATH 충돌,
+> `ICI_PYTHON`, 종료 코드 3, `.ici/rust-v1`, baseline 재생성)은 [이전 가이드](migration-to-native.md)에
+> 있습니다. 일반 정적 분석의 주 경로는 [범용 분석 가이드](general-analysis.md)의 `ici analyze`입니다.
+> 아래 기존 verify 명령·설정·결과 계약은 native 제품에서 호환 경로로 유지되며, pyz 배포·폐쇄망 설명과
+> 과거 릴리스 증거는 역사적·환경별 문맥으로 읽습니다.
 
 
 > **범위: 현행(stable) CLI와 설정.** 이 문서의 명령·옵션·`ici.toml` 구조는 현재 릴리스되는
@@ -48,19 +50,28 @@ sidecar가 이 값과 일치한다. 로컬 재현 빌드와 candidate acceptance
 ## 1. 빠른 시작 (Quick Start)
 
 ### 1.1 설치 및 실행 권한 부여
-별도의 가상환경 구성이나 `pip install` 없이, 단일 파일 `dist/ici.pyz`를 실행 경로에 복사하여 사용합니다.
+Python이나 가상환경 없이, release의 native archive를 digest로 확인한 뒤 root 없이 설치합니다.
+지원 범위는 측정한 Linux/WSL2 x86_64(`limited`)입니다. 상세 절차와 오프라인 반입, 업데이트,
+되돌리기는 [native 설치 가이드](native-install.md)에 있습니다.
 
 ```bash
-# 사용자 로컬 실행 경로에 복사
-mkdir -p ~/.local/bin
-cp dist/ici.pyz ~/.local/bin/ici && chmod +x ~/.local/bin/ici
+# release에서 archive, .sha256, install-native.sh를 내려받은 뒤
+sha256sum --check --strict ici-<version>-x86_64-unknown-linux-musl.tar.gz.sha256
+sh install-native.sh --archive ici-<version>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
 
-# PATH 환경변수 등록 (필요 시 ~/.bashrc 또는 ~/.cshrc에 추가)
-export PATH="$HOME/.local/bin:$PATH"
+# PATH 등록 (필요 시 ~/.bashrc 또는 ~/.cshrc에 추가; 기존 ici보다 앞에 둔다)
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/ici/native/bin:$PATH"
+ici --version
 ```
 
+tcsh에서는 `setenv PATH "$HOME/.local/share/ici/native/bin:$PATH"`처럼 등록합니다. 이전 pyz·uv·pip
+설치가 PATH에 남아 있으면 `ici doctor`가 `path    shadowing ici: …`로 알려 줍니다.
+
 ### 1.2 실행 환경 진단 (`ici doctor`)
-현재 시스템의 OS, glibc 버전, Python 런타임과 `doctor`에 포함된 제한된 도구 목록을 점검합니다.
+현재 시스템의 OS, Python 후보와 `doctor`에 포함된 제한된 도구 목록을 점검합니다.
+Python은 ici의 런타임이 아니라 프로젝트를 검사하는 외부 도구로 표시됩니다. PATH에 다른 `ici`가
+먼저 있으면 `path    shadowing ici: <경로>`, 뒤에 남은 설치는 `path    other ici: <경로>`로,
+설정된 `ICI_PYTHON`은 `legacy  ICI_PYTHON=<값>`으로 보이며 `resolve:` 줄에 조치를 적습니다.
 전체 검증 엔진은 자신이 실제로 호출한 도구에 대한 `ToolEvidence`를 결과에 남깁니다.
 
 ```bash
@@ -69,14 +80,18 @@ ici doctor --brief
 
 ```text
 ici <version> brief
-os      <os_id>-<os_version>  glibc=<glibc>  arch=<arch>  wsl=<yes|no>
-shell   <shell>  TERM=<term>  LANG=<lang>
-python  running=<major.minor.micro>  path=<executable>
-tools   gcc=<version-or->  g++=<version-or->  clang=<version-or->  make=<version-or->  cmake=<version-or->
-        ruff=<version-or->  mypy=<version-or->  pytest=<version-or->  git=<version-or->
+runtime Rust native; project Python is an external tool
+root    <project root>
+scope   languages=<languages>  profile=<profile>
+caps    status=<PASS|...>  ready=<ready>/<total>  required=<required>
+path    shadowing ici: <다른 ici 경로>          (있을 때만)
+legacy  ICI_PYTHON=<값>                        (설정돼 있을 때만)
+  resolve: <조치>
+tools
+  <tool>: <Ready (version only)|Unavailable> — <probe 결과 또는 준비 방법>
 ```
 
-`ici doctor`를 `--brief` 없이 실행하면 동일한 데이터를 OS/Python/도구/경로별 Rich 표로
+`ici doctor`를 `--brief` 없이 실행하면 같은 데이터에 도구 capability inventory와 엔진 capability matrix를 더해
 확장해서 보여줍니다. 위 출력의 버전과 경로는 실행 환경에 따라 달라지며 고정된 결과로
 해석해서는 안 됩니다. qmake/Qt, Ninja, binutils 전체 capability 검증과 프로젝트 정의 기반
 빌드 어댑터도 같은 bounded inventory·evidence 정책 안에서 동작하며, 실제 지원 범위와
