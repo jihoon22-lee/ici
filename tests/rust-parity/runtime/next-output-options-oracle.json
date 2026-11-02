@@ -366,6 +366,131 @@
     ],
     "stdout": []
    }
+  ],
+  "top-diff": [
+   {
+    "argv": [
+     "analyze",
+     "--output",
+     "out/a.json"
+    ],
+    "edits": [],
+    "exit_code": 0,
+    "files": [
+     "app/core.py",
+     "ici.toml",
+     "out/a.json"
+    ],
+    "result": {
+     "findings": 0,
+     "gate": "PASS",
+     "reused_task_ids": []
+    },
+    "stderr": [],
+    "stdout": [
+     "root: <root>",
+     "scope: components=app languages=python profile=standard",
+     "PASS: 0 finding(s)",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <root>/out/a.json"
+    ]
+   },
+   {
+    "argv": [
+     "analyze",
+     "--output",
+     "out/b.json"
+    ],
+    "edits": [
+     "app/core.py"
+    ],
+    "exit_code": 1,
+    "files": [
+     "app/core.py",
+     "ici.toml",
+     "out/a.json",
+     "out/b.json"
+    ],
+    "result": {
+     "findings": 1,
+     "gate": "FAIL",
+     "reused_task_ids": []
+    },
+    "stderr": [],
+    "stdout": [
+     "root: <root>",
+     "scope: components=app languages=python profile=standard",
+     "FAIL: 1 finding(s)",
+     "  1 violation(s) found",
+     "  note: static selection: tests, runtime checks and build artifact checks omitted",
+     "saved <root>/out/b.json"
+    ]
+   },
+   {
+    "argv": [
+     "diff",
+     "out/a.json",
+     "--output",
+     "out/b.json"
+    ],
+    "edits": [],
+    "exit_code": 0,
+    "files": [
+     "app/core.py",
+     "ici.toml",
+     "out/a.json",
+     "out/b.json"
+    ],
+    "result": null,
+    "stderr": [],
+    "stdout": [
+     "1 new, 0 unchanged, 0 resolved, 0 carried (baseline a.json \u2192 b.json)",
+     "  gate: PASS \u2192 FAIL"
+    ]
+   },
+   {
+    "argv": [
+     "diff",
+     "out/b.json",
+     "--result",
+     "out/a.json"
+    ],
+    "edits": [],
+    "exit_code": 0,
+    "files": [
+     "app/core.py",
+     "ici.toml",
+     "out/a.json",
+     "out/b.json"
+    ],
+    "result": null,
+    "stderr": [],
+    "stdout": [
+     "0 new, 0 unchanged, 1 resolved, 0 carried (baseline b.json \u2192 a.json)",
+     "  gate: FAIL \u2192 PASS"
+    ]
+   },
+   {
+    "argv": [
+     "diff",
+     "out/a.json",
+     "--output",
+     "out/missing.json"
+    ],
+    "edits": [],
+    "exit_code": 2,
+    "files": [
+     "app/core.py",
+     "ici.toml",
+     "out/a.json",
+     "out/b.json"
+    ],
+    "result": null,
+    "stderr": [
+     "diff: <root>/out/missing.json cannot be read: [Errno 2] No such file or directory: '<root>/out/missing.json'"
+    ],
+    "stdout": []
+   }
   ]
  },
  "config": "schema_version = 1\n[workspace]\nname = \"demo\"\n[[components]]\nid = \"app\"\nroot = \"app\"\nlanguages = [\"python\"]\n[checks.\"python.lint\"]\nenabled = false\n[checks.\"python.format\"]\nenabled = false\n[checks.\"python.type\"]\nenabled = false\n[checks.\"python.test\"]\nenabled = false\n[checks.\"python.coverage\"]\nenabled = false\n[checks.\"python.compat-runtime\"]\nenabled = false\n",

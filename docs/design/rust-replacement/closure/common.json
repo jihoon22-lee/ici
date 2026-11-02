@@ -237,7 +237,7 @@
    "difference_reason": "All inspected extras retain located targets as required by project invariants, while source-only totals and gating stay separate. Explicit native state, current exports and baselines are not recounted as source. Unsafe links/oversize/intake failures remain explicit; no silent zero evidence."
   },
   "command:ici test": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-validation/src/test_metrics.rs",
     "crates/ici-cli/src/legacy.rs",
@@ -257,13 +257,14 @@
    },
    "evidence": [
     "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
-    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed"
+    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log"
    ],
-   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately.",
-   "difference_reason": "Full C++ direct executable suites, other quality modes, TEM cross-component aggregation, and complete descriptor/command source audit remain open; these rows are verified, not complete."
+   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately. Scope of this facet (runtime closure worker, 2026-11-02): the Python pytest+coverage shared-suite count, report filename, report-mode quality warning exclusion and pass_fail/pass_warn gate reviewed above, rerun at the merged head.",
+   "difference_reason": "The parts this facet does not claim are other fragments' facets of the same row: C++ direct executable suites and C++ test/coverage halves (cpp.json), quality modes and coverage policy (validation.json, legacy_quality_paths.rs), TEM formula boundaries and cross-component aggregation (validation.json capability:test-quality-tem and the application/tem.py audit), command/descriptor metadata (runtime.json, config.json)."
   },
   "descriptor:test": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-validation/src/test_metrics.rs",
     "crates/ici-cli/src/legacy.rs",
@@ -283,13 +284,14 @@
    },
    "evidence": [
     "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
-    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed"
+    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log"
    ],
-   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately.",
-   "difference_reason": "Full C++ direct executable suites, other quality modes, TEM cross-component aggregation, and complete descriptor/command source audit remain open; these rows are verified, not complete."
+   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately. Scope of this facet (runtime closure worker, 2026-11-02): the Python pytest+coverage shared-suite count, report filename, report-mode quality warning exclusion and pass_fail/pass_warn gate reviewed above, rerun at the merged head.",
+   "difference_reason": "The parts this facet does not claim are other fragments' facets of the same row: C++ direct executable suites and C++ test/coverage halves (cpp.json), quality modes and coverage policy (validation.json, legacy_quality_paths.rs), TEM formula boundaries and cross-component aggregation (validation.json capability:test-quality-tem and the application/tem.py audit), command/descriptor metadata (runtime.json, config.json)."
   },
   "capability:test-quality-tem": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-validation/src/test_metrics.rs",
     "crates/ici-cli/src/legacy.rs",
@@ -309,13 +311,14 @@
    },
    "evidence": [
     "cargo test -p ici-cli --test legacy_mode_scope --test legacy_test_metrics --locked: 3 actual CLI/planner cases passed; cargo test -p ici-cli --lib test_policy_tests --locked: 2 passed; cargo test -p ici-reporting --locked: full suite passed including 100k-record HTML; /tmp/ici-rust-replacement-20261028/root-resume-current.txt latest window",
-    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed"
+    "cargo clippy -p ici-reporting --all-targets --locked -- -D warnings: passed; CLI strict transitive gate failed only transient Python worker source.rs type_complexity during in-progress codec refactor, not claimed passed",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log"
    ],
-   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately.",
-   "difference_reason": "Full C++ direct executable suites, other quality modes, TEM cross-component aggregation, and complete descriptor/command source audit remain open; these rows are verified, not complete."
+   "comparison": "Frozen TestEngine/CLI test source reviewed for suite counts, report filename, quality report-mode warning exclusion and pass_fail/pass_warn gate. Native Python pytest+coverage actual replay shares one physical suite, retains raw coverage and quality finding; test report counts it once and locates unmeasured/conflicting evidence separately. Scope of this facet (runtime closure worker, 2026-11-02): the Python pytest+coverage shared-suite count, report filename, report-mode quality warning exclusion and pass_fail/pass_warn gate reviewed above, rerun at the merged head.",
+   "difference_reason": "The parts this facet does not claim are other fragments' facets of the same row: C++ direct executable suites and C++ test/coverage halves (cpp.json), quality modes and coverage policy (validation.json, legacy_quality_paths.rs), TEM formula boundaries and cross-component aggregation (validation.json capability:test-quality-tem and the application/tem.py audit), command/descriptor metadata (runtime.json, config.json)."
   },
   "command:ici next plan": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-cli/src/commands.rs",
     "crates/ici-cli/src/planning.rs",
@@ -323,19 +326,25 @@
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once"
+     "crates/ici-cli/tests/legacy_test_metrics.rs::legacy_test_report_counts_shared_pytest_coverage_suite_once",
+     "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+     "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_with_a_declared_interpreter_matches_frozen_dependencies_and_fast_profile"
     ],
     "negative": [
      "crates/ici-cli/tests/native_cpp.rs::missing_declared_runtime_outputs_are_blocked_without_build_or_directory_creation"
     ],
-    "failure": []
+    "failure": [
+     "crates/ici-cli/tests/plan_text_oracle.rs::the_line_diff_names_each_side_of_a_drift",
+     "crates/ici-cli/tests/analyze_text.rs::a_tool_found_nowhere_is_named_like_frozen_in_the_verdict_gate_limitations_and_plan_json"
+    ]
    },
    "evidence": [
     "Actual next plan --json over Python test+coverage shows dependency project.python.test consumed by both checks, then no .ici directory exists; cargo test -p ici-cli --test legacy_test_metrics legacy_test_report_counts --locked PASS; cargo clippy -p ici-cli --all-targets --locked -- -D warnings PASS after pinned source normalization commit; root session 2026-10-29",
-    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/oracle/capture_plan_text.py (frozen v0.13.0 `next plan`, 9 cases) -> tests/rust-parity/oracle/plan-text-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem-plan-text-capture.log"
+    "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/oracle/capture_plan_text.py (frozen v0.13.0 `next plan`, 9 cases) -> tests/rust-parity/oracle/plan-text-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem-plan-text-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --test analyze_text --test plan_text_oracle --test plan_commands --test plan_engines --test config_oracle -- --include-ignored` all passed; /tmp/ici-rust-replacement-20261028/w-runtime-tool-wording-tests.log"
    ],
-   "comparison": "Reviewed frozen next_path.py cmd_plan and render_plan: read-only selection, graph edges, shared consumers, mutating directories, linked builds, blocked checks, cost/profile, limitations, and separate JSON/text. Native plan now exposes check-level shared dependencies while preserving explicit steps and conditional branches; actual JSON CLI case verified no state creation. Root decision E6 (human-readable text must match frozen; graph IDs accepted under D5) is captured but not yet met: tests/rust-parity/oracle/capture_plan_text.py -> plan-text-oracle.json records frozen `next plan` text for Python-only, Python + C++ without a build, C++ with a declared CMake build and the --python/--component/--profile selections. The native text differs in: blocked-reason wording (mostly the C++ planning.rs/cpp.rs reasons), tool lines ('ruff: not found; prepare the project tool…', `ty` vs mypy), argv naming rust-v1 run paths and the coverage probe, 16 vs 17 checks (frozen splits compat-runtime into .version/.compileall), missing `dependencies:`/`builds:`/`coverage gap:`/`note:` lines and native-only conditional steps. The gap is not only C++: the Python-only cases differ too (tool lines, check count, missing dependencies/note lines). The text renderer lives in crates/ici-cli/src/planning.rs (C++ worker's file; edits there were to be kept minimal), and the C++ blocked-reason wording is that worker's, so E6 is captured but not implemented and the row stays open for the root to schedule; native output before any change is in /tmp/ici-rust-replacement-20261028/w-rem-plan-text-before.log.",
-   "difference_reason": "Re-scoped by the decisions worker (2026-11-02): the shared-graph/check-dependency id difference is the accepted native execution model (root decision D5, recorded on runtime.json capability:execution-dag-resource-lock), and the option/negative/failure corpus is closed by the config facet (config.json command:ici next plan: config_oracle.rs replays 17 frozen `next plan --json` option cases and 332 next-v1 exit codes). Still open for this facet: the human-readable `ici next plan` text (frozen next_path.py render_plan: per-check lines, shared consumers, mutating directories, linked builds, blocked reasons, cost/profile, limitations) is not compared with a frozen capture — only `--json` projections and announcements (plan_engines.rs) are. This row is verified, not complete."
+   "comparison": "Reviewed frozen next_path.py cmd_plan and render_plan: read-only selection, graph edges, shared consumers, mutating directories, linked builds, blocked checks, cost/profile, limitations, and separate JSON/text. Native plan now exposes check-level shared dependencies while preserving explicit steps and conditional branches; actual JSON CLI case verified no state creation. Root decision E6 (human-readable text must match frozen; graph IDs accepted under D5) is captured but not yet met: tests/rust-parity/oracle/capture_plan_text.py -> plan-text-oracle.json records frozen `next plan` text for Python-only, Python + C++ without a build, C++ with a declared CMake build and the --python/--component/--profile selections. The native text differs in: blocked-reason wording (mostly the C++ planning.rs/cpp.rs reasons), tool lines ('ruff: not found; prepare the project tool…', `ty` vs mypy), argv naming rust-v1 run paths and the coverage probe, 16 vs 17 checks (frozen splits compat-runtime into .version/.compileall), missing `dependencies:`/`builds:`/`coverage gap:`/`note:` lines and native-only conditional steps. The gap is not only C++: the Python-only cases differ too (tool lines, check count, missing dependencies/note lines). The text renderer lives in crates/ici-cli/src/planning.rs (C++ worker's file; edits there were to be kept minimal), and the C++ blocked-reason wording is that worker's, so E6 is captured but not implemented and the row stays open for the root to schedule; native output before any change is in /tmp/ici-rust-replacement-20261028/w-rem-plan-text-before.log. Update (runtime closure worker, 2026-11-02): root decision E6 is implemented — crates/ici-cli/src/plan_text.rs renders frozen render_plan from the same values as --json and plan_text_oracle.rs replays the 9 frozen captures (plan-text-oracle.json) with each remaining line a reviewed difference (runtime.json command:ici next plan); the missing-tool wording now matches frozen in the plan text, --json blocked entries, gate reasons and limitations (analyze_text.rs). The common facet's graph/shared-consumer/mutating/linked-build/blocked/cost/profile/limitation review above is closed by those replays.",
+   "difference_reason": "Root decision D5: the shared-graph/check-dependency ids are the accepted native execution model (runtime.json capability:execution-dag-resource-lock); the per-line plan text differences (ty default type check, native step chains and conditional lines, 16 vs 17 checks, cpp-owned C++ blocked reasons) are listed with their reasons in runtime.json command:ici next plan and asserted by plan_text_oracle.rs REVIEWED."
   }
  },
  "source_files": {

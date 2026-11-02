@@ -10,7 +10,9 @@ const ORACLE: &str =
     include_str!("../../../tests/rust-parity/runtime/next-output-options-oracle.json");
 
 /// Native lines frozen did not print, each with its reason:
-/// root decision D4 (`ici analyze` adds the offline page and the finding preview after `saved`),
+/// `ici analyze` adds the offline page and the finding preview after `saved` (execution plan
+/// §2.1 analyze 동선, accepted reporting difference; the page of an explicit result lives under
+/// `.ici/rust-v1/details/`, root decision E2),
 /// the native source-identity note for a `.git` without a HEAD, and the native observation cache
 /// reusing in-process checks (frozen never cached them: "internal checks run in-process").
 fn reviewed_native_line(line: &str) -> bool {
@@ -152,7 +154,8 @@ fn replay(case: &str) {
             .map(|line| without_os_error(line))
             .collect();
         assert_eq!(native_errors, frozen_errors, "{label} stderr");
-        // Frozen's files outside .ici/.git; natively also the D4 page beside an analyze result.
+        // Exactly frozen's files outside .ici/.git (root decision E2): the analyze page of an
+        // explicit result is kept under .ici/rust-v1/details/, never beside the user's result.
         let written = files(&root);
         let expected: Vec<String> = step["files"]
             .as_array()
@@ -160,17 +163,7 @@ fn replay(case: &str) {
             .iter()
             .map(|file| file.as_str().unwrap().to_owned())
             .collect();
-        let extra: Vec<&String> = written
-            .iter()
-            .filter(|file| !expected.contains(file))
-            .collect();
-        assert!(
-            expected.iter().all(|file| written.contains(file))
-                && extra.iter().all(|file| {
-                    file.ends_with(".html") && written.contains(&file.replace(".html", ".json"))
-                }),
-            "{label}: {written:?} vs {expected:?}"
-        );
+        assert_eq!(written, expected, "{label}");
         if let Some(frozen) = step["result"].as_object() {
             let position = argv
                 .iter()
@@ -209,4 +202,9 @@ fn diff_reports_carried_findings_of_an_unselected_component_like_frozen() {
 #[test]
 fn publish_reads_the_result_named_by_output_or_result_and_the_page_named_by_out() {
     replay("publish-output");
+}
+
+#[test]
+fn top_level_diff_reads_output_and_result_and_refuses_like_frozen() {
+    replay("top-diff");
 }

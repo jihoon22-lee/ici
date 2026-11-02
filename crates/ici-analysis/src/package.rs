@@ -471,6 +471,37 @@ pub fn analyze(
             "package-discovery",
         ));
     }
+    // Frozen `_wheel_paths` raised while expanding the configured globs (the caller expanded
+    // them against the canonical project root): the package analysis stops with frozen's
+    // PythonPackagingError text and keeps none of its findings.
+    if let Some(refusal) = request.options.get("wheel_discovery_error") {
+        let pattern = refusal.get("pattern").and_then(Value::as_str);
+        let message = if let (Some(limit), Some(pattern)) =
+            (refusal.get("visit_limit").and_then(Value::as_u64), pattern)
+        {
+            // Native bound (frozen walked without one): the discovery is refused, never partial.
+            format!(
+                "wheel glob visited more than {limit} directory entries: {}",
+                crate::unicode::python_repr(pattern)
+            )
+        } else if let Some(pattern) = pattern {
+            format!(
+                "wheel glob could not be evaluated: {}",
+                crate::unicode::python_repr(pattern)
+            )
+        } else if let Some(path) = refusal.get("candidate").and_then(Value::as_str) {
+            format!("wheel candidate is not a regular contained file: {path}")
+        } else {
+            "wheel match count exceeds the configured bound".to_owned()
+        };
+        output.observation.findings.truncate(before);
+        failure(
+            output,
+            &metadata.path,
+            &SourceError::new("wheel-discovery", message),
+        );
+        return;
+    }
     let mut wheels: Vec<_> = request
         .inputs
         .iter()
@@ -478,6 +509,7 @@ pub fn analyze(
         .collect();
     wheels.sort_by_key(|input| &input.path);
     if wheels.len() > policy.max_wheels {
+        output.observation.findings.truncate(before);
         failure(
             output,
             &metadata.path,

@@ -51,6 +51,14 @@ CASES = {
         ({}, ["analyze", "--output", "out/b.json", "--component", "app"]),
         ({}, ["next", "diff", "out/a.json", "--output", "out/b.json"]),
     ],
+    # The top-level `ici diff` is the same frozen cmd_diff: --output/--result, body, refusal.
+    "top-diff": [
+        ({}, ["analyze", "--output", "out/a.json"]),
+        ({"app/core.py": PICKLE}, ["analyze", "--output", "out/b.json"]),
+        ({}, ["diff", "out/a.json", "--output", "out/b.json"]),
+        ({}, ["diff", "out/b.json", "--result", "out/a.json"]),
+        ({}, ["diff", "out/a.json", "--output", "out/missing.json"]),
+    ],
     # publish reads the result named by --output/--result and the page by --out.
     "publish-output": [
         ({}, ["analyze", "--output", "out/a.json"]),
