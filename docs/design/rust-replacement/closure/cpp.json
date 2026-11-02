@@ -1631,7 +1631,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:331) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "difference_reason": "Open: frozen workspace/compile_units.py keys two C++ consumers on this field that native does not implement and no capture varies: `_database_path` labels the selected database \"<system> build '<id>' <variant>\", and `_build_targets` resolves qmake (SUBDIRS) or cmake (add_subdirectory) reach from `project` per system, adding `<system>-target-missing` when the component root is not reached and `build-definition-missing` for a make/explicit build whose definition file is absent; frozen cpp.compile lists these as limitations and planning.compile_limitations as gaps. Needs a frozen next capture varying system (cmake/qmake/make/explicit) and directory, and the native reach port."
     },
     "config:src/ici/config/schema.py:332:18": {
       "status": "verified",
@@ -1701,7 +1701,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:334) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "difference_reason": "Open: frozen workspace/compile_units.py keys two C++ consumers on this field that native does not implement and no capture varies: `_database_path` labels the selected database \"<system> build '<id>' <variant>\", and `_build_targets` resolves qmake (SUBDIRS) or cmake (add_subdirectory) reach from `project` per system, adding `<system>-target-missing` when the component root is not reached and `build-definition-missing` for a make/explicit build whose definition file is absent; frozen cpp.compile lists these as limitations and planning.compile_limitations as gaps. Needs a frozen next capture varying system (cmake/qmake/make/explicit) and directory, and the native reach port."
     },
     "config:src/ici/config/schema.py:335:18": {
       "status": "verified",
@@ -1733,16 +1733,30 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared)."
     },
     "config:src/ici/config/schema.py:424:17": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/components.rs",
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:424) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracles tests/rust-parity/cpp/next-component-scope-oracle.json (build = \"native\" linked cases, build-dangling, child-build-dangling) and tests/rust-parity/oracle/plan-text-oracle.json (a C++ component without a build and one linked to a declared CMake build). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of the component `build` reference (frozen config/schema.py _component build=table.text('build')): a component linked to a declared build takes that build's directory for its compilation database and plan lines (next-component-scope cases equal frozen in members, metrics, checks and gate); a C++ component without a build gets frozen's 'no build unit is linked' plan text; a dangling reference in the workspace file or a child component file is refused before any run like frozen (exit 2; native names the undeclared build at the component).",
+      "difference_reason": "Verified, not complete: like its sibling build rows (schema.py 330/332/333/335), the plan text of a linked build without a database keeps the two reviewed build/default lines recorded on those rows; no frozen `ici next verify` over a prepared build is captured."
     },
     "config:src/ici/config/schema.py:71:46": {
       "status": "verified",
@@ -1774,16 +1788,28 @@
       "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies. Update (cpp13): native next planning now reads the linked CMake definition like frozen workspace/test_suites (comments stripped, literal add_test reached through literal add_subdirectory) and blocks cpp.test with frozen's 'no declared test suite — cmake add_test or a testlib/testcase .pro is what declares one' (Make/custom builds and builds without a definition too); next_component_scope.rs compares it on conventional-database, malformed-database, prepare-explicit-absent, prepare-explicit-out-empty and cmake-tests-undeclared (commented/expanded add_test) and plan_text_oracle.rs no longer reviews it. Still open: qmake testlib/testcase .pro suite discovery (not ported; native keeps its own reason) and frozen's per-suite task expansion (`<task>.<build>-ctest`, case cmake-tests-declared)."
     },
     "config:src/ici/config/schema.py:735:30": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/schema.rs",
+        "crates/ici-config/src/components.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_component_scope.rs::cpp_qt_is_accepted_without_changing_the_run"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:735) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/next-component-scope-oracle.json (development-only capture_next_component_scope.py, oracle 6fe3e40): cases qt-true, qt-false, qt-omitted, qt-not-boolean and child-file-qt-not-boolean. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of `[components.cpp] qt` / child `[cpp] qt` (frozen config/schema.py _cpp: CppSettings(qt=table.flag('qt')), table.done()). Frozen next composition never reads CppSettings.qt, so its C++ consumer effect is acceptance only: qt = true, false and omitted give the same frozen run (members, metrics, checks, gate, exit 0) and the native run equals frozen in each; `qt = \"yes\"` and a child file `qt = 1` are refused before any run like frozen (exit 2 naming the same key); `[components.cpp]` not a table and an unknown `[components.cpp]` key are refused the same way (cases cpp-not-a-table, cpp-unknown-key).",
+      "difference_reason": "Verified, not complete: the refusal text is native's located config diagnostic (the config rows' recorded wording); the test compares exit code 2 and the named key."
     },
     "config:src/ici/config_schema.py:220:17": {
       "status": "complete",
@@ -1988,16 +2014,33 @@
       "difference_reason": null
     },
     "config:src/ici/config_schema.py:63:0": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/schema_keys.rs",
+        "crates/ici-cli/src/legacy_context.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/native_cpp.rs::explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/compilation_commands.rs::explicit_database_failure_and_ambiguous_selection_never_prepare_or_fallback"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:63) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Child rows config_key:legacy:project.source_dirs, .cpp_pkg_config, .cpp_external_build_dirs and .compile_database (verified) plus frozen tests/rust-parity/cpp/line-hybrid-oracle.json and analysis-context-oracle.json. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of the legacy [project] table (frozen config_schema._PROJECT_KEYS: source_dirs, name, type, version, cpp_pkg_config, cpp_external_build_dirs, compile_database). Each C++ consumer is compared on its own verified row: source_dirs (legacy_qmake_verify), cpp_pkg_config and cpp_external_build_dirs (build-targets/sanitize oracles), compile_database (native_cpp, compilation_commands); type cpp versus hybrid (line-hybrid oracle, analysis-context oracle cpp/python/hybrid) and name/version in the frozen analysis_context project model (analysis-context oracle).",
+      "difference_reason": "Verified, not complete: the parent is bounded by its children; source_dirs has no failure fixture and the child rows stay verified."
     },
     "config:src/ici/config_schema.py:99:0": {
       "status": "not_started",
@@ -2009,7 +2052,7 @@
       },
       "evidence": [],
       "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:99) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "difference_reason": "Open: `_ENGINE_KEYS` is the per-engine key table; its C++ facet is the union of the config_key:legacy:engines.* rows. The C++ engine keys of cognitive, complexity, dead, dup, build, lint, exception and the enabled/mode/required matrix are compared (legacy_cpp_config_keys.rs, legacy_verify_matrix.rs), but engines.test.* (coverage_required, max_coverage_regression, changed_lines, min_changed_line_cov, min_tem_score; owned by the C++ validation worker) are still open, so the table is not."
     },
     "config_key:legacy:build": {
       "status": "not_started",
@@ -6354,16 +6397,33 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED."
     },
     "config_key:legacy:project": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-config/src/schema_keys.rs",
+        "crates/ici-cli/src/legacy_context.rs",
+        "crates/ici-cli/src/cpp/config_scope.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/legacy_analysis_context.rs::legacy_verify_analysis_context_matches_frozen_for_cpp_python_and_hybrid",
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/native_cpp.rs::explicit_components_inherit_origin_resolved_global_database_and_prepared_override_wins"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_hybrid.rs::legacy_hybrid_line_counts_the_present_language_like_frozen",
+          "crates/ici-cli/tests/compilation_commands.rs::explicit_database_failure_and_ambiguous_selection_never_prepare_or_fallback"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:59) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: this legacy table's C++ consumer effect is not varied in a frozen C++ capture beyond the base [project] type='cpp' source_dirs=['src'] of every C++ oracle."
+      "evidence": [
+        "Child rows config_key:legacy:project.source_dirs, .cpp_pkg_config, .cpp_external_build_dirs and .compile_database (verified) plus frozen tests/rust-parity/cpp/line-hybrid-oracle.json and analysis-context-oracle.json. source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test next_component_scope --test plan_text_oracle --test next_cpp_plan --test legacy_line_hybrid --test native_cpp --test compilation_commands --test legacy_qmake_verify --test legacy_analysis_context --locked -j2 -- --include-ignored: all passed (/tmp/ici-rust-replacement-20261028/w-cpp-config-rows.log)"
+      ],
+      "comparison": "C++ facet of the legacy [project] table (frozen config_schema._PROJECT_KEYS: source_dirs, name, type, version, cpp_pkg_config, cpp_external_build_dirs, compile_database). Each C++ consumer is compared on its own verified row: source_dirs (legacy_qmake_verify), cpp_pkg_config and cpp_external_build_dirs (build-targets/sanitize oracles), compile_database (native_cpp, compilation_commands); type cpp versus hybrid (line-hybrid oracle, analysis-context oracle cpp/python/hybrid) and name/version in the frozen analysis_context project model (analysis-context oracle).",
+      "difference_reason": "Verified, not complete: the parent is bounded by its children; source_dirs has no failure fixture and the child rows stay verified."
     },
     "config_key:legacy:project.compile_database": {
       "status": "verified",
