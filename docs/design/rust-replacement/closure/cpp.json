@@ -10141,9 +10141,10 @@
       "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
     },
     "finding_site:src/ici/languages/artifacts.py:121:11": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
-        "crates/ici-cli/src/cpp.rs"
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-config/src/settings.rs"
       ],
       "fixtures": {
         "positive": [
@@ -10160,15 +10161,17 @@
       "evidence": [
         "Frozen `ici next verify` oracle tests/rust-parity/cpp/artifact-contract-oracle.json captured by development-only tests/rust-parity/cpp/capture_artifact_contract.py (oracle 6fe3e40; fixture parity-fixtures/cpp/artifact-contract plus a scripted build tree): 5 cases (mixed regular/dangling-link/outside-link/directory-only/satisfied globs, absent build directory, all satisfied, required broken contract, directory='.'); exit code, gate, artifact findings (rule, message, location, severity, confidence, evidence, provider, component, task), the frozen raw `artifact-<sha1[:16]>` id recovered from each envelope fingerprint, and artifacts.* metrics.",
         "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log",
-        "cargo test -p ici-cli --test artifact_contract --locked -j2 -- --include-ignored: 2 passed (5 contract cases + the frozen envelope identity of tests/rust-parity/reporting/artifact-identity.json); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+        "cargo test -p ici-cli --test artifact_contract --locked -j2 -- --include-ignored: 2 passed (5 contract cases + the frozen envelope identity of tests/rust-parity/reporting/artifact-identity.json); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log",
+        "cpp13: flock heavy.lock cargo test -p ici-cli --test artifact_contract --test config_oracle --locked -j2 and cargo test -p ici-config: all passed with the frozen root-directory sentence; /tmp/ici-rust-replacement-20261028/w-cpp13-root-directory.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen languages/artifacts.py verify_artifacts: per declared glob under the build directory, strict resolve (dangling link = no match), outside-workspace match = artifact.invalid, directory-only match counted, no regular file = artifact.missing with detail 'the build directory is absent' / 'only N non-file match(es)' / 'no match under the build directory'; findings MEASURED, high/high, at build.directory, raw fingerprint 'artifact-'+sha1('<kind>:<build>:<pattern|path>')[:16]. Rust crates/ici-cli/src/cpp.rs::analyze_contract now matches every message (Python repr of the pattern, detail texts, the invalid tail), the location, evidence, raw fingerprint, the dangling-link skip and artifacts.satisfied/produced metrics on all oracle cases; the gate (advisory PASS exit 0, required FAIL exit 1) matches. This site: _missing.",
-      "difference_reason": "Closed: internal-check findings keep frozen's unattributed envelope fingerprint and the check record names the unit and its 'release' variant (artifact_contract.rs internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint, reporting artifact-identity.json); `[builds.<id>] directory = \".\"` is refused before any run (exit 2, nothing written) like frozen. Open (cross-area, config owner): the refusal wording differs — native 'below the workspace root', frozen 'config: build directory must name a path below the root' — and no config.json row records that difference yet; artifact_contract.rs asserts only the native wording."
+      "difference_reason": "Closed: internal-check findings keep frozen's unattributed envelope fingerprint and the check record names the unit and its 'release' variant (artifact_contract.rs internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint, reporting artifact-identity.json); `[builds.<id>] directory = \".\"` is refused before any run (exit 2, nothing written) with frozen's sentence 'build directory must name a path below the root' (cpp13: ici-config settings.rs now uses frozen domain BuildUnit wording, 'build definition …' for project = '.'), located natively at builds.release.directory; artifact_contract.rs asserts the frozen sentence."
     },
     "finding_site:src/ici/languages/artifacts.py:142:11": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
-        "crates/ici-cli/src/cpp.rs"
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-config/src/settings.rs"
       ],
       "fixtures": {
         "positive": [
@@ -10185,10 +10188,11 @@
       "evidence": [
         "Frozen `ici next verify` oracle tests/rust-parity/cpp/artifact-contract-oracle.json captured by development-only tests/rust-parity/cpp/capture_artifact_contract.py (oracle 6fe3e40; fixture parity-fixtures/cpp/artifact-contract plus a scripted build tree): 5 cases (mixed regular/dangling-link/outside-link/directory-only/satisfied globs, absent build directory, all satisfied, required broken contract, directory='.'); exit code, gate, artifact findings (rule, message, location, severity, confidence, evidence, provider, component, task), the frozen raw `artifact-<sha1[:16]>` id recovered from each envelope fingerprint, and artifacts.* metrics.",
         "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log",
-        "cargo test -p ici-cli --test artifact_contract --locked -j2 -- --include-ignored: 2 passed (5 contract cases + the frozen envelope identity of tests/rust-parity/reporting/artifact-identity.json); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+        "cargo test -p ici-cli --test artifact_contract --locked -j2 -- --include-ignored: 2 passed (5 contract cases + the frozen envelope identity of tests/rust-parity/reporting/artifact-identity.json); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log",
+        "cpp13: flock heavy.lock cargo test -p ici-cli --test artifact_contract --test config_oracle --locked -j2 and cargo test -p ici-config: all passed with the frozen root-directory sentence; /tmp/ici-rust-replacement-20261028/w-cpp13-root-directory.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen languages/artifacts.py verify_artifacts: per declared glob under the build directory, strict resolve (dangling link = no match), outside-workspace match = artifact.invalid, directory-only match counted, no regular file = artifact.missing with detail 'the build directory is absent' / 'only N non-file match(es)' / 'no match under the build directory'; findings MEASURED, high/high, at build.directory, raw fingerprint 'artifact-'+sha1('<kind>:<build>:<pattern|path>')[:16]. Rust crates/ici-cli/src/cpp.rs::analyze_contract now matches every message (Python repr of the pattern, detail texts, the invalid tail), the location, evidence, raw fingerprint, the dangling-link skip and artifacts.satisfied/produced metrics on all oracle cases; the gate (advisory PASS exit 0, required FAIL exit 1) matches. This site: _invalid.",
-      "difference_reason": "Closed: internal-check findings keep frozen's unattributed envelope fingerprint and the check record names the unit and its 'release' variant (artifact_contract.rs internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint, reporting artifact-identity.json); `[builds.<id>] directory = \".\"` is refused before any run (exit 2, nothing written) like frozen. Open (cross-area, config owner): the refusal wording differs — native 'below the workspace root', frozen 'config: build directory must name a path below the root' — and no config.json row records that difference yet; artifact_contract.rs asserts only the native wording."
+      "difference_reason": "Closed: internal-check findings keep frozen's unattributed envelope fingerprint and the check record names the unit and its 'release' variant (artifact_contract.rs internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint, reporting artifact-identity.json); `[builds.<id>] directory = \".\"` is refused before any run (exit 2, nothing written) with frozen's sentence 'build directory must name a path below the root' (cpp13: ici-config settings.rs now uses frozen domain BuildUnit wording, 'build definition …' for project = '.'), located natively at builds.release.directory; artifact_contract.rs asserts the frozen sentence."
     },
     "finding_site:src/ici/adapters/providers/tidy.py:95:16": {
       "status": "complete",
