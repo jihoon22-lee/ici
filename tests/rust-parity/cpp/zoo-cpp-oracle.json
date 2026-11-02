@@ -1,5 +1,215 @@
 {
  "cases": {
+  "asan-use-after-free": {
+   "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+   ],
+   "engines": {
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "extra": {},
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "message": "No applicable Python source files were selected",
+       "path": ".",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "sanitize_issues": 1
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "message": "AddressSanitizer detected heap use after free",
+       "path": "src/fault.cpp",
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "high",
+       "start_line": 5,
+       "tool_name": "AddressSanitizer",
+       "tool_rule_id": "asan.heap-use-after-free"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "1 Memory / Resource Defect(s) Detected",
+     "targets": [
+      {
+       "file_path": "src/fault.cpp",
+       "message": "AddressSanitizer detected heap use after free",
+       "start_line": 5,
+       "status": "FAIL",
+       "target_name": "ASan/UBSan Error"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/g++",
+        "-std=c++17",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-g",
+        "<root>/tests/test_fault.cpp",
+        "<root>/src/clean.cpp",
+        "<root>/src/fault.cpp",
+        "-o",
+        "/tmp/ici-sanitize-l2iosi6m/test_fault_asan"
+       ],
+       "error": "",
+       "name": "sanitizer compile",
+       "path": "/usr/bin/g++",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/tmp/ici-sanitize-l2iosi6m/test_fault_asan"
+       ],
+       "error": "",
+       "name": "sanitizer execution",
+       "path": "/tmp/ici-sanitize-l2iosi6m/test_fault_asan",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 1,
+   "scenario": "cpp.asan-use-after-free",
+   "suite_status": "FAIL"
+  },
+  "lsan-memory-leak": {
+   "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+   ],
+   "engines": {
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "extra": {},
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "message": "No applicable Python source files were selected",
+       "path": ".",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "sanitize_issues": 1
+     },
+     "findings": [
+      {
+       "category": "resource",
+       "confidence": "exact",
+       "message": "LeakSanitizer detected memory leak",
+       "path": "src/fault.cpp",
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "high",
+       "start_line": 3,
+       "tool_name": "LeakSanitizer",
+       "tool_rule_id": "lsan.memory-leak"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "1 Memory / Resource Defect(s) Detected",
+     "targets": [
+      {
+       "file_path": "src/fault.cpp",
+       "message": "LeakSanitizer detected memory leak",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "LSan Error"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/g++",
+        "-std=c++17",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-g",
+        "<root>/tests/test_fault.cpp",
+        "<root>/src/clean.cpp",
+        "<root>/src/fault.cpp",
+        "-o",
+        "/tmp/ici-sanitize-b4dccpus/test_fault_asan"
+       ],
+       "error": "",
+       "name": "sanitizer compile",
+       "path": "/usr/bin/g++",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/tmp/ici-sanitize-b4dccpus/test_fault_asan"
+       ],
+       "error": "",
+       "name": "sanitizer execution",
+       "path": "/tmp/ici-sanitize-b4dccpus/test_fault_asan",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 1,
+   "scenario": "cpp.lsan-memory-leak",
+   "suite_status": "FAIL"
+  },
   "make-elf-integration": {
    "command": [
     "verify",
@@ -10,8 +220,10 @@
    "engines": {
     "binary_compat": {
      "evidence": "MEASURED",
+     "extra": {},
      "findings": [
       {
+       "category": "compatibility",
        "confidence": "high",
        "message": "ELF dependency, loader path, and ABI evidence verified",
        "path": "lib/libgreeter.so",
@@ -22,6 +234,7 @@
        "tool_rule_id": "BinaryCompatibility:release:shadow:lib/libgreeter.so"
       },
       {
+       "category": "compatibility",
        "confidence": "high",
        "message": "ELF dependency, loader path, and ABI evidence verified",
        "path": "app",
@@ -89,8 +302,10 @@
     },
     "build": {
      "evidence": "MEASURED",
+     "extra": {},
      "findings": [
       {
+       "category": "build",
        "confidence": "high",
        "message": "Generated env.csh",
        "path": "v1.0.0/x86_64/env.csh",
@@ -101,6 +316,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Makefile at the project root selected the configured Make backend; produced 2 artifact(s)",
        "path": "Makefile",
@@ -111,6 +327,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Generated env.sh",
        "path": "v1.0.0/x86_64/env.sh",
@@ -187,8 +404,10 @@
     },
     "integration": {
      "evidence": "MEASURED",
+     "extra": {},
      "findings": [
       {
+       "category": "correctness",
        "confidence": "high",
        "message": "All process and output artifact assertions passed",
        "path": "ici.toml",
@@ -240,8 +459,17 @@
    "engines": {
     "compile_db": {
      "evidence": "MEASURED",
+     "extra": {
+      "configurations": 1,
+      "coverage_percent": 100.0,
+      "covered_units": 1,
+      "database_path": "compile_commands.json",
+      "issues_count": 1,
+      "production_units": 1
+     },
      "findings": [
       {
+       "category": "build",
        "confidence": "high",
        "message": "Compilation configuration was inspected.",
        "path": "src/main.cpp",
@@ -252,6 +480,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "A compilation database entry is not an object.",
        "path": "compile_commands.json",
@@ -262,6 +491,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Production translation unit is covered by the compilation database.",
        "path": "src/main.cpp",
@@ -304,6 +534,1447 @@
    "scenario": "cpp.malformed-compile-db",
    "suite_status": "FAIL"
   },
+  "qt-missing-parent-constructor": {
+   "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+   ],
+   "engines": {
+    "lint": {
+     "evidence": "MEASURED",
+     "extra": {
+      "clazy_mode": "exact",
+      "clazy_profile": "ctor-missing-parent-argument",
+      "cpp_diagnostic_categories": {
+       "architecture": 0,
+       "build": 0,
+       "compatibility": 0,
+       "correctness": 0,
+       "maintainability": 0,
+       "resource": 1,
+       "security": 0,
+       "test": 0,
+       "type": 0
+      },
+      "cpp_diagnostic_category_policy": "tool-rule-v1",
+      "cpp_diagnostic_families": {
+       "clang-analyzer": 0,
+       "clang-tidy": 0,
+       "clazy": 1,
+       "compiler": 0
+      }
+     },
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "message": "clazy completed without diagnostics.",
+       "path": "src/clean.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": "Clazy:5979cddbd0d5"
+      },
+      {
+       "category": "resource",
+       "confidence": "exact",
+       "message": "warning: MissingParent should take QObject parent argument in CTOR",
+       "path": "src/bad.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "medium",
+       "start_line": 3,
+       "tool_name": "clazy",
+       "tool_rule_id": "clazy-ctor-missing-parent-argument"
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "path": "src/clean.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": "C++Syntax:5979cddbd0d5"
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "message": "Qt 6 API compatibility passed an exact sanitized compile replay.",
+       "path": "src/bad.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": "QtCompatibility:Qt6"
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "path": "src/bad.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": "C++Syntax:0e57052aa3c2"
+      },
+      {
+       "category": "maintainability",
+       "confidence": "high",
+       "message": "Qt 6 API compatibility passed an exact sanitized compile replay.",
+       "path": "src/clean.cpp",
+       "rule_id": "ici.legacy.lint.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "c++",
+       "tool_rule_id": "QtCompatibility:Qt6"
+      }
+     ],
+     "status": "WARN",
+     "summary": "0 Errors, 1 Warnings Found",
+     "targets": [
+      {
+       "file_path": "src/bad.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:0e57052aa3c2"
+      },
+      {
+       "file_path": "src/clean.cpp",
+       "message": "Compiler syntax analysis completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++Syntax:5979cddbd0d5"
+      },
+      {
+       "file_path": "src/bad.cpp",
+       "message": "Qt 6 API compatibility passed an exact sanitized compile replay.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "QtCompatibility:Qt6"
+      },
+      {
+       "file_path": "src/clean.cpp",
+       "message": "Qt 6 API compatibility passed an exact sanitized compile replay.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "QtCompatibility:Qt6"
+      },
+      {
+       "file_path": "src/bad.cpp",
+       "message": "warning: MissingParent should take QObject parent argument in CTOR",
+       "start_line": 3,
+       "status": "WARN",
+       "target_name": "Clazy:clazy-ctor-missing-parent-argument"
+      },
+      {
+       "file_path": "src/clean.cpp",
+       "message": "clazy completed without diagnostics.",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "Clazy:5979cddbd0d5"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-DQT_CORE_LIB",
+        "-DQT_NO_DEBUG",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6/QtCore",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6",
+        "-isystem",
+        "/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+        "<root>/src/bad.cpp"
+       ],
+       "error": "",
+       "name": "c++",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-DQT_CORE_LIB",
+        "-DQT_NO_DEBUG",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6/QtCore",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6",
+        "-isystem",
+        "/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-Wall",
+        "-Wextra",
+        "-fsyntax-only",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option",
+        "<root>/src/clean.cpp"
+       ],
+       "error": "",
+       "name": "c++",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-E",
+        "-x",
+        "c++",
+        "-v",
+        "-"
+       ],
+       "error": "",
+       "name": "g++ stdlib include search",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-E",
+        "-x",
+        "c",
+        "-v",
+        "-"
+       ],
+       "error": "",
+       "name": "g++ stdlib include search",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/tmp/ici-cpp-zoo-capture/bin/clazy-standalone",
+        "--checks=ctor-missing-parent-argument",
+        "--only-qt",
+        "<root>/src/bad.cpp",
+        "--",
+        "-DQT_CORE_LIB",
+        "-DQT_NO_DEBUG",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6/QtCore",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6",
+        "-isystem",
+        "/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-nostdinc++",
+        "-isystem",
+        "/usr/include/c++/15",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/c++/15",
+        "-isystem",
+        "/usr/include/c++/15/backward"
+       ],
+       "error": "",
+       "name": "clazy",
+       "path": "/tmp/ici-cpp-zoo-capture/bin/clazy-standalone",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/tmp/ici-cpp-zoo-capture/bin/clazy-standalone",
+        "--checks=ctor-missing-parent-argument",
+        "--only-qt",
+        "<root>/src/clean.cpp",
+        "--",
+        "-DQT_CORE_LIB",
+        "-DQT_NO_DEBUG",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6/QtCore",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/qt6",
+        "-isystem",
+        "/usr/lib/x86_64-linux-gnu/qt6/mkspecs/linux-g++",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "-fdiagnostics-color=never",
+        "-nostdinc++",
+        "-isystem",
+        "/usr/include/c++/15",
+        "-isystem",
+        "/usr/include/x86_64-linux-gnu/c++/15",
+        "-isystem",
+        "/usr/include/c++/15/backward"
+       ],
+       "error": "",
+       "name": "clazy",
+       "path": "/tmp/ici-cpp-zoo-capture/bin/clazy-standalone",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    },
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "extra": {},
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "message": "No applicable Python source files were selected",
+       "path": ".",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "tool_evidence": []
+    }
+   },
+   "exit_code": 0,
+   "scenario": "cpp.qt-missing-parent-constructor",
+   "suite_status": "WARN"
+  },
+  "quality-coverage": {
+   "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+   ],
+   "engines": {
+    "complexity": {
+     "evidence": "ESTIMATED",
+     "extra": {
+      "issues_count": 1,
+      "max_complexity": 11,
+      "total_functions": 8
+     },
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Complexity: 2, Nesting: 1",
+       "path": "src/dup_left.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Complexity: 1, Nesting: 0",
+       "path": "src/clean.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Complexity: 1, Nesting: 0",
+       "path": "src/unused.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "start_line": 5,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "High complexity: 11 (limit 5), Max Nesting: 3 (limit 3)",
+       "path": "src/complexity.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Complexity: 1, Nesting: 0",
+       "path": "src/unused.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Complexity: 2, Nesting: 1",
+       "path": "src/coverage.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "start_line": 8,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Complexity: 2, Nesting: 1",
+       "path": "src/dup_right.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Complexity: 2, Nesting: 1",
+       "path": "src/coverage.cpp",
+       "rule_id": "ici.legacy.complexity.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "WARN",
+     "summary": "Max Cyclomatic Complexity: 11 (limit 5) across 8 functions (1 issues)",
+     "targets": [
+      {
+       "file_path": "src/clean.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "clean_quality_function()"
+      },
+      {
+       "file_path": "src/complexity.cpp",
+       "message": "High complexity: 11 (limit 5), Max Nesting: 3 (limit 3)",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "complex_classifier()"
+      },
+      {
+       "file_path": "src/coverage.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "classify_value()"
+      },
+      {
+       "file_path": "src/coverage.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 8,
+       "status": "PASS",
+       "target_name": "uncalled_branch_helper()"
+      },
+      {
+       "file_path": "src/dup_left.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "duplicate_left()"
+      },
+      {
+       "file_path": "src/dup_right.cpp",
+       "message": "Complexity: 2, Nesting: 1",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "duplicate_right()"
+      },
+      {
+       "file_path": "src/unused.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "unused_quality_helper()"
+      },
+      {
+       "file_path": "src/unused.cpp",
+       "message": "Complexity: 1, Nesting: 0",
+       "start_line": 5,
+       "status": "PASS",
+       "target_name": "used_quality_helper()"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "dead": {
+     "evidence": "MEASURED",
+     "extra": {
+      "cpp_unused_functions_count": 1,
+      "cpp_unused_mode": "exact"
+     },
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "exact",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "path": "src/dup_left.cpp",
+       "rule_id": "ici.legacy.dead.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "g++ unused-function",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "exact",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "path": "src/dup_right.cpp",
+       "rule_id": "ici.legacy.dead.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "g++ unused-function",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "exact",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "path": "src/clean.cpp",
+       "rule_id": "ici.legacy.dead.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "g++ unused-function",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "exact",
+       "message": "Compiler reports 'int unused_quality_helper(int)' defined but not used in all 1 analyzed configuration(s)",
+       "path": "src/unused.cpp",
+       "rule_id": "ici.legacy.dead.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "g++",
+       "tool_rule_id": "-Wunused-function"
+      },
+      {
+       "category": "maintainability",
+       "confidence": "exact",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "path": "src/coverage.cpp",
+       "rule_id": "ici.legacy.dead.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "g++ unused-function",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "exact",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "path": "src/complexity.cpp",
+       "rule_id": "ici.legacy.dead.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "g++ unused-function",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "WARN",
+     "summary": "1 dead-code finding(s): 0 heuristic Python, 1 compiler-local C/C++, 0 target-local GNU ELF",
+     "targets": [
+      {
+       "file_path": "src/clean.cpp",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++UnusedFunctions"
+      },
+      {
+       "file_path": "src/complexity.cpp",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++UnusedFunctions"
+      },
+      {
+       "file_path": "src/coverage.cpp",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++UnusedFunctions"
+      },
+      {
+       "file_path": "src/dup_left.cpp",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++UnusedFunctions"
+      },
+      {
+       "file_path": "src/dup_right.cpp",
+       "message": "Compiler found no unused internal-linkage function in 1 analyzed configuration(s)",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "C++UnusedFunctions"
+      },
+      {
+       "file_path": "src/unused.cpp",
+       "message": "Compiler reports 'int unused_quality_helper(int)' defined but not used in all 1 analyzed configuration(s)",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Compiler:-Wunused-function"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "<root>/src/clean.cpp",
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        "/dev/null",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option"
+       ],
+       "error": "",
+       "name": "g++ unused-function",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "<root>/src/complexity.cpp",
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        "/dev/null",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option"
+       ],
+       "error": "",
+       "name": "g++ unused-function",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "<root>/src/coverage.cpp",
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        "/dev/null",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option"
+       ],
+       "error": "",
+       "name": "g++ unused-function",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "<root>/src/dup_left.cpp",
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        "/dev/null",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option"
+       ],
+       "error": "",
+       "name": "g++ unused-function",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "<root>/src/dup_right.cpp",
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        "/dev/null",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option"
+       ],
+       "error": "",
+       "name": "g++ unused-function",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/x86_64-linux-gnu-g++-15",
+        "-O3",
+        "-DNDEBUG",
+        "-std=c++17",
+        "<root>/src/unused.cpp",
+        "-fdiagnostics-color=never",
+        "-Wunused-function",
+        "-Wno-error=unused-function",
+        "-S",
+        "-o",
+        "/dev/null",
+        "-fdiagnostics-format=json",
+        "-fdiagnostics-show-option"
+       ],
+       "error": "",
+       "name": "g++ unused-function",
+       "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    },
+    "dup": {
+     "evidence": "ESTIMATED",
+     "extra": {
+      "clone_groups_count": 1
+     },
+     "findings": [
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "path": "src/unused.cpp",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "path": "src/complexity.cpp",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "path": "src/clean.cpp",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "path": "src/coverage.cpp",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Duplicate code block (11 lines) shared across 2 locations",
+       "path": "src/dup_left.cpp",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "maintainability",
+       "confidence": "medium",
+       "message": "Duplicate code block (11 lines) shared across 2 locations",
+       "path": "src/dup_right.cpp",
+       "rule_id": "ici.legacy.dup.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "WARN",
+     "summary": "Code Duplication Rate: 15.1% (1 distinct clone groups found, 0 from Python AST shapes)",
+     "targets": [
+      {
+       "file_path": "src/dup_left.cpp",
+       "message": "Duplicate code block (11 lines) shared across 2 locations",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CloneGroup#1"
+      },
+      {
+       "file_path": "src/dup_right.cpp",
+       "message": "Duplicate code block (11 lines) shared across 2 locations",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "CloneGroup#1"
+      },
+      {
+       "file_path": "src/clean.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "file_path": "src/complexity.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "file_path": "src/coverage.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      },
+      {
+       "file_path": "src/unused.cpp",
+       "message": "Source was analyzed and has no reported duplicate region",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "DuplicateScan"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "test": {
+     "evidence": "MEASURED",
+     "extra": {
+      "branch_coverage": 3.7,
+      "coverage_source": "gcov",
+      "function_coverage": 12.5
+     },
+     "findings": [
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function unused_quality_helper(int) was not exercised by the aggregate project test suite",
+       "path": "src/unused.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:unused_quality_helper(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "File line coverage 37.5% is below the configured minimum 80.0%",
+       "path": "src/coverage.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:File"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function uncalled_branch_helper(int) was not exercised by the aggregate project test suite",
+       "path": "src/coverage.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 8,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:uncalled_branch_helper(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "File line coverage 0.0% is below the configured minimum 80.0%",
+       "path": "src/dup_left.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:File"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Aggregate function coverage 12.5% is below the configured minimum 100.0%",
+       "path": ".",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Functions"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function duplicate_right(int) was not exercised by the aggregate project test suite",
+       "path": "src/dup_right.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:duplicate_right(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function used_quality_helper(int) was not exercised by the aggregate project test suite",
+       "path": "src/unused.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 5,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:used_quality_helper(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "File line coverage 0.0% is below the configured minimum 80.0%",
+       "path": "src/dup_right.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:File"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function clean_quality_function(int) was not exercised by the aggregate project test suite",
+       "path": "src/clean.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:clean_quality_function(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "File line coverage 0.0% is below the configured minimum 80.0%",
+       "path": "src/complexity.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:File"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function classify_value(int) was exercised by the aggregate project test suite",
+       "path": "src/coverage.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:classify_value(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function duplicate_left(int) was not exercised by the aggregate project test suite",
+       "path": "src/dup_left.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:duplicate_left(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Function complex_classifier(int) was not exercised by the aggregate project test suite",
+       "path": "src/complexity.cpp",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Function:complex_classifier(int)"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Branch coverage 3.7% is below the configured minimum 100.0%",
+       "path": ".",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Threshold: Branch coverage"
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "C++ Test Passed",
+       "path": "CMakeLists.txt",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": ""
+      },
+      {
+       "category": "test",
+       "confidence": "high",
+       "message": "Overall line coverage 5.4% is below the configured minimum 80.0%",
+       "path": ".",
+       "rule_id": "ici.legacy.test.target",
+       "severity": "medium",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": "Coverage:Overall line"
+      }
+     ],
+     "status": "WARN",
+     "summary": "1/1 Tests Passed | Line: 5.4%, Func: 12.5%, Branch: 3.7% -> TEM: 0.04 / 5.0",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "C++ Test Passed",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "[C++] quality_test"
+      },
+      {
+       "file_path": ".",
+       "message": "Overall line coverage 5.4% is below the configured minimum 80.0%",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:Overall line"
+      },
+      {
+       "file_path": "src/complexity.cpp",
+       "message": "File line coverage 0.0% is below the configured minimum 80.0%",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:File"
+      },
+      {
+       "file_path": "src/coverage.cpp",
+       "message": "File line coverage 37.5% is below the configured minimum 80.0%",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:File"
+      },
+      {
+       "file_path": "src/dup_left.cpp",
+       "message": "File line coverage 0.0% is below the configured minimum 80.0%",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:File"
+      },
+      {
+       "file_path": "src/dup_right.cpp",
+       "message": "File line coverage 0.0% is below the configured minimum 80.0%",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:File"
+      },
+      {
+       "file_path": ".",
+       "message": "Aggregate function coverage 12.5% is below the configured minimum 100.0%",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:Functions"
+      },
+      {
+       "file_path": "src/clean.cpp",
+       "message": "Function clean_quality_function(int) was not exercised by the aggregate project test suite",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:Function:clean_quality_function(int)"
+      },
+      {
+       "file_path": "src/complexity.cpp",
+       "message": "Function complex_classifier(int) was not exercised by the aggregate project test suite",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:Function:complex_classifier(int)"
+      },
+      {
+       "file_path": "src/coverage.cpp",
+       "message": "Function classify_value(int) was exercised by the aggregate project test suite",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "Coverage:Function:classify_value(int)"
+      },
+      {
+       "file_path": "src/coverage.cpp",
+       "message": "Function uncalled_branch_helper(int) was not exercised by the aggregate project test suite",
+       "start_line": 8,
+       "status": "WARN",
+       "target_name": "Coverage:Function:uncalled_branch_helper(int)"
+      },
+      {
+       "file_path": "src/dup_left.cpp",
+       "message": "Function duplicate_left(int) was not exercised by the aggregate project test suite",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:Function:duplicate_left(int)"
+      },
+      {
+       "file_path": "src/dup_right.cpp",
+       "message": "Function duplicate_right(int) was not exercised by the aggregate project test suite",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:Function:duplicate_right(int)"
+      },
+      {
+       "file_path": "src/unused.cpp",
+       "message": "Function unused_quality_helper(int) was not exercised by the aggregate project test suite",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Coverage:Function:unused_quality_helper(int)"
+      },
+      {
+       "file_path": "src/unused.cpp",
+       "message": "Function used_quality_helper(int) was not exercised by the aggregate project test suite",
+       "start_line": 5,
+       "status": "WARN",
+       "target_name": "Coverage:Function:used_quality_helper(int)"
+      },
+      {
+       "file_path": ".",
+       "message": "Branch coverage 3.7% is below the configured minimum 100.0%",
+       "start_line": 1,
+       "status": "WARN",
+       "target_name": "Threshold: Branch coverage"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [],
+       "error": "",
+       "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "path": "",
+       "returncode": null,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "--version"
+       ],
+       "error": "",
+       "name": "cmake --version",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "-S",
+        "<root>",
+        "-B",
+        "<root>/build/ici-cmake",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_CXX_FLAGS=--coverage",
+        "-DCMAKE_EXE_LINKER_FLAGS=--coverage"
+       ],
+       "error": "",
+       "name": "cmake configure",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "--build",
+        "<root>/build/ici-cmake",
+        "--parallel"
+       ],
+       "error": "",
+       "name": "cmake build",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/ctest",
+        "--output-on-failure",
+        "--test-dir",
+        "<root>/build/ici-cmake",
+        "--output-junit",
+        "<root>/build/ici-cmake/ici-ctest.xml"
+       ],
+       "error": "",
+       "name": "ctest",
+       "path": "/usr/bin/ctest",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/gcov",
+        "--help"
+       ],
+       "error": "",
+       "name": "gcov capability",
+       "path": "/usr/bin/gcov",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/gcov",
+        "--json-format",
+        "-b",
+        "-p",
+        "-o",
+        "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX",
+        "<root>/build/ici-cmake/CMakeFiles/4.2.3/CompilerIdCXX/a-CMakeCXXCompilerId.gcno"
+       ],
+       "error": "",
+       "name": "gcov",
+       "path": "/usr/bin/gcov",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/gcov",
+        "--json-format",
+        "-b",
+        "-p",
+        "-o",
+        "<root>/build/ici-cmake/CMakeFiles/quality_analysis.dir/src",
+        "<root>/build/ici-cmake/CMakeFiles/quality_analysis.dir/src/clean.cpp.gcno",
+        "<root>/build/ici-cmake/CMakeFiles/quality_analysis.dir/src/complexity.cpp.gcno",
+        "<root>/build/ici-cmake/CMakeFiles/quality_analysis.dir/src/coverage.cpp.gcno",
+        "<root>/build/ici-cmake/CMakeFiles/quality_analysis.dir/src/dup_left.cpp.gcno",
+        "<root>/build/ici-cmake/CMakeFiles/quality_analysis.dir/src/dup_right.cpp.gcno",
+        "<root>/build/ici-cmake/CMakeFiles/quality_analysis.dir/src/unused.cpp.gcno"
+       ],
+       "error": "",
+       "name": "gcov",
+       "path": "/usr/bin/gcov",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/gcov",
+        "--json-format",
+        "-b",
+        "-p",
+        "-o",
+        "<root>/build/ici-cmake/CMakeFiles/quality_test.dir/tests",
+        "<root>/build/ici-cmake/CMakeFiles/quality_test.dir/tests/test_quality.cpp.gcno"
+       ],
+       "error": "",
+       "name": "gcov",
+       "path": "/usr/bin/gcov",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 0,
+   "scenario": "cpp.quality-coverage",
+   "suite_status": "WARN"
+  },
+  "sanitizer-clean": {
+   "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+   ],
+   "engines": {
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "extra": {},
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "message": "No applicable Python source files were selected",
+       "path": ".",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+       "path": "tests/test_clean.cpp",
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "sanitizer compile",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "PASS",
+     "summary": "Memory Safety & Sanitize Clean (0 Defects)",
+     "targets": [
+      {
+       "file_path": "tests/test_clean.cpp",
+       "message": "AddressSanitizer and UndefinedBehaviorSanitizer completed",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "ASan/UBSan"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/g++",
+        "-std=c++17",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-g",
+        "<root>/tests/test_clean.cpp",
+        "<root>/src/clean.cpp",
+        "-o",
+        "/tmp/ici-sanitize-szmj5s0d/test_clean_asan"
+       ],
+       "error": "",
+       "name": "sanitizer compile",
+       "path": "/usr/bin/g++",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/tmp/ici-sanitize-szmj5s0d/test_clean_asan"
+       ],
+       "error": "",
+       "name": "sanitizer execution",
+       "path": "/tmp/ici-sanitize-szmj5s0d/test_clean_asan",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 0,
+   "scenario": "cpp.sanitizer-clean",
+   "suite_status": "PASS"
+  },
   "static-build-context": {
    "command": [
     "verify",
@@ -314,8 +1985,17 @@
    "engines": {
     "compile_db": {
      "evidence": "MEASURED",
+     "extra": {
+      "configurations": 5,
+      "coverage_percent": 100.0,
+      "covered_units": 5,
+      "database_path": "build/ici-cmake-build/compile_commands.json",
+      "issues_count": 0,
+      "production_units": 5
+     },
      "findings": [
       {
+       "category": "build",
        "confidence": "high",
        "message": "Compilation configuration was inspected.",
        "path": "src/target17.cpp",
@@ -326,6 +2006,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Compilation configuration was inspected.",
        "path": "src/warning.cpp",
@@ -336,6 +2017,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Production translation unit is covered by the compilation database.",
        "path": "src/target17.cpp",
@@ -346,6 +2028,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Production translation unit is covered by the compilation database.",
        "path": "src/warning.cpp",
@@ -356,6 +2039,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Production translation unit is covered by the compilation database.",
        "path": "src/unresolved.cpp",
@@ -366,6 +2050,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Compilation configuration was inspected.",
        "path": "src/target20.cpp",
@@ -376,6 +2061,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Production translation unit is covered by the compilation database.",
        "path": "src/compile_error_user.cpp",
@@ -386,6 +2072,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Compilation configuration was inspected.",
        "path": "src/compile_error_user.cpp",
@@ -396,6 +2083,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Production translation unit is covered by the compilation database.",
        "path": "src/target20.cpp",
@@ -406,6 +2094,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "build",
        "confidence": "high",
        "message": "Compilation configuration was inspected.",
        "path": "src/unresolved.cpp",
@@ -494,8 +2183,10 @@
     },
     "cycle": {
      "evidence": "MEASURED",
+     "extra": {},
      "findings": [
       {
+       "category": "architecture",
        "confidence": "high",
        "message": "Compiler include tracing completed for this translation-unit configuration.",
        "path": "src/compile_error_user.cpp",
@@ -506,6 +2197,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "architecture",
        "confidence": "high",
        "message": "Compiler include tracing completed for this translation-unit configuration.",
        "path": "src/target20.cpp",
@@ -516,6 +2208,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "architecture",
        "confidence": "high",
        "message": "Compiler could not resolve active include \"generated/config.hpp\"; no dependency edge was recorded",
        "path": "src/unresolved.cpp",
@@ -526,6 +2219,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "architecture",
        "confidence": "high",
        "message": "Compiler include tracing completed for this translation-unit configuration.",
        "path": "src/warning.cpp",
@@ -536,6 +2230,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "architecture",
        "confidence": "high",
        "message": "Compiler include tracing completed for this translation-unit configuration.",
        "path": "src/target17.cpp",
@@ -546,6 +2241,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "architecture",
        "confidence": "high",
        "message": "C++ include cycle (2 files): config.hpp -> cycle.hpp -> config.hpp",
        "path": "include/first/config.hpp",
@@ -718,8 +2414,31 @@
     },
     "lint": {
      "evidence": "MEASURED",
+     "extra": {
+      "clazy_mode": "off",
+      "clazy_profile": "level0",
+      "cpp_diagnostic_categories": {
+       "architecture": 0,
+       "build": 0,
+       "compatibility": 0,
+       "correctness": 3,
+       "maintainability": 0,
+       "resource": 0,
+       "security": 0,
+       "test": 0,
+       "type": 0
+      },
+      "cpp_diagnostic_category_policy": "tool-rule-v1",
+      "cpp_diagnostic_families": {
+       "clang-analyzer": 0,
+       "clang-tidy": 0,
+       "clazy": 0,
+       "compiler": 3
+      }
+     },
      "findings": [
       {
+       "category": "correctness",
        "confidence": "exact",
        "message": "warning: unused variable 'unused_local'",
        "path": "src/warning.cpp",
@@ -730,6 +2449,7 @@
        "tool_rule_id": "-Wunused-variable"
       },
       {
+       "category": "maintainability",
        "confidence": "high",
        "message": "Compiler syntax analysis completed without diagnostics.",
        "path": "src/target17.cpp",
@@ -740,6 +2460,7 @@
        "tool_rule_id": "C++Syntax:b514324da147"
       },
       {
+       "category": "correctness",
        "confidence": "exact",
        "message": "fatal error: generated/config.hpp: No such file or directory",
        "path": "src/unresolved.cpp",
@@ -750,6 +2471,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "correctness",
        "confidence": "exact",
        "message": "error: 'missing_symbol_for_quality_zoo' was not declared in this scope",
        "path": "include/bad_compile.hpp",
@@ -760,6 +2482,7 @@
        "tool_rule_id": ""
       },
       {
+       "category": "maintainability",
        "confidence": "high",
        "message": "Compiler syntax analysis completed without diagnostics.",
        "path": "src/target20.cpp",
@@ -926,6 +2649,399 @@
    },
    "exit_code": 1,
    "scenario": "cpp.static-build-context",
+   "suite_status": "FAIL"
+  },
+  "tsan-data-race": {
+   "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+   ],
+   "engines": {
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "extra": {},
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "message": "No applicable Python source files were selected",
+       "path": ".",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "thread_sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "thread_sanitize_issues": 1
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "message": "ThreadSanitizer detected data race",
+       "path": "src/race.cpp",
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "high",
+       "start_line": 15,
+       "tool_name": "ThreadSanitizer",
+       "tool_rule_id": "tsan.data-race"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "1 Thread Safety Defect(s) Detected",
+     "targets": [
+      {
+       "file_path": "src/race.cpp",
+       "message": "ThreadSanitizer detected data race",
+       "start_line": 15,
+       "status": "FAIL",
+       "target_name": "TSan Error"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [],
+       "error": "",
+       "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "path": "",
+       "returncode": null,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "--version"
+       ],
+       "error": "",
+       "name": "cmake --version",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "-S",
+        "<root>",
+        "-B",
+        "<root>/build/ici-cmake-tsan",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_CXX_FLAGS=-fsanitize=thread -fno-omit-frame-pointer -g",
+        "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread"
+       ],
+       "error": "",
+       "name": "cmake configure",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "--build",
+        "<root>/build/ici-cmake-tsan",
+        "--parallel"
+       ],
+       "error": "",
+       "name": "cmake build",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/ctest",
+        "--output-on-failure",
+        "--test-dir",
+        "<root>/build/ici-cmake-tsan",
+        "--output-junit",
+        "<root>/build/ici-cmake-tsan/ici-ctest.xml"
+       ],
+       "error": "",
+       "name": "ctest",
+       "path": "/usr/bin/ctest",
+       "returncode": 8,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 1,
+   "scenario": "cpp.tsan-data-race",
+   "suite_status": "FAIL"
+  },
+  "tsan-synchronized": {
+   "command": [
+    "verify",
+    "--profile",
+    "deep",
+    "--no-cache"
+   ],
+   "engines": {
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "extra": {},
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "message": "No applicable Python source files were selected",
+       "path": ".",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "thread_sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "thread_sanitize_issues": 0
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "high",
+       "message": "Sanitizers reported no diagnostics",
+       "path": "CMakeLists.txt",
+       "rule_id": "ici.legacy.thread-sanitize.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "tool_rule_id": ""
+      }
+     ],
+     "status": "PASS",
+     "summary": "Thread Safety & TSan Clean (0 Defects)",
+     "targets": [
+      {
+       "file_path": "CMakeLists.txt",
+       "message": "Sanitizers reported no diagnostics",
+       "start_line": 1,
+       "status": "PASS",
+       "target_name": "[C++ TSan] tsan_synchronized"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [],
+       "error": "",
+       "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+       "path": "",
+       "returncode": null,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "--version"
+       ],
+       "error": "",
+       "name": "cmake --version",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "-S",
+        "<root>",
+        "-B",
+        "<root>/build/ici-cmake-tsan",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+        "-DCMAKE_CXX_FLAGS=-fsanitize=thread -fno-omit-frame-pointer -g",
+        "-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread"
+       ],
+       "error": "",
+       "name": "cmake configure",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/cmake",
+        "--build",
+        "<root>/build/ici-cmake-tsan",
+        "--parallel"
+       ],
+       "error": "",
+       "name": "cmake build",
+       "path": "/usr/bin/cmake",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/usr/bin/ctest",
+        "--output-on-failure",
+        "--test-dir",
+        "<root>/build/ici-cmake-tsan",
+        "--output-junit",
+        "<root>/build/ici-cmake-tsan/ici-ctest.xml"
+       ],
+       "error": "",
+       "name": "ctest",
+       "path": "/usr/bin/ctest",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 0,
+   "scenario": "cpp.tsan-synchronized",
+   "suite_status": "PASS"
+  },
+  "ubsan-signed-overflow": {
+   "command": [
+    "verify",
+    "--profile",
+    "standard",
+    "--no-cache"
+   ],
+   "engines": {
+    "python_compat": {
+     "evidence": "NOT_APPLICABLE",
+     "extra": {},
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "low",
+       "message": "No applicable Python source files were selected",
+       "path": ".",
+       "rule_id": "ici.legacy.python-compat.target",
+       "severity": "info",
+       "start_line": 1,
+       "tool_name": "",
+       "tool_rule_id": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "status": "SKIP",
+     "summary": "Python compatibility analysis skipped: no Python source files",
+     "targets": [
+      {
+       "file_path": ".",
+       "message": "No applicable Python source files were selected",
+       "start_line": 1,
+       "status": "SKIP",
+       "target_name": "PythonRuntime:NotApplicable"
+      }
+     ],
+     "tool_evidence": []
+    },
+    "sanitize": {
+     "evidence": "MEASURED",
+     "extra": {
+      "sanitize_issues": 1
+     },
+     "findings": [
+      {
+       "category": "correctness",
+       "confidence": "exact",
+       "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+       "path": "src/fault.cpp",
+       "rule_id": "ici.legacy.sanitize.target",
+       "severity": "high",
+       "start_line": 3,
+       "tool_name": "UndefinedBehaviorSanitizer",
+       "tool_rule_id": "ubsan.signed-integer-overflow"
+      }
+     ],
+     "status": "FAIL",
+     "summary": "1 Memory / Resource Defect(s) Detected",
+     "targets": [
+      {
+       "file_path": "src/fault.cpp",
+       "message": "UndefinedBehaviorSanitizer detected signed integer overflow",
+       "start_line": 3,
+       "status": "FAIL",
+       "target_name": "ASan/UBSan Error"
+      }
+     ],
+     "tool_evidence": [
+      {
+       "argv": [
+        "/usr/bin/g++",
+        "-std=c++17",
+        "-fsanitize=address,undefined",
+        "-fno-omit-frame-pointer",
+        "-g",
+        "<root>/tests/test_fault.cpp",
+        "<root>/src/clean.cpp",
+        "<root>/src/fault.cpp",
+        "-o",
+        "/tmp/ici-sanitize-wmh81x07/test_fault_asan"
+       ],
+       "error": "",
+       "name": "sanitizer compile",
+       "path": "/usr/bin/g++",
+       "returncode": 0,
+       "timed_out": false,
+       "truncated": false
+      },
+      {
+       "argv": [
+        "/tmp/ici-sanitize-wmh81x07/test_fault_asan"
+       ],
+       "error": "",
+       "name": "sanitizer execution",
+       "path": "/tmp/ici-sanitize-wmh81x07/test_fault_asan",
+       "returncode": 1,
+       "timed_out": false,
+       "truncated": false
+      }
+     ]
+    }
+   },
+   "exit_code": 1,
+   "scenario": "cpp.ubsan-signed-overflow",
    "suite_status": "FAIL"
   }
  },

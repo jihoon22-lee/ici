@@ -704,7 +704,23 @@ fn prepare_resolved_omitting(
         .collect::<std::result::Result<_, _>>()
         .map_err(|e| CliError(e.to_string()))?;
     cpp.finalize_plan(&mut plan);
+    // Frozen `ici verify` builds its analysis context itself, whatever `[engines.compile_db]`
+    // says: with compile_db disabled the lint engine still replays that context, so a legacy
+    // C++ syntax/clang check of a component whose compile check is not selected consumes no
+    // compile-inputs token.
+    let compile_selected: BTreeSet<String> = plan
+        .checks
+        .iter()
+        .filter(|check| check.check.id == "cpp.compile")
+        .map(|check| check.component_id.clone())
+        .collect();
     for check in &mut plan.checks {
+        if cpp.legacy_projection
+            && !compile_selected.contains(&check.component_id)
+            && matches!(check.check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
+        {
+            check.check.needs.clear();
+        }
         // A legacy binary-compat verdict decided while planning consumes no build prerequisite.
         if check.check.id == "cpp.binary-compat" && cpp.planned_output(&check.task_id) {
             check.check.needs.clear();

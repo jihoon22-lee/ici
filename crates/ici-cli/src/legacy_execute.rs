@@ -238,8 +238,10 @@ pub fn command(
                     .max(floor)
                     .max(i32::from(regressed))
             };
-            stored = StoredResult::from_value(document).map_err(error)?;
         }
+        // The shaped engines are the report even when no verdict was replaced (frozen engine
+        // `extra` fields such as the C++ lint counters are shaping too).
+        stored = StoredResult::from_value(document).map_err(error)?;
     }
     // Frozen `_write_baseline`: the written baseline has no comparison and the suite status before
     // the gate.
@@ -933,6 +935,7 @@ fn shape_engine(
     if legacy_schema {
         frozen_python_finding_fields(family, value);
         crate::legacy_python_inventory::shape(family, value, &root)?;
+        crate::cpp::legacy_engine_extra::shape(family, value);
         if family == "lint" {
             let config = prepared
                 .project

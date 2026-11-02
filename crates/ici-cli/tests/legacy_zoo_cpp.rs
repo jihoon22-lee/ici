@@ -22,17 +22,40 @@ fn copy(from: &Path, to: &Path) {
     }
 }
 
-/// Recorded difference: a legacy C++ syntax target of a clean unit is named by its compilation
-/// configuration digest, which hashes the unit's directory and argv; native owned CMake shadows
-/// live under `.ici/rust-v1/build/` (frozen `build/ici-cmake-build`), so the 12-digit suffix
-/// differs while the target, its file and message are frozen's.
+/// Recorded difference: a legacy C++ syntax or clazy target of a clean unit is named by its
+/// compilation configuration digest, which hashes the unit's directory and argv; native owned
+/// CMake shadows live under `.ici/rust-v1/build/` (frozen `build/ici-cmake-build`), so the
+/// 12-digit suffix differs while the target, its file and message are frozen's.
 fn masked(name: &str) -> String {
-    match name.strip_prefix("C++Syntax:") {
-        Some(suffix) if suffix.len() == 12 && suffix.bytes().all(|b| b.is_ascii_hexdigit()) => {
-            "C++Syntax:<configuration>".into()
+    for prefix in ["C++Syntax:", "Clazy:"] {
+        if let Some(suffix) = name.strip_prefix(prefix)
+            && suffix.len() == 12
+            && suffix.bytes().all(|b| b.is_ascii_hexdigit())
+        {
+            return format!("{prefix}<configuration>");
         }
-        _ => name.into(),
     }
+    name.into()
+}
+
+/// Recorded differences of the CMake runtime sessions (cpp.json `finding_site` rows of the test
+/// and sanitizer tool evidence): native never runs frozen's `cmake --version` minimum-version
+/// probe, and it writes every GCOV report with one `gcov` process over all notes files where
+/// frozen ran one `gcov` per object directory. The frozen records are compared without the
+/// version probe and with consecutive `gcov` runs as one (their return codes all 0).
+fn frozen_session_evidence(records: &Value) -> Value {
+    let mut kept: Vec<Value> = vec![];
+    for record in records.as_array().unwrap() {
+        if record["name"] == "cmake --version" {
+            continue;
+        }
+        if record["name"] == "gcov" && kept.last().is_some_and(|last| last["name"] == "gcov") {
+            assert_eq!(record["returncode"], 0);
+            continue;
+        }
+        kept.push(record.clone());
+    }
+    json!(kept)
 }
 
 /// The legacy adapter build and binary_compat engines carry frozen's tool evidence natively too:
@@ -72,6 +95,43 @@ fn ordered(findings: &mut Value) {
         .sort_by_key(|finding| finding.to_string());
 }
 
+/// The engine `extra` fields the zoo expectations compare (`capture_zoo_cpp.py` EXTRA_KEYS).
+const EXTRA_KEYS: [&str; 21] = [
+    "sanitize_issues",
+    "thread_sanitize_issues",
+    "configurations",
+    "coverage_percent",
+    "covered_units",
+    "database_path",
+    "issues_count",
+    "production_units",
+    "clazy_mode",
+    "clazy_profile",
+    "cpp_diagnostic_categories",
+    "cpp_diagnostic_category_policy",
+    "cpp_diagnostic_families",
+    "branch_coverage",
+    "coverage_source",
+    "function_coverage",
+    "max_complexity",
+    "total_functions",
+    "cpp_unused_functions_count",
+    "cpp_unused_mode",
+    "clone_groups_count",
+];
+
+/// Root ruling (cpp.json intended difference): a legacy CMake analysis database lives in the
+/// native build namespace `.ici/rust-v1/build/…` where frozen wrote `build/ici-cmake-build/…`.
+fn database_path(extra: &mut Value) {
+    if let Some(path) = extra.get_mut("database_path")
+        && path.as_str().is_some_and(|path| {
+            path.starts_with(".ici/rust-v1/build/") || path.starts_with("build/ici-cmake-build/")
+        })
+    {
+        *path = json!("<legacy CMake analysis database>");
+    }
+}
+
 fn engines(report: &Value) -> Value {
     let mut engines = serde_json::Map::new();
     for engine in report["results"].as_array().unwrap() {
@@ -95,7 +155,7 @@ fn engines(report: &Value) -> Value {
                 json!({
                     "rule_id": finding["rule_id"], "message": finding["message"],
                     "severity": finding["severity"], "confidence": finding["confidence"],
-                    "tool_name": finding["tool_name"],
+                    "category": finding["category"], "tool_name": finding["tool_name"],
                     "tool_rule_id": masked(finding["tool_rule_id"].as_str().unwrap()),
                     "path": finding["primary_location"]["path"],
                     "start_line": finding["primary_location"]["start_line"],
@@ -105,11 +165,19 @@ fn engines(report: &Value) -> Value {
             .into();
         ordered(&mut findings);
         let name = engine["engine_name"].as_str().unwrap();
+        let mut extra = json!(
+            EXTRA_KEYS
+                .iter()
+                .filter_map(|key| Some(((*key).to_owned(), engine["extra"].get(*key)?.clone())))
+                .collect::<serde_json::Map<_, _>>()
+        );
+        database_path(&mut extra);
         engines.insert(
             name.to_owned(),
             json!({
                 "status": engine["status"], "evidence": engine["evidence"],
-                "summary": engine["summary"], "targets": targets, "findings": findings,
+                "summary": engine["summary"], "extra": extra, "targets": targets,
+                "findings": findings,
                 "tool_evidence": evidence(name, &engine["tool_evidence"]),
             }),
         );
@@ -120,6 +188,7 @@ fn engines(report: &Value) -> Value {
 fn frozen_engines(name: &str, case: &Value) -> Value {
     let mut engines = case["engines"].clone();
     for (engine_name, engine) in engines.as_object_mut().unwrap() {
+        database_path(&mut engine["extra"]);
         for target in engine["targets"].as_array_mut().unwrap() {
             target["target_name"] = json!(masked(target["target_name"].as_str().unwrap()));
         }
@@ -137,10 +206,38 @@ fn frozen_engines(name: &str, case: &Value) -> Value {
         engine["tool_evidence"] = if open {
             json!([])
         } else {
-            evidence(engine_name, &engine["tool_evidence"])
+            evidence(
+                engine_name,
+                &frozen_session_evidence(&engine["tool_evidence"]),
+            )
         };
     }
     engines
+}
+
+/// Scenarios that need the clang tools: the captured LLVM 21.1.8 clang-tidy and clazy through
+/// wrappers that set their library path, exactly like the capture.
+const CLANG_TOOLS: [&str; 1] = ["qt-missing-parent-constructor"];
+
+fn clang_wrappers(directory: &Path) -> std::path::PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    fs::create_dir_all(directory).unwrap();
+    let library =
+        std::env::var("ICI_TEST_CLANG_LIBRARY_PATH").expect("ICI_TEST_CLANG_LIBRARY_PATH");
+    for (name, variable) in [
+        ("clang-tidy", "ICI_TEST_CLANG_TIDY"),
+        ("clazy-standalone", "ICI_TEST_CLAZY"),
+    ] {
+        let tool = std::env::var(variable).unwrap_or_else(|_| panic!("{variable}"));
+        let wrapper = directory.join(name);
+        fs::write(
+            &wrapper,
+            format!("#!/bin/sh\nLD_LIBRARY_PATH={library} exec {tool} \"$@\"\n"),
+        )
+        .unwrap();
+        fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    directory.to_path_buf()
 }
 
 /// Positive: a Make release build whose ELF output answers the `{artifact:app}` placeholder
@@ -151,7 +248,7 @@ fn frozen_engines(name: &str, case: &Value) -> Value {
 /// `CppIncludeUnresolved` WARN and the frozen `CppCycle:2`, and the compiler syntax replay runs
 /// in the C locale (ASCII quotes) whatever the caller's locale.
 #[test]
-#[ignore = "explicit actual C++ build tools: /usr/bin/g++ (captured version), make, cmake and readelf"]
+#[ignore = "explicit actual C++ build tools: /usr/bin/g++ (captured version), make, cmake, readelf, the sanitizer runtimes, and ICI_TEST_CLANG_TIDY/ICI_TEST_CLAZY/ICI_TEST_CLANG_LIBRARY_PATH (LLVM 21.1.8, clazy 1.17)"]
 fn quality_zoo_cpp_scenarios_match_frozen_verify() {
     let oracle: Value = serde_json::from_str(include_str!(
         "../../../tests/rust-parity/cpp/zoo-cpp-oracle.json"
@@ -179,8 +276,16 @@ fn quality_zoo_cpp_scenarios_match_frozen_verify() {
         copy(&zoo.join(name), &root);
         let home = work.path().join("home");
         fs::create_dir(&home).unwrap();
+        let mut path = "/usr/bin:/bin".to_owned();
+        if CLANG_TOOLS.contains(&name.as_str()) {
+            path = format!(
+                "{}:{path}",
+                clang_wrappers(&work.path().join("bin")).display()
+            );
+        }
         let environment = BTreeMap::from([
-            ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+            ("PATH".to_owned(), path),
+            ("QT_QPA_PLATFORM".to_owned(), "offscreen".to_owned()),
             ("HOME".to_owned(), home.display().to_string()),
             ("LANG".to_owned(), "C.UTF-8".to_owned()),
             ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
