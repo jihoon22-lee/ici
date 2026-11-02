@@ -9031,18 +9031,6 @@
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen ici.binary.* findings (rule id, message, high/exact, path line 1). The violations oracle case shows Rust produces the same number of violations for forbidden_needed and max_glibc (target message '2 binary compatibility violation(s)'). Field by field (28 cases): every frozen binary_finding — class/machine mismatch, glibc/glibcxx/cxxabi floors, dynamic linkage, forbidden absolute rpath, build-path leak, forbidden/outside-allowed dependency, non-ELF — has the same rule id, message, high/exact/compatibility, readelf tool ids, shadow-relative location and fingerprint. Rust defects fixed: Rust located findings at the project-relative path (build/ici-make/app, so fingerprints differed) and quoted class/machine with Rust Debug quotes instead of Python repr (crates/ici-cli/src/cpp.rs legacy_binary_compat, crates/ici-cpp/src/elf.rs python_repr).",
       "difference_reason": null
     },
-    "finding_site:src/ici/analysis/cycles.py:491:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _append_python_cycle_targets (Python import-cycle `Cycle:N` target) is produced only for Python sources; C++ sources never reach it.",
-      "difference_reason": "Python-only site (assignment owner: python; closure/python.json claims it). This cpp claim has no C++ behaviour to close; cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
     "finding_site:src/ici/analysis/cycles.py:518:12": {
       "status": "verified",
       "rust_paths": [
@@ -9510,30 +9498,6 @@
       "comparison": "C++ facet: config-keys-oracle.json runs: a C++ boundary tool error is the frozen `CppCognitiveAnalysisError` ERROR at '.' with the '; '-joined errors.",
       "difference_reason": null
     },
-    "finding_site:src/ici/engines/cognitive.py:50:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen CognitiveEngine Python AST parse failure (PythonCognitiveAnalysisError) is produced only for Python sources; C++ sources never reach it.",
-      "difference_reason": "Python-only site (assignment owner: python; closure/python.json claims it). This cpp claim has no C++ behaviour to close; cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/cognitive.py:79:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen CognitiveEngine Python function target (python-ast metric) is produced only for Python sources; C++ sources never reach it.",
-      "difference_reason": "Python-only site (assignment owner: python; closure/python.json claims it). This cpp claim has no C++ behaviour to close; cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
     "finding_site:src/ici/engines/compile_db.py:208:16": {
       "status": "complete",
       "rust_paths": [
@@ -9619,18 +9583,6 @@
       ],
       "comparison": "Frozen `_diagnostic_target` (diagnostic code as rule, _FAIL_DIAGNOSTICS fail, entry_index metric) with the frozen compile_db sentences (ici_cpp::legacy_diagnostic_message, shared with the lint projection): missing-include-dir FAIL (exact-branches), missing-directory and stale-source FAIL (exact-unit-diagnostics), in frozen unit order (source, directory, configuration digest) over every recorded database configuration, including non-production rows (tools/gen.cpp, build/moc_gone.cpp). The legacy compile_db engine now keeps its frozen projection for a context whose only errors are unit diagnostics or uncovered sources. Row-level refusals (zoo malformed-compile-db): a compilation database with one non-object row keeps the covered unit's coverage/configuration PASS rows and the frozen `ici.compile-db.invalid-entry` FAIL 'A compilation database entry is not an object.' at compile_commands.json:1, MEASURED FAIL, summary 'Compilation DB: 1/1 production units covered, 1 configurations, 1 failures, 0 warnings.', exit 1 (Rust defect fixed: the whole engine was ERROR NOT_RUN 'incomplete-compilation-context', exit 3).",
       "difference_reason": "Open: database-level errors (unreadable/non-JSON/outside/ambiguous database: no entry index) still take the native incomplete projection; no frozen capture of those compile_db rows. Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
-    },
-    "finding_site:src/ici/engines/complexity.py:186:28": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _analyze_python_complexity function target is produced only for Python sources; C++ sources never reach it.",
-      "difference_reason": "Python-only site (assignment owner: python; closure/python.json claims it). This cpp claim has no C++ behaviour to close; cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
     },
     "finding_site:src/ici/engines/complexity.py:481:16": {
       "status": "verified",
@@ -9918,30 +9870,6 @@
       ],
       "comparison": "C++ facet: config-keys runs, include-scope case dup and zoo quality-coverage: each analysed C++ source without a reported clone region is the frozen `DuplicateScan` PASS target.",
       "difference_reason": null
-    },
-    "finding_site:src/ici/engines/dup.py:401:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _semantic_error_targets (PythonSemanticShapeError) is produced only for Python sources; C++ sources never reach it.",
-      "difference_reason": "Python-only site (assignment owner: python; closure/python.json claims it). This cpp claim has no C++ behaviour to close; cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/dup.py:569:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _cluster_python_semantic_regions (Python semantic clone groups) is produced only for Python sources; C++ sources never reach it.",
-      "difference_reason": "Python-only site (assignment owner: python; closure/python.json claims it). This cpp claim has no C++ behaviour to close; cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
     },
     "finding_site:src/ici/engines/dup.py:721:20": {
       "status": "verified",
@@ -10651,114 +10579,6 @@
       "comparison": "C++ facet of this frozen row (src/ici/engines/test_coverage.py:384); enclosing frozen function _measure_coverage) is not compared yet; see difference_reason.",
       "difference_reason": "Blocked: C++ coverage/test parity waits for the validation worker's merge; not compared."
     },
-    "finding_site:src/ici/engines/test_quality.py:196:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:355:20": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:381:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:405:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:418:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:434:24": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:502:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:550:16": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
-    "finding_site:src/ici/engines/test_quality.py:580:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _run_deep_test_quality returns empty quality info unless proj_type is python or hybrid (`if not self._deep_profile_selected() or proj_type not in (\"python\", \"hybrid\")`), and the slow-test/repeat-run/flaky/mutation targets read pytest output only; a hybrid project reaches them through its Python tests. Evidence that C++ never emits them: the frozen quality-zoo `quality-coverage` C++ scenario under `verify --profile deep` has a test engine with only `[C++] quality_test` and Coverage:* targets, no `[test-quality]` target or finding, and Rust matches every test-engine target and finding there (crates/ici-cli/tests/legacy_zoo_cpp.rs::quality_zoo_cpp_scenarios_match_frozen_verify, --include-ignored 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp15-zoo.log).",
-      "difference_reason": "Python-only site (assignment owner: validation; closure/validation.json claims it). The earlier 'blocked on the validation merge' text was stale. Cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
-    },
     "finding_site:src/ici/engines/test_quality.py:87:16": {
       "status": "verified",
       "rust_paths": [
@@ -10838,18 +10658,6 @@
       ],
       "comparison": "C++ facet: verify-matrix-oracle.json cases/commands/database_cases: every selected C++ source is the frozen `C++TypeCheck` SKIP target ('C++ type checking is not implemented; source was not type-checked') at line 1, in frozen order, with the frozen engine summary and exit.",
       "difference_reason": null
-    },
-    "finding_site:src/ici/engines/type_check.py:452:12": {
-      "status": "not_started",
-      "rust_paths": [],
-      "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
-      },
-      "evidence": [],
-      "comparison": "No C++ facet: frozen _mark_python_type_check_skipped (Mypy not-applicable target) is produced only for Python sources; C++ sources never reach it.",
-      "difference_reason": "Python-only site (assignment owner: python; closure/python.json claims it). This cpp claim has no C++ behaviour to close; cross-area item for the root: drop the cpp claim rather than mark it, so the owning fragment decides the row."
     },
     "finding_site:src/ici/languages/artifacts.py:121:11": {
       "status": "complete",

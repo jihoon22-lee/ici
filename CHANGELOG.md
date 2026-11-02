@@ -31,6 +31,14 @@
 
 ### 변경
 
+- `ici verify`의 C++ 순환 include 분석이 컴파일 데이터베이스가 불완전해도 v0.13.0과 같이 컴파일러 추적 그래프를
+  쓰고, 누락 명령·거부된 replay·해석할 수 없는 컴파일러·실패한 추적을 단위별 대상으로 보고합니다. `ici cycle` 단독
+  실행은 컴파일 데이터베이스가 있어도 v0.13.0과 같이 휴리스틱 include 그래프를 유지합니다.
+- 같은 소스의 구성별 `-Wunused-function` 진단이 서로 다르면 레거시 dead 엔진이 v0.13.0과 같이 ERROR로 결과 전체를
+  폐기합니다. 프로젝트 내부 `g++`가 PATH 앞에 있을 때 레거시 C++ lint fallback은 소스별 `C++SyntaxReplayError`로
+  실패합니다.
+- UTF-8이 아닌 C++ 소스에 대해 레거시 cognitive/complexity/dup이 v0.13.0의 오류 대상과 요약을 보고하며, 헤더는
+  메트릭에서 읽지 않습니다.
 - 레거시 C++ 보고서가 v0.13.0과 같이 sanitize/thread_sanitize issue 수, complexity 최대값·함수 수·이슈 수, dead
   `cpp_unused_mode`·개수·`+`로 결합한 provenance, `g++` unused-function 도구 이름과 sanitizer tool evidence(직접 g++
   compile/실행, CMake 세션, compile 실패, Make 구성 오류)를 기록합니다. 레거시 ThreadSanitizer 실행은 v0.13.0처럼 첫
