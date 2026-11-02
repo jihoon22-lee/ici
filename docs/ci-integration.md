@@ -1,9 +1,11 @@
 # ici CI/CD 연동 가이드 (GitHub Actions & Self-Hosted Runner)
 
-> 2026-10-28 제품 전환: 일반 설치·정적 분석의 주 경로는
-> [범용 분석 가이드](general-analysis.md)의 `ici analyze`와 Python wheel입니다.
-> 아래 기존 verify/pyz 및 폐쇄망 설명·과거 릴리스 증거는 호환/환경별 문맥으로 읽습니다.
-> `ici.next.run` v2/event v1과 기존 verify 동작은 유지합니다.
+> **native 제품 전환**: CI에서 ici를 쓰는 주 경로는 §0의 native archive 설치와
+> [범용 분석 가이드](general-analysis.md)의 `ici analyze`입니다. 아래 §1 이후의 이 저장소
+> 자체 CI(pyz dogfood, report-pr, release.yml)와 폐쇄망 설명, 과거 릴리스 증거는 해당 시점의
+> 기록이며 cutover 변경에서 native 경로로 바뀝니다. `ici.next.run` v2/event v1과 기존 verify
+> 명령·종료 코드 계약은 유지하되, 필수 증거가 불완전한 legacy 명령은 3으로 끝납니다
+> ([이전 가이드 §6](migration-to-native.md#6-종료-코드)).
 
 
 > **범위: 현행(stable) CI 연동.** 이 문서의 워크플로와 게시 설정은 현재 릴리스되는 ici를
@@ -46,6 +48,51 @@ candidate acceptance(zoo 게이트 run
 가리킨다. 상세 asset 표와 검증 기록은
 [`v0.12.0 public evidence workthrough`](../workthrough/2026-10-08-public-v0.12.0-evidence.md)를
 참조한다.
+
+## 0. Native ici 설치 (R9 cutover 이후)
+
+CI job은 release의 native archive를 내려받아 **작업 정의에 고정한 SHA-256**으로 확인한 뒤
+job 전용 prefix에 설치한다. root, Python, 별도 Action이 필요 없다. digest는 release 페이지의
+`.sha256`을 확인해 workflow에 적어 두고, 같은 release에서 실행 시점에 받은 값만으로 신뢰를
+대신하지 않는다.
+
+```yaml
+- name: Install ici (native)
+  env:
+    ICI_VERSION: "X.Y.Z"
+    ICI_SHA256: "<64자리 trusted archive sha256>"
+  run: |
+    set -euo pipefail
+    base="https://github.com/jihoon22-lee/ici/releases/download/v${ICI_VERSION}"
+    archive="ici-${ICI_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+    curl --fail --location --proto '=https' -o "$RUNNER_TEMP/$archive" "$base/$archive"
+    curl --fail --location --proto '=https' -o "$RUNNER_TEMP/install-native.sh" "$base/install-native.sh"
+    printf '%s  %s\n' "$ICI_SHA256" "$RUNNER_TEMP/$archive" | sha256sum --check --strict
+    sh "$RUNNER_TEMP/install-native.sh" --archive "$RUNNER_TEMP/$archive" \
+      --sha256 "$ICI_SHA256" --prefix "$RUNNER_TEMP/ici-native"
+    echo "$RUNNER_TEMP/ici-native/bin" >> "$GITHUB_PATH"
+
+- name: Analyze
+  run: |
+    ici --version
+    ici analyze --json --events ici-events.jsonl --result ici-result.json > ici-summary.json
+```
+
+- `curl`은 runner의 시스템 CA를 쓴다. self-hosted runner의 사설 CA·proxy도 시스템 설정을 그대로
+  따른다. TLS 검증을 끄지 않는다.
+- 종료 코드: 0 통과, 1 위반, 2 요청·설정 오류(legacy 엔진 명령은 SKIP), 3 미완료, 130 취소.
+  3은 "필요한 도구·범위가 준비되지 않아 판정을 끝내지 못함"이므로 통과로 취급하지 않는다.
+  `--require-full`은 workspace의 필수 범위 전체를 요구한다.
+- 결과·HTML은 `--result`로 지정한 경로와 `.ici/rust-v1/`에 남는다. artifact로 올릴 때 이 경로를
+  지정한다. checkout을 더럽히지 않으려면 `.ici/`를 `.gitignore`에 둔다.
+- 프로젝트 테스트·coverage는 `analyze`의 기본 선택이 아니다. legacy `ici verify`나 명시 검사에서
+  프로젝트 Python이 필요하면 설정(`python.executable`, legacy는 `engines.test.python`)으로 지정한다.
+  `ICI_PYTHON`은 legacy schema 명령의 프로젝트 인터프리터 후보일 뿐 ici 런타임이 아니다.
+- 기존 workflow가 release의 `ici.pyz`를 받아 `python3 ici.pyz …`나 `dist/ici.pyz …`로 실행했다면
+  위 단계로 바꾸고 명령 인자는 그대로 둔다. `.venv/bin/ici`처럼 경로를 고정한 단계도 갱신한다
+  ([이전 가이드 §4](migration-to-native.md#4-절대경로를-저장한-작업-갱신)).
+- 오프라인 runner에는 archive·`.sha256`·`install-native.sh`를 반입해 같은 명령을 쓴다. 분석 중에는
+  도구를 내려받지 않는다.
 
 ## 1. GitHub Actions 워크플로우
 
@@ -282,6 +329,32 @@ viewer C++/Qt verify, GUI CTest·headless smoke를 검증된 tag target에서 �
 Release에는 `ici.pyz`, 체크섬, CLI/GUI viewer와 함께 self/viewer HTML·JSON 검증
 리포트를 첨부합니다. 수동 실행의 `version_tag`는 필수이며 태그가 이미
 존재해야 하므로, 선택한 workflow branch의 소스가 릴리스로 대체되지 않습니다.
+
+### 1.5.1 Native release workflow (`release-native.yml`)
+
+`.github/workflows/release-native.yml`은 native 제품의 release 경로다. R9 cutover 전에는 실행되지
+않도록 만들어져 있다.
+
+- `workflow_dispatch` 전용이며 protected `main`에서만 실행된다. 태그 push는 계속 `release.yml`이
+  처리한다.
+- 태그는 최종 `vX.Y.Z`여야 하고 Cargo workspace version과 같아야 한다. 개발 버전(`-dev`)은 거부된다.
+- 태그 commit에 Python 제품(`src/ici`)이 남아 있으면 거부한다. Python/Rust 혼합 stable은 게시하지 않는다.
+- 태그 commit이 `origin/main`에서 도달 가능하고, 그 정확한 SHA의 `Merge Gate`가 성공했으며,
+  `CHANGELOG.md`에 해당 버전 절이 있어야 한다.
+- **다시 build하지 않는다.** 입력으로 받은 `ici-native-candidate-<sha>` artifact가 같은 SHA에서
+  성공한 protected-main `candidate-artifact.yml` run의 것인지 확인하고, out-of-band SHA-256으로
+  archive bytes를 확인한 다음 `scripts/check-native-release.sh`를 credential 없이 다시 실행한다.
+  manifest의 source revision이 태그 commit이고 개발 snapshot이 아니어야 한다.
+- 검증 job은 `contents: read`, 게시 job만 `contents: write`를 가진다. 게시 job은 artifact를 다시
+  받아 digest를 재확인한 뒤 archive, `.sha256`, archive에서 꺼낸 THIRD-PARTY-NOTICES,
+  release 검사 JSON, `install-native.sh`와 그 digest를 release asset으로 올린다. 기본값은 draft다.
+
+```bash
+gh workflow run release-native.yml --ref main \
+  -f version_tag=vX.Y.Z \
+  -f candidate_artifact_id=<ici-native-candidate-<sha> artifact ID> \
+  -f candidate_archive_sha256=<candidate run summary의 archive SHA-256>
+```
 
 ### 1.6 Candidate → Quality Zoo 수용 (수동·읽기 전용 경로)
 
@@ -839,6 +912,37 @@ source (`candidate` or `stable-fallback`), and digest as `quality-zoo.manifest-s
 candidate-only expectation set is auditable without changing the released-artifact gate. The
 ThreadSanitizer는 별도 candidate artifact와 candidate manifest로 run `33737405098`의 8/8
 contract를 수용했으며, 그 exact evidence는 다른 feature head에 재사용하지 않는다.
+
+### Native candidate (not a release)
+
+`candidate-artifact.yml` also has a `native` job that runs after the same provenance validation.
+It installs the pinned Rust 1.99.1 toolchain, runs `scripts/prepare-native-inputs.sh` (only the
+HTTPS inputs pinned in `packaging/native`, each checked against its SHA-256, kept outside the
+checkout), builds the exact-source musl archive twice with `scripts/build-native.sh` and two
+independent `--build-id` directories, and requires the two archives to be byte-identical. It then
+runs `scripts/check-native-release.sh` (notices/licenses, static ELF, no Python payload, rootless
+XDG bootstrap, offline analysis without Python on PATH, doctor shadowing report) and the
+distribution artifact corpus `tests/rust-parity/distribution/verify_artifact.py`, all with
+publication credentials scrubbed. The artifact `ici-native-candidate-<target sha>` holds the
+archive, its `.sha256`, `release-check.json` and `artifact-corpus-report.json`; the archive
+SHA-256 is printed in the run summary as the out-of-band input for Quality Zoo and the native
+release. The comparison is between two builds on the same runner: the manifest records the build
+host's kernel, CPU and compiler digests, so a rebuild on a different host is not claimed to match.
+
+`candidate-quality-zoo.yml` accepts `candidate_format=native` (the default stays `pyz`). The
+native job checks that the artifact belongs to a protected-main `candidate-artifact.yml` run for
+`ici_target_sha`, verifies the archive digest, runs `runner.native_intake`, requires the manifest
+source revision to equal `ici_target_sha` with a clean snapshot, binds the executable digest to the
+frozen v0.13.0 answers (`c179986f…`) inside its throwaway corpus checkout with
+`runner.bind_candidate` (only `producer_version` changes; nothing is committed), records the
+resolved project tools, and runs the corpus fail-closed:
+
+```bash
+gh workflow run candidate-quality-zoo.yml --ref main \
+  -f ici_target_sha=<sha> -f candidate_format=native \
+  -f candidate_artifact_id=<ici-native-candidate artifact ID> \
+  -f candidate_archive_sha256=<native archive SHA-256> -f corpus_sha=<sha>
+```
 
 ### Candidate-to-Quality-Zoo acceptance (manual, not a release)
 

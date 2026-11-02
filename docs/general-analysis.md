@@ -2,24 +2,28 @@
 
 ## 설치와 실행
 
-Python 3.10 이상, Linux/WSL/CI에서 GitHub Release의 wheel을 격리 설치한다.
-배포 채널은 기존 GitHub Release다. 별도 PyPI registry 공개는 하지 않는다.
+Linux/WSL x86_64에서 GitHub Release의 native archive를 root 없이 설치한다. ici 자체는
+Python 없이 실행되는 정적 실행 파일이며 검증된 native Ruff/ty를 동봉한다. 배포 채널은
+기존 GitHub Release다. 별도 PyPI registry 공개는 하지 않으며, cutover 이후 Python
+wheel/sdist/pyz는 발행하지 않는다.
 
 ```bash
-# 같은 release에서 wheel과 ici-package.sha256을 내려받은 뒤
-sha256sum --ignore-missing --check ici-package.sha256
-uv tool install ./ici-<version>-py3-none-any.whl
+# 같은 release에서 archive, .sha256, install-native.sh를 내려받은 뒤
+sha256sum --check --strict ici-<version>-x86_64-unknown-linux-musl.tar.gz.sha256
+sh install-native.sh --archive ici-<version>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
+export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/ici/native/bin:$PATH"
 ici --version
 ici analyze --plan
 ici analyze --result result.json --events events.jsonl --json
 ici report --result result.json --out report.html
 ```
 
-uv 대신 `python3 -m venv ~/.local/share/ici-venv`를 만들고 그 환경의
-`bin/python -m pip install ./ici-<version>-py3-none-any.whl`로 설치할 수 있다.
-프로젝트 venv와 ici 설치 환경은 분리한다. wheel 의존성은 설치 때 내려받을 수 있다.
-오프라인 설치는 wheel과 의존성을 사전 준비하여 `pip --no-index --find-links`로 설치한다.
-분석 중 pip/npm/uv 설치는 호출하지 않는다. pyz는 기존 단일 파일 소비자를 위해 계속 배포한다.
+설치 위치·업데이트(`ici setup`)·되돌리기·오프라인 반입·라이선스는
+[native 설치 가이드](native-install.md), 기존 wheel/uv/pip/pyz 설치에서 옮기는 방법은
+[이전 가이드](migration-to-native.md)에 있다. 설치 단계만 네트워크를 쓸 수 있고
+분석 중 pip/npm/uv 설치나 도구 다운로드는 호출하지 않는다. 프로젝트 Python, pytest,
+coverage, mypy, compiler, Node 도구는 ici 런타임이 아니라 프로젝트를 검사하는 외부 도구다.
+v0.13.x의 wheel과 pyz는 과거 공개판으로 보존된다.
 
 ## 선택과 설정
 
@@ -74,7 +78,7 @@ check scope에 반영되므로 이전 버전 baseline의 일부 항목은 resolv
 - HTML은 외부 CDN 없이 동작한다. findings 검색, 관련 위치, suppression 이유/출처,
   baseline new/unchanged/resolved/carried, 선택 검사별 실행·증거 완료를 보여준다.
 - `report`/`diff`/`init` 주 명령은 기존 next 명령과 같은 구현을 쓴다.
-  기존 `next` namespace와 legacy verify/pyz는 호환을 위해 유지한다.
+  기존 `next` namespace와 legacy verify 명령·설정은 native 제품에서 호환을 위해 유지한다.
 
 ## 보조자료 가져오기
 
@@ -103,8 +107,9 @@ native_line/producer-defined로 보존한다. 입력은 UTF-8 32 MiB 이내, 프
 
 |환경/도구|상태|근거 또는 제한|
 |---|---|---|
-|Linux x86_64, Python 3.10|tested|pytest, provider 실제 fixture, wheel 격리 설치, pyz smoke를 릴리스 원장에 기록|
+|Linux/WSL2 x86_64 native archive (`x86_64-unknown-linux-musl`)|limited|실측 호스트와 GitHub-hosted Ubuntu runner의 build·release 검사·artifact corpus. 다른 kernel·구형 CPU는 미검증|
 |WSL/Linux CI|지원 대상|동일 CLI 계약. 도구와 프로젝트 의존성은 각 환경에서 준비|
+|v0.13.x Python wheel/pyz|historical|과거 공개판으로 보존, 명시 복귀 대상. 새 Python 배포물은 발행하지 않음|
 |Clippy/Rust|tested|rustc 1.99.1, Clippy 0.1.99, build.rs 실행 fixture|
 |Node/TS/ESLint|tested|Node 24.18.0, TypeScript 7.0.2, ESLint 10.13.0|
 |RHEL 8.10/GHES|limited|기존 pyz/bundle 계약 및 현장 인수 문서. 일반 package 릴리스 선행 조건 아님|
