@@ -80,6 +80,10 @@ pub struct NativeOptions {
     /// Frozen mypy operands (source directories) when they differ from the declared files.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub legacy_targets: Vec<String>,
+    /// `ici next` cpp.diagnostics replay: frozen CompilerDiagnosticsProvider finding identity
+    /// (`compiler.compiler`, `<kind>: ` message). Other compiler plans keep their own.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub next_compiler: bool,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderRequest {
@@ -141,6 +145,9 @@ pub struct DiagnosticContext {
     /// Historical engine view (frozen target shapes); never set for modern plans.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub legacy: bool,
+    /// See `NativeOptions::next_compiler`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub next_compiler: bool,
     /// Legacy `ruff format`: the formatter has no JSON output, so its text dialect is read.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub legacy_text_format: bool,
@@ -514,6 +521,9 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             tool_version: request.tool.version.clone().unwrap_or_default(),
             source_coordinates: Default::default(),
             legacy: request.options.legacy,
+            next_compiler: request.kind == ProviderKind::Compiler
+                && request.options.next_compiler
+                && !request.options.legacy,
             legacy_text_format: false,
             legacy_probe_evidence: None,
             legacy_probe_error: None,

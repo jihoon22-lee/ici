@@ -343,13 +343,23 @@ pub(super) fn finding(
         }
     } else if plan.kind == ProviderKind::ClangTidy {
         format!("clang_tidy.{rule}")
+    } else if plan.context.next_compiler {
+        // Frozen `ici next` CompilerDiagnosticsProvider: `compiler.<family>`, where every
+        // compiler diagnostic belongs to the `compiler` family; the -W option stays the native
+        // rule (decisions.md "next 경로 compiler finding").
+        "compiler.compiler".into()
     } else {
         format!("{provider}.{rule}")
     };
     let mut location = SourceSpan::line(&relative, line);
     location.start_column = column;
     let mut result = Finding::new(rule_id, message, location, provider);
-    result.native_rule_id = rule.into();
+    // A next compiler diagnostic without a -W option has no native rule (frozen `None`).
+    result.native_rule_id = if plan.context.next_compiler && rule == "diagnostic" {
+        String::new()
+    } else {
+        rule.into()
+    };
     result.severity = severity.into();
     result.fingerprint = if matches!(
         plan.kind,

@@ -323,6 +323,50 @@ fn cpp_text_fixits_preserve_grouped_exclusive_unicode_edits_and_original_metadat
     assert_eq!(edits[1]["end_column"], 4);
     assert_eq!(finding.rule_id, "compiler.-Wexample");
 }
+/// Frozen `ici next` CompilerDiagnosticsProvider identity (decisions.md "next 경로 compiler
+/// finding"): rule `compiler.compiler`, the `<kind>: ` prefix and GCC's UTF-8 quotes kept, an
+/// error without a -W option carries no native rule, severity high for an error and medium
+/// for a warning; every other compiler plan keeps its own `compiler.<rule>` identity.
+#[test]
+fn next_compiler_findings_keep_the_frozen_rule_message_and_native_rule() {
+    let mut plan = fixture(ProviderKind::Compiler);
+    plan.context.compiler_columns = Some("gnu-byte".into());
+    plan.context.next_compiler = true;
+    cpp_snapshot(
+        &mut plan,
+        "int a() { int unused = 0; return undefined_name; }\n",
+    );
+    let raw = "main.py:1:15: warning: unused variable \u{2018}unused\u{2019} [-Wunused-variable]\nmain.py:1:41: error: \u{2018}undefined_name\u{2019} was not declared in this scope\n";
+    let output = observe_full(&plan, &outcome(&plan, "", raw, 1));
+    let findings = &output.observation.findings;
+    assert_eq!(findings.len(), 2, "{output:?}");
+    assert_eq!(findings[0].rule_id, "compiler.compiler");
+    assert_eq!(findings[0].native_rule_id, "-Wunused-variable");
+    assert_eq!(
+        findings[0].message,
+        "warning: unused variable \u{2018}unused\u{2019}"
+    );
+    assert_eq!(findings[0].severity, "medium");
+    assert_eq!(findings[1].rule_id, "compiler.compiler");
+    assert_eq!(findings[1].native_rule_id, "");
+    assert_eq!(
+        findings[1].message,
+        "error: \u{2018}undefined_name\u{2019} was not declared in this scope"
+    );
+    assert_eq!(findings[1].severity, "high");
+    // Any other compiler plan (legacy projection, `ici build` direct replay) keeps
+    // `compiler.<rule>` and the bare message.
+    plan.context.next_compiler = false;
+    let legacy = observe_full(&plan, &outcome(&plan, "", raw, 1));
+    assert_eq!(
+        legacy.observation.findings[0].rule_id,
+        "compiler.-Wunused-variable"
+    );
+    assert_eq!(
+        legacy.observation.findings[0].message,
+        "unused variable \u{2018}unused\u{2019}"
+    );
+}
 #[test]
 fn cpp_unknown_columns_and_json_unknown_end_remain_explicitly_unconfirmed() {
     let mut plan = fixture(ProviderKind::Compiler);

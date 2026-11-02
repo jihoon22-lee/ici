@@ -280,11 +280,13 @@
       "fixtures": {
         "positive": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_root_compile_directory"
         ],
         "negative": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
-          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate"
+          "crates/ici-cli/tests/next_component_scope.rs::next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate",
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_build_compile_directory"
         ],
         "failure": [
           "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
@@ -297,10 +299,12 @@
         "source opus-env.sh; ICI_REQUIRE_BUILD_ADAPTERS=1 cargo test -p ici-cli (legacy_verify_matrix, legacy_binary_compat, legacy_cpp_metrics, legacy_make_build and the other legacy_*/native_cpp binaries) --locked -j2 --no-fail-fast -- --include-ignored after merging feat/rust-application bdcdd96: all passed; /tmp/ici-rust-replacement-20261028/w-cpp2-merge-gates.log, /tmp/ici-rust-replacement-20261028/w-cpp2-nonelf.log",
         "Frozen tests/rust-parity/cpp/zoo-cpp-oracle.json captured by development-only tests/rust-parity/cpp/capture_zoo_cpp.py (oracle 6fe3e40, g++ 15.2.0; quality-zoo scenarios make-elf-integration, malformed-compile-db, static-build-context run with their own `verify --profile deep --no-cache` plus --report, LANG/LC_ALL=C.UTF-8, no git checkout); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-capture.log",
         "flock heavy.lock cargo test -p ici-cli --test legacy_zoo_cpp --locked -j2 -- --include-ignored: 1 passed (exit, suite, every engine's status/evidence/summary/targets/findings/tool-evidence names); /tmp/ici-rust-replacement-20261028/w-cpp-zoo-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp-zoo-regress.log",
-        "/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log (next_component_scope 27 frozen cases)"
+        "/tmp/ici-rust-replacement-20261028/w-cpp13-next-scope-rust.log (next_component_scope 27 frozen cases)",
+        "Frozen tests/rust-parity/cpp/next-compiler-oracle.json (capture_next_compiler.py, oracle 6fe3e40, g++ 15.2.0, LANG/LC_ALL=C.UTF-8): `ici next plan --json`/`ici next verify --json` over a 3-unit component (warning, error, clean) plus a build-generated unit, compile directory root/out, cpp.tidy disabled; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test next_cpp_compiler --locked -j2 -- --include-ignored: 2 passed (non-ignored, needs only /usr/bin/g++); /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler.log"
       ],
       "comparison": "C++ check facet: no-database compile_db targets equal frozen (end line, sentence message, WARN/FAIL by mode). Legacy compile_db with a refused database row (zoo malformed-compile-db) equals frozen (invalid-entry FAIL beside the covered unit, exit 1).",
-      "difference_reason": "Open: database-backed compile coverage/configurations not compared. Next path (cpp13): a linked build without a database now blocks cpp.compile/cpp.diagnostics with frozen's gate_cpp reason, a conventional build/compile_commands.json is used and a malformed database fails like frozen (crates/ici-cli/tests/next_component_scope.rs, next-component-scope-oracle.json). Open next-path facets: native measures compilation_units/uncovered_sources where frozen measures units.covered (numerator/denominator, 'translation units') and units.generated (covered counts equal), and a malformed database's compile reason is native 'out/compile_commands.json: incomplete-compilation-context: …' where frozen says 'no compile invocation for 1/1 translation units: src/main.cpp'."
+      "difference_reason": "Open: database-backed compile coverage/configurations not compared. Next path (cpp13): a linked build without a database now blocks cpp.compile/cpp.diagnostics with frozen's gate_cpp reason, a conventional build/compile_commands.json is used and a malformed database fails like frozen (crates/ici-cli/tests/next_component_scope.rs, next-component-scope-oracle.json). Next-path metrics now equal frozen: `units.covered` (covered over expected selected TUs, 'translation units') and `units.generated` (database rows outside the selected sources under the linked build directory, carried as `build_directories`), compared in next_cpp_compiler.rs and in every next_component_scope.rs case. Open next-path facet: a malformed database's compile reason is native 'out/compile_commands.json: incomplete-compilation-context: …' where frozen says 'no compile invocation for 1/1 translation units: src/main.cpp'."
     },
     "check:cpp.complexity": {
       "status": "verified",
@@ -7669,16 +7673,36 @@
       "difference_reason": "Open: finding rule ids, messages, fingerprints and locations are not compared field by field (the legacy oracle records engine targets only); frozen locates findings at the shadow-relative artifact path while Rust uses the project path."
     },
     "finding_site:src/ici/adapters/providers/compiler.py:225:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-providers/src/diagnostics/mod.rs",
+        "crates/ici-providers/src/diagnostics/cpp.rs",
+        "crates/ici-providers/src/plan.rs",
+        "crates/ici-cpp/src/replay.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_root_compile_directory",
+          "crates/ici-providers/tests/diagnostics.rs::next_compiler_findings_keep_the_frozen_rule_message_and_native_rule"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_build_compile_directory",
+          "crates/ici-cli/src/cpp.rs::task_slug_tests::task_slug_matches_the_frozen_identifier_rule"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_root_compile_directory",
+          "crates/ici-providers/tests/diagnostics.rs::next_compiler_findings_keep_the_frozen_rule_message_and_native_rule"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/adapters/providers/compiler.py:225); enclosing frozen function parse) is not compared yet; see difference_reason.",
-      "difference_reason": "Open (observed, not yet fixture-backed; probe 2026-11-02 frozen vs native `ici next verify --json` over a 3-unit compile_commands.json with -Wall, one warning and one error): locations, severity (error high, warning medium), confidence high and the gate (FAIL, '2 violation(s) found') agree; differences needing a root ruling on the next-path compiler finding identity (decisions.md identity row keeps frozen fingerprint v3 only for proven-compatible native rules): frozen plans one cpp.diagnostics task per TU (app.cpp.diagnostics.<slug>-<n>) where native runs one check task; frozen rule_id is compiler.<family> (compiler.compiler) where native uses compiler.<-W flag> / compiler.diagnostic; frozen keeps GCC's '<kind>: ' message prefix and the inherited-locale U+2018/U+2019 quotes where native strips the kind and replays under the C locale; frozen fingerprints sha256(provider, family, rule, file, line, column, message); native_rule_id None vs 'diagnostic' for an error. Native also reports cpp.diagnostics evidence_complete=false (header dependency closure not proven reusable)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/next-compiler-oracle.json (capture_next_compiler.py, oracle 6fe3e40, g++ 15.2.0, LANG/LC_ALL=C.UTF-8): `ici next plan --json`/`ici next verify --json` over a 3-unit component (warning, error, clean) plus a build-generated unit, compile directory root/out, cpp.tidy disabled; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test next_cpp_compiler --locked -j2 -- --include-ignored: 2 passed (non-ignored, needs only /usr/bin/g++); /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler.log",
+        "flock heavy.lock cargo test -p ici-providers --test diagnostics; cargo test -p ici-cli --lib task_slug; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-regress.log",
+        "Regressions: ici-providers, ici-cpp, next_component_scope, next_cpp_plan, next_cpp_cycles, plan_text_oracle, native_cpp, native_cpp_direct, legacy_direct_build, legacy_lint*, legacy_verify_matrix, legacy_zoo_cpp, legacy_cpp_include_context, legacy_qt_codegen, legacy_cmake_verify, legacy_qmake_verify (--include-ignored), strict Clippy ici-cpp/ici-providers/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-next-compiler-regress.log"
+      ],
+      "comparison": "C++ facet of compiler.py:225 (`CompilerDiagnosticsProvider.parse`) and gates.py `expand_diagnostics` on the next path (decisions.md \"next 경로 compiler finding\"). Equal to frozen: the per-TU task ids `app.cpp.diagnostics.<task_slug(source)>-<n>` in frozen order (source, directory), only the component's own units (no task for a build-generated database row; unity containers stay); each argv is the build's own flags after the frozen drop-list with `-fsyntax-only` (Rust defect fixed: the next replay added -Wall -Wextra and demoted -Werror, `ReplayPurpose::BuildDiagnostics` now keeps them verbatim) plus only five named output-format flags (colour off, option names, parseable fix-its, byte columns from 1); every finding's rule_id `compiler.compiler` (was compiler.<-W option>/compiler.diagnostic), message `<kind>: <text>` with GCC's UTF-8 quotes from the inherited locale (was the bare text), severity (error high, warning medium), confidence high, evidence MEASURED, native_rule_id the -W option or none for an error (was 'diagnostic'), line and column; the run's gate and exit code. The identity is scoped to the next cpp.diagnostics binding (`NativeOptions::next_compiler`); the legacy projection and the `ici build` direct replay keep `compiler.<rule>`. Fingerprints follow the native identity namespace (decisions.md identity row), not compared. Rust defect also fixed: a database row outside the component (a build-generated unit) made the next cpp.cycle trace it and fail (include-configuration-mismatch); next include traces now cover the component's own units only.",
+      "difference_reason": "Open, root ruling requested (stop-and-report per the \"next 경로 compiler finding\" row): (1) frozen plans and records one cpp.diagnostics check per TU (checks[].task_id `app.cpp.diagnostics.<slug>-<n>`, variant `compile-<digest>`, and each finding carries that TU task id and variant), native's plan model has one PlannedCheck per component and check (crates/ici-application/src/plan.rs: task_id = `<component>.<check>`, `validate_steps` admits only `<task_id>.*` steps), so native records one `app.cpp.diagnostics` check whose steps are the per-TU tasks with the frozen ids, and findings carry the check task id; the same model gap is recorded for cpp.test suite expansion (next_component_scope.rs `cmake-tests-declared`). (2) With the compile directory under the build directory (the usual CMake layout), frozen parses each diagnostic relative to that cwd and locates it at `[external]`; native locates the unit's workspace source (frozen's own location when the directory is the root). Both are pinned by crates/ici-cli/tests/next_cpp_compiler.rs::next_compiler_findings_match_frozen_with_the_build_compile_directory."
     },
     "finding_site:src/ici/adapters/providers/cpptest.py:144:12": {
       "status": "verified",

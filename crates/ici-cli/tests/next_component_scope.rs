@@ -195,49 +195,13 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
         }
         let mut differences = vec![];
         let expected_checks = frozen["checks"].clone();
-        let mut expected_metrics = frozen["metrics"].clone();
+        // Every metric, `cpp.compile`'s frozen `units.covered` (numerator/denominator) and
+        // `units.generated` included.
+        let expected_metrics = frozen["metrics"].clone();
         let expected_gate = frozen["gate"].clone();
         let expected_exit = frozen["exit_code"].clone();
         let expected_failed = frozen["failed"].clone();
-        // Recorded open difference (check:cpp.compile): frozen `cpp.compile` measures
-        // `units.covered`/`units.generated`, native `compilation_units`/`uncovered_sources`.
-        let compile_metric = |metric: &Value| {
-            metric["name"]
-                .as_str()
-                .is_some_and(|name| name.starts_with("units."))
-                || matches!(
-                    metric["name"].as_str(),
-                    Some("compilation_units" | "uncovered_sources")
-                )
-        };
-        let covered = expected_metrics
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|metric| metric["name"] == "units.covered")
-            .map(|metric| metric["value"].clone());
-        if let Some(covered) = covered {
-            let native = actual["metrics"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .find(|metric| metric["name"] == "compilation_units")
-                .map(|metric| metric["value"].clone());
-            if native != Some(covered.clone()) {
-                differences.push(format!(
-                    "compilation_units {native:?} vs units.covered {covered}"
-                ));
-            }
-        }
-        expected_metrics
-            .as_array_mut()
-            .unwrap()
-            .retain(|metric| !compile_metric(metric));
-        let mut actual_metrics = actual["metrics"].clone();
-        actual_metrics
-            .as_array_mut()
-            .unwrap()
-            .retain(|metric| !compile_metric(metric));
+        let actual_metrics = actual["metrics"].clone();
         if sorted(&actual_metrics) != sorted(&expected_metrics) {
             differences.push(format!("metrics {actual_metrics} vs {expected_metrics}"));
         }
