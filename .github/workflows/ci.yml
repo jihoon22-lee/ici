@@ -249,11 +249,14 @@ jobs:
           rustc --version
 
       # Non-ignored C++ build tests run the real Qt5 (/usr/bin/qmake via qtchooser) and
-      # Qt6 qmake, pkg-config and clang-tidy; cmake and g++ ship with the runner image.
+      # Qt6 qmake, pkg-config and clang-tidy. Frozen-replay tests run under PATH=/usr/bin:/bin,
+      # where the runner image's own cmake (/usr/local/bin) is not visible, so the distribution
+      # cmake is installed there too; g++ ships with the runner image.
       - name: Install the C++ toolchain for the native build tests
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qtbase5-dev qt6-base-dev qmake6 pkg-config clang-tidy clazy
+          sudo apt-get install -y --no-install-recommends qtbase5-dev qt6-base-dev qmake6 pkg-config clang-tidy clazy cmake
+          /usr/bin/cmake --version
 
       - name: Format
         run: cargo fmt --all -- --check
