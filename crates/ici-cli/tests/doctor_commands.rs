@@ -386,3 +386,90 @@ fn excessive_version_output_is_incomplete_instead_of_ready() {
     assert_eq!(document["tools"]["verbose"]["probe"]["truncated"], true);
     assert!(document["tools"]["verbose"]["version"].is_null());
 }
+/// ADR-0008 / plan §8: doctor names every other `ici` on PATH, says when one shadows the running
+/// native executable, and reports ICI_PYTHON as the historical pyz variable only.
+#[test]
+fn doctor_reports_shadowing_and_leftover_ici_executables_and_legacy_ici_python() {
+    let root = fixture(&["python.line"], "");
+    let old = tempfile::tempdir().unwrap();
+    let later = tempfile::tempdir().unwrap();
+    script(old.path(), "venv/bin/ici", "echo 'ici 0.13.0'");
+    script(later.path(), "ici", "echo 'ici 0.12.1'");
+    // A non-executable file and a relative PATH entry are not commands.
+    fs::write(later.path().join("not-a-command"), "").unwrap();
+    let ignored = tempfile::tempdir().unwrap();
+    fs::write(ignored.path().join("ici"), "plain file").unwrap();
+    let shadow = old.path().join("venv/bin/ici");
+    let leftover = later.path().join("ici");
+    let mut environment = env();
+    environment.insert(
+        "PATH".into(),
+        format!(
+            "relative:{}:{}:{}",
+            old.path().join("venv/bin").display(),
+            ignored.path().display(),
+            later.path().display()
+        ),
+    );
+    environment.insert("ICI_PYTHON".into(), "/opt/legacy/python3.10".into());
+    let document = next(root.path(), &environment);
+    let executables = &document["executables"];
+    assert_eq!(
+        executables["path_ici"],
+        serde_json::json!([shadow, leftover])
+    );
+    assert_eq!(executables["conflicts"], executables["path_ici"]);
+    assert_eq!(executables["shadowed"], true);
+    assert_eq!(executables["first_on_path"], serde_json::json!(shadow));
+    assert_eq!(executables["legacy_ici_python"], "/opt/legacy/python3.10");
+    assert_eq!(executables["guidance"].as_array().unwrap().len(), 3);
+    let text = dispatch(
+        &parse(["ici", "doctor"]).unwrap(),
+        root.path(),
+        &environment,
+    )
+    .unwrap();
+    assert_eq!(text.exit_code, 0);
+    assert!(
+        text.stdout
+            .contains(&format!("path    shadowing ici: {}\n", shadow.display()))
+    );
+    assert!(
+        text.stdout
+            .contains(&format!("path    other ici: {}\n", leftover.display()))
+    );
+    assert!(
+        text.stdout
+            .contains("legacy  ICI_PYTHON=/opt/legacy/python3.10\n")
+    );
+    assert!(text.stdout.contains("does not use it"));
+    let brief = dispatch(
+        &parse(["ici", "doctor", "--brief"]).unwrap(),
+        root.path(),
+        &environment,
+    )
+    .unwrap();
+    assert!(brief.stdout.contains("path    shadowing ici:"));
+}
+#[test]
+fn doctor_without_other_ici_on_path_reports_no_conflict() {
+    let root = fixture(&["python.line"], "");
+    let empty = tempfile::tempdir().unwrap();
+    let mut environment = env();
+    environment.insert("PATH".into(), empty.path().display().to_string());
+    let document = next(root.path(), &environment);
+    let executables = &document["executables"];
+    assert_eq!(executables["path_ici"], serde_json::json!([]));
+    assert_eq!(executables["shadowed"], false);
+    assert!(executables["first_on_path"].is_null());
+    assert!(executables["legacy_ici_python"].is_null());
+    assert_eq!(executables["guidance"], serde_json::json!([]));
+    let text = dispatch(
+        &parse(["ici", "doctor"]).unwrap(),
+        root.path(),
+        &environment,
+    )
+    .unwrap();
+    assert!(!text.stdout.contains("path    "));
+    assert!(!text.stdout.contains("ICI_PYTHON"));
+}

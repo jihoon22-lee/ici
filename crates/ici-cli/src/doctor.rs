@@ -551,7 +551,7 @@ pub fn collect(
     let support_matrix = legacy_matrix.unwrap_or_else(|| {
         json!({"project_languages":languages,"project_frameworks":[],"entries":support_rows(prepared.as_ref(), &components, &rows)})
     });
-    let document = json!({"schema_id":"ici.next.doctor","schema_version":1,"root":inspection.root,"profile":profile,"components":components,"system":system(environment),"runtime":{"kind":"rust-native","version":crate::VERSION,"executable":std::env::current_exe().ok(),"target_os":std::env::consts::OS,"target_arch":std::env::consts::ARCH,"requires_project_python":false},"running_python":null,"python_candidates":candidates,"analysis_profile":profile,"required_tools":required,"effective_required_tools":rows.iter().filter(|row|row["required"]==true).filter_map(|row|row["name"].as_str().map(str::to_owned)).collect::<BTreeSet<_>>(),"tools":tools,"capability_inventory":{"schema_version":"ici.capabilities/v1","status":if healthy{"PASS"}else{"WARN"},"healthy":healthy,"counts":{"total":rows.len(),"ready":ready,"required":rows.iter().filter(|row|row["required"]==true).count(),"incomplete":rows.iter().filter(|row|row["available"]==true&&row["complete"]==false).count(),"unavailable":rows.iter().filter(|row|row["available"]==false).count(),"blocked_required_checks":blocked_checks,"version_probes":inventory.needs.values().filter(|need|need.outcome.as_ref().is_some_and(|outcome|outcome.cleanup.group.is_some())).count()},"missing_required":missing,"incomplete_required":incomplete,"tools":rows},"support_matrix":support_matrix,"paths":{"workspace":inspection.root,"configuration_files":inspection.configuration_files,"native_tool_pack":planning::tool_pack(environment)},"scope_error":scope_error,"scope_guidance":if scope_error.is_some(){json!({"config_key":"components","resolve":"declare valid component sources and dependencies; configuration inspection remains available","recheck":"ici next doctor"})}else{Value::Null},"limitations":limitations,"analysis_executed":false,"cancelled":cancellation.is_cancelled()});
+    let document = json!({"schema_id":"ici.next.doctor","schema_version":1,"root":inspection.root,"profile":profile,"components":components,"system":system(environment),"runtime":{"kind":"rust-native","version":crate::VERSION,"executable":std::env::current_exe().ok(),"target_os":std::env::consts::OS,"target_arch":std::env::consts::ARCH,"requires_project_python":false},"running_python":null,"python_candidates":candidates,"analysis_profile":profile,"required_tools":required,"effective_required_tools":rows.iter().filter(|row|row["required"]==true).filter_map(|row|row["name"].as_str().map(str::to_owned)).collect::<BTreeSet<_>>(),"tools":tools,"capability_inventory":{"schema_version":"ici.capabilities/v1","status":if healthy{"PASS"}else{"WARN"},"healthy":healthy,"counts":{"total":rows.len(),"ready":ready,"required":rows.iter().filter(|row|row["required"]==true).count(),"incomplete":rows.iter().filter(|row|row["available"]==true&&row["complete"]==false).count(),"unavailable":rows.iter().filter(|row|row["available"]==false).count(),"blocked_required_checks":blocked_checks,"version_probes":inventory.needs.values().filter(|need|need.outcome.as_ref().is_some_and(|outcome|outcome.cleanup.group.is_some())).count()},"missing_required":missing,"incomplete_required":incomplete,"tools":rows},"support_matrix":support_matrix,"paths":{"workspace":inspection.root,"configuration_files":inspection.configuration_files,"native_tool_pack":planning::tool_pack(environment)},"scope_error":scope_error,"scope_guidance":if scope_error.is_some(){json!({"config_key":"components","resolve":"declare valid component sources and dependencies; configuration inspection remains available","recheck":"ici next doctor"})}else{Value::Null},"executables":executables(environment),"limitations":limitations,"analysis_executed":false,"cancelled":cancellation.is_cancelled()});
     Ok(redact_value(&document))
 }
 
@@ -1215,6 +1215,47 @@ fn system(environment: &BTreeMap<String, String>) -> Value {
         bounded_text(Path::new("/proc/sys/kernel/osrelease")).map(|value| value.trim().to_owned());
     json!({"os_id":field("ID").unwrap_or_else(||std::env::consts::OS.into()),"os_version":field("VERSION_ID"),"pretty_name":field("PRETTY_NAME").unwrap_or_else(||std::env::consts::OS.into()),"kernel":kernel,"arch":std::env::consts::ARCH,"glibc":null,"glibc_evidence":"not probed; inspect the native archive target/libc contract","is_wsl":environment.get("WSL_DISTRO_NAME").is_some_and(|value|!value.is_empty())||kernel.as_ref().is_some_and(|kernel|kernel.to_ascii_lowercase().contains("microsoft")),"shell":environment.get("SHELL"),"term":environment.get("TERM"),"lang":environment.get("LANG")})
 }
+/// Every `ici` on PATH, in lookup order, and the running native executable. A different file
+/// found first shadows this product (for example a pyz or `.venv/bin/ici`); a later one is a
+/// leftover installation. `ICI_PYTHON` is reported as the historical pyz variable only.
+fn executables(environment: &BTreeMap<String, String>) -> Value {
+    use std::os::unix::fs::PermissionsExt;
+    let running = std::env::current_exe().ok();
+    let canonical = running.as_ref().and_then(|path| path.canonicalize().ok());
+    let mut found: Vec<PathBuf> = vec![];
+    for directory in std::env::split_paths(environment.get("PATH").map_or("", String::as_str)) {
+        if directory.as_os_str().is_empty() || !directory.is_absolute() {
+            continue;
+        }
+        let candidate = directory.join("ici");
+        if candidate.is_file()
+            && candidate
+                .metadata()
+                .is_ok_and(|metadata| metadata.permissions().mode() & 0o111 != 0)
+            && !found.contains(&candidate)
+        {
+            found.push(candidate);
+        }
+    }
+    let is_running = |path: &PathBuf| canonical.is_some() && path.canonicalize().ok() == canonical;
+    let conflicts: Vec<&PathBuf> = found.iter().filter(|path| !is_running(path)).collect();
+    let first = found.first();
+    let shadowed = first.is_some_and(|path| !is_running(path));
+    let mut guidance = vec![];
+    if shadowed {
+        guidance.push("`ici` on PATH resolves to a different executable; put the native installation's bin directory first, then verify `ici --version`".to_owned());
+    }
+    if !conflicts.is_empty() {
+        guidance.push("update tasks and scripts that store an absolute path such as .venv/bin/ici; remove a uv/pip/pyz installation only when it is no longer needed".to_owned());
+    }
+    if environment.contains_key("ICI_PYTHON") {
+        guidance.push(
+            "ICI_PYTHON selects the historical pyz interpreter; the native core does not use it"
+                .to_owned(),
+        );
+    }
+    json!({"running":running,"path_ici":found,"first_on_path":first,"shadowed":shadowed,"conflicts":conflicts,"legacy_ici_python":environment.get("ICI_PYTHON"),"guidance":guidance})
+}
 fn render(document: &Value, brief: bool) -> String {
     let mut text = format!(
         "ici {} {}\nruntime Rust native; project Python is an external tool\nroot    {}\nscope   languages={}  profile={}\n",
@@ -1244,6 +1285,31 @@ fn render(document: &Value, brief: bool) -> String {
         counts["total"],
         counts["required"]
     ));
+    let executables = &document["executables"];
+    for conflict in executables["conflicts"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+    {
+        let shadows = executables["shadowed"] == true
+            && executables["first_on_path"].as_str() == Some(conflict);
+        text.push_str(&format!(
+            "path    {} ici: {conflict}\n",
+            if shadows { "shadowing" } else { "other" }
+        ));
+    }
+    if let Some(value) = executables["legacy_ici_python"].as_str() {
+        text.push_str(&format!("legacy  ICI_PYTHON={value}\n"));
+    }
+    for line in executables["guidance"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+    {
+        text.push_str(&format!("  resolve: {line}\n"));
+    }
     if let Some(error) = document["scope_error"].as_str() {
         text.push_str(&format!("scope   blocked: {error}\n  resolve: declare valid component sources and configuration\n  recheck: ici next doctor\n"));
     }
