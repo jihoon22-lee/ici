@@ -164,3 +164,19 @@ shellcheck scripts/*.sh
 git ls-files | grep -E '\.pyz$|^src/ici/' && echo 'Python product still tracked' && exit 1
 grep -rn "dist/ici.pyz\|build-pyz.sh\|launcher.sh" .github/workflows && exit 1
 ```
+
+## 7. 이 브랜치의 로컬 리허설 근거 (2026-11-02, WSL2 x86_64)
+
+최종 인수가 아니다. 새 workflow 단계가 실제로 동작하는지 같은 명령으로 확인한 개발 측정이다.
+로그와 작은 결과는 `/tmp/ici-rust-replacement-20261028/cutover-*`에 있다.
+
+|단계|명령|결과|
+|---|---|---|
+|고정 입력 준비|`scripts/prepare-native-inputs.sh --output … --from <캐시된 고정 파일>` (네트워크 없음)|Ruff/ty archive·binary·license, rust-std musl, musl 1.2.5 digest 일치, std file tree digest 일치, musl SDK build·compile probe 통과 (`cutover-prepare-inputs.log`)|
+|exact-source 두 build|clean tree `04b1a921`에서 `build-native.sh --build-id cutover-exact-{a,b}` (각 약 5.5분, `-j2`)|두 archive 모두 SHA-256 `f0234fa6611cace689861b68caaed08898d2987d8c06238bf16c1cd18cd43563`, snapshot 0 (`cutover-build-exact.log`)|
+|release 검사|`check-native-release.sh --compare … --expect-revision 04b1a921… --allow-prerelease-version`|전체 PASS, 오프라인 analyze exit 0 (`cutover-check-exact/`)|
+|배포 artifact corpus|`python3 -I tests/rust-parity/distribution/verify_artifact.py …`|46 case 통과, `report.json` 생성 (`cutover-rehearsal/cutover-artifact-corpus-exact-report.json`) — 이전 후보처럼 doctor에서 멈추지 않음|
+|Quality Zoo native 단계|`runner.native_intake` → `runner.bind_candidate --reference-sha256 c179986f…` (임시 corpus 사본) → `runner.run --scenario python.*`|intake source revision·clean snapshot 확인, 16 scenario 바인딩, Python 5개 scenario 모두 PASS (`cutover-rehearsal/zoo-python-suite.json`). C++ 11개는 여기서 실행하지 않음(runtime worker 측정상 8개 실패가 남아 있음)|
+|음성 사례|이전 후보 `023bda38…`에 release 검사|retained notice 불일치와 개발 snapshot을 각각 거부|
+
+같은 host 안의 비교이므로 GitHub runner에서 다시 build한 archive가 같은 digest를 가진다고 주장하지 않는다.
