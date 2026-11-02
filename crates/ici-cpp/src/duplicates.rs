@@ -338,6 +338,60 @@ pub fn tokenize_cpp_lines(text: &str) -> Result<Vec<(u32, String)>, CppError> {
 pub fn cpp_directive_lines(text: &str) -> Result<Vec<u32>, CppError> {
     Ok(lex(text, 500_000, None)?.barriers.into_iter().collect())
 }
+/// Frozen `DuplicateEngine._load_and_index_files` bounds over the owned C++ sources in path
+/// order: the per-file `MAX_CPP_DUPLICATE_TOKENS` tokenizer stop, then the cumulative
+/// `MAX_DUPLICATE_NORMALIZED_CHARS` and `MAX_DUPLICATE_INDEXED_RECORDS` stops, as the
+/// `(file, message)` of the frozen `_SourceTokenizationError`.
+pub(crate) fn legacy_normalization_error(
+    inputs: &[&ici_domain::SourceInput],
+) -> Option<(String, String)> {
+    const NORMALIZED_CHARS: usize = 128 * 1024 * 1024;
+    const INDEXED_RECORDS: usize = 500_000;
+    let mut ordered = inputs.to_vec();
+    ordered.sort_by(|left, right| left.path.cmp(&right.path));
+    let (mut chars, mut records) = (0usize, 0usize);
+    for input in ordered {
+        let text = std::str::from_utf8(&input.bytes).ok()?;
+        let lexed = match lex(text, 500_000, None) {
+            Ok(lexed) => lexed,
+            Err(error) => {
+                let detail = if error.code == "duplicate-token-limit" {
+                    "max_tokens=500000 exceeded while tokenizing C++ source".to_owned()
+                } else {
+                    error.message
+                };
+                return Some((
+                    input.path.clone(),
+                    format!("Source lexical normalization failed: {detail}"),
+                ));
+            }
+        };
+        chars += lexed
+            .indexed
+            .iter()
+            .map(|(_, tokens)| tokens.chars().count())
+            .sum::<usize>();
+        if chars > NORMALIZED_CHARS {
+            return Some((
+                input.path.clone(),
+                format!(
+                    "Normalized duplicate-analysis input exceeds max_normalized_chars={NORMALIZED_CHARS}"
+                ),
+            ));
+        }
+        records += lexed.indexed.len();
+        if records > INDEXED_RECORDS {
+            return Some((
+                input.path.clone(),
+                format!(
+                    "Normalized duplicate-analysis input exceeds MAX_DUPLICATE_INDEXED_RECORDS={INDEXED_RECORDS}"
+                ),
+            ));
+        }
+    }
+    None
+}
+
 pub(crate) fn file_data(
     file: &ParsedSource,
     cancellation: Option<&AtomicBool>,

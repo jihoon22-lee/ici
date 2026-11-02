@@ -273,23 +273,56 @@ fn intake<C: Candidate>(
     None
 }
 
+/// Whether any request input survives the frozen generated/vendor exclusion policy.
+pub fn legacy_has_owned_source(request: &AnalysisRequest) -> bool {
+    request
+        .inputs
+        .iter()
+        .any(|input| crate::source::policy_exclusions(request, &input.path).is_empty())
+}
+
+/// The first owned (not policy-excluded) request input in path order: frozen
+/// `inventory.sources[0]`, where the dead engine's scope targets sit.
+pub fn legacy_first_owned_source(request: &AnalysisRequest) -> Option<&str> {
+    request
+        .inputs
+        .iter()
+        .filter(|input| crate::source::policy_exclusions(request, &input.path).is_empty())
+        .map(|input| input.path.as_str())
+        .min()
+}
+
 /// Frozen engine result for an intake fault (`DeadCodeEngine._collect_sources`,
 /// `DuplicateEngine`): only the `SourceInputError` target, ERROR NOT_RUN, the error message as
 /// the summary and no finding.
-pub fn legacy_intake_output(
+pub fn legacy_intake_output(output: AnalysisOutput, error: &LegacyIntakeError) -> AnalysisOutput {
+    legacy_failure_output(
+        output,
+        &error.file_path,
+        "SourceInputError",
+        &format!("{}: {}", error.code, error.message),
+        &error.message,
+    )
+}
+
+/// One frozen fail-closed engine stop: a single ERROR target, the summary, NOT_RUN evidence.
+pub(crate) fn legacy_failure_output(
     mut output: AnalysisOutput,
-    error: &LegacyIntakeError,
+    path: &str,
+    target_name: &str,
+    message: &str,
+    summary: &str,
 ) -> AnalysisOutput {
-    let mut target = InspectionTarget::at(&error.file_path, 1);
-    target.target_name = "SourceInputError".into();
+    let mut target = InspectionTarget::at(path, 1);
+    target.target_name = target_name.into();
     target.status = "ERROR".into();
-    target.message = format!("{}: {}", error.code, error.message);
+    target.message = message.into();
     output.targets = vec![target];
     output.observation.findings.clear();
-    output.summary = error.message.clone();
+    output.summary = summary.into();
     output.status = "ERROR".into();
     output.observation.state = TaskState::Failed;
-    output.observation.limitations.push(error.message.clone());
+    output.observation.limitations.push(summary.into());
     output
 }
 

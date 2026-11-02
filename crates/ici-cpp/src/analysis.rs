@@ -89,6 +89,37 @@ impl CppAnalysisSession {
             if let Some(error) = crate::legacy_source_intake(request) {
                 return crate::legacy_intake_output(output, &error);
             }
+            let owned: Vec<_> = request
+                .inputs
+                .iter()
+                .filter(|input| source::policy_exclusions(request, &input.path).is_empty())
+                .collect();
+            if owned.is_empty() {
+                // Frozen dup.py:121: no owned source is one `DuplicateCode` SKIP at the root.
+                let mut target = InspectionTarget::at(".", 1);
+                target.target_name = "DuplicateCode".into();
+                target.status = "SKIP".into();
+                target.message =
+                    "All selected sources were excluded by the generated/vendor policy".into();
+                output.targets = vec![target];
+                output.status = "SKIP".into();
+                output.summary = "Duplicate analysis skipped: no owned source files".into();
+                let mut measured = Measurement::measured("owned_sources", 0.0);
+                measured.evidence = EvidenceLevel::NotApplicable;
+                output.observation.measurements.push(measured);
+                return output;
+            }
+            // Frozen dup.py:149 `_load_and_index_files`: the bounded lexical normalization of
+            // every owned source in path order precedes any region or comparison work.
+            if let Some((path, message)) = crate::duplicates::legacy_normalization_error(&owned) {
+                return crate::legacy_intake::legacy_failure_output(
+                    output,
+                    &path,
+                    "SourceTokenizationError",
+                    &message,
+                    &format!("Duplicate analysis could not normalize {path}"),
+                );
+            }
         } else if (kind != "line" && request.inputs.len() > 2048)
             || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>()
                 > if kind == "line" {
@@ -177,11 +208,15 @@ impl CppAnalysisSession {
                     .observation
                     .limitations
                     .push(format!("excluded {}: {reason}", input.path));
-                let mut target = InspectionTarget::at(&input.path, 1);
-                target.status = "SKIP".into();
-                target.target_name = "ExcludedAnalysisSource".into();
-                target.message = reason;
-                output.targets.push(target);
+                // Frozen DuplicateEngine names no target for an excluded source.
+                if !(kind == "dup" && request.options["legacy_projection"].as_bool() == Some(true))
+                {
+                    let mut target = InspectionTarget::at(&input.path, 1);
+                    target.status = "SKIP".into();
+                    target.target_name = "ExcludedAnalysisSource".into();
+                    target.message = reason;
+                    output.targets.push(target);
+                }
                 continue;
             }
             let key = ici_domain::sha256(
@@ -329,6 +364,15 @@ impl CppAnalysisSession {
                         if duplicate_output.observation.state != TaskState::Succeeded {
                             output.observation.state = duplicate_output.observation.state;
                             output.status = duplicate_output.status;
+                            // Frozen dup.py:207: a bounded comparison stop is the
+                            // `DuplicateComparisonLimit` ERROR with its fixed summary.
+                            if legacy
+                                && let [target] = output.targets.as_mut_slice()
+                                && target.target_name == "DuplicateAnalysisError"
+                                && target.message.contains("exceeds MAX_DUPLICATE_")
+                            {
+                                target.target_name = "DuplicateComparisonLimit".into();
+                            }
                         } else {
                             // Frozen DuplicateEngine: the verdict is the duplication rate
                             // against warn_pct/fail_pct under the engine mode, not the
@@ -436,6 +480,15 @@ impl CppAnalysisSession {
                 .map(|target| target.message.as_str())
                 .collect();
             (!errors.is_empty()).then(|| errors.join("; "))
+        })
+        .or_else(|| {
+            // Frozen dup.py:207 `DuplicateComparisonLimit` keeps its fixed summary.
+            (kind == "dup"
+                && output
+                    .targets
+                    .iter()
+                    .any(|target| target.target_name == "DuplicateComparisonLimit"))
+            .then(|| "Duplicate analysis exceeded a bounded comparison limit".to_owned())
         })
         .unwrap_or_else(|| {
             format!(

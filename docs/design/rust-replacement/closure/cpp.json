@@ -9733,16 +9733,29 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/dead.py:270:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/legacy_intake.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_exception_and_type_without_sources_skip_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:270); enclosing frozen function _append_empty_scope_target) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json (capture_metric_sources.py, oracle 6fe3e40): cases {dup,dead}:{empty,excluded-only,excluded-mixed}, dup:{dup-records-limit,dup-indexed-records-limit,dup-window-occurrence-limit,dup-raw-match-limit}; /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 5 passed; regressions ici-cpp 13+9+..., legacy_cpp_metrics 8, native_cpp 28, legacy_verify_matrix 7, legacy_zoo_cpp 1, legacy_cpp_unused_configurations 1, legacy_cpp_config_keys, legacy_engine_cache (--include-ignored), strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dup-scope.log"
+      ],
+      "comparison": "C++ facet of this frozen row (dead.py:270, `_append_empty_scope_target`): with no owned source frozen runs no C++ scope and emits one `DeadCode` SKIP at '.' — 'All selected sources were excluded by the generated/vendor policy; dead-code analysis was not run' (excluded-only: NOT_RUN, not required) or 'No applicable source files were selected; dead-code analysis was not run' (empty: NOT_APPLICABLE, required), summary 'Dead-code analysis skipped: no owned source files'. Rust defects fixed: excluded-only reported C++UnusedFunctionsUnavailable at the excluded src/generated/g.cpp with the not-run summary; the unavailable scope target now sits at the first owned source in path order (excluded-mixed: src/ok.cpp, not src/_deps/v.cpp). empty already matched.",
+      "difference_reason": ""
     },
     "finding_site:src/ici/engines/dead.py:577:20": {
       "status": "verified",
@@ -9835,40 +9848,76 @@
       "difference_reason": "Review (root decision needed, not an accepted policy yet): Recorded difference (fail-closed both): a source over the application's 16 MiB input snapshot bound (or a run over 512 MiB) never reaches the task, so instead of frozen's `SourceInputError` 'too-large' the run is refused: BLOCKED NOT_RUN 'input snapshot failed', exit 3 (crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run); 8-16 MiB sources replay frozen exactly. Frozen's outside-project/not-file/unreadable/changed/missing codes are unreachable: native discovery never follows symlinks or yields non-regular files and the snapshot digest is re-checked after execution. Accepted exit policy (root, reporting command:ici verify): the required failed check exits 3 where frozen exited 1. Report `extra` of these intake failures is not frozen-shaped (frozen dead keeps cpp_linker_*/cpp_unused_*/language_evidence/source_files_* zero values, dup source_* counts and analysis_provenance 'language-lexical-region-heuristic'); that shaping belongs to the extras worker (crates/ici-cli/src/cpp/legacy_engine_extra.rs)."
     },
     "finding_site:src/ici/engines/dup.py:121:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_exception_and_type_without_sources_skip_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:121); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json (capture_metric_sources.py, oracle 6fe3e40): cases {dup,dead}:{empty,excluded-only,excluded-mixed}, dup:{dup-records-limit,dup-indexed-records-limit,dup-window-occurrence-limit,dup-raw-match-limit}; /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 5 passed; regressions ici-cpp 13+9+..., legacy_cpp_metrics 8, native_cpp 28, legacy_verify_matrix 7, legacy_zoo_cpp 1, legacy_cpp_unused_configurations 1, legacy_cpp_config_keys, legacy_engine_cache (--include-ignored), strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dup-scope.log"
+      ],
+      "comparison": "C++ facet of this frozen row (dup.py:121, no owned source): frozen returns one `DuplicateCode` SKIP at '.' 'All selected sources were excluded by the generated/vendor policy' (or 'No applicable source files were selected' without candidates), summary 'Duplicate analysis skipped: no owned source files', NOT_APPLICABLE, required. Rust defects fixed (legacy dup): the all-excluded tree kept one `ExcludedAnalysisSource` SKIP per excluded source instead of the frozen target, and a mixed tree listed `ExcludedAnalysisSource` targets frozen never emits (excluded-mixed). empty already matched.",
+      "difference_reason": ""
     },
     "finding_site:src/ici/engines/dup.py:149:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/duplicates.rs",
+        "crates/ici-cpp/src/analysis.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:149); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json (capture_metric_sources.py, oracle 6fe3e40): cases {dup,dead}:{empty,excluded-only,excluded-mixed}, dup:{dup-records-limit,dup-indexed-records-limit,dup-window-occurrence-limit,dup-raw-match-limit}; /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 5 passed; regressions ici-cpp 13+9+..., legacy_cpp_metrics 8, native_cpp 28, legacy_verify_matrix 7, legacy_zoo_cpp 1, legacy_cpp_unused_configurations 1, legacy_cpp_config_keys, legacy_engine_cache (--include-ignored), strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dup-scope.log"
+      ],
+      "comparison": "C++ facet of this frozen row (dup.py:149, `_SourceTokenizationError`): frozen tokenizes every owned source in path order; a file over MAX_CPP_DUPLICATE_TOKENS=500000 is 'Source lexical normalization failed: max_tokens=500000 exceeded while tokenizing C++ source', the cumulative MAX_DUPLICATE_INDEXED_RECORDS=500000 'Normalized duplicate-analysis input exceeds MAX_DUPLICATE_INDEXED_RECORDS=500000' at the file that reached it; one `SourceTokenizationError` ERROR, summary 'Duplicate analysis could not normalize <file>', NOT_RUN. Rust defect fixed: the tree-sitter parse stopped first ('syntax-limit' target, generic summary); legacy dup now runs `duplicates::legacy_normalization_error` before parsing (dup-records-limit, dup-indexed-records-limit). The max_normalized_chars=128 MiB stop is ported but unreachable under the 64 MiB intake bound (frozen calls the loader without an override).",
+      "difference_reason": "Accepted exit policy (root, reporting command:ici verify): a required ERROR exits 3 natively where frozen exited 1; nothing else differs."
     },
     "finding_site:src/ici/engines/dup.py:207:20": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/duplicates.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:207); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json (capture_metric_sources.py, oracle 6fe3e40): cases {dup,dead}:{empty,excluded-only,excluded-mixed}, dup:{dup-records-limit,dup-indexed-records-limit,dup-window-occurrence-limit,dup-raw-match-limit}; /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 5 passed; regressions ici-cpp 13+9+..., legacy_cpp_metrics 8, native_cpp 28, legacy_verify_matrix 7, legacy_zoo_cpp 1, legacy_cpp_unused_configurations 1, legacy_cpp_config_keys, legacy_engine_cache (--include-ignored), strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dup-scope.log"
+      ],
+      "comparison": "C++ facet of this frozen row (dup.py:207, `DuplicateComparisonLimit`): frozen stops a bounded comparison with one `DuplicateComparisonLimit` ERROR at the file that reached a per-file limit (window occurrences) or '.', message 'Shared duplicate-window occurrence count exceeds MAX_DUPLICATE_WINDOW_OCCURRENCES=2048' / 'Raw duplicate match count exceeds MAX_DUPLICATE_RAW_MATCHES=10000', summary 'Duplicate analysis exceeded a bounded comparison limit', NOT_RUN. Rust defect fixed: C++ dup kept `DuplicateAnalysisError` and the generic 'cpp.dup: 1 inspected targets, 0 findings' summary (the Python reshape in ici-analysis legacy.rs never ran for C++). Replayed dup-window-occurrence-limit and dup-raw-match-limit; the remaining MAX_DUPLICATE_* stops share the same reshape (message containing 'exceeds MAX_DUPLICATE_').",
+      "difference_reason": "Accepted exit policy (root, reporting command:ici verify): a required ERROR exits 3 natively where frozen exited 1; nothing else differs."
     },
     "finding_site:src/ici/engines/dup.py:279:16": {
       "status": "verified",

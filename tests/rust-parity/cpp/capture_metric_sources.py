@@ -10,7 +10,9 @@ whose body never closes. The `empty` tree (a type='cpp' project with no source) 
 at the bad source, dead's without any compilation database); `unreadable-header` has a header
 that is not UTF-8, which only dup and dead read. Generated `intake-nul` (a source with a NUL)
 and `intake-too-large` (a source over the frozen 8 MiB bound), the inventory/count bounds and
-`intake-database` (a non-UTF-8 source with a compilation database entry) run dup and dead. Keeps
+`intake-database` (a non-UTF-8 source with a compilation database entry) and `excluded-only`
+(sources only under excluded vendor/generated directories) run dup and dead; `empty` also runs
+dup and dead; `dup-*` trees run the bounded duplicate normalization/comparison stops. Keeps
 the exit code, status, evidence, required flag, summary and targets.
 """
 
@@ -60,12 +62,44 @@ GENERATED = {
         "src/ok.cpp": OK_SOURCE,
         "src/latin.cpp": b"// caf\xe9\nstatic int unused() { return 1; }\n",
     },
+    # Every owned-looking source sits under an excluded vendor/generated directory.
+    "excluded-only": {
+        "src/third_party/v.cpp": OK_SOURCE,
+        "src/generated/g.cpp": OK_SOURCE,
+    },
+    # An excluded vendor source sorting before an owned one.
+    "excluded-mixed": {"src/_deps/v.cpp": OK_SOURCE, "src/ok.cpp": OK_SOURCE},
     "intake-too-many-files": {f"src/f{index:04}.cpp": b"int x;\n" for index in range(2049)},
     "intake-too-many-candidates": {
         **{f"src/third_party/v{index:04}.cpp": b"int x;\n" for index in range(8192)},
         "src/ok.cpp": OK_SOURCE,
     },
 }
+
+
+def functions(count: int) -> bytes:
+    """`count` identical 14-line C++ function bodies (one shared duplicate window per body)."""
+
+    body = "".join(f"  int v{j} = a * {j} + b - {j};\n" for j in range(12))
+    return "".join(
+        f"int f{i}(int a, int b) {{\n" + body + "  return v0;\n}\n\n" for i in range(count)
+    ).encode()
+
+
+# Generated `ici dup` trees: frozen bounded normalization/comparison stops for C++ sources.
+GENERATED_DUP = {
+    # 500,001 declarations exceed the per-file MAX_CPP_DUPLICATE_TOKENS tokenizer bound (dup.py:149).
+    "dup-records-limit": {"src/a.cpp": "".join(f"int v{i};\n" for i in range(500_001)).encode()},
+    # 600,000 one-token lines over two files exceed MAX_DUPLICATE_INDEXED_RECORDS=500000.
+    "dup-indexed-records-limit": {
+        "src/a.cpp": b"x\n" * 300_000,
+        "src/b.cpp": b"x\n" * 300_000,
+    },
+    # dup.py:207 DuplicateComparisonLimit stops.
+    "dup-window-occurrence-limit": {"src/a.cpp": functions(2_100)},
+    "dup-raw-match-limit": {"src/a.cpp": functions(200)},
+}
+GENERATED.update(GENERATED_DUP)
 
 
 def run(name: str, command: str) -> dict:
@@ -112,7 +146,7 @@ def run(name: str, command: str) -> dict:
 
 
 COMMANDS = {
-    "empty": ("exception", "type"),
+    "empty": ("exception", "type", "dup", "dead"),
     "unreadable": ("cognitive", "complexity", "dup", "dead"),
     "unreadable-header": ("cognitive", "complexity", "dup", "dead"),
 }
@@ -123,7 +157,11 @@ cases = {
     for command in COMMANDS.get(path.name, ("cognitive", "complexity"))
 }
 cases.update(
-    {f"{command}:{name}": run(name, command) for name in GENERATED for command in ("dup", "dead")}
+    {
+        f"{command}:{name}": run(name, command)
+        for name in GENERATED
+        for command in (("dup",) if name in GENERATED_DUP else ("dup", "dead"))
+    }
 )
 GOLDEN.write_text(
     json.dumps(

@@ -59,6 +59,17 @@ fn leak(path: String) -> &'static str {
     Box::leak(path.into_boxed_str())
 }
 
+/// `capture_metric_sources.py` `functions`: `count` identical 14-line C++ function bodies.
+fn functions(count: usize) -> Vec<u8> {
+    let body: String = (0..12)
+        .map(|j| format!("  int v{j} = a * {j} + b - {j};\n"))
+        .collect();
+    (0..count)
+        .map(|i| format!("int f{i}(int a, int b) {{\n{body}  return v0;\n}}\n\n"))
+        .collect::<String>()
+        .into_bytes()
+}
+
 /// `capture_metric_sources.py` GENERATED trees (never committed).
 fn generated(tree: &str) -> Option<Vec<(&'static str, Vec<u8>)>> {
     let ok = b"int ok(int x) {\n  if (x) { return 1; }\n  return 0;\n}\n".to_vec();
@@ -88,6 +99,24 @@ fn generated(tree: &str) -> Option<Vec<(&'static str, Vec<u8>)>> {
                 b"// caf\xe9\nstatic int unused() { return 1; }\n".to_vec(),
             ),
         ]),
+        "excluded-only" => Some(vec![
+            ("src/third_party/v.cpp", ok.clone()),
+            ("src/generated/g.cpp", ok),
+        ]),
+        "excluded-mixed" => Some(vec![("src/_deps/v.cpp", ok.clone()), ("src/ok.cpp", ok)]),
+        "dup-records-limit" => Some(vec![(
+            "src/a.cpp",
+            (0..500_001)
+                .map(|index| format!("int v{index};\n"))
+                .collect::<String>()
+                .into_bytes(),
+        )]),
+        "dup-indexed-records-limit" => Some(vec![
+            ("src/a.cpp", b"x\n".repeat(300_000)),
+            ("src/b.cpp", b"x\n".repeat(300_000)),
+        ]),
+        "dup-window-occurrence-limit" => Some(vec![("src/a.cpp", functions(2_100))]),
+        "dup-raw-match-limit" => Some(vec![("src/a.cpp", functions(200))]),
         "intake-inventory" => {
             let mut part = b"// ".to_vec();
             part.extend(std::iter::repeat_n(b'x', 15 * 512 * 1024));
@@ -209,7 +238,7 @@ fn legacy_cpp_exception_and_type_without_sources_skip_like_frozen() {
         "../../../tests/rust-parity/cpp/metric-sources-oracle.json"
     ))
     .unwrap();
-    for command in ["exception", "type"] {
+    for command in ["exception", "type", "dup", "dead"] {
         let (_, actual) = run(&oracle, "empty", command);
         assert_eq!(
             actual,
@@ -258,4 +287,40 @@ fn legacy_cpp_sources_over_the_snapshot_bound_block_the_run() {
             "{command}"
         );
     }
+}
+
+/// Frozen dead.py:270 / dup.py:121: sources only under excluded vendor/generated directories are
+/// a `DeadCode` / `DuplicateCode` SKIP naming the exclusion policy; dup.py:149 / dup.py:207: the
+/// bounded C++ normalization (`SourceTokenizationError`, 500,000 indexed records) and comparison
+/// (`DuplicateComparisonLimit`) stops.
+#[test]
+fn legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/metric-sources-oracle.json"
+    ))
+    .unwrap();
+    let mut mismatches = vec![];
+    for (tree, command) in [
+        ("excluded-only", "dup"),
+        ("excluded-only", "dead"),
+        ("excluded-mixed", "dup"),
+        ("excluded-mixed", "dead"),
+        ("dup-records-limit", "dup"),
+        ("dup-indexed-records-limit", "dup"),
+        ("dup-window-occurrence-limit", "dup"),
+        ("dup-raw-match-limit", "dup"),
+    ] {
+        let expected = &oracle["cases"][format!("{command}:{tree}")];
+        let (_, mut actual) = run(&oracle, tree, command);
+        if expected["exit_code"] == 1 && actual["exit_code"] == 3 {
+            // Accepted exit policy (see above): required incomplete evidence exits 3.
+            actual["exit_code"] = expected["exit_code"].clone();
+        }
+        if actual != *expected {
+            mismatches.push(format!(
+                "{command}:{tree}\n  rust   {actual}\n  frozen {expected}"
+            ));
+        }
+    }
+    assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
 }

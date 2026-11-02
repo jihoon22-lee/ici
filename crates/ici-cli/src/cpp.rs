@@ -4046,6 +4046,32 @@ impl CppPlans {
                 &error,
             );
         }
+        // Frozen dead.py:270 `_append_empty_scope_target`: when every selected source is excluded
+        // by the generated/vendor policy no C++ scope runs and one `DeadCode` SKIP explains why.
+        if self.legacy_projection
+            && request.check_id == "cpp.dead"
+            && !self.inactive.contains_key(&request.task_id)
+            && !request.inputs.is_empty()
+            && !ici_cpp::legacy_has_owned_source(request)
+        {
+            let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
+            output.status = "SKIP".into();
+            output.summary = "Dead-code analysis skipped: no owned source files".into();
+            output.observation.measurements.push(Measurement {
+                name: "cpp_unused_configurations_checked".into(),
+                value: 0.0,
+                evidence: ici_domain::EvidenceLevel::NotRun,
+                unit: "configurations".into(),
+                numerator: None,
+                denominator: None,
+            });
+            let mut target = InspectionTarget::at(".", 1);
+            target.target_name = "DeadCode".into();
+            target.status = "SKIP".into();
+            target.message = "All selected sources were excluded by the generated/vendor policy; dead-code analysis was not run".into();
+            output.targets.push(target);
+            return output;
+        }
         if self.linkers.contains_key(&request.task_id) {
             let linker_output =
                 self.run_linker(project, component, request, scheduler, cancellation, events);
@@ -4099,13 +4125,10 @@ impl CppPlans {
                 .observation
                 .limitations
                 .push(LEGACY_UNUSED_UNAVAILABLE.into());
-            // Frozen: one target at the first selected C/C++ source in path order.
-            let path = request
-                .inputs
-                .iter()
-                .map(|source| source.path.clone())
-                .min()
-                .unwrap_or_else(|| ".".into());
+            // Frozen: one target at the first owned C/C++ source in path order.
+            let path = ici_cpp::legacy_first_owned_source(request)
+                .unwrap_or(".")
+                .to_owned();
             // Frozen `DeadCodeEngine._scope_finding` for each not-run scope target.
             let scope = |name: &str,
                          required: bool,
