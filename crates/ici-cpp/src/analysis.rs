@@ -83,7 +83,13 @@ impl CppAnalysisSession {
             );
             return output;
         }
-        if (kind != "line" && request.inputs.len() > 2048)
+        // Frozen DuplicateEngine reads its whole bounded inventory first
+        // (`read_analysis_sources`) and reports only the first intake fault.
+        if kind == "dup" && request.options["legacy_projection"].as_bool() == Some(true) {
+            if let Some(error) = crate::legacy_source_intake(request) {
+                return crate::legacy_intake_output(output, &error);
+            }
+        } else if (kind != "line" && request.inputs.len() > 2048)
             || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>()
                 > if kind == "line" {
                     512 * 1024 * 1024
@@ -225,25 +231,6 @@ impl CppAnalysisSession {
                                 unreadable.push(input.path.clone());
                             }
                             continue;
-                        }
-                        // Frozen DuplicateEngine: `read_analysis_sources` raises at the first
-                        // source that is not UTF-8 and the engine reports only that source.
-                        if kind == "dup"
-                            && error.code == "source-encoding"
-                            && request.options["legacy_projection"].as_bool() == Some(true)
-                        {
-                            let message = "Analysis source is not valid UTF-8";
-                            let mut target = InspectionTarget::at(&input.path, 1);
-                            target.target_name = "SourceInputError".into();
-                            target.status = "ERROR".into();
-                            target.message = format!("invalid-utf8: {message}");
-                            output.targets = vec![target];
-                            output.observation.findings.clear();
-                            output.summary = message.into();
-                            output.status = "ERROR".into();
-                            output.observation.state = TaskState::Failed;
-                            output.observation.limitations.push(message.into());
-                            return output;
                         }
                         fail(&mut output, &input.path, &error.code, &error.message);
                         continue;

@@ -3,6 +3,7 @@
   "cognitive:unreadable": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "required": false,
    "status": "ERROR",
    "summary": "Cognitive complexity analysis did not complete",
    "targets": [
@@ -19,6 +20,7 @@
   "cognitive:unreadable-header": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
+   "required": false,
    "status": "PASS",
    "summary": "Max cognitive complexity: 1 across 1 functions",
    "targets": [
@@ -35,6 +37,7 @@
   "cognitive:unterminated": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "required": false,
    "status": "ERROR",
    "summary": "Cognitive complexity analysis did not complete",
    "targets": [
@@ -59,6 +62,7 @@
   "complexity:unreadable": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "required": true,
    "status": "ERROR",
    "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (1 issues)",
    "targets": [
@@ -75,6 +79,7 @@
   "complexity:unreadable-header": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
+   "required": true,
    "status": "PASS",
    "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 1 functions (0 issues)",
    "targets": [
@@ -91,6 +96,7 @@
   "complexity:unterminated": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
+   "required": true,
    "status": "PASS",
    "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 2 functions (0 issues)",
    "targets": [
@@ -112,9 +118,214 @@
     }
    ]
   },
+  "dead:intake-inventory": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source inventory exceeds the bounded limit (67108864 bytes)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/part8.cpp",
+     "message": "inventory-too-large: Analysis source inventory exceeds the bounded limit (67108864 bytes)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dead:intake-nul": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source contains a NUL character",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/nul.cpp",
+     "message": "invalid-text: Analysis source contains a NUL character",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dead:intake-too-large": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source could not be read safely: The file exceeds the bounded input size.",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/big.cpp",
+     "message": "too-large: Analysis source could not be read safely: The file exceeds the bounded input size.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dead:intake-too-many-candidates": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source candidate count exceeds the bounded limit (8192)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "too-many-candidates: Analysis source candidate count exceeds the bounded limit (8192)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dead:intake-too-many-files": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Owned analysis source count exceeds the bounded limit (2048)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "too-many-files: Owned analysis source count exceeds the bounded limit (2048)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dead:unreadable": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/latin.cpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dead:unreadable-header": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/bad.hpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:intake-inventory": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source inventory exceeds the bounded limit (67108864 bytes)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/part8.cpp",
+     "message": "inventory-too-large: Analysis source inventory exceeds the bounded limit (67108864 bytes)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:intake-nul": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source contains a NUL character",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/nul.cpp",
+     "message": "invalid-text: Analysis source contains a NUL character",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:intake-too-large": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source could not be read safely: The file exceeds the bounded input size.",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/big.cpp",
+     "message": "too-large: Analysis source could not be read safely: The file exceeds the bounded input size.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:intake-too-many-candidates": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Analysis source candidate count exceeds the bounded limit (8192)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "too-many-candidates: Analysis source candidate count exceeds the bounded limit (8192)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:intake-too-many-files": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "required": true,
+   "status": "ERROR",
+   "summary": "Owned analysis source count exceeds the bounded limit (2048)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "too-many-files: Owned analysis source count exceeds the bounded limit (2048)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
   "dup:unreadable": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "required": true,
    "status": "ERROR",
    "summary": "Analysis source is not valid UTF-8",
    "targets": [
@@ -131,6 +342,7 @@
   "dup:unreadable-header": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "required": true,
    "status": "ERROR",
    "summary": "Analysis source is not valid UTF-8",
    "targets": [
@@ -147,6 +359,7 @@
   "exception:empty": {
    "evidence": "NOT_APPLICABLE",
    "exit_code": 2,
+   "required": true,
    "status": "SKIP",
    "summary": "Exception safety analysis skipped: no applicable source files",
    "targets": [
@@ -163,6 +376,7 @@
   "type:empty": {
    "evidence": "NOT_APPLICABLE",
    "exit_code": 2,
+   "required": true,
    "status": "SKIP",
    "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
    "targets": [

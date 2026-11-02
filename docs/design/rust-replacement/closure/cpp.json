@@ -9637,16 +9637,32 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/dead.py:111:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/legacy_intake.rs",
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cpp/src/legacy_intake.rs::tests::legacy_intake_stops_at_the_first_fault_in_path_order"
+        ],
+        "negative": [
+          "crates/ici-cpp/src/legacy_intake.rs::tests::legacy_intake_applies_the_frozen_bounds",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_stop_at_frozen_intake_bounds"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:111, DeadCodeEngine._collect_sources): frozen reads every Python/C++ candidate through read_analysis_sources; a C++ source that is not UTF-8 is `SourceInputError` ERROR 'invalid-utf8: Analysis source is not valid UTF-8' and the engine is ERROR NOT_RUN with that summary, exit 1 (reproduced on parity-fixtures/cpp/metric-sources/unreadable with `ici dead --report`, cpp15).",
-      "difference_reason": "Open (Rust defect, not fixed): legacy `ici dead` never reads the C++ sources without a database, so the same tree is SKIP NOT_RUN 'C++ dead-code analysis not run: exact native context unavailable' with a C++UnusedFunctionsUnavailable SKIP at src/latin.cpp, exit 2. The fix belongs in the legacy dead policy projection (crates/ici-cli/src/cpp.rs) before the unused/linker policy targets; the golden needs a dead:unreadable case in capture_metric_sources.py."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json (tests/rust-parity/cpp/capture_metric_sources.py, oracle 6fe3e40): cases {dup,dead}:{unreadable,unreadable-header,intake-nul,intake-too-large,intake-inventory,intake-too-many-files,intake-too-many-candidates} incl. the report `required` flag; deterministic rerun /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cpp --lib legacy_intake -j2: 2 passed; cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 4 passed; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake-final.log",
+        "Regressions: ici-cpp --lib 11, legacy_cpp_metrics 8, native_cpp 28 (--include-ignored), legacy_report_keys, legacy_engine_cache 3, legacy_verify_matrix 7, legacy_zoo_cpp 1, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:111, DeadCodeEngine._collect_sources): when cpp_unused or cpp_linker is not off, frozen reads every C/C++ candidate (sources + headers) through read_analysis_sources before any compiler/linker scope, with or without a compilation database; the first intake fault in path order is the only target `SourceInputError` ERROR '<code>: <message>' at that file (or '.'), summary <message>, ERROR NOT_RUN, required kept (`_effective_required` analysis_failed). Rust defect fixed: legacy dead without a database never read the sources (SKIP 'exact native context unavailable', exit 2). Now `ici_cpp::legacy_source_intake` ports the frozen pass (dedupe, 8192 candidates, path sort, generated/vendor exclusion via include_generated/include_vendor, 2048 owned files, suffix, 8 MiB file, 64 MiB inventory, invalid-utf8, invalid-text) and runs first for every non-disabled legacy cpp.dead task; the plan keeps the check required when the component's sources fail the same intake. Replayed: unreadable, unreadable-header, intake-nul/too-large/inventory/too-many-files/too-many-candidates. Hybrid Python candidates belong to the python facet.",
+      "difference_reason": "Recorded difference (fail-closed both): a source over the application's 16 MiB input snapshot bound (or a run over 512 MiB) never reaches the task, so instead of frozen's `SourceInputError` 'too-large' the run is refused: BLOCKED NOT_RUN 'input snapshot failed', exit 3 (crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run); 8-16 MiB sources replay frozen exactly. Frozen's outside-project/not-file/unreadable/changed/missing codes are unreachable: native discovery never follows symlinks or yields non-regular files and the snapshot digest is re-checked after execution. Accepted exit policy (root, reporting command:ici verify): the required failed check exits 3 where frozen exited 1."
     },
     "finding_site:src/ici/engines/dead.py:134:12": {
       "status": "verified",
@@ -9783,29 +9799,32 @@
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dup.py:100:20": {
-      "status": "verified",
+      "status": "complete",
       "rust_paths": [
+        "crates/ici-cpp/src/legacy_intake.rs",
         "crates/ici-cpp/src/analysis.rs"
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen",
+          "crates/ici-cpp/src/legacy_intake.rs::tests::legacy_intake_stops_at_the_first_fault_in_path_order"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_top_level_include_headers_join_cycle_dup_and_dead_like_frozen"
+          "crates/ici-cpp/src/legacy_intake.rs::tests::legacy_intake_applies_the_frozen_bounds",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen"
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_stop_at_frozen_intake_bounds"
         ]
       },
       "evidence": [
-        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json (tests/rust-parity/cpp/capture_metric_sources.py, oracle 6fe3e40) case dup:unreadable: frozen `ici dup --report` over src/{ok,latin}.cpp; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-capture.log",
-        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 2 passed (non-ignored); /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources.log",
-        "Regressions: legacy_cpp_metrics 8, legacy_verify_matrix 7, legacy_zoo_cpp 1, native_cpp dup filters 3 (--include-ignored), ici-cpp duplicates/source, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-dup-regress.log",
-        "Final focused regressions after the unresolved-compiler and unreadable-header fixes: legacy_cpp_metric_sources, legacy_cpp_include_context (6 cases), legacy_cpp_metrics, legacy_zoo_cpp, legacy_verify_matrix, next_cpp_cycles (--include-ignored), strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-final-regress.log"
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json (tests/rust-parity/cpp/capture_metric_sources.py, oracle 6fe3e40): cases {dup,dead}:{unreadable,unreadable-header,intake-nul,intake-too-large,intake-inventory,intake-too-many-files,intake-too-many-candidates} incl. the report `required` flag; deterministic rerun /tmp/ici-rust-replacement-20261028/w-cpp16-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cpp --lib legacy_intake -j2: 2 passed; cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 4 passed; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake-final.log",
+        "Regressions: ici-cpp --lib 11, legacy_cpp_metrics 8, native_cpp 28 (--include-ignored), legacy_report_keys, legacy_engine_cache 3, legacy_verify_matrix 7, legacy_zoo_cpp 1, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp16-dead-intake.log"
       ],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:100, DuplicateEngine source intake): frozen read_analysis_sources raises at the first source that is not UTF-8 and the engine reports only `SourceInputError` ERROR at that source 'invalid-utf8: Analysis source is not valid UTF-8', summary 'Analysis source is not valid UTF-8', ERROR NOT_RUN (dup:unreadable). Rust defect fixed (legacy projection): the native `source-encoding` target was kept and the other sources still scanned (DuplicateScan PASS) with the native summary. Readable sources keep the frozen DuplicateScan/clone targets (legacy_cpp_metrics). A non-UTF-8 header stops dup the same way (unreadable-header: SourceInputError at src/bad.hpp).",
-      "difference_reason": "Open: only the invalid-utf8 intake code is ported and captured; frozen _source_inputs' other refusals (8 MiB per file, 64 MiB total, 8192 candidates, outside-root/non-regular) are not compared and Rust keeps its 16 MiB/2048-file native `inventory-limit` (root lead 3). Accepted policy (incomplete-exit-3): the required dup check exits 3 where frozen exits 1."
+      "comparison": "C++ facet of this frozen row (src/ici/engines/dup.py:100, DuplicateEngine source intake): frozen read_analysis_sources stops at the first intake fault and the engine reports only `SourceInputError` ERROR '<code>: <message>' at that source (or '.'), summary <message>, ERROR NOT_RUN, required. Rust defects fixed: only invalid-utf8 was ported (cpp15) and the native 2048-input/64 MiB bound counted excluded vendor/generated inputs; legacy dup now runs the shared `ici_cpp::legacy_source_intake` port first (NUL 'invalid-text', 8 MiB 'too-large', 64 MiB owned 'inventory-too-large', 2048 owned 'too-many-files', 8192 candidates incl. excluded 'too-many-candidates', 'unsupported-language') instead of the native bound. Readable sources keep the frozen DuplicateScan/clone targets (legacy_cpp_metrics).",
+      "difference_reason": "Recorded difference (fail-closed both): a source over the application's 16 MiB input snapshot bound (or a run over 512 MiB) never reaches the task, so instead of frozen's `SourceInputError` 'too-large' the run is refused: BLOCKED NOT_RUN 'input snapshot failed', exit 3 (crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_sources_over_the_snapshot_bound_block_the_run); 8-16 MiB sources replay frozen exactly. Frozen's outside-project/not-file/unreadable/changed/missing codes are unreachable: native discovery never follows symlinks or yields non-regular files and the snapshot digest is re-checked after execution. Accepted exit policy (root, reporting command:ici verify): the required failed check exits 3 where frozen exited 1."
     },
     "finding_site:src/ici/engines/dup.py:121:20": {
       "status": "not_started",

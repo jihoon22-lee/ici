@@ -6,9 +6,11 @@ parity-fixtures/cpp/metric-sources tree with PATH=/usr/bin:/bin and LANG/LC_ALL=
 `unreadable` has a source that is not UTF-8 beside a measurable one; `unterminated` a function
 whose body never closes. The `empty` tree (a type='cpp' project with no source) runs
 `ici exception --report` and `ici type --report` instead, the not-applicable C++ scope;
-`unreadable` also runs `ici dup --report` (frozen source intake stops at the bad source);
-`unreadable-header` has a header that is not UTF-8, which only dup reads. Keeps
-the exit code, status, evidence, summary and targets.
+`unreadable` also runs `ici dup --report` and `ici dead --report` (frozen source intake stops
+at the bad source, dead's without any compilation database); `unreadable-header` has a header
+that is not UTF-8, which only dup and dead read. Generated `intake-nul` (a source with a NUL)
+and `intake-too-large` (a source over the frozen 8 MiB bound) run dup and dead. Keeps
+the exit code, status, evidence, required flag, summary and targets.
 """
 
 import json
@@ -33,12 +35,37 @@ assert (
 )
 
 
+OK_SOURCE = b"int ok(int x) {\n  if (x) { return 1; }\n  return 0;\n}\n"
+# Trees generated at capture time (never committed): frozen intake faults past UTF-8 decoding.
+GENERATED = {
+    "intake-nul": {"src/nul.cpp": b"int a;\0\n", "src/ok.cpp": OK_SOURCE},
+    "intake-too-large": {
+        "src/big.cpp": b"// " + b"x" * (8 * 1024 * 1024) + b"\n",
+        "src/ok.cpp": OK_SOURCE,
+    },
+    # Nine 7.5 MiB sources pass the per-file bound but exceed the 64 MiB inventory.
+    "intake-inventory": {
+        f"src/part{index}.cpp": b"// " + b"x" * (15 * 512 * 1024) + b"\n" for index in range(9)
+    },
+    "intake-too-many-files": {f"src/f{index:04}.cpp": b"int x;\n" for index in range(2049)},
+    "intake-too-many-candidates": {
+        **{f"src/third_party/v{index:04}.cpp": b"int x;\n" for index in range(8192)},
+        "src/ok.cpp": OK_SOURCE,
+    },
+}
+
+
 def run(name: str, command: str) -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
         project = WORK / "project"
-        shutil.copytree(FIXTURES / name, project)
+        if name in GENERATED:
+            for relative, payload in GENERATED[name].items():
+                (project / relative).parent.mkdir(parents=True, exist_ok=True)
+                (project / relative).write_bytes(payload)
+        else:
+            shutil.copytree(FIXTURES / name, project)
         (project / "ici.toml").write_text(CONFIG, encoding="utf-8")
         (WORK / "home").mkdir()
         result = subprocess.run(
@@ -64,6 +91,7 @@ def run(name: str, command: str) -> dict:
         "exit_code": result.returncode,
         "status": report["status"],
         "evidence": report["evidence"],
+        "required": report["required"],
         "summary": report["summary"],
         "targets": [{key: target.get(key) for key in FIELDS} for target in report["targets"]],
     }
@@ -71,8 +99,8 @@ def run(name: str, command: str) -> dict:
 
 COMMANDS = {
     "empty": ("exception", "type"),
-    "unreadable": ("cognitive", "complexity", "dup"),
-    "unreadable-header": ("cognitive", "complexity", "dup"),
+    "unreadable": ("cognitive", "complexity", "dup", "dead"),
+    "unreadable-header": ("cognitive", "complexity", "dup", "dead"),
 }
 cases = {
     f"{command}:{path.name}": run(path.name, command)
@@ -80,6 +108,9 @@ cases = {
     if path.is_dir()
     for command in COMMANDS.get(path.name, ("cognitive", "complexity"))
 }
+cases.update(
+    {f"{command}:{name}": run(name, command) for name in GENERATED for command in ("dup", "dead")}
+)
 GOLDEN.write_text(
     json.dumps(
         {"oracle": EXPECTED, "config": CONFIG, "cases": cases},

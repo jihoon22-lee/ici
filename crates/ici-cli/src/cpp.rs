@@ -71,6 +71,9 @@ pub struct CppPlans {
     inactive: BTreeMap<String, String>,
     /// Legacy `ici dead` without recorded compilation: frozen SKIP (ERROR when required) target.
     legacy_unavailable: BTreeMap<String, bool>,
+    /// Legacy unavailable dead checks whose frozen source intake fails (non-UTF-8, NUL or a
+    /// frozen bound): `_effective_required` keeps such a failed analysis required.
+    legacy_intake_faults: BTreeSet<String>,
     /// Legacy dead checks whose GNU ELF linker policy (`required` = true) cannot run because the
     /// project has no root CMake backend (frozen `run_cpp_linker_dead_symbols` unavailable).
     legacy_linker_unavailable: BTreeMap<String, bool>,
@@ -819,6 +822,9 @@ impl CppPlans {
             // Frozen DeadCodeEngine reports C++UnusedFunctionsUnavailable instead of running.
             self.legacy_unavailable
                 .insert(id.into(), mode == "required");
+            if legacy_component_intake_fault(project, component) {
+                self.legacy_intake_faults.insert(id.into());
+            }
             return Ok(Work::Internal);
         }
         if !context.complete() {
@@ -3617,6 +3623,43 @@ pub fn legacy_sanitizer_compile_failures(
 /// Frozen `TestEngine._threshold_breaches`: only a TEM/branch threshold the run came in under
 /// is a target (a met threshold is not reported), and its `actual` is the reported value: the
 /// branch percentage rounded to one decimal like every frozen GCOV percentage.
+/// Whether frozen `read_analysis_sources` would fail on the component's C/C++ sources (a plan
+/// decision: frozen `_effective_required` keeps a failed dead analysis required). Execution
+/// repeats the intake on the captured snapshot, which names the fault.
+fn legacy_component_intake_fault(project: &ResolvedProject, component: &Component) -> bool {
+    let mut inputs = vec![];
+    for path in component
+        .files
+        .iter()
+        .filter(|path| file_language(path) == Some("cpp"))
+    {
+        let file = project.root.join(path);
+        let bytes = match std::fs::symlink_metadata(&file) {
+            Ok(metadata) if metadata.len() > ici_cpp::LEGACY_MAX_FILE_BYTES as u64 => {
+                return true;
+            }
+            Ok(_) => match ici_execution::storage::read_bounded_regular(
+                &file,
+                ici_cpp::LEGACY_MAX_FILE_BYTES,
+            ) {
+                Ok(bytes) => bytes,
+                Err(_) => return true,
+            },
+            Err(_) => return true,
+        };
+        inputs.push(ici_domain::SourceInput {
+            path: path.clone(),
+            bytes,
+        });
+    }
+    let options = component
+        .settings
+        .pointer("/engines/dead")
+        .cloned()
+        .unwrap_or(Value::Null);
+    ici_cpp::legacy_source_intake_inputs(&inputs, &options).is_some()
+}
+
 pub fn legacy_threshold_breaches(output: &mut AnalysisOutput) {
     output.targets.retain(|target| {
         !(target.target_name.starts_with("Threshold: ") && target.status == "PASS")
@@ -3960,7 +4003,10 @@ impl CppPlans {
                 // Frozen `DeadCodeEngine._effective_required`: unavailable automatic C++ and
                 // linker policies do not make the engine required (a Python dead check keeps it
                 // required).
-                if !*required && !linker_required {
+                if !*required
+                    && !linker_required
+                    && !self.legacy_intake_faults.contains(&planned.task_id)
+                {
                     planned.check.required = false;
                 }
                 plan.limitations.push(format!(
@@ -4004,6 +4050,19 @@ impl CppPlans {
         }
         if let Some(terminal) = self.legacy_context_errors.get(&request.task_id) {
             return legacy_syntax::terminal_output(request, terminal);
+        }
+        // Frozen `DeadCodeEngine._collect_sources` reads the whole bounded C/C++ inventory before
+        // any compiler or linker scope, with or without a compilation database, and an intake
+        // fault is the engine's only result (ERROR, required).
+        if self.legacy_projection
+            && request.check_id == "cpp.dead"
+            && !self.inactive.contains_key(&request.task_id)
+            && let Some(error) = ici_cpp::legacy_source_intake(request)
+        {
+            return ici_cpp::legacy_intake_output(
+                AnalysisOutput::new(&request.task_id, "ici.cpp"),
+                &error,
+            );
         }
         if self.linkers.contains_key(&request.task_id) {
             let linker_output =
