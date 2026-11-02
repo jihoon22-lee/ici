@@ -1623,13 +1623,28 @@ fn bind_inputs(
 /// double-quoted scalars, so `"\x45xtraArgs"` is the key `ExtraArgs` although its text is not.
 /// Without a double quote or without a backslash the raw text is the decoded text (plain and
 /// single-quoted folding never joins characters), so a file holding both is refused outright
-/// instead of tracking quotes, as are NUL bytes (UTF-16/32). Frozen matched the raw text only;
-/// the stricter rule is an intended security correction.
+/// instead of tracking quotes, as are NUL bytes (UTF-16/32). With those two rules the raw text
+/// is the decoded text, so the literal keys keep frozen's case-insensitive ASCII word-bounded
+/// match (`\b(?:ExtraArgs(?:Before)?|InheritParentConfig)\b`): an in-word mention such as
+/// `notExtraArgs` names a different key and is accepted. Frozen matched the raw text only; the
+/// escape and NUL refusals are an intended security correction.
 pub(crate) fn clang_tidy_config_is_unsafe(bytes: &[u8]) -> bool {
     let lowered = bytes.to_ascii_lowercase();
-    let mentions = |needle: &[u8]| lowered.windows(needle.len()).any(|window| window == needle);
+    let word = |byte: u8| byte.is_ascii_alphanumeric() || byte == b'_';
+    let mentions = |needle: &[u8]| {
+        lowered
+            .windows(needle.len())
+            .enumerate()
+            .any(|(start, window)| {
+                let end = start + needle.len();
+                window == needle
+                    && (start == 0 || !word(lowered[start - 1]))
+                    && lowered.get(end).is_none_or(|byte| !word(*byte))
+            })
+    };
     bytes.contains(&0)
         || mentions(b"extraargs")
+        || mentions(b"extraargsbefore")
         || mentions(b"inheritparentconfig")
         || (bytes.contains(&b'"') && bytes.contains(&b'\\'))
 }
@@ -4842,6 +4857,28 @@ mod clang_tidy_config_tests {
             b"extraargsbefore: [-Xclang]\n",
             b"{InheritParentConfig: true}\n",
             b"? !!str ExtraArgs\n: [-fplugin=x.so]\n",
+        ] {
+            assert!(unsafe_config(text), "{}", String::from_utf8_lossy(text));
+        }
+    }
+
+    #[test]
+    fn literal_keys_match_on_ascii_word_boundaries_like_frozen() {
+        // Frozen `\b(?:ExtraArgs(?:Before)?|InheritParentConfig)\b` (bytes, IGNORECASE).
+        for text in [
+            &b"# notExtraArgs and InheritParentConfigs are comments\nChecks: '-*'\n"[..],
+            b"Checks: '-*'\nX_ExtraArgs: [a]\nExtraArgs2: [b]\nExtraArgsBeforeX: [c]\n",
+            b"Checks: '-*'\nExtraArgsAfter: [d]\nmyInheritParentConfig: true\n",
+        ] {
+            assert!(!unsafe_config(text), "{}", String::from_utf8_lossy(text));
+        }
+        for text in [
+            &b"ExtraArgs:[a]"[..],
+            b"Checks: '-*'\n-ExtraArgs-\n",
+            b"'EXTRAARGSBEFORE': [a]",
+            b"\xc3\xa9ExtraArgs\xc3\xa9: [a]",
+            b"x.inheritparentconfig.y",
+            b"InheritParentConfig",
         ] {
             assert!(unsafe_config(text), "{}", String::from_utf8_lossy(text));
         }
