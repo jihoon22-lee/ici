@@ -615,6 +615,80 @@ pub fn analysis_context(prepared: &PreparedPlan, document: &Value, profile: &str
     })
 }
 
+/// Frozen `core/baseline.py` `build_analysis_metadata` over the effective policy of the
+/// selected profile (`apply_analysis_profile`: a profile-excluded engine is `enabled = false`):
+/// the producer, the frozen v3 finding identity the legacy view keeps (`ici-fingerprint/v1`),
+/// and `sha256:` of the frozen compact sorted JSON of the `engines` policy and of the support
+/// matrix's tool policy.
+pub fn analysis_metadata(prepared: &PreparedPlan, document: &Value, profile: &str) -> Value {
+    let digest = |value: &Value| {
+        ici_domain::canonical_json(value)
+            .map(|text| ici_domain::sha256(text.as_bytes()))
+            .unwrap_or_default()
+    };
+    let mut engines = prepared
+        .project
+        .effective
+        .get("engines")
+        .filter(|engines| engines.is_object())
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let selected: Option<ici_domain::Profile> = serde_json::from_value(json!(profile)).ok();
+    for descriptor in ici_domain::builtin_catalog().legacy {
+        let entry = &mut engines[descriptor.name.as_str()];
+        if !entry.is_object() {
+            *entry = json!({});
+        }
+        if selected.is_some_and(|profile| !descriptor.profiles.contains(&profile)) {
+            entry["enabled"] = json!(false);
+        }
+    }
+    let matrix = &document["support_matrix"];
+    let sorted = |value: &Value| {
+        let mut items: Vec<Value> = value.as_array().cloned().unwrap_or_default();
+        items.sort_by_key(|item| item.as_str().unwrap_or_default().to_owned());
+        Value::Array(items)
+    };
+    let mut entries: Vec<Value> = matrix["entries"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|entry| {
+            json!({
+                "engine_name": entry["engine_name"],
+                "language": entry["language"],
+                "mode": entry["mode"],
+                "active_mode": entry["active_mode"],
+                "applicable": entry["applicable"],
+                "enabled": entry["enabled"],
+                "evidence": entry["evidence"],
+                "confidence": entry["confidence"],
+                "frameworks": sorted(&entry["frameworks"]),
+                "required_tools": sorted(&entry["required_tools"]),
+                "optional_tools": sorted(&entry["optional_tools"]),
+                "fallback_mode": entry["fallback_mode"],
+            })
+        })
+        .collect();
+    entries.sort_by_key(|entry| {
+        (
+            entry["engine_name"].as_str().unwrap_or_default().to_owned(),
+            entry["language"].as_str().unwrap_or_default().to_owned(),
+        )
+    });
+    let tool_policy = json!({
+        "project_languages": sorted(&matrix["project_languages"]),
+        "project_frameworks": sorted(&matrix["project_frameworks"]),
+        "entries": entries,
+    });
+    json!({
+        "producer_version": crate::VERSION,
+        "fingerprint_version": "ici-fingerprint/v1",
+        "policy_digest": digest(&engines),
+        "tool_policy_digest": digest(&tool_policy),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

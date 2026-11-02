@@ -301,13 +301,11 @@ pub(crate) fn automatic_components(
         &Origin::defaults("components"),
     )?;
     limitations.extend(scan.limitations.clone());
+    let partition = discovery::partition(&scan);
+    let ids = automatic_ids(partition.keys().map(String::as_str));
     let mut result = vec![];
-    for (directory, owned_files) in discovery::partition(&scan) {
-        let id = if directory == "." {
-            "project".into()
-        } else {
-            directory.clone()
-        };
+    for (directory, owned_files) in partition {
+        let id = ids[&directory].clone();
         let mut body = json!({"id":id,"root":directory});
         if effective.get("languages").is_some() {
             body["languages"] = effective["languages"].clone();
@@ -366,8 +364,9 @@ pub(crate) fn automatic_components(
 /// inside the workspace is still a member of the component, whatever its `sources`/`exclude`
 /// globs say — a file entry is that file, a directory entry every file below it (symlinks
 /// below it are not traversed, like source discovery). Entries that resolve outside the
-/// workspace and entries that do not exist stay reads only. Members keep the component's language filter like every
-/// other selected file, so a `.txt` external is read but never analysed.
+/// workspace and entries that do not exist stay reads only. Members keep the component's
+/// language filter like every other selected file, so a `.txt` external is read but never
+/// analysed.
 fn external_members(
     root: &Path,
     external: &[String],
@@ -401,6 +400,62 @@ fn external_members(
         }));
     }
     Ok(members)
+}
+
+/// Result identifiers (frozen `ScopeSelection`: lowercase alphanumeric with `.`, `_`, `-`
+/// separators) for automatically discovered package directories. The workspace root is
+/// `project`; a package directory is lowercased with every other character mapped to `-`
+/// (`crates/foo` -> `crates-foo`, `Web` -> `web`). An empty, reserved (`project`) or colliding
+/// name (`crates/foo` beside `crates-foo`, `Foo` beside `foo`) gains the first 8 hex digits of
+/// the directory's SHA-256, so the id is deterministic and two directories never share one; the
+/// component `root` keeps the real directory.
+pub(crate) fn automatic_ids<'a>(
+    directories: impl IntoIterator<Item = &'a str>,
+) -> BTreeMap<String, String> {
+    let slug = |directory: &str| {
+        let mapped: String = directory
+            .chars()
+            .map(|c| {
+                let c = c.to_ascii_lowercase();
+                if c.is_ascii_lowercase() || c.is_ascii_digit() || c == '.' || c == '_' {
+                    c
+                } else {
+                    '-'
+                }
+            })
+            .collect();
+        mapped
+            .trim_matches(|c: char| !c.is_ascii_alphanumeric())
+            .to_owned()
+    };
+    let directories: Vec<&str> = directories.into_iter().collect();
+    let mut counts = BTreeMap::<String, usize>::new();
+    for directory in &directories {
+        if *directory != "." {
+            *counts.entry(slug(directory)).or_default() += 1;
+        }
+    }
+    let mut ids = BTreeMap::new();
+    for directory in directories {
+        let id = if directory == "." {
+            "project".to_owned()
+        } else {
+            let base = slug(directory);
+            if !base.is_empty() && counts[&base] == 1 && base != "project" {
+                base
+            } else {
+                let hash = ici_domain::sha256(directory.as_bytes());
+                let short = &hash["sha256:".len().."sha256:".len() + 8];
+                if base.is_empty() {
+                    format!("component-{short}")
+                } else {
+                    format!("{base}-{short}")
+                }
+            }
+        };
+        ids.insert(directory.to_owned(), id);
+    }
+    ids
 }
 
 /// Frozen `get_all_cpp_headers` always adds the project's top-level `include/` headers to the

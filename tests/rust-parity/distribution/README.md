@@ -198,3 +198,24 @@ used SHA-256 `8466942511522a1724aa11aee6ff610c2dca914685293b6ed1a9bc887a193769`;
 the older installed candidate was only version-probed. The full artifact corpus
 contains corresponding bootstrap and installed-CLI assertions for the next
 frozen candidate. Those assertions still require final-artifact execution.
+
+The artifact corpus has no proxy case. `verify_setup_proxy.py` adds eight actual
+cases for explicit setup through a loopback HTTP CONNECT proxy: it bootstraps the
+candidate into a scratch XDG root, then downloads it through the proxy from
+loopback HTTPS with a private CA. The artifact URL names a host only the proxy
+resolves, so a successful download proves the proxy carried the request. The
+cases cover `HTTPS_PROXY` and `https_proxy`, an untrusted CA inside the tunnel,
+a refused CONNECT, proxy credentials that are sent and that are absent from
+failure output, and a `NO_PROXY` bypass. Failures leave the selection
+unchanged. Every product process is traced, and only native executables and
+loopback connections are allowed.
+
+```sh
+python3 -I tests/rust-parity/distribution/verify_setup_proxy.py \
+  --archive CANDIDATE.tar.gz --sha256 TRUSTED_SHA256 \
+  --installer scripts/install-native.sh --evidence EVIDENCE_DIRECTORY
+```
+
+On the development candidate built from `4d72d3ec` (archive SHA-256
+`5293a76f7297da9276f3e66d21d60fd952a6752f26cb923dad7e792c75d1d616`), all eight
+cases passed (R8 rehearsal). This is not final-source acceptance.

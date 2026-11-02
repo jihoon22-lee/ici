@@ -125,7 +125,18 @@ fn every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary() 
             .and_then(|d| d["native"].as_str())
             .unwrap_or(case["outcome"].as_str().unwrap());
         let (code, stderr) = run_next_plan(case);
-        let expected = if native == "reject" { 2 } else { 0 };
+        // R8: the resolver keeps the recorded native id contract (author case, `/`), but a run
+        // refuses an id its result scope cannot record before planning any tool — the frozen
+        // exit 2 — so `next plan` refuses these two the way frozen did.
+        let planning_refusal = matches!(id, "components[].id:uppercase" | "components[].id:slash");
+        if planning_refusal {
+            assert!(stderr.contains("component id"), "{id}: {stderr}");
+        }
+        let expected = if native == "reject" || planning_refusal {
+            2
+        } else {
+            0
+        };
         if code != Some(expected) {
             failures.push(format!("{id}: exit {code:?} expected {expected}: {stderr}"));
         }

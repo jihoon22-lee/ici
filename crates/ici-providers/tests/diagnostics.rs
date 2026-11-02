@@ -879,3 +879,72 @@ fn legacy_text_format_and_failed_probes_fail_closed() {
     // A successful probe never refuses.
     assert!(ici_providers::legacy_probe_refusal(&text).is_none());
 }
+
+/// R8: Cargo run in a workspace member names spans relative to the Cargo workspace root; a
+/// member component's findings are located at the real file, not `<member>/<member>/...`.
+#[test]
+fn cargo_member_spans_are_located_from_the_cargo_workspace_root() {
+    let root = tempfile::tempdir().unwrap();
+    let member = root.path().join("crates/foo");
+    std::fs::create_dir_all(member.join("src")).unwrap();
+    std::fs::write(
+        member.join("Cargo.toml"),
+        "[package]\nname='foo'\nversion='0.1.0'\n",
+    )
+    .unwrap();
+    let plan_at = |cwd: &std::path::Path| {
+        let tool = ResolvedTool {
+            id: "cargo".into(),
+            path: PathBuf::from("/usr/bin/true"),
+            source: ToolSource::Explicit,
+            digest: sha256("replay executable"),
+            version: None,
+            configuration: vec![],
+        };
+        let request = ProviderRequest::new(
+            ProviderKind::Clippy,
+            tool,
+            root.path(),
+            cwd,
+            vec!["crates/foo/src/lib.rs".into()],
+            "crates-foo.rust.clippy",
+        );
+        plan(&request).unwrap()
+    };
+    let record = |file: &str| {
+        let record = json!({"reason":"compiler-message","message":{"level":"warning","message":"returning the result of a `let` binding","code":{"code":"clippy::let_and_return"},"spans":[{"is_primary":true,"file_name":file,"line_start":1,"column_start":30},{"is_primary":false,"file_name":file,"line_start":1,"column_start":21,"label":"unnecessary `let` binding"}]}});
+        format!("{record}\n{{\"reason\":\"build-finished\",\"success\":true}}\n")
+    };
+    // Positive: under a `[workspace]` root, `crates/foo/src/lib.rs` is the member's file.
+    std::fs::write(
+        root.path().join("Cargo.toml"),
+        "[workspace]\nmembers=['crates/foo']\n",
+    )
+    .unwrap();
+    let plan = plan_at(&member);
+    let observation = observe(
+        &plan,
+        &outcome(&plan, &record("crates/foo/src/lib.rs"), "", 0),
+    );
+    assert_eq!(observation.state, TaskState::Succeeded);
+    let finding = &observation.findings[0];
+    assert_eq!(finding.primary_location.path, "crates/foo/src/lib.rs");
+    assert_eq!(finding.related_locations[0].path, "crates/foo/src/lib.rs");
+    // Negative: a standalone package (no `[workspace]` above it) keeps package-relative spans.
+    std::fs::write(
+        root.path().join("Cargo.toml"),
+        "[package]\nname='top'\nversion='0.1.0'\n",
+    )
+    .unwrap();
+    let observation = observe(&plan, &outcome(&plan, &record("src/lib.rs"), "", 0));
+    assert_eq!(
+        observation.findings[0].primary_location.path,
+        "crates/foo/src/lib.rs"
+    );
+    // Failure: a span that escapes the ici workspace is not attributed to a project file.
+    let observation = observe(
+        &plan,
+        &outcome(&plan, &record("../../../outside.rs"), "", 0),
+    );
+    assert_eq!(observation.state, TaskState::Failed);
+}
