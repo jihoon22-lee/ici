@@ -3939,20 +3939,24 @@
       ],
       "fixtures": {
         "positive": [
-          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
         ],
         "failure": [
-          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
         ]
       },
       "evidence": [
         "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
-        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log"
       ],
-      "comparison": "C++ facet without a root CMake project (frozen run_cpp_linker_dead_symbols 'Exact GNU ELF reachability requires a root CMake project'): cpp_linker='auto' adds the C++LinkerReachabilityUnavailable SKIP target at the first C/C++ source and keeps the engine optional (exit 2); 'required' makes it ERROR with that summary (exit 1). Rust defect fixed: the legacy projection planned a link-reachability build anyway and reported a blocked native check (SKIP/required, exit 3).",
+      "comparison": "C++ facet without a root CMake project (frozen run_cpp_linker_dead_symbols 'Exact GNU ELF reachability requires a root CMake project'): cpp_linker='auto' adds the C++LinkerReachabilityUnavailable SKIP target at the first C/C++ source and keeps the engine optional (exit 2); 'required' makes it ERROR with that summary (exit 1). Rust defect fixed: the legacy projection planned a link-reachability build anyway and reported a blocked native check (SKIP/required, exit 3). cpp_linker='required' beside cpp_unused='off' with a root CMake project (discarded/clean/broken configure) is compared by crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results (capability:legacy-cpp-linker-dead).",
       "difference_reason": "Not complete: the exact GNU ELF reachability run on a root CMake project and the cpp_unused='off' + linker combination are not compared here (capability:legacy-cpp-linker-dead)."
     },
     "config_key:legacy:engines.dead.cpp_unused": {
@@ -8509,7 +8513,7 @@
       "difference_reason": ""
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8": {
-      "status": "complete",
+      "status": "difference_review",
       "rust_paths": [
         "crates/ici-cli/src/cpp/linker.rs",
         "crates/ici-cli/src/cpp.rs",
@@ -8534,7 +8538,7 @@
         "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
       ],
       "comparison": "C++ facet of _cpp_linker_dead_symbols.py:847 (`_record_pass_targets`): every other owned source is a `GNU ld reachability scan` PASS 'Source participated in <n> supported target-local Release link(s)' with no metrics (discarded: src/one.cpp, src/two.cpp with n=2; clean: both sources with n=1), each with its exact scope finding ('This target records the bounded target-local GNU ELF section-GC scope.', tool names/versions of the linker evidence). Compared: targets, findings, extras (cpp_linker_sources_checked/targets_checked/discarded/ambiguous/kept counters, source_files_analyzed).",
-      "difference_reason": ""
+      "difference_reason": "The clean case's scope findings differ in tool_name: native reads every direct object's readelf -WS/-Ws/--section-groups tables up front, so its `+`-joined linker tool names also list those three reads where frozen (reading objects only for a discarded section) does not; the test masks those three names in the clean case only (the discarded case compares exactly). Pending the root ruling on ACTUAL linker tool evidence (capability:legacy-cpp-linker-dead)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:159:16": {
       "status": "verified",
