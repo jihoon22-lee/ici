@@ -149,7 +149,7 @@ fn run(name: &str) -> (i32, Value) {
 /// The approved tool-evidence difference, checked exactly: every record is a `/usr/bin` tool
 /// found on PATH (never a resolved `x86_64-linux-gnu-*` capability path), and native ran
 /// frozen's processes plus, only when frozen read no object table, the three object reads.
-fn assert_tool_evidence(name: &str, report: &Value, expected: &Value) -> bool {
+fn assert_tool_evidence(name: &str, report: &Value, expected: &Value) -> Option<bool> {
     let native = &report["tool_evidence"];
     for record in native.as_array().unwrap() {
         let path = record["path"].as_str().unwrap_or("");
@@ -172,19 +172,24 @@ fn assert_tool_evidence(name: &str, report: &Value, expected: &Value) -> bool {
         wanted.extend(reads);
     }
     if names(native) != wanted {
-        eprintln!("== {name} tool evidence names: {:?}", names(native));
-        return false;
+        eprintln!(
+            "== {name}: tool evidence names {:?}, wanted {wanted:?}",
+            names(native)
+        );
+        return None;
     }
-    extra
+    Some(extra)
 }
 
 /// Compares one case with frozen; `exact` keeps every captured field (the captured toolchain),
 /// otherwise only what the fixture decides.
-fn compare(name: &str, exact: bool) {
+fn compare(name: &str, exact: bool) -> bool {
     let oracle = oracle();
     let expected = &oracle["cases"][name];
     let (exit_code, report) = run(name);
-    let extra_reads = assert_tool_evidence(name, &report, expected);
+    let Some(extra_reads) = assert_tool_evidence(name, &report, expected) else {
+        return false;
+    };
     let reads: BTreeSet<String> = OBJECT_READS.iter().map(|read| (*read).to_owned()).collect();
     let mut known = names(&report["tool_evidence"]);
     known.extend(names(&expected["tool_evidence"]));
@@ -261,10 +266,11 @@ fn compare(name: &str, exact: bool) {
     };
     let actual = shape(&report, &json!(exit_code), true);
     let wanted = shape(expected, &expected["exit_code"], false);
-    assert_eq!(
-        actual, wanted,
-        "{name}\nnative: {actual:#}\nfrozen: {wanted:#}"
-    );
+    if actual != wanted {
+        eprintln!("== {name}\nnative: {actual:#}\nfrozen: {wanted:#}");
+        return false;
+    }
+    true
 }
 
 fn assert_captured_toolchain() {
@@ -283,7 +289,7 @@ fn assert_captured_toolchain() {
 #[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
 fn legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen() {
     assert_captured_toolchain();
-    compare("discarded", true);
+    assert!(compare("discarded", true));
 }
 
 /// Negative: every hidden function is used, every source is an exact `GNU ld reachability scan`
@@ -292,7 +298,7 @@ fn legacy_cpp_linker_dead_reports_the_discarded_function_like_frozen() {
 #[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
 fn legacy_cpp_linker_dead_passes_every_linked_source_like_frozen() {
     assert_captured_toolchain();
-    compare("clean", true);
+    assert!(compare("clean", true));
 }
 
 /// Failure: the CMake configure of the shadow fails, the required scope is an ERROR (exit 1).
@@ -300,15 +306,45 @@ fn legacy_cpp_linker_dead_passes_every_linked_source_like_frozen() {
 #[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
 fn legacy_cpp_linker_dead_stops_at_a_failed_configure_like_frozen() {
     assert_captured_toolchain();
-    compare("broken", true);
+    assert!(compare("broken", true));
 }
 
-/// The same three trees with the host's `/usr/bin` cmake/g++/binutils (any version, as on the
-/// CI runner): verdicts, targets, findings, locations and extras except tool versions, link
-/// digests and the toolchain-dependent discarded/ambiguous/kept section counters.
+/// Failure: the shadow configures and then its build fails; the required scope is an ERROR
+/// (exit 1) with no relink.
+#[test]
+#[ignore = "explicit actual /usr/bin/cmake, /usr/bin/g++ and GNU binutils relinks (the captured versions)"]
+fn legacy_cpp_linker_dead_stops_at_a_failed_build_like_frozen() {
+    assert_captured_toolchain();
+    assert!(compare("build-failure", true));
+}
+
+/// Captured frozen cases native does not reproduce yet (open on capability:legacy-cpp-linker-dead):
+/// `archive`/`lto` (frozen: the required `Link target <t> was excluded: …` ERROR after the
+/// shadow build; native refuses the link scope while planning, with no target or tool
+/// evidence), `shared` (frozen skips the `-shared` target and relinks the executable; native
+/// refuses the `libutil.so` link argument), `archive-auto` (frozen: `C++LinkerReachability
+/// Unavailable` SKIP 'Exact GNU ELF reachability requires cmake', exit 2) and
+/// `unused-and-linker` (frozen merges both scopes into one WARN; native reports them apart).
+const OPEN_CASES: [&str; 5] = [
+    "archive",
+    "archive-auto",
+    "lto",
+    "shared",
+    "unused-and-linker",
+];
+
+/// Every reproduced captured tree with the host's `/usr/bin` cmake/g++/binutils (any version,
+/// as on the CI runner): verdicts, targets, findings, locations and extras except tool versions,
+/// link digests and the toolchain-dependent discarded/ambiguous/kept section counters.
 #[test]
 fn legacy_cpp_linker_dead_matches_frozen_with_the_host_toolchain() {
-    for name in ["discarded", "clean", "broken"] {
-        compare(name, false);
-    }
+    let oracle = oracle();
+    let cases = oracle["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 9);
+    let failed: Vec<&String> = cases
+        .keys()
+        .filter(|name| !OPEN_CASES.contains(&name.as_str()))
+        .filter(|name| !compare(name, false))
+        .collect();
+    assert!(failed.is_empty(), "{failed:?}");
 }
