@@ -58,7 +58,17 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
     )
     .unwrap();
     let invocation = registry::parse(["ici", command, "--report"]).unwrap();
-    let environment = BTreeMap::from([("PATH".to_string(), path.to_string())]);
+    // The capture points PKG_CONFIG_PATH at the project's `pc/` (project.cpp_pkg_config cases);
+    // the frozen interpreter coerces the C locale to LC_CTYPE=C.UTF-8 (PEP 538) for its compiler
+    // children, so g++ quotes with U+2018/U+2019 in the captured stderr.
+    let environment = BTreeMap::from([
+        ("PATH".to_string(), path.to_string()),
+        ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
+        (
+            "PKG_CONFIG_PATH".to_string(),
+            root.path().join("pc").display().to_string(),
+        ),
+    ]);
     let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
     let report: Value = serde_json::from_slice(
         &fs::read(
@@ -112,7 +122,7 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
         builds || !owned_builds.exists() || fs::read_dir(&owned_builds).unwrap().next().is_none(),
         "{fixture} {command}: a sanitizer build directory was created"
     );
-    json!({
+    let result = json!({
         "exit_code": output.exit_code,
         "status": report["status"],
         "summary": report["summary"],
@@ -120,8 +130,17 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
         "built": root.path().join("build").exists(),
         "targets": targets,
         "diagnostic_findings": diagnostic_findings,
-    })
+    });
+    // Compiler stderr names absolute source paths: the capture's project is CAPTURE_ROOT.
+    serde_json::from_str(
+        &serde_json::to_string(&result)
+            .unwrap()
+            .replace(&root.path().display().to_string(), CAPTURE_ROOT),
+    )
+    .unwrap()
 }
+
+const CAPTURE_ROOT: &str = "/tmp/ici-cpp-sanitize-capture/project";
 
 #[test]
 fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_like_frozen() {
@@ -138,7 +157,7 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
         ("noscope", "sanitize-noscope"),
     ]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 18);
+    assert_eq!(cases.len(), 28);
     for (name, expected) in cases
         .iter()
         .filter(|(name, _)| !name.contains(":direct-") && !name.contains(":cmake-"))
@@ -173,6 +192,11 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
     let fixtures = BTreeMap::from([
         ("direct-clean", "sanitize-direct-clean"),
         ("direct-defect", "sanitize-direct"),
+        ("direct-external", "sanitize-direct-external"),
+        ("direct-pkg-config", "sanitize-direct-pkg"),
+        ("direct-pkg-config-missing", "sanitize-direct-pkg"),
+        ("direct-ubsan", "sanitize-direct-ubsan"),
+        ("direct-leak", "sanitize-direct-leak"),
         ("cmake-plain", "test-cmake/plain"),
         ("cmake-defect", "test-cmake/sanitize"),
     ]);
@@ -183,7 +207,8 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
             continue;
         };
         seen += 1;
-        let mut actual = run_with(fixture, command, "", &path, true);
+        let config_text = oracle["configs"][config].as_str().unwrap();
+        let mut actual = run_with(fixture, command, config_text, &path, true);
         let mut expected = expected.clone();
         if config.starts_with("cmake-") {
             // Intended: frozen CMake configures into the project's `build/`; Rust builds the
@@ -195,5 +220,5 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
         }
         assert_eq!(actual, expected, "{name}");
     }
-    assert_eq!(seen, 8);
+    assert_eq!(seen, 18);
 }

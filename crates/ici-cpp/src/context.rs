@@ -729,7 +729,9 @@ fn metadata(
         .filter_map(|p| scoped(root, cwd, p).ok())
         .map(|v| v.0)
         .collect();
-    if !sources.contains(&unit.source) {
+    // A unit whose response expansion failed keeps that error alone (frozen drops only the
+    // unreadable response token).
+    if !unit.argv.is_empty() && !sources.contains(&unit.source) {
         unit.diagnostics.push(ContextDiagnostic::error(
             "source-operand-mismatch",
             "argv does not name the declared translation unit",

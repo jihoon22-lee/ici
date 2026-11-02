@@ -56,7 +56,12 @@ impl PreparedPlan {
             .filter(|component| self.plan.components.contains(&component.id))
             .collect();
         let mut gaps = self.request.coverage_gaps(&self.project, &scope);
-        for gap in &self.plan.coverage_gaps {
+        for gap in self
+            .plan
+            .coverage_gaps
+            .iter()
+            .chain(&self.cpp.next_scope_gaps)
+        {
             if !gaps.contains(gap) {
                 gaps.push(gap.clone());
             }
@@ -154,6 +159,10 @@ impl PreparedPlan {
             .map(String::as_str)
             .or_else(|| check.blocked())
         {
+            // Frozen C++ gate wording where its condition holds (crate::cpp::next_plan).
+            if let Some(frozen) = self.cpp.frozen_blocked_reason(&check.task_id) {
+                return format!("blocked — {frozen}");
+            }
             return format!("blocked — {}", tool_blocked_reason(reason));
         }
         let tasks: Vec<_> = self

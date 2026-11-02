@@ -68,6 +68,7 @@ pub fn collect(
                 source_paths: inputs.clone(),
                 gated_paths: inputs.clone(),
                 inputs,
+                scope_order: vec![],
             },
         );
     }

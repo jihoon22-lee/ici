@@ -7,12 +7,55 @@ use ici_execution::{
 };
 use regex::Regex;
 use serde_json::{Value, json};
-use std::{collections::BTreeMap, path::Path};
+use std::path::PathBuf;
+use std::{
+    collections::BTreeMap,
+    path::Path,
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
+};
+
+/// Frozen `_clang_tidy._TIMEOUT_SECONDS` / `_clazy._TIMEOUT_SECONDS`: the per-unit limit.
+const UNIT_TIMEOUT: Duration = Duration::from_secs(120);
+/// Frozen `_GLOBAL_TIMEOUT_SECONDS` of both tools: one budget per tool over its selected units.
+const GLOBAL_BUDGET: Duration = Duration::from_secs(600);
+static UNIT_OVERRIDE_MILLIS: AtomicU64 = AtomicU64::new(u64::MAX);
+static GLOBAL_OVERRIDE_MILLIS: AtomicU64 = AtomicU64::new(u64::MAX);
+
+fn millis(value: Option<Duration>) -> u64 {
+    value.map_or(u64::MAX, |value| {
+        u64::try_from(value.as_millis()).unwrap_or(u64::MAX - 1)
+    })
+}
+
+/// Test hook: replaces the legacy clang-tidy / Clazy per-unit timeout and global budget for
+/// this process (`None` restores the frozen 120 s / 600 s). The command line cannot reach it.
+#[doc(hidden)]
+pub fn set_legacy_tooling_budget_for_tests(unit: Option<Duration>, global: Option<Duration>) {
+    UNIT_OVERRIDE_MILLIS.store(millis(unit), Ordering::SeqCst);
+    GLOBAL_OVERRIDE_MILLIS.store(millis(global), Ordering::SeqCst);
+}
+
+fn overridden(value: &AtomicU64, default: Duration) -> Duration {
+    match value.load(Ordering::SeqCst) {
+        u64::MAX => default,
+        millis => Duration::from_millis(millis),
+    }
+}
+
+/// The per-unit timeout of one legacy clang tool run.
+pub fn unit_timeout() -> Duration {
+    overridden(&UNIT_OVERRIDE_MILLIS, UNIT_TIMEOUT)
+}
+
+/// The global budget of one legacy clang tool over all of its units.
+pub fn global_budget() -> Duration {
+    overridden(&GLOBAL_OVERRIDE_MILLIS, GLOBAL_BUDGET)
+}
 
 /// One tool run on one recorded translation unit, projected as frozen targets.
 pub struct LegacyToolRun {
-    pub clazy: bool,
-    pub unit: usize,
+    pub task: String,
     pub targets: Vec<InspectionTarget>,
     pub error: Option<String>,
 }
@@ -181,7 +224,6 @@ fn target(path: &str, name: String, status: &str, message: String) -> Inspection
 /// `<Tool>:<configuration digest>` PASS.
 pub fn legacy_tool_run(
     clazy: bool,
-    unit: usize,
     source: &str,
     digest: &str,
     outcome: &TaskOutcome,
@@ -189,8 +231,7 @@ pub fn legacy_tool_run(
 ) -> LegacyToolRun {
     let label = if clazy { "Clazy" } else { "ClangTidy" };
     let failure = |message: String| LegacyToolRun {
-        clazy,
-        unit,
+        task: outcome.task_id.clone(),
         targets: vec![target(
             source,
             format!("{label}ExecutionError"),
@@ -203,10 +244,15 @@ pub fn legacy_tool_run(
         return failure(message);
     }
     if !output.observation.evidence_is_complete() {
-        return failure(format!(
-            "{} output was not parseable: {source}",
-            tool(clazy)
-        ));
+        // Frozen clazy names the parser error; clang-tidy only the source.
+        return failure(if clazy {
+            format!(
+                "clazy output was not parseable: {source}: {}",
+                clazy_parse_error(outcome, output)
+            )
+        } else {
+            format!("clang-tidy output was not parseable: {source}")
+        });
     }
     let details = output.extra.get("finding_details");
     let mut targets = vec![];
@@ -266,23 +312,108 @@ pub fn legacy_tool_run(
         ));
     }
     LegacyToolRun {
-        clazy,
-        unit,
+        task: outcome.task_id.clone(),
         targets,
         error: None,
     }
 }
 
-/// The frozen lint tooling block: clang-tidy runs (or `ClangTidyUnavailable`) in unit order,
-/// then clazy runs (or `ClazyUnavailable`), with the tool errors and warnings the LintEngine
+/// Frozen clazy notes are diagnostics of their own (`ClazyNote:<rule>` findings with the
+/// note's location and message); the primary clazy finding has no related locations.
+pub fn legacy_clazy_note_findings(output: &mut AnalysisOutput) {
+    let mut notes = vec![];
+    for finding in &mut output.observation.findings {
+        let rule = format!(
+            "clazy-{}",
+            finding.native_rule_id.trim_start_matches("-Wclazy-")
+        );
+        let (kept, moved): (Vec<_>, Vec<_>) = std::mem::take(&mut finding.related_locations)
+            .into_iter()
+            .partition(|related| !related.label.starts_with("note: "));
+        finding.related_locations = kept;
+        for related in moved {
+            let mut note = finding.clone();
+            note.fingerprint = ici_domain::sha256(format!(
+                "{}\0{}:{}:{:?}:{}",
+                finding.fingerprint,
+                related.path,
+                related.start_line,
+                related.start_column,
+                related.label
+            ));
+            note.message.clone_from(&related.label);
+            note.primary_location = related.clone();
+            note.primary_location.label = String::new();
+            note.related_locations = vec![];
+            notes.push((finding.fingerprint.clone(), note, rule.clone()));
+        }
+    }
+    let Some(details) = output
+        .extra
+        .get_mut("finding_details")
+        .and_then(Value::as_object_mut)
+    else {
+        return;
+    };
+    let mut counts = BTreeMap::<(String, String), usize>::new();
+    for (_, note, rule) in &notes {
+        *counts
+            .entry((note.primary_location.path.clone(), rule.clone()))
+            .or_default() += 1;
+    }
+    let primaries: BTreeMap<String, Value> = output
+        .observation
+        .findings
+        .iter()
+        .map(|finding| {
+            (
+                finding.fingerprint.clone(),
+                json!(finding.related_locations.iter().map(|span| json!({"path":span.path,"start_line":span.start_line,"start_column":span.start_column,"end_line":span.end_line,"end_column":span.end_column,"label":span.label})).collect::<Vec<_>>()),
+            )
+        })
+        .collect();
+    for (primary, _, _) in &notes {
+        if let Some(detail) = details.get_mut(primary) {
+            detail["related_locations"] = primaries[primary].clone();
+        }
+    }
+    for (primary, note, rule) in notes {
+        let mut detail = details.get(&primary).cloned().unwrap_or_else(|| json!({}));
+        detail["legacy_message"] = json!(note.message);
+        detail["legacy_label"] = json!(if counts
+            [&(note.primary_location.path.clone(), rule.clone())]
+            == 1
+        {
+            format!("ClazyNote:{rule}")
+        } else {
+            String::new()
+        });
+        detail["legacy_severity"] = json!("medium");
+        detail["remediation"] = json!("");
+        detail["fixes"] = json!([]);
+        detail["related_locations"] = json!([]);
+        details.insert(note.fingerprint.clone(), detail);
+        output.observation.findings.push(note);
+    }
+}
+
+/// The frozen lint tooling block: per tool (clang-tidy, then clazy) its `<Tool>Unavailable`
+/// targets, then the planned run: a project-level stop, or the production sources without a
+/// recorded command, then each selected unit in frozen order (a budget stop, the error that
+/// replaced its run, or its run's targets), with the tool errors and warnings the LintEngine
 /// summary reads.
 pub fn legacy_tooling_projection(
     output: &mut AnalysisOutput,
-    mut runs: Vec<LegacyToolRun>,
+    runs: Vec<LegacyToolRun>,
     missing: &[(&str, String, bool)],
     uncovered: &[String],
+    plans: &[ToolPlan],
+    stops: &BTreeMap<bool, BudgetStop>,
 ) {
-    runs.sort_by_key(|run| (run.clazy, run.unit));
+    let mut runs: BTreeMap<String, LegacyToolRun> = runs
+        .into_iter()
+        .map(|run| (run.task.clone(), run))
+        .collect();
     let mut targets = vec![];
     let mut errors = vec![];
     for clazy in [false, true] {
@@ -291,6 +422,7 @@ pub fn legacy_tooling_projection(
         } else {
             "ClangTidyUnavailable"
         };
+        let prefix = if clazy { "Clazy" } else { "ClangTidy" };
         for (_, message, required) in missing.iter().filter(|(name, _, _)| *name == label) {
             targets.push(target(
                 ".",
@@ -302,9 +434,19 @@ pub fn legacy_tooling_projection(
                 errors.push(message.clone());
             }
         }
-        // Frozen `_selected_context_units`: a tool that ran reports each production source
-        // without a recorded command as an ERROR before its replayed units.
-        if !uncovered.is_empty() && runs.iter().any(|run| run.clazy == clazy) {
+        let Some(plan) = plans.iter().find(|plan| plan.clazy == clazy) else {
+            continue;
+        };
+        if !plan.terminal.is_empty() {
+            for (path, name, message) in &plan.terminal {
+                targets.push(target(path, name.clone(), "ERROR", message.clone()));
+                errors.push(message.clone());
+            }
+            continue;
+        }
+        // Frozen `_selected_context_units`: each production source without a recorded command
+        // is an ERROR before the replayed units.
+        if !uncovered.is_empty() {
             errors.push(format!(
                 "{} context is missing {} production source command(s)",
                 tool(clazy),
@@ -313,18 +455,49 @@ pub fn legacy_tooling_projection(
             targets.extend(uncovered.iter().map(|source| {
                 target(
                     source,
-                    format!(
-                        "{}ContextMissing",
-                        if clazy { "Clazy" } else { "ClangTidy" }
-                    ),
+                    format!("{prefix}ContextMissing"),
                     "ERROR",
                     "No exact translation-unit command covers this production source.".into(),
                 )
             }));
         }
-        for run in runs.iter().filter(|run| run.clazy == clazy) {
-            targets.extend(run.targets.iter().cloned());
-            errors.extend(run.error.clone());
+        if plan.units.is_empty() {
+            let message = format!(
+                "{} context contains no replayable production units",
+                tool(clazy)
+            );
+            targets.push(target(
+                ".",
+                format!("{prefix}ContextError"),
+                "ERROR",
+                message.clone(),
+            ));
+            errors.push(message);
+            continue;
+        }
+        for (index, unit) in plan.units.iter().enumerate() {
+            if let Some(stop) = stops.get(&clazy).filter(|stop| stop.index == index) {
+                targets.push(target(
+                    &unit.source,
+                    format!("{prefix}BudgetError"),
+                    "ERROR",
+                    stop.message.clone(),
+                ));
+                errors.push(stop.message.clone());
+                break;
+            }
+            match &unit.step {
+                UnitStep::Error { name, message } => {
+                    targets.push(target(&unit.source, name.clone(), "ERROR", message.clone()));
+                    errors.push(message.clone());
+                }
+                UnitStep::Run(task) => {
+                    if let Some(run) = runs.remove(task) {
+                        targets.extend(run.targets);
+                        errors.extend(run.error);
+                    }
+                }
+            }
         }
     }
     let warnings: Vec<&String> = missing
@@ -367,4 +540,237 @@ pub fn legacy_tooling_projection(
             .join("; ")
     };
     output.targets = targets;
+}
+
+/// Frozen `_validate_config_file` error type names of `Path.resolve(strict=True)` on Python 3.10.
+fn python_os_error(error: &std::io::Error) -> &'static str {
+    use std::io::ErrorKind;
+    match error.kind() {
+        ErrorKind::NotFound => "FileNotFoundError",
+        ErrorKind::PermissionDenied => "PermissionError",
+        ErrorKind::NotADirectory => "NotADirectoryError",
+        // Python 3.10 `resolve(strict=True)` reports a symlink loop (Linux ELOOP 40) as RuntimeError.
+        _ if error.raw_os_error() == Some(40) => "RuntimeError",
+        _ => "OSError",
+    }
+}
+
+/// Frozen `_validate_config_file`: the resolved clang-tidy configuration (a symlink resolves to
+/// its target) or the frozen refusal message.
+fn validate_config_file(root: &Path, value: &Path, explicit: bool) -> Result<PathBuf, String> {
+    let path = value.canonicalize().map_err(|error| {
+        format!(
+            "{} clang-tidy config could not be resolved: {}",
+            if explicit { "Configured" } else { "Discovered" },
+            python_os_error(&error)
+        )
+    })?;
+    if !path.starts_with(root) {
+        return Err("clang-tidy config resolves outside the project root".into());
+    }
+    let metadata = std::fs::metadata(&path).map_err(|error| {
+        format!(
+            "{} clang-tidy config could not be resolved: {}",
+            if explicit { "Configured" } else { "Discovered" },
+            python_os_error(&error)
+        )
+    })?;
+    if !metadata.is_file() {
+        return Err("clang-tidy config is not a regular file".into());
+    }
+    if metadata.len() > 1_048_576 {
+        return Err("clang-tidy config exceeds the 1 MiB safety limit".into());
+    }
+    let content = std::fs::read(&path).map_err(|error| {
+        format!(
+            "clang-tidy config could not be read: {}",
+            python_os_error(&error)
+        )
+    })?;
+    if content.contains(&0) {
+        return Err("clang-tidy config contains a null byte".into());
+    }
+    // Security correction (decisions.md "clang-tidy 설정의 escape된 인자 키"): frozen
+    // `_UNSAFE_CONFIG_ARGUMENT_RE` only matched raw word-bounded key text, so LLVM YAML
+    // double-quoted escapes (`"\x45xtraArgs"`) injected compiler arguments. The shared native
+    // guard also refuses any key mention (case-insensitive, no word boundary), NUL bytes and
+    // any file holding both a double quote and a backslash, with frozen's refusal text/target.
+    if crate::cpp::clang_tidy_config_is_unsafe(&content) {
+        return Err(
+            "clang-tidy config may not add compiler arguments or inherit parent config".into(),
+        );
+    }
+    Ok(path)
+}
+
+/// Frozen `_explicit_config`: `clang_tidy_config` relative to the resolved project root.
+pub fn legacy_explicit_config(root: &Path, value: Option<&str>) -> Result<Option<PathBuf>, String> {
+    let Some(value) = value.filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    let lexical = Path::new(value);
+    let path = if lexical.is_absolute() {
+        lexical.to_path_buf()
+    } else {
+        root.join(lexical)
+    };
+    validate_config_file(root, &path, true).map(Some)
+}
+
+/// Frozen `_discovered_config`: the nearest `.clang-tidy` (present or a symlink) from the
+/// resolved source's directory up to the project root.
+pub fn legacy_discovered_config(root: &Path, source: &Path) -> Result<Option<PathBuf>, String> {
+    let mut current = source.parent().map(Path::to_path_buf);
+    while let Some(directory) = current {
+        if !directory.starts_with(root) {
+            break;
+        }
+        let candidate = directory.join(".clang-tidy");
+        if candidate.symlink_metadata().is_ok() {
+            return validate_config_file(root, &candidate, false).map(Some);
+        }
+        if directory == root {
+            break;
+        }
+        current = directory.parent().map(Path::to_path_buf);
+    }
+    Ok(None)
+}
+
+/// What frozen does with one selected unit of one clang tool.
+#[derive(Clone, Debug)]
+pub enum UnitStep {
+    /// The unit's tool task.
+    Run(String),
+    /// The `<Tool><kind>` error target at the unit's source and its LintEngine tool error.
+    Error { name: String, message: String },
+}
+
+#[derive(Clone, Debug)]
+pub struct ToolUnit {
+    pub source: String,
+    pub step: UnitStep,
+}
+
+/// The frozen run of one clang tool over its selected units (`run_clang_tidy` / `run_clazy`).
+#[derive(Clone, Debug)]
+pub struct ToolPlan {
+    pub clazy: bool,
+    /// Project-level errors (path, target, message) that stop this tool before unit selection
+    /// (`<Tool>ContextError` for unreadable or too many sources and context ingestion errors,
+    /// `ClangTidyConfigError` for the configured config file).
+    pub terminal: Vec<(String, String, String)>,
+    pub units: Vec<ToolUnit>,
+}
+
+/// The unit at which one tool's global budget ran out.
+#[derive(Clone, Debug)]
+pub struct BudgetStop {
+    pub index: usize,
+    pub message: String,
+}
+
+/// Frozen `_execute_selected_units`: per tool, units in frozen order under one deadline; before
+/// each unit the remaining budget is checked and a spent budget stops the tool at that unit. A
+/// unit that runs gets `min(120 s, remaining)`.
+pub fn run_budgeted(
+    plans: &[ToolPlan],
+    tasks: &BTreeMap<String, TaskSpec>,
+    mut run: impl FnMut(TaskSpec) -> std::result::Result<TaskOutcome, String>,
+) -> std::result::Result<(Vec<TaskOutcome>, BTreeMap<bool, BudgetStop>), String> {
+    let mut outcomes = vec![];
+    let mut stops = BTreeMap::new();
+    for plan in plans {
+        let deadline = std::time::Instant::now() + global_budget();
+        for (index, unit) in plan.units.iter().enumerate() {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                stops.insert(
+                    plan.clazy,
+                    BudgetStop {
+                        index,
+                        message: format!(
+                            "{} global time budget left {} unit(s) unexamined",
+                            tool(plan.clazy),
+                            plan.units.len() - index
+                        ),
+                    },
+                );
+                break;
+            }
+            if let UnitStep::Run(id) = &unit.step
+                && let Some(task) = tasks.get(id)
+            {
+                let mut task = task.clone();
+                task.timeout_seconds = Some(remaining.min(unit_timeout()).as_secs_f64());
+                outcomes.push(run(task)?);
+            }
+        }
+    }
+    Ok((outcomes, stops))
+}
+
+/// Frozen `gcc_standard_library_projection` error code and message for the selected driver's
+/// C++ and C include searches, in frozen order (the C++ search first).
+pub fn legacy_gcc_projection_error(
+    cpp: &TaskOutcome,
+    c: &TaskOutcome,
+    native: &ici_cpp::CppError,
+) -> (String, String) {
+    for outcome in [cpp, c] {
+        if outcome.timed_out {
+            return (
+                "gcc-include-probe-timeout".into(),
+                "GCC include search timed out.".into(),
+            );
+        }
+        if outcome.truncated {
+            return (
+                "gcc-include-probe-truncated".into(),
+                "GCC include search output was truncated.".into(),
+            );
+        }
+        if outcome.exit_code != Some(0) {
+            return (
+                "gcc-include-probe-failed".into(),
+                "GCC include search failed.".into(),
+            );
+        }
+    }
+    if native.code == "gcc-stdlib-unresolved" {
+        return (
+            native.code.clone(),
+            "GCC include search did not identify C++ standard-library directories.".into(),
+        );
+    }
+    (
+        "gcc-include-probe-unparseable".into(),
+        native.message.clone(),
+    )
+}
+
+/// Frozen `parse_clazy_diagnostics` error text of a clazy run whose output is not parseable:
+/// the bounds checks first, then the first line the parser cannot read.
+fn clazy_parse_error(outcome: &TaskOutcome, output: &AnalysisOutput) -> String {
+    let stdout = String::from_utf8_lossy(&outcome.stdout);
+    let stderr = String::from_utf8_lossy(&outcome.stderr);
+    if stdout.chars().count() + stderr.chars().count() > 1_000_000 {
+        return "clazy diagnostic output exceeds the bounded size".into();
+    }
+    if stdout.contains('\0') || stderr.contains('\0') {
+        return "clazy diagnostic output contains a null byte".into();
+    }
+    let native = output
+        .observation
+        .limitations
+        .first()
+        .cloned()
+        .unwrap_or_default();
+    match native.split_once("unrecognized C++ diagnostic output: ") {
+        Some((_, line)) => format!(
+            "unrecognized clazy output line: {}",
+            ici_analysis::unicode::python_repr(line.trim())
+        ),
+        None => native,
+    }
 }

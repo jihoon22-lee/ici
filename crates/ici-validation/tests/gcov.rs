@@ -217,3 +217,19 @@ fn preexisting_counter_guard_preserves_bindings_and_user_data() {
         b"previous-user-run"
     );
 }
+
+/// Frozen `adapters/providers/gcov.py` plans gcov as TaskKind.ANALYZE and the frozen fast
+/// profile blocks only PREPARE (mutating) tasks: the report step is an uncached analysis step,
+/// never a mutating preparation (negative: no step of the gcov plan is mutating).
+#[test]
+fn gcov_report_is_an_uncached_analysis_step_like_frozen_not_a_prepare_task() {
+    let plan = plan_fixture();
+    let report = plan
+        .tasks
+        .iter()
+        .find(|task| task.id.ends_with(".report"))
+        .unwrap();
+    assert_eq!(report.kind, ici_domain::TaskKind::Analyze);
+    assert!(!report.cacheable);
+    assert!(plan.tasks.iter().all(|task| !task.mutating()));
+}

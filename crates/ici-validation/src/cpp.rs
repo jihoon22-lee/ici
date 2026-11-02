@@ -126,7 +126,11 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             );
             let mut report = planning::task(request, "report", args);
             report.cwd = request.owned_run_dir.to_string_lossy().into_owned();
-            report.kind = TaskKind::Prepare;
+            // Frozen `GcovProvider.plan` is an ANALYZE task: gcov only reads the counters and
+            // writes its reports inside the owned run directory, so it is not a prepare task
+            // (the fast profile keeps it) and stays uncached like every validation step.
+            report.kind = TaskKind::Analyze;
+            report.cacheable = false;
             report.output_specs.push("*.gcov.json.gz".into());
             request
                 .options

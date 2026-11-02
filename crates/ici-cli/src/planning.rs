@@ -1130,6 +1130,9 @@ fn prepare_resolved_omitting(
             plan.limitations.push(format!("{} uses verified published or typed artifact bytes without a linked build producer", check.task_id));
         }
     }
+    if !crate::legacy::is_legacy(invocation) {
+        cpp.frozen_next_plan(&project, &mut plan, request.require_full, environment);
+    }
     let mut legacy_lines =
         crate::legacy_lines::collect(&project, &plan, invocation, generated_outputs)?;
     legacy_lines.extend(crate::legacy_scan_tests::collect(

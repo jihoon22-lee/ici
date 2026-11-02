@@ -295,6 +295,42 @@
     ]
    }
   },
+  "direct-external": {
+   "changes": {
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_external_build_dirs=['src/external']\n",
+    "src/external/broken.cpp": "int broken() { return missing; }\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "Compiled C++17 binary (<seconds>s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppBinary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
   "direct-git": {
    "changes": {
     "<git-tag>": "v2.0.0",
@@ -327,6 +363,68 @@
       "start_line": 1,
       "status": "PASS",
       "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "direct-pkg-config": {
+   "changes": {
+    "<pkg-config-path>": "pc",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_pkg_config=['icipkg']\n",
+    "pc/icipkg.pc": "Name: icipkg\nDescription: ici capture\nVersion: 1\nCflags: -DICI_PKG_VALUE=0\n",
+    "src/main.cpp": "int main() { return ICI_PKG_VALUE; }\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 0,
+    "status": "PASS",
+    "stdout": "✔ Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "summary": "Build Completed: pkg v2.3.4 into v2.3.4/x86_64",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "Compiled C++17 binary (<seconds>s)",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "CppBinary"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.sh",
+      "message": "Generated env.sh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     },
+     {
+      "file_path": "v2.3.4/x86_64/env.csh",
+      "message": "Generated env.csh",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "EnvironmentScript"
+     }
+    ]
+   }
+  },
+  "direct-pkg-config-missing": {
+   "changes": {
+    "<pkg-config-path>": "pc",
+    "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_pkg_config=['absentpkg']\n",
+    "pc/icipkg.pc": "Name: icipkg\nDescription: ici capture\nVersion: 1\nCflags: -DICI_PKG_VALUE=0\n",
+    "src/main.cpp": "int main() { return ICI_PKG_VALUE; }\n"
+   },
+   "fixture": "package-direct",
+   "frozen": {
+    "exit_code": 1,
+    "status": "FAIL",
+    "stdout": "✘ Build did not produce a complete artifact set",
+    "summary": "Build did not produce a complete artifact set",
+    "targets": [
+     {
+      "file_path": "v2.3.4/x86_64/bin/pkg",
+      "message": "C++ compilation failed: <work>/project/src/main.cpp: In function ‘int main()’:\n<work>/project/src/main.cpp:1:21: error: ‘ICI_PKG_VALUE’ was not declared in this scope\n ",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "CppBinary"
      }
     ]
    }

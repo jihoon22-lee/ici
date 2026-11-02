@@ -49,7 +49,7 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
     );
     fs::write(work.path().join("outside.txt"), "outside\n").unwrap();
     for (relative, text) in case["changes"].as_object().unwrap() {
-        if relative == "<git-tag>" {
+        if relative == "<git-tag>" || relative == "<pkg-config-path>" {
             continue;
         }
         let path = project.as_path().join(relative);
@@ -91,11 +91,18 @@ fn run(case: &Value, environment: &BTreeMap<String, String>) -> Value {
         git(&["tag", tag]);
     }
     // The real executable: the qmake adapter re-enters `ici` as its compiler capture shim.
+    let mut environment = environment.clone();
+    if let Some(directory) = case["changes"]["<pkg-config-path>"].as_str() {
+        environment.insert(
+            "PKG_CONFIG_PATH".into(),
+            project.join(directory).display().to_string(),
+        );
+    }
     let process = std::process::Command::new(env!("CARGO_BIN_EXE_ici"))
         .arg("build")
         .current_dir(&project)
         .env_clear()
-        .envs(environment)
+        .envs(&environment)
         .output()
         .unwrap();
     let output = Output {
@@ -166,7 +173,7 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
         ("LC_CTYPE".to_string(), "C.UTF-8".to_string()),
     ]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 20);
+    assert_eq!(cases.len(), 23);
     for (name, case) in cases {
         let frozen = &case["frozen"];
         let actual = run(case, &environment);
@@ -199,7 +206,7 @@ fn legacy_build_engine_targets_match_the_frozen_rendered_engine_result() {
             // located per-source compiler diagnostic; frozen reports one CppBinary FAIL with the
             // first 200 characters of stderr (absolute host paths). Exit, status and summary
             // stay frozen's.
-            "direct-compile-failure" => {
+            "direct-compile-failure" | "direct-pkg-config-missing" => {
                 for key in ["exit_code", "status", "summary", "stdout"] {
                     assert_eq!(actual[key], frozen[key], "{name} {key}");
                 }

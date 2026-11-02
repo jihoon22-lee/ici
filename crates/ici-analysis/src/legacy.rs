@@ -63,6 +63,15 @@ pub(crate) fn strict_fault(bytes: &[u8]) -> Option<Fault> {
     }
 }
 
+/// CPython `str(UnicodeDecodeError)` of a strict `bytes.decode("utf-8")`, or `None` for valid
+/// UTF-8 (shared with the C++ legacy readers, e.g. frozen ExceptionSafetyEngine `ReadError`).
+pub fn python_utf8_decode_error(bytes: &[u8]) -> Option<String> {
+    match strict_fault(bytes)? {
+        fault @ Fault::Utf8 { .. } => decode_error_text(&fault),
+        Fault::Nul => None,
+    }
+}
+
 /// CPython `str(UnicodeDecodeError)` for the strict `utf-8` codec.
 pub(crate) fn decode_error_text(fault: &Fault) -> Option<String> {
     let Fault::Utf8 {

@@ -198,6 +198,20 @@ impl CppAnalysisSession {
                         file
                     }
                     Err(error) => {
+                        // Frozen ExceptionSafetyEngine reads each source with a strict UTF-8
+                        // `read_text`: a decode failure is its `ReadError` with CPython's text.
+                        if kind == "exception"
+                            && request.options["legacy_projection"].as_bool() == Some(true)
+                            && let Some(text) = ici_analysis::python_utf8_decode_error(&input.bytes)
+                        {
+                            fail(
+                                &mut output,
+                                &input.path,
+                                "ReadError",
+                                &format!("Could not read C++ source: {text}"),
+                            );
+                            continue;
+                        }
                         fail(&mut output, &input.path, &error.code, &error.message);
                         continue;
                     }
@@ -389,6 +403,17 @@ impl CppAnalysisSession {
         } else {
             None
         }
+        .or_else(|| {
+            // Frozen ExceptionSafetyEngine: analysis errors name the summary (first three).
+            let errors: Vec<&str> = output
+                .targets
+                .iter()
+                .filter(|target| kind == "exception" && target.target_name == "ReadError")
+                .take(3)
+                .map(|target| target.message.as_str())
+                .collect();
+            (!errors.is_empty()).then(|| errors.join("; "))
+        })
         .unwrap_or_else(|| {
             format!(
                 "{}: {} inspected targets, {} findings",

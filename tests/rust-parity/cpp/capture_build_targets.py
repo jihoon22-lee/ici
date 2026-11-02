@@ -48,6 +48,9 @@ PYPROJECT = "[project]\nname='pkg'\nversion='2.3.4'\n[project.scripts]\npkg-tool
 DECLARED = (
     "[project]\ntype='cpp'\nsource_dirs=['src']\n[build.artifacts]\nreport=['reports/*.txt']\n"
 )
+PKG_TOML = "[project]\ntype='cpp'\nsource_dirs=['src']\ncpp_pkg_config=['{package}']\n"
+PKG_PC = "Name: icipkg\nDescription: ici capture\nVersion: 1\nCflags: -DICI_PKG_VALUE=0\n"
+PKG_MAIN = "int main() { return ICI_PKG_VALUE; }\n"
 # case: (fixture, {relative path: text, None to delete, or {"symlink": target}}); the
 # "outside.txt" next to the project is a regular file outside the workspace. A "<git-tag>" key
 # commits the project and tags it, so the version comes from `git describe` (no pyproject).
@@ -103,6 +106,35 @@ CASES = {
         },
     ),
     "direct-git": ("package-direct", {"pyproject.toml": None, "<git-tag>": "v2.0.0"}),
+    # project.cpp_external_build_dirs: a broken source there is never compiled or linked.
+    "direct-external": (
+        "package-direct",
+        {
+            "ici.toml": "[project]\ntype='cpp'\nsource_dirs=['src']\n"
+            "cpp_external_build_dirs=['src/external']\n",
+            "src/external/broken.cpp": "int broken() { return missing; }\n",
+        },
+    ),
+    # project.cpp_pkg_config: `pkg-config --cflags` flags reach the direct compile; a package
+    # pkg-config does not know contributes nothing and the compile fails on the real diagnostic.
+    "direct-pkg-config": (
+        "package-direct",
+        {
+            "ici.toml": PKG_TOML.format(package="icipkg"),
+            "pc/icipkg.pc": PKG_PC,
+            "src/main.cpp": PKG_MAIN,
+            "<pkg-config-path>": "pc",
+        },
+    ),
+    "direct-pkg-config-missing": (
+        "package-direct",
+        {
+            "ici.toml": PKG_TOML.format(package="absentpkg"),
+            "pc/icipkg.pc": PKG_PC,
+            "src/main.cpp": PKG_MAIN,
+            "<pkg-config-path>": "pc",
+        },
+    ),
     "declared-artifacts": (
         "package-direct",
         {
@@ -122,7 +154,7 @@ def run(fixture: str, changes: dict) -> dict:
         shutil.copytree(FIXTURES / fixture, project)
         (WORK / "outside.txt").write_text("outside\n", encoding="utf-8")
         for relative, text in changes.items():
-            if relative == "<git-tag>":
+            if relative in ("<git-tag>", "<pkg-config-path>"):
                 continue
             path = project / relative
             if text is None:
@@ -140,14 +172,17 @@ def run(fixture: str, changes: dict) -> dict:
             subprocess.run([*git, str(project), "commit", "-qm", "fixture"], check=True)
             subprocess.run([*git, str(project), "tag", changes["<git-tag>"]], check=True)
         record = WORK / "result.json"
+        env = {
+            "PATH": os.pathsep.join([*TOOLS, "/usr/bin", "/bin"]),
+            "HOME": str(WORK),
+            "PYTHONPATH": str(ORACLE / "src"),
+        }
+        if "<pkg-config-path>" in changes:
+            env["PKG_CONFIG_PATH"] = str(project / changes["<pkg-config-path>"])
         result = subprocess.run(
             [PYTHON, "-c", DRIVER, str(record)],
             cwd=project,
-            env={
-                "PATH": os.pathsep.join([*TOOLS, "/usr/bin", "/bin"]),
-                "HOME": str(WORK),
-                "PYTHONPATH": str(ORACLE / "src"),
-            },
+            env=env,
             capture_output=True,
             text=True,
             timeout=600,

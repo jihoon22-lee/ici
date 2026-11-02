@@ -236,7 +236,7 @@ pub(super) fn unit_targets(unit: &CompilationUnit) -> (Vec<InspectionTarget>, Op
 
 /// Frozen `ReplayCommandError` code and message for a native replay rejection with the same
 /// meaning; other codes keep the native text.
-fn frozen_replay(unit: &CompilationUnit, error: &CppError) -> (String, String) {
+pub(super) fn frozen_replay(unit: &CompilationUnit, error: &CppError) -> (String, String) {
     let token = |prefix: &str, suffix: &str| {
         error
             .message

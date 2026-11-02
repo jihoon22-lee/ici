@@ -461,3 +461,64 @@ fn legacy_cpp_dead_without_compilation_database_reports_frozen_policy_targets() 
         output.stdout
     );
 }
+
+/// Failure: frozen `ici exception` over a C++ source that is not strict UTF-8 reports a
+/// `ReadError` ERROR target with CPython's `UnicodeDecodeError` text (invalid start byte,
+/// invalid continuation byte, unexpected end of data), keeps analysing the other sources and
+/// names the first three errors in the summary (`tests/rust-parity/cpp/capture_exception_read.py`).
+/// Intended: native exits 3 for the incomplete required evidence (accepted incomplete-exit-3
+/// policy; frozen exits 1 for the same ERROR).
+#[test]
+fn legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary() {
+    let oracle: Value = serde_json::from_str(include_str!(
+        "../../../tests/rust-parity/cpp/exception-read-oracle.json"
+    ))
+    .unwrap();
+    assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
+    let cases = oracle["cases"].as_object().unwrap();
+    assert_eq!(cases.len(), 4);
+    for (name, case) in cases {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir(root.path().join("src")).unwrap();
+        fs::write(
+            root.path().join("ici.toml"),
+            oracle["config"].as_str().unwrap(),
+        )
+        .unwrap();
+        for (path, hex) in case["files"].as_object().unwrap() {
+            let hex = hex.as_str().unwrap();
+            let bytes: Vec<u8> = (0..hex.len())
+                .step_by(2)
+                .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+                .collect();
+            fs::write(root.path().join(path), bytes).unwrap();
+        }
+        let invocation = registry::parse(["ici", "exception", "--report"]).unwrap();
+        let environment = BTreeMap::from([("PATH".to_string(), "/usr/bin:/bin".to_string())]);
+        let output = commands::dispatch(&invocation, root.path(), &environment).unwrap();
+        let report: Value =
+            serde_json::from_slice(&fs::read(root.path().join("exception_report.json")).unwrap())
+                .unwrap();
+        let frozen = &case["frozen"];
+        assert_eq!(frozen["exit_code"], 1, "{name}");
+        assert_eq!(output.exit_code, 3, "{name}");
+        for key in ["status", "summary", "evidence"] {
+            assert_eq!(report[key], frozen[key], "{name} {key}");
+        }
+        let targets: Vec<Value> = report["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|target| {
+                serde_json::json!({
+                    "target_name": target["target_name"],
+                    "status": target["status"],
+                    "message": target["message"],
+                    "start_line": target["start_line"],
+                    "file_path": target["file_path"],
+                })
+            })
+            .collect();
+        assert_eq!(&serde_json::json!(targets), &frozen["targets"], "{name}");
+    }
+}

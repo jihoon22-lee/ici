@@ -171,7 +171,22 @@ pub fn legacy_projection(
                 .filter(|summary| !summary.is_empty())
                 .unwrap_or("analysis did not complete");
             let reasons = errored.entry(name.to_owned()).or_default();
-            if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
+            // The C++ lint checks record their individual frozen tool errors: the engine
+            // summary is the first three of all of them, in check order (frozen LintEngine).
+            let individual: Vec<&str> = output
+                .and_then(|output| output.extra.get("legacy_tool_errors"))
+                .and_then(serde_json::Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(serde_json::Value::as_str)
+                .collect();
+            if !individual.is_empty() {
+                for error in individual {
+                    if reasons.len() < 3 {
+                        reasons.push(error.to_owned());
+                    }
+                }
+            } else if reasons.len() < 3 && !reasons.iter().any(|known| known == reason) {
                 reasons.push(reason.to_owned());
             }
             engine["summary"] = json!(reasons.join("; "));
@@ -486,6 +501,7 @@ fn project_extra(engine: &mut Value) -> Result<()> {
                         | "tool_evidence"
                         | "legacy_findings"
                         | "legacy_artifact_manifests"
+                        | "line_scope_order"
                 ) {
                     engine["extra"][key] = value.clone();
                 }
@@ -495,7 +511,8 @@ fn project_extra(engine: &mut Value) -> Result<()> {
             && let Some(rows) = engine["extra"]["files_data"].as_array_mut()
         {
             // Frozen record order before the stable code-line sort (sources, then extras).
-            rows.sort_by(frozen_line_order);
+            let order = scope_order(&checks);
+            rows.sort_by(frozen_line_order(&order));
             rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
             let rows = rows.clone();
             engine["extra"]["top_files"] = json!(
@@ -505,6 +522,7 @@ fn project_extra(engine: &mut Value) -> Result<()> {
                     .collect::<Vec<_>>()
             );
             engine["extra"]["top_files_all"] = json!(rows.iter().take(5).collect::<Vec<_>>());
+            frozen_line_target_order(engine, &order);
         }
         return Ok(());
     }
@@ -540,7 +558,8 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     let mut rows: Vec<_> = files.into_values().collect();
     // Frozen `LineEngine` records source files first (pass 1, in its source scan order), then
     // repository extras (pass 2, top-down walk), and stable-sorts the rows by code lines.
-    rows.sort_by(frozen_line_order);
+    let order = scope_order(&checks);
+    rows.sort_by(frozen_line_order(&order));
     rows.sort_by_key(|row| std::cmp::Reverse(row["code"].as_u64().unwrap_or(0)));
     for field in ["code", "comment", "blank", "total"] {
         let sum = |source_only: bool| {
@@ -574,10 +593,19 @@ fn project_extra(engine: &mut Value) -> Result<()> {
     engine["summary"] = json!(format!(
         "Total {total} lines ({code} code, {comment} comment, {blank} blank) across {source_count} files"
     ));
+    frozen_line_target_order(engine, &order);
+    engine["extra"]["files_data"] = json!(rows);
+    Ok(())
+}
+
+/// Frozen `LineEngine` targets in source scan order (`frozen_line_order`); each target keeps its
+/// owning check, so the scope rows follow the same permutation.
+fn frozen_line_target_order(engine: &mut Value, scope: &[String]) {
     if let Some(targets) = engine["targets"].as_array().cloned() {
         let mut order: Vec<usize> = (0..targets.len()).collect();
         order.sort_by(|left, right| {
-            frozen_line_order(
+            frozen_line_order_in(
+                scope,
                 &json!({"path":targets[*left]["file_path"],"scope":"source"}),
                 &json!({"path":targets[*right]["file_path"],"scope":"source"}),
             )
@@ -599,23 +627,27 @@ fn project_extra(engine: &mut Value) -> Result<()> {
             scopes.sort_by_key(|scope| scope["target_index"].as_u64().unwrap_or(u64::MAX));
         }
     }
-    engine["extra"]["files_data"] = json!(rows);
-    Ok(())
 }
 
 /// Frozen `LineEngine._collect_files` record order before its stable code-line sort: source
 /// rows first, by the frozen default source directory order (`src`, `include`, `lib`, `app`,
 /// then the others) and sorted paths (`Path` order: component by component); then extras in
 /// a top-down walk (a directory's files before its subdirectories').
-fn frozen_line_order(left: &Value, right: &Value) -> std::cmp::Ordering {
+fn frozen_line_order(order: &[String]) -> impl Fn(&Value, &Value) -> std::cmp::Ordering + '_ {
+    move |left, right| frozen_line_order_in(order, left, right)
+}
+
+/// `order` is frozen's `scope_list` (`line_scope_order`, the default source directories, then
+/// `project.source_dirs`, then `include_dirs`); a source row ranks by the first entry holding it.
+fn frozen_line_order_in(order: &[String], left: &Value, right: &Value) -> std::cmp::Ordering {
     let path = |row: &Value| row["path"].as_str().unwrap_or("").to_owned();
     let source = |row: &Value| row["scope"] == "source";
+    let defaults = ["src", "include", "lib", "app"].map(str::to_owned);
+    let dirs: &[String] = if order.is_empty() { &defaults } else { order };
     let rank = |path: &str| {
-        let top = path.split_once('/').map_or("", |(top, _)| top);
-        ["src", "include", "lib", "app"]
-            .iter()
-            .position(|name| *name == top)
-            .unwrap_or(4)
+        dirs.iter()
+            .position(|dir| path == dir || path.starts_with(&format!("{dir}/")))
+            .unwrap_or(dirs.len())
     };
     let (left_path, right_path) = (path(left), path(right));
     let parts = |path: &str| path.split('/').map(str::to_owned).collect::<Vec<_>>();
@@ -638,6 +670,18 @@ fn frozen_line_order(left: &Value, right: &Value) -> std::cmp::Ordering {
                 .then_with(|| left_parts[common..].cmp(&right_parts[common..]))
         }
     })
+}
+
+/// The line checks' `line_scope_order` (the first check that carries one).
+fn scope_order(checks: &[Value]) -> Vec<String> {
+    checks
+        .iter()
+        .find_map(|check| check_extra(check)["line_scope_order"].as_array())
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect()
 }
 
 fn check_extra(check: &Value) -> &Value {
