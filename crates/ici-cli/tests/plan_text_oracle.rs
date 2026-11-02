@@ -27,7 +27,7 @@ enum Side {
 type Reviewed = (&'static [&'static str], Side, &'static str, &'static str);
 
 const TY: &str = "decisions.md 타입 기본값: an unconfigured type check runs ty (advisory), not mypy; the missing tool is named as frozen names one (`<tool> is not available`)";
-const CPP: &str = "cpp-owned: C++ blocked reasons, compilation-database gaps and notes are the C++ worker's planning (cpp.json); reported to the root";
+const CPP: &str = "cpp.json requirement:next-v1 C++ planning: a component whose declared build has no database yet keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time), and native cpp.test needs the existing build directory before suite discovery (frozen's add_test/.pro suite wording applies after it)";
 const STEPS: &str = "native execution model (root decision D5; validation.json capability:runtime-integration): python.test runs the coverage probe and the visible conditional branches under the owned .ici/rust-v1 run directory, coverage reads that run's data, and compat-runtime is one check whose ADR-0008 metadata probe and compileall steps print as one chain";
 const ALL: &[&str] = &[
     "python/default",
@@ -36,12 +36,7 @@ const ALL: &[&str] = &[
     "mixed/default",
     "mixed/python",
 ];
-const CPP_CASES: &[&str] = &[
-    "mixed/default",
-    "mixed/python",
-    "mixed/component-lib",
-    "build/default",
-];
+const BUILD: &[&str] = &["build/default"];
 const ENV: &[&str] = &["python-env/default", "python-env/profile-fast"];
 
 const REVIEWED: &[Reviewed] = &[
@@ -69,18 +64,28 @@ const REVIEWED: &[Reviewed] = &[
         "  app.python.type: blocked — ty is not available",
         TY,
     ),
-    (CPP_CASES, Side::Frozen, "  lib.cpp.", CPP),
-    (CPP_CASES, Side::Native, "  lib.cpp.", CPP),
     (
-        CPP_CASES,
+        BUILD,
         Side::Frozen,
-        "  coverage gap: lib: no compilation database",
+        "  lib.cpp.compile: blocked — no compilation database",
         CPP,
     ),
     (
-        CPP_CASES,
+        BUILD,
+        Side::Native,
+        "  lib.cpp.compile: Compilation coverage (ici)",
+        CPP,
+    ),
+    (
+        BUILD,
         Side::Frozen,
-        "  note: lib: no compilation database",
+        "  lib.cpp.test: blocked — no declared test suite",
+        CPP,
+    ),
+    (
+        BUILD,
+        Side::Native,
+        "  lib.cpp.test: blocked — <root>/out must be a contained existing build directory",
         CPP,
     ),
     (ENV, Side::Frozen, "demo: 17 check(s)", STEPS),
@@ -205,11 +210,6 @@ fn plan_text_matches_frozen_layout_without_a_project_interpreter() {
     let mut names: Vec<&str> = ALL.to_vec();
     names.extend(["mixed/component-lib", "build/default"]);
     let unused = compare(&names, FROZEN_PYTHON);
-    // The C++ lines can only shrink as the C++ planning converges; everything else must be used.
-    let unused: Vec<_> = unused
-        .into_iter()
-        .filter(|entry| !entry.contains("lib.cpp.") && !entry.contains("compilation database"))
-        .collect();
     assert!(unused.is_empty(), "stale reviewed differences: {unused:?}");
 }
 

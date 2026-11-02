@@ -5,6 +5,7 @@ mod legacy_syntax;
 mod legacy_tests;
 mod legacy_tooling;
 mod linker;
+mod next_plan;
 pub(crate) mod package_flags;
 pub use config_scope::external_build_directories;
 use ici_application::plan::{Work, file_language};
@@ -88,6 +89,11 @@ pub struct CppPlans {
     /// Legacy `cpp.diagnostics` tasks that stop before any replay (frozen `_run_exact`: error
     /// context diagnostics, no replayable production unit, the selected-unit budget).
     legacy_context_errors: BTreeMap<String, legacy_syntax::Terminal>,
+    /// Frozen next-plan `<id>: no compilation database captured its C++ scope` gaps (printed in
+    /// every plan; gate reasons only under `--require-full`).
+    pub next_scope_gaps: Vec<String>,
+    /// Frozen next-plan reasons for natively blocked C++ checks (human plan text only).
+    next_blocked_reasons: BTreeMap<String, String>,
     /// Legacy `cpp.diagnostics` selected units in frozen order with their diagnostic targets
     /// and replay task (or the error that replaced the replay), by task.
     legacy_unit_notes: BTreeMap<String, Vec<legacy_syntax::UnitNote>>,

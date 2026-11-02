@@ -6043,28 +6043,54 @@
       "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.artifacts": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:135) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: a linked build without artifacts prints 'no artifact contract — declare [builds.<id>] artifacts = [...]' (cpp.artifact) and '... so the binaries to inspect are named' (cpp.binary-compat).",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:builds.*.directory": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:129) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: the directory names the hint's '<directory>/compile_commands.json' and is where .gcno instrumentation notes are looked up.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:builds.*.prepare": {
       "status": "not_started",
@@ -6175,16 +6201,29 @@
       "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:components[].build": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:221) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: a linked build selects the hint (\"build '<id>' declares no approved configure command — give it a prepare vector or generate <directory>/compile_commands.json\") versus 'no build unit is linked to <id>; ...', and the unlinked test/artifact/binary-compat reasons.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:components[].cpp": {
       "status": "not_started",
