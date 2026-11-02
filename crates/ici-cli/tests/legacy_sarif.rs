@@ -34,6 +34,11 @@ fn copy(from: &Path, to: &Path) {
     }
 }
 
+/// The frozen captures ran with the PATH interpreter (pytest present, mypy absent). An explicit
+/// `ICI_TEST_PYTHON_NEW` pins that interpreter; without it the PATH rule applies unchanged.
+fn capture_python() -> Option<String> {
+    std::env::var("ICI_TEST_PYTHON_NEW").ok()
+}
 /// Run the captured steps natively; returns the exit codes, the written SARIF, the last stdout
 /// and the saved `verify_report.json`. (Exit codes are the verify exit policy's, compared by the
 /// verify rows, not this writer's.)
@@ -60,6 +65,10 @@ fn run(case: &Value) -> (Vec<i32>, Value, String, Value) {
         ),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
     ]);
+    let mut environment = environment;
+    if let Some(python) = capture_python() {
+        environment.insert("ICI_PYTHON".to_owned(), python);
+    }
     let steps = case["steps"].as_array().unwrap();
     let mut codes = vec![];
     let mut stdout = String::new();
@@ -211,6 +220,7 @@ fn hybrid_verify_sarif_keeps_the_frozen_source_alert_identity() {
 /// `ASTSyntaxFallback` (`.`), both `No tests collected` targets (`tests`) and no C++-side
 /// `Resource:NotApplicable`/`Security:NotApplicable` root target keep the frozen alert identity.
 #[test]
+#[ignore = "explicit actual pytest-capable interpreter without mypy, as captured (ICI_TEST_PYTHON_NEW)"]
 fn hybrid_verify_sarif_keeps_the_frozen_project_level_alert_identity() {
     assert_frozen_alerts_kept("hybrid", |uri| !uri.starts_with("src/"));
 }

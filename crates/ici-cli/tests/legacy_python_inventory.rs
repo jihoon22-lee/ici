@@ -23,6 +23,21 @@ const NATIVE_EXTRAS: [&str; 10] = [
     "target_scopes",
 ];
 
+/// The explicit project interpreter with pytest (`ICI_TEST_PYTHON`, else the repo `.venv` CI
+/// creates): the frozen captures ran with pytest available, which the runner's /usr/bin/python3
+/// does not provide.
+fn project_python() -> String {
+    std::env::var("ICI_TEST_PYTHON").unwrap_or_else(|_| {
+        // The workspace root without `..` segments: the interpreter keeps its venv identity.
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(2)
+            .unwrap()
+            .join(".venv/bin/python")
+            .display()
+            .to_string()
+    })
+}
 fn run(engine: &str, tree: &Value) -> (i32, Value) {
     let home = tempfile::tempdir().unwrap();
     let directory = tempfile::tempdir().unwrap();
@@ -40,6 +55,7 @@ fn run(engine: &str, tree: &Value) -> (i32, Value) {
             home.path().display().to_string(),
         ),
         ("PATH".to_owned(), "/usr/bin:/bin".to_owned()),
+        ("ICI_PYTHON".to_owned(), project_python()),
     ]);
     let output = commands::dispatch(
         &registry::parse(["ici", engine, "--report"]).unwrap(),
