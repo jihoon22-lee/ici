@@ -843,7 +843,13 @@ pub fn execute(
                                 _ => {}
                             }
                         }
-                        if prepared.legacy_projection && planned.check.id == "cpp.coverage" {
+                        // Frozen `TestEngine._threshold_breaches` serves both languages.
+                        if prepared.legacy_projection
+                            && matches!(
+                                planned.check.id.as_str(),
+                                "cpp.coverage" | "python.coverage"
+                            )
+                        {
                             crate::cpp::legacy_threshold_breaches(&mut output);
                         }
                         if prepared.legacy_projection
