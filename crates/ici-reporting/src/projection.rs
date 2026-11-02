@@ -266,6 +266,15 @@ pub fn legacy_projection(
             .expect("array")
             .push(native);
         if let Some(output) = output {
+            // Frozen `EngineResult.duration` is the engine's own run time: the measured run
+            // time of the checks it projects (a reused check keeps its recorded time).
+            if let Some(seconds) = output
+                .observation
+                .duration_seconds
+                .filter(|seconds| seconds.is_finite() && *seconds >= 0.0)
+            {
+                engine["duration"] = json!(engine["duration"].as_f64().unwrap_or(0.0) + seconds);
+            }
             let offset = engine["targets"].as_array().expect("array").len();
             let scopes:Vec<_>=output.targets.iter().enumerate().map(|(index,_)|json!({"target_index":offset+index,"task_id":check.task_id,"component_id":check.component_id,"variant":check.variant})).collect();
             if engine["extra"].get("target_scopes").is_none() {

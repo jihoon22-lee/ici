@@ -1309,6 +1309,9 @@ const ALLOWANCES: &[Allowance] = &[
     ("inventory/hybrid/lint", ".tool_evidence[].argv", Len, Approved, R8),
     ("inventory/hybrid/lint", ".tool_evidence[].argv[]", Differs, Approved, R8),
     ("inventory/hybrid/lint", ".tool_evidence[].path", Differs, Approved, R8),
+    ("sarif/cpp", "runs.results[ici.legacy.test.target].properties.confidence", Differs, Approved, R9),
+    ("sarif/cpp", "runs.tool.driver.rules[ici.legacy.test.target].properties.confidence", Differs, Approved, R9),
+    ("sarif/cpp", "runs.tool.driver.version", Differs, Incidental, R2),
     ("summary", "analysis_context.identity.config_digest", Differs, Approved, R1),
     ("summary", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
     ("summary", "analysis_metadata.producer_version", Differs, Incidental, R2),
@@ -1384,4 +1387,24 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary/baseline", "results[line].extra.top_files_all[].path", Differs, Approved, R13),
     ("summary/baseline", "results[line].extra.top_files_all[].scope", Differs, Approved, R13),
     ("summary/baseline", "results[line].extra.top_files_all[].total", Differs, Approved, R13),
+];
+
+/// Line allowances of the text projections the real CLI wrote (`--github-summary` step summary,
+/// the printed workflow annotations), after the incidental wall-clock mask (R4).
+#[rustfmt::skip]
+const TEXT_ALLOWANCES: &[TextAllowance] = &[
+    // No fabricated TEM: the header names no TEM, the test row no estimate or score (R9).
+    ("summary", Missing, "## 🛑 `ici` Verification Report — **`ERROR`** (TEM: **`", Approved, R9),
+    ("summary", NativeOnly, "## 🛑 `ici` Verification Report — **`ERROR`**", Approved, R9),
+    ("summary", Missing, "| <strong><code>test</code></strong> | 🔴 `FAIL` | 0/0 Tests Passed &#124; Line: 45.0% (est)", Approved, R9),
+    ("summary", NativeOnly, "| <strong><code>test</code></strong> | 🔴 `FAIL` | 0/0 Tests Passed; No tests collected | - |", Approved, R9),
+    // The capability snapshot's tool rows and counts (the `capability_inventory` allowances).
+    ("summary", Missing, "> **Inventory**: ", Approved, R3),
+    ("summary", NativeOnly, "> **Inventory**: ", Approved, R3),
+    ("summary", Missing, "<summary><b>Complete tool inventory (", Approved, R3),
+    ("summary", NativeOnly, "<summary><b>Complete tool inventory (", Approved, R3),
+    ("summary", Missing, "| <code>*</code> | <code>ready</code> | ", Approved, R3),
+    ("summary", Missing, "| <code>*</code> | <code>unavailable</code> | ", Approved, R3),
+    ("summary", NativeOnly, "| <code>*</code> | <code>ready</code> | ", Approved, R3),
+    ("summary", NativeOnly, "| <code>*</code> | <code>unavailable</code> | ", Approved, R3),
 ];

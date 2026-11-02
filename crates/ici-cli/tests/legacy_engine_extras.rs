@@ -47,6 +47,7 @@ const ANNOTATIONS: &str =
 const INVENTORY: &str =
     include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
 const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-extras-oracle.json");
+const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Kind {
@@ -73,6 +74,9 @@ use Class::{Approved, Incidental, Open};
 
 /// (capture or exact replay label, normalized path, kind, class, reason).
 type Allowance = (&'static str, &'static str, Kind, Class, &'static str);
+/// (text projection label, side (`Missing` frozen line / `NativeOnly` native line), line prefix
+/// or `head*tail` pattern after the duration mask, class, reason).
+type TextAllowance = (&'static str, Kind, &'static str, Class, &'static str);
 
 include!("support/legacy_result_allowances.rs");
 
@@ -119,6 +123,15 @@ fn environment(home: &Path, actions: bool) -> BTreeMap<String, String> {
     environment
 }
 
+/// What one replay saved and printed: the exit codes, the report of the last step (project
+/// root as `<root>`), the last step's stdout and the `GITHUB_STEP_SUMMARY` file afterwards.
+struct Saved {
+    codes: Vec<i32>,
+    report: Value,
+    stdout: String,
+    summary: Option<String>,
+}
+
 /// Run the capture's steps in a fresh `project` (with `.git`), applying `edit` before the last;
 /// returns the exit codes and the saved report of the last step, project root as `<root>`.
 fn replay(
@@ -128,11 +141,13 @@ fn replay(
     report: &str,
     actions: bool,
 ) -> (Vec<i32>, Value) {
-    replay_with(tree, edit, steps, report, actions, false)
+    let saved = replay_with(tree, edit, steps, report, actions, false, None);
+    (saved.codes, saved.report)
 }
 
 /// `replay`; with `wrapper`, the capture's project-contained `bin/g++` (delegating to
-/// /usr/bin/g++) is first on PATH.
+/// /usr/bin/g++) is first on PATH; `existing` is the step summary file's content before the
+/// last step (the capture wrote it there).
 fn replay_with(
     tree: &Value,
     edit: &Value,
@@ -140,7 +155,8 @@ fn replay_with(
     report: &str,
     actions: bool,
     wrapper: bool,
-) -> (Vec<i32>, Value) {
+    existing: Option<&str>,
+) -> Saved {
     let home = tempfile::tempdir().unwrap();
     let directory = tempfile::tempdir().unwrap();
     let base = directory.path().join("project");
@@ -158,22 +174,34 @@ fn replay_with(
             format!("{}:/usr/bin:/bin", base.join("bin").display()),
         );
     }
+    let summary = home.path().join("summary.md");
     let mut codes = vec![];
+    let mut stdout = String::new();
     for (index, argv) in steps.iter().enumerate() {
-        if index + 1 == steps.len() && edit.is_object() {
-            write_tree(&base, edit);
+        if index + 1 == steps.len() {
+            if edit.is_object() {
+                write_tree(&base, edit);
+            }
+            if let Some(existing) = existing {
+                fs::write(&summary, existing).unwrap();
+            }
         }
         let invocation =
             registry::parse(std::iter::once("ici").chain(argv.iter().map(String::as_str))).unwrap();
-        codes.push(
-            commands::dispatch(&invocation, &base, &environment)
-                .unwrap()
-                .exit_code,
-        );
+        let output = commands::dispatch(&invocation, &base, &environment).unwrap();
+        codes.push(output.exit_code);
+        stdout = output.stdout;
     }
+    let root = base.display().to_string();
     let text = fs::read_to_string(base.join(report)).unwrap();
-    let report = serde_json::from_str(&text.replace(&base.display().to_string(), "<root>"));
-    (codes, report.unwrap())
+    Saved {
+        codes,
+        report: serde_json::from_str(&text.replace(&root, "<root>")).unwrap(),
+        stdout: stdout.replace(&root, "<root>"),
+        summary: fs::read_to_string(&summary)
+            .ok()
+            .map(|text| text.replace(&root, "<root>")),
+    }
 }
 
 fn verify() -> Vec<Vec<String>> {
@@ -303,6 +331,114 @@ fn result_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String
         .collect()
 }
 
+/// A wall-clock `<n>.<nn>s` (the step summary's run and engine durations) is incidental (R4).
+fn mask_seconds(line: &str) -> String {
+    let bytes = line.as_bytes();
+    let mut out = String::new();
+    let mut index = 0;
+    while index < bytes.len() {
+        let start = index;
+        let boundary = start == 0 || !bytes[start - 1].is_ascii_alphanumeric();
+        let mut end = start;
+        while end < bytes.len() && bytes[end].is_ascii_digit() {
+            end += 1;
+        }
+        let seconds = boundary
+            && end > start
+            && bytes.get(end) == Some(&b'.')
+            && bytes.get(end + 1).is_some_and(u8::is_ascii_digit)
+            && bytes.get(end + 2).is_some_and(u8::is_ascii_digit)
+            && bytes.get(end + 3) == Some(&b's')
+            && !bytes.get(end + 4).is_some_and(u8::is_ascii_alphanumeric);
+        if seconds {
+            out.push_str("<seconds>");
+            index = end + 4;
+        } else {
+            let next = line[start..].chars().next().unwrap();
+            out.push(next);
+            index = start + next.len_utf8();
+        }
+    }
+    out
+}
+
+/// Every line one side has and the other lacks (a longest-common-subsequence alignment of the
+/// two texts after the incidental duration mask) that no text allowance names: `Missing` for a
+/// frozen line, `NativeOnly` for a native one.
+fn text_differences(label: &str, frozen: &str, native: &str) -> Vec<String> {
+    let left: Vec<String> = frozen.lines().map(mask_seconds).collect();
+    let right: Vec<String> = native.lines().map(mask_seconds).collect();
+    let (n, m) = (left.len(), right.len());
+    let mut table = vec![vec![0u32; m + 1]; n + 1];
+    for i in (0..n).rev() {
+        for j in (0..m).rev() {
+            table[i][j] = if left[i] == right[j] {
+                table[i + 1][j + 1] + 1
+            } else {
+                table[i + 1][j].max(table[i][j + 1])
+            };
+        }
+    }
+    let (mut i, mut j, mut out) = (0, 0, vec![]);
+    while i < n || j < m {
+        if i < n && j < m && left[i] == right[j] {
+            i += 1;
+            j += 1;
+        } else if j == m || (i < n && table[i + 1][j] >= table[i][j + 1]) {
+            out.push((Missing, &left[i]));
+            i += 1;
+        } else {
+            out.push((NativeOnly, &right[j]));
+            j += 1;
+        }
+    }
+    out.into_iter()
+        .filter(|(kind, line)| !text_allowed(label, line, *kind))
+        .map(|(kind, line)| format!("{label}: {kind:?} line {line:?}"))
+        .collect()
+}
+
+thread_local! {
+    static TEXT_HITS: RefCell<BTreeSet<usize>> = const { RefCell::new(BTreeSet::new()) };
+}
+
+fn text_allowed(label: &str, line: &str, kind: Kind) -> bool {
+    let found = TEXT_ALLOWANCES.iter().position(|entry| {
+        (entry.0 == label || label.starts_with(&format!("{}/", entry.0)))
+            && entry.1 == kind
+            && line_matches(line, entry.2)
+            && !entry.4.is_empty()
+    });
+    if let Some(index) = found {
+        TEXT_HITS.with(|hits| hits.borrow_mut().insert(index));
+    }
+    found.is_some()
+}
+
+/// A text allowance names a line prefix; `head*tail` names a line starting with `head` whose
+/// rest contains `tail`.
+fn line_matches(line: &str, pattern: &str) -> bool {
+    match pattern.split_once('*') {
+        Some((head, tail)) => line
+            .strip_prefix(head)
+            .is_some_and(|rest| rest.contains(tail)),
+        None => line.starts_with(pattern),
+    }
+}
+
+fn assert_text_not_stale(scope: impl Fn(&TextAllowance) -> bool) {
+    let stale: Vec<String> = TEXT_HITS.with(|hits| {
+        let hits = hits.borrow();
+        TEXT_ALLOWANCES
+            .iter()
+            .enumerate()
+            .filter(|(index, entry)| scope(entry) && !hits.contains(index))
+            .map(|(_, entry)| format!("{} {:?} {:?}", entry.0, entry.1, entry.2))
+            .collect()
+    });
+    assert!(stale.is_empty(), "stale text allowances: {stale:#?}");
+}
+
 fn results(suite: &Value) -> &[Value] {
     suite["results"].as_array().unwrap()
 }
@@ -402,13 +538,18 @@ fn extras_case(name: &str, substitute: Option<(&str, &str)>) -> Vec<String> {
         .map(|argument| argument.as_str().unwrap().to_owned())
         .collect();
     let report = format!("{}_report.json", argv[0]);
-    let (exits, native) = replay_with(
+    let Saved {
+        codes: exits,
+        report: native,
+        ..
+    } = replay_with(
         &tree,
         &Value::Null,
         &[argv],
         &report,
         false,
         case["wrapper"] == true,
+        None,
     );
     let frozen = case.get("suite").unwrap_or(&case["report"]);
     assert_eq!(exits, codes(&case["exit_code"]), "{label}: exit");
@@ -434,33 +575,62 @@ fn legacy_public_results_equal_frozen_except_allowed() {
     let mut differences = vec![];
     let summary: Value = serde_json::from_str(SUMMARY).unwrap();
     for (name, case) in summary["cases"].as_object().unwrap() {
-        let (exits, native) = replay(
+        let saved = replay_with(
             &case["tree"],
             &case["edit"],
             &steps(case),
             "verify_report.json",
             false,
+            false,
+            case["existing"].as_str(),
         );
+        let (exits, native) = (&saved.codes, &saved.report);
         let label = format!("summary/{name}");
         assert_exit(
             &label,
-            &exits,
+            exits,
             &codes(&case["exit_codes"]),
             results(&case["suite"]),
-            results(&native),
+            results(native),
         );
-        differences.extend(result_differences(&label, &case["suite"], &native));
+        differences.extend(result_differences(&label, &case["suite"], native));
+        // The step summary file the real CLI appended to, compared line by line in full.
+        differences.extend(text_differences(
+            &format!("{label}/summary.md"),
+            case["summary"].as_str().unwrap(),
+            saved.summary.as_deref().unwrap_or_default(),
+        ));
     }
     let annotations: Value = serde_json::from_str(ANNOTATIONS).unwrap();
     let mut argv = verify();
     argv[0].push("--github-summary".into());
-    let (exits, native) = replay(
+    let saved = replay_with(
         &annotations["tree"],
         &Value::Null,
         &argv,
         "verify_report.json",
         true,
+        false,
+        None,
     );
+    // Every workflow command the real CLI printed, in order (frozen recorded the `::` lines).
+    let printed: Vec<&str> = saved
+        .stdout
+        .lines()
+        .filter(|line| line.starts_with("::"))
+        .collect();
+    let frozen: Vec<&str> = annotations["annotations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|line| line.as_str().unwrap())
+        .collect();
+    differences.extend(text_differences(
+        "annotations/stdout",
+        &frozen.join("\n"),
+        &printed.join("\n"),
+    ));
+    let (exits, native) = (saved.codes, saved.report);
     assert_exit(
         "annotations",
         &exits,
@@ -501,6 +671,9 @@ fn legacy_public_results_equal_frozen_except_allowed() {
             "summary" | "annotations" | "inventory" | "extras/cycle-standalone"
         ) || entry.0.starts_with("summary/")
             || (entry.0.starts_with("inventory/") && entry.0 != "inventory/hybrid/lint")
+    });
+    assert_text_not_stale(|entry| {
+        entry.0.starts_with("summary") || entry.0.starts_with("annotations")
     });
 }
 
@@ -678,6 +851,201 @@ fn an_unnamed_project_json_file_is_still_counted_under_baseline() {
             &json!(1),
             &json!(5)
         )
+    );
+}
+
+fn copy_tree(from: &Path, to: &Path) {
+    fs::create_dir_all(to).unwrap();
+    for entry in fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_tree(&entry.path(), &target);
+        } else {
+            fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+/// Every difference of a SARIF document the real CLI wrote from frozen's, in full: the document
+/// and run keys, the driver, each rule (by id) and each result (by its `ici/v3` fingerprint,
+/// path `runs.results[<ruleId>]`) at every depth, plus the result order.
+fn sarif_differences(label: &str, frozen: &Value, native: &Value) -> Vec<String> {
+    let mut out = vec![];
+    let without = |value: &Value, keys: &[&str]| -> Value {
+        let mut value = value.clone();
+        for key in keys {
+            value.as_object_mut().unwrap().remove(*key);
+        }
+        value
+    };
+    walk(
+        &without(frozen, &["runs"]),
+        &without(native, &["runs"]),
+        "",
+        &mut out,
+    );
+    let (left, right) = (&frozen["runs"][0], &native["runs"][0]);
+    assert_eq!(native["runs"].as_array().map(Vec::len), Some(1), "{label}");
+    walk(
+        &without(left, &["tool", "results"]),
+        &without(right, &["tool", "results"]),
+        "runs",
+        &mut out,
+    );
+    walk(
+        &without(&left["tool"]["driver"], &["rules"]),
+        &without(&right["tool"]["driver"], &["rules"]),
+        "runs.tool.driver",
+        &mut out,
+    );
+    let keyed = |items: &Value, key: &dyn Fn(&Value) -> String| -> BTreeMap<String, Value> {
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| (key(item), item.clone()))
+            .collect()
+    };
+    let rule = |item: &Value| item["id"].as_str().unwrap().to_owned();
+    let fingerprint = |item: &Value| item["fingerprints"]["ici/v3"].as_str().unwrap().to_owned();
+    for (items, key, path) in [
+        (
+            ("tool", "rules"),
+            &rule as &dyn Fn(&Value) -> String,
+            "runs.tool.driver.rules",
+        ),
+        (("results", ""), &fingerprint, "runs.results"),
+    ] {
+        let pick = |run: &Value| -> Value {
+            if items.1.is_empty() {
+                run[items.0].clone()
+            } else {
+                run[items.0]["driver"][items.1].clone()
+            }
+        };
+        let (frozen_items, native_items) = (keyed(&pick(left), key), keyed(&pick(right), key));
+        let name = |item: &Value| {
+            item["id"]
+                .as_str()
+                .or_else(|| item["ruleId"].as_str())
+                .unwrap()
+                .to_owned()
+        };
+        for (id, item) in &frozen_items {
+            match native_items.get(id) {
+                Some(other) => walk(item, other, &format!("{path}[{}]", name(item)), &mut out),
+                None => out.push((format!("{path}[{}]", name(item)), Missing)),
+            }
+        }
+        for (id, item) in &native_items {
+            if !frozen_items.contains_key(id) {
+                out.push((format!("{path}[{}]", name(item)), NativeOnly));
+            }
+        }
+    }
+    let order = |run: &Value| -> Vec<String> {
+        run["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(fingerprint)
+            .collect()
+    };
+    if order(left) != order(right) {
+        out.push(("runs.results".to_owned(), Differs));
+    }
+    out.into_iter()
+        .filter(|(path, kind)| !allowed(label, path, *kind))
+        .map(|(path, kind)| format!("{label}: {path} ({kind:?})"))
+        .collect()
+}
+
+/// The SARIF projection of a C++ `verify` (legacy-sarif-oracle `end_to_end.cpp`: the
+/// parity-fixtures lint-warnings project, explicit g++ and no clang tools as captured), the file
+/// the real CLI wrote compared with frozen's in full.
+#[test]
+#[ignore = "explicit actual g++ legacy verify: ICI_TEST_CXX=/usr/bin/g++ must be the oracle g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0 and /usr/bin must lack clang-tidy/clazy-standalone"]
+fn cpp_verify_sarif_equals_frozen_except_allowed() {
+    cpp_environment_matches(&serde_json::from_str(EXTRAS).unwrap());
+    let oracle: Value = serde_json::from_str(SARIF).unwrap();
+    let case = &oracle["end_to_end"]["cpp"];
+    let home = tempfile::tempdir().unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let base = directory.path().join("project");
+    copy_tree(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(2)
+            .unwrap()
+            .join(case["copied"].as_str().unwrap()),
+        &base,
+    );
+    fs::create_dir_all(base.join(".git")).unwrap();
+    let environment = environment(home.path(), false);
+    let mut exits = vec![];
+    for argv in steps(case) {
+        let invocation =
+            registry::parse(std::iter::once("ici").chain(argv.iter().map(String::as_str))).unwrap();
+        exits.push(
+            commands::dispatch(&invocation, &base, &environment)
+                .unwrap()
+                .exit_code,
+        );
+    }
+    assert_eq!(exits, codes(&case["exit_codes"]), "exit");
+    let text = fs::read_to_string(base.join("out/report.sarif")).unwrap();
+    let native: Value =
+        serde_json::from_str(&text.replace(&base.display().to_string(), "<root>")).unwrap();
+    let differences = sarif_differences("sarif/cpp", &case["sarif"], &native);
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0 == "sarif/cpp");
+}
+
+/// Failure mode of the text and SARIF projections: a changed, missing or added line is reported
+/// on its side unless an allowance names that line (durations are masked first); a SARIF result
+/// only one side has, or a different result order, is a difference.
+#[test]
+fn an_unallowed_projection_difference_is_reported() {
+    let differences = text_differences(
+        "probe/summary.md",
+        "# Title\n| a | 1.23s |\nold row\n",
+        "# Title\n| a | 0.04s |\nnew row\nextra\n",
+    );
+    assert_eq!(
+        differences,
+        [
+            "probe/summary.md: Missing line \"old row\"",
+            "probe/summary.md: NativeOnly line \"new row\"",
+            "probe/summary.md: NativeOnly line \"extra\"",
+        ]
+    );
+    assert!(line_matches(
+        "| <code>gcc</code> | <code>ready</code> | x",
+        "| <code>*</code> | <code>ready</code> | "
+    ));
+    assert!(!line_matches(
+        "| <code>HIGH</code> | <code>exception</code> | x",
+        "| <code>*</code> | <code>ready</code> | "
+    ));
+    let result = |fingerprint: &str, rule: &str| json!({"ruleId": rule, "fingerprints": {"ici/v3": fingerprint}, "level": "note"});
+    let document = |results: Vec<Value>| {
+        json!({"version": "2.1.0", "runs": [{"tool": {"driver": {"name": "ici", "rules": [
+            {"id": "r", "properties": {"confidence": "high"}}]}}, "results": results}]})
+    };
+    let frozen = document(vec![result("a", "r"), result("b", "r")]);
+    let mut native = document(vec![result("b", "r"), result("c", "r")]);
+    native["runs"][0]["tool"]["driver"]["rules"][0]["properties"]["confidence"] = json!("low");
+    let mut differences = sarif_differences("probe/sarif", &frozen, &native);
+    differences.sort();
+    assert_eq!(
+        differences,
+        [
+            "probe/sarif: runs.results (Value)",
+            "probe/sarif: runs.results[r] (Missing)",
+            "probe/sarif: runs.results[r] (NativeOnly)",
+            "probe/sarif: runs.tool.driver.rules[r].properties.confidence (Value)",
+        ]
     );
 }
 

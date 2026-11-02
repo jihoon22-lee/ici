@@ -642,7 +642,9 @@ fn shape_engine(
                     .cloned()
             })
         };
+        let started = std::time::Instant::now();
         let (targets, fail, _) = python_fallback_targets(prepared, &root)?;
+        add_duration(value, started.elapsed());
         // Frozen adapts every target with the engine's first tool evidence (the Ruff not-found
         // record), so it is in place before the verdict adapts the fallback targets.
         value["tool_evidence"] = missing_tool("ruff");
@@ -687,7 +689,9 @@ fn shape_engine(
                     .cloned()
             })
         };
+        let started = std::time::Instant::now();
         let (mut targets, _, parsed) = python_fallback_targets(prepared, &root)?;
+        add_duration(value, started.elapsed());
         targets.extend(value["targets"].as_array().cloned().unwrap_or_default());
         let checks = value["extra"]["native_checks"]
             .as_array()
@@ -1286,6 +1290,12 @@ fn missing_tool(name: &str) -> serde_json::Value {
 
 /// Frozen `_lint_python` without Ruff: the AST syntax targets of every selected Python file and
 /// the `ASTSyntaxFallback` inventory target; the syntax failure count and parsed file count.
+/// The legacy view's own analysis (the AST fallback parse) is part of the engine's run time.
+fn add_duration(value: &mut serde_json::Value, elapsed: std::time::Duration) {
+    let seconds = value["duration"].as_f64().unwrap_or(0.0) + elapsed.as_secs_f64();
+    value["duration"] = serde_json::json!(seconds);
+}
+
 fn python_fallback_targets(
     prepared: &crate::planning::PreparedPlan,
     root: &Path,
