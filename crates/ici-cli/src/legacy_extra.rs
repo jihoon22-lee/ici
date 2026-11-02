@@ -279,6 +279,31 @@ fn complete_sanitize(family: &str, engine: &mut Value) {
 fn complete_dup(engine: &mut Value, context: &Context<'_>) {
     let policy = setting(context, "python_semantic").unwrap_or("auto");
     merge_dup_checks(engine);
+    // Frozen `DuplicateEngine.run` stops (intake fault, no owned source, normalization or
+    // comparison limit) return only `_source_evidence` (an empty inventory after an intake
+    // fault), never the policy, algorithm or semantic keys of a completed scan.
+    let stopped = targets(engine).iter().any(|target| {
+        matches!(
+            target["target_name"].as_str(),
+            Some("SourceInputError" | "SourceTokenizationError" | "DuplicateComparisonLimit")
+        ) || (target["target_name"] == "DuplicateCode" && target["status"] == "SKIP")
+    });
+    if stopped {
+        let extra = &mut engine["extra"];
+        for (key, value) in [
+            (
+                "analysis_provenance",
+                json!("language-lexical-region-heuristic"),
+            ),
+            ("source_files_analyzed", json!(0)),
+            ("source_bytes_analyzed", json!(0)),
+            ("source_files_excluded", json!(0)),
+            ("source_exclusion_counts", json!({})),
+        ] {
+            insert_absent(extra, key, value);
+        }
+        return;
+    }
     let extra = &mut engine["extra"];
     if extra.get("python_semantic_mode").is_none() {
         let mode = if policy == "off" {
@@ -438,7 +463,11 @@ fn complete_dead(engine: &mut Value, context: &Context<'_>) {
     let unused_policy = setting(context, "cpp_unused").unwrap_or("auto").to_owned();
     let linker_policy = setting(context, "cpp_linker").unwrap_or("off").to_owned();
     let checks = checks(engine);
-    let cpp = checks.iter().any(|check| check["check_id"] == "cpp.dead");
+    // A `cpp.dead` check blocked for want of any C/C++ source is frozen's scope without C++
+    // candidates.
+    let cpp = checks.iter().any(|check| {
+        check["check_id"] == "cpp.dead" && check["summary"] != "no sources in scope for cpp"
+    });
     let python: Vec<&Value> = checks
         .iter()
         .filter(|check| check["check_id"] == "python.dead")
@@ -480,8 +509,23 @@ fn complete_dead(engine: &mut Value, context: &Context<'_>) {
         }
         if extra["language_evidence"].is_object() {
             extra["language_evidence"]["cpp"] = json!("NOT_APPLICABLE");
+        } else if python.is_empty() {
+            // Frozen `DeadCodeEngine.run` with no source of either language.
+            extra["language_evidence"] =
+                json!({"python": "NOT_APPLICABLE", "cpp": "NOT_APPLICABLE"});
+            insert_absent(extra, "dead_symbols_count", json!(0));
         }
-        // The measured source snapshot of the Python half is the whole frozen inventory.
+        // The measured source snapshot of the Python half is the whole frozen inventory (an
+        // empty one without any source).
+        for (key, value) in [
+            ("source_files_analyzed", json!(0)),
+            ("source_files_snapshotted", json!(0)),
+            ("source_bytes_analyzed", json!(0)),
+            ("source_files_excluded", json!(0)),
+            ("source_exclusion_counts", json!({})),
+        ] {
+            insert_absent(extra, key, value);
+        }
         for block in &python {
             for key in [
                 "source_files_analyzed",
@@ -575,6 +619,22 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
         extra["cpp_unused_configurations_checked"] = json!(0);
         extra["cpp_unused_details"] = json!([]);
     }
+    // Frozen `_cpp_evidence`/`_linker_evidence` without readable C++ sources: NOT_RUN after an
+    // intake fault, NOT_APPLICABLE when every candidate was excluded.
+    let intake_fault = named("SourceInputError").is_some();
+    let without_sources = |state: &'static str| if intake_fault { "NOT_RUN" } else { state };
+    if mode == "not-applicable" {
+        // `CppUnusedFunctionOutcome(mode="not-applicable")`: nothing configured or checked.
+        for (key, value) in [
+            ("cpp_unused_configurations_checked", json!(0)),
+            ("cpp_unused_sources_checked", json!(0)),
+            ("cpp_unused_non_tu_diagnostics_excluded", json!(0)),
+            ("cpp_unused_warnings", json!([])),
+            ("cpp_unused_details", json!([])),
+        ] {
+            insert_absent(extra, key, value);
+        }
+    }
     if mode == "off" {
         // Frozen `_analyze_cpp_scope` with `cpp_unused = "off"`: the disabled outcome.
         for (key, value) in [
@@ -629,6 +689,7 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
         }
         let compiler = match mode.as_str() {
             "exact" => "MEASURED",
+            "not-applicable" => without_sources("NOT_APPLICABLE"),
             _ => "NOT_RUN",
         };
         extra["cpp_scope_evidence"] =
@@ -637,7 +698,13 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
             .iter()
             .find_map(|block| block["language_evidence"]["python"].as_str())
             .unwrap_or("NOT_APPLICABLE");
-        extra["language_evidence"] = json!({"python": python_evidence, "cpp": compiler});
+        // The language axis stays NOT_RUN for a C++ candidate set whose scope did not measure.
+        let language = if mode == "exact" {
+            "MEASURED"
+        } else {
+            "NOT_RUN"
+        };
+        extra["language_evidence"] = json!({"python": python_evidence, "cpp": language});
         let python_issues: u64 = python
             .iter()
             .filter_map(|block| block["python_issues"].as_u64())

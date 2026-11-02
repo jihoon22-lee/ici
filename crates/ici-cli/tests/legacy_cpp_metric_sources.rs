@@ -9,6 +9,9 @@
 //! then stays required. The `unterminated` frozen cases (brace-heuristic spans) are an
 //! open difference recorded on `_cpp_cognitive.py:649`, not replayed here. The `empty` tree (a
 //! C++ project with no source) replays frozen's not-applicable `ici exception` / `ici type`.
+//! Every dup/dead case also compares the whole frozen engine `extra` (every frozen key and
+//! value; a native-only key must be a named native evidence key), including the
+//! `SourceInputError` intake stops.
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
@@ -183,6 +186,44 @@ fn legacy_cpp_dup_and_dead_stop_at_frozen_intake_bounds() {
     }
 }
 
+/// Native evidence keys a legacy engine `extra` may carry beside frozen's (decisions.md "legacy
+/// `extra` 안 native 증거 키"; reporting.json R10/R11).
+const NATIVE_EXTRA_KEYS: [&str; 12] = [
+    "native_checks",
+    "target_scopes",
+    "finding_identity_map",
+    "parser_identity",
+    "source_encodings",
+    "excluded_source_counts",
+    "module_index",
+    "files_checked",
+    "python_issues",
+    "duplicated_lines",
+    "total_code_lines",
+    "legacy_findings",
+];
+
+/// The native `extra` restricted to frozen's keys (every frozen key and value must match, an
+/// absent one reads `null`); any other native key must be a named native evidence key.
+fn frozen_extra(case: &str, native: &Value, frozen: &serde_json::Map<String, Value>) -> Value {
+    for key in native
+        .as_object()
+        .into_iter()
+        .flat_map(|extra| extra.keys())
+    {
+        assert!(
+            frozen.contains_key(key) || NATIVE_EXTRA_KEYS.contains(&key.as_str()),
+            "{case}: native-only extra key {key}"
+        );
+    }
+    Value::Object(
+        frozen
+            .keys()
+            .map(|key| (key.clone(), native[key].clone()))
+            .collect(),
+    )
+}
+
 fn run(oracle: &Value, tree: &str, command: &str) -> (tempfile::TempDir, Value) {
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../parity-fixtures/cpp/metric-sources")
@@ -226,8 +267,11 @@ fn run(oracle: &Value, tree: &str, command: &str) -> (tempfile::TempDir, Value) 
                     "start_line": target["start_line"], "end_line": target["end_line"]})
             })
             .collect();
-        let actual = json!({"exit_code": output.exit_code, "status": report["status"],
+        let mut actual = json!({"exit_code": output.exit_code, "status": report["status"],
             "evidence": report["evidence"], "required": report["required"], "summary": report["summary"], "targets": targets});
+        if let Some(frozen) = oracle["cases"][format!("{command}:{tree}")]["extra"].as_object() {
+            actual["extra"] = frozen_extra(&format!("{command}:{tree}"), &report["extra"], frozen);
+        }
         (work, actual)
     }
 }
