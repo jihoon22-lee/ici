@@ -500,8 +500,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -1045,8 +1047,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -1590,8 +1594,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -2266,8 +2272,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -2770,8 +2778,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -3315,8 +3325,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -3807,8 +3819,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -4299,8 +4313,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -4844,8 +4860,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -5390,8 +5408,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -5808,8 +5828,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -6166,8 +6188,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -6489,8 +6513,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -6531,6 +6557,345 @@
    "tools": {
     "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n",
     "clazy-standalone": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clazy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clazy} \"$@\"\n"
+   }
+  },
+  "tidy-config-escaped-key": {
+   "config": "[engines.lint]\nclazy='off'\nclang_tidy_config='tidy.yaml'\n",
+   "files": {
+    "tidy.yaml": "Checks: '-*,performance-*'\n\"\\x45xtraArgs\": ['-DICI_ESCAPED']\n"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "evidence": "MEASURED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:28af2f7e523a82a0433bd33581f13c1028fb65925b0744629e4b3e85efbca3a6",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "exact",
+      "explanation": "clang-tidy diagnostic.",
+      "fingerprint": "sha256:608a13c3588c66f8b732be9c1d6d8205748aa9ab8b10b556999622ea3bf3a6f3",
+      "fixes": [],
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:performance-unnecessary-value-param",
+       "path": "src/tidy.cpp",
+       "start_column": 41,
+       "start_line": 3
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "performance-unnecessary-value-param",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:b672038d92797f34cc3d7bc5ad185610cb5dd96ea4e8579ff5860bbae84b08c1",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "invocations": [
+     [
+      "--use-color=false",
+      "--config-file={root}/tidy.yaml",
+      "{root}/src/clean.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ],
+     [
+      "--use-color=false",
+      "--config-file={root}/tidy.yaml",
+      "{root}/src/qt.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ],
+     [
+      "--use-color=false",
+      "--config-file={root}/tidy.yaml",
+      "{root}/src/tidy.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ]
+    ],
+    "status": "WARN",
+    "summary": "0 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "start_column": 41,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "ClangTidy:performance-unnecessary-value-param"
+     }
+    ]
+   },
+   "generated": {},
+   "generated_sources": 0,
+   "gxx": "",
+   "links": {},
+   "modes": {},
+   "outside": {},
+   "patches": {},
+   "rows": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/clean.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/clean.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/qt.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/qt.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/tidy.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/tidy.cpp"
+    }
+   ],
+   "tools": {
+    "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nprintf \"%s\\n\" \"$@\" --END-- >> {log}\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n"
    }
   },
   "tidy-config-large": {
@@ -6815,8 +7180,10 @@
    "generated": {
     "tidy.yaml": 1048577
    },
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -7139,8 +7506,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -7465,8 +7834,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -7518,8 +7889,10 @@
     "output": "Configuration error: engines.lint.clang_tidy_config: path is outside project root: ../outside.yaml\n"
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {
     "outside.yaml": "Checks: '-*,performance-*'\n"
    },
@@ -7573,10 +7946,12 @@
     "output": "Configuration error: engines.lint.clang_tidy_config: path is outside project root: tidy-link.yaml\n"
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {
     "tidy-link.yaml": "../outside.yaml"
    },
+   "modes": {},
    "outside": {
     "outside.yaml": "Checks: '-*,performance-*'\n"
    },
@@ -7619,6 +7994,345 @@
    "tools": {
     "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n",
     "clazy-standalone": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clazy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clazy} \"$@\"\n"
+   }
+  },
+  "tidy-config-quote-desync": {
+   "config": "[engines.lint]\nclazy='off'\nclang_tidy_config='tidy.yaml'\n",
+   "files": {
+    "tidy.yaml": "Checks: '-*,performance-*' # a\"b\n\"\\x45xtraArgs\": ['-DICI_ESCAPED']\n"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "evidence": "MEASURED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:28af2f7e523a82a0433bd33581f13c1028fb65925b0744629e4b3e85efbca3a6",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "exact",
+      "explanation": "clang-tidy diagnostic.",
+      "fingerprint": "sha256:608a13c3588c66f8b732be9c1d6d8205748aa9ab8b10b556999622ea3bf3a6f3",
+      "fixes": [],
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:performance-unnecessary-value-param",
+       "path": "src/tidy.cpp",
+       "start_column": 41,
+       "start_line": 3
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "performance-unnecessary-value-param",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:b672038d92797f34cc3d7bc5ad185610cb5dd96ea4e8579ff5860bbae84b08c1",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "invocations": [
+     [
+      "--use-color=false",
+      "--config-file={root}/tidy.yaml",
+      "{root}/src/clean.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ],
+     [
+      "--use-color=false",
+      "--config-file={root}/tidy.yaml",
+      "{root}/src/qt.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ],
+     [
+      "--use-color=false",
+      "--config-file={root}/tidy.yaml",
+      "{root}/src/tidy.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ]
+    ],
+    "status": "WARN",
+    "summary": "0 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "start_column": 41,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "ClangTidy:performance-unnecessary-value-param"
+     }
+    ]
+   },
+   "generated": {},
+   "generated_sources": 0,
+   "gxx": "",
+   "links": {},
+   "modes": {},
+   "outside": {},
+   "patches": {},
+   "rows": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/clean.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/clean.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/qt.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/qt.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/tidy.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/tidy.cpp"
+    }
+   ],
+   "tools": {
+    "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nprintf \"%s\\n\" \"$@\" --END-- >> {log}\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n"
    }
   },
   "tidy-config-unsafe": {
@@ -7903,8 +8617,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -8241,8 +8957,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -8578,8 +9296,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -8977,10 +9697,12 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {
     "src/.clang-tidy": "missing.yaml"
    },
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -9021,6 +9743,345 @@
    "tools": {
     "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n",
     "clazy-standalone": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clazy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clazy} \"$@\"\n"
+   }
+  },
+  "tidy-discovered-escaped-key": {
+   "config": "[engines.lint]\nclazy='off'\n",
+   "files": {
+    "src/.clang-tidy": "Checks: '-*,performance-*'\n\"Extra\\u0041rgsBefore\": ['-DICI_ESCAPED']\n"
+   },
+   "fixture": "lint-tidy",
+   "frozen": {
+    "evidence": "MEASURED",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:28af2f7e523a82a0433bd33581f13c1028fb65925b0744629e4b3e85efbca3a6",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "exact",
+      "explanation": "clang-tidy diagnostic.",
+      "fingerprint": "sha256:608a13c3588c66f8b732be9c1d6d8205748aa9ab8b10b556999622ea3bf3a6f3",
+      "fixes": [],
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:performance-unnecessary-value-param",
+       "path": "src/tidy.cpp",
+       "start_column": 41,
+       "start_line": 3
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "medium",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "clang-tidy",
+      "tool_rule_id": "performance-unnecessary-value-param",
+      "tool_version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:614854615ce4f121bb2095fac5ab905db9fd0ae83037e2674d09023fc514da16",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:49e88acfcb0f",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:49e88acfcb0f",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:649eccc35e2ca40caa780fff246b546b9599395cff86599a2120a9149c3674e7",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:b672038d92797f34cc3d7bc5ad185610cb5dd96ea4e8579ff5860bbae84b08c1",
+      "fixes": [],
+      "message": "clang-tidy completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidy:d36f6ae33579",
+       "path": "src/qt.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "ClangTidy:d36f6ae33579",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "category": "maintainability",
+      "confidence": "high",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:fcb7bae6c56ed659747025dd40de47f3efa942b6de50a1e4d6e6c86c0424f18b",
+      "fixes": [],
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++Syntax:eb9b50ec9185",
+       "path": "src/tidy.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "info",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "g++",
+      "tool_rule_id": "C++Syntax:eb9b50ec9185",
+      "tool_version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     }
+    ],
+    "invocations": [
+     [
+      "--use-color=false",
+      "--config-file={root}/src/.clang-tidy",
+      "{root}/src/clean.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ],
+     [
+      "--use-color=false",
+      "--config-file={root}/src/.clang-tidy",
+      "{root}/src/qt.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ],
+     [
+      "--use-color=false",
+      "--config-file={root}/src/.clang-tidy",
+      "{root}/src/tidy.cpp",
+      "--",
+      "-std=c++17",
+      "-Iinclude",
+      "-fdiagnostics-color=never",
+      "-nostdinc++",
+      "-isystem",
+      "/usr/include/c++/15",
+      "-isystem",
+      "/usr/include/x86_64-linux-gnu/c++/15",
+      "-isystem",
+      "/usr/include/c++/15/backward"
+     ]
+    ],
+    "status": "WARN",
+    "summary": "0 Errors, 1 Warnings Found",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "Compiler syntax analysis completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++Syntax:eb9b50ec9185"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:49e88acfcb0f"
+     },
+     {
+      "file_path": "src/qt.cpp",
+      "message": "clang-tidy completed without diagnostics.",
+      "start_column": null,
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "ClangTidy:d36f6ae33579"
+     },
+     {
+      "file_path": "src/tidy.cpp",
+      "message": "warning: the const qualified parameter 'text' is copied for each invocation; consider making it a reference",
+      "start_column": 41,
+      "start_line": 3,
+      "status": "WARN",
+      "target_name": "ClangTidy:performance-unnecessary-value-param"
+     }
+    ]
+   },
+   "generated": {},
+   "generated_sources": 0,
+   "gxx": "",
+   "links": {},
+   "modes": {},
+   "outside": {},
+   "patches": {},
+   "rows": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/clean.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/clean.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/qt.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/qt.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/tidy.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/tidy.cpp"
+    }
+   ],
+   "tools": {
+    "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nprintf \"%s\\n\" \"$@\" --END-- >> {log}\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n"
    }
   },
   "tidy-discovered-root-config": {
@@ -9317,8 +10378,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -9805,8 +10868,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -10153,10 +11218,12 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {
     "src/.clang-tidy": "../configs/tidy.yaml"
    },
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -10726,8 +11793,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -11078,8 +12147,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -11415,8 +12486,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -11772,8 +12845,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -12109,10 +13184,12 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {
     "tidy-link.yaml": "configs/tidy.yaml"
    },
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -12451,8 +13528,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -12791,8 +13870,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -13131,8 +14212,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -13530,8 +14613,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "#!/bin/sh\ncase \"$*\" in\n  *'-E -x c++ -v '*) exit 1 ;;\nesac\nexec /usr/bin/g++ \"$@\"\n",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -13854,8 +14939,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {
     "clazy._GLOBAL_TIMEOUT_SECONDS": 6,
@@ -14105,8 +15192,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {
     "clazy._GLOBAL_TIMEOUT_SECONDS": 0,
@@ -14280,8 +15369,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -14800,8 +15891,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -15178,8 +16271,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -15727,8 +16822,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -15776,6 +16873,180 @@
      ],
      "directory": "{root}",
      "file": "src/replay.cpp"
+    }
+   ],
+   "tools": {
+    "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n",
+    "clazy-standalone": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clazy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clazy} \"$@\"\n"
+   }
+  },
+  "tools-source-count": {
+   "config": "",
+   "files": {},
+   "fixture": "lint-tidy",
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "findings": [
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:38651f4afa806af9772eb14c34080ed7718db01977d01bacb622193debf9d3db",
+      "fixes": [],
+      "message": "C++ source count exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxBudgetError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:859d92a27b2d2907e08ddb4b149af957206e5a10bef3e07cb5e345c528494eb4",
+      "fixes": [],
+      "message": "clazy source count exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyContextError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:e8d232d68ba732f261f6880199b03f48e150f75dfb6ecda02c2dcfc3cdfc7e9c",
+      "fixes": [],
+      "message": "clang-tidy source count exceeds the bounded limit",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyContextError",
+       "path": ".",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "C++ source count exceeds the bounded limit; clang-tidy source count exceeds the bounded limit; clazy source count exceeds the bounded limit",
+    "targets": [
+     {
+      "file_path": ".",
+      "message": "C++ source count exceeds the bounded limit",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxBudgetError"
+     },
+     {
+      "file_path": ".",
+      "message": "clang-tidy source count exceeds the bounded limit",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyContextError"
+     },
+     {
+      "file_path": ".",
+      "message": "clazy source count exceeds the bounded limit",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyContextError"
+     }
+    ]
+   },
+   "generated": {},
+   "generated_sources": 2049,
+   "gxx": "",
+   "links": {},
+   "modes": {},
+   "outside": {},
+   "patches": {},
+   "rows": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/clean.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/clean.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/qt.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/qt.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/tidy.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/tidy.cpp"
     }
    ],
    "tools": {
@@ -16139,8 +17410,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {},
    "rows": [
@@ -16595,8 +17868,10 @@
     ]
    },
    "generated": {},
+   "generated_sources": 0,
    "gxx": "",
    "links": {},
+   "modes": {},
    "outside": {},
    "patches": {
     "clazy._TIMEOUT_SECONDS": 4,
@@ -16640,6 +17915,250 @@
    "tools": {
     "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\ncase \"$*\" in\n  *clean.cpp*) sleep 30; exit 0 ;;\nesac\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n",
     "clazy-standalone": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clazy} \"$@\"; fi\ncase \"$*\" in\n  *clean.cpp*) sleep 30; exit 0 ;;\nesac\nLD_LIBRARY_PATH={lib} exec {clazy} \"$@\"\n"
+   }
+  },
+  "tools-unreadable-source": {
+   "config": "[engines.line]\nenabled=false\n",
+   "files": {},
+   "fixture": "lint-tidy",
+   "frozen": {
+    "evidence": "NOT_RUN",
+    "findings": [
+     {
+      "category": "build",
+      "confidence": "high",
+      "explanation": "A declared Qt generated-code input is not linked by the exact compilation context.",
+      "fingerprint": "sha256:a2fd9b7236cd3f15ce577b326043c7ccaecaf4067894c37140e7b93062adb0a4",
+      "fixes": [],
+      "message": "file could not be read: PermissionError",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtMocInspectionError",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.qt.codegen.moc",
+      "severity": "high",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:a5efd6e064947f231bab1ecebb588ce95e3c84dd7336fc2813e0e2fe4b2301f2",
+      "fixes": [],
+      "message": "C++ source is not a readable regular file: clean.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "C++SyntaxContextError",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:aef91bf61f4d99a7bad5ad843536f0a7d02c26a04f8c6a65423073824600ab28",
+      "fixes": [],
+      "message": "clazy source is not a readable regular file: clean.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClazyContextError",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d08b975da1520f09bbde12d1edac76eaf9d17082f4f999928533f5c15f2b40af",
+      "fixes": [],
+      "message": "file could not be read: PermissionError",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "QtMocInspectionError",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     },
+     {
+      "category": "maintainability",
+      "confidence": "low",
+      "explanation": "Adapted from the legacy lint InspectionTarget contract.",
+      "fingerprint": "sha256:d3905bc3d0a8a69ce08e27f977fe821be52c40da779b6a8ec9c170c69856e185",
+      "fixes": [],
+      "message": "clang-tidy source is not a readable regular file: clean.cpp",
+      "metrics": {},
+      "primary_location": {
+       "end_column": null,
+       "end_line": null,
+       "label": "ClangTidyContextError",
+       "path": "src/clean.cpp",
+       "start_column": null,
+       "start_line": 1
+      },
+      "related_locations": [],
+      "remediation": "",
+      "rule_id": "ici.legacy.lint.target",
+      "severity": "critical",
+      "snippet": "",
+      "suppression": {
+       "kind": "none",
+       "reason": "",
+       "suppressed": false
+      },
+      "tool_name": "",
+      "tool_rule_id": "",
+      "tool_version": ""
+     }
+    ],
+    "status": "ERROR",
+    "summary": "C++ source is not a readable regular file: clean.cpp; file could not be read: PermissionError; clang-tidy source is not a readable regular file: clean.cpp",
+    "targets": [
+     {
+      "file_path": "src/clean.cpp",
+      "message": "C++ source is not a readable regular file: clean.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "C++SyntaxContextError"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "file could not be read: PermissionError",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "QtMocInspectionError"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clang-tidy source is not a readable regular file: clean.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClangTidyContextError"
+     },
+     {
+      "file_path": "src/clean.cpp",
+      "message": "clazy source is not a readable regular file: clean.cpp",
+      "start_column": null,
+      "start_line": 1,
+      "status": "ERROR",
+      "target_name": "ClazyContextError"
+     }
+    ]
+   },
+   "generated": {},
+   "generated_sources": 0,
+   "gxx": "",
+   "links": {},
+   "modes": {
+    "src/clean.cpp": 0
+   },
+   "outside": {},
+   "patches": {},
+   "rows": [
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/clean.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/clean.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/qt.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/qt.cpp"
+    },
+    {
+     "arguments": [
+      "g++",
+      "-std=c++17",
+      "-Iinclude",
+      "-c",
+      "src/tidy.cpp"
+     ],
+     "directory": "{root}",
+     "file": "src/tidy.cpp"
+    }
+   ],
+   "tools": {
+    "clang-tidy": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clang-tidy} \"$@\"\n",
+    "clazy-standalone": "#!/bin/sh\nif [ \"$1\" = --version ]; then LD_LIBRARY_PATH={lib} exec {clazy} \"$@\"; fi\nLD_LIBRARY_PATH={lib} exec {clazy} \"$@\"\n"
    }
   }
  },

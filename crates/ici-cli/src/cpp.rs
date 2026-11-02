@@ -378,6 +378,14 @@ impl CppPlans {
                 }
             }
             "cpp.diagnostics" => {
+                // Frozen `run_cpp_lint`: more than 2048 selected sources stop before the exact
+                // or fallback replay with one C++SyntaxBudgetError at the project root.
+                if self.legacy_projection
+                    && let Some(terminal) = fallback::legacy_source_budget(component)
+                {
+                    self.legacy_context_errors.insert(id.into(), terminal);
+                    return Some(Work::Internal);
+                }
                 if self.legacy_projection
                     && context.database_path.is_none()
                     && context.units.is_empty()
@@ -1325,26 +1333,35 @@ impl CppPlans {
             };
             let mut plan = ToolPlan {
                 clazy,
-                terminal: None,
+                terminal: vec![],
                 units: vec![],
             };
-            plan.terminal = if ingestion {
-                Some((
+            let at_root = |name: String, message: String| vec![(".".to_owned(), name, message)];
+            // Frozen `_normalized_sources` (before the tool is ready): the source-count bound.
+            // (Unreadable production sources never reach a step: the run's input snapshot
+            // refuses them first.)
+            plan.terminal = if context.selected_sources.len() > legacy_syntax::MAX_SELECTED_UNITS {
+                at_root(
+                    format!("{prefix}ContextError"),
+                    format!("{name} source count exceeds the bounded limit"),
+                )
+            } else if ingestion {
+                at_root(
                     format!("{prefix}ContextError"),
                     format!("{name} did not run because compilation context ingestion has errors"),
-                ))
+                )
             } else if let Err(message) = &explicit {
-                Some(("ClangTidyConfigError".into(), message.clone()))
+                at_root("ClangTidyConfigError".into(), message.clone())
             } else if units.len() > legacy_syntax::MAX_SELECTED_UNITS {
-                Some((
+                at_root(
                     format!("{prefix}ContextError"),
                     format!("{name} translation-unit count exceeds the bounded limit"),
-                ))
+                )
             } else {
-                None
+                vec![]
             };
             let explicit = explicit.unwrap_or_default();
-            if plan.terminal.is_some() {
+            if !plan.terminal.is_empty() {
                 plans.push(plan);
                 continue;
             }

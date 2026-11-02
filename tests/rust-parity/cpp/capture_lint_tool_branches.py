@@ -25,6 +25,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -162,6 +163,26 @@ CASES = {
         "config": TIDY_ONLY + "clang_tidy_config='tidy.yaml'\n",
         "files": {"tidy.yaml": "# notExtraArgs and InheritParentConfigs are comments\n" + CHECKS},
     },
+    # LLVM YAML decodes double-quoted escapes: frozen's raw-text regex accepts these configs
+    # and clang-tidy then applies ExtraArgs / ExtraArgsBefore (native refuses them).
+    "tidy-config-escaped-key": {
+        "tools": TIDY_LOG,
+        "config": TIDY_ONLY + "clang_tidy_config='tidy.yaml'\n",
+        "files": {"tidy.yaml": CHECKS + "\"\\x45xtraArgs\": ['-DICI_ESCAPED']\n"},
+    },
+    # A double quote inside a comment desynchronises naive quote tracking.
+    "tidy-config-quote-desync": {
+        "tools": TIDY_LOG,
+        "config": TIDY_ONLY + "clang_tidy_config='tidy.yaml'\n",
+        "files": {
+            "tidy.yaml": "Checks: '-*,performance-*' # a\"b\n\"\\x45xtraArgs\": ['-DICI_ESCAPED']\n"
+        },
+    },
+    "tidy-discovered-escaped-key": {
+        "tools": TIDY_LOG,
+        "config": TIDY_ONLY,
+        "files": {"src/.clang-tidy": CHECKS + "\"Extra\\u0041rgsBefore\": ['-DICI_ESCAPED']\n"},
+    },
     # A discovered config in one subdirectory only applies to its units.
     "tidy-discovered-subdirectory": {
         "tools": TIDY_LOG,
@@ -286,6 +307,14 @@ CASES = {
         "rows": [row("tools/gen.cpp")],
     },
     "tools-partial-database": {"rows": DEFAULT[:1]},
+    # A production source that is not readable (mode 000) and more than 2048 production sources.
+    # Frozen line counts an unreadable file as 0 lines and its JSON reporter then refuses the
+    # line target (end_line 0) and writes no report; the line engine is disabled to observe lint.
+    "tools-unreadable-source": {
+        "config": "[engines.line]\nenabled=false\n",
+        "modes": {"src/clean.cpp": 0},
+    },
+    "tools-source-count": {"generated_sources": 2049},
     "tools-gcc-search-fails": {"gxx": FAILING_SEARCH},
     # --- time budgets (frozen constants patched; Rust test hook) ---
     "tools-unit-timeout": {
@@ -367,6 +396,12 @@ def run(case: dict) -> dict:
             (project / name).write_text(text, encoding="utf-8")
         for name, size in case["generated"].items():
             (project / name).write_text("#" * size, encoding="utf-8")
+        if case["generated_sources"]:
+            (project / "src/gen").mkdir()
+        for index in range(case["generated_sources"]):
+            (project / f"src/gen/s{index}.cpp").write_text(f"int s{index}();\n", encoding="utf-8")
+        for name, mode in case["modes"].items():
+            (project / name).chmod(mode)
         for name, target in case["links"].items():
             (project / name).parent.mkdir(parents=True, exist_ok=True)
             os.symlink(target, project / name)
@@ -409,8 +444,13 @@ def run(case: dict) -> dict:
     return json.loads(text)
 
 
-cases = {}
+GOLDEN = ROOT / "tests/rust-parity/cpp/lint-tool-branches-oracle.json"
+# Optional case names recapture only those cases into the existing golden file.
+ONLY = set(sys.argv[1:])
+cases = json.loads(GOLDEN.read_text(encoding="utf-8"))["cases"] if ONLY else {}
 for name, fields in CASES.items():
+    if ONLY and name not in ONLY:
+        continue
     case = {
         "fixture": "lint-tidy",
         "rows": DEFAULT,
@@ -422,6 +462,8 @@ for name, fields in CASES.items():
         "links": {},
         "patches": {},
         "gxx": "",
+        "modes": {},
+        "generated_sources": 0,
         **fields,
     }
     case["frozen"] = run(case)
@@ -441,7 +483,7 @@ VERSIONS = {
         ("clang", "ICI_TEST_CLANG"),
     )
 }
-(ROOT / "tests/rust-parity/cpp/lint-tool-branches-oracle.json").write_text(
+GOLDEN.write_text(
     json.dumps(
         {"oracle": EXPECTED, "gxx": GXX, "base": BASE, "cases": cases, "tool_versions": VERSIONS},
         indent=1,

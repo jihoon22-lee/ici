@@ -132,6 +132,25 @@ fn run(oracle: &Value, case: &Value) -> Value {
         )
         .unwrap();
     }
+    let generated = case["generated_sources"].as_u64().unwrap_or(0);
+    if generated > 0 {
+        fs::create_dir_all(root.join("src/gen")).unwrap();
+    }
+    for index in 0..generated {
+        fs::write(
+            root.join(format!("src/gen/s{index}.cpp")),
+            format!("int s{index}();\n"),
+        )
+        .unwrap();
+    }
+    for (name, mode) in case["modes"].as_object().into_iter().flatten() {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(
+            root.join(name),
+            fs::Permissions::from_mode(u32::try_from(mode.as_u64().unwrap()).unwrap()),
+        )
+        .unwrap();
+    }
     for (name, target) in case["links"].as_object().unwrap() {
         let path = root.join(name);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -209,6 +228,7 @@ fn run(oracle: &Value, case: &Value) -> Value {
         "targets": targets,
         "findings": engine["findings"],
     });
+    captured["verify_exit_code"] = json!(output.exit_code);
     if case["tools"]
         .as_object()
         .unwrap()
@@ -222,6 +242,59 @@ fn run(oracle: &Value, case: &Value) -> Value {
         .replace(&root.display().to_string(), "{root}")
         .replace(&bin.display().to_string(), "{bin}");
     serde_json::from_str(&text).unwrap()
+}
+
+/// Security correction (docs/design/rust-replacement/decisions.md "clang-tidy 설정의 escape된
+/// 인자 키"): frozen ran clang-tidy with these configs (its raw-text, word-bounded key regex
+/// missed LLVM YAML double-quoted escapes and in-word mentions); native refuses them.
+const INTENDED_REFUSALS: [&str; 4] = [
+    "tidy-config-escaped-key",
+    "tidy-config-quote-desync",
+    "tidy-discovered-escaped-key",
+    "tidy-config-word-boundary",
+];
+const REFUSAL: &str = "clang-tidy config may not add compiler arguments or inherit parent config";
+
+fn names(report: &Value, prefix: &str) -> Vec<Value> {
+    report["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|target| {
+            target["target_name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with(prefix))
+        })
+        .cloned()
+        .collect()
+}
+
+/// Frozen ran clang-tidy for the case; native keeps the compiler syntax targets, runs no
+/// clang-tidy unit and reports frozen's config refusal (text and target) as the engine ERROR.
+fn refused_like_unsafe_config(actual: &Value, frozen: &Value) -> bool {
+    let refusals = names(actual, "ClangTidyConfigError");
+    let located = |target: &Value| target["message"] == REFUSAL && target["status"] == "ERROR";
+    // An explicit config is refused once at "."; a discovered one at every unit it governs.
+    let sources: Vec<Value> = names(frozen, "C++Syntax")
+        .iter()
+        .map(|target| target["file_path"].clone())
+        .collect();
+    let paths: Vec<Value> = refusals
+        .iter()
+        .map(|target| target["file_path"].clone())
+        .collect();
+    !names(frozen, "ClangTidy:").is_empty()
+        && names(actual, "ClangTidy:").is_empty()
+        && !refusals.is_empty()
+        && refusals.iter().all(located)
+        && (paths == [json!(".")] || paths == sources)
+        && actual["status"] == "ERROR"
+        && actual["summary"]
+            .as_str()
+            .unwrap_or_default()
+            .contains(REFUSAL)
+        && names(actual, "C++Syntax") == names(frozen, "C++Syntax")
+        && actual["invocations"].as_array().is_some_and(Vec::is_empty)
 }
 
 #[test]
@@ -263,7 +336,30 @@ fn legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv()
         if only.as_deref().is_some_and(|only| only != name) {
             continue;
         }
-        let actual = run(&oracle, case);
+        let mut actual = run(&oracle, case);
+        let exit = actual
+            .as_object_mut()
+            .and_then(|object| object.remove("verify_exit_code"));
+        if name == "tools-unreadable-source" {
+            // Intended difference: frozen reports per-step errors for an unreadable production
+            // source (and, with the line engine enabled, its JSON reporter crashes on the
+            // 0-line target); native refuses the whole run at its input snapshot, so lint is
+            // blocked with no evidence and the gate fails.
+            let blocked = actual["status"] == "SKIP"
+                && actual["summary"] == "input snapshot failed"
+                && actual["evidence"] == "NOT_RUN"
+                && actual["targets"].as_array().is_some_and(Vec::is_empty)
+                && exit
+                    .as_ref()
+                    .and_then(Value::as_i64)
+                    .is_some_and(|code| code != 0)
+                && case["frozen"]["status"] == "ERROR";
+            if !blocked {
+                eprintln!("== {name} (intended block)\nactual: {actual} exit {exit:?}");
+                mismatches.push(name.clone());
+            }
+            continue;
+        }
         let mut frozen = case["frozen"].clone();
         if let Some(calls) = frozen.get_mut("invocations").and_then(Value::as_array_mut) {
             calls.retain(|call| {
@@ -288,6 +384,13 @@ fn legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv()
             let error = actual["error"].as_str().unwrap_or_default();
             if !(error.starts_with("Configuration error: ") && error.contains(key)) {
                 eprintln!("== {name}\nactual: {actual}\nfrozen: {frozen}");
+                mismatches.push(name.clone());
+            }
+            continue;
+        }
+        if INTENDED_REFUSALS.contains(&name.as_str()) {
+            if !refused_like_unsafe_config(&actual, frozen) {
+                eprintln!("== {name} (intended refusal)\nactual: {actual}\nfrozen: {frozen}");
                 mismatches.push(name.clone());
             }
             continue;

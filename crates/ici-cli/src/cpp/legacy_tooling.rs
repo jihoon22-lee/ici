@@ -437,9 +437,11 @@ pub fn legacy_tooling_projection(
         let Some(plan) = plans.iter().find(|plan| plan.clazy == clazy) else {
             continue;
         };
-        if let Some((name, message)) = &plan.terminal {
-            targets.push(target(".", name.clone(), "ERROR", message.clone()));
-            errors.push(message.clone());
+        if !plan.terminal.is_empty() {
+            for (path, name, message) in &plan.terminal {
+                targets.push(target(path, name.clone(), "ERROR", message.clone()));
+                errors.push(message.clone());
+            }
             continue;
         }
         // Frozen `_selected_context_units`: each production source without a recorded command
@@ -588,11 +590,12 @@ fn validate_config_file(root: &Path, value: &Path, explicit: bool) -> Result<Pat
     if content.contains(&0) {
         return Err("clang-tidy config contains a null byte".into());
     }
-    // Frozen `_UNSAFE_CONFIG_ARGUMENT_RE` over bytes: ASCII word boundaries, case-insensitive.
-    let unsafe_argument =
-        regex::bytes::Regex::new(r"(?i-u)\b(?:ExtraArgs(?:Before)?|InheritParentConfig)\b")
-            .expect("constant regex");
-    if unsafe_argument.is_match(&content) {
+    // Security correction (decisions.md "clang-tidy 설정의 escape된 인자 키"): frozen
+    // `_UNSAFE_CONFIG_ARGUMENT_RE` only matched raw word-bounded key text, so LLVM YAML
+    // double-quoted escapes (`"\x45xtraArgs"`) injected compiler arguments. The shared native
+    // guard also refuses any key mention (case-insensitive, no word boundary), NUL bytes and
+    // any file holding both a double quote and a backslash, with frozen's refusal text/target.
+    if crate::cpp::clang_tidy_config_is_unsafe(&content) {
         return Err(
             "clang-tidy config may not add compiler arguments or inherit parent config".into(),
         );
@@ -653,9 +656,10 @@ pub struct ToolUnit {
 #[derive(Clone, Debug)]
 pub struct ToolPlan {
     pub clazy: bool,
-    /// A project-level error that stops this tool before unit selection (`<Tool>ContextError`
-    /// for context ingestion errors, `ClangTidyConfigError` for the configured config file).
-    pub terminal: Option<(String, String)>,
+    /// Project-level errors (path, target, message) that stop this tool before unit selection
+    /// (`<Tool>ContextError` for unreadable or too many sources and context ingestion errors,
+    /// `ClangTidyConfigError` for the configured config file).
+    pub terminal: Vec<(String, String, String)>,
     pub units: Vec<ToolUnit>,
 }
 
