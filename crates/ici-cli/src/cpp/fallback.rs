@@ -110,6 +110,7 @@ impl CppPlans {
         }
         let mut providers = vec![];
         let mut units = vec![];
+        let mut rejected = vec![];
         for (index, source) in sources.iter().enumerate() {
             let argv = std::iter::once(compiler.path.display().to_string())
                 .chain(std::iter::once("-std=c++17".into()))
@@ -143,6 +144,25 @@ impl CppPlans {
                 response_files: vec![],
                 diagnostics: vec![],
             };
+            // Frozen `_run_fallback`: a replay command `build_replay_command` rejects (a
+            // project-contained g++ on PATH, say) is that source's `C++SyntaxReplayError` and
+            // engine error; the other sources still run.
+            if self.legacy_projection
+                && let Err(error) = ici_cpp::replay_command(
+                    &project.root,
+                    &unit,
+                    &compiler.path,
+                    ReplayPurpose::Diagnostics,
+                )
+            {
+                let (code, message) = super::legacy_syntax::frozen_replay(&unit, &error);
+                let mut target = InspectionTarget::at(source.as_str(), 1);
+                target.target_name = "C++SyntaxReplayError".into();
+                target.status = "ERROR".into();
+                target.message = format!("{code}: {message}");
+                rejected.push((target, format!("C++ fallback {code}: {source}: {message}")));
+                continue;
+            }
             let mut planned = provider(
                 project,
                 component,
@@ -156,6 +176,22 @@ impl CppPlans {
             }
             providers.push(planned);
             units.push(unit);
+        }
+        if let Some((_, first)) = rejected.first() {
+            if !providers.is_empty() {
+                // Only a source replaced between discovery and planning is rejected alone.
+                return Err(first.clone());
+            }
+            let (targets, errors) = rejected.into_iter().unzip();
+            self.legacy_context_errors.insert(
+                id.into(),
+                super::legacy_syntax::Terminal {
+                    targets,
+                    errors,
+                    counters: super::legacy_syntax::stopped_counters("heuristic", 0),
+                },
+            );
+            return Ok(Work::Internal);
         }
         let tasks = probes
             .iter()

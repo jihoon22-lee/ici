@@ -1,0 +1,3 @@
+[
+ {"directory": ".", "command": "g++ -std=c++17 -c tools/x.cpp -o build/x.o", "file": "tools/x.cpp"}
+]

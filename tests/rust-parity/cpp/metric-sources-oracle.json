@@ -1,0 +1,182 @@
+{
+ "cases": {
+  "cognitive:unreadable": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "Cognitive complexity analysis did not complete",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/latin.cpp",
+     "message": "C++ cognitive source is not a bounded project file: src/latin.cpp (ValueError)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppCognitiveSourceError"
+    }
+   ]
+  },
+  "cognitive:unreadable-header": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Max cognitive complexity: 1 across 1 functions",
+   "targets": [
+    {
+     "end_line": 4,
+     "file_path": "src/ok.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ok"
+    }
+   ]
+  },
+  "cognitive:unterminated": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "Cognitive complexity analysis did not complete",
+   "targets": [
+    {
+     "end_line": 4,
+     "file_path": "src/ok.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ok"
+    },
+    {
+     "end_line": 3,
+     "file_path": "src/open.cpp",
+     "message": "C++ cognitive function range is unterminated: src/open.cpp:1",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "open_fn"
+    }
+   ]
+  },
+  "complexity:unreadable": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (1 issues)",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "C++ complexity source is not a bounded project file: latin.cpp",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppComplexityAnalysisError"
+    }
+   ]
+  },
+  "complexity:unreadable-header": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 1 functions (0 issues)",
+   "targets": [
+    {
+     "end_line": 4,
+     "file_path": "src/ok.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ok()"
+    }
+   ]
+  },
+  "complexity:unterminated": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 2 functions (0 issues)",
+   "targets": [
+    {
+     "end_line": 4,
+     "file_path": "src/ok.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ok()"
+    },
+    {
+     "end_line": 3,
+     "file_path": "src/open.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "open_fn()"
+    }
+   ]
+  },
+  "dup:unreadable": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/latin.cpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:unreadable-header": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/bad.hpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "exception:empty": {
+   "evidence": "NOT_APPLICABLE",
+   "exit_code": 2,
+   "status": "SKIP",
+   "summary": "Exception safety analysis skipped: no applicable source files",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "No applicable Python or C++ source files were selected; analysis was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "ExceptionSafety"
+    }
+   ]
+  },
+  "type:empty": {
+   "evidence": "NOT_APPLICABLE",
+   "exit_code": 2,
+   "status": "SKIP",
+   "summary": "Type checking not applicable: no Python sources; C++ is unsupported",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": ".",
+     "message": "No applicable C++ source files were selected; type checking was not run",
+     "start_line": 1,
+     "status": "SKIP",
+     "target_name": "C++TypeCheck"
+    }
+   ]
+  }
+ },
+ "config": "[project]\ntype = \"cpp\"\nsource_dirs = [\"src\"]\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

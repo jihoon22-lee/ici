@@ -106,6 +106,12 @@ impl CppAnalysisSession {
         let mut files = vec![];
         let mut line_files = vec![];
         let mut source_recovery = false;
+        // Frozen legacy C++ complexity/cognitive engines read every source strictly as UTF-8
+        // first (`read_cpp_source_text`); an unreadable source stops the metric before any
+        // function is measured.
+        let legacy_metric = matches!(kind, "complexity" | "cognitive")
+            && request.options["legacy_projection"].as_bool() == Some(true);
+        let mut unreadable = vec![];
         let mut excluded_counts = BTreeMap::<String, usize>::new();
         let mut paths = std::collections::BTreeSet::new();
         for input in &request.inputs {
@@ -212,6 +218,33 @@ impl CppAnalysisSession {
                             );
                             continue;
                         }
+                        if legacy_metric && error.code == "source-encoding" {
+                            // Frozen metric engines read only translation units: an
+                            // unreadable header is never opened.
+                            if crate::is_translation_unit(&input.path) {
+                                unreadable.push(input.path.clone());
+                            }
+                            continue;
+                        }
+                        // Frozen DuplicateEngine: `read_analysis_sources` raises at the first
+                        // source that is not UTF-8 and the engine reports only that source.
+                        if kind == "dup"
+                            && error.code == "source-encoding"
+                            && request.options["legacy_projection"].as_bool() == Some(true)
+                        {
+                            let message = "Analysis source is not valid UTF-8";
+                            let mut target = InspectionTarget::at(&input.path, 1);
+                            target.target_name = "SourceInputError".into();
+                            target.status = "ERROR".into();
+                            target.message = format!("invalid-utf8: {message}");
+                            output.targets = vec![target];
+                            output.observation.findings.clear();
+                            output.summary = message.into();
+                            output.status = "ERROR".into();
+                            output.observation.state = TaskState::Failed;
+                            output.observation.limitations.push(message.into());
+                            return output;
+                        }
                         fail(&mut output, &input.path, &error.code, &error.message);
                         continue;
                     }
@@ -235,6 +268,9 @@ impl CppAnalysisSession {
                 continue;
             }
             files.push(file);
+        }
+        if !unreadable.is_empty() {
+            return legacy_unreadable_metric(kind, request, output, &unreadable);
         }
         if cancelled(&mut output, cancellation) {
             return output;
@@ -449,6 +485,65 @@ impl CppAnalysisSession {
         output.extra["parser_identity"] = json!(source::PARSER_ID);
         output
     }
+}
+/// Frozen legacy metric engines over a source that is not UTF-8: cognitive
+/// (`_cpp_cognitive._append_source_error`) keeps one `CppCognitiveSourceError` per unreadable
+/// source and nothing else ("Cognitive complexity analysis did not complete"); complexity
+/// (`ComplexityEngine._cpp_source_rows`) one `CppComplexityAnalysisError` at the project root
+/// naming the unreadable file names, and no function.
+fn legacy_unreadable_metric(
+    kind: &str,
+    request: &AnalysisRequest,
+    mut output: AnalysisOutput,
+    unreadable: &[String],
+) -> AnalysisOutput {
+    output.targets.clear();
+    output.observation.findings.clear();
+    let mut errors = vec![];
+    if kind == "cognitive" {
+        for path in unreadable {
+            let message =
+                format!("C++ cognitive source is not a bounded project file: {path} (ValueError)");
+            let mut target = InspectionTarget::at(path, 1);
+            target.target_name = "CppCognitiveSourceError".into();
+            target.status = "ERROR".into();
+            target.message = message.clone();
+            target
+                .metrics
+                .insert("boundary_source".into(), json!("source-intake"));
+            output.targets.push(target);
+            errors.push(message);
+        }
+        output.summary = "Cognitive complexity analysis did not complete".into();
+    } else {
+        errors = unreadable
+            .iter()
+            .map(|path| {
+                format!(
+                    "C++ complexity source is not a bounded project file: {}",
+                    path.rsplit('/').next().unwrap_or(path)
+                )
+            })
+            .collect();
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = "CppComplexityAnalysisError".into();
+        target.status = "ERROR".into();
+        target.message = errors
+            .iter()
+            .take(10)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("; ");
+        target
+            .metrics
+            .insert("boundary_source".into(), json!("compiler-tool-error"));
+        output.targets.push(target);
+        output.summary = frozen_summary(kind, request, &mut output).unwrap_or_default();
+    }
+    output.status = "ERROR".into();
+    output.observation.state = TaskState::Failed;
+    output.observation.limitations.extend(errors);
+    output
 }
 /// Python `{value:,}` grouping for the frozen line summary.
 pub(crate) fn grouped(value: u64) -> String {
