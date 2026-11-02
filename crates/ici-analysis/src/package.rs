@@ -475,7 +475,16 @@ pub fn analyze(
     // them against the canonical project root): the package analysis stops with frozen's
     // PythonPackagingError text and keeps none of its findings.
     if let Some(refusal) = request.options.get("wheel_discovery_error") {
-        let message = if let Some(pattern) = refusal.get("pattern").and_then(Value::as_str) {
+        let pattern = refusal.get("pattern").and_then(Value::as_str);
+        let message = if let (Some(limit), Some(pattern)) =
+            (refusal.get("visit_limit").and_then(Value::as_u64), pattern)
+        {
+            // Native bound (frozen walked without one): the discovery is refused, never partial.
+            format!(
+                "wheel glob visited more than {limit} directory entries: {}",
+                crate::unicode::python_repr(pattern)
+            )
+        } else if let Some(pattern) = pattern {
             format!(
                 "wheel glob could not be evaluated: {}",
                 crate::unicode::python_repr(pattern)

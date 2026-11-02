@@ -4,18 +4,28 @@
 //! and a candidate frozen refused is carried to the analyzer as `wheel_discovery_error` so the
 //! package analysis stops with frozen's message instead of silently missing the wheel.
 //!
-//! Per pattern, in scandir order: a match whose resolution fails or leaves the project is
-//! `wheel glob could not be evaluated: '<pattern>'`; a symlink or a non-file is `wheel candidate
-//! is not a regular contained file: <path>`; other regular files are skipped unless their suffix
-//! is `.whl`; more than `max_wheels` wheels stops the discovery (`wheel match count exceeds the
-//! configured bound`). A pattern the analyzer's policy refuses ends the discovery so that refusal
-//! is the one reported.
+//! Per pattern, candidates are judged as the walk yields them (scandir order, like frozen's lazy
+//! generator): a match whose resolution fails or leaves the project is `wheel glob could not be
+//! evaluated: '<pattern>'`; a symlink or a non-file is `wheel candidate is not a regular
+//! contained file: <path>`; other regular files are skipped unless their suffix is `.whl`; more
+//! than `max_wheels` wheels stops the walk at once (`wheel match count exceeds the configured
+//! bound`). A pattern the analyzer's policy refuses ends the discovery so that refusal is the one
+//! reported.
+//!
+//! Bounds frozen did not have (intended difference, runtime closure security review): consecutive
+//! `**` parts collapse into one (same pathlib matches, no multiplied walk), each candidate is
+//! judged once, and the whole discovery visits at most [`VISIT_LIMIT`] directory entries; beyond
+//! that it is refused (`wheel glob visited more than 100000 directory entries: '<pattern>'`).
 use regex::Regex;
 use serde_json::{Value, json};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeSet, HashSet},
+    ops::ControlFlow,
     path::{Path, PathBuf},
 };
+
+/// Directory entries one discovery may visit across every pattern before it is refused.
+pub const VISIT_LIMIT: usize = 100_000;
 
 /// What frozen `_wheel_paths` returned or raised.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,10 +46,17 @@ fn wildcard(part: &str) -> bool {
 }
 
 fn selectors(pattern: &str) -> Option<Vec<Selector>> {
-    let parts: Vec<_> = pattern
+    let mut parts: Vec<&str> = vec![];
+    for part in pattern
         .split('/')
         .filter(|part| !part.is_empty() && *part != ".")
-        .collect();
+    {
+        // `**/**` selects exactly what `**` selects; one recursive walk is enough.
+        if part == "**" && parts.last() == Some(&"**") {
+            continue;
+        }
+        parts.push(part);
+    }
     if parts.is_empty() {
         return None;
     }
@@ -57,64 +74,81 @@ fn selectors(pattern: &str) -> Option<Vec<Selector>> {
         .collect()
 }
 
-/// Python 3.10 `_RecursiveWildcardSelector._iterate_directories`: the directory itself, then
-/// every real (non-symlink) subdirectory, depth first in scandir order.
-fn directories(path: &Path, out: &mut Vec<PathBuf>) {
-    out.push(path.to_owned());
-    let Ok(entries) = std::fs::read_dir(path) else {
-        return;
-    };
-    for entry in entries.flatten() {
-        let Ok(kind) = entry.file_type() else {
-            continue;
-        };
-        if kind.is_dir() {
-            directories(&entry.path(), out);
-        }
-    }
+/// One walk's state: the entry budget, the candidates already judged and the judge itself.
+struct Walk<'a> {
+    visited: usize,
+    seen: HashSet<PathBuf>,
+    judge: &'a mut dyn FnMut(&Path) -> ControlFlow<Discovery>,
+    over_limit: Discovery,
 }
 
-/// Matches of `selectors` under `parent` in pathlib's yield order (deduplicated like pathlib).
-fn select(parent: &Path, selectors: &[Selector], out: &mut Vec<PathBuf>) {
-    let Some((first, rest)) = selectors.split_first() else {
-        if !out.iter().any(|seen| seen == parent) {
-            out.push(parent.to_owned());
+impl Walk<'_> {
+    /// Directory entries of `path` in scandir order, charged to the budget.
+    fn entries(&mut self, path: &Path) -> ControlFlow<Discovery, Vec<std::fs::DirEntry>> {
+        let mut entries = vec![];
+        let Ok(reader) = std::fs::read_dir(path) else {
+            return ControlFlow::Continue(entries);
+        };
+        for entry in reader.flatten() {
+            self.visited += 1;
+            if self.visited > VISIT_LIMIT {
+                return ControlFlow::Break(self.over_limit.clone());
+            }
+            entries.push(entry);
         }
-        return;
-    };
-    let dironly = !rest.is_empty();
-    match first {
-        Selector::Precise(name) => {
-            let path = parent.join(name);
-            if if dironly {
-                path.is_dir()
-            } else {
-                path.exists()
-            } {
-                select(&path, rest, out);
+        ControlFlow::Continue(entries)
+    }
+
+    fn yielded(&mut self, path: &Path) -> ControlFlow<Discovery> {
+        if self.seen.insert(path.to_owned()) {
+            (self.judge)(path)?;
+        }
+        ControlFlow::Continue(())
+    }
+
+    /// Python 3.10 `_RecursiveWildcardSelector`: the directory itself, then every real
+    /// (non-symlink) subdirectory depth first in scandir order, each matched as it is reached.
+    fn recursive(&mut self, directory: &Path, rest: &[Selector]) -> ControlFlow<Discovery> {
+        self.select(directory, rest)?;
+        for entry in self.entries(directory)? {
+            if entry.file_type().is_ok_and(|kind| kind.is_dir()) {
+                self.recursive(&entry.path(), rest)?;
             }
         }
-        Selector::Wildcard(pattern) => {
-            let Ok(entries) = std::fs::read_dir(parent) else {
-                return;
-            };
-            for entry in entries.flatten() {
-                if dironly && !entry.path().is_dir() {
-                    continue;
+        ControlFlow::Continue(())
+    }
+
+    /// Matches of `selectors` under `parent`, judged in pathlib's yield order.
+    fn select(&mut self, parent: &Path, selectors: &[Selector]) -> ControlFlow<Discovery> {
+        let Some((first, rest)) = selectors.split_first() else {
+            return self.yielded(parent);
+        };
+        let dironly = !rest.is_empty();
+        match first {
+            Selector::Precise(name) => {
+                let path = parent.join(name);
+                if if dironly {
+                    path.is_dir()
+                } else {
+                    path.exists()
+                } {
+                    self.select(&path, rest)?;
                 }
-                let name = entry.file_name();
-                if pattern.is_match(&name.to_string_lossy()) {
-                    select(&parent.join(name), rest, out);
+            }
+            Selector::Wildcard(pattern) => {
+                for entry in self.entries(parent)? {
+                    if dironly && !entry.path().is_dir() {
+                        continue;
+                    }
+                    let name = entry.file_name();
+                    if pattern.is_match(&name.to_string_lossy()) {
+                        self.select(&parent.join(name), rest)?;
+                    }
                 }
             }
+            Selector::Recursive => self.recursive(parent, rest)?,
         }
-        Selector::Recursive => {
-            let mut found = vec![];
-            directories(parent, &mut found);
-            for directory in found {
-                select(&directory, rest, out);
-            }
-        }
+        ControlFlow::Continue(())
     }
 }
 
@@ -125,46 +159,67 @@ fn contained(pattern: &str) -> bool {
         && !pattern.split('/').any(|part| part == "..")
 }
 
-/// Frozen `_wheel_paths(canonical_root, policy)`.
+/// Frozen `_wheel_paths(canonical_root, policy)`, bounded.
 pub fn discover(root: &Path, globs: &[String], max_wheels: usize) -> Discovery {
+    judged(root, globs, max_wheels).0
+}
+
+/// The discovery and how many candidates it judged before it ended.
+fn judged(root: &Path, globs: &[String], max_wheels: usize) -> (Discovery, usize) {
+    let mut judged = 0;
     let Ok(root) = root.canonicalize() else {
-        return Discovery::Wheels(vec![]);
+        return (Discovery::Wheels(vec![]), judged);
     };
     let mut found = BTreeSet::new();
+    let mut visited = 0;
     for pattern in globs {
         if !contained(pattern) {
             break;
         }
-        let refused = || Discovery::Refused(json!({"pattern": pattern}));
+        let refused = Discovery::Refused(json!({"pattern": pattern}));
         let Some(selectors) = selectors(pattern) else {
-            return refused();
+            return (refused, judged);
         };
-        let mut matches = vec![];
-        if root.is_dir() {
-            select(&root, &selectors, &mut matches);
+        if !root.is_dir() {
+            continue;
         }
-        for path in matches {
+        let mut judge = |path: &Path| -> ControlFlow<Discovery> {
+            judged += 1;
             let Ok(resolved) = path.canonicalize() else {
-                return refused();
+                return ControlFlow::Break(refused.clone());
             };
             let Ok(relative) = resolved.strip_prefix(&root) else {
-                return refused();
+                return ControlFlow::Break(refused.clone());
             };
-            let symlink = std::fs::symlink_metadata(&path)
+            let symlink = std::fs::symlink_metadata(path)
                 .map(|metadata| metadata.file_type().is_symlink())
                 .unwrap_or(false);
             if symlink || !resolved.is_file() {
-                return Discovery::Refused(json!({"candidate": path.display().to_string()}));
+                return ControlFlow::Break(Discovery::Refused(
+                    json!({"candidate": path.display().to_string()}),
+                ));
             }
             if resolved.extension().is_some_and(|suffix| suffix == "whl") {
                 found.insert(relative.to_string_lossy().into_owned());
             }
             if found.len() > max_wheels {
-                return Discovery::Refused(json!({"count": true}));
+                return ControlFlow::Break(Discovery::Refused(json!({"count": true})));
             }
+            ControlFlow::Continue(())
+        };
+        let mut walk = Walk {
+            visited,
+            seen: HashSet::new(),
+            judge: &mut judge,
+            over_limit: Discovery::Refused(json!({"visit_limit": VISIT_LIMIT, "pattern": pattern})),
+        };
+        let flow = walk.select(&root, &selectors);
+        visited = walk.visited;
+        if let ControlFlow::Break(refusal) = flow {
+            return (refusal, judged);
         }
     }
-    Discovery::Wheels(found.into_iter().collect())
+    (Discovery::Wheels(found.into_iter().collect()), judged)
 }
 
 /// The wheel discovery a check's analysis options ask for, or None without wheel globs.
@@ -244,6 +299,53 @@ mod tests {
             Discovery::Refused(
                 json!({"candidate": root.join("dist/dir.whl").display().to_string()})
             )
+        );
+    }
+
+    #[test]
+    fn consecutive_recursive_parts_collapse_and_the_walk_stops_at_the_wheel_bound() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().canonicalize().unwrap();
+        std::fs::create_dir_all(root.join("a/b/c")).unwrap();
+        std::fs::write(root.join("a/b/c/x-1-py3-none-any.whl"), b"x").unwrap();
+        let globs = |pattern: &str, max: usize| discover(&root, &[pattern.to_owned()], max);
+        // `**/**/**` is one recursive selector: the same single match, judged once.
+        assert_eq!(selectors("**/**/./**/*.whl").unwrap().len(), 2);
+        assert_eq!(
+            globs("**/**/**/*.whl", 32),
+            Discovery::Wheels(vec!["a/b/c/x-1-py3-none-any.whl".into()])
+        );
+        // The walk stops at the first wheel beyond the bound: 3 of 50 candidates are judged.
+        for index in 0..50 {
+            std::fs::write(root.join(format!("a/w{index}-1-py3-none-any.whl")), b"w").unwrap();
+        }
+        assert_eq!(
+            judged(&root, &["a/*.whl".into()], 2),
+            (Discovery::Refused(json!({"count": true})), 3)
+        );
+        assert_eq!(
+            globs("a/*.whl", 2),
+            Discovery::Refused(json!({"count": true}))
+        );
+    }
+
+    #[test]
+    fn a_discovery_visiting_too_many_directory_entries_is_refused_with_a_bound() {
+        let directory = tempfile::tempdir().unwrap();
+        let root = directory.path().canonicalize().unwrap();
+        let wide = root.join("wide");
+        std::fs::create_dir(&wide).unwrap();
+        for index in 0..=VISIT_LIMIT {
+            std::fs::File::create(wide.join(format!("{index}.txt"))).unwrap();
+        }
+        assert_eq!(
+            discover(&root, &["**/*.whl".into()], 32),
+            Discovery::Refused(json!({"visit_limit": VISIT_LIMIT, "pattern": "**/*.whl"}))
+        );
+        // A precise pattern lists no directory and is not charged.
+        assert_eq!(
+            discover(&root, &["wide/0.txt".into()], 32),
+            Discovery::Wheels(vec![])
         );
     }
 }
