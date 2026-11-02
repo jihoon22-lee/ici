@@ -220,6 +220,22 @@ fn monorepo_packages_get_disjoint_owned_sources_and_nested_workspace_stays_separ
         .collect();
     assert_eq!(all.len(), 4);
     assert!(!all.iter().any(|file| file.starts_with("independent/")));
+    // R8: discovered ids are result identifiers; the root keeps the package directory.
+    let mut ids: Vec<_> = project
+        .components
+        .iter()
+        .map(|c| (c.id.as_str(), c.root.as_str()))
+        .collect();
+    ids.sort();
+    assert_eq!(
+        ids,
+        [
+            ("project", "."),
+            ("python-tool", "python/tool"),
+            ("rust-one", "rust/one"),
+            ("web", "web"),
+        ]
+    );
     let inner = resolve_with_environment(
         &tree.root().join("independent"),
         None,
@@ -863,4 +879,81 @@ fn explicit_interpreter_preserves_virtual_environment_and_multicall_invocation_s
         project.components[0].python_executable.as_deref(),
         Some("pkg/.venv/bin/python")
     );
+}
+
+/// R8: a zero-config Cargo workspace (`members = ["crates/foo"]`) and colliding/reserved package
+/// directories resolve to valid, deterministic, distinct identifiers before any tool runs.
+#[test]
+fn automatic_component_ids_are_valid_deterministic_and_collision_safe() {
+    let valid = |id: &str| {
+        let alnum = |b: u8| b.is_ascii_lowercase() || b.is_ascii_digit();
+        id.as_bytes().first().is_some_and(|b| alnum(*b))
+            && id.as_bytes().last().is_some_and(|b| alnum(*b))
+            && id.bytes().all(|b| alnum(b) || b"._-".contains(&b))
+    };
+    let tree = Project::new();
+    tree.write("Cargo.toml", "[workspace]\nmembers=['crates/foo']\n");
+    tree.write(
+        "crates/foo/Cargo.toml",
+        "[package]\nname='foo'\nversion='0.1.0'\n",
+    );
+    tree.write("crates/foo/src/lib.rs", "pub fn f() {}\n");
+    // Positive: `crates/foo` becomes `crates-foo`, rooted at its directory.
+    let project = tree.resolve();
+    assert_eq!(
+        scope(&project),
+        [(
+            "crates-foo".into(),
+            "crates/foo".into(),
+            vec!["rust".into()],
+            vec!["crates/foo/src/lib.rs".into()]
+        )]
+    );
+    // Negative: a literal `crates-foo` package and a package named `project` collide with the
+    // slug / the root id, so all three get a deterministic directory-digest suffix.
+    tree.write("crates-foo/package.json", "{\"name\":\"x\"}");
+    tree.write("crates-foo/main.ts", "const n=1;\n");
+    tree.write(
+        "Project/pyproject.toml",
+        "[project]\nname='p'\nversion='1'\n",
+    );
+    tree.write("Project/a.py", "x=1\n");
+    let first = tree.resolve();
+    let ids: Vec<_> = first.components.iter().map(|c| c.id.clone()).collect();
+    assert_eq!(ids.len(), 3, "{ids:?}");
+    assert_eq!(
+        ids.iter().collect::<std::collections::BTreeSet<_>>().len(),
+        3
+    );
+    let mut sorted = ids.clone();
+    sorted.sort();
+    for (id, prefix) in sorted
+        .iter()
+        .zip(["crates-foo-", "crates-foo-", "project-"])
+    {
+        assert!(valid(id), "{id}");
+        assert!(id.starts_with(prefix), "{id}");
+        assert_eq!(id.len(), prefix.len() + 8, "{id}");
+    }
+    assert_eq!(
+        first
+            .components
+            .iter()
+            .map(|c| c.id.clone())
+            .collect::<Vec<_>>(),
+        tree.resolve()
+            .components
+            .iter()
+            .map(|c| c.id.clone())
+            .collect::<Vec<_>>()
+    );
+    // Failure boundary: a directory whose name has no identifier character keeps a valid id.
+    let tree = Project::new();
+    tree.write("ü/pyproject.toml", "[project]\nname='u'\nversion='1'\n");
+    tree.write("ü/a.py", "x=1\n");
+    let project = tree.resolve();
+    assert_eq!(project.components.len(), 1);
+    assert!(project.components[0].id.starts_with("component-"));
+    assert!(valid(&project.components[0].id));
+    assert_eq!(project.components[0].root, "ü");
 }

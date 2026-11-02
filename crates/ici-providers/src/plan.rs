@@ -337,7 +337,10 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             );
         }
         ProviderKind::Clippy => {
-            let target = request.cwd.join(".ici/rust-v1/cargo-target");
+            // One ici-owned target directory per workspace (frozen `.ici/cargo-target` under the
+            // automatic run root), never one per discovered crate inside the user's packages;
+            // the shared resource key serializes the Cargo runs that use it.
+            let target = request.workspace_root.join(".ici/rust-v1/cargo-target");
             let jobs = if request.options.jobs == 0 {
                 2
             } else {
@@ -370,9 +373,20 @@ pub fn plan(request: &ProviderRequest) -> Result<ProviderPlan, ProviderError> {
             limitations.push("ESLint executes project configuration and plugins".into());
         }
         ProviderKind::Tsc => {
-            let metadata = request
-                .cwd
-                .join(".ici/rust-v1/typescript/analysis.tsbuildinfo");
+            // Incremental metadata stays in the workspace's ici namespace; a package below the
+            // root gets its own directory there instead of an `.ici` inside the package.
+            let mut metadata = request.workspace_root.join(".ici/rust-v1/typescript");
+            if request.cwd != request.workspace_root {
+                let package = request
+                    .cwd
+                    .strip_prefix(&request.workspace_root)
+                    .map(|relative| relative.to_string_lossy().replace('/', "-"))
+                    .unwrap_or_else(|_| {
+                        ici_domain::sha256(request.cwd.to_string_lossy().as_bytes())
+                    });
+                metadata.push(request.component_id.clone().unwrap_or(package));
+            }
+            let metadata = metadata.join("analysis.tsbuildinfo");
             push(
                 &mut argv,
                 &[

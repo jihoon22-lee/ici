@@ -247,3 +247,77 @@ fn typescript_relative_extends_are_captured_and_jsonc_is_explicitly_unconfirmed(
             .any(|line| line.contains("JSONC"))
     );
 }
+
+/// R8: Cargo and TypeScript work directories of a package below the workspace root live in the
+/// workspace's ici namespace (one shared Cargo target), never in an `.ici` inside the package.
+#[test]
+fn package_work_directories_stay_in_the_workspace_ici_namespace() {
+    let root = tempfile::tempdir().unwrap();
+    let package = root.path().join("crates/foo");
+    let nested = |kind| {
+        let mut request = request(root.path(), kind);
+        request.cwd = package.clone();
+        request.component_id = Some("crates-foo".into());
+        plan(&request).unwrap()
+    };
+    let target = root.path().join(".ici/rust-v1/cargo-target");
+    // Positive: the package's clippy and the root's clippy share one workspace target.
+    for planned in [
+        nested(ProviderKind::Clippy),
+        plan(&request(root.path(), ProviderKind::Clippy)).unwrap(),
+    ] {
+        let index = planned
+            .task
+            .argv
+            .iter()
+            .position(|arg| arg == "--target-dir")
+            .unwrap();
+        assert_eq!(Path::new(&planned.task.argv[index + 1]), target);
+        assert_eq!(
+            planned.task.work_dirs,
+            [target.to_string_lossy().into_owned()]
+        );
+        assert_eq!(planned.task.resource_keys, planned.task.work_dirs);
+    }
+    // Negative: nothing names a directory inside the package.
+    for kind in [ProviderKind::Clippy, ProviderKind::Tsc] {
+        let planned = nested(kind);
+        assert!(
+            !planned
+                .task
+                .argv
+                .iter()
+                .chain(&planned.task.work_dirs)
+                .any(|arg| arg.starts_with(&*package.to_string_lossy())),
+            "{:?}",
+            planned.task.argv
+        );
+    }
+    // TypeScript metadata of the package is its own file, apart from the root's.
+    let tsc = nested(ProviderKind::Tsc);
+    let index = tsc
+        .task
+        .argv
+        .iter()
+        .position(|arg| arg == "--tsBuildInfoFile")
+        .unwrap();
+    assert_eq!(
+        Path::new(&tsc.task.argv[index + 1]),
+        root.path()
+            .join(".ici/rust-v1/typescript/crates-foo/analysis.tsbuildinfo")
+    );
+    let top = plan(&request(root.path(), ProviderKind::Tsc)).unwrap();
+    let index = top
+        .task
+        .argv
+        .iter()
+        .position(|arg| arg == "--tsBuildInfoFile")
+        .unwrap();
+    assert_eq!(
+        Path::new(&top.task.argv[index + 1]),
+        root.path()
+            .join(".ici/rust-v1/typescript/analysis.tsbuildinfo")
+    );
+    // Failure boundary: planning creates neither directory.
+    assert_eq!(fs::read_dir(root.path()).unwrap().count(), 0);
+}

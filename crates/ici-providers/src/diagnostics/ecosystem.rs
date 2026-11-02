@@ -58,8 +58,44 @@ pub(super) fn eslint(stdout: &str, plan: &ProviderPlan) -> Result<Parsed, Provid
     }
     Ok(parsed)
 }
+/// Cargo names span files relative to the Cargo workspace root, not to the package directory it
+/// ran in: the package's explicit `package.workspace`, else the nearest directory at or above it
+/// (within the ici workspace) whose `Cargo.toml` declares `[workspace]`, else the package itself.
+fn cargo_workspace_root(context: &crate::plan::DiagnosticContext) -> std::path::PathBuf {
+    let manifest = |directory: &std::path::Path| {
+        std::fs::read_to_string(directory.join("Cargo.toml"))
+            .ok()
+            .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
+    };
+    if let Some(explicit) = manifest(&context.cwd).and_then(|document| {
+        document
+            .get("package")
+            .and_then(|package| package.get("workspace"))
+            .and_then(|value| value.as_str())
+            .map(str::to_owned)
+    }) {
+        return context.cwd.join(explicit);
+    }
+    for directory in context.cwd.ancestors() {
+        if manifest(directory).is_some_and(|document| document.contains_key("workspace")) {
+            return directory.to_path_buf();
+        }
+        if directory == context.workspace_root {
+            break;
+        }
+    }
+    context.cwd.clone()
+}
 pub(super) fn clippy(stdout: &str, plan: &ProviderPlan) -> Result<Parsed, ProviderError> {
     let mut parsed = Parsed::default();
+    let cargo_root = cargo_workspace_root(&plan.context);
+    let located = |path: &str| {
+        if std::path::Path::new(path).is_absolute() {
+            path.to_owned()
+        } else {
+            cargo_root.join(path).to_string_lossy().into_owned()
+        }
+    };
     let mut finished = 0;
     for line in stdout.lines().filter(|line| !line.trim().is_empty()) {
         let record: Value = serde_json::from_str(line).map_err(|e| ProviderError(e.to_string()))?;
@@ -86,14 +122,14 @@ pub(super) fn clippy(stdout: &str, plan: &ProviderPlan) -> Result<Parsed, Provid
                     }
                     continue;
                 };
-                let path = text(primary, "file_name")?;
+                let path = located(text(primary, "file_name")?);
                 let rule = message["code"]["code"].as_str().unwrap_or("diagnostic");
                 let row = positive(&primary["line_start"], "Rust line")?;
                 let column = Some(positive(&primary["column_start"], "Rust column")?);
                 let severity = if level == "error" { "error" } else { "warning" };
                 let mut result = finding(
                     plan,
-                    path,
+                    &path,
                     row,
                     column,
                     rule,
@@ -103,7 +139,7 @@ pub(super) fn clippy(stdout: &str, plan: &ProviderPlan) -> Result<Parsed, Provid
                 for related in spans.iter().filter(|span| span["is_primary"] != true) {
                     result.related_locations.push(span(
                         &plan.context,
-                        text(related, "file_name")?,
+                        &located(text(related, "file_name")?),
                         positive(&related["line_start"], "related Rust line")?,
                         Some(positive(&related["column_start"], "related Rust column")?),
                         related["label"].as_str().unwrap_or(""),
