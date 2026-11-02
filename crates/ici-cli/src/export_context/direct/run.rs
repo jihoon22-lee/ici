@@ -441,6 +441,7 @@ pub(in crate::export_context) fn execute(
         evidence: Some(evidence),
         build_failure: None,
         build_failure_output: None,
+        process_evidence: vec![],
         _lease: Arc::new(lease),
     })
 }

@@ -335,6 +335,25 @@ pub fn read_bounded_regular(path: &Path, maximum: usize) -> io::Result<Vec<u8>> 
     Ok(bytes)
 }
 
+/// At most `limit` leading bytes of a regular file (frozen "read truncated" readers). Like
+/// [`read_bounded_regular`] the open is nonblocking and a FIFO/device is refused, but a larger
+/// file is not an error: only its prefix is read, so the read itself stays bounded.
+pub fn read_regular_prefix(path: &Path, limit: usize) -> io::Result<Vec<u8>> {
+    let file = OpenOptions::new()
+        .read(true)
+        .custom_flags(nix::libc::O_NONBLOCK | nix::libc::O_CLOEXEC)
+        .open(path)?;
+    if !file.metadata()?.is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "input is not a regular file",
+        ));
+    }
+    let mut bytes = Vec::new();
+    file.take(limit as u64).read_to_end(&mut bytes)?;
+    Ok(bytes)
+}
+
 /// Create/walk an owned state directory without following ancestor symlinks. The caller must still
 /// acquire its run/build ownership capability before trusting artifacts in that directory.
 pub fn prepare_directory(path: &Path) -> io::Result<()> {

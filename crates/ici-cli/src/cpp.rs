@@ -1,6 +1,7 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
 mod config_scope;
 mod fallback;
+pub(crate) mod legacy_engine_extra;
 pub(crate) mod legacy_lint_extra;
 mod legacy_syntax;
 mod legacy_tests;
@@ -22,6 +23,7 @@ use ici_providers::{
 };
 pub use legacy_syntax::set_legacy_syntax_budget_for_tests;
 pub use legacy_tests::*;
+pub(crate) use legacy_tooling::frozen_returncode;
 pub use legacy_tooling::set_legacy_tooling_budget_for_tests;
 use serde_json::{Value, json};
 use std::{
@@ -60,6 +62,8 @@ pub struct CppPlans {
     pub tooling_searches: BTreeMap<String, Vec<TaskSpec>>,
     pub boundaries: BTreeMap<String, Vec<BoundaryProbe>>,
     pub unused: BTreeMap<String, Vec<CompilationUnit>>,
+    /// Frozen `compiler_capability` name of the unused-function compiler per check task.
+    unused_tool_names: BTreeMap<String, String>,
     linkers: BTreeMap<String, linker::LinkerPlan>,
     held_contexts: Vec<crate::export_context::PreparedContext>,
     source_session: ici_cpp::CppAnalysisSession,
@@ -293,19 +297,21 @@ impl CppPlans {
         self.compiler_components
             .insert(id.into(), component.id.clone());
 
-        // Frozen next planning: a component with no linked build and no discovered database
-        // blocks its compilation-backed checks before anything runs.
+        // Frozen next planning (`application/gates.py::gate_cpp`): a component whose C++ scope
+        // has no discovered database blocks its compilation-backed checks before anything runs,
+        // naming the declared build's missing configure step (`compile_units._prepare`) or the
+        // missing build link. The next path never prepares a build, so a linked build without a
+        // database is blocked too, never a failed compile.
         if !self.legacy_projection
             && matches!(check.id.as_str(), "cpp.compile" | "cpp.diagnostics")
             && context.database_path.is_none()
             && context.units.is_empty()
             && context.diagnostics.is_empty()
-            && linked_build(project, component).is_none()
             && !self.compile_scope_is_empty(id)
         {
             return Some(blocked(format!(
-                "no compilation database for the component's C++ scope \u{2014} no build unit is linked to {}; declare [builds.<id>] with a directory that will hold compile_commands.json and set the component's build, or generate the database out of band",
-                component.id
+                "no compilation database for the component's C++ scope \u{2014} {}",
+                next_plan::prepare_hint(project, component)
             )));
         }
         match check.id.as_str() {
@@ -731,6 +737,14 @@ impl CppPlans {
         let mut providers = vec![];
         for (index, unit) in context.units.iter().enumerate() {
             let compiler = self.compiler(project, unit, environment)?;
+            if index == 0
+                && let Some(name) = legacy_compiler_capability_name(
+                    &compiler.path,
+                    environment.get("PATH").map(String::as_str),
+                )
+            {
+                self.unused_tool_names.insert(id.into(), name);
+            }
             let replay = ici_cpp::replay_command(
                 &project.root,
                 unit,
@@ -2728,6 +2742,36 @@ pub fn legacy_lint_verdict(
     };
 }
 
+/// Frozen `compiler_capability`: the probed driver (`gcc`, `g++`, `clang`, `clang++` in probe
+/// order, each found on `PATH`) whose resolved executable is the resolved compiler; a resolved
+/// Clang executable prefers a `clang`/`clang++` spelling. `None` when no probed driver matches.
+fn legacy_compiler_capability_name(compiler: &Path, path_env: Option<&str>) -> Option<String> {
+    let resolve = |path: &Path| path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+    let lookup = |name: &str| {
+        std::env::split_paths(path_env.unwrap_or(""))
+            .map(|directory| directory.join(name))
+            .find(|candidate| candidate.is_file())
+    };
+    let target = if compiler.components().count() > 1 {
+        resolve(compiler)
+    } else {
+        resolve(&lookup(&compiler.to_string_lossy())?)
+    };
+    let matches: Vec<&str> = ["gcc", "g++", "clang", "clang++"]
+        .into_iter()
+        .filter(|name| lookup(name).is_some_and(|path| resolve(&path) == target))
+        .collect();
+    let clang = target
+        .file_name()
+        .is_some_and(|name| name.to_string_lossy().to_lowercase().contains("clang"));
+    let preferred = clang
+        .then(|| matches.iter().find(|name| name.starts_with("clang")))
+        .flatten();
+    preferred
+        .or(matches.first())
+        .map(|name| (*name).to_string())
+}
+
 /// Frozen `DeadCodeEngine` over `run_cpp_unused_functions` with a selected database. Exact
 /// evidence is atomic: the first configuration that fails (in database order) yields one
 /// `C++UnusedFunctionError` and every source observed before it a discarded-observation target;
@@ -2738,6 +2782,7 @@ fn legacy_unused_projection(
     observations: &[ici_cpp::CompilerConfigurationObservation],
     runs: &[(usize, Option<i32>, bool)],
     compiler: &str,
+    capability: Option<&str>,
 ) {
     if output.targets.iter().any(|target| {
         !matches!(
@@ -2747,10 +2792,15 @@ fn legacy_unused_projection(
     }) {
         return;
     }
-    let tool = Path::new(compiler)
-        .file_name()
-        .map(|name| name.to_string_lossy().into_owned())
-        .unwrap_or_else(|| compiler.to_string());
+    let tool = capability.map_or_else(
+        || {
+            Path::new(compiler)
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+                .unwrap_or_else(|| compiler.to_string())
+        },
+        str::to_string,
+    );
     let mut order: Vec<_> = observations.iter().zip(runs).collect();
     order.sort_by_key(|(_, (index, _, _))| *index);
     let scope_tool = format!("{tool} unused-function");
@@ -3178,13 +3228,38 @@ pub fn legacy_adapter_success(
     descriptor: &str,
     produced: usize,
 ) -> InspectionTarget {
+    let name = Path::new(descriptor)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(descriptor)
+        .to_owned();
+    let reason = legacy_backend_reason(root, component_root, system, descriptor);
+    let backend = match system {
+        "cmake" => "cmake",
+        "qmake" => "qmake",
+        _ => "make",
+    };
+    let mut target = InspectionTarget::at(&name, 1);
+    target.target_name = format!("BuildAdapter[{backend}]");
+    target.message = format!("{reason}; produced {produced} artifact(s)");
+    target
+}
+
+/// Frozen `select_backend` reason of an adapter backend (`<descriptor> at the project root
+/// selected the … backend`, CMake naming a passed-over `.pro`).
+pub fn legacy_backend_reason(
+    root: &Path,
+    component_root: &str,
+    system: &str,
+    descriptor: &str,
+) -> String {
     let base = crate::files::under(root, component_root);
     let name = Path::new(descriptor)
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or(descriptor)
         .to_owned();
-    let reason = match system {
+    match system {
         "cmake" => {
             let mut reason =
                 "CMakeLists.txt at the project root selected the CMake backend".to_string();
@@ -3204,16 +3279,28 @@ pub fn legacy_adapter_success(
         }
         "qmake" => format!("{name} at the project root selected the qmake backend"),
         _ => format!("{name} at the project root selected the configured Make backend"),
-    };
-    let backend = match system {
-        "cmake" => "cmake",
-        "qmake" => "qmake",
-        _ => "make",
-    };
-    let mut target = InspectionTarget::at(&name, 1);
-    target.target_name = format!("BuildAdapter[{backend}]");
-    target.message = format!("{reason}; produced {produced} artifact(s)");
-    target
+    }
+}
+
+/// Frozen BuildEngine `tool_evidence` of an adapter session: the backend selection record
+/// (`build backend selection: <reason>`, no process) then the adapter processes it ran.
+pub fn legacy_build_session_evidence(
+    root: &Path,
+    component_root: &str,
+    system: &str,
+    descriptor: &str,
+    processes: &[Value],
+) -> Value {
+    let mut evidence = vec![json!({
+        "name": format!(
+            "build backend selection: {}",
+            legacy_backend_reason(root, component_root, system, descriptor)
+        ),
+        "path": "", "version": "", "argv": [], "returncode": null,
+        "timed_out": false, "truncated": false, "error": "",
+    })];
+    evidence.extend(processes.iter().cloned());
+    json!(evidence)
 }
 
 /// Frozen sanitizer engines compile only `tests/**/*.cpp` under the project root. `true` means
@@ -3350,6 +3437,28 @@ pub fn legacy_sanitizer_compile_failures(
         output.targets.push(target);
     }
     output
+}
+
+/// Frozen `TestEngine._threshold_breaches`: only a TEM/branch threshold the run came in under
+/// is a target (a met threshold is not reported), and its `actual` is the reported value: the
+/// branch percentage rounded to one decimal like every frozen GCOV percentage.
+pub fn legacy_threshold_breaches(output: &mut AnalysisOutput) {
+    output.targets.retain(|target| {
+        !(target.target_name.starts_with("Threshold: ") && target.status == "PASS")
+    });
+    for target in &mut output.targets {
+        if target.target_name == "Threshold: Branch coverage"
+            && let Some(actual) = target.metrics.get("actual").and_then(Value::as_f64)
+        {
+            target
+                .metrics
+                // Python `round(value, 1)`: correctly rounded, exact ties to even.
+                .insert(
+                    "actual".into(),
+                    json!(format!("{actual:.1}").parse::<f64>().unwrap_or(actual)),
+                );
+        }
+    }
 }
 
 /// Frozen `run_cpp_linker_dead_symbols` needs the root CMake backend (`select_backend` picks
@@ -4557,6 +4666,9 @@ impl CppPlans {
                         &unused_observations,
                         &unused_runs,
                         &providers[0].task.argv[0],
+                        self.unused_tool_names
+                            .get(&request.task_id)
+                            .map(String::as_str),
                     );
                 }
                 return output;
@@ -5104,5 +5216,43 @@ mod clang_tidy_config_tests {
         ] {
             assert!(unsafe_config(text), "{}", String::from_utf8_lossy(text));
         }
+    }
+}
+
+#[cfg(test)]
+mod legacy_threshold_tests {
+    use ici_domain::{AnalysisOutput, InspectionTarget};
+    use serde_json::json;
+
+    fn threshold(name: &str, status: &str, actual: f64) -> InspectionTarget {
+        let mut target = InspectionTarget::at(".", 1);
+        target.target_name = name.into();
+        target.status = status.into();
+        target.metrics.insert("actual".into(), json!(actual));
+        target
+    }
+
+    /// Frozen reports only the thresholds the run came in under, with the reported (rounded)
+    /// branch percentage; a met TEM threshold (`min_tem_score = 0.0`) is no target.
+    #[test]
+    fn only_breached_thresholds_remain_with_the_frozen_branch_rounding() {
+        let mut output = AnalysisOutput::new("c", "gcov");
+        output.targets = vec![
+            threshold("Coverage:Functions", "PASS", 1.0),
+            threshold("Threshold: TEM score", "PASS", 0.04),
+            threshold("Threshold: Branch coverage", "WARN", 100.0 / 27.0),
+        ];
+        super::legacy_threshold_breaches(&mut output);
+        let names: Vec<_> = output
+            .targets
+            .iter()
+            .map(|t| t.target_name.as_str())
+            .collect();
+        assert_eq!(names, ["Coverage:Functions", "Threshold: Branch coverage"]);
+        assert_eq!(output.targets[1].metrics["actual"], json!(3.7));
+        let mut tie = AnalysisOutput::new("c", "gcov");
+        tie.targets = vec![threshold("Threshold: Branch coverage", "WARN", 2.25)];
+        super::legacy_threshold_breaches(&mut tie);
+        assert_eq!(tie.targets[0].metrics["actual"], json!(2.2));
     }
 }

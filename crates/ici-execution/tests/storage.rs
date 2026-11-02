@@ -208,3 +208,21 @@ fn bounded_regular_reader_rejects_fifo_and_large_file_without_hanging() {
     assert!(read_bounded_regular(&path, 100).is_err());
     assert!(start.elapsed().as_secs_f64() < 1.0);
 }
+#[test]
+fn regular_prefix_reader_bounds_large_files_and_rejects_fifo_without_hanging() {
+    use ici_execution::storage::read_regular_prefix;
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("input");
+    fs::write(&path, b"small input").unwrap();
+    assert_eq!(read_regular_prefix(&path, 5).unwrap(), b"small");
+    assert_eq!(read_regular_prefix(&path, 100).unwrap(), b"small input");
+    fs::remove_file(&path).unwrap();
+    nix::unistd::mkfifo(
+        &path,
+        nix::sys::stat::Mode::S_IRUSR | nix::sys::stat::Mode::S_IWUSR,
+    )
+    .unwrap();
+    let start = std::time::Instant::now();
+    assert!(read_regular_prefix(&path, 100).is_err());
+    assert!(start.elapsed().as_secs_f64() < 1.0);
+}

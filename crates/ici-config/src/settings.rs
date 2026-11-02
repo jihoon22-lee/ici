@@ -59,7 +59,7 @@ pub(crate) fn builds(
     Ok(result)
 }
 /// Frozen `ici.domain.workspace.BuildUnit`/`Workspace` rules for schema 1 builds: stable
-/// lowercase identifiers, output directory/definition below the workspace root, one build per
+/// lowercase identifiers, output directory/definition below the root, one build per
 /// directory, and a declared system and directory (`workspace/model.py`). Sparse v2 keeps its
 /// documented spellings (for example `project = "."` for a root CMake project, shadow builds
 /// without a directory); every family refuses an id that cannot safely name a shadow directory.
@@ -103,9 +103,16 @@ pub(crate) fn validate_builds(
         }
         for (name, value) in [("directory", &build.directory), ("project", &build.project)] {
             if value.as_deref() == Some(".") {
+                // Frozen domain `BuildUnit` (`require_relative_path`): the project file is the
+                // build's definition.
+                let description = if name == "directory" {
+                    "directory"
+                } else {
+                    "definition"
+                };
                 return Err(parsed.error(
                     &key(name),
-                    "a build path must name a path below the workspace root",
+                    format!("build {description} must name a path below the root"),
                 ));
             }
         }
