@@ -31,6 +31,15 @@
 
 ### 변경
 
+- 레거시 `ici lint`/`verify` 보고서가 v0.13.0과 같은 lint `extra` 카운터(clang-tidy/Clazy 모드·진단 계열·fix-it)와
+  도구 증거를 기록합니다. clang-tidy 설정의 위험 키 검사는 다시 단어 경계 기준이라 `notExtraArgs` 같은 다른 단어는
+  거부하지 않습니다.
+- 레거시 deep 빌드에서 CMake 빌드가 실패해도 컴파일 DB·lint·dead 검사는 구성된 컴파일 DB로 계속 실행하고 빌드
+  실패만 FAIL(종료 코드 1)로 보고합니다.
+- 레거시 통합 테스트의 `{artifact:<경로>}` 자리표시자가 준비된 빌드 산출물 경로로 해석되고, 객체가 아닌 컴파일 DB
+  행은 `invalid-entry` FAIL로 보고하며 나머지 항목 검사는 계속합니다.
+- 생성 헤더를 찾지 못한 번역 단위가 있어도 include 사이클 분석이 중단되지 않고 찾지 못한 include를 경고로
+  보고합니다. 레거시 C++ 구문 재실행은 C 로캘에서 실행되어 진단 메시지 따옴표가 v0.13.0과 같습니다.
 - 레거시 lint의 clang-tidy/Clazy 실행이 단위별 설정·`.clang-tidy` 탐색·Clazy wrapper·시간 예산·오류 대상까지
   v0.13.0과 같고, 레거시 경로도 escape된 `ExtraArgs` 키를 같은 거부 문구로 막습니다.
 - `ici next plan`이 C++ 컴포넌트의 compilation database 부재를 note와 coverage gap으로 표시해 `--require-full`에서
