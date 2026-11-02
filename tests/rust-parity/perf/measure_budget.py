@@ -117,9 +117,13 @@ def descendants(pid: int) -> set[int]:
     return found
 
 
-def cancellation(native: Path, base: Path, env: dict[str, str]) -> dict[str, object]:
+def cancellation(native: Path, python: Path, base: Path, env: dict[str, str]) -> dict[str, object]:
     project = base / "cancel" / "project"
     fixture(project)
+    # The native product never takes the project interpreter from PATH; without a declared
+    # interpreter (or a project .venv) the test check is blocked and no child ever starts.
+    with (project / "ici.toml").open("a", encoding="utf-8") as config:
+        config.write(f"\n[python]\nexecutable={json.dumps(str(python))}\n")
     (project / "test_slow.py").write_text(
         "import time\n\ndef test_slow():\n    time.sleep(30)\n", encoding="utf-8"
     )
@@ -214,7 +218,7 @@ def main() -> None:
             dict(common, PYTHONPATH=str(oracle / "src")),
         )
         measured_native = product("native", [str(native)], base, common)
-        cancel = cancellation(native, base, common)
+        cancel = cancellation(native, python, base, common)
     summary = {
         "source": SOURCE,
         "native_sha256": subprocess.check_output(["sha256sum", str(native)], text=True).split()[0],
