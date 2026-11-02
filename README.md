@@ -179,8 +179,10 @@ Python AST-shape 확장, C++ complexity 함수 경계, opt-in release contract e
 
 ### 1. native archive 설치와 실행
 ```bash
-# release에서 archive, .sha256, install-native.sh를 내려받아 digest 확인 후 rootless 설치
+# release에서 archive, .sha256, install-native.sh, ici-<version>-supporting.sha256을 내려받아
+# archive와 installer digest를 확인한 뒤 rootless 설치
 sha256sum --check --strict ici-<version>-x86_64-unknown-linux-musl.tar.gz.sha256
+sha256sum --check --ignore-missing --strict ici-<version>-supporting.sha256
 sh install-native.sh --archive ici-<version>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
 export PATH="${XDG_DATA_HOME:-$HOME/.local/share}/ici/native/bin:$PATH"
 ici --version

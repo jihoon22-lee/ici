@@ -55,8 +55,9 @@ Python이나 가상환경 없이, release의 native archive를 digest로 확인�
 되돌리기는 [native 설치 가이드](native-install.md)에 있습니다.
 
 ```bash
-# release에서 archive, .sha256, install-native.sh를 내려받은 뒤
+# release에서 archive, .sha256, install-native.sh, ici-<version>-supporting.sha256을 내려받은 뒤
 sha256sum --check --strict ici-<version>-x86_64-unknown-linux-musl.tar.gz.sha256
+sha256sum --check --ignore-missing --strict ici-<version>-supporting.sha256   # install-native.sh 확인
 sh install-native.sh --archive ici-<version>-x86_64-unknown-linux-musl.tar.gz --sha256 <trusted sha256>
 
 # PATH 등록 (필요 시 ~/.bashrc 또는 ~/.cshrc에 추가; 기존 ici보다 앞에 둔다)

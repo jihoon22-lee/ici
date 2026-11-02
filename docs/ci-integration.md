@@ -51,7 +51,7 @@ candidate acceptance(zoo 게이트 run
 
 ## 0. Native ici 설치 (R9 cutover 이후)
 
-CI job은 release의 native archive를 내려받아 **작업 정의에 고정한 SHA-256**으로 확인한 뒤
+CI job은 release의 native archive와 installer를 내려받아 **작업 정의에 고정한 SHA-256**으로 확인한 뒤
 job 전용 prefix에 설치한다. root, Python, 별도 Action이 필요 없다. digest는 release 페이지의
 `.sha256`을 확인해 workflow에 적어 두고, 같은 release에서 실행 시점에 받은 값만으로 신뢰를
 대신하지 않는다.
@@ -61,6 +61,7 @@ job 전용 prefix에 설치한다. root, Python, 별도 Action이 필요 없다.
   env:
     ICI_VERSION: "X.Y.Z"
     ICI_SHA256: "<64자리 trusted archive sha256>"
+    ICI_INSTALLER_SHA256: "<ici-X.Y.Z-supporting.sha256의 install-native.sh digest>"
   run: |
     set -euo pipefail
     base="https://github.com/jihoon22-lee/ici/releases/download/v${ICI_VERSION}"
@@ -68,6 +69,7 @@ job 전용 prefix에 설치한다. root, Python, 별도 Action이 필요 없다.
     curl --fail --location --proto '=https' -o "$RUNNER_TEMP/$archive" "$base/$archive"
     curl --fail --location --proto '=https' -o "$RUNNER_TEMP/install-native.sh" "$base/install-native.sh"
     printf '%s  %s\n' "$ICI_SHA256" "$RUNNER_TEMP/$archive" | sha256sum --check --strict
+    printf '%s  %s\n' "$ICI_INSTALLER_SHA256" "$RUNNER_TEMP/install-native.sh" | sha256sum --check --strict
     sh "$RUNNER_TEMP/install-native.sh" --archive "$RUNNER_TEMP/$archive" \
       --sha256 "$ICI_SHA256" --prefix "$RUNNER_TEMP/ici-native"
     echo "$RUNNER_TEMP/ici-native/bin" >> "$GITHUB_PATH"
