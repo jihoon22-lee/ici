@@ -126,12 +126,6 @@ fn language(path: &str, languages: &[&str]) -> bool {
     })
 }
 
-/// Frozen `next verify` analyses with the component root as the project root, so a declared
-/// external member outside the component root (`b/shared.hpp` for component `a`, the child
-/// file's `../shared/shared.hpp`) is counted by cpp.line yet refused by dup and exception as
-/// `outside-project`. Native analyses every member in the workspace path space.
-const OUTSIDE_COMPONENT_ROOT: [&str; 2] = ["external-second-component", "child-file"];
-
 #[test]
 fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() {
     let oracle = oracle();
@@ -165,34 +159,11 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
             continue;
         }
         let mut differences = vec![];
-        let mut expected_checks = frozen["checks"].clone();
+        let expected_checks = frozen["checks"].clone();
         let mut expected_metrics = frozen["metrics"].clone();
-        let mut expected_gate = frozen["gate"].clone();
-        let mut expected_exit = frozen["exit_code"].clone();
-        let mut expected_failed = frozen["failed"].clone();
-        if OUTSIDE_COMPONENT_ROOT.contains(&name.as_str()) {
-            for check in expected_checks.as_array_mut().unwrap() {
-                if check["state"] == "FAILED" {
-                    check["state"] = json!("SUCCEEDED");
-                    check["evidence_complete"] = json!(true);
-                }
-            }
-            expected_gate = json!({"selected": "PASS", "reasons": [], "has_violations": false});
-            expected_exit = json!(0);
-            expected_failed = json!([]);
-            {
-                // The two analyses frozen refused measure the external member's component
-                // (its own source plus the member: two files, two lines).
-                for metric in [
-                    json!({"name":"clone_groups","value":0.0,"numerator":null,"denominator":null,"unit":"groups","evidence":"MEASURED"}),
-                    json!({"name":"duplicated_lines","value":0.0,"numerator":0,"denominator":2,"unit":"lines","evidence":"MEASURED"}),
-                    json!({"name":"files_checked","value":2.0,"numerator":null,"denominator":null,"unit":"files","evidence":"MEASURED"}),
-                    json!({"name":"issues_found","value":0.0,"numerator":null,"denominator":null,"unit":"issues","evidence":"MEASURED"}),
-                ] {
-                    expected_metrics.as_array_mut().unwrap().push(metric);
-                }
-            }
-        }
+        let expected_gate = frozen["gate"].clone();
+        let expected_exit = frozen["exit_code"].clone();
+        let expected_failed = frozen["failed"].clone();
         // Recorded open difference (check:cpp.compile): frozen `cpp.compile` measures
         // `units.covered`/`units.generated`, native `compilation_units`/`uncovered_sources`.
         let compile_metric = |metric: &Value| {
@@ -290,6 +261,24 @@ fn next_component_scope_keys_match_the_frozen_members_metrics_checks_and_gate() 
             || reasons(&actual["gate"]) != reasons(&expected_gate)
         {
             differences.push(format!("gate {} vs {expected_gate}", actual["gate"]));
+        }
+        // Root ruling (decisions.md "component 밖 `external` 항목"): a declared external
+        // member outside the component root is refused by dup and exception exactly as frozen
+        // (`external-second-component`, `child-file`). The run's limitation list is
+        // deduplicated natively (`ici-application` assemble), frozen repeats it per check.
+        let outside = |document: &Value| {
+            document["limitations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item.as_str().unwrap().starts_with("outside-project: "))
+        };
+        if outside(&actual) != outside(frozen) {
+            differences.push(format!(
+                "outside-project limitations {} vs {}",
+                outside(&actual),
+                outside(frozen)
+            ));
         }
         // Blocked compile-input wording is part of the run's limitations too.
         for limitation in frozen["limitations"].as_array().unwrap() {

@@ -569,6 +569,10 @@ pub fn execute(
                         crate::cpp::legacy_cpp_absent_output(&planned.check.id, id)
                     {
                         output
+                    } else if let Some(output) =
+                        outside_component_root(&prepared, planned, id, &request)
+                    {
+                        output
                     } else if let Some(output) = crate::validation::internal(
                         &prepared.project,
                         inputs::component(&prepared, planned),
@@ -1467,6 +1471,40 @@ pub(crate) fn execute_artifact_prepare(
     };
     output.observation.duration_seconds = Some(started.elapsed().as_secs_f64());
     (output, Some(build))
+}
+
+/// Frozen `next` measures each component with the component root as its project root, so a C++
+/// duplicate or exception scope that holds a declared external member outside that root is
+/// refused (`outside-project`): the check FAILS incomplete and no file of it is analysed
+/// (decisions.md "component 밖 `external` 항목": frozen kept for scope safety). The other C++
+/// checks keep frozen's own behaviour.
+fn outside_component_root(
+    prepared: &crate::planning::PreparedPlan,
+    planned: &ici_application::plan::PlannedCheck,
+    id: &str,
+    request: &ici_domain::AnalysisRequest,
+) -> Option<AnalysisOutput> {
+    const OUTSIDE: &str = "outside-project: Selected analysis source is outside the project root";
+    if prepared.legacy_projection
+        || !matches!(planned.check.id.as_str(), "cpp.dup" | "cpp.exception")
+    {
+        return None;
+    }
+    let component = inputs::component(prepared, planned);
+    if component.root == "." {
+        return None;
+    }
+    let root = Path::new(&component.root);
+    request
+        .inputs
+        .iter()
+        .find(|input| !Path::new(&input.path).starts_with(root))?;
+    let mut output = AnalysisOutput::new(id, "ici");
+    output.observation.state = TaskState::Failed;
+    output.observation.limitations.push(OUTSIDE.into());
+    output.status = "ERROR".into();
+    output.summary = OUTSIDE.into();
+    Some(output)
 }
 
 fn unavailable(id: &str, state: TaskState, reason: &str) -> AnalysisOutput {
