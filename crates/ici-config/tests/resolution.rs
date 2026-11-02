@@ -364,9 +364,10 @@ fn v1_child_reference_anchors_root_and_interpreter_to_declaring_file() {
 fn standalone_component_requires_explicit_config_and_preserves_scope_axis() {
     let tree = Project::new();
     tree.write("main.py", "x=1");
+    // The temporary directory name is not a result identifier, so the component names itself.
     tree.write(
         "ici.toml",
-        "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\n",
+        "schema_version=1\n[component]\nid='app'\nroot='.'\nlanguages=['python']\n",
     );
     assert!(tree.failure().message.contains("unregistered"));
     let project = resolve_with_environment(
@@ -378,6 +379,33 @@ fn standalone_component_requires_explicit_config_and_preserves_scope_axis() {
     .unwrap();
     assert_eq!(project.scope_kind, ScopeKind::Standalone);
     assert_eq!(project.components[0].files, vec!["main.py"]);
+}
+
+/// Frozen `compose_standalone` names an id-less standalone component after its directory and
+/// `ici.workspace.build` refuses a directory name that is not a result identifier (oracle:
+/// /tmp/ici-rust-replacement-20261028/w-runtime-ids-probe.log, `next plan --config <abs>`).
+#[test]
+fn standalone_component_id_is_its_directory_name_and_must_be_an_identifier() {
+    let tree = Project::new();
+    let body = "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\n";
+    for (directory, accepted) in [("demo", true), ("Demo", false), (".hidden", false)] {
+        tree.write(&format!("{directory}/main.py"), "x=1");
+        let config = tree.write(&format!("{directory}/ici.toml"), body);
+        let root = tree.root().join(directory);
+        let result = resolve_with_environment(&root, Some(&config), None, &BTreeMap::new());
+        if accepted {
+            assert_eq!(result.unwrap().components[0].id, directory);
+        } else {
+            let error = result.unwrap_err();
+            assert_eq!(error.origin.key, "component.id");
+            assert_eq!(
+                error.message,
+                format!(
+                    "component id must be lowercase alphanumeric with . _ - separators: '{directory}'"
+                )
+            );
+        }
+    }
 }
 
 #[test]

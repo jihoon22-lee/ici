@@ -125,18 +125,13 @@ fn every_frozen_next_v1_case_has_the_frozen_plan_exit_code_through_the_binary() 
             .and_then(|d| d["native"].as_str())
             .unwrap_or(case["outcome"].as_str().unwrap());
         let (code, stderr) = run_next_plan(case);
-        // R8: the resolver keeps the recorded native id contract (author case, `/`), but a run
-        // refuses an id its result scope cannot record before planning any tool — the frozen
-        // exit 2 — so `next plan` refuses these two the way frozen did.
-        let planning_refusal = matches!(id, "components[].id:uppercase" | "components[].id:slash");
-        if planning_refusal {
-            assert!(stderr.contains("component id"), "{id}: {stderr}");
+        // Frozen domain-model refusals of an id that cannot name the result (stage "model")
+        // reach the user with frozen's own wording.
+        if case["stage"] == "model" && case["key"] == "components[].id" {
+            let message = case["problems"][0]["message"].as_str().unwrap();
+            assert!(stderr.contains(message), "{id}: {stderr}");
         }
-        let expected = if native == "reject" || planning_refusal {
-            2
-        } else {
-            0
-        };
+        let expected = if native == "reject" { 2 } else { 0 };
         if code != Some(expected) {
             failures.push(format!("{id}: exit {code:?} expected {expected}: {stderr}"));
         }
@@ -452,5 +447,48 @@ fn recorded_plan_differences_are_native_behaviour_not_silent_drift() {
             reason,
             "no project interpreter \u{2014} no such file: ici-parity-missing-python; set components.app.python.executable to change it",
         );
+    }
+}
+
+/// Frozen `discovery.load` names an id-less standalone component after `found.directory.name`;
+/// for a relative `--config ici.toml` that is the empty name of `Path("ici.toml").parent`, so
+/// frozen refused every such run with "a component must have an id" (a frozen defect, oracle
+/// probe /tmp/ici-rust-replacement-20261028/w-runtime-ids-probe.log). Native names it after the
+/// canonical directory, exactly as frozen did for an absolute `--config`, and still refuses a
+/// directory name that is not a result identifier with frozen's message.
+#[test]
+fn relative_standalone_config_names_the_component_after_its_directory() {
+    let temporary = tempfile::tempdir().unwrap();
+    let body = "schema_version=1\n[component]\nroot='.'\nlanguages=['python']\n";
+    for (directory, accepted) in [("demo", true), ("Demo", false)] {
+        let root = temporary.path().join(directory);
+        fs::create_dir_all(root.join(".git")).unwrap();
+        fs::write(root.join("main.py"), "x = 1\n").unwrap();
+        fs::write(root.join("ici.toml"), body).unwrap();
+        let home = temporary.path().join(format!("home-{directory}"));
+        let output = Command::new(env!("CARGO_BIN_EXE_ici"))
+            .args(["next", "plan", "--json", "--config", "ici.toml"])
+            .current_dir(&root)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", &home)
+            .env("XDG_CONFIG_HOME", home.join("config"))
+            .env("XDG_CACHE_HOME", home.join("cache"))
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if accepted {
+            assert_eq!(output.status.code(), Some(0), "{stderr}");
+            let plan: Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(plan["scope"]["components"], json!(["demo"]), "{plan}");
+        } else {
+            assert_eq!(output.status.code(), Some(2), "{stderr}");
+            assert!(
+                stderr.contains(
+                    "component id must be lowercase alphanumeric with . _ - separators: 'Demo'"
+                ),
+                "{stderr}"
+            );
+        }
     }
 }

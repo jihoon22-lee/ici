@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from runner.candidate_overrides import PYZ, extra_matches, extra_override
 from runner.common import (
     WINDOWS_DRIVE_RE,
     ContractError,
@@ -584,9 +585,13 @@ def _match_expected_findings(
 
 
 def evaluate_contract(
-    report: dict[str, Any], expectation: dict[str, Any]
+    report: dict[str, Any], expectation: dict[str, Any], *, candidate_format: str = PYZ
 ) -> ContractResult:
-    """Return PASS only when schema, statuses, findings and absences all match."""
+    """Return PASS only when schema, statuses, findings and absences all match.
+
+    ``candidate_format`` selects the reviewed per-format extra overrides
+    (``runner.candidate_overrides``); every other predicate is format-independent.
+    """
 
     _validate_expectation(expectation)
     metadata, engines = validate_report(report)
@@ -661,10 +666,14 @@ def evaluate_contract(
                     )
                 )
         for key, value in expected_engine.get("extra", {}).items():
-            if engine.get("extra", {}).get(key) != value:
+            override = extra_override(candidate_format, scenario_id, name, key)
+            matched, detail = extra_matches(
+                override, value, engine.get("extra", {}).get(key)
+            )
+            if not matched:
                 failures.append(
                     ContractFailure(
-                        name, "engine-extra", f"engine {name} extra.{key} differs"
+                        name, "engine-extra", f"engine {name} extra.{key} {detail}"
                     )
                 )
     observed = [

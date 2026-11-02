@@ -31,6 +31,21 @@
 
 ### 변경
 
+- 결과에 기록할 수 없는 컴포넌트 id(대문자, `/` 포함 등)는 어떤 명령도 실행하기 전에 v0.13.0과 같은 메시지의 설정
+  오류(종료 코드 2)로 거부합니다. 상대 경로 `--config ici.toml`로 실행한 독립 컴포넌트는 디렉터리 이름을 id로
+  사용합니다(v0.13.0은 빈 이름으로 실패).
+- 설정 없는 workspace에서 자동 발견한 component id가 결정적이고 충돌 없는 소문자 slug가 되고, 결과 식별자로 쓸 수
+  없는 id는 도구 실행 전에 거부합니다(종료 코드 2). Cargo workspace마다 ici 전용 target 디렉터리
+  (`.ici/rust-v1/cargo-target`) 하나를 쓰며 member crate의 Clippy 위치가 workspace root 기준으로 표시됩니다.
+- VCS marker가 없는 하위 디렉터리에서 상위의 `[workspace]` 없는 과거 `ici.toml`을 채택하지 않고 v0.13.0과 같이
+  거부합니다.
+- 설정 없는 `ici verify`가 선택된 소스가 없는 compile_db/sanitize/thread_sanitize를 v0.13.0과 같이 미적용 SKIP으로
+  보고하고(종료 코드 1), 콘솔의 JSON 요약 줄을 80열에서 줄바꿈하지 않습니다.
+- 과거 형식 verify 보고서에 `analysis_metadata`와 `capability_inventory`가 v0.13.0 형태로 다시 기록되고, 같은 이름의
+  도구는 한 행으로 표시하며 version probe가 성공한 첫 후보를 선택합니다. `ici doctor`는 PATH에서 native ici를 가리는
+  다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
+- Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
+  문자열로 기록됩니다.
 - 레거시 `ici lint`/`verify` 보고서가 v0.13.0과 같은 lint `extra` 카운터(clang-tidy/Clazy 모드·진단 계열·fix-it)와
   도구 증거를 기록합니다. clang-tidy 설정의 위험 키 검사는 다시 단어 경계 기준이라 `notExtraArgs` 같은 다른 단어는
   거부하지 않습니다.

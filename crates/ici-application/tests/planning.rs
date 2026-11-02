@@ -412,8 +412,9 @@ fn legacy_integration_cases_have_one_owner_and_required_empty_cases_stay_selecte
     );
 }
 
-/// R8: a component id the result scope cannot record (native config accepts author-cased and
-/// slash ids) is refused by planning, before any tool is bound or run; a valid id plans.
+/// R8: a component id the result scope cannot record is refused by the resolver like frozen
+/// `ici.workspace.build`; a project assembled in code with such an id is still refused by
+/// planning, before any tool is bound or run; a valid id plans.
 #[test]
 fn component_ids_that_cannot_name_the_result_are_refused_before_any_tool_runs() {
     let config = |id: &str| {
@@ -435,10 +436,22 @@ fn component_ids_that_cannot_name_the_result_are_refused_before_any_tool_runs() 
     })
     .unwrap();
     assert!(bound > 0);
-    // Negative and failure: uppercase and slash ids resolve, but never reach a tool binding.
+    // Negative and failure: uppercase and slash ids never reach a tool binding.
     for id in ["App", "rust/one"] {
-        let (_dir, invalid) = project(Some(&config(id)));
-        assert_eq!(invalid.components[0].id, id);
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(dir.path().join("main.py"), "x = 1\n").unwrap();
+        fs::write(dir.path().join("ici.toml"), config(id)).unwrap();
+        let refused = resolve_with_environment(dir.path(), None, None, &BTreeMap::new())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            refused.contains(&format!(
+                "component id must be lowercase alphanumeric with . _ - separators: '{id}'"
+            )),
+            "{refused}"
+        );
+        let mut invalid = valid.clone();
+        invalid.components[0].id = id.into();
         let mut bound = 0;
         let error = plan(&invalid, &request, |_, _, _| {
             bound += 1;
