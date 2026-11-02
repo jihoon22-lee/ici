@@ -63,6 +63,11 @@
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
 - Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
   문자열로 기록됩니다.
+- next 경로 compiler 진단이 v0.13.0의 rule id(`compiler.compiler`), `warning:` 접두어, TU별 step id,
+  `units.covered`/`units.generated` 지표를 따릅니다.
+- 레거시 include trace가 v0.13.0의 시간·출력 한도(300초, 스트림당 1,000,000자), 파싱 오류 문구, 시그널 종료 return
+  code(-9)를 따르고, 입력 수집 실패나 빈 범위의 레거시 dup/dead `extra`가 v0.13.0과 같습니다. 레거시 linker dead
+  분석은 CMake 빌드 타입을 Release 한 번만 지정합니다.
 - hybrid(Python+C++) legacy 결과의 dup·complexity·dead·type 판정과 suite 집계가 v0.13.0과 같습니다. dup은 두 언어를
   합친 중복률로 판정하고 clone group 번호·순서도 v0.13.0을 따릅니다.
 - legacy Python 측정 coverage 결과가 v0.13.0의 키와 `coverage_provenance` 모양을 따르고, statement가 없는 파일은

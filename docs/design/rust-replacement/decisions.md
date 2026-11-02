@@ -80,6 +80,11 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 |측정된 legacy Python coverage 결과의 native 키|frozen 객체 안에는 frozen 키만 있고 `coverage_provenance`는 frozen 모양|승인하지 않는다: native 키(coverage_policy·coverage_provenance·coverage_totals·test_quality·coverage_suites·test_execution의 native 부분)는 "legacy `extra` 안 native 증거 키"대로 frozen 객체 밖의 native 이름 키로 옮기고 `coverage_provenance`는 frozen 모양으로 되돌린다|
 |tests 디렉터리가 없는 legacy Python test|`_mark_zero_tests`: 아무 process도 실행하지 않고 "No tests collected"|frozen과 같게 한다: legacy view에서 coverage probe와 pytest를 실행하지 않으며 tool evidence도 남기지 않는다. 판정·finding은 frozen과 같다|
 |legacy `verify`의 `Engine crashed: <type>: <message>`|Python 엔진 클래스가 예외를 던지면 run_all이 잡아 그 엔진을 ERROR와 이 문구로 기록|의도한 비이식: native에는 예외를 던지는 엔진 클래스가 없다. 내부 분석 실패는 사유를 가진 native ERROR 검사로 기록되고 다른 엔진은 계속 실행된다. frozen에서 재현할 차등 입력이 없어 문구 비교는 하지 않는다|
+|next `cpp.diagnostics`·`cpp.test` 실행 단위|TU(또는 test suite)마다 검사 하나|의도한 차이: native는 검사 하나에 TU/suite별 step(step id는 frozen과 같은 TU 단위)을 둔다. 각 step의 완료·실패·제한은 step 상태로 따로 보이고, 일부 step만 끝난 실행을 전체 완료로 표시하지 않는다(R05/R10). rule id·message·위치·gate는 frozen과 같다("next 경로 compiler finding")|
+|compile 디렉터리가 build 디렉터리인 진단 위치|workspace 안 파일도 `[external]`로 위치|결함 교정: workspace 안 파일은 workspace 상대 경로로 위치한다. workspace 밖 파일만 `[external]`이다("component 밖 `external` 항목")|
+|gate 사유로 쓰는 limitation|frozen은 첫 limitation을 gate 사유로 사용|frozen과 같게 첫 limitation을 쓴다(native `verification.rs`의 마지막 limitation 사용은 결함)|
+|compile DB metadata 경고|unknown-language·invalid-define·output-outside-project·missing-flag-value는 경고, output-mismatch·invalid-output도 경고로 기록하고 context는 완료|frozen과 같게 한다: 이 항목들은 경고이며 context 완료 여부와 legacy C++ 엔진 실행을 막지 않는다. native에 없는 두 경고도 추가한다|
+|선언된 build 디렉터리 아래 파일|next inventory에서 generated 역할|frozen과 같게 generated 역할을 준다|
 
 교정 행은 R0에서 기대값을 고정한 것이며 해당 구현/회귀 fixture는 담당 WP의 closure에
 반드시 연결한다. golden을 무조건 재생성해 기존 결함이나 새로운 회귀를 숨기지 않는다.
