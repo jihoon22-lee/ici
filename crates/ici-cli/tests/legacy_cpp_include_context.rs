@@ -24,17 +24,6 @@ fn copy(from: &Path, to: &Path) {
     }
 }
 
-const EXTRA_KEYS: [&str; 8] = [
-    "cpp_include_resolution",
-    "resolved_cpp_includes",
-    "ambiguous_cpp_includes",
-    "unresolved_cpp_includes",
-    "cpp_include_scope_counts",
-    "cpp_configurations_checked",
-    "cpp_include_diagnostics_truncated",
-    "cpp_cycles",
-];
-
 fn pick(value: &Value, keys: &[&str]) -> Value {
     Value::Object(
         keys.iter()
@@ -43,18 +32,9 @@ fn pick(value: &Value, keys: &[&str]) -> Value {
     )
 }
 
-/// Standalone `ici cycle` builds no analysis context; the heuristic counters Rust's projection
-/// carries (scope counts and configurations checked are the extras worker's projection).
-const HEURISTIC_KEYS: [&str; 6] = [
-    "cpp_include_resolution",
-    "resolved_cpp_includes",
-    "ambiguous_cpp_includes",
-    "unresolved_cpp_includes",
-    "cpp_include_diagnostics_truncated",
-    "cpp_cycles",
-];
-
-fn engine(exit_code: i32, report: &Value, standalone: bool) -> Value {
+/// Every frozen cycle `extra` key (`py_cycles`, `total_cycles` and the `_analyze_cpp_includes`
+/// counters), picked from the native extra; native-only evidence keys are not compared here.
+fn engine(exit_code: i32, report: &Value, standalone: bool, frozen_extra: &Value) -> Value {
     let engine = if standalone {
         report
     } else {
@@ -81,7 +61,10 @@ fn engine(exit_code: i32, report: &Value, standalone: bool) -> Value {
         "status": engine["status"],
         "evidence": engine["evidence"],
         "summary": engine["summary"],
-        "extra": pick(&engine["extra"], if standalone { &HEURISTIC_KEYS } else { &EXTRA_KEYS }),
+        "extra": pick(
+            &engine["extra"],
+            &frozen_extra.as_object().unwrap().keys().map(String::as_str).collect::<Vec<_>>(),
+        ),
         "targets": engine["targets"].as_array().unwrap().iter()
             .map(|target| pick(target, &["target_name", "status", "message", "file_path", "start_line"]))
             .collect::<Vec<_>>(),
@@ -120,10 +103,7 @@ fn legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles() 
             Some(fixture) => (fixture, true),
             None => (name.as_str(), false),
         };
-        let mut expected = expected.clone();
-        if standalone {
-            expected["extra"] = pick(&expected["extra"], &HEURISTIC_KEYS);
-        }
+        let expected = expected.clone();
         let work = tempfile::tempdir().unwrap();
         let root = work.path().canonicalize().unwrap().join("project");
         copy(&fixtures.join(fixture), &root);
@@ -161,6 +141,7 @@ fn legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles() 
             output.exit_code,
             &serde_json::from_str(&text).unwrap(),
             standalone,
+            &expected["extra"],
         );
         if actual != expected {
             eprintln!("== {name}\nnative: {actual:#}\nfrozen: {expected:#}");
