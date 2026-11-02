@@ -1064,26 +1064,15 @@
   {
    "corrections": {
     "expected": {
-     "gate": {
-      "has_violations": false,
-      "reasons": [
-       "project.python.lint: ruff: not found; prepare the project tool or install the verified native tool pack",
-       "project.python.format: ruff: not found; prepare the project tool or install the verified native tool pack",
-       "project.python.type: mypy: not found; prepare the project tool or install the verified native tool pack"
-      ],
-      "selected": "INCOMPLETE",
-      "workspace": "NOT_EVALUATED"
-     },
      "limitations": [
-      "ruff: not found; prepare the project tool or install the verified native tool pack",
-      "mypy: not found; prepare the project tool or install the verified native tool pack",
+      "ruff is not available",
+      "mypy is not available",
       "static selection: tests, runtime checks and build artifact checks omitted",
       "project: TEM N/A — no coverage evidence — the score is not computed"
      ]
     },
     "reasons": {
-     "gate": "Native names the resolver failure and its remedy ('<tool>: not found; prepare the project tool or install the verified native tool pack') where frozen said '<tool> is not available', and lists one document limitation per distinct text (frozen repeated 'ruff is not available' for lint and format); the BLOCKED states, gate verdict and exit 3 are frozen's.",
-     "limitations": "Native names the resolver failure and its remedy ('<tool>: not found; prepare the project tool or install the verified native tool pack') where frozen said '<tool> is not available', and lists one document limitation per distinct text (frozen repeated 'ruff is not available' for lint and format); the BLOCKED states, gate verdict and exit 3 are frozen's."
+     "limitations": "Native lists one document limitation per distinct text (frozen repeated 'ruff is not available' for lint and format, application/report.py concatenating every observation's limitations); the texts, BLOCKED states, gate reasons and exit 3 are frozen's."
     }
    },
    "files": {

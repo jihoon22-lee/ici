@@ -1102,6 +1102,14 @@ fn python_fallback_targets(
     Ok((targets, fail, parsed))
 }
 
+/// A check refused at planning because `tool` could not be resolved: found nowhere (frozen
+/// `<tool> is not available`) or any other native resolution failure (`<tool>: …`).
+fn tool_unresolved(summary: &str, tool: &str) -> bool {
+    summary
+        .strip_prefix(tool)
+        .is_some_and(|rest| rest == " is not available" || rest.starts_with(": "))
+}
+
 /// A hybrid lint view whose Ruff checks were refused at planning (`ruff: …`) while its C++ lint
 /// checks ran: the Python facet takes frozen's AST fallback beside the C++ targets.
 fn hybrid_ruff_unavailable(engine: &serde_json::Value) -> bool {
@@ -1120,7 +1128,7 @@ fn hybrid_ruff_unavailable(engine: &serde_json::Value) -> bool {
             check["state"] == "BLOCKED"
                 && check["summary"]
                     .as_str()
-                    .is_some_and(|summary| summary.starts_with("ruff: "))
+                    .is_some_and(|summary| tool_unresolved(summary, "ruff"))
         })
         && cpp.iter().all(|check| {
             check["check_id"]
@@ -1144,7 +1152,7 @@ fn ruff_unavailable(engine: &serde_json::Value) -> bool {
                     ) && check["state"] == "BLOCKED"
                         && check["summary"]
                             .as_str()
-                            .is_some_and(|summary| summary.starts_with("ruff: "))
+                            .is_some_and(|summary| tool_unresolved(summary, "ruff"))
                 })
         })
 }
@@ -1159,7 +1167,7 @@ fn mypy_unavailable(engine: &serde_json::Value) -> bool {
                     && check["state"] == "BLOCKED"
                     && check["summary"]
                         .as_str()
-                        .is_some_and(|summary| summary.starts_with("mypy: "))
+                        .is_some_and(|summary| tool_unresolved(summary, "mypy"))
             })
         })
 }

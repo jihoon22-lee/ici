@@ -545,8 +545,13 @@ fn prepare_resolved_omitting(
                 {
                     Ok(tool) => tool,
                     Err(error) => {
+                        // Frozen next tool lookup (application/selection.py, gates.py): a tool
+                        // found nowhere is `<tool> is not available` in the plan, its JSON,
+                        // the gate and the limitations; other resolution failures keep the
+                        // native reason.
                         return Ok(Work::Blocked {
-                            reason: error.to_string(),
+                            reason: crate::plan_text::tool_blocked_reason(&error.to_string())
+                                .into_owned(),
                         });
                     }
                 }
