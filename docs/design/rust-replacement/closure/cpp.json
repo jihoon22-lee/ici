@@ -10993,54 +10993,78 @@
     "src/ici/adapters/providers/binarycompat.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "finding_site:src/ici/adapters/providers/binarycompat.py:137:11"
+        "finding_site:src/ici/adapters/providers/binarycompat.py:137:11",
+        "check:cpp.binary-compat",
+        "descriptor:binary_compat",
+        "capability:build-artifact-abi"
       ],
-      "reason": "Unreviewed: Open: binary-compatibility provider site not compared with frozen. Exact frozen hash ce94092078a04d9a76a15f18972c83365f1aaf4acc83154e1b5a171e3d4f1393 and 5 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/adapters/providers/binarycompat.py:137:11 (implemented), check:cpp.binary-compat (verified), descriptor:binary_compat (verified), capability:build-artifact-abi (not_started). Whole frozen file read (sha256 ce94092078a04d9a76a15f18972c83365f1aaf4acc83154e1b5a171e3d4f1393, 152 lines). Behaviour -> rows/Rust: Next-path cpp.binary-compat provider: one readelf --file-header --sections --dynamic --version-info --wide task per declared ELF artifact (cwd root, 60 s, not cacheable, exit contract 0 success/1-255 findings), parse failures ('<task> did not finish', 'readelf exited N for <rel>: <stderr line>', 'readelf output for <rel> was incomplete: <err>'), default policy forbid_absolute_rpath + forbid_build_paths through abi_violations, ici.binary.* findings (high/high, MEASURED, SourceSpan at the violation or artifact line 1), binary.checked measurement and the per-artifact 'no ABI floors are declared' limitation with measured glibc/glibcxx/cxxabi maxima -> crates/ici-providers (readelf plan) and crates/ici-cpp/src/elf.rs, crates/ici-cli/src/cpp.rs. Open per the finding_site row: findings not compared field by field; frozen locates at the shadow-relative artifact path, native at the project path; frozen one check per artifact vs native one task."
     },
     "src/ici/adapters/providers/compiler.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "finding_site:src/ici/adapters/providers/compiler.py:225:16"
+        "finding_site:src/ici/adapters/providers/compiler.py:225:16",
+        "check:cpp.diagnostics",
+        "command:ici next verify",
+        "command:ici analyze"
       ],
-      "reason": "Unreviewed: Open: compiler provider site not compared with frozen on a compilation database. Exact frozen hash 80a7b955b73797b880290371a96c928062b845824451f76f30eabf0d35e6fceb and 8 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/adapters/providers/compiler.py:225:16 (not_started), check:cpp.diagnostics (verified), command:ici next verify (difference_review), command:ici analyze (difference_review). Whole frozen file read (sha256 80a7b955b73797b880290371a96c928062b845824451f76f30eabf0d35e6fceb, 280 lines). Behaviour -> rows/Rust: Next-path compiler diagnostics provider: compiler family regex (c++/g++/gcc/clang++/clang/cc/em++/emcc with version suffix; unknown driver -> None/unsupported), transform_argv (prepend -fsyntax-only, verified drop lists with reasons: -o/-MF/-MT/-MQ/-MJ/-include-pch operands, -c/-S/-E/-M*/-pipe/-shared/-pie/-pg/--coverage/-ftest-coverage, -flto/-save-temps/-fdump/-fprofile-/-Wa,/-Wl,/-Wp,/-l/-L prefixes, unknown options kept, source re-positioned last), one uncached 300 s ANALYZE task per TU with exit contract 0/1, parse through parse_compiler_diagnostics, compiler.<family> findings (high for FAIL else medium, high confidence, workspace-relative span, external paths dropped, sha256 provider fingerprint) -> crates/ici-providers/src/plan.rs, crates/ici-cli/src/cpp.rs next compile tasks and crates/ici-cpp/src/compiler.rs."
     },
     "src/ici/adapters/providers/cpptest.py": {
       "disposition": "unreviewed",
       "requirements": [
         "finding_site:src/ici/adapters/providers/cpptest.py:144:12",
         "finding_site:src/ici/adapters/providers/cpptest.py:191:20",
-        "finding_site:src/ici/adapters/providers/cpptest.py:212:27"
+        "finding_site:src/ici/adapters/providers/cpptest.py:212:27",
+        "check:cpp.test",
+        "command:ici next verify"
       ],
-      "reason": "Unreviewed: Blocked: C++ test provider parity waits for the validation worker's merge; not compared. Exact frozen hash f2553c0ed4b6a6bc80455a72a772404b40875b4e61efbff83e14cac247065342 and 11 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/adapters/providers/cpptest.py:144:12 (verified), check:cpp.test (verified), command:ici next verify (difference_review). Whole frozen file read (sha256 f2553c0ed4b6a6bc80455a72a772404b40875b4e61efbff83e14cac247065342, 259 lines). Behaviour -> rows/Rust: Next-path CtestProvider (ctest --test-dir <build> --output-on-failure, 1800 s, uncached, exit 0/1-255; verdict regex, Passed count, not-run verdicts as a limitation, ctest.failed 'test <name>: <verdict>' high/high MEASURED at the stem-matched test source line 1, 'ctest found no tests' / 'ctest output held no test verdicts' refusals, ctest.cases passed/total) and QtestProvider (PASS/FAIL!/XFAIL/XPASS/SKIP lines, Loc: path(line) relocation, qtest.<verdict> findings, 'qtest binary ran no cases' / 'qtest output held no case verdicts', 'no test ran green' limitation, qtest.cases) and the _test_source stem heuristic -> crates/ici-validation/src/cpp.rs (ctest.failed/ctest.cases/qtest.*). R05 intended difference on the ctest site: native refuses not-run suites; the qtest and refusal wordings are not compared (finding_site cpptest.py:191/212 complete cover the qtest finding sites). Uncovered or suspected Rust gaps for the row worker: No Rust source contains the frozen next-path refusal wordings 'ctest found no tests' (cpptest.py:158), 'ctest output held no test verdicts' (:159), 'qtest binary ran no cases' (:226), 'qtest output held no case verdicts' (:227) or the '<n> case(s) did not run: ...' limitation (:160); confirm under check:cpp.test (next facet) or record as a wording difference."
     },
     "src/ici/adapters/providers/gcov.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Blocked: gcov provider parity waits for the validation worker's merge; not compared. Exact frozen hash 227cf23dcebbf2923875fd7cf251513804312f432d567d7343c6d3a6195fd182 and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.coverage",
+        "command:ici next verify"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by command:ici next verify (difference_review). Whole frozen file read (sha256 227cf23dcebbf2923875fd7cf251513804312f432d567d7343c6d3a6195fd182, 146 lines). Behaviour -> rows/Rust: Next-path GcovProvider: gcov --json-format -b -p <gcno...> in a work dir under .ici (uncached 900 s ANALYZE, output *.gcov.json.gz, exit contract success 0 only), aggregate every report through parse_gcov_json_file (functions/lines/branches), refusals for no report / GcovJsonError(code) / unreadable report / no line data, stale instrumentation limitation on 'stamp mismatch'/'version mismatch' stderr, coverage.cpp.functions/lines/branches measurements (rounded %, numerator/denominator, branches 0.0 without denominator when none) -> crates/ici-validation/src/gcov.rs (coverage.cpp.* names, stamp mismatch) and gcov_format.rs. check:cpp.coverage is complete but its comparison covers the legacy qmake/Make/zoo coverage and only the uncached-ANALYZE placement of this next-path step. Uncovered or suspected Rust gaps for the row worker: No Rust source contains the frozen next-path refusal wordings 'gcov produced no reports — the .gcda are absent or the binaries were never instrumented' (gcov.py:74), 'gcov evidence rejected (<code>): ...' (:85), 'gcov report unreadable: ...' (:87) or 'gcov reports held no line data' (:99); the next-path measurement values are not named by a closed row. Suggested: extend check:cpp.coverage (next facet) or command:ici next verify with a next-path gcov comparison."
     },
     "src/ici/adapters/providers/sanitize.py": {
       "disposition": "unreviewed",
       "requirements": [
         "finding_site:src/ici/adapters/providers/sanitize.py:212:11",
-        "finding_site:src/ici/adapters/providers/sanitize.py:233:11"
+        "finding_site:src/ici/adapters/providers/sanitize.py:233:11",
+        "check:cpp.sanitize",
+        "check:cpp.tsan",
+        "command:ici next verify"
       ],
-      "reason": "Unreviewed: Open: sanitizer provider parsing not compared with frozen. Exact frozen hash 4ff7bf7f0b080a61d760e4e779c378fcc2973bd839ac22f247b71b5c6d06a33c and 9 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.sanitize (verified), command:ici next verify (difference_review), finding_site:src/ici/adapters/providers/sanitize.py:212:11 (verified), finding_site:src/ici/adapters/providers/sanitize.py:233:11 (verified). Whole frozen file read (sha256 4ff7bf7f0b080a61d760e4e779c378fcc2973bd839ac22f247b71b5c6d06a33c, 249 lines). Behaviour -> rows/Rust: Next-path SanitizeProvider for variants sanitize / thread-sanitize (unknown variant refused): runtime options appended to inherited ASAN_OPTIONS=detect_leaks=1, UBSAN_OPTIONS=halt_on_error=1, TSAN_OPTIONS=halt_on_error=0; uncached 1800 s ANALYZE task, exit 0/1-255; parse stderr+stdout: marker -> parse_sanitizer_diagnostics ('sanitizer report could not be normalized: ...', 'transcript had a sanitizer report marker but no complete diagnostic'), one high/high MEASURED finding per diagnostic (external primary redacted with limitation, 'the diagnostic named no project location', anchor = run dir / argv path / binary name), <variant>.diagnostics measurement, capture-truncated limitation; no marker + non-zero exit -> ici.sanitize.suite-failure; clean -> 0 diagnostics -> crates/ici-validation/src/sanitizer.rs, sanitizer_suite.rs, cpp.rs. Uncovered or suspected Rust gaps for the row worker: Known Rust difference recorded on finding_site sanitize.py:233:11: Rust records '<variant>.diagnostics' = 1 for a suite failure where frozen records no measurement (sanitize.py:151-155). No Rust source contains the frozen next-path refusal wordings 'sanitizer report could not be normalized' (:129), 'transcript had a sanitizer report marker but no complete diagnostic' (:134) or the 'capture truncated — diagnostics past the limit were never read' limitation (:120); suggested row check:cpp.sanitize (next facet)."
     },
     "src/ici/analysis/_clang_tidy.py": {
       "disposition": "unreviewed",
       "requirements": [
         "capability:cpp-qt-generated-input",
-        "finding_site:src/ici/analysis/_clang_tidy.py:57:11"
+        "finding_site:src/ici/analysis/_clang_tidy.py:57:11",
+        "check:cpp.tidy",
+        "descriptor:lint",
+        "config_key:legacy:engines.lint.clang_tidy",
+        "config_key:legacy:engines.lint.clang_tidy_checks",
+        "config_key:legacy:engines.lint.clang_tidy_config"
       ],
-      "reason": "Unreviewed (whole file read, frozen hash 25674a6f4e4b0d2f2caab2797ca7629ee900550325d19ff1ebc2dd702f4ec27e): every target/branch of run_clang_tidy/run_clazy that is reachable deterministically is closed by lint-tool-branches-oracle.json, lint-oracle.json and lint-branches-oracle.json; remaining before `mapped`: Open (not captured/implemented): the `_normalized_sources` ContextErrors (a production source that is not a readable regular file, more than 2048 production sources) and the race-only branches (unit budget expired after the GCC stdlib replay; the runner raising 'could not execute' after a passing probe); the `_normalized_sources` unreadable-source ContextError is the predecessor's recorded intended difference (the native input snapshot refuses the run; frozen reports per-step ContextErrors with the line engine disabled and crashes its JSON reporter with it enabled, awaiting the root's ruling); closed (cpp12): the LintEngine `extra` counters and the tool_evidence records fed by this outcome equal frozen in every lint golden case. The race-only branches are untestable deterministically (see the finding_site row), so the audit stays open."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.tidy (verified), descriptor:lint (difference_review), capability:cpp-qt-generated-input (verified), finding_site:src/ici/analysis/_clang_tidy.py:57:11 (verified). Whole frozen file read (sha256 25674a6f4e4b0d2f2caab2797ca7629ee900550325d19ff1ebc2dd702f4ec27e, 641 lines). Behaviour -> rows/Rust: run_clang_tidy: mode off/auto/required (other values ClangTidyConfigError; the config schema already refuses them, config_key engines.lint.clang_tidy complete), root resolution, missing analysis context ClangTidyUnavailable WARN/ERROR, foreign-root context, source containment/readability and 2 048 bound, capability readiness (approved non-project executable) and exact database requirement, ingestion-error refusal, explicit clang_tidy_config validation (resolve, inside root, regular, 1 MiB, NUL, ExtraArgs/ExtraArgsBefore/InheritParentConfig refused) and per-source .clang-tidy discovery up to the root, selected units with ClangTidyContextMissing/ContextError, per-unit context errors, replay + tooling_arguments (ClangTidyReplayError), GCC libstdc++ projection with 'g++ stdlib include search' evidence (ClangTidyToolchainContextError), unit/global budgets (ClangTidyBudgetError), command --use-color=false, --config-file / --config={} and --checks (configured or default -*,bugprone-*,clang-analyzer-*,performance-*), process/parse errors (ClangTidyExecutionError), clean ClangTidy:<config12> PASS, mode exact/error -> crates/ici-cli/src/cpp.rs, cpp/legacy_tooling.rs, crates/ici-cpp/src/tidy_boundaries.rs. Finding site _clang_tidy.py:57 verified (race-only budget branches untestable)."
     },
     "src/ici/analysis/_clazy.py": {
       "disposition": "unreviewed",
       "requirements": [
         "capability:cpp-qt-generated-input",
-        "finding_site:src/ici/analysis/_clazy.py:63:11"
+        "finding_site:src/ici/analysis/_clazy.py:63:11",
+        "check:cpp.tidy",
+        "descriptor:lint",
+        "config_key:legacy:engines.lint.clazy",
+        "config_key:legacy:engines.lint.clazy_checks",
+        "config_key:legacy:engines.lint.clazy_profile"
       ],
-      "reason": "Unreviewed (whole file read, frozen hash e25f3d79e9a909e5deb5657de5df47e2f2bcbebd1bd1b016a02b5b307ad8f898): every target/branch of run_clang_tidy/run_clazy that is reachable deterministically is closed by lint-tool-branches-oracle.json, lint-oracle.json and lint-branches-oracle.json; remaining before `mapped`: Open (not captured/implemented): the `_normalized_sources` ContextErrors (a production source that is not a readable regular file, more than 2048 production sources) and the race-only branches (unit budget expired after the GCC stdlib replay; the runner raising 'could not execute' after a passing probe); the `_normalized_sources` unreadable-source ContextError is the predecessor's recorded intended difference (the native input snapshot refuses the run; frozen reports per-step ContextErrors with the line engine disabled and crashes its JSON reporter with it enabled, awaiting the root's ruling); closed (cpp12): the LintEngine `extra` counters and the tool_evidence records fed by this outcome equal frozen in every lint golden case. The race-only branches are untestable deterministically (see the finding_site row), so the audit stays open."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.tidy (verified), descriptor:lint (difference_review), capability:cpp-qt-generated-input (verified), finding_site:src/ici/analysis/_clazy.py:63:11 (verified). Whole frozen file read (sha256 e25f3d79e9a909e5deb5657de5df47e2f2bcbebd1bd1b016a02b5b307ad8f898, 616 lines). Behaviour -> rows/Rust: run_clazy: mode off/auto/required (ClazyConfigError otherwise; schema-refused earlier), profile/checks (clazy_checks joined else clazy_profile, default level0), provider by resolved alias (clazy-standalone -> standalone `--checks=<c> --only-qt <src> -- <args>`, clazy -> compiler-wrapper with CLANGXX=<approved clang++> and CLAZY_CHECKS env, `<args> -Wall -Wextra -fsyntax-only <src>`; wrapper requires an approved clang++), ClazyUnavailable/ContextError/ContextMissing/ReplayError/ToolchainContextError/BudgetError/ExecutionError targets mirroring clang-tidy, failure summary 'fatal=.. error=.. warning=.. note=.. remark=.. processing_error=.. output=..' on non-zero exit, parse with include source roots for preview validation, clean Clazy:<config12> PASS, provider/profile/mode outcome fields -> crates/ici-cli/src/cpp.rs (CLAZY_CHECKS, CLANGXX, --only-qt) and cpp/legacy_tooling.rs (processing_error summary, ClazyNote). capability:cpp-qt-generated-input records the clazy facets closed; the row stays verified for the include-trace facet."
     },
     "src/ici/analysis/_cpp_cognitive.py": {
       "disposition": "unreviewed",
@@ -11048,14 +11072,26 @@
         "capability:cpp-parser-heuristic-confidence",
         "finding_site:src/ici/analysis/_cpp_cognitive.py:510:11",
         "finding_site:src/ici/analysis/_cpp_cognitive.py:557:8",
-        "finding_site:src/ici/analysis/_cpp_cognitive.py:649:8"
+        "finding_site:src/ici/analysis/_cpp_cognitive.py:649:8",
+        "check:cpp.cognitive",
+        "descriptor:cognitive",
+        "command:ici cognitive",
+        "config_key:legacy:engines.cognitive.warn",
+        "config_key:legacy:engines.cognitive.fail",
+        "config_key:legacy:engines.cognitive.warn_nesting",
+        "config_key:legacy:engines.cognitive.cpp_boundaries"
       ],
-      "reason": "Unreviewed: Open: compiler-backed boundary modes and source/range error targets of the cognitive metric not compared; the heuristic legacy projection is verified (check:cpp.cognitive). Exact frozen hash eb59671fcb503641285eb44e1f6ed3201de737b5c45f87b05aa6ba0a70c5db92 and 38 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:cpp-parser-heuristic-confidence (not_started), check:cpp.cognitive (verified), descriptor:cognitive (verified), command:ici cognitive (verified), finding_site:src/ici/analysis/_cpp_cognitive.py:510:11 (verified), finding_site:src/ici/analysis/_cpp_cognitive.py:557:8 (not_started), finding_site:src/ici/analysis/_cpp_cognitive.py:649:8 (not_started). Whole frozen file read (sha256 eb59671fcb503641285eb44e1f6ed3201de737b5c45f87b05aa6ba0a70c5db92, 901 lines). Behaviour -> rows/Rust: Bounded C++ cognitive metric: token regex, literal/digraph/lambda/preprocessor masking, delimiter validation, logical operator sequences, jumps and ternaries, recursive control parser (if/else-if chains with constexpr/consteval rules, do/while, for/while/switch with loop/switch depth, try/catch with at least one handler, attributes, compound/unbraced bodies, simple statements with labels/initializer braces, 128 nesting bound, refusals for orphan catch/else/brace, misplaced case/break/continue), source slices, exact (clang-tidy-ast boundaries matched/claimed against scanner spans) vs estimated (source-scanner) targets with PASS/WARN/FAIL by warn/fail/warn_nesting, low/medium metric confidence, metrics block, CppCognitiveSourceError and range errors, boundary policy off/auto/required with mode exact/partial/mixed/heuristic/error and the 'required but remained partial' refusal -> crates/ici-cpp/src/analysis.rs, tidy_boundaries.rs. Open: finding sites 557/649 not_started (source/range error targets), check:cpp.cognitive names the compiler-backed boundary modes as open; capability not_started."
     },
     "src/ici/analysis/_cpp_diagnostic_categories.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compiler diagnostic categorization not compared with frozen on a compilation database. Exact frozen hash 1d99718f95d281a5fe50e6fb2994cbf44ca181d742cc937aa8cb14a5647ea068 and 2 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:lint",
+        "check:cpp.tidy",
+        "check:cpp.diagnostics",
+        "finding_site:src/ici/engines/lint.py:251:16"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:lint (difference_review), check:cpp.tidy (verified), check:cpp.diagnostics (verified). Whole frozen file read (sha256 1d99718f95d281a5fe50e6fb2994cbf44ca181d742cc937aa8cb14a5647ea068, 209 lines). Behaviour -> rows/Rust: cpp_diagnostic_category policy tool-rule-v1: compiler -> correctness; clang-analyzer security prefixes and clang-tidy cert-/android-cloexec-/listed security rules -> security; listed analyzer/webkit and clang-tidy resource rules -> resource; portability-* and modernize-deprecated-headers -> compatibility; bugprone-/concurrency- -> correctness; other clang-tidy -> maintainability; clazy resource/compatibility/correctness rule sets and stems (rule, rule-*, rule.*) else maintainability; unknown family -> correctness. Consumed by engines/lint._cpp_finding_category for every C++ lint finding category -> crates/ici-providers/src/diagnostics/cpp.rs and the legacy lint projection (crates/ici-cli/src/cpp/legacy_lint_extra.rs)."
     },
     "src/ici/analysis/_cpp_diagnostics.py": {
       "disposition": "unreviewed",
@@ -11068,28 +11104,41 @@
         "finding_site:src/ici/analysis/_cpp_diagnostics.py:462:20",
         "finding_site:src/ici/analysis/_cpp_diagnostics.py:463:31",
         "finding_site:src/ici/analysis/_cpp_diagnostics.py:704:8",
-        "finding_site:src/ici/analysis/_cpp_diagnostics.py:705:19"
+        "finding_site:src/ici/analysis/_cpp_diagnostics.py:705:19",
+        "check:cpp.diagnostics",
+        "check:cpp.tidy",
+        "descriptor:lint"
       ],
-      "reason": "Unreviewed: Open: GCC text grammar, Compiler:/C++Syntax targets, ClangTidy:/ClangAnalyzer: and Clazy: primaries are compared (lint-oracle.json); JSON diagnostics, clang-tidy/clazy notes, empty-note separators and accounting errors are not. Exact frozen hash 84f65afb882931b213cb5a1608efb0af3de157ed3bf6c6536f4048c9bb9de888 and 51 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.diagnostics (verified), check:cpp.tidy (verified), descriptor:lint (difference_review), finding_site:src/ici/analysis/_cpp_diagnostics.py:1012:19 (not_started), finding_site:src/ici/analysis/_cpp_diagnostics.py:1014:23 (not_started), finding_site:src/ici/analysis/_cpp_diagnostics.py:1030:27 (verified), finding_site:src/ici/analysis/_cpp_diagnostics.py:358:8 (not_started), finding_site:src/ici/analysis/_cpp_diagnostics.py:359:19 (not_started), finding_site:src/ici/analysis/_cpp_diagnostics.py:462:20 (verified), finding_site:src/ici/analysis/_cpp_diagnostics.py:463:31 (verified), finding_site:src/ici/analysis/_cpp_diagnostics.py:704:8 (verified), finding_site:src/ici/analysis/_cpp_diagnostics.py:705:19 (verified). Whole frozen file read (sha256 84f65afb882931b213cb5a1608efb0af3de157ed3bf6c6536f4048c9bb9de888, 1092 lines). Behaviour -> rows/Rust: Shared C/C++ diagnostic parsers: GCC/Clang text grammar (file:line[:col]: kind: message [rule], context/caret/preview/header/required-from/trailer lines, fix-it records, 'In file included from', unrecognized-line refusal, ancillary-without-diagnostic refusal), GCC JSON (-fdiagnostics-format=json: kind/level, locations caret/start/finish single-file ordering, option/rule/check_name charset, fixits string/replacement with start/next/end or range, children depth 32, 10 000 diagnostics), kind -> FAIL/WARN, '[external]' paths, Compiler:<rule>/C++Syntax targets; clazy text parser (-Wclazy-<name> rules, inherited note rules, compiler -W warnings excluded but compiler errors refused, conflicting rule markers, fix-it refusal, contained no-follow source-line preview matching with byte budget, source roots <= 512) with Clazy/ClazyNote targets; clang-tidy text splitting (N warnings generated / Suppressed N warnings / header-filter hint summaries and duplicates, bugprone-easily-swappable-parameters empty-note/conversion-note structure), note grouping as related diagnostics (ClangTidyNote/ClangAnalyzerNote, mismatched check refusal), ClangTidy/ClangAnalyzer families, accounting errors -> crates/ici-providers/src/diagnostics/cpp.rs, crates/ici-cli/src/cpp/legacy_tooling.rs, fallback.rs. Finding-site rows 358/359/1012/1014 are not_started (compiler projection on a compilation database not compared); 462/463/704/705/1030 verified (JSON diagnostics and clazy notes/errors not captured). Uncovered or suspected Rust gaps for the row worker: No Rust source spells the frozen refusal texts 'unrecognized compiler output line' (_cpp_diagnostics.py:494), 'fix-it appeared before a diagnostic' (:478), 'diagnostic range crosses files' (:262), 'clazy fix-it output is not supported' (:786), 'clang-tidy empty note is not a valid bugprone structural separator' (:880), 'clang-tidy note check does not match its primary diagnostic' (:1007) or the ClangAnalyzerNote target prefix (:1010); these are parse-failure/target facts of lint and the compile diagnostics check. Suggested rows: check:cpp.diagnostics / check:cpp.tidy. Stale text for the root: finding_site _cpp_diagnostics.py:1030/704/705 difference_reason says 'Rust has no Qt compatibility / generated-code verification (analysis/_qt_codegen.py)', but crates/ici-cpp/src/qt_codegen.rs now implements QtCompatibility and _qt_codegen.py is already mapped."
     },
     "src/ici/analysis/_cpp_dup_tokenization.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: C++ duplicate tokenization compared only through the lexical oracle; engine-level windowing not compared. Exact frozen hash d0cd905d3ec19a0a33da156340b98e5518dd1ae860e2307593f8538be57552d6 and 19 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.dup",
+        "descriptor:dup",
+        "command:ici dup"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.dup (implemented), descriptor:dup (verified), command:ici dup (verified). Whole frozen file read (sha256 d0cd905d3ec19a0a33da156340b98e5518dd1ae860e2307593f8538be57552d6, 538 lines). Behaviour -> rows/Rust: C++ duplicate lexer: CRLF/CR normalization, NUL rejection, backslash-newline splicing with physical line map, directive skipping (# / %: at line prefix) and cpp_directive_lines barrier set, comment skipping, raw/ordinary/char literal kinds with UDL suffix and UNTERMINATED_* tokens, UNTERMINATED_BLOCK_COMMENT, INT_LIT/FLOAT_LIT numbers (hex float, binary, digit separators), keyword/attribute/Qt identifier passthrough, Q_/QT_/QML_ macro passthrough, NAME(x)/NAME_SHA256(digest>128 chars) vs ID normalization with declaration-name rule, longest-match punctuators and digraph mapping, \\x1f-joined per-line tokens, max_tokens=500000 with positive-int validation -> crates/ici-cpp/src/duplicates.rs (identical keyword/attribute/Qt tables, punctuators, digraphs, 128-char SHA rule, 500_000 limit). check:cpp.dup is only implemented (engine windowing not compared). Uncovered or suspected Rust gaps for the row worker: Rust cpp_directive_lines (crates/ici-cpp/src/duplicates.rs:338) runs the 500_000-token lexer, so a >500k-token source fails directive-line extraction; frozen cpp_directive_lines (_cpp_dup_tokenization.py:369-420) has no token limit. Probably unobservable because tokenize_cpp_lines fails on the same file; confirm under check:cpp.dup."
     },
     "src/ici/analysis/_cpp_function_boundaries.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "capability:cpp-parser-heuristic-confidence"
+        "capability:cpp-parser-heuristic-confidence",
+        "check:cpp.complexity",
+        "check:cpp.cognitive",
+        "config_key:legacy:engines.complexity.cpp_boundaries",
+        "config_key:legacy:engines.cognitive.cpp_boundaries"
       ],
-      "reason": "Unreviewed: Open: function boundary parser verified through the source oracle only; compiler confirmation modes not compared at engine level. Exact frozen hash df2d8c759957fd1ed8794ba360fb103f2b093fb269d2fb6281c638c05c9fbce9 and 12 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:cpp-parser-heuristic-confidence (not_started), check:cpp.complexity (verified), check:cpp.cognitive (verified). Whole frozen file read (sha256 df2d8c759957fd1ed8794ba360fb103f2b093fb269d2fb6281c638c05c9fbce9, 528 lines). Behaviour -> rows/Rust: Compiler-backed function boundaries: clang-tidy readability-function-size with zero thresholds (CountMemberInitAsStmt/IgnoreMacros options, header filter anchored at the project root, --use-color=false), prepare step (root, matching context, approved clang-tidy, exact database, ingestion errors, tool identity, selected/missing units, 2 048 bound, source snapshot comparison, 64 MiB run / 16 MiB cache budgets, mapped sources and lambda counts), per-unit replay with tooling arguments + GCC stdlib projection + -w, source-change detection before/after, tool identity re-check, 'clang-tidy function boundaries' evidence, failures, parse rejection, global/unit budgets, boundary count bound, merge and mode exact/partial/error with lambdas/macro functions excluded counts -> crates/ici-cpp/src/tidy_boundaries.rs, compiler.rs. Open: capability:cpp-parser-heuristic-confidence (not_started); check:cpp.complexity/cognitive name the compiler-backed boundary modes as open."
     },
     "src/ici/analysis/_cpp_function_boundary_parser.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "capability:cpp-parser-heuristic-confidence"
+        "capability:cpp-parser-heuristic-confidence",
+        "check:cpp.complexity",
+        "check:cpp.cognitive"
       ],
-      "reason": "Unreviewed: Open: function boundary parser verified through the source oracle only; compiler confirmation modes not compared at engine level. Exact frozen hash c0cf33356e5f857b3abe4e13c8f029226b64b00e7bd2ec5030596f2ee04f4223 and 26 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:cpp-parser-heuristic-confidence (not_started), check:cpp.complexity (verified), check:cpp.cognitive (verified). Whole frozen file read (sha256 c0cf33356e5f857b3abe4e13c8f029226b64b00e7bd2ec5030596f2ee04f4223, 710 lines). Behaviour -> rows/Rust: readability-function-size output parser: suppression summaries (only all-external suppressions accepted, else refused), clang-tidy diagnostics with related notes filtered to the source file, parent warning / lines / statements / parameters notes (location match, duplicates, positive values, unexpected notes), bounded names, contained bounded UTF-8 source reads, masked source mapping (literals, digraphs, lambda count, function-like macros), macro-expansion exclusion window, body location by top-level brace pairs (requires-expressions, constructor-initializer braces, same-name check incl. operators, function-try catch extension, lines-note consistency), template prefix, preprocessor-conditional flag, parser budget, boundary bounds, merge across configurations (scope conflicts not promoted, metric variants estimated, coverage of successful configurations, preprocessor-dependent warnings, stable ordering) -> crates/ici-cpp/src/tidy_boundaries.rs."
     },
     "src/ici/analysis/_cpp_include_graph.py": {
       "disposition": "unreviewed",
@@ -11101,24 +11150,30 @@
         "finding_site:src/ici/analysis/_cpp_include_graph.py:326:12",
         "finding_site:src/ici/analysis/_cpp_include_graph.py:342:12",
         "finding_site:src/ici/analysis/_cpp_include_graph.py:369:16",
-        "finding_site:src/ici/analysis/_cpp_include_graph.py:399:16"
+        "finding_site:src/ici/analysis/_cpp_include_graph.py:399:16",
+        "check:cpp.cycle",
+        "descriptor:cycle",
+        "finding_site:src/ici/analysis/cycles.py:491:12"
       ],
-      "reason": "Unreviewed: Open: compiler-backed include graph (compilation-database mode) not compared with frozen; only the legacy heuristic graph is verified (check:cpp.cycle). Exact frozen hash 45ba2f247b57137b14f36afd6bf6dab00a95cb451185e7e8a2f46b4cf558d149 and 12 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.cycle (verified), descriptor:cycle (verified), finding_site:src/ici/analysis/_cpp_include_graph.py:148:11 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:218:8 (verified), finding_site:src/ici/analysis/_cpp_include_graph.py:271:8 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:308:12 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:326:12 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:342:12 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:369:16 (not_started), finding_site:src/ici/analysis/_cpp_include_graph.py:399:16 (not_started), finding_site:src/ici/analysis/cycles.py:491:12 (not_started). Whole frozen file read (sha256 45ba2f247b57137b14f36afd6bf6dab00a95cb451185e7e8a2f46b4cf558d149, 418 lines). Behaviour -> rows/Rust: build_compiler_cpp_graph (compilation-database mode of the C++ cycle engine): known-file validation (CppIncludeContextError), context diagnostics as CppIncludeContextDiagnostic, context error stop, unity selection, CppIncludeContextMissing per uncovered source, no-units error, per-unit error diagnostics, includes replay (CppIncludeReplayError), compiler include trace evidence, process errors (timed out / truncated / signal / unexpected stdout), missing-include targets on non-zero exit, trace parse/unexpected errors, edge de-duplication, header scope counts (project / generated / third_party by path parts or include root kind / system), per-configuration graphs, CppIncludeTrace PASS targets with configuration/resolved_edges metrics -> crates/ici-cpp/src/compiler.rs, cycles.rs. Seven of the eight finding sites are not_started: the compiler-backed graph is not compared with frozen. Uncovered or suspected Rust gaps for the row worker: No Rust source contains the frozen target names CppIncludeTraceError, CppIncludeContextMissing, CppIncludeReplayError, CppIncludeContextDiagnostic or CppIncludeContextError (_cpp_include_graph.py:151,274,311,329,372) nor the trace error messages; these are the open finding sites 148/271/308/326/342/369/399 (compilation-database mode of descriptor:cycle)."
     },
     "src/ici/analysis/_cpp_include_trace.py": {
       "disposition": "unreviewed",
       "requirements": [
         "capability:cpp-qt-generated-input",
-        "finding_site:src/ici/analysis/_cpp_include_trace.py:124:11"
+        "finding_site:src/ici/analysis/_cpp_include_trace.py:124:11",
+        "check:cpp.cycle",
+        "descriptor:cycle"
       ],
-      "reason": "Unreviewed: Open: compiler include-trace parsing not compared with frozen on a recorded compilation database. Exact frozen hash c2299202564640913886b573af670fd06d35d52b89f8938aece27f4beb7c4955 and 6 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:cpp-qt-generated-input (verified), check:cpp.cycle (verified), descriptor:cycle (verified), finding_site:src/ici/analysis/_cpp_include_trace.py:124:11 (verified). Whole frozen file read (sha256 c2299202564640913886b573af670fd06d35d52b89f8938aece27f4beb7c4955, 180 lines). Behaviour -> rows/Rust: GCC -H include trace parser: '<dots> <path>' entries with depth stack (bounded depth 4 096 / 200 000 entries, depth jump and stale path refusals, <built-in> pseudo entries), 'Multiple include guards may be useful for:' trailer validation, unexpected lines; missing-include targets from GCC 'No such file or directory' and Clang \"'x' file not found\" fatal errors (CppIncludeUnresolved WARN with include/candidates/resolution compiler_trace metrics and snippet) only when every other line is recognized context -> crates/ici-cpp/src/compiler.rs, missing_includes.rs, cycles.rs. Finding site :124 verified (clang spelling and bounded/unrecognized-trace refusals not captured)."
     },
     "src/ici/analysis/_cpp_linker_dead_aggregation.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "capability:legacy-cpp-linker-dead"
+        "capability:legacy-cpp-linker-dead",
+        "config_key:legacy:engines.dead.cpp_linker"
       ],
-      "reason": "Unreviewed: Open: linker dead-symbol aggregation not compared with frozen. Exact frozen hash 7a3a8f5314278024ad487cb8f92318627496c938616b1d886916c26b17adc93a and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:legacy-cpp-linker-dead (not_started), config_key:legacy:engines.dead.cpp_linker (verified). Whole frozen file read (sha256 7a3a8f5314278024ad487cb8f92318627496c938616b1d886916c26b17adc93a, 85 lines). Behaviour -> rows/Rust: discarded_by_every_linking_target: with fewer than two linked targets every removal is kept unchanged with 0 kept-count; otherwise a (object, section) removal is retained once only when every target that links the object discarded it, and each removal not discarded by all linking targets increments sections_kept_by_another_target -> crates/ici-cpp/src/linker.rs (kept-by-another aggregation, sections_kept_by_another_target). Behaviour not compared against frozen; capability:legacy-cpp-linker-dead is not_started."
     },
     "src/ici/analysis/_cpp_linker_dead_symbols.py": {
       "disposition": "unreviewed",
@@ -11126,9 +11181,11 @@
         "capability:legacy-cpp-linker-dead",
         "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:142:8",
         "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:797:13",
-        "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8"
+        "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8",
+        "descriptor:dead",
+        "config_key:legacy:engines.dead.cpp_linker"
       ],
-      "reason": "Unreviewed: Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run). Exact frozen hash 31225688c157d6f40ef57af7297e10b0d2a5bfda3f4b2ea1eac4ecd77d319b30 and 34 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:legacy-cpp-linker-dead (not_started), finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:142:8 (not_started), finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:797:13 (not_started), finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8 (not_started), descriptor:dead (verified), config_key:legacy:engines.dead.cpp_linker (verified). Whole frozen file read (sha256 31225688c157d6f40ef57af7297e10b0d2a5bfda3f4b2ea1eac4ecd77d319b30, 1047 lines). Behaviour -> rows/Rust: GNU ELF linker reachability: policy off/auto/required; Linux + root CMake + non-unity gates (warnings); cmake/readelf/addr2line + GCC-family driver toolset; owned -link-reachability shadow configured Release with -g -ffunction-sections -fno-lto -fno-pie and -Wl,--gc-sections -Wl,--print-gc-sections -no-pie, Unix Makefiles, analysis database, cmake --build --parallel 1; link.txt discovery (<=256 files, 4 MiB, one shell-free line, shlex, <=32768 args / 1 MiB chars, no shell operators or @response files), CMake .dir target names, approved absolute GCC driver, non-shared, required flags and unsafe-flag rejection, direct objects inside shadow (<=4096), exactly one -o output; required policy turns exclusions into errors; GNU ld identity (-Wl,--version, not LLD); object->unit map from the shadow database and function-section eligibility; relink with digest-only evidence argv, removal regex and .text/.gnu.linkonce.t section filter (<=16384), readelf -Wh EXEC check; aggregation across targets; readelf -WS/-Ws/--section-groups, single LOCAL/HIDDEN/INTERNAL FUNC symbol excluding clone markers, addr2line -j <section> 0 location in project sources; 'GNU ld discarded function' WARN targets with link_target/symbol/section/link_command_digest metrics, 'GNU ld reachability scan' PASS targets, C++LinkerReachabilityError ERROR targets, source-unchanged check, counters (link_targets_checked, sources_checked, discarded_sections_observed, ambiguous_sections_excluded, sections_kept_by_another_target) -> crates/ici-cpp/src/linker.rs, crates/ici-cpp/src/build.rs, crates/ici-cli/src/cpp/linker.rs (native next path). Uncovered or suspected Rust gaps for the row worker: Legacy projection absent: no Rust spelling of target names C++LinkerReachabilityError (_cpp_linker_dead_symbols.py:145) or 'GNU ld reachability scan' (:850), nor of the messages 'Target <t> linker identity is not supported GNU ld' (:481), 'Target <t> did not produce an exact ELF executable' (:748), 'link command response files are outside the exact contract' (:332), 'Unity compilation is outside the GNU ELF reachability contract' (:981). Owned by capability:legacy-cpp-linker-dead (not_started) and its finding_site rows."
     },
     "src/ici/analysis/_cpp_lint.py": {
       "disposition": "unreviewed",
@@ -11148,14 +11205,26 @@
         "finding_site:src/ici/analysis/_cpp_lint.py:546:12",
         "finding_site:src/ici/analysis/_cpp_lint.py:568:16",
         "finding_site:src/ici/analysis/_cpp_lint.py:588:16",
-        "finding_site:src/ici/analysis/_cpp_lint.py:604:12"
+        "finding_site:src/ici/analysis/_cpp_lint.py:604:12",
+        "check:cpp.diagnostics",
+        "descriptor:lint",
+        "command:ici lint"
       ],
-      "reason": "Unreviewed: Open: heuristic fallback and exact-database projection (C++Syntax:<digest>, ContextMissing WARN) are compared; ExecutionError, Replay/Budget/Context error and ContextDiagnostic ERROR branches are not. Exact frozen hash fe45717a7c9e78afca5c5af770ef131512c66bea404cf69ae2c2f29be4d90c65 and 15 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.diagnostics (verified), descriptor:lint (difference_review), finding_site:src/ici/analysis/_cpp_lint.py:159:16 (verified), finding_site:src/ici/analysis/_cpp_lint.py:208:12 (not_started), finding_site:src/ici/analysis/_cpp_lint.py:246:11 (verified), finding_site:src/ici/analysis/_cpp_lint.py:299:12 (verified), finding_site:src/ici/analysis/_cpp_lint.py:372:16 (verified), finding_site:src/ici/analysis/_cpp_lint.py:471:16 (not_started), finding_site:src/ici/analysis/_cpp_lint.py:498:16 (not_started), finding_site:src/ici/analysis/_cpp_lint.py:546:12 (not_started), finding_site:src/ici/analysis/_cpp_lint.py:568:16 (not_started), finding_site:src/ici/analysis/_cpp_lint.py:588:16 (verified), finding_site:src/ici/analysis/_cpp_lint.py:604:12 (verified), command:ici lint (difference_review). Whole frozen file read (sha256 fe45717a7c9e78afca5c5af770ef131512c66bea404cf69ae2c2f29be4d90c65, 626 lines). Behaviour -> rows/Rust: run_cpp_lint: root resolution (C++SyntaxContextError), per-source containment/readable-regular checks, 2 048-unit bound (C++SyntaxBudgetError), exact mode when a compilation context is present else g++ c++17 heuristic fallback (warning text, inventory/which g++ readiness, non-canonical driver refusal, outside-project fallback source), exact mode: context diagnostics as C++SyntaxContextDiagnostic (error/warning/pass), context error stop, unity build selection, Qt generated moc_/qrc_/mocs_compilation units, C++SyntaxContextMissing per uncovered source, no replayable units / budget errors, 600 s global and 120 s unit budgets, unit error diagnostics, replay errors (C++SyntaxReplayError '<code>: <msg>'), syntax command with structured diagnostics flags, process evidence (timed out / truncated / signal), process and output errors (not parseable, exit>=2, no diagnostics, error with successful exit, failure without error), clean C++Syntax:<config12|fallback> PASS targets, configurations/sources checked -> crates/ici-cli/src/cpp/legacy_syntax.rs, fallback.rs, crates/ici-cli/src/cpp.rs. Uncovered or suspected Rust gaps for the row worker: No Rust source contains the frozen fallback refusal 'C++ fallback rejected a non-canonical g++ driver' / 'non-canonical fallback driver; no command was executed' (_cpp_lint.py:425-434). Reachable only without an analysis context; confirm it is unreachable in the Rust pipeline (it always builds a capability inventory) or cover it under check:cpp.diagnostics."
     },
     "src/ici/analysis/_cpp_tooling.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: Clang tooling argument derivation not compared with frozen at this site. Exact frozen hash 00d864b2c9e87bc14d2807a3b27f65a08d177060590b8a28cc6737c3caa60de1 and 24 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:lint",
+        "check:cpp.tidy",
+        "check:cpp.diagnostics",
+        "capability:cpp-qt-generated-input",
+        "descriptor:dead",
+        "capability:legacy-cpp-linker-dead",
+        "config_key:legacy:engines.complexity.cpp_boundaries",
+        "config_key:legacy:engines.cognitive.cpp_boundaries"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:lint (difference_review), check:cpp.tidy (verified), check:cpp.diagnostics (verified), capability:cpp-qt-generated-input (verified), descriptor:dead (verified), capability:legacy-cpp-linker-dead (not_started). Whole frozen file read (sha256 00d864b2c9e87bc14d2807a3b27f65a08d177060590b8a28cc6737c3caa60de1, 756 lines). Behaviour -> rows/Rust: compiler_capability (resolved-path match, Clang family preferred over g++ aliases), compiler family from details/version/name, compiler_diagnostic_command (gcc>=9 -fdiagnostics-format=json else -fdiagnostics-parseable-fixits, + -fdiagnostics-show-option), regular_executable/inside, gcc_compiler_for_replay (samefile with approved g++), toolchain selector extraction (-m32/-m64/-mx32, --sysroot/-isysroot/-mabi/-march/-mcpu/-mtune, missing-toolchain-selector-value), strict GCC include-search block parsing, GCC libstdc++ projection (-nostdinc++ -isystem <c++-only roots>, gcc-include-probe-timeout/-exception/-truncated/-failed/-unparseable/-cwd/-compiler/-cwd-changed/-compiler-changed, gcc-stdlib-unresolved, Clang-backed alias passthrough, identity-keyed cache), selected_units (unity build vs uncovered sources), tooling_arguments (expected suffix, warning demotion, unexpected-replay-shape), include-root projection for preview validation (too-many-tooling-include-roots) -> crates/ici-cpp/src/toolchain.rs, tidy_boundaries.rs, replay_policy.rs, crates/ici-cli/src/cpp/legacy_tooling.rs, fallback.rs. Uncovered or suspected Rust gaps for the row worker: No Rust spelling for the frozen codes unexpected-replay-shape (_cpp_tooling.py:662), too-many-tooling-include-roots (:753) and missing-toolchain-selector-value (:278); confirm they are unobservable in Rust's structure or record the difference under descriptor:lint / check:cpp.tidy."
     },
     "src/ici/analysis/_cpp_unused_functions.py": {
       "disposition": "unreviewed",
@@ -11163,21 +11232,35 @@
         "finding_site:src/ici/analysis/_cpp_unused_functions.py:144:11",
         "finding_site:src/ici/analysis/_cpp_unused_functions.py:674:16",
         "finding_site:src/ici/analysis/_cpp_unused_functions.py:698:21",
-        "finding_site:src/ici/analysis/_cpp_unused_functions.py:741:12"
+        "finding_site:src/ici/analysis/_cpp_unused_functions.py:741:12",
+        "descriptor:dead",
+        "command:ici dead",
+        "config_key:legacy:engines.dead.cpp_unused"
       ],
-      "reason": "Unreviewed: Open: compiler-backed -Wunused-function agreement across configurations not compared with frozen on a compilation database. Exact frozen hash b603e00946b8dde7860a8eb1e3fb7ed40c769e5b619d040096a1c4722625fc76 and 24 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/analysis/_cpp_unused_functions.py:144:11 (verified), finding_site:src/ici/analysis/_cpp_unused_functions.py:674:16 (verified), finding_site:src/ici/analysis/_cpp_unused_functions.py:698:21 (verified), finding_site:src/ici/analysis/_cpp_unused_functions.py:741:12 (not_started), descriptor:dead (verified), command:ici dead (implemented), config_key:legacy:engines.dead.cpp_unused (implemented). Whole frozen file read (sha256 b603e00946b8dde7860a8eb1e3fb7ed40c769e5b619d040096a1c4722625fc76, 817 lines). Behaviour -> rows/Rust: Compiler-backed -Wunused-function scope: requires a compilation database with canonical digest, same project, no unity build, no ingestion errors, exact unit selection (missing sources -> per-source error), <=2048 units, c/c++ languages only; per unit: ingestion-error codes, canonical configuration identity matching directory/argv/output digest, no repeated source configuration, source snapshot stability (include_generated/vendor read), replay via build_replay_command(operation unused-functions) with compiler-unavailable/-not-probed as warnings, approved compiler identity (dev/ino/mode/size/mtime/ctime) and cwd identity; execution with replay_environment, empty stdin, 1,000,000-char output, 120 s per unit / 600 s global; failure ladder (timed out, truncated, terminated unexpectedly, unparseable, exit code, error with successful exit, identity/cwd/source changed); located -Wunused-function WARN diagnostics only for the TU source (non_tu_diagnostics_excluded), bounds-checked line/column, duplicate location rejection; atomic merge: identical diagnostic sets across configurations or error, C++UnusedFunctions PASS / Compiler:-Wunused-function WARN 'Compiler reports <detail> in all N analyzed configuration(s)' with configurations_checked, C++UnusedFunctionError ERROR targets, C++UnusedFunctionsInvalidated SKIP for observed sources on failure -> crates/ici-cpp/src/compiler.rs unused_function_consensus + crates/ici-cli/src/cpp.rs legacy_unused_projection (C++UnusedFunctions, Compiler:-Wunused-function, C++UnusedFunctionError, C++UnusedFunctionsInvalidated, timeout/exit/terminated failures). Uncovered or suspected Rust gaps for the row worker: Configuration disagreement: frozen errors when -Wunused-function diagnostic sets differ across configurations of one source ('C++ unused-function diagnostics vary across source configurations', _cpp_unused_functions.py:660-668, then whole scope invalidated :805-815); Rust unused_function_consensus intersects the sets (crates/ici-cpp/src/compiler.rs:897-930) and legacy_unused_projection (crates/ici-cli/src/cpp.rs:2736-2880) projects only agreed diagnostics as WARN/PASS, so legacy `ici dead` reports PASS/WARN where frozen reports ERROR. Suggested rows: descriptor:dead, config_key:legacy:engines.dead.cpp_unused, finding_site:src/ici/analysis/_cpp_unused_functions.py:144:11. No Rust spelling for these frozen C++UnusedFunctionError messages: 'global budget left N configuration(s) unexamined' (:784), 'repeats a source configuration' (:322), 'no canonical configuration identity' (:305), 'configuration identity does not match its command' (:313), 'source snapshot changed before analysis' (:273), 'compiler identity changed before/during execution' (:575, :596), 'working directory changed' (:577, :603), 'output rejected: ... repeats a source location / outside the source snapshot' (:455-495, :637), 'diagnostic output was truncated' (:565), 'contains unsupported translation-unit language(s)' (:245), 'translation-unit count exceeds the bounded limit' (:234), 'Approved compiler is unavailable for C++ unused-function analysis' warning (:359). Suggested rows: finding_site:src/ici/analysis/_cpp_unused_functions.py:144:11, descriptor:dead."
     },
     "src/ici/analysis/_elf.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "capability:build-artifact-abi"
+        "capability:build-artifact-abi",
+        "descriptor:binary_compat",
+        "check:cpp.binary-compat",
+        "finding_site:src/ici/engines/binary_compat.py:247:16",
+        "finding_site:src/ici/adapters/providers/binarycompat.py:137:11"
       ],
-      "reason": "Unreviewed: Open: the missing-header incompleteness (truncated readelf) matches frozen; invalid ABI version, bounds and the other header fields are not captured. Exact frozen hash b8c001c387a564ae5be3d9ac87082fd70ce84deecee75493791b293bc5743c3d and 5 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:build-artifact-abi (not_started), descriptor:binary_compat (verified), check:cpp.binary-compat (verified), finding_site:src/ici/engines/binary_compat.py:247:16 (verified), finding_site:src/ici/adapters/providers/binarycompat.py:137:11 (implemented). Whole frozen file read (sha256 b8c001c387a564ae5be3d9ac87082fd70ce84deecee75493791b293bc5743c3d, 78 lines). Behaviour -> rows/Rust: parse_readelf over one `readelf -h -S -d -V --wide` transcript: 8 MiB/NUL bound, Class/Machine/Type header facts required (ElfParseError 'missing ELF header facts'), NEEDED (sorted, de-duplicated), RPATH/RUNPATH split on ':', GLIBC/GLIBCXX/CXXABI version sets with numeric key validation ('invalid ABI version'), stripped (no .symtab), dynamic ('There is no dynamic section') ; version_key/maximum_version -> crates/ici-cpp/src/elf.rs (parse + maximum_version), used by the legacy binary_compat engine and the next-path cpp.binary-compat provider."
     },
     "src/ici/analysis/_source_inputs.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: source-input exclusion site not compared beyond the verified include_generated/include_vendor keys. Exact frozen hash bdd55b8882e40e63c58381e7d82331407baf432c4140ca6399901a9ab3d103ea and 13 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.dup",
+        "check:cpp.exception",
+        "descriptor:dup",
+        "descriptor:dead",
+        "config_key:legacy:engines.dead.include_generated",
+        "config_key:legacy:engines.dead.include_vendor"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.dup (implemented), check:cpp.exception (verified), descriptor:dup (verified), descriptor:dead (verified), config_key:legacy:engines.dead.include_generated (verified), config_key:legacy:engines.dead.include_vendor (verified). Whole frozen file read (sha256 bdd55b8882e40e63c58381e7d82331407baf432c4140ca6399901a9ab3d103ea, 282 lines). Behaviour -> rows/Rust: C++ facet of the shared owned-source inventory (python fragment maps the Python facet): .c/.cc/.cpp/.cxx/.h/.hh/.hpp/.hxx/.moc -> cpp; case-folded vendor directory parts (_deps, deps, extern, external, node_modules, subprojects, third-party, third_party, vendor) and generated parts (generated, autogen, *_autogen, moc_/qrc_/ui_/mocs_compilation names, .moc suffix) with include_generated/include_vendor overrides; outside-project/not-file/invalid-limit/too-many-candidates(8192)/too-many-files(2048)/unsupported-language/missing/read errors/inventory-too-large(64 MiB)/invalid-utf8/invalid-text codes; 8 MiB per-file bound; sorted relative order; 'excluded <path>: <reason>' limitations in consumers -> crates/ici-analysis/src/source.rs source_exclusion_reasons (same lists) via crates/ici-cpp/src/source.rs policy_exclusions for cpp.dup and linker/compiler dead paths. Uncovered or suspected Rust gaps for the row worker: Next-path cpp.exception exclusion policy differs: frozen languages/hygiene.py:53 uses read_analysis_sources -> analysis_exclusion_reasons (_source_inputs.py:130-148: case-folded _deps/deps/extern/subprojects/autogen/*_autogen/mocs_compilation/.moc, reasons 'vendor'/'generated'), but Rust crates/ici-cpp/src/analysis.rs:152-156 applies source::is_excluded (crates/ici-cpp/src/source.rs:162-190: adds vendors/.venv/build/dist/.pb.cc/.pb.h, omits _deps/deps/extern/subprojects/autogen/*_autogen/mocs_compilation/.moc, case-sensitive, matches the file-name part too) and reports reason 'generated or third-party directory'/'generated source filename'. Suggested row: check:cpp.exception (next facet). Bounds differ: frozen 8 MiB per file / 64 MiB inventory / 8192 candidates with codes too-many-candidates, too-many-files, inventory-too-large (_source_inputs.py:18-21,194-257); Rust C++ analysis uses 2048 files / 64 MiB with code inventory-limit (crates/ici-cpp/src/analysis.rs:86-104) and a 16 MiB per-file bound with code source-too-large (crates/ici-cpp/src/source.rs:21-25) instead of the frozen 8 MiB. Suggested rows: check:cpp.dup, check:cpp.exception."
     },
     "src/ici/analysis/binary_abi.py": {
       "disposition": "mapped",
@@ -11190,120 +11273,223 @@
     "src/ici/analysis/cpp_complexity.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "capability:cpp-parser-heuristic-confidence"
+        "capability:cpp-parser-heuristic-confidence",
+        "check:cpp.complexity",
+        "descriptor:complexity",
+        "check:cpp.cognitive",
+        "check:cpp.dup"
       ],
-      "reason": "Unreviewed: Open: compiler-backed complexity boundary modes not compared; the heuristic legacy projection is verified (check:cpp.complexity). Exact frozen hash 2d60ad43fc325cf8a747fb39152794e1cd7578ee497f4bb99fe6f37ac377115b and 21 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:cpp-parser-heuristic-confidence (not_started), check:cpp.complexity (verified), descriptor:complexity (verified), check:cpp.cognitive (verified), check:cpp.dup (implemented). Whole frozen file read (sha256 2d60ad43fc325cf8a747fb39152794e1cd7578ee497f4bb99fe6f37ac377115b, 439 lines). Behaviour -> rows/Rust: Heuristic C++ function scanner and cyclomatic metric: decision tokens (&&, ||, ?, for/while/catch/if/if constexpr/if consteval heads, case labels), digraph braces, literal/preprocessor masking, function-like/upper-case standalone macro invocations skipped, pending signature accumulation, expression/lambda-initializer/requires/constructor-initializer brace skipping, cpp_definition_name, operator/function kind, template detection, function-try-blocks with catch handlers (+1 each), body metric details (lambda bodies masked and counted as excluded, max brace nesting, conditional-directive flag), unterminated span finish, _CppComplexityAnalysis fields (boundary_mode, exact/estimated boundaries, configurations/sources checked, lambdas/macro functions excluded) -> crates/ici-cpp/src/analysis.rs, source_rules.rs. Rows: check:cpp.complexity verified (compiler-backed exact/partial/mixed boundary modes, error targets and extra summary fields open), capability:cpp-parser-heuristic-confidence not_started."
     },
     "src/ici/analysis/cpp_text.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: C++ text helpers compared only through the lexical/source oracles. Exact frozen hash 31b6eca7d3f9ecf2bd73b68899cf8e2525e0e13500f3112593de96ac85ea3bdb and 20 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "capability:cpp-parser-heuristic-confidence",
+        "check:cpp.complexity",
+        "check:cpp.cognitive",
+        "descriptor:complexity",
+        "descriptor:cognitive",
+        "descriptor:test",
+        "descriptor:sanitize",
+        "descriptor:build"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:cpp-parser-heuristic-confidence (not_started), check:cpp.complexity (verified), check:cpp.cognitive (verified), descriptor:test (verified), descriptor:complexity (verified), descriptor:cognitive (verified), descriptor:sanitize (verified), descriptor:build (verified). Whole frozen file read (sha256 31b6eca7d3f9ecf2bd73b68899cf8e2525e0e13500f3112593de96ac85ea3bdb, 441 lines). Behaviour -> rows/Rust: Shared C++ lexical helpers: literal/comment masking (raw strings with delimiters, // with line continuation, /* */, quotes ending at newline, operator\"\" suffix quotes), operator-name recognition and spelling (operator(), [], \"\"suffix, new[]/delete[], symbolic, conversion), top-level parameter openings and cpp_definition_name with non-function heads, conditional-directive and function-like macro detection, preprocessor-directive masking with continuations, lambda body masking (capture start rules, requires-expression bodies, bounded 100 000 lambdas / 200 000 delimiter pairs), defines_main (int main(...) [noexcept] {) used by build/test/sanitize/test-coverage entry-point exclusion -> crates/ici-cpp/src/source.rs, source_rules.rs, entry_points.rs, tidy_boundaries.rs."
     },
     "src/ici/analysis/cycles.py": {
       "disposition": "unreviewed",
       "requirements": [
         "finding_site:src/ici/analysis/cycles.py:491:12",
         "finding_site:src/ici/analysis/cycles.py:518:12",
-        "finding_site:src/ici/analysis/cycles.py:558:12"
+        "finding_site:src/ici/analysis/cycles.py:558:12",
+        "check:cpp.cycle",
+        "descriptor:cycle",
+        "command:ici cycle",
+        "config_key:legacy:engines.cycle.max_reported"
       ],
-      "reason": "Unreviewed: Open: this cycles.py site (compiler-context or Python path) is not compared; the legacy heuristic C++ include graph is verified on check:cpp.cycle. Exact frozen hash 1c74befcfb8d6f01d5aa46c6d9c8cef2d9d583929966a9336163ab16737acd38 and 21 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.cycle (verified), descriptor:cycle (verified), command:ici cycle (verified), finding_site:src/ici/analysis/cycles.py:491:12 (not_started), finding_site:src/ici/analysis/cycles.py:518:12 (verified), config_key:legacy:engines.cycle.max_reported (verified). Whole frozen file read (sha256 1c74befcfb8d6f01d5aa46c6d9c8cef2d9d583929966a9336163ab16737acd38, 571 lines). Behaviour -> rows/Rust: C++ facet: C/C++ file inventory (source dirs + include/, .cpp/.cc/.cxx/.c/.h/.hpp/.hh), quoted-include regex, unique project path-suffix resolution (absolute/.. refused), ambiguous vs unresolved include diagnostics with line and snippet, heuristic graph and resolved count, iterative Tarjan SCC (self-loops), actual cycle path from the min node, compiler_trace mode via build_compiler_cpp_graph when a compilation context is present (unresolved targets bounded by max_reported, per-configuration cycle de-duplication, scope counts, diagnostics_truncated), CppCycle:<n> WARN targets ('C++ include cycle (<n> files): a.h -> b.h -> a.h', files/configurations metrics) and CppIncludeAmbiguous/CppIncludeUnresolved targets -> crates/ici-cpp/src/cycles.rs, compiler.rs. The Python import graph, Python cycle targets and module resolution are the Python facet (python.json). Recorded difference on check:cpp.cycle: frozen cycle order follows Python set iteration; native uses sorted components."
     },
     "src/ici/analysis/gcov_json.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Blocked: gcov JSON parity waits for the validation worker's merge; not compared. Exact frozen hash de1d9c30ddc441a21337eb01cbf2419b8c107a39296fed35ca84fcd6c7700304 and 50 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.coverage",
+        "descriptor:test",
+        "check:cpp.test",
+        "command:ici next verify",
+        "finding_site:src/ici/engines/test_coverage.py:384:16"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:test (verified), check:cpp.test (verified), command:ici next verify (difference_review), finding_site:src/ici/engines/test_coverage.py:384:16 (not_started). Whole frozen file read (sha256 de1d9c30ddc441a21337eb01cbf2419b8c107a39296fed35ca84fcd6c7700304, 982 lines). Behaviour -> rows/Rust: Strict bounded .gcov.json.gz parser: 8 MiB compressed / 64 MiB decompressed, no-follow regular-file read with change detection, gzip magic/truncation/trailing-data refusal, UTF-8, strict JSON (duplicate keys, non-finite, floats, 64-bit integer bound), depth/array/object limits, schema objects with required/allowed fields for root/files/functions/lines/branches/calls/conditions/prime paths (format_version '1'/'2', numeric gcc_version, block ids required in v2, calls only in v2, both branch block ids, covered<=count, blocks_executed<=blocks, position order, prime-path totals and duplicates, duplicate function identities and duplicate files), GcovJsonError codes -> crates/ici-validation/src/gcov.rs and gcov_format.rs (gcov JSON/text reports for legacy test coverage and next-path cpp.coverage). Uncovered or suspected Rust gaps for the row worker: Rust gcov.rs does not spell the frozen GcovJsonError codes (e.g. unsupported_version, invalid_gcc_version, decompressed_limit, position_order, version_field, duplicate_function; gcov_json.py:225-880). The code reaches users through 'gcov evidence rejected (<code>)' (next path) and the legacy test-coverage error; confirm the rejection classes under check:cpp.coverage / descriptor:test or record a wording difference."
     },
     "src/ici/compilation_export_cli.py": {
       "disposition": "unreviewed",
       "requirements": [
         "capability:compile-context-export",
-        "command:ici export-compilation-context"
+        "command:ici export-compilation-context",
+        "wire_schema:ici-compilation-export-v1.schema.json"
       ],
-      "reason": "Unreviewed: Open: compilation-context export not compared with frozen beyond compilation-export-oracle.json. Exact frozen hash d7186faee4314f55f64aaf5b000b103080cbf39f66dcb4a94d25f9279e666e3d and 2 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by command:ici export-compilation-context (verified), capability:compile-context-export (implemented). Whole frozen file read (sha256 d7186faee4314f55f64aaf5b000b103080cbf39f66dcb4a94d25f9279e666e3d, 74 lines). Behaviour -> rows/Rust: export-compilation-context options (--database, --prepare, --output/-o default '-', --pretty), cwd root, effective config, 'Compilation export error: <msg>' on stderr with CompilationExportError exit code (2 for usage/selection) else 1 -> crates/ici-cli/src/export_context.rs and commands.rs. Open: --prepare CLI payload not compared with a frozen capture (command row difference_reason)."
     },
     "src/ici/core/_cmake_test_results.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Blocked: CTest result parsing parity waits for the validation worker's merge; not compared. Exact frozen hash 1dea934d365f4cbb5d8e4c2d57c4bffa482c8edab816cd78652f4cbe987b09bf and 15 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:test",
+        "check:cpp.test",
+        "descriptor:sanitize",
+        "check:cpp.sanitize",
+        "finding_site:src/ici/engines/test.py:611:20",
+        "finding_site:src/ici/engines/test.py:632:20"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:test (verified), check:cpp.test (verified), descriptor:sanitize (verified), check:cpp.sanitize (verified), finding_site:src/ici/engines/test.py:611:20 (verified), finding_site:src/ici/engines/test.py:632:20 (verified). Whole frozen file read (sha256 1dea934d365f4cbb5d8e4c2d57c4bffa482c8edab816cd78652f4cbe987b09bf, 440 lines). Behaviour -> rows/Rust: TestCaseResult invariants; sanitizer transcript attachment (LSan/ASan/UBSan/TSan markers, first failed else first executed case, synthetic sanitizer-process case, 64 KiB UTF-8 transport bound); CTest JUnit (1 MB bound, NUL/DOCTYPE refusal, failure/error, sanitizer evidence, skipped -> not executed, notrun/skip/disabled status, unknown status FAIL, 512-char bound), CTest stdout regex, QtTest xunit blocks (suite::case, result states, xfail/xpass), qmake make-check transcript per binary with QtTest failure detail, make Error attribution and non-zero exit blame on the last started test -> crates/ici-validation/src/make_check.rs, crates/ici-cli/src/cpp/legacy_tests.rs (all frozen messages present)."
     },
     "src/ici/core/_compilation_export_argv.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compilation-context export not compared with frozen beyond compilation-export-oracle.json. Exact frozen hash 08a2694bcc42423f4bcaaa844c15c12017b464fd177ef8c01d05c0d50e052a1e and 11 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "capability:compile-context-export",
+        "command:ici export-compilation-context"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:compile-context-export (implemented), command:ici export-compilation-context (verified). Whole frozen file read (sha256 08a2694bcc42423f4bcaaa844c15c12017b464fd177ef8c01d05c0d50e052a1e, 247 lines). Behaviour -> rows/Rust: compiler_record (env/ccache/distcc/icecc/sccache wrapper skipping, version-suffix stem, family table gcc/clang/clang-cl/msvc/unknown, host path redaction '[external]'), undefined_names (-U//U safe names), unmodeled option records (value/joined/operational option skipping, safe option name or REDACTED, token digest), invocation_record (command_style, normalized argv digest, target triple) -> crates/ici-cli/src/export_context/public_export.rs."
     },
     "src/ici/core/_compilation_export_io.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compilation-context export not compared with frozen beyond compilation-export-oracle.json. Exact frozen hash ba99bf2a8cfac6bc71b06b3531fef316c7e4ac7d2df8fd427e89e321e03136ed and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "command:ici export-compilation-context",
+        "capability:compile-context-export"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by command:ici export-compilation-context (verified), capability:compile-context-export (implemented). Whole frozen file read (sha256 ba99bf2a8cfac6bc71b06b3531fef316c7e4ac7d2df8fd427e89e321e03136ed, 83 lines). Behaviour -> rows/Rust: atomic_write (temp file in target dir, fsync, replace, directory fsync, temp cleanup) and validate_output ('-' stdout; foreign syntax, non-file name, non-regular/non-symlink target, overwriting the database or ici.toml/dev.toml/pyproject.toml refused with the frozen messages) -> crates/ici-cli/src/export_context.rs output handling (output_is_atomic test named in command:ici export-compilation-context)."
     },
     "src/ici/core/_compilation_export_project.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compilation-context export not compared with frozen beyond compilation-export-oracle.json. Exact frozen hash ab2845aa69ad659efcd227c2388dcfdd9e9244133e026ed8f4ff1fff7aa51a38 and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "capability:compile-context-export",
+        "command:ici export-compilation-context",
+        "config_key:legacy:project.type",
+        "config_key:legacy:type"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:compile-context-export (implemented), command:ici export-compilation-context (verified). Whole frozen file read (sha256 ab2845aa69ad659efcd227c2388dcfdd9e9244133e026ed8f4ff1fff7aa51a38, 48 lines). Behaviour -> rows/Rust: discover_export_project: process-free project model (select_backend kind/descriptor/reason, project metadata without git, static project type from configured type/project.type else Makefile/CMake/qmake vs pyproject/setup.py -> cpp/python/hybrid) -> crates/ici-cli/src/export_context.rs project block of the v1 export."
     },
     "src/ici/core/_compile_db_commands.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compilation-database loading/metadata site not compared with frozen beyond the context fixtures. Exact frozen hash 27882d9be23c32017d393bc5a5e505389396ae784bb6eaf5a6fd2bd1fb8f8052 and 13 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:compile_db",
+        "capability:compile-context-export",
+        "finding_site:src/ici/engines/compile_db.py:71:11"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:compile_db (verified), capability:compile-context-export (implemented), finding_site:src/ici/engines/compile_db.py:71:11 (verified). Whole frozen file read (sha256 27882d9be23c32017d393bc5a5e505389396ae784bb6eaf5a6fd2bd1fb8f8052, 363 lines). Behaviour -> rows/Rust: Windows CRT argv splitter (backslash/quote rules, unclosed quote) used only when os.name == 'nt' (POSIX uses shlex); arguments/command validation (invalid-arguments, missing-command, invalid-command with bounded sizes); response-file expansion (response-file-invalid/-depth/-outside-project/-cycle/-missing/-<read code>/-malformed, aggregate byte budget, per-file cache, expanded count/char bounds) -> crates/ici-cpp/src/arguments.rs and compiler.rs (all frozen codes present in LEGACY_FAIL_DIAGNOSTICS). The Windows splitter branch is unreachable on the Linux/WSL scope (capability:native-windows-disposition complete)."
     },
     "src/ici/core/_compile_db_metadata.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compilation-database loading/metadata site not compared with frozen beyond the context fixtures. Exact frozen hash 49bfb801b4a7ac05ac2e4db6858138cbf80c935deca0821458e3030ed3d98609 and 25 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:compile_db",
+        "capability:compile-context-export",
+        "command:ici export-compilation-context"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:compile_db (verified), capability:compile-context-export (implemented), command:ici export-compilation-context (verified). Whole frozen file read (sha256 49bfb801b4a7ac05ac2e4db6858138cbf80c935deca0821458e3030ed3d98609, 459 lines). Behaviour -> rows/Rust: Per-unit metadata: compiler basename, CMake target from CMakeFiles/<t>.dir, MSVC detection (cl/clang-cl), -std//std:, -x//TC//TP language with aliases and suffix fallback, -D//D defines with name validation, -I/-isystem/-iquote//I//external:I include records (scope, exists, missing-include-dir), --sysroot/-isysroot, -o//Fo output normalization against the declared output (database-parent fallback), source-operand check -> crates/ici-cpp/src/context.rs parse/normalize and compiler.rs legacy diagnostics. Uncovered or suspected Rust gaps for the row worker: Rust context.rs/compiler.rs have no counterpart for the frozen warning codes `output-mismatch` (_compile_db_metadata.py:404) and `invalid-output` (:378 non-string output field, :427 output naming a directory or '.'); they surface as compile_db unit diagnostics and in export-compilation-context `diagnostics`/comparison_state. Suggested row: descriptor:compile_db (context-diagnostic paths) and capability:compile-context-export. Frozen `unknown-language`/`invalid-define`/`missing-flag-value` are level warning; Rust context.rs emits unknown-language as error (ContextDiagnostic::error) - check level parity under descriptor:compile_db / export comparison_state."
     },
     "src/ici/core/_compile_db_paths.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compilation-database loading/metadata site not compared with frozen beyond the context fixtures. Exact frozen hash 0ba327ba3f52093e605405a02b41d0c76694d1ad3b8447c48175c11b6d129fc9 and 10 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:compile_db",
+        "capability:compile-context-export",
+        "config_key:legacy:project.compile_database",
+        "finding_site:src/ici/engines/compile_db.py:71:11"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:compile_db (verified), capability:compile-context-export (implemented), config_key:legacy:project.compile_database (verified), finding_site:src/ici/engines/compile_db.py:71:11 (verified). Whole frozen file read (sha256 0ba327ba3f52093e605405a02b41d0c76694d1ad3b8447c48175c11b6d129fc9, 225 lines). Behaviour -> rows/Rust: _scoped_path (foreign-path-syntax refusal, invalid-path, project/external scope), _select_database (explicit project.compile_database string/foreign/escape/'.' -> invalid setting; discovery order compile_commands.json then build/compile_commands.json), _open_contained/_read_bounded_regular (no-follow contained open, not-file, too-large, changed double-read identity check, unreadable) -> crates/ici-cpp/src/input.rs, compiler.rs and context.rs database loading; reached through compile_db diagnostics (database-*), response files and every C++ replay consumer."
     },
     "src/ici/core/_cpp_replay_policy.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: replay policy site not compared with frozen beyond the replay fixtures. Exact frozen hash 0542b70e6147abe1915ee75a4229760a994b93fefdb0bd9d4634bd7eaecbcaa4 and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:lint",
+        "check:cpp.diagnostics",
+        "check:cpp.tidy",
+        "descriptor:dead",
+        "descriptor:cycle"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:lint (difference_review), check:cpp.diagnostics (verified), check:cpp.tidy (verified), descriptor:dead (verified), descriptor:cycle (verified). Whole frozen file read (sha256 0542b70e6147abe1915ee75a4229760a994b93fefdb0bd9d4634bd7eaecbcaa4, 335 lines). Behaviour -> rows/Rust: Positive replay option policy: COMPILER_CAPABILITIES gcc/g++/clang/clang++, driver-name regex (cross prefixes, version suffix, .exe), DROP_EXACT/DROP_VALUE/DROP_JOINED/-g prefix, PRESERVE_VALUE, REJECT_EXACT/REJECT_PREFIXES (plugins, -X*, -W[alp], modules, dumps, profiling/coverage, config/specs/-B ...), SAFE_EXACT/SAFE_PREFIXES, -O levels, -m*, -xc/-xc++, --language= c/c++ -> crates/ici-cpp/src/replay_policy.rs (same tables) used by replay.rs and crates/ici-cli/src/cpp/legacy_syntax.rs."
     },
     "src/ici/core/_qmake_commands.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: qmake capture/recorder site not compared with frozen at this site. Exact frozen hash a1e9466642395ea08c2121014aa658176022bb63dbd3e0ab9558fd4825650ce3 and 8 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "capability:qmake-recorder",
+        "descriptor:build",
+        "command:ici build",
+        "check:cpp.artifact"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:qmake-recorder (not_started), descriptor:build (verified), command:ici build (difference_review), check:cpp.artifact (verified). Whole frozen file read (sha256 a1e9466642395ea08c2121014aa658176022bb63dbd3e0ab9558fd4825650ce3, 54 lines). Behaviour -> rows/Rust: qmake_configure_argv: [qmake, (-recursive for analysis DB), pro file, -after QMAKE_CXX=<wrapper> <cxx> QMAKE_CC=<wrapper> <cc> (refused without both resolved compilers), QMAKE_CXXFLAGS+=<flag>..., QMAKE_LFLAGS+=<flag>...] -> crates/ici-cpp/src/qmake.rs and build.rs. Rust build.rs qmake_assignments emits one joined `QMAKE_CXXFLAGS+=<flags>`/`QMAKE_LFLAGS+=<flags>` (and QMAKE_CFLAGS) assignment where frozen emits one assignment per flag; same qmake effect, an argv-shape difference under the accepted C++ tool-evidence ruling."
     },
     "src/ici/core/_qmake_wrapper.py": {
-      "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: qmake capture/recorder site not compared with frozen at this site. Exact frozen hash 0610c11448adcfe21cb93484db64b23a0c0753ba531887654634402c0b92b9e7 and 0 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
-    },
-    "src/ici/core/cmake.py": {
-      "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: frozen CMake/qmake/Make adapter site not compared beyond the Make plan golden and Make CLI fixtures. Exact frozen hash df869fca14d5b6ad7c21a4063f87abac34c723d42b6b85cc66605e7c536894ee and 36 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
-    },
-    "src/ici/core/cmake_context.py": {
-      "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: CMake context capture not compared with frozen at this site. Exact frozen hash 4aeae0606db689e75e44d0c038420a974c97160fd2ecdfa109168498dac01b46 and 11 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
-    },
-    "src/ici/core/compilation_export.py": {
-      "disposition": "unreviewed",
-      "requirements": [
-        "capability:compile-context-export"
-      ],
-      "reason": "Unreviewed: Open: compilation-context export not compared with frozen beyond compilation-export-oracle.json. Exact frozen hash dfc790408b7c15cef5e17b1ad175350ab6c6fdb5b0730e2056f80d3bfe887772 and 21 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
-    },
-    "src/ici/core/compile_db.py": {
-      "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: compilation-database loading/metadata site not compared with frozen beyond the context fixtures. Exact frozen hash d17df1a27c28ae820f5bbb8ec9b625359b7b8a44994c09d2787e4adb318b7985 and 9 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
-    },
-    "src/ici/core/cpp_replay.py": {
-      "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: replay policy site not compared with frozen beyond the replay fixtures. Exact frozen hash 45ae78a90f19e6d6b45e52c38eb4016a40ac74f6d9db280fe4fac43249fcf99d and 17 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
-    },
-    "src/ici/core/qmake_context.py": {
       "disposition": "unreviewed",
       "requirements": [
         "capability:qmake-recorder"
       ],
-      "reason": "Unreviewed: Open: qmake capture/recorder site not compared with frozen at this site. Exact frozen hash ce58c63bbd647065cd99a72fb3ed258c468e624d170c172d55ae1d72807abbdd and 17 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:qmake-recorder (not_started). Whole frozen file read (sha256 0610c11448adcfe21cb93484db64b23a0c0753ba531887654634402c0b92b9e7, 76 lines). Behaviour -> rows/Rust: WRAPPER_SOURCE: the Python compiler wrapper materialized for qmake capture (only `-c` invocations are journalled as {arguments, directory} records under flock, regular/owner/0600 journal checks, 1 MiB record and 32 MiB journal caps, 'ici qmake capture: <msg>' exit 125 failures, then execvp of the original compiler). The Rust product replaces it with the native recorder (crates/ici-cpp/src/recorder.rs: same ICI_QMAKE_CAPTURE_PATH journal, 'ici qmake capture' prefix, capture-record-too-large / capture-too-large bounds) as ADR-0008 requires (no Python inside the product)."
+    },
+    "src/ici/core/cmake.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "descriptor:build",
+        "command:ici build",
+        "descriptor:test",
+        "check:cpp.test",
+        "check:cpp.coverage",
+        "descriptor:sanitize",
+        "check:cpp.sanitize",
+        "descriptor:thread_sanitize",
+        "check:cpp.tsan",
+        "capability:build-artifact-abi",
+        "check:cpp.artifact"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:build (verified), command:ici build (difference_review), descriptor:test (verified), check:cpp.test (verified), descriptor:sanitize (verified), descriptor:thread_sanitize (verified), capability:build-artifact-abi (not_started), check:cpp.artifact (verified), check:cpp.sanitize (verified). Whole frozen file read (sha256 df869fca14d5b6ad7c21a4063f87abac34c723d42b6b85cc66605e7c536894ee, 815 lines). Behaviour -> rows/Rust: ConfigureOptions per variant (shadow suffix -build/''/-asan/-tsan, Release/Debug, coverage/ASan+UBSan/TSan cxx/link flags), cmake configure argv (-S/-B, forced generator only 'Unix Makefiles', export compile commands, analysis -DCMAKE_UNITY_BUILD=OFF, C/CXX/linker flags), build argv, ctest argv by version (--test-dir >=3.20, --output-junit ici-ctest.xml >=3.21), qmake clean/build/check (TESTARGS=-xunitxml), gcov planning per object dir and JSON capability probe, BuildSession configure/build for Make/CMake/qmake (qmake6 then qmake), owned ici-gcov cleanup, artifact discovery (ELF/PE/Mach-O magic, ar archives, entry/record limits), artifact kind/target/id (sha256 for >512 chars), producer argv redaction (secret flags, root paths), manifest capture, run_tests for Make/CTest(JUnit then stdout)/qmake check with sanitizer attachment, collect_coverage (gcov-json/gcov-text, count) -> crates/ici-cpp/src/build.rs, make.rs, crates/ici-cli/src/cpp.rs, artifact_build.rs, cpp/legacy_tests.rs, crates/ici-validation/src/cpp.rs, gcov_format.rs, make_check.rs. Frozen tool_evidence (backend selection, cmake/ctest argv) is the accepted C++ tool-evidence ruling."
+    },
+    "src/ici/core/cmake_context.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "capability:compile-context-export",
+        "command:ici export-compilation-context",
+        "descriptor:compile_db"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:compile-context-export (implemented), command:ici export-compilation-context (verified), descriptor:compile_db (verified). Whole frozen file read (sha256 4aeae0606db689e75e44d0c038420a974c97160fd2ecdfa109168498dac01b46, 247 lines). Behaviour -> rows/Rust: prepare_cmake_compilation_context: an existing/explicit DB wins; only a C/C++ CMake-backend project configures the canonical Release analysis shadow (-DCMAKE_UNITY_BUILD=OFF); bounded CMakeCache read (CMAKE_GENERATOR, CMAKE_UNITY_BUILD, CMAKE_EXPORT_COMPILE_COMMANDS; duplicate/oversize/control-char refusal), generator support (Ninja/*Makefiles), cmake bool parsing, generated DB at build/ici-cmake-build/compile_commands.json with origin cmake + generator + unity_build, one generation build when shadow-generated sources are stale, unity detection from cache or unity/ / unity_ sources -> crates/ici-cli/src/compilation_command.rs, legacy_context.rs, export_context.rs (cmake_unity_build). Uncovered or suspected Rust gaps for the row worker: Rust has no counterpart for the frozen CMake preparation diagnostics cmake-cache-missing, cmake-cache-invalid (cmake_context.py:89,95), cmake-generator-missing, cmake-generator-unsupported (:104,109), cmake-export-disabled (:116), cmake-unity-unknown (:123), cmake-configure-error/-failed (:201,206), cmake-generation-failed (:230) and cmake-unity-build (:240); no Rust source contains these codes. They are error-level context diagnostics that make `export-compilation-context --prepare` fail closed and appear in the verify analysis_context compilation diagnostics. Suggested rows: capability:compile-context-export and command:ici export-compilation-context (--prepare facet, already open)."
+    },
+    "src/ici/core/compilation_export.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "capability:compile-context-export",
+        "command:ici export-compilation-context",
+        "wire_schema:ici-compilation-export-v1.schema.json"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:compile-context-export (implemented), command:ici export-compilation-context (verified). Whole frozen file read (sha256 dfc790408b7c15cef5e17b1ad175350ab6c6fdb5b0730e2056f80d3bfe887772, 434 lines). Behaviour -> rows/Rust: config_with_database (--database POSIX project-relative validation, exit 2), redacted definitions (absent/redacted/measured value_state, secret define names), standard/generator safe-pattern redaction, include records (exists only for project scope), unit comparison_state and configuration_digest, unit ordering and state (duplicate, source_configuration_count, unit_index), fail-closed context validation (no database, untrusted origin, fatal error diagnostics, no usable units, unidentified compiler), semantic digest, deterministic render (sorted keys, compact or indent 2, 32 MiB cap), atomic write and load_export_context with --prepare dispatch to qmake/CMake preparation -> crates/ici-cli/src/export_context.rs, export_context/public_export.rs. wire_schema:ici-compilation-export-v1 is complete; capability and command rows are open (--prepare payload capture)."
+    },
+    "src/ici/core/compile_db.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "descriptor:compile_db",
+        "capability:compile-context-export",
+        "config_key:legacy:project.compile_database",
+        "finding_site:src/ici/engines/compile_db.py:71:11",
+        "finding_site:src/ici/engines/compile_db.py:90:11"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:compile_db (verified), capability:compile-context-export (implemented), config_key:legacy:project.compile_database (verified), finding_site:src/ici/engines/compile_db.py:71:11 (verified), finding_site:src/ici/engines/compile_db.py:90:11 (verified). Whole frozen file read (sha256 d17df1a27c28ae820f5bbb8ec9b625359b7b8a44994c09d2787e4adb318b7985, 445 lines). Behaviour -> rows/Rust: load_compilation_context: no DB (empty context) vs explicit invalid setting (invalid-database-setting), database-outside-project, database-missing (explicit only), database-not-file/too-large/changed/unreadable, strict JSON (no NaN, duplicate keys) database-malformed, database-not-array, database-too-many-entries; per-row parse (invalid-entry, missing-file/-directory, invalid-file/-directory, directory/source-outside-project, invalid-source-path, missing-directory/stale-source warnings, database-arguments-too-large, invalid-entry-value), units sorted by (source, directory, configuration digest), sha256 database digest and origin configured/discovered -> crates/ici-cpp/src/compiler.rs (LEGACY_FAIL_DIAGNOSTICS, frozen messages) and context.rs."
+    },
+    "src/ici/core/cpp_replay.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "descriptor:lint",
+        "check:cpp.diagnostics",
+        "check:cpp.tidy",
+        "check:cpp.cycle",
+        "descriptor:cycle",
+        "descriptor:dead",
+        "config_key:legacy:engines.dead.cpp_unused",
+        "finding_site:src/ici/analysis/_cpp_lint.py:208:12"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:lint (difference_review), check:cpp.diagnostics (verified), check:cpp.tidy (verified), check:cpp.cycle (verified), descriptor:dead (verified), config_key:legacy:engines.dead.cpp_unused (implemented), descriptor:cycle (verified), finding_site:src/ici/analysis/_cpp_lint.py:208:12 (not_started). Whole frozen file read (sha256 45ae78a90f19e6d6b45e52c38eb4016a40ac74f6d9db280fe4fac43249fcf99d, 446 lines). Behaviour -> rows/Rust: Read-only replay construction: warning-as-error demotion (-Werror dropped, -Werror=X -> -WX, pedantic-errors -> -pedantic, unsafe-tooling-warning-policy), compilation_context_present, minimal replay environment (LANG/LC_ALL=C, TERM=dumb, PATH=os.defpath; Windows branch unreachable on Linux/WSL), compiler resolution (driver regex, PATH/cwd lookup, regular executable, project-contained compiler rejected, must match a probed gcc/g++/clang/clang++ capability), option filtering (drop/reject/preserve/safe allowlist, -x language allowlist, '--', '@' unexpanded response file, '-' stdin, exactly one canonical source operand, bounds) and the three operations syntax (-Wall -Wextra -fsyntax-only), includes (-w -E -H -o /dev/null) and unused-functions (-Wunused-function -Wno-error=unused-function -S -o /dev/null) -> crates/ici-cpp/src/replay.rs, replay_policy.rs, crates/ici-cli/src/cpp/legacy_syntax.rs. Uncovered or suspected Rust gaps for the row worker: Frozen ReplayCommandError codes compiler-not-probed (cpp_replay.py:198), compiler-not-executable (:188), unexpanded-response-file (:280), unsafe-working-directory (:407), unsafe-source (:412), command-too-large (:316,:436), invalid-command-argument (:321) and unsupported-operation (:365) have no Rust spelling (Rust uses missing-compiler/compiler-unavailable/invalid-compilation-unit/stale-compilation-unit etc.). Where the code reaches a skipped-unit diagnostic or lint/dead/cycle evidence it is observable; confirm under descriptor:lint / check:cpp.diagnostics or record the difference."
+    },
+    "src/ici/core/qmake_context.py": {
+      "disposition": "unreviewed",
+      "requirements": [
+        "capability:qmake-recorder",
+        "capability:compile-context-export",
+        "command:ici export-compilation-context"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:qmake-recorder (not_started), capability:compile-context-export (implemented), command:ici export-compilation-context (verified). Whole frozen file read (sha256 ce58c63bbd647065cd99a72fb3ed258c468e624d170c172d55ae1d72807abbdd, 441 lines). Behaviour -> rows/Rust: prepare_qmake_compilation_context: existing DB wins; C/C++ qmake backend only; POSIX only; capture files (wrapper + 0600 journal, whitespace refusal), owned analysis shadow reset (symlink/non-directory refusal), probe configure, bounded Makefile scan for one consistent CC/CXX pair and driver-name/executable validation, capture configure with QMAKE_CXX/QMAKE_CC wrapper, capture build with ICI_QMAKE_CAPTURE_PATH, bounded strict-JSON journal rows with exactly one in-project source operand, sorted rows, atomic compile_commands.json in build/ici-qmake-build, origin/generator qmake, capture coverage diagnostic, shadow removal unless preserved -> crates/ici-cpp/src/qmake.rs, recorder.rs, build.rs and crates/ici-cli/src/compilation_command.rs. Uncovered or suspected Rust gaps for the row worker: Rust has no counterpart for the frozen qmake preparation diagnostic codes qmake-capture-incomplete (qmake_context.py:336), qmake-capture-unsupported (:358), qmake-configure-failed (:381), qmake-capture-configure-failed (:400), qmake-capture-build-failed (:408) and qmake-capture-unavailable (:424, warning, lower-confidence fallback); no Rust source contains them. Suggested row: capability:qmake-recorder (not_started) / capability:compile-context-export."
     },
     "src/ici/engines/binary_compat.py": {
       "disposition": "unreviewed",
@@ -11313,9 +11499,12 @@
         "finding_site:src/ici/engines/binary_compat.py:140:28",
         "finding_site:src/ici/engines/binary_compat.py:158:24",
         "finding_site:src/ici/engines/binary_compat.py:209:20",
-        "finding_site:src/ici/engines/binary_compat.py:247:16"
+        "finding_site:src/ici/engines/binary_compat.py:247:16",
+        "descriptor:binary_compat",
+        "check:cpp.binary-compat",
+        "config_key:legacy:engines.binary_compat.max_artifacts"
       ],
-      "reason": "Unreviewed: Open: policy violations, non-ELF, no artifacts, unpublished selection, missing and truncated readelf are compared (binary-compat-oracle.json); other parse errors keep the native summary. Exact frozen hash 3658dc8bfdd3572d03ccea5b5345b5d09deec2dc6a81b1d86302d9807fc7f59b and 5 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:build-artifact-abi (not_started), descriptor:binary_compat (verified), check:cpp.binary-compat (verified), finding_site:src/ici/engines/binary_compat.py:106:24 (verified), finding_site:src/ici/engines/binary_compat.py:140:28 (verified), finding_site:src/ici/engines/binary_compat.py:158:24 (verified), finding_site:src/ici/engines/binary_compat.py:209:20 (verified), finding_site:src/ici/engines/binary_compat.py:247:16 (verified). Whole frozen file read (sha256 3658dc8bfdd3572d03ccea5b5345b5d09deec2dc6a81b1d86302d9807fc7f59b, 273 lines). Behaviour -> rows/Rust: BinaryCompatibilityEngine (CACHE_REUSE_SAFE False): artifact selection from analysis-context manifests (configured artifacts by id or path, else executable/shared-library kinds), duplicate identity and missing-root errors, unpublished configured artifacts error, max_artifacts default 64; empty selection -> required ERROR 'no published executable or shared-library artifacts' or SKIP 'Binary compatibility not applicable: no selected manifest artifacts' with BinaryCompatibility:NotApplicable target and elf NOT_APPLICABLE payload; readelf from complete capability else PATH; ELF magic check with allow_non_elf SKIP BinaryCompatibility:NonElf or ici.binary.non-elf finding + FAIL target; readelf --file-header --sections --dynamic --version-info --wide (30 s, 8 MiB) with evidence (stderr[:512] on failure); parse_readelf facts + abi_violations against project/shadow build roots; per-artifact PASS 'ELF dependency, loader path, and ABI evidence verified' / FAIL 'N binary compatibility violation(s)'; facts payload (id, path, class, machine, type, needed, rpath, runpath, GLIBC/GLIBCXX/CXXABI versions, stripped); errors -> AnalysisUnavailable ERROR at '.', NOT_RUN, 'Binary compatibility analysis incomplete: <first error>'; summary 'ELF compatibility: C checked, V violation(s), S skipped' -> crates/ici-cli/src/cpp.rs legacy_binary_compat / legacy_binary_compat_unavailable, crates/ici-cli/src/planning.rs selection errors, crates/ici-validation/src/cpp.rs readelf/ABI rules. Uncovered or suspected Rust gaps for the row worker: No Rust spelling for frozen selection/inspection errors 'artifact identity is ambiguous: <id>' (binary_compat.py:48), 'artifact has no declared root: <id>' (:56), 'artifact could not be read: <path>: <err>' (:135) and 'readelf did not produce complete evidence for <path>' (:198, readelf non-zero exit/timeout/truncation); Rust says 'readelf could not inspect artifact <path>' (crates/ici-validation/src/cpp.rs:812). Suggested rows: finding_site:src/ici/engines/binary_compat.py:247:16, check:cpp.binary-compat."
     },
     "src/ici/engines/build.py": {
       "disposition": "unreviewed",
@@ -11330,18 +11519,24 @@
         "finding_site:src/ici/engines/build.py:725:20",
         "finding_site:src/ici/engines/build.py:745:12",
         "finding_site:src/ici/engines/build.py:802:12",
-        "finding_site:src/ici/engines/build.py:92:16"
+        "finding_site:src/ici/engines/build.py:92:16",
+        "descriptor:build",
+        "command:ici build"
       ],
-      "reason": "Unreviewed: Open: frozen BuildEngine site not compared beyond the Make facet recorded on command:ici build (Python packaging, [build.artifacts], env-script shape, CMake/qmake adapter failure targets remain). Exact frozen hash ed680842aa97f8e058052b87e6f637576bb25fe7363ba585a09c2125a7b853bd and 23 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:build-artifact-abi (not_started), descriptor:build (verified), command:ici build (difference_review), finding_site:src/ici/engines/build.py:230:16 (verified), finding_site:src/ici/engines/build.py:338:16 (verified), finding_site:src/ici/engines/build.py:373:16 (verified), finding_site:src/ici/engines/build.py:590:16 (verified), finding_site:src/ici/engines/build.py:611:12 (verified), finding_site:src/ici/engines/build.py:686:16 (verified), finding_site:src/ici/engines/build.py:725:20 (verified), finding_site:src/ici/engines/build.py:745:12 (verified), finding_site:src/ici/engines/build.py:802:12 (verified), finding_site:src/ici/engines/build.py:92:16 (verified). Whole frozen file read (sha256 ed680842aa97f8e058052b87e6f637576bb25fe7363ba585a09c2125a7b853bd, 822 lines). Behaviour -> rows/Rust: C++ facet of BuildEngine (validation fragment covers the Python packaging facet): <version>/x86_64 output tree with symlink/non-directory guards, C++ scope when project type cpp, compilable sources or a root build descriptor (CMakeLists.txt, Makefile/makefile/GNUmakefile, *.pro, Makefile.*, *.mk, *.make); select_backend -> adapter configure/build in Release with BuildError per configure error (or '<backend> configure did not complete and reported no reason'), BuildAdapter FAIL per build error, BuildAdapter[<backend>] PASS '<reason>; produced N artifact(s)' with manifest or bounded shadow artifact discovery (ELF/PE/Mach-O magics, ar archives, 200000 entries, manifest record limit); descriptor without adapter -> BuildError naming the descriptor and 'generic g++ was not invoked'; direct g++ only with exactly one masked int main ('C++ adapter required: expected exactly one int main definition, found N'), g++ -std=c++17 include flags sources [NAS -L<lib> -lips_core -Wl,-rpath] -o bin/<name>, outcome ladder (missing g++, could not execute, incomplete output, terminated, exit 1 -> CppBinary FAIL 'C++ compilation failed: <stderr[:200]>', other exit, no regular binary) and CppBinary PASS 'Compiled C++17 binary (Ds)'; BuildArtifacts FAIL when nothing produced; env.sh/env.csh EnvironmentScript targets; declared [build.artifacts] DeclaredArtifacts manifest; summaries 'Build Completed: <name> <version> into <path>' / 'Build did not produce a complete artifact set' / first 3 errors; evidence NOT_RUN on errors -> crates/ici-cli/src/artifact_build.rs (+ declarations.rs), crates/ici-cli/src/preparation.rs (Compiled C++17 binary), crates/ici-cli/src/export_context/direct.rs and direct/run.rs (direct g++), crates/ici-cli/src/cpp.rs BuildAdapter[...] projection, crates/ici-cli/src/planning.rs descriptor refusal. Uncovered or suspected Rust gaps for the row worker: Direct g++ failure ladder differs: frozen exit 1 -> CppBinary FAIL 'C++ compilation failed: <stderr[:200]>' (build.py:585-597), other non-zero -> BuildError 'g++ failed with exit code N' (:600), plus 'g++ is not installed; C++ build could not run' (:521), 'C++ compilation output was incomplete' (:576), 'C++ compiler terminated before producing a result' (:581), 'g++ reported success but no regular binary was produced' (:605), 'Could not inspect C++ source <p>: <err>' (:646); Rust compiles per source then links and reports CppCompilation/CppBinary FAIL 'C++ <phase> failed with compiler exit 1: <stderr[:2048]>' (crates/ici-cli/src/export_context/direct/run.rs:71-125); none of the frozen strings appear in Rust. Suggested rows: finding_site:src/ici/engines/build.py:590:16, command:ici build. Frozen direct g++ links the NAS C++ library when present (get_nas_cpp_lib_dir: -L<nas>/lib -lips_core -Wl,-rpath,<nas>/lib, build.py:533-540); Rust has no ips_core spelling. Probably an intended drop under AGENTS.md section 8 (R01: code must not know NAS/internal library paths) but no difference_reason records it. Suggested row: command:ici build (difference_reason). No Rust spelling for '<backend> configure did not complete and reported no reason' (:711) or the artifact discovery bounds 'artifact discovery exceeds the 200000 entry limit' / '... record limit' (:771-790). Suggested rows: finding_site:src/ici/engines/build.py:745:12, capability:build-artifact-abi."
     },
     "src/ici/engines/cognitive.py": {
       "disposition": "unreviewed",
       "requirements": [
         "finding_site:src/ici/engines/cognitive.py:120:16",
         "finding_site:src/ici/engines/cognitive.py:50:20",
-        "finding_site:src/ici/engines/cognitive.py:79:20"
+        "finding_site:src/ici/engines/cognitive.py:79:20",
+        "descriptor:cognitive",
+        "command:ici cognitive",
+        "check:cpp.cognitive",
+        "check:python.cognitive"
       ],
-      "reason": "Unreviewed: Open: cognitive engine error/boundary site not compared; legacy heuristic projection verified. Exact frozen hash afeb2ab5acfcdb16ea582ca91abfbd9119e6b3e2b19ab5a0fa1a528182dd6bee and 3 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:cognitive (verified), command:ici cognitive (verified), check:cpp.cognitive (verified), finding_site:src/ici/engines/cognitive.py:120:16 (verified), finding_site:src/ici/engines/cognitive.py:50:20 (not_started), finding_site:src/ici/engines/cognitive.py:79:20 (not_started). Whole frozen file read (sha256 afeb2ab5acfcdb16ea582ca91abfbd9119e6b3e2b19ab5a0fa1a528182dd6bee, 170 lines). Behaviour -> rows/Rust: CognitiveEngine: config warn 30 / fail 60 / warn_nesting 4 / mode pass_warn_fail / cpp_boundaries auto / required False; Python AST per-function cognitive targets (python facet), C++ analyze_cpp_cognitive targets merged; CppCognitiveAnalysisError target at '.' with first 10 errors and boundary_source compiler-tool-error when errors but no ERROR target; summary 'Max cognitive complexity: M across N functions' + '; fail threshold F exceeded' / '; warn threshold W or nesting threshold K reached' / 'Cognitive complexity analysis did not complete'; extra max_cognitive, total/python/cpp_functions, cpp_boundary_mode, cpp_exact/estimated_boundaries, cpp_boundary_configurations/sources_checked, cpp_boundary_warnings/errors, cpp_scope_exclusions{lambda,macro_generated_function}; evidence NOT_RUN on error, ESTIMATED when C++ targets exist else MEASURED -> crates/ici-cli/src/cpp legacy cognitive path + ici-cpp cognitive. C++ facet claimed here."
     },
     "src/ici/engines/compile_db.py": {
       "disposition": "mapped",
@@ -11358,14 +11553,23 @@
       "requirements": [
         "finding_site:src/ici/engines/complexity.py:186:28",
         "finding_site:src/ici/engines/complexity.py:481:16",
-        "finding_site:src/ici/engines/complexity.py:556:15"
+        "finding_site:src/ici/engines/complexity.py:556:15",
+        "descriptor:complexity",
+        "command:ici complexity",
+        "check:cpp.complexity",
+        "check:python.complexity"
       ],
-      "reason": "Unreviewed: Open: complexity engine error/boundary site not compared; legacy heuristic projection verified. Exact frozen hash 74d5eef72001aa9240f9897d7d5a3db8acb61868a4777b12f26391249522a4e5 and 16 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:complexity (verified), command:ici complexity (verified), check:cpp.complexity (verified), finding_site:src/ici/engines/complexity.py:186:28 (not_started), finding_site:src/ici/engines/complexity.py:481:16 (verified), finding_site:src/ici/engines/complexity.py:556:15 (verified). Whole frozen file read (sha256 74d5eef72001aa9240f9897d7d5a3db8acb61868a4777b12f26391249522a4e5, 566 lines). Behaviour -> rows/Rust: C++ facet of ComplexityEngine (python fragment maps the Python facet): warn_cc 15 / fail_cc 25 / warn_nesting 4 / mode pass_warn_fail / cpp_boundaries auto|off|required / required True; C++ scope when project type cpp/hybrid or any *.cpp; bounded source rows (_MAX_CPP_COMPLEXITY_SOURCES / bytes, per-source read and scope errors), heuristic inventory + lambda masking; compiler boundaries via run_cpp_function_boundaries (exact/partial -> exact targets with clang-tidy-ast metrics, error -> errors, required without exact context -> error), heuristic targets for unmatched spans, boundary_mode exact/partial/mixed/heuristic/error, required-policy shortfall error; CppComplexityAnalysisError ERROR at '.' with first 10 errors; _make_cpp_target cutoffs (> fail FAIL 'Critical complexity: C > F (Immediate refactoring required)', > warn or nesting >= warn_nesting WARN, PASS) and 'name()' labels; summary 'Max Cyclomatic Complexity: M (limit W) across N functions (I issues)', score, top_complex_funcs (15), metrics_summary, cpp_* boundary extras, evidence NOT_RUN/ESTIMATED/MEASURED -> crates/ici-cpp/src/source_rules.rs, crates/ici-cpp/src/compiler.rs boundary confirmation, crates/ici-cpp/src/analysis.rs CppComplexityAnalysisError. Uncovered or suspected Rust gaps for the row worker: Legacy C++ complexity target metrics differ: frozen heuristic targets carry boundary_source 'heuristic', function_origin 'source-scanner', configurations [] and function_kind/function_template (complexity.py:458-471), exact targets boundary_source 'clang-tidy-ast' with tool_lines/tool_statements/tool_parameters/configuration_metrics/metric_variant (:363-386); Rust writes boundary_source 'concrete-source-syntax'/'compiler-ast'/'compiler-ast-partial', function_origin 'source-spelled', metric_source 'bounded-cpp-source', plus unbraced_controls etc. (crates/ici-cpp/src/source_rules.rs:492-512, crates/ici-cpp/src/compiler.rs:1180-1195), and the legacy projection does not rename them. The same metric spelling feeds legacy cognitive targets. Suggested rows: finding_site:src/ici/engines/complexity.py:556:15, check:cpp.complexity, check:cpp.cognitive. No Rust spelling for frozen C++ complexity errors 'C++ complexity source count exceeds the bounded limit' (:271), 'C++ complexity source is not a bounded project file: <name>' (:280), 'C++ complexity source inventory exceeds the bounded limit' (:285), 'C++ complexity source scope is invalid: <path>: <err>' (:291), 'compiler-backed C++ function boundaries were required, but ...' (:259-262) and the warning 'compiler-backed function output omitted source-scanned definitions' (:494). Suggested rows: finding_site:src/ici/engines/complexity.py:481:16, config_key for cpp_boundaries under check:cpp.complexity."
     },
     "src/ici/engines/cycle.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: cycle engine site not compared beyond the heuristic legacy C++ graph and include/ scope. Exact frozen hash a3dc16a343cd0a10941817edd14f2e0c3682e24bbe456ca55e22437a84e8628f and 2 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:cycle",
+        "command:ici cycle",
+        "check:cpp.cycle",
+        "check:python.cycle"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:cycle (verified), command:ici cycle (verified), check:cpp.cycle (verified). Whole frozen file read (sha256 a3dc16a343cd0a10941817edd14f2e0c3682e24bbe456ca55e22437a84e8628f, 131 lines). Behaviour -> rows/Rust: CycleEngine: config cycle.mode (pass_warn_fail) / max_reported / required(False); Python graph+Tarjan cycles, C++ include analysis (_analyze_cpp_includes) with cycle targets and include-diagnostic targets; WARN on any cycle, include diagnostic, unresolved include or WARN target; ERROR + NOT_RUN when C++ include analysis errors (summary = first 3 errors); summaries 'Dependency cycles: N found' / 'No cyclic dependencies detected' plus '; C++ include graph incomplete: A ambiguous, U unresolved'; extra keys total_cycles, py_cycles, cpp_cycles, cpp_include_resolution, resolved/ambiguous/unresolved_cpp_includes, cpp_include_scope_counts, cpp_configurations_checked, cpp_include_diagnostics_truncated; evidence MEASURED when exact or no C++ sources else ESTIMATED -> crates/ici-cli/src/cpp/legacy_cycle*.rs / ici-cpp include graph, legacy cycle descriptor. C++ facet only (python facet belongs to the python fragment)."
     },
     "src/ici/engines/dead.py": {
       "disposition": "unreviewed",
@@ -11379,9 +11583,17 @@
         "finding_site:src/ici/engines/dead.py:577:20",
         "finding_site:src/ici/engines/dead.py:669:16",
         "finding_site:src/ici/engines/dead.py:719:16",
-        "finding_site:src/ici/engines/dead.py:885:15"
+        "finding_site:src/ici/engines/dead.py:885:15",
+        "descriptor:dead",
+        "command:ici dead",
+        "config_key:legacy:engines.dead.cpp_unused",
+        "config_key:legacy:engines.dead.cpp_linker",
+        "config_key:legacy:engines.dead.include_generated",
+        "config_key:legacy:engines.dead.include_vendor",
+        "config_key:legacy:engines.dead.mode",
+        "config_key:legacy:engines.dead.required"
       ],
-      "reason": "Unreviewed: Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified. Exact frozen hash 7e197d4a517a1c77939c106cebcbf501653f2a199296c4f5542c7c1d2e08e35a and 24 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:legacy-cpp-linker-dead (not_started), descriptor:dead (verified), command:ici dead (implemented), config_key:legacy:engines.dead.cpp_unused (implemented), config_key:legacy:engines.dead.cpp_linker (verified), config_key:legacy:engines.dead.include_generated (verified), config_key:legacy:engines.dead.include_vendor (verified), finding_site:src/ici/engines/dead.py:111:16 (not_started), finding_site:src/ici/engines/dead.py:134:12 (verified), finding_site:src/ici/engines/dead.py:159:20 (verified), finding_site:src/ici/engines/dead.py:219:16 (verified), finding_site:src/ici/engines/dead.py:270:12 (not_started), finding_site:src/ici/engines/dead.py:577:20 (verified), finding_site:src/ici/engines/dead.py:669:16 (not_started), finding_site:src/ici/engines/dead.py:719:16 (not_started), finding_site:src/ici/engines/dead.py:885:15 (not_started). Whole frozen file read (sha256 7e197d4a517a1c77939c106cebcbf501653f2a199296c4f5542c7c1d2e08e35a, 917 lines). Behaviour -> rows/Rust: C++ facet of DeadCodeEngine (python fragment maps the Python facet): analysis context only when cpp_unused (default auto) or cpp_linker (default off) is not off; CACHE_REUSE_SAFE False; C++ candidates = project sources + headers + compilable sources, read through read_analysis_sources with include_generated/include_vendor, SourceInputError target; cpp_unused off -> C++UnusedFunctionsDisabled SKIP at '.' (or first source in _run_cpp_scope); no production TU -> unavailable warning; run_cpp_unused_functions; unavailable -> C++UnusedFunctionsUnavailable at the first C++ source (ERROR when required else SKIP); linker scope -> run_cpp_linker_dead_symbols with C++LinkerReachabilityUnavailable; empty scope DeadCode SKIP; _result_state summaries ('C++ dead-code analysis disabled by policy', 'C++ dead-code analysis not run: exact native context unavailable', 'Dead-code analysis skipped: no owned source files', 'No dead-code findings detected in the analyzed scopes', 'Python dead-code analysis completed, but exact C++ analysis was unavailable', 'N dead-code finding(s): P heuristic Python, C compiler-local C/C++, L target-local GNU ELF'); effective required relaxed for C++-only disabled/auto-unavailable scopes; extras dead_symbols_count, metrics_summary, analysis_provenance (python-ast-heuristic+cpp-compiler-unused-function+cpp-gnu-elf-section-gc or not-run), language_evidence {python, cpp}, cpp_unused_* and cpp_linker_* counters/details, cpp_scope_evidence, source counts; findings: exact -Wunused-function findings, ici.dead.gnu-elf-discarded-function findings, scope findings with severity by status and finite numeric metrics -> crates/ici-cli/src/cpp.rs (C++UnusedFunctionsDisabled/Unavailable, C++LinkerReachabilityUnavailable, 'C++ dead-code analysis not run: exact native context unavailable', legacy_unused_projection findings), crates/ici-cpp/src/compiler.rs, crates/ici-cpp/src/linker.rs. Uncovered or suspected Rust gaps for the row worker: Legacy C++ dead extras and summaries have no Rust spelling: extra keys cpp_unused_policy/mode/functions_count/configurations_checked/sources_checked/non_tu_diagnostics_excluded/warnings/details, cpp_linker_policy/mode/symbols_count/targets_checked/sources_checked/discarded_sections_observed/ambiguous_sections_excluded/sections_kept_by_another_target/warnings/details, cpp_scope_evidence, source_files_snapshotted, language_evidence.cpp and the provenance names cpp-compiler-unused-function / cpp-gnu-elf-section-gc (dead.py:285-291, 504-551; Rust legacy dead extra crates/ici-analysis/src/dead.rs:454 carries only the Python keys and language_evidence.python, which crates/ici-reporting/src/legacy_support.rs:311-320 reads per language); summaries 'C++ dead-code analysis disabled by policy' (:379) and 'Python dead-code analysis completed, but exact C++ analysis was unavailable' (:398); warning 'No production C/C++ translation unit is available for analysis' (:593); default 'Exact GNU ELF target-local reachability is unavailable' (:216). Suggested rows: descriptor:dead, command:ici dead, finding_site:src/ici/engines/dead.py:270:12. Linker finding ici.dead.gnu-elf-discarded-function with tool_rule_id '--gc-sections/--print-gc-sections' and link_targets metric (dead.py:709-749) has no Rust spelling; owned by capability:legacy-cpp-linker-dead (not_started) and finding_site:src/ici/engines/dead.py:719:16."
     },
     "src/ici/engines/dup.py": {
       "disposition": "unreviewed",
@@ -11393,24 +11605,32 @@
         "finding_site:src/ici/engines/dup.py:279:16",
         "finding_site:src/ici/engines/dup.py:401:16",
         "finding_site:src/ici/engines/dup.py:569:20",
-        "finding_site:src/ici/engines/dup.py:721:20"
+        "finding_site:src/ici/engines/dup.py:721:20",
+        "check:cpp.dup",
+        "descriptor:dup",
+        "command:ici dup"
       ],
-      "reason": "Unreviewed: Open: duplicate engine site not compared beyond the include-scope facet (check:cpp.dup). Exact frozen hash 1e14b85153e3313b0521e8713c3e6dbe7118c087714839497f757ad14f942c50 and 13 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.dup (implemented), descriptor:dup (verified), command:ici dup (verified), config_key:legacy:engines.dead.include_generated (verified), finding_site:src/ici/engines/dup.py:100:20 (not_started), finding_site:src/ici/engines/dup.py:121:20 (not_started), finding_site:src/ici/engines/dup.py:149:20 (not_started), finding_site:src/ici/engines/dup.py:207:20 (not_started), finding_site:src/ici/engines/dup.py:279:16 (verified), finding_site:src/ici/engines/dup.py:401:16 (not_started), finding_site:src/ici/engines/dup.py:569:20 (not_started), finding_site:src/ici/engines/dup.py:721:20 (verified). Whole frozen file read (sha256 1e14b85153e3313b0521e8713c3e6dbe7118c087714839497f757ad14f942c50, 753 lines). Behaviour -> rows/Rust: C++ facet of DuplicateEngine (python fragment maps the Python/semantic facet): scope project_python_sources + project_cpp_sources + project_cpp_headers through read_analysis_sources with include_generated/include_vendor (is True only); SourceInputError ERROR '<code>: <message>' / NOT_RUN; no owned sources -> DuplicateCode SKIP ('All selected sources were excluded by the generated/vendor policy' or 'No applicable source files were selected') / NOT_APPLICABLE; C++ files tokenized by tokenize_cpp_lines + cpp_duplicate_regions, normalization failure -> SourceTokenizationError 'Source lexical normalization failed: <err>' with summary 'Duplicate analysis could not normalize <path>', max_normalized_chars 128 MiB / MAX_DUPLICATE_INDEXED_RECORDS 500000 bounds; raw matches with window min_window 6 and match limits -> DuplicateComparisonLimit ERROR; subsumption filter, clustering into CloneGroup#N WARN targets 'Duplicate code block (L lines) shared across K locations' with clone_group/duplicate_lines/fingerprint/fingerprint_algorithm metrics and type2-lexical-region groups; warn_pct 5 / fail_pct 15 strict cutoffs, mode pass_warn, WARN targets downgraded to PASS below warn, DuplicateScan PASS targets for unrepresented files; summary 'Code Duplication Rate: P% (G distinct clone groups found, S from Python AST shapes)'; score, evidence ESTIMATED; extras duplication_pct, clone_groups(_count), metrics_summary, fingerprint_algorithm(s), tokenizer_versions {cpp: cpp-lexical-v1, python: python-lexical-v1}, region_policy, signal_policy, python_semantic_*, source evidence -> crates/ici-analysis/src/duplicates.rs, crates/ici-analysis/src/legacy.rs (SourceInputError/SourceTokenizationError/DuplicateComparisonLimit), crates/ici-cpp/src/duplicates.rs tokenizer. Uncovered or suspected Rust gaps for the row worker: Legacy dup extras absent in Rust: frozen extra carries metrics_summary 'Duplication: P% (G groups)', fingerprint_algorithms, tokenizer_versions {cpp: 'cpp-lexical-v1', python: 'python-lexical-v1'}, region_policy 'language-function-scope-v1', signal_policy 'minimum-semantic-lines-v1' (dup.py:301-327, constants :46-53); no Rust file spells cpp-lexical-v1, language-function-scope-v1, minimum-semantic-lines-v1, tokenizer_versions or fingerprint_algorithms (crates/ici-analysis/src/duplicates.rs:698 builds the extra without them). Cross-area with the python fragment, which maps dup.py. Suggested rows: descriptor:dup, check:cpp.dup. No Rust spelling for the frozen normalization-bound messages 'Normalized duplicate-analysis input exceeds max_normalized_chars=<n>' and '... MAX_DUPLICATE_INDEXED_RECORDS=<n>' (dup.py:661-672). Suggested row: finding_site:src/ici/engines/dup.py:149:20."
     },
     "src/ici/engines/exception.py": {
       "disposition": "unreviewed",
       "requirements": [
         "finding_site:src/ici/engines/exception.py:150:12",
-        "finding_site:src/ici/engines/exception.py:52:16"
+        "finding_site:src/ici/engines/exception.py:52:16",
+        "descriptor:exception",
+        "command:ici exception",
+        "check:cpp.exception",
+        "check:python.exception"
       ],
-      "reason": "Unreviewed: Open: exception engine source-input error site not compared (the C++ exception rules are verified on check:cpp.exception). Exact frozen hash 6042bbc0944f2623e09b193904dc038bf8b5bd3b7a8c4b4336acf8f66014db64 and 6 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:exception (verified), command:ici exception (verified), check:cpp.exception (verified), finding_site:src/ici/engines/exception.py:150:12 (not_started), finding_site:src/ici/engines/exception.py:52:16 (not_started). Whole frozen file read (sha256 6042bbc0944f2623e09b193904dc038bf8b5bd3b7a8c4b4336acf8f66014db64, 157 lines). Behaviour -> rows/Rust: ExceptionSafetyEngine: Python/C++ scope from selected sources or project type; per-file read errors -> ReadError ERROR target 'Could not read C++ source: <err>' and analysis error (ERROR/NOT_RUN, summary first 3 errors); analyze_cpp_exceptions targets and has_error; no sources -> SKIP target 'ExceptionSafety' at '.' and SKIP/NOT_APPLICABLE 'Exception safety analysis skipped: no applicable source files'; otherwise mode pass_fail, summary 'Exception Handling Safety Clean' or 'F Critical Exception Violations, W Warnings'; extra violations_count, metrics_summary 'F exc errors'; required default True -> crates/ici-cli legacy exception path + ici-cpp exception rules. C++ facet claimed here."
     },
     "src/ici/engines/line.py": {
-      "disposition": "unreviewed",
+      "disposition": "mapped",
       "requirements": [
-        "finding_site:src/ici/engines/line.py:185:16"
+        "finding_site:src/ici/engines/line.py:185:16",
+        "command:ici line"
       ],
-      "reason": "Unreviewed: Open: line engine C++ site not compared by the cpp area. Exact frozen hash aff0f8336ff84bc6f121172f83147d145a65cbbfcefb8214199d3aa0e3e9365f and 10 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Mapped. Whole frozen file read (sha256 aff0f8336ff84bc6f121172f83147d145a65cbbfcefb8214199d3aa0e3e9365f, 269 lines). Behaviour -> rows/Rust: C++ facet of LineCountEngine (the common fragment maps the language-neutral collection/gating/mode logic to command:ici line): EXT_MAP labels .cpp/.c/.h/.hpp/.cc/.cxx as 'C++' (.hh/.hxx are not counted), per-file code/comment/blank/total via count_lines, source vs extra scope from default src/include/lib/app + project.source_dirs + include_dirs minus exclude_dirs, top-level-name gating (gate_dirs default plus source_dirs), strict > warn_limit 500 / fail_limit 1000 cutoffs with 'Pure code lines (N) exceed L lines limit (Refactoring required)' / '... threshold (Split recommended)' / 'N code lines' messages, target start_line 1 / end_line total with code/comment/blank/total metrics, junk-dir pruning, symlink rejection, source-only totals vs all totals, top_files -> crates/ici-analysis/src/lines.rs (same C++ suffix list at line 72) and the legacy line projection. finding_site:src/ici/engines/line.py:185:16 closes the C++ facet with 15 equal frozen cases on a type='cpp' project (line-keys-oracle.json); it is complete on feat/rust-closure-cpp (145a3911) and verified on this base, so the mapping takes effect when the root merges that claim. command:ici line is complete."
     },
     "src/ici/engines/lint.py": {
       "disposition": "mapped",
@@ -11431,9 +11651,13 @@
         "finding_site:src/ici/engines/sanitize.py:630:21",
         "finding_site:src/ici/engines/sanitize.py:669:16",
         "finding_site:src/ici/engines/sanitize.py:838:12",
-        "finding_site:src/ici/engines/sanitize.py:865:12"
+        "finding_site:src/ici/engines/sanitize.py:865:12",
+        "descriptor:sanitize",
+        "command:ici sanitize",
+        "check:cpp.sanitize",
+        "descriptor:thread_sanitize"
       ],
-      "reason": "Unreviewed: Open: the test-less C++ SKIP and missing-sanitizer-argv ERROR paths match frozen (tests/rust-parity/cpp/sanitize-oracle.json); actual ASan/UBSan/TSan adapter and direct runs, their diagnostics and findings are not compared yet. Exact frozen hash 00ef0db22f4b6ff183e1e7998182fe7197124da26ee78ce1ad88c6bb86b58aba and 36 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:legacy-python-sanitize (not_started), descriptor:sanitize (verified), command:ici sanitize (verified), check:cpp.sanitize (verified), finding_site:src/ici/engines/sanitize.py:385:24 (verified), finding_site:src/ici/engines/sanitize.py:566:12 (verified), finding_site:src/ici/engines/sanitize.py:630:21 (verified), finding_site:src/ici/engines/sanitize.py:838:12 (verified). Whole frozen file read (sha256 00ef0db22f4b6ff183e1e7998182fe7197124da26ee78ce1ad88c6bb86b58aba, 903 lines). Behaviour -> rows/Rust: C++ facet of SanitizeEngine (validation fragment covers the Python ResourceWarning facet; ThreadSanitizeEngine reuses this base): scopes from C++ sources and tests/**/*.cpp; no C++ tests -> C++Sanitizer SKIP 'No C++ sanitizer test sources were selected; compilation was not run' (non-required skipped scope); adapter path (select_backend) -> configure/build SANITIZE variant with C++Sanitizer ERROR per error ('sanitizer configure/build reported no reason'), run_tests with ASAN_OPTIONS detect_leaks=1 / UBSAN_OPTIONS halt_on_error=1 appended, no results / no ctest|make check|make test process evidence / timed-out or truncated process -> scope errors, per case '[C++ ASan/UBSan] <name>' PASS 'Sanitizers reported no diagnostics' / FAIL 'Sanitizer run failed: <msg>' / SKIP 'Sanitizer test was not executed: ...', diagnostic parsing with truncation/normalization/no-complete-diagnostic SanitizerDiagnostic errors; direct path -> g++ -std=c++17 -fsanitize=address,undefined -fno-omit-frame-pointer -g + include flags + test + non-main production sources [+ NAS ips_core flags] into a temp <stem>_asan, SanitizerCompile / SanitizerExecution ERROR ladders (missing g++, exception, incomplete, non-zero exit with 300-char collapsed snippet), sanitizer marker regexes, ASan/UBSan PASS 'AddressSanitizer and UndefinedBehaviorSanitizer completed'; diagnostics -> 'LSan Error'/'TSan Error'/'ASan/UBSan Error' FAIL targets with frames metrics, unlocated -> SanitizerDiagnosticLocation ERROR; verdict ERROR/partial WARN 'Sanitize partially executed...'/clean 'Memory Safety & Sanitize Clean (0 Defects)'/'N Memory / Resource Defect(s) Detected'/SKIP; findings ici.legacy.sanitize.target with category, tool_rule_id kind.defect and per-kind remediation; sanitizer_diagnostics details -> crates/ici-validation/src/sanitizer.rs, sanitizer_suite.rs, cpp.rs, finding_details.rs, crates/ici-cli/src/cpp/legacy_tests.rs, crates/ici-cli/src/cpp.rs (legacy_sanitizer_compile_failures, clean message). Uncovered or suspected Rust gaps for the row worker: No Rust spelling for frozen direct-path and adapter-path sanitizer errors: target name SanitizerExecution and messages 'Sanitizer execution failed: <exc>' / 'Sanitizer execution timed out|output was truncated|terminated before producing a result: ...' / 'Sanitizer execution failed with exit code N: ...' (sanitize.py:326-381), 'g++ is required when C++ sanitizer tests are present' (:262), 'Sanitizer output had a report marker but no complete diagnostic' (:359), 'Sanitizer test diagnostic transport was truncated' (:512), 'Sanitizer test output contained no complete diagnostic' (:533), 'The build system reported no tests, so nothing ran under the sanitizers' (:453), 'Sanitizer tests ran without recorded process evidence' (:461), 'Sanitizer test process timed out|truncated its output; diagnostics are incomplete' (:470), 'sanitizer configure|build reported no reason' (:428, :435). Suggested rows: check:cpp.sanitize, finding_site:src/ici/engines/sanitize.py:385:24, finding_site:src/ici/engines/sanitize.py:566:12. Frozen direct sanitizer compile links the NAS C++ library when present (-L<nas>/lib -lips_core -Wl,-rpath, sanitize.py:777-781); Rust has no ips_core spelling. Likely an intended AGENTS.md section 8 (R01) drop without a recorded difference_reason. Suggested row: check:cpp.sanitize."
     },
     "src/ici/engines/test.py": {
       "disposition": "unreviewed",
@@ -11448,16 +11672,24 @@
         "finding_site:src/ici/engines/test.py:774:16",
         "finding_site:src/ici/engines/test.py:811:16",
         "finding_site:src/ici/engines/test.py:821:12",
-        "finding_site:src/ici/engines/test.py:839:12"
+        "finding_site:src/ici/engines/test.py:839:12",
+        "descriptor:test",
+        "command:ici test",
+        "check:cpp.test",
+        "check:cpp.coverage"
       ],
-      "reason": "Unreviewed: Blocked: C++ test engine parity waits for the validation worker's merge (frozen 'No tests collected' FAIL exit 1 versus Rust INCOMPLETE exit 3 observed on a test-less Make fixture); not compared. Exact frozen hash 7cc527f2d88251011c63109197fb6020fdf2960bd32124627ad452ddb8eb2192 and 31 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:test-quality-tem (not_started), descriptor:test (verified), command:ici test (verified), check:cpp.test (verified), finding_site:src/ici/engines/test.py:611:20 (verified), finding_site:src/ici/engines/test.py:632:20 (verified), finding_site:src/ici/engines/test.py:654:20 (verified), finding_site:src/ici/engines/test.py:839:12 (verified). Whole frozen file read (sha256 7cc527f2d88251011c63109197fb6020fdf2960bd32124627ad452ddb8eb2192, 869 lines). Behaviour -> rows/Rust: C++ facet of TestEngine (validation fragment covers the Python facet): C++ attempted when tests/**/*.cpp exist or project type cpp/hybrid with sources, else '[C++] Tests' FAIL 'No tests collected' at tests; adapter path (COVERAGE variant): configure errors as tool errors + 'C++ build was not configured', build failure -> '[C++] build' FAIL per error ('C++ build failed and reported no reason') + 'C++ build failed before tests could run', per case '[C++] <name>' at the resolved tests/<stem>.cpp (else descriptor) PASS 'C++ Test Passed' / FAIL 'Execution Failed: <msg>' / SKIP 'Execution skipped: <msg>', gcov collection only when a case executed, 'C++ tests were collected but not executed' / 'C++ gcov coverage output was missing or malformed' coverage errors; direct g++ path: missing g++ tool error, build/tests scratch cleaned of gcno/gcda/gcov files, gcov availability, NAS ips_core flags, per test --coverage object compile + link or plain compile, incomplete/terminated/compile-error/exec ladders with '[C++] <file>' targets, 'Compilation Error: <stderr[:200]>', 'Execution Failed: <stdout or stderr>', gcov collection; coverage policy (coverage_required, 'C++ gcov coverage evidence was unavailable or malformed'), TEM, thresholds, verdict/summary/evidence and extras shared with the Python facet -> crates/ici-cli/src/cpp/legacy_tests.rs (C++ Test Passed, Execution Failed/skipped, Compilation Error, [C++] build, C++ build failed before tests could run), crates/ici-cli/src/legacy_execute.rs (No tests collected, 'every collected test was skipped'), crates/ici-validation gcov/coverage. Uncovered or suspected Rust gaps for the row worker: No Rust spelling for frozen C++ test/coverage failure strings: 'C++ build was not configured' (test.py:602), 'C++ build failed and reported no reason' (:608), 'C++ tests were collected but not executed' (:668), 'C++ gcov coverage output was missing or malformed' (:674, :690), 'C++ gcov coverage evidence was unavailable or malformed' (:369, surfaces in the summary when coverage_required), 'gcov executable was unavailable' (:543), 'C++ source files for gcov were unavailable' (:545), 'C++ gcov coverage compilation failed' (:713, :772), 'g++ executable was unavailable' (:514), 'C++ test compilation incomplete: <f>' / 'C++ test compilation terminated before reporting results: <f>' / 'C++ test execution incomplete: <f>' / 'C++ test process terminated before reporting results: <f>' (:754-803), target message 'Compilation output was incomplete' (:756). Suggested rows: check:cpp.test, check:cpp.coverage (legacy facet), finding_site:src/ici/engines/test.py:774:16. Frozen direct C++ test compile links the NAS C++ library when present (-lips_core, test.py:530-533); no Rust spelling, no recorded difference_reason. Suggested row: check:cpp.test."
     },
     "src/ici/engines/test_coverage.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "finding_site:src/ici/engines/test_coverage.py:384:16"
+        "finding_site:src/ici/engines/test_coverage.py:384:16",
+        "descriptor:test",
+        "command:ici test",
+        "check:cpp.test",
+        "check:cpp.coverage"
       ],
-      "reason": "Unreviewed: Blocked: C++ coverage/test parity waits for the validation worker's merge; not compared. Exact frozen hash 81cf4bfe2774e21bd236f646e9b960ccbd6f5cebb6a65f183bf7e5279a20d1fa and 11 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/engines/test_coverage.py:384:16 (not_started), descriptor:test (verified), command:ici test (verified), check:cpp.test (verified). Whole frozen file read (sha256 81cf4bfe2774e21bd236f646e9b960ccbd6f5cebb6a65f183bf7e5279a20d1fa, 462 lines). Behaviour -> rows/Rust: C++ facet of TestCoverageMixin (validation fragment covers coverage.py): direct-path gcov collection from build/tests *.gcno: gcov --help JSON capability probe (incomplete -> tool error + 'C++ gcov capability could not be determined'), gcov [--json-format] -b -p -o . <gcno...>, incomplete/exit-code tool errors, missing gcno -> 'C++ gcov data files were unavailable', empty rows -> 'C++ gcov coverage output was missing or malformed'; _consume_cpp_coverage format autodetect, gcov-json via parse_gcov_json_dir with 'gcov JSON evidence rejected (<code>): <err>' tool errors, unknown format error, gcov-text rows/functions with line-1-fallback/legacy-header-suffix provenance and 'legacy gcov text evidence is missing N source(s): ...' (8-name preview); per-source --coverage object compiles (obj_<i>.o) with incomplete/terminated tool errors; coverage summary '(partial)' source when a language is missing; heuristic fallback percentages (45/50 or 85/95) replaced by measured function/branch coverage; changed-line policy, 'Coverage:Policy configuration' ERROR, coverage scope provenance (excluded_entry_points from C++ main definitions, aggregate-test-binaries context), coverage_policy snapshot -> crates/ici-validation gcov/coverage support and crates/ici-cli/src/cpp/legacy_tests.rs for the adapter path; crates/ici-reporting/src/projection.rs (Coverage policy could not be evaluated). Uncovered or suspected Rust gaps for the row worker: No Rust spelling for the frozen C++ gcov collection and provenance strings: 'gcov JSON capability probe was incomplete' (test_coverage.py:153), 'C++ gcov capability could not be determined' (:156), 'gcov output was incomplete' (:164), 'gcov failed with exit code N' (:167), 'C++ gcov data files were unavailable' (:177), 'gcov JSON evidence rejected (<code>): <err>' (:207), 'unknown gcov coverage format: <f>' (:217), 'legacy gcov text evidence is missing N source(s): ...' (:245), 'C++ coverage compilation incomplete: <src>' (:280), 'C++ coverage compiler terminated before reporting results: <src>' (:285), and the coverage_provenance cpp/scope fields (function_geometry 'line-1-fallback', source_mapping 'legacy-header-suffix', excluded_entry_points, cpp_context 'aggregate-test-binaries', :229-430). Suggested rows: check:cpp.coverage (legacy direct-g++ facet), finding_site:src/ici/engines/test_coverage.py:384:16, capability:test-quality-tem."
     },
     "src/ici/engines/test_quality.py": {
       "disposition": "unreviewed",
@@ -11471,28 +11703,59 @@
         "finding_site:src/ici/engines/test_quality.py:502:16",
         "finding_site:src/ici/engines/test_quality.py:550:16",
         "finding_site:src/ici/engines/test_quality.py:580:12",
-        "finding_site:src/ici/engines/test_quality.py:87:16"
+        "finding_site:src/ici/engines/test_quality.py:87:16",
+        "capability:test-quality-tem",
+        "descriptor:test",
+        "command:ici test",
+        "check:cpp.test"
       ],
-      "reason": "Unreviewed: Blocked: C++ test execution and TEM scoring parity wait for the validation worker's merge (shared test runner and Make test_argv); not compared. Exact frozen hash 038a1d97003bcaab9bb14e4134f30b3b3cc9f87a6b185c903024dd6cb924b5f7 and 14 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by capability:test-quality-tem (not_started), descriptor:test (verified), command:ici test (verified), check:cpp.test (verified), finding_site:src/ici/engines/test_quality.py:196:16 (not_started), finding_site:src/ici/engines/test_quality.py:355:20 (not_started), finding_site:src/ici/engines/test_quality.py:381:16 (not_started), finding_site:src/ici/engines/test_quality.py:405:24 (not_started), finding_site:src/ici/engines/test_quality.py:418:24 (not_started), finding_site:src/ici/engines/test_quality.py:434:24 (not_started), finding_site:src/ici/engines/test_quality.py:502:16 (not_started), finding_site:src/ici/engines/test_quality.py:550:16 (not_started), finding_site:src/ici/engines/test_quality.py:580:12 (not_started), finding_site:src/ici/engines/test_quality.py:87:16 (verified). Whole frozen file read (sha256 038a1d97003bcaab9bb14e4134f30b3b3cc9f87a6b185c903024dd6cb924b5f7, 593 lines). Behaviour -> rows/Rust: C++ facet of TestQualityMixin (validation fragment covers the pytest repeat/slow/flaky/mutation facet): threshold breaches 'Threshold: TEM score' / 'Threshold: Branch coverage' WARN at '.' (min_tem_score 4.0, min_branch_cov 80.0, skipped when coverage is optional-missing or tests failed) apply to C++ suites too; _build_test_suites groups '[C++] ...' targets per file_path with passed/failed/skipped/total counts (Coverage:/[test-quality] targets excluded, test_cases multiplier); deep test quality returns empty info (profile recorded) for C++-only projects because it requires project type python/hybrid and an attempted Python run; quality config parsing/clamping, slow/flaky/mutation targets and findings are Python-only -> crates/ici-cli/src/legacy_execute.rs and the legacy test projection (crates/ici-cli/src/cpp/legacy_tests.rs) for C++ suites. capability:test-quality-tem and most quality finding sites are not_started."
     },
     "src/ici/engines/thread_sanitize.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: ThreadSanitizer runs not compared with frozen; the Make thread_sanitize variant was never run here. Exact frozen hash e6326de7bf6b94e1ea0f905687066d01e1627ee78cccb7ed6b0a169adfc04854 and 4 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "descriptor:thread_sanitize",
+        "command:ici thread-sanitize",
+        "check:cpp.tsan",
+        "config_key:legacy:engines.thread_sanitize.enabled",
+        "config_key:legacy:engines.thread_sanitize.mode",
+        "config_key:legacy:engines.thread_sanitize.required",
+        "config_key:legacy:build.make.thread_sanitize_build_argv",
+        "config_key:legacy:build.make.thread_sanitize_test_argv"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:thread_sanitize (verified), command:ici thread-sanitize (verified). Whole frozen file read (sha256 e6326de7bf6b94e1ea0f905687066d01e1627ee78cccb7ed6b0a169adfc04854, 57 lines). Behaviour -> rows/Rust: ThreadSanitizeEngine over SanitizeEngine: engine name/config section thread_sanitize, issue key thread_sanitize_issues, THREAD_SANITIZE build variant, no Python resource checks, temp prefix/binary suffix _tsan, label TSan, clean message, -fsanitize=thread -fno-omit-frame-pointer -g, NO_SCOPE / PARTIAL / CLEAN ('Thread Safety & TSan Clean (0 Defects)') / SKIP summaries, issue noun, TSan WARNING/SUMMARY detection, -pthread library flag, TSAN_OPTIONS halt_on_error=1 appended -> crates/ici-validation/src/sanitizer_suite.rs, crates/ici-cli/src/cpp legacy sanitizer path. check:cpp.tsan is complete on feat/rust-closure-cpp (clean/race/missing-argv/direct cases); descriptor and command rows remain verified."
     },
     "src/ici/engines/type_check.py": {
       "disposition": "unreviewed",
       "requirements": [
         "finding_site:src/ici/engines/type_check.py:426:16",
         "finding_site:src/ici/engines/type_check.py:436:16",
-        "finding_site:src/ici/engines/type_check.py:452:12"
+        "finding_site:src/ici/engines/type_check.py:452:12",
+        "descriptor:type",
+        "command:ici type"
       ],
-      "reason": "Unreviewed: Open: C++ not-applicable site of the type engine not compared with frozen. Exact frozen hash a098e04e4d31b3b6b2aec2f9a69500a3d2d6bab0243b6c0e8c786153dcbae097 and 20 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/engines/type_check.py:426:16 (not_started), finding_site:src/ici/engines/type_check.py:452:12 (not_started), descriptor:type (verified), command:ici type (verified), finding_site:src/ici/engines/type_check.py:436:16 (verified). Whole frozen file read (sha256 a098e04e4d31b3b6b2aec2f9a69500a3d2d6bab0243b6c0e8c786153dcbae097, 521 lines). Behaviour -> rows/Rust: C++ facet of TypeCheckEngine (python fragment maps the mypy facet): C++ scope when C++ sources exist or project type is cpp; no C++ sources -> one C++TypeCheck SKIP target at '.' 'No applicable C++ source files were selected; type checking was not run'; otherwise one C++TypeCheck SKIP target per selected C/C++ source 'C++ type checking is not implemented; source was not type-checked'; warning 'C++ type checking is skipped for N source file(s); evidence is ESTIMATED' (counts as a warning, so a hybrid project goes WARN with ESTIMATED evidence); no Python sources and no tool error -> SKIP / NOT_APPLICABLE 'Type checking not applicable: no Python sources; C++ is unsupported'; required default True; extra type_issues/metrics_summary/mypy_profile/mypy_project_config_discovery -> crates/ici-cli/src/cpp.rs legacy_not_applicable('cpp.type') and crates/ici-cli/src/legacy_execute.rs:1490-1515. Sites 426:16 and 452:12 are not_started; descriptor/command rows verified."
     },
     "src/ici/languages/cpp/__init__.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: C++ check declaration site not compared one-to-one with the Rust check registry. Exact frozen hash 7bd7619da0225d647a6b1f2d8bc907addf7ea0b35b9110fdcc9fd52715ecf155 and 0 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.line",
+        "check:cpp.compile",
+        "check:cpp.diagnostics",
+        "check:cpp.tidy",
+        "check:cpp.test",
+        "check:cpp.coverage",
+        "check:cpp.complexity",
+        "check:cpp.cognitive",
+        "check:cpp.cycle",
+        "check:cpp.dup",
+        "check:cpp.exception",
+        "check:cpp.artifact",
+        "check:cpp.sanitize",
+        "check:cpp.tsan",
+        "check:cpp.binary-compat"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.line (verified), check:cpp.compile (verified), check:cpp.diagnostics (verified), check:cpp.tidy (verified), check:cpp.test (verified), check:cpp.complexity (verified), check:cpp.cognitive (verified), check:cpp.cycle (verified), check:cpp.dup (implemented), check:cpp.exception (verified), check:cpp.artifact (verified), check:cpp.sanitize (verified), check:cpp.binary-compat (verified). Whole frozen file read (sha256 7bd7619da0225d647a6b1f2d8bc907addf7ea0b35b9110fdcc9fd52715ecf155, 5 lines). Behaviour -> rows/Rust: Package facade only: re-exports CPP_CHECKS and CPP_LINE_CHECK from languages/cpp/checks.py for the language registry; no behaviour of its own, so it closes with the C++ check catalog rows."
     },
     "src/ici/languages/cpp/checks.py": {
       "disposition": "unreviewed",
@@ -11511,24 +11774,47 @@
         "check:cpp.sanitize",
         "check:cpp.test",
         "check:cpp.tidy",
-        "check:cpp.tsan"
+        "check:cpp.tsan",
+        "command:ici next plan"
       ],
-      "reason": "Unreviewed: Open: C++ check declaration site not compared one-to-one with the Rust check registry. Exact frozen hash 6e559d12b97011e710bacd9994d1a23f8cd09e305251262c973c4b4fea7200d9 and 0 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.line (verified), check:cpp.compile (verified), check:cpp.diagnostics (verified), check:cpp.tidy (verified), check:cpp.test (verified), check:cpp.complexity (verified), check:cpp.cognitive (verified), check:cpp.cycle (verified), check:cpp.dup (implemented), check:cpp.exception (verified), check:cpp.artifact (verified), check:cpp.sanitize (verified), check:cpp.binary-compat (verified). Whole frozen file read (sha256 6e559d12b97011e710bacd9994d1a23f8cd09e305251262c973c4b4fea7200d9, 219 lines). Behaviour -> rows/Rust: Next-path C++ check catalog in frozen order (cpp.line, compile, diagnostics, tidy, test, coverage, complexity, cognitive, cycle, dup, exception, artifact, sanitize, tsan, binary-compat): titles, tool (clang-tidy for cpp.tidy), static=False for test/coverage/artifact/sanitize/tsan/binary-compat, required=False for tidy/artifact/binary-compat, deep-only profiles for sanitize/tsan, needs/provides edges (compile-inputs, cpp-test-evidence, artifact-contract) -> crates/ici-cli/src/registry.rs / crates/ici-application check registry. Each check id is its own row; 13 of the 15 are verified/implemented (cpp.coverage and cpp.tsan complete on feat/rust-closure-cpp)."
     },
     "src/ici/workspace/cmake_project.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: next-path workspace C++ project/compile-unit discovery not compared with frozen. Exact frozen hash 4b8c91bf1e1b84eb7b838be37fd989880c212e0eb5ac7441dcd5ef5a65dd9418 and 11 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.compile",
+        "check:cpp.test",
+        "command:ici next verify",
+        "config_key:next-v1:builds.*.project"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.compile (verified), check:cpp.test (verified), command:ici next verify (difference_review), config_key:next-v1:builds.*.project (verified). Whole frozen file read (sha256 4b8c91bf1e1b84eb7b838be37fd989880c212e0eb5ac7441dcd5ef5a65dd9418, 310 lines). Behaviour -> rows/Rust: Textual CMakeLists.txt reach resolver (no cmake evaluation): comment stripping, command regex with nested parens, conditional block depth (if/foreach/while/function/macro), literal add_subdirectory following (cmake-subdir-unresolved for expansions / missing child list), depth 16 (cmake-subdirs-depth), 512 KiB truncation (cmake-project-large), unreadable (cmake-project-missing), add_executable/add_library targets (cmake-target-unresolved), add_test NAME/legacy names (cmake-test-unresolved), add_dependencies, include() unresolved; feeds compile_units target reach and workspace/test_suites (cpp.test suites). Uncovered or suspected Rust gaps for the row worker: On base 853b2f39 no Rust source spells add_subdirectory/add_test or any cmake-*-unresolved/-depth/-large/-missing resolver diagnostic; the row worker branch feat/rust-closure-cpp (63048f38, 145a3911) is adding the add_test scan for next-path cpp.test. Suggested rows: check:cpp.test (next-path suites) and check:cpp.compile (target reach)."
     },
     "src/ici/workspace/compile_units.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: next-path workspace C++ project/compile-unit discovery not compared with frozen. Exact frozen hash 7ee9211b8ac4294eaabefe0c690ff2222b50de8d8e77f189590ee39186592907 and 12 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.compile",
+        "check:cpp.diagnostics",
+        "command:ici next verify",
+        "command:ici analyze",
+        "command:ici next plan",
+        "config_key:next-v1:builds",
+        "config_key:next-v1:builds.*.directory",
+        "config_key:next-v1:builds.*.prepare",
+        "config_key:next-v1:builds.*.system",
+        "config_key:next-v1:builds.*.variant",
+        "config_key:next-v1:components[].build"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.compile (verified), command:ici next verify (difference_review), command:ici analyze (difference_review), config_key:next-v1:builds (verified), config_key:next-v1:builds.*.directory (verified), config_key:next-v1:builds.*.system (verified), config_key:next-v1:builds.*.variant (verified), config_key:next-v1:components[].build (verified), check:cpp.diagnostics (verified). Whole frozen file read (sha256 7ee9211b8ac4294eaabefe0c690ff2222b50de8d8e77f189590ee39186592907, 435 lines). Behaviour -> rows/Rust: Next-path compile inputs per component: TU/header split by suffix, linked-build database lookup (<build.directory>/compile_commands.json with '<system> build <id> <variant>' origin, then component root/build and workspace root/build conventional locations), database-missing warning + prepare suggestions (declared prepare argv / 'declares no approved configure command' / 'no build unit is linked'), in-scope units vs build-generated (generated-input-missing) vs extra, covered/missing/complete, launcher stripping (ccache/sccache/distcc/icecc/icecream), direct header uses (256 KiB include scan, lexical resolution), linked-build target reach (qmake/cmake resolvers, build-definition-missing, <system>-target-missing) -> crates/ici-cli/src/cpp/next_plan.rs, crates/ici-cli/src/cpp.rs, crates/ici-cpp/src/context.rs. check:cpp.compile difference_reason lists the open next-path facets (units.covered/generated vs native coverage, malformed-database reason wording). Uncovered or suspected Rust gaps for the row worker: Rust has no counterpart for the frozen next-path diagnostics generated-input-missing (compile_units.py:190), build-definition-missing (:400) and <system>-target-missing (:426), nor the 'conventional location (...)' / '<system> build <id>' database origin labels (:263,:274) and header_uses; suggested rows check:cpp.compile / command:ici next verify (next-path C++ facet)."
     },
     "src/ici/workspace/qmake_project.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: qmake capture/recorder site not compared with frozen at this site. Exact frozen hash 32cd3f66098ae1600245b321f1112d516a2df4e0f1359862ff5aef2c8e1824d5 and 12 symbols retained for full C++ source review. Existing native tests/source corpus are evidence inputs, not a review of every function or mixed-language branch."
+      "requirements": [
+        "check:cpp.compile",
+        "check:cpp.test",
+        "command:ici next verify",
+        "config_key:next-v1:builds.*.project"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by check:cpp.compile (verified), check:cpp.test (verified), command:ici next verify (difference_review), config_key:next-v1:builds.*.project (verified). Whole frozen file read (sha256 32cd3f66098ae1600245b321f1112d516a2df4e0f1359862ff5aef2c8e1824d5, 305 lines). Behaviour -> rows/Rust: Textual .pro SUBDIRS resolver (no qmake evaluation): logical lines with \\ continuation and # comments, [scope:]VAR OP value statements (conditional scope), SUBDIRS tokens with -= removal, .subdir/.file/.depends/.target modifiers, variable references (qmake-var-unresolved), .pro entries, <dir>/<dir>.pro convention then a single .pro (qmake-subdir-missing / qmake-subdir-ambiguous), depth 8 (qmake-subdirs-depth), 512 KiB (qmake-project-large), unreadable (qmake-project-missing); feeds compile_units target reach and workspace/test_suites. Uncovered or suspected Rust gaps for the row worker: No Rust source contains the frozen qmake resolver diagnostics (qmake-var-unresolved, qmake-subdir-missing, qmake-subdir-ambiguous, qmake-subdirs-depth, qmake-project-large, qmake-project-missing; qmake_project.py:87-288). Suggested rows: check:cpp.compile / check:cpp.test next-path facets."
     },
     "src/ici/adapters/providers/tidy.py": {
       "disposition": "mapped",
@@ -11555,25 +11841,66 @@
     },
     "src/ici/core/_build_paths.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: shadow_dir/prepare_owned_shadow; the Rust Make shadow ownership rule (see the build.make.shadow_dir rows) is an intended difference, but the remaining shadow preparation behaviour is not reviewed function by function. Exact frozen hash d90aa4642fcf415ed79719b434c9e07ef95839f40479756d27c7945b5c3117bb and 2 symbols retained for full C++ source review."
+      "requirements": [
+        "config_key:legacy:build.make.shadow_dir",
+        "descriptor:build",
+        "command:ici build",
+        "descriptor:sanitize",
+        "descriptor:thread_sanitize",
+        "descriptor:test"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by descriptor:build (verified), command:ici build (difference_review), descriptor:sanitize (verified), descriptor:thread_sanitize (verified), descriptor:test (verified). Whole frozen file read (sha256 d90aa4642fcf415ed79719b434c9e07ef95839f40479756d27c7945b5c3117bb, 30 lines). Behaviour -> rows/Rust: shadow_dir (build/ici-<backend><suffix> owned shadow) and prepare_owned_shadow (mkdir build/ and shadow, resolve strictly, refuse a build/ or shadow escaping the root with 'build shadow is unsafe or unavailable: <err>') -> legacy CMake/qmake/make shadow sessions of build, sanitize, thread_sanitize, test and the linker-dead/compile-context preparers (crates/ici-cli/src/cpp.rs, crates/ici-cpp/src/build.rs). The shadow-location facet is a recorded difference (.ici/rust-v1/build/... vs build/ici-cmake-build, capability:compile-context-export difference_reason); config_key:legacy:build.make.shadow_dir is complete. Uncovered or suspected Rust gaps for the row worker: No closed row names the unsafe-shadow refusal text 'build shadow is unsafe or unavailable' (frozen _build_paths.py:26); confirm it is covered by descriptor:build/command:ici build or record it as part of the shadow-location difference."
     },
     "src/ici/core/make.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: MakePlan/make_plan argv and contained-path refusals are exercised by tests/rust-parity/cpp/make-plan-oracle.json and legacy_make_build.rs, but the file is not reviewed function by function against every branch. Exact frozen hash cc00624e681d9d53722ab5162550d9ef56a9cbe72ad52d7568bcbf7187347044 and 8 symbols retained for full C++ source review."
+      "requirements": [
+        "config_key:legacy:build",
+        "config_key:legacy:build.make",
+        "config_key:legacy:build.make.enabled",
+        "config_key:legacy:build.make.jobs",
+        "config_key:legacy:build.make.out_of_tree",
+        "config_key:legacy:build.make.workdir",
+        "config_key:legacy:build.make.shadow_dir",
+        "config_key:legacy:build.make.configure_argv",
+        "config_key:legacy:build.make.clean_argv",
+        "config_key:legacy:build.make.build_argv",
+        "config_key:legacy:build.make.test_argv",
+        "config_key:legacy:build.make.coverage_build_argv",
+        "config_key:legacy:build.make.coverage_test_argv",
+        "config_key:legacy:build.make.sanitize_build_argv",
+        "config_key:legacy:build.make.sanitize_test_argv",
+        "config_key:legacy:build.make.thread_sanitize_build_argv",
+        "config_key:legacy:build.make.thread_sanitize_test_argv",
+        "descriptor:build",
+        "command:ici build"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by config_key:legacy:build (not_started), config_key:legacy:build.make.test_argv (verified), config_key:legacy:build.make.coverage_test_argv (verified), config_key:legacy:build.make.sanitize_test_argv (verified), descriptor:build (verified), command:ici build (difference_review). Whole frozen file read (sha256 cc00624e681d9d53722ab5162550d9ef56a9cbe72ad52d7568bcbf7187347044, 174 lines). Behaviour -> rows/Rust: make_plan validation (enabled true, jobs int 1..64, out_of_tree allow/required with non-root workdir, contained POSIX workdir/shadow_dir (default build/ici-make, not root), per-variant build/test argv keys with variant-required build argv and release test_argv fallback, descriptor Makefile/makefile/GNUmakefile), _argv token rules (1..64 tokens, safe chars, no $/backtick, whole {jobs} placeholder, no shells/shell flags, aggregate bound) and executable resolution ('configured executable is unavailable: <argv0>') -> crates/ici-cpp/src/make.rs (frozen messages and {jobs} substitution) and crates/ici-config/src/schema.rs."
     },
     "src/ici/core/toolchain.py": {
       "disposition": "unreviewed",
-      "requirements": [],
-      "reason": "Unreviewed: Open: ToolProbe candidates (clang-tidy; clazy-standalone then clazy) and version regexes are used by the lint comparisons with resolvable clang tools; the probe-evidence and safe-argv branches are not reviewed function by function. Exact frozen hash a7a39fe5854369ac91f1bf25241bb4c2d51c050fde8924f1cc80af3c93595662 and 26 symbols retained for full C++ source review."
+      "requirements": [
+        "command:ici doctor",
+        "command:ici env",
+        "capability:doctor-env-cache",
+        "command:ici verify",
+        "descriptor:lint",
+        "check:cpp.tidy",
+        "command:ici type",
+        "capability:compile-context-export"
+      ],
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by command:ici verify (verified), descriptor:lint (difference_review), check:cpp.tidy (verified), command:ici type (verified), capability:compile-context-export (implemented). Whole frozen file read (sha256 a7a39fe5854369ac91f1bf25241bb4c2d51c050fde8924f1cc80af3c93595662, 630 lines). Behaviour -> rows/Rust: Declarative probe registry (31 tools incl. gcc/g++/clang/clang++ -dumpmachine target, clazy-standalone/clazy, cmake -E capabilities, qmake6/qmake -query, qt5/qt6 via pkg-config --modversion, mypy/pytest/coverage as python modules via the project .venv else sys.executable), legacy DEFAULT_PROBES for doctor, version parsing (per-tool patterns, compiler banner, generic fallback except clazy), compiler family/vendor, qmake -query and cmake capabilities parsing, secret-flag argv redaction, failure reasons, candidate realpath de-duplication, first complete candidate selection, metadata-probe validation (invalid target triple, missing QT_VERSION, malformed CMake capabilities) -> crates/ici-cpp/src/toolchain.rs, crates/ici-cli/src/doctor.rs and the legacy verify capability inventory (crates/ici-cli/src/legacy_context.rs). Doctor/env facets are complete; the verify-report capability inventory and C++ tooling consumers are open. The python_module sys.executable fallback is the Python facet (ADR-0008: the Rust product never falls back to its own interpreter)."
     },
     "src/ici/analysis/_sanitizer_diagnostics.py": {
       "disposition": "unreviewed",
       "requirements": [
-        "finding_site:src/ici/analysis/_sanitizer_diagnostics.py:393:11"
+        "finding_site:src/ici/analysis/_sanitizer_diagnostics.py:393:11",
+        "check:cpp.sanitize",
+        "check:cpp.tsan",
+        "descriptor:sanitize",
+        "descriptor:thread_sanitize",
+        "finding_site:src/ici/engines/sanitize.py:385:24"
       ],
-      "reason": "Unreviewed: Open: the sanitizer report parser is compared through tests/rust-parity/cpp/sanitize-oracle.json and cpptest-parser-oracle.json (C++ ASan/UBSan/TSan runs); its :393 row lives in validation.json; location-normalization branches for other report shapes are not reviewed. Exact frozen hash 141366667f8bd5201ed11bfc85ea77dcab1b253e7aee69cfdab09b0256a3689f and 16 symbols retained for full C++ source review."
+      "reason": "Unreviewed (C++ source audit 2026-11-02): blocked by finding_site:src/ici/analysis/_sanitizer_diagnostics.py:393:11 (verified), check:cpp.sanitize (verified), descriptor:sanitize (verified), descriptor:thread_sanitize (verified), finding_site:src/ici/engines/sanitize.py:385:24 (verified). Whole frozen file read (sha256 141366667f8bd5201ed11bfc85ea77dcab1b253e7aee69cfdab09b0256a3689f, 456 lines). Behaviour -> rows/Rust: Bounded ASan/LSan/UBSan/TSan normalization: ERROR/WARNING(TSan)/SUMMARY/runtime-error markers, summary-only fallback, 64-diagnostic and 32-frame limits, 1 MiB UTF-8/NUL/root refusals (SanitizerDiagnosticError), kind (tsan/lsan/ubsan/asan), defect tables (TSan and memory/UB prefixes, slug fallback, thread-safety-defect / runtime-defect), contained bounded source-line validated locations with '[external]' sentinel, frame labels 'frame #<n>: <function>', runtime > frame > marker precedence, de-duplicated related locations, rule ici.sanitize.<kind>.<defect> and '<tool> detected <defect>' -> crates/ici-validation/src/sanitizer.rs (same defect tables). Row open: unlocated diagnostics and the bounded frame/report-size refusals are not captured from frozen."
     }
   },
   "scope": {
