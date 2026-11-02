@@ -193,6 +193,10 @@ pub fn analyze(
         .collect();
     let top_all: Vec<_> = rows.iter().take(5).cloned().collect();
     output.extra = json!({"code":code,"comment":comment,"blank":blank,"total":total,"files_data":rows,"top_files":top,"top_files_all":top_all,"all":{"code":all_code,"comment":all_comment,"blank":all_blank,"total":all_code+all_comment+all_blank,"files":rows.len()},"metrics_summary":format!("{} code / {counted} files", grouped(code))});
+    // Frozen `LineEngine` source-pass directory order for the legacy report projection.
+    if let Some(order) = request.options.get("line_scope_order") {
+        output.extra["line_scope_order"] = order.clone();
+    }
     // Frozen engines/line.py groups every count with Python's `{:,}`.
     output.summary = format!(
         "Total {} lines ({} code, {} comment, {} blank) across {counted} files",

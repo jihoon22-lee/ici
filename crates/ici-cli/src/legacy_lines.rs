@@ -18,6 +18,8 @@ pub struct LineScope {
     pub inputs: Vec<String>,
     pub source_paths: Vec<String>,
     pub gated_paths: Vec<String>,
+    /// Frozen `_build_scan_plan` `scope_list`: the source pass's directory order.
+    pub scope_order: Vec<String>,
 }
 const SOURCE: [&str; 4] = ["src", "include", "lib", "app"];
 const JUNK: [&str; 17] = [
@@ -94,6 +96,22 @@ pub fn collect(
                 .collect();
         }
         source_dirs.retain(|name| !excludes.contains(name));
+        let mut scope_order: Vec<String> = vec![];
+        for name in SOURCE
+            .iter()
+            .map(|name| (*name).to_owned())
+            .chain(
+                component
+                    .source_dirs
+                    .iter()
+                    .map(|name| name.trim_matches('/').to_owned()),
+            )
+            .chain(strings(config, "include_dirs"))
+        {
+            if !name.is_empty() && !excludes.contains(&name) && !scope_order.contains(&name) {
+                scope_order.push(name);
+            }
+        }
         gate_dirs.retain(|name| !excludes.contains(name));
         for path in files {
             if excluded.contains(&path)
@@ -123,9 +141,16 @@ pub fn collect(
                 path.strip_prefix(&format!("{}/", component.root))
                     .expect("component-owned path")
             };
-            if excludes
+            let in_source = source_dirs
                 .iter()
-                .any(|directory| Path::new(relative).starts_with(directory))
+                .any(|directory| directory == "." || Path::new(relative).starts_with(directory));
+            // Frozen `_collect_files`: `exclude_dirs` only drops exact source/gate names and
+            // prunes the extras walk, so a nested entry (`src/gen`) keeps its files in the
+            // source pass.
+            if !in_source
+                && excludes
+                    .iter()
+                    .any(|directory| Path::new(relative).starts_with(directory))
             {
                 continue;
             }
@@ -144,9 +169,9 @@ pub fn collect(
                 })
                 .expect("component has line check");
             let scope = result.get_mut(&check.task_id).expect("line scope");
-            let in_source = source_dirs
-                .iter()
-                .any(|directory| directory == "." || Path::new(relative).starts_with(directory));
+            if scope.scope_order.is_empty() {
+                scope.scope_order = scope_order.clone();
+            }
             let top = relative.split_once('/').map_or("", |(top, _)| top);
             if in_source {
                 scope.source_paths.push(path.clone());

@@ -1,0 +1,2437 @@
+{
+ "base": "[project]\ntype='cpp'\nsource_dirs=['src']\n",
+ "cases": {
+  "defaults": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 49,
+     "comment": 9,
+     "files": 11,
+     "total": 59
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      6,
+      0,
+      0,
+      6,
+      "PASS"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "FAIL",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "exclude-dirs": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nexclude_dirs=['lib','src/gen','tools/']\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 33,
+     "comment": 6,
+     "files": 8,
+     "total": 40
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      7,
+      0,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "FAIL",
+    "summary": "Total 26 lines (21 code, 5 comment, 0 blank) across 5 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "gate-dirs-excluded": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\ngate_dirs=['src','lib']\nexclude_dirs=['lib']\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 46,
+     "comment": 8,
+     "files": 10,
+     "total": 55
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      8,
+      0,
+      0,
+      8,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "PASS"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "FAIL",
+    "summary": "Total 26 lines (21 code, 5 comment, 0 blank) across 5 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "4 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "gate-dirs-narrow": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\ngate_dirs=['lib']\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 50,
+     "comment": 9,
+     "files": 11,
+     "total": 60
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      7,
+      0,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "PASS"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "WARN",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "6 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "6 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "4 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "gate-dirs-nested": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\ngate_dirs=['src/core']\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 50,
+     "comment": 9,
+     "files": 11,
+     "total": 60
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      7,
+      0,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "PASS"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "PASS"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "PASS",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "6 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "6 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "4 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "5 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "gate-dirs-outside-scope": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\ngate_dirs=['tools','src']\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 50,
+     "comment": 9,
+     "files": 11,
+     "total": 60
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      7,
+      0,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "PASS"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "PASS"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "FAIL",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "4 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "5 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "include-dirs": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\ninclude_dirs=['tools/sub','extras']\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 50,
+     "comment": 9,
+     "files": 11,
+     "total": 60
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      7,
+      0,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "source",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "FAIL",
+    "summary": "Total 43 lines (35 code, 8 comment, 0 blank) across 8 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "tools/sub/s.cpp",
+      "message": "6 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 4,
+      "file_path": "extras/x.sh",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "Shell"
+     }
+    ]
+   }
+  },
+  "line-disabled": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nenabled=false\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 50,
+     "comment": 9,
+     "files": 11,
+     "total": 60
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      7,
+      0,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "FAIL",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "mode-pass-fail": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nmode='pass_fail'\nexclude_dirs=['src','lib']\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 31,
+     "comment": 5,
+     "files": 7,
+     "total": 37
+    },
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      8,
+      0,
+      0,
+      8,
+      "PASS"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "FAIL",
+    "summary": "Total 8 lines (6 code, 2 comment, 0 blank) across 2 files",
+    "targets": [
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "mode-pass-warn": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nmode='pass_warn'\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 50,
+     "comment": 9,
+     "files": 11,
+     "total": 60
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      7,
+      0,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "WARN",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "mode-pass-warn-fail-clean": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=50\nfail_limit=60\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 49,
+     "comment": 9,
+     "files": 11,
+     "total": 59
+    },
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "files": [
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      6,
+      0,
+      0,
+      6,
+      "PASS"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "PASS"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "PASS"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "status": "PASS",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "6 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "6 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "4 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "5 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "verify-disabled": {
+   "command": "verify",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nenabled=false\n",
+   "frozen": {
+    "engines": [
+     "dup"
+    ],
+    "exit_code": 0
+   }
+  },
+  "verify-not-required": {
+   "command": "verify",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nrequired=false\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 86,
+     "comment": 9,
+     "files": 11,
+     "total": 96
+    },
+    "engines": [
+     "line"
+    ],
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      43,
+      0,
+      0,
+      43,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "required": false,
+    "status": "FAIL",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "verify-not-required-warn": {
+   "command": "verify",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nrequired=false\nmode='pass_warn'\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 87,
+     "comment": 9,
+     "files": 11,
+     "total": 97
+    },
+    "engines": [
+     "line"
+    ],
+    "evidence": "MEASURED",
+    "exit_code": 0,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      44,
+      0,
+      0,
+      44,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "required": false,
+    "status": "WARN",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  },
+  "verify-required": {
+   "command": "verify",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\n",
+   "frozen": {
+    "all": {
+     "blank": 1,
+     "code": 85,
+     "comment": 9,
+     "files": 11,
+     "total": 95
+    },
+    "engines": [
+     "line"
+    ],
+    "evidence": "MEASURED",
+    "exit_code": 1,
+    "files": [
+     [
+      "ici.toml",
+      "extra",
+      "TOML",
+      42,
+      0,
+      0,
+      42,
+      "PASS"
+     ],
+     [
+      "src/core/big.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "src/gen/out.cpp",
+      "source",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "FAIL"
+     ],
+     [
+      "tools/t.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "tools/sub/s.cpp",
+      "extra",
+      "C++",
+      6,
+      1,
+      0,
+      7,
+      "PASS"
+     ],
+     [
+      "lib/l.cpp",
+      "source",
+      "C++",
+      5,
+      1,
+      0,
+      6,
+      "WARN"
+     ],
+     [
+      "include/a.hpp",
+      "source",
+      "C++",
+      4,
+      1,
+      0,
+      5,
+      "WARN"
+     ],
+     [
+      "src/a.cpp",
+      "source",
+      "C++",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "extras/x.sh",
+      "extra",
+      "Shell",
+      3,
+      1,
+      0,
+      4,
+      "PASS"
+     ],
+     [
+      "app/main.cpp",
+      "source",
+      "C++",
+      2,
+      1,
+      0,
+      3,
+      "PASS"
+     ],
+     [
+      "docs/guide.md",
+      "extra",
+      "Markdown",
+      2,
+      0,
+      1,
+      3,
+      "PASS"
+     ]
+    ],
+    "required": true,
+    "status": "FAIL",
+    "summary": "Total 32 lines (26 code, 6 comment, 0 blank) across 6 files",
+    "targets": [
+     {
+      "end_line": 4,
+      "file_path": "src/a.cpp",
+      "message": "3 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/core/big.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 7,
+      "file_path": "src/gen/out.cpp",
+      "message": "Pure code lines (6) exceed 5 lines limit (Refactoring required)",
+      "start_line": 1,
+      "status": "FAIL",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 5,
+      "file_path": "include/a.hpp",
+      "message": "Pure code lines (4) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 6,
+      "file_path": "lib/l.cpp",
+      "message": "Pure code lines (5) exceed 3 lines threshold (Split recommended)",
+      "start_line": 1,
+      "status": "WARN",
+      "target_name": "C++"
+     },
+     {
+      "end_line": 3,
+      "file_path": "app/main.cpp",
+      "message": "2 code lines",
+      "start_line": 1,
+      "status": "PASS",
+      "target_name": "C++"
+     }
+    ]
+   }
+  }
+ },
+ "files": {
+  "app/main.cpp": "// header\nint v0 = 0;\nint v1 = 1;\n",
+  "build/skip.cpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\nint v3 = 3;\nint v4 = 4;\nint v5 = 5;\nint v6 = 6;\nint v7 = 7;\nint v8 = 8;\n",
+  "docs/guide.md": "# guide\n\ntext\n",
+  "extras/x.sh": "# shell\necho 1\necho 2\necho 3\n",
+  "include/a.hpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\nint v3 = 3;\n",
+  "lib/l.cpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\nint v3 = 3;\nint v4 = 4;\n",
+  "src/a.cpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\n",
+  "src/core/big.cpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\nint v3 = 3;\nint v4 = 4;\nint v5 = 5;\n",
+  "src/gen/out.cpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\nint v3 = 3;\nint v4 = 4;\nint v5 = 5;\n",
+  "tools/sub/s.cpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\nint v3 = 3;\nint v4 = 4;\nint v5 = 5;\n",
+  "tools/t.cpp": "// header\nint v0 = 0;\nint v1 = 1;\nint v2 = 2;\nint v3 = 3;\nint v4 = 4;\nint v5 = 5;\n"
+ },
+ "only_line": "[engines.lint]\nenabled=false\n[engines.compile_db]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.security]\nenabled=false\n[engines.cycle]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.dup]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.build]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n",
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
+ "with_dup": "[engines.lint]\nenabled=false\n[engines.compile_db]\nenabled=false\n[engines.test]\nenabled=false\n[engines.type]\nenabled=false\n[engines.python_compat]\nenabled=false\n[engines.cognitive]\nenabled=false\n[engines.resource]\nenabled=false\n[engines.security]\nenabled=false\n[engines.cycle]\nenabled=false\n[engines.complexity]\nenabled=false\n[engines.sanitize]\nenabled=false\n[engines.thread_sanitize]\nenabled=false\n[engines.dead]\nenabled=false\n[engines.exception]\nenabled=false\n[engines.build]\nenabled=false\n[engines.binary_compat]\nenabled=false\n[engines.integration]\nenabled=false\n"
+}

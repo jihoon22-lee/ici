@@ -4235,28 +4235,56 @@
       "difference_reason": "Accepted policy (root decision, reporting command:ici verify): a run whose required evidence is incomplete (the g++ heuristic lint fallback is estimated) keeps an ERROR suite and exits 3 where frozen exited 1 with the same ERROR suite (cases defaults, modes, modes_warn_fail, profile_deep); every other case (disabled, required_flipped, profile_fast) has the frozen suite and exit code. Engine summaries, scores and every legacy finding are compared too (frozen wording since cd6ed47). The no-test verdict keeps validation's MEASURED evidence where frozen labelled its fabricated estimate ESTIMATED. Open: engine-specific keys of this table are tracked on their own rows; enabled/mode/required keys not in the matrix stay open."
     },
     "config_key:legacy:engines.line.enabled": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: `enabled=false` drops the line engine from `ici verify` (engines: dup only, exit 0) while the explicit `ici line` command still runs it with frozen's FAIL and exit 1 (line-disabled, verify-disabled). Captured cases named: positive verify-disabled, negative line-disabled, failure line-disabled."
     },
     "config_key:legacy:engines.line.exclude_dirs": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: frozen strips '/' and removes exact names from the source scope and gate set and prunes the extras walk: a top-level entry (lib, 'tools/') drops its files from both passes, a nested one (src/gen) keeps its files in the source pass and gated (exclude-dirs, gate-dirs-excluded). Rust defect fixed: a nested entry dropped its source files (gate verdict and totals differed). Captured cases named: positive exclude-dirs, negative gate-dirs-excluded, failure exclude-dirs."
     },
     "config_key:legacy:engines.line.fail_limit": {
       "status": "verified",
@@ -4283,52 +4311,108 @@
       "difference_reason": "The C++ threshold path is verified, including mixed extra-file counting in the actual C++ line command. Full descriptor and all source-file review remain open until their separate exact rows are reconciled."
     },
     "config_key:legacy:engines.line.gate_dirs": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: the shipped default unions project.source_dirs; an explicit list is respected as-is and compared by top-level directory name only: ['lib'] gates only lib (WARN), a nested ['src/core'] gates nothing (PASS), ['tools','src'] gates src but not tools (outside the source scope), an excluded gate entry gates nothing (gate-dirs-narrow, gate-dirs-nested, gate-dirs-outside-scope, gate-dirs-excluded). Captured cases named: positive gate-dirs-narrow, negative gate-dirs-nested, failure gate-dirs-outside-scope."
     },
     "config_key:legacy:engines.line.include_dirs": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: entries extend the source pass after the defaults and project.source_dirs in declaration order (targets in that scan order), a nested entry (tools/sub) is source but gated only by its top-level name, its parent's other files stay extras (include-dirs). Rust defect fixed: single-check line targets were path-sorted instead of frozen's scan order and non-default scope directories were ordered alphabetically. Captured cases named: positive include-dirs, negative defaults, failure include-dirs."
     },
     "config_key:legacy:engines.line.mode": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: pass_warn_fail (default: FAIL exit 1 / clean PASS exit 0), pass_fail (a WARN-only scope FAILs, exit 1), pass_warn (FAIL downgraded to WARN, exit 0) with unchanged per-target statuses (defaults, mode-pass-fail, mode-pass-warn, mode-pass-warn-fail-clean). Captured cases named: positive mode-pass-warn, negative mode-pass-warn-fail-clean, failure mode-pass-fail."
     },
     "config_key:legacy:engines.line.required": {
-      "status": "difference_review",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "Legacy line gates/include/exclude paths and strict cutoff need C++ consumption/evidence; shared/non-C++ extra-file statistics remain a separate parent review.",
-      "difference_reason": "This scoped review does not treat parser acceptance, matching names, test counts, or a partially implemented provider as parity proof."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: verify carries the line engine's `required` flag; a failing required line engine fails verify (exit 1) and `required=false` keeps the same FAIL (or pass_warn WARN) out of the gate (exit 0) (verify-required, verify-not-required, verify-not-required-warn). Captured cases named: positive verify-not-required, negative verify-not-required-warn, failure verify-required."
     },
     "config_key:legacy:engines.line.warn_limit": {
       "status": "verified",
@@ -8760,16 +8844,31 @@
       "difference_reason": "Open: exception engine source-input error site not compared (the C++ exception rules are verified on check:cpp.exception)."
     },
     "finding_site:src/ici/engines/line.py:185:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/line.py:185); enclosing frozen function _record_file) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: line engine C++ site not compared by the cpp area."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet of frozen LineCountEngine._record_file on a type='cpp' project: per-file code/comment/blank/total, the language label, source/extra scope, top-level-name gating with strict cutoffs and the PASS/WARN/FAIL messages, InspectionTarget start_line 1/end_line total, and source-only totals versus all totals: 15 frozen cases equal (line-keys-oracle.json).",
+      "difference_reason": "Verified, not complete: an unreadable production file is not compared: frozen counts it as 0 lines and its JSON reporter then refuses the 0-line target (no report is written; observed in tools-unreadable-source of lint-tool-branches-oracle.json), while the native run refuses an unreadable input at its input snapshot."
     },
     "finding_site:src/ici/engines/lint.py:251:16": {
       "status": "complete",

@@ -350,6 +350,7 @@ pub fn analysis_options(prepared: &PreparedPlan, planned: &PlannedCheck, legacy:
     if legacy && let Some(scope) = prepared.legacy_lines.get(&planned.task_id) {
         options["source_paths"] = json!(scope.source_paths);
         options["gated_paths"] = json!(scope.gated_paths);
+        options["line_scope_order"] = json!(scope.scope_order);
         if prepared.project.schema_family == ici_config::SchemaFamily::Legacy {
             options["extra_targets"] = json!(false);
         }
