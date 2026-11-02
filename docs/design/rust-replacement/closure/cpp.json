@@ -293,7 +293,8 @@
         "crates/ici-cli/src/cpp_validation.rs",
         "crates/ici-cpp/src/qmake.rs",
         "crates/ici-cli/src/legacy_execute.rs",
-        "crates/ici-cpp/src/build.rs"
+        "crates/ici-cpp/src/build.rs",
+        "crates/ici-validation/src/cpp.rs"
       ],
       "fixtures": {
         "positive": [
@@ -301,14 +302,16 @@
           "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_make_test_argv_runs_match_frozen_targets_findings_and_exit_codes"
         ],
         "negative": [
-          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context"
+          "crates/ici-cli/tests/legacy_qmake_verify.rs::legacy_qmake_verify_matches_frozen_exit_codes_engine_verdicts_and_context",
+          "crates/ici-validation/tests/gcov.rs::gcov_report_is_an_uncached_analysis_step_like_frozen_not_a_prepare_task"
         ],
         "failure": []
       },
       "evidence": [
-        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log."
+        "Frozen oracle (6fe3e40): tests/rust-parity/cpp/qmake-verify-oracle.json; /tmp/ici-rust-replacement-20261028/w-cpp9-qmake-rust.log.",
+        "Next-path task kind (root note): frozen adapters/providers/gcov.py plans gcov as TaskKind.ANALYZE and application/selection.py blocks only mutating (PREPARE) tasks under profile 'fast'; native planned the gcov report step as Prepare (fast-blocked, listed as mutating). Now Analyze and uncached; cargo test -p ici-validation --locked -j2 -- --include-ignored and ici-cli native_cpp, native_cpp_direct, legacy_gcov_cli, legacy_cpp_test, legacy_qmake_verify, legacy_cmake_verify, legacy_make_build, plan_text_oracle --include-ignored, ici-reporting facets: all passed; strict ici-validation Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-gcov-kind.log"
       ],
-      "comparison": "C++ facet on a legacy qmake project: the coverage variant runs qmake without CONFIG debug/release like frozen, so gcov line/branch coverage over the tests scope matches frozen; an empty production scope refuses coverage ('GCOV coverage has no production sources in the configured scope') and the test verdict stays ESTIMATED like frozen's optional coverage. A legacy Make coverage_build_argv/coverage_test_argv run (tests/rust-parity/cpp/make-test-oracle.json) gives frozen's gcov line/function/branch figures over the Make shadow on frozen's non-header, non-main source set (a header in src no longer fails coverage with 'gcov evidence omits declared source files').",
+      "comparison": "C++ facet on a legacy qmake project: the coverage variant runs qmake without CONFIG debug/release like frozen, so gcov line/branch coverage over the tests scope matches frozen; an empty production scope refuses coverage ('GCOV coverage has no production sources in the configured scope') and the test verdict stays ESTIMATED like frozen's optional coverage. A legacy Make coverage_build_argv/coverage_test_argv run (tests/rust-parity/cpp/make-test-oracle.json) gives frozen's gcov line/function/branch figures over the Make shadow on frozen's non-header, non-main source set (a header in src no longer fails coverage with 'gcov evidence omits declared source files'). Next path: the gcov report step is an uncached ANALYZE step like frozen GcovProvider (not a prepare task), so profile 'fast' does not block it as a prepare.",
       "difference_reason": "Recorded: no invented '(est)' coverage or TEM score. Open: CMake gcov coverage is compared in other rows."
     },
     "check:cpp.cycle": {
