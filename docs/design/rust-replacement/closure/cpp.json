@@ -7887,28 +7887,53 @@
       "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:557:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_cognitive.py:557); enclosing frozen function _append_source_error) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed boundary modes and source/range error targets of the cognitive metric not compared; the heuristic legacy projection is verified (check:cpp.cognitive)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json captured by development-only tests/rust-parity/cpp/capture_metric_sources.py (oracle 6fe3e40, frozen `ici cognitive|complexity --report`, type='cpp', no database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/metric-sources {unreadable, unterminated}; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 1 passed (non-ignored; status, evidence, summary, targets with start/end line for cognitive and complexity, exit code except the accepted complexity incomplete-exit-3); /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources.log",
+        "Regressions: legacy_cpp_metrics, legacy_verify_matrix, legacy_zoo_cpp, native_cpp complexity/cognitive (--include-ignored), ici-cpp source, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_cognitive.py:557, _append_source_error). Frozen reads every C++ source strictly (read_cpp_source_text) before measuring: a source that is not UTF-8 is a `CppCognitiveSourceError` ERROR at line 1 'C++ cognitive source is not a bounded project file: <relative> (ValueError)' (metrics boundary_source source-intake) and, because analyze_cpp_cognitive returns on any load error, no other source is measured: ERROR NOT_RUN 'Cognitive complexity analysis did not complete', exit 1 (unreadable: ok.cpp is not reported). The complexity engine's counterpart (`_cpp_source_rows`) is one `CppComplexityAnalysisError` at '.' naming the file names, 'Max Cyclomatic Complexity: 0 (limit 15) across 0 functions (1 issues)'. Rust defect fixed (legacy projection only): the tree-sitter source session emitted a native `source-encoding` target and still measured the other sources, with the native summary 'cpp.cognitive: 4 inspected targets, 0 findings'. Measurable sources keep the frozen PASS/WARN/FAIL targets (legacy_cpp_metrics).",
+      "difference_reason": "Accepted policy (incomplete-exit-3, as on legacy exception read errors): `ici complexity` is required by default, so the incomplete ERROR exits 3 natively where frozen exits 1; cognitive (not required) exits 1 like frozen."
     },
     "finding_site:src/ici/analysis/_cpp_cognitive.py:649:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cpp/src/source_rules.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_complexity_and_cognitive_match_frozen_thresholds_messages_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_cognitive.py:649); enclosing frozen function _append_range_error) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compiler-backed boundary modes and source/range error targets of the cognitive metric not compared; the heuristic legacy projection is verified (check:cpp.cognitive)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json captured by development-only tests/rust-parity/cpp/capture_metric_sources.py (oracle 6fe3e40, frozen `ici cognitive|complexity --report`, type='cpp', no database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/metric-sources {unreadable, unterminated}; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-capture.log",
+        "Regressions: legacy_cpp_metrics, legacy_verify_matrix, legacy_zoo_cpp, native_cpp complexity/cognitive (--include-ignored), ici-cpp source, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_cognitive.py:649, _append_range_error). Frozen's brace-heuristic function inventory (cpp_complexity._cpp_function_inventory) turns a function body that never closes into an ERROR target named after the function over its span ('C++ cognitive function range is unterminated: src/open.cpp:1', lines 1-3), keeps the other sources' targets and summarises 'Cognitive complexity analysis did not complete' (captured as metric-sources-oracle.json cognitive:unterminated); the complexity engine still measures open_fn() (complexity:unterminated, PASS ESTIMATED). Well-formed functions match frozen (legacy_cpp_metrics).",
+      "difference_reason": "Open (not ported): Rust's legacy metrics use the tree-sitter source session, so the unterminated body is a `source-syntax` ERROR 'C++ source has concrete syntax recovery errors...' plus NoFunctionDefinitions PASS for src/open.cpp, cognitive summary 'cpp.cognitive: 3 inspected targets, 0 findings', and complexity is ERROR NOT_RUN (exit 3) where frozen passes with open_fn() measured. Matching needs a port of frozen's 439-line brace-heuristic inventory for malformed sources; the 'function range is invalid' variants (_cpp_cognitive.py:739/802) have no capture either."
     },
     "finding_site:src/ici/analysis/_cpp_diagnostics.py:1012:19": {
       "status": "verified",
@@ -9932,28 +9957,54 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/exception.py:150:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/lib.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_exception_and_type_without_sources_skip_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/exception.py:150); enclosing frozen function _append_analysis_error) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: exception engine source-input error site not compared (the C++ exception rules are verified on check:cpp.exception)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/exception-read-oracle.json (tests/rust-parity/cpp/capture_exception_read.py) replayed by legacy_cpp_metrics (8 passed, --include-ignored); /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/engines/exception.py:150, _append_analysis_error via _check_cpp_exceptions): a C++ source that is not strict UTF-8 is a `ReadError` ERROR at line 1 'Could not read C++ source: <CPython UnicodeDecodeError text>' (invalid start byte, invalid continuation byte, unexpected end of data), the other sources are still analysed and the summary names the first three errors; readable sources (verify-matrix, empty scope) have none.",
+      "difference_reason": "Accepted policy (incomplete-exit-3): the required exception check exits 3 natively where frozen exits 1 for the same ERROR."
     },
     "finding_site:src/ici/engines/exception.py:52:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_exception_and_type_without_sources_skip_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary",
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metrics.rs::legacy_cpp_exception_read_errors_match_frozen_decode_text_targets_and_summary"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/exception.py:52); enclosing frozen function run) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: exception engine source-input error site not compared (the C++ exception rules are verified on check:cpp.exception)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json captured by development-only tests/rust-parity/cpp/capture_metric_sources.py (oracle 6fe3e40, frozen `ici cognitive|complexity --report`, type='cpp', no database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/metric-sources {empty, unreadable, unterminated}; `empty` runs `ici exception|type --report`; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 2 passed (non-ignored); /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources.log",
+        "Regressions: legacy_cpp_metrics, legacy_verify_matrix, legacy_zoo_cpp, native_cpp complexity/cognitive (--include-ignored), ici-cpp source, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/engines/exception.py:52, ExceptionSafetyEngine.run): a type='cpp' project with no Python or C++ source is one `ExceptionSafety` SKIP at '.' 'No applicable Python or C++ source files were selected; analysis was not run', SKIP NOT_APPLICABLE 'Exception safety analysis skipped: no applicable source files', exit 2 (metric-sources empty); a project with C++ sources never carries it (legacy_cpp_metrics, verify-matrix) and read failures are ReadError targets (exception.py:150).",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/line.py:185:16": {
       "status": "complete",
@@ -10724,16 +10775,29 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/type_check.py:426:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_execute.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_exception_and_type_without_sources_skip_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::legacy_cpp_verify_engine_keys_and_profiles_match_the_frozen_suite"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_exception_and_type_without_sources_skip_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/type_check.py:426); enclosing frozen function _mark_cpp_type_check_skipped) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/metric-sources-oracle.json captured by development-only tests/rust-parity/cpp/capture_metric_sources.py (oracle 6fe3e40, frozen `ici cognitive|complexity --report`, type='cpp', no database, PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/metric-sources {empty, unreadable, unterminated}; `empty` runs `ici exception|type --report`; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_metric_sources --locked -j2: 2 passed (non-ignored); /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources.log",
+        "Regressions: legacy_cpp_metrics, legacy_verify_matrix, legacy_zoo_cpp, native_cpp complexity/cognitive (--include-ignored), ici-cpp source, strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-metric-sources-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/engines/type_check.py:426, _mark_cpp_type_check_skipped): a type='cpp' project with no C++ source is one `C++TypeCheck` SKIP at '.' 'No applicable C++ source files were selected; type checking was not run', SKIP NOT_APPLICABLE 'Type checking not applicable: no Python sources; C++ is unsupported', exit 2 (metric-sources empty); with C++ sources each source is its own `C++TypeCheck` SKIP 'C++ type checking is not implemented; source was not type-checked' (verify-matrix). The 'failure' fixture is the same empty-scope run: the site has no error branch.",
+      "difference_reason": null
     },
     "finding_site:src/ici/engines/type_check.py:436:16": {
       "status": "verified",
