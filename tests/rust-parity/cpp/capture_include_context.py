@@ -5,8 +5,10 @@ enabled, `project.compile_database` set) in a fresh copy of each parity-fixtures
 include-context tree with PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8 and PYTHONHASHSEED=0, and
 keeps the exit code, suite status and the cycle engine's status, evidence, summary, frozen
 `_analyze_cpp_includes` extra counters, targets, findings and tool evidence (name, return code,
-error). Every case must take the compiler-traced graph (`cpp_include_resolution ==
-"compiler_trace"`): a tree that silently fell back to the heuristic graph is refused.
+error). Every verify case must take the compiler-traced graph (`cpp_include_resolution ==
+"compiler_trace"`): a tree that silently fell back to the heuristic graph is refused. The
+`cycle:mixed` case runs standalone `ici cycle --report` on the same tree, which frozen keeps on
+the heuristic graph (no analysis context is built), and has no suite status.
 """
 
 import json
@@ -22,6 +24,10 @@ PYTHON = "/home/jihoon/projects/ici/.venv/bin/python"
 FIXTURES = ROOT / "parity-fixtures/cpp/include-context"
 WORK = Path(tempfile.gettempdir()) / "ici-cpp-include-context"
 GOLDEN = ROOT / "tests/rust-parity/cpp/include-context-oracle.json"
+ARGV = {
+    "verify": ["verify", "--profile", "deep", "--no-cache", "--report"],
+    "cycle": ["cycle", "--report"],
+}
 EXTRA_KEYS = (
     "cpp_include_resolution",
     "resolved_cpp_includes",
@@ -42,7 +48,7 @@ assert (
 GXX = subprocess.check_output(["/usr/bin/g++", "--version"], text=True).splitlines()[0]
 
 
-def run(name: str) -> dict:
+def run(name: str, command: str = "verify") -> dict:
     shutil.rmtree(WORK, ignore_errors=True)
     WORK.mkdir()
     try:
@@ -50,7 +56,7 @@ def run(name: str) -> dict:
         shutil.copytree(FIXTURES / name, project)
         (WORK / "home").mkdir()
         result = subprocess.run(
-            [PYTHON, "-m", "ici", "verify", "--profile", "deep", "--no-cache", "--report"],
+            [PYTHON, "-m", "ici", *ARGV[command]],
             cwd=project,
             env={
                 "PATH": "/usr/bin:/bin",
@@ -65,12 +71,19 @@ def run(name: str) -> dict:
             timeout=600,
             check=False,
         )
-        text = (project / "verify_report.json").read_text(encoding="utf-8")
+        text = (project / f"{command}_report.json").read_text(encoding="utf-8")
         report = json.loads(text.replace(str(project), "<root>"))
     finally:
         shutil.rmtree(WORK, ignore_errors=True)
-    engine = next(item for item in report["results"] if item["engine_name"] == "cycle")
-    assert engine["extra"]["cpp_include_resolution"] == "compiler_trace", name
+    if command == "cycle":
+        # Standalone `ici cycle` builds no analysis context: the heuristic graph, whatever
+        # database is configured.
+        engine = report
+        assert engine["extra"]["cpp_include_resolution"] == "unique_project_path_suffix", name
+        report = {"suite_status": None}
+    else:
+        engine = next(item for item in report["results"] if item["engine_name"] == "cycle")
+        assert engine["extra"]["cpp_include_resolution"] == "compiler_trace", name
     return {
         "exit_code": result.returncode,
         "suite_status": report["suite_status"],
@@ -98,6 +111,7 @@ def run(name: str) -> dict:
 
 
 cases = {path.name: run(path.name) for path in sorted(FIXTURES.iterdir()) if path.is_dir()}
+cases["cycle:mixed"] = run("mixed", "cycle")
 GOLDEN.write_text(
     json.dumps(
         {"oracle": EXPECTED, "gxx": GXX, "cases": cases},

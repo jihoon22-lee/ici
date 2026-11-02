@@ -269,10 +269,13 @@ impl CppPlans {
             self.database_units.insert(component.id.clone(), units);
         }
         let context = if self.legacy_standalone
-            && matches!(check.id.as_str(), "cpp.diagnostics" | "cpp.tidy")
-        {
-            // Frozen `ici lint` runs without an analysis context: the C++ syntax check always
-            // takes the c++17 heuristic fallback, whatever compilation database exists.
+            && matches!(
+                check.id.as_str(),
+                "cpp.diagnostics" | "cpp.tidy" | "cpp.cycle"
+            ) {
+            // Frozen `ici lint` / `ici cycle` run without an analysis context: the C++ syntax
+            // check always takes the c++17 heuristic fallback and the include graph the
+            // heuristic suffix resolution, whatever compilation database exists.
             CompilationContext::default()
         } else {
             self.contexts[&component.id].clone()

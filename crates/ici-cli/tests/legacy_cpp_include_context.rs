@@ -4,7 +4,8 @@
 //! diagnostics, a production source without a command, no traceable unit, rejected replay
 //! commands, a failing trace, a response-file unit and a traced include cycle. Compared: exit
 //! code, suite status and the cycle engine's status, evidence, summary, frozen counters,
-//! targets, findings and tool evidence (name, return code, error).
+//! targets, findings and tool evidence (name, return code, error). Standalone `ici cycle` on
+//! the same database stays on the heuristic graph like frozen (`cycle:mixed`).
 use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, process::Command};
@@ -41,13 +42,28 @@ fn pick(value: &Value, keys: &[&str]) -> Value {
     )
 }
 
-fn engine(exit_code: i32, report: &Value) -> Value {
-    let engine = report["results"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|engine| engine["engine_name"] == "cycle")
-        .unwrap();
+/// Standalone `ici cycle` builds no analysis context; the heuristic counters Rust's projection
+/// carries (scope counts and configurations checked are the extras worker's projection).
+const HEURISTIC_KEYS: [&str; 6] = [
+    "cpp_include_resolution",
+    "resolved_cpp_includes",
+    "ambiguous_cpp_includes",
+    "unresolved_cpp_includes",
+    "cpp_include_diagnostics_truncated",
+    "cpp_cycles",
+];
+
+fn engine(exit_code: i32, report: &Value, standalone: bool) -> Value {
+    let engine = if standalone {
+        report
+    } else {
+        report["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|engine| engine["engine_name"] == "cycle")
+            .unwrap()
+    };
     let mut findings: Vec<Value> = engine["findings"]
         .as_array()
         .unwrap()
@@ -60,11 +76,11 @@ fn engine(exit_code: i32, report: &Value) -> Value {
     findings.sort_by_key(|item| (item["path"].to_string(), item["message"].to_string()));
     json!({
         "exit_code": exit_code,
-        "suite_status": report["suite_status"],
+        "suite_status": if standalone { Value::Null } else { report["suite_status"].clone() },
         "status": engine["status"],
         "evidence": engine["evidence"],
         "summary": engine["summary"],
-        "extra": pick(&engine["extra"], &EXTRA_KEYS),
+        "extra": pick(&engine["extra"], if standalone { &HEURISTIC_KEYS } else { &EXTRA_KEYS }),
         "targets": engine["targets"].as_array().unwrap().iter()
             .map(|target| pick(target, &["target_name", "status", "message", "file_path", "start_line"]))
             .collect::<Vec<_>>(),
@@ -97,11 +113,19 @@ fn legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles() 
         .unwrap();
     let mut mismatches = vec![];
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 4);
+    assert_eq!(cases.len(), 5);
     for (name, expected) in cases {
+        let (fixture, standalone) = match name.strip_prefix("cycle:") {
+            Some(fixture) => (fixture, true),
+            None => (name.as_str(), false),
+        };
+        let mut expected = expected.clone();
+        if standalone {
+            expected["extra"] = pick(&expected["extra"], &HEURISTIC_KEYS);
+        }
         let work = tempfile::tempdir().unwrap();
         let root = work.path().canonicalize().unwrap().join("project");
-        copy(&fixtures.join(name), &root);
+        copy(&fixtures.join(fixture), &root);
         let home = work.path().join("home");
         fs::create_dir(&home).unwrap();
         let environment = BTreeMap::from([
@@ -110,21 +134,34 @@ fn legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles() 
             ("LANG".to_owned(), "C.UTF-8".to_owned()),
             ("LC_ALL".to_owned(), "C.UTF-8".to_owned()),
         ]);
-        let invocation = registry::parse([
-            "ici",
-            "verify",
-            "--profile",
-            "deep",
-            "--no-cache",
-            "--report",
-        ])
-        .unwrap();
+        let argv: &[&str] = if standalone {
+            &["ici", "cycle", "--report"]
+        } else {
+            &[
+                "ici",
+                "verify",
+                "--profile",
+                "deep",
+                "--no-cache",
+                "--report",
+            ]
+        };
+        let invocation = registry::parse(argv.iter().copied()).unwrap();
         let output = commands::dispatch(&invocation, &root, &environment).unwrap();
-        let text = fs::read_to_string(root.join("verify_report.json"))
+        let report = if standalone {
+            "cycle_report.json"
+        } else {
+            "verify_report.json"
+        };
+        let text = fs::read_to_string(root.join(report))
             .unwrap()
             .replace(&root.display().to_string(), "<root>");
-        let actual = engine(output.exit_code, &serde_json::from_str(&text).unwrap());
-        if &actual != expected {
+        let actual = engine(
+            output.exit_code,
+            &serde_json::from_str(&text).unwrap(),
+            standalone,
+        );
+        if actual != expected {
             eprintln!("== {name}\nnative: {actual:#}\nfrozen: {expected:#}");
             mismatches.push(name.clone());
         }

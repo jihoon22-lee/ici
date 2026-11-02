@@ -56,6 +56,26 @@
     }
    ]
   },
+  "cycle:mixed": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 0,
+    "cpp_cycles": 0,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "unique_project_path_suffix",
+    "cpp_include_scope_counts": {},
+    "resolved_cpp_includes": 1,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [],
+   "status": "PASS",
+   "suite_status": null,
+   "summary": "No cyclic dependencies detected",
+   "targets": [],
+   "tool_evidence": []
+  },
   "mixed": {
    "evidence": "NOT_RUN",
    "exit_code": 0,
