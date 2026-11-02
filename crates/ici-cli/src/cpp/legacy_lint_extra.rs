@@ -99,9 +99,19 @@ pub(crate) fn shape(engine: &mut Value, config: Option<&Value>, python_sources: 
             counters.insert(key.into(), value);
         }
     }
-    if checks
-        .iter()
-        .any(|check| check["extra"]["legacy_fallback_warned"] == true)
+    let targets = engine["targets"].as_array().cloned().unwrap_or_default();
+    // Frozen `_run_fallback` appends the heuristic-fallback warning before its source loop, so
+    // a loop whose every source `build_replay_command` rejected (a project-contained g++ first
+    // on PATH: one `C++SyntaxReplayError` per source and no replay, the stopped heuristic
+    // counters) warned too; the source-count bound and a rejected driver stop before it.
+    let replay_rejected = counters["cpp_analysis_mode"] == "heuristic"
+        && targets
+            .iter()
+            .any(|target| target["target_name"] == "C++SyntaxReplayError");
+    if replay_rejected
+        || checks
+            .iter()
+            .any(|check| check["extra"]["legacy_fallback_warned"] == true)
     {
         warnings.insert(0, FALLBACK.into());
     }
@@ -119,7 +129,6 @@ pub(crate) fn shape(engine: &mut Value, config: Option<&Value>, python_sources: 
     if ruff_missing && !ruff_required {
         warnings.insert(0, RUFF_UNAVAILABLE.into());
     }
-    let targets = engine["targets"].as_array().cloned().unwrap_or_default();
     let count = |status: &str| {
         targets
             .iter()

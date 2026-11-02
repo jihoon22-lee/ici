@@ -8,7 +8,7 @@
 // `[]` for list positions. Generated from the replay table, then reviewed.
 const CPP: &str = "open (cpp area): the native C++ checks do not record this frozen C++ value \
     (function/boundary metrics, macro exclusions, source snapshot counters, exact dead-code \
-    details, compiler-trace tool evidence and ambiguity)";
+    details, compiler-trace tool argv, path and version)";
 const HYBRID: &str = "open (reporting/python): the legacy view of a hybrid engine does not merge \
     the Python and C++ checks like frozen (dup target order and score, complexity function count \
     and score, the dead unavailable-C++ WARN, the type C++-skip warning, suite counts)";
@@ -30,6 +30,20 @@ const R9: &str = "validation.json finding_site:src/ici/engines/test.py:352:12 di
 
 #[rustfmt::skip]
 const ALLOWANCES: &[Allowance] = &[
+    ("extras/cycle-standalone", ".duration", Differs, Incidental, R4),
+    ("extras/cycle-standalone", ".native_run", NativeOnly, Approved, R5),
+    ("extras/lint-fallback-lint", ".duration", Differs, Incidental, R4),
+    ("extras/lint-fallback-lint", ".native_run", NativeOnly, Approved, R5),
+    ("extras/lint-fallback-verify", "analysis_context.identity.config_digest", Differs, Approved, R1),
+    ("extras/lint-fallback-verify", "analysis_context.identity.toolchain_digest", Differs, Approved, R1),
+    ("extras/lint-fallback-verify", "analysis_metadata.producer_version", Differs, Incidental, R2),
+    ("extras/lint-fallback-verify", "capability_inventory.counts", Differs, Approved, R3),
+    ("extras/lint-fallback-verify", "capability_inventory.tools", Differs, Approved, R3),
+    ("extras/lint-fallback-verify", "duration", Differs, Incidental, R4),
+    ("extras/lint-fallback-verify", "native_run", NativeOnly, Approved, R5),
+    ("extras/lint-fallback-verify", "project_name", NativeOnly, Approved, R5),
+    ("extras/lint-fallback-verify", "results[lint].cache_key", Type, Approved, R6),
+    ("extras/lint-fallback-verify", "results[lint].duration", Differs, Incidental, R4),
     ("annotations", "support_matrix.entries[test/python].active_mode", Differs, Approved, R9),
     ("annotations", "support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("annotations", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
@@ -181,14 +195,10 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/cpp-database", "results[complexity].targets[].metrics.metric_variant", Missing, Open, CPP),
     ("extras/cpp-database", "results[cycle].cache_key", Type, Approved, R6),
     ("extras/cpp-database", "results[cycle].duration", Differs, Incidental, R4),
-    ("extras/cpp-database", "results[cycle].extra.ambiguous_cpp_includes", Missing, Open, CPP),
     ("extras/cpp-database", "results[cycle].targets[].metrics.configuration", Differs, Open, CPP),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].argv", Missing, Open, CPP),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].error", Missing, Open, CPP),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].argv", Len, Open, CPP),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].argv[]", Differs, Open, CPP),
     ("extras/cpp-database", "results[cycle].tool_evidence[].path", Differs, Open, CPP),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].returncode", Missing, Open, CPP),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].timed_out", Missing, Open, CPP),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].truncated", Missing, Open, CPP),
     ("extras/cpp-database", "results[cycle].tool_evidence[].version", Missing, Open, CPP),
     ("extras/cpp-database", "results[dead].duration", Differs, Incidental, R4),
     ("extras/cpp-database", "results[dead].extra.cpp_unused_configurations_checked", Missing, Open, CPP),

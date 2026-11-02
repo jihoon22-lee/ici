@@ -8,6 +8,12 @@ the deep profile, on the same fixture with a complete compilation database (exac
 function scope), on the hybrid Python/C++ inventory tree, and on a Python project whose test
 interpreter has pytest but no coverage module (`/usr/bin/python3.14`), and records the
 saved v3 suite (the public `verify_report.json`), with the project root as `<root>`.
+
+Engine-command cases record the saved `<engine>_report.json` (`report`) instead: the lint
+fallback whose project-contained `bin/g++` wrapper (`wrapper`, delegating to /usr/bin/g++) is
+first on PATH, so frozen rejects every source replay (`parity-fixtures/cpp/lint-fallback-replay`,
+`ici lint` and lint-only `ici verify`), and standalone `ici cycle` on the include-context
+`mixed` tree (frozen keeps the heuristic graph: no analysis context is built).
 """
 
 import json
@@ -21,6 +27,36 @@ FIXTURE = ROOT / "parity-fixtures/cpp/legacy-scope-fixture"
 INVENTORY = ROOT / "tests/rust-parity/python/legacy-inventory-oracle.json"
 ENTRY = "import sys; sys.path.insert(0, sys.argv.pop(1)); from ici.__main__ import app; app()"
 BASE = "[project]\ntype='cpp'\nsource_dirs=['src']\n"
+LINT_FALLBACK = ROOT / "parity-fixtures/cpp/lint-fallback-replay"
+MIXED = ROOT / "parity-fixtures/cpp/include-context/mixed"
+WRAPPER = '#!/bin/sh\nexec /usr/bin/g++ "$@"\n'
+LINT_ONLY = (
+    '[project]\ntype = "cpp"\nsource_dirs = ["src"]\n'
+    + "".join(
+        f"[engines.{name}]\nenabled = false\n"
+        for name in [
+            "line",
+            "compile_db",
+            "test",
+            "type",
+            "python_compat",
+            "complexity",
+            "sanitize",
+            "thread_sanitize",
+            "dead",
+            "dup",
+            "exception",
+            "cognitive",
+            "security",
+            "resource",
+            "build",
+            "binary_compat",
+            "integration",
+            "cycle",
+        ]
+    )
+    + '[engines.lint]\nenabled = true\nclang_tidy = "off"\nclazy = "off"\n'
+)
 # Host interpreter with pytest and without coverage (the Rust replay substitutes
 # ICI_TEST_PYTHON_NEW, the same interpreter).
 NO_COVERAGE_PYTHON = "/usr/bin/python3.14"
@@ -36,10 +72,10 @@ DATABASE = (
 )
 
 
-def fixture_files(overrides):
+def fixture_files(overrides, fixture=FIXTURE):
     files = {
-        path.relative_to(FIXTURE).as_posix(): path.read_text(encoding="utf-8")
-        for path in sorted(FIXTURE.rglob("*"))
+        path.relative_to(fixture).as_posix(): path.read_text(encoding="utf-8")
+        for path in sorted(fixture.rglob("*"))
         if path.is_file()
     }
     files.update(overrides)
@@ -69,7 +105,16 @@ def cases():
     }
 
 
-def run_case(oracle, tree):
+def command_cases():
+    lint = fixture_files({"ici.toml": LINT_ONLY}, LINT_FALLBACK)
+    return {
+        "lint-fallback-verify": (lint, ["verify", "--report"], True),
+        "lint-fallback-lint": (lint, ["lint", "--report"], True),
+        "cycle-standalone": (fixture_files({}, MIXED), ["cycle", "--report"], False),
+    }
+
+
+def run_case(oracle, tree, argv=("verify", "--report"), wrapper=False):
     with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as temporary:
         base = Path(temporary).resolve() / "project"
         for name, text in tree.items():
@@ -78,8 +123,13 @@ def run_case(oracle, tree):
             path.write_text(text, encoding="utf-8")
         (base / ".git").mkdir()
         environment = {"HOME": home, "XDG_CONFIG_HOME": home, "PATH": "/usr/bin:/bin"}
+        if wrapper:
+            (base / "bin").mkdir()
+            (base / "bin/g++").write_text(WRAPPER, encoding="utf-8")
+            (base / "bin/g++").chmod(0o755)
+            environment["PATH"] = f"{base / 'bin'}:/usr/bin:/bin"
         completed = subprocess.run(
-            [sys.executable, "-I", "-c", ENTRY, str(oracle / "src"), "verify", "--report"],
+            [sys.executable, "-I", "-c", ENTRY, str(oracle / "src"), *argv],
             cwd=base,
             capture_output=True,
             text=True,
@@ -87,9 +137,17 @@ def run_case(oracle, tree):
             timeout=900,
             check=False,
         )
-        text = (base / "verify_report.json").read_text(encoding="utf-8")
-        suite = json.loads(text.replace(str(base), "<root>"))
-    return {"tree": tree, "exit_code": completed.returncode, "suite": suite}
+        text = (base / f"{argv[0]}_report.json").read_text(encoding="utf-8")
+        saved = json.loads(text.replace(str(base), "<root>"))
+    if argv[0] == "verify" and not wrapper:
+        return {"tree": tree, "exit_code": completed.returncode, "suite": saved}
+    return {
+        "tree": tree,
+        "argv": list(argv),
+        "wrapper": wrapper,
+        "exit_code": completed.returncode,
+        "suite" if argv[0] == "verify" else "report": saved,
+    }
 
 
 def main():
@@ -103,11 +161,14 @@ def main():
         "gxx": gxx,
         "cases": {name: run_case(oracle, tree) for name, tree in cases().items()},
     }
+    for name, (tree, argv, wrapper) in command_cases().items():
+        document["cases"][name] = run_case(oracle, tree, argv, wrapper)
     with output.open("w", encoding="utf-8") as stream:
         json.dump(document, stream, indent=1, sort_keys=True, ensure_ascii=False)
         stream.write("\n")
     for name, case in document["cases"].items():
-        print(name, case["exit_code"], case["suite"]["suite_status"], len(case["suite"]["results"]))
+        saved = case.get("suite", case.get("report"))
+        print(name, case["exit_code"], saved.get("suite_status", saved.get("status")))
 
 
 if __name__ == "__main__":

@@ -14,7 +14,10 @@
 //!   absence and runs with the C++ cases);
 //! * `tests/rust-parity/reporting/legacy-extras-oracle.json` (`capture_legacy_extras.py`): C++
 //!   default/deep/compilation-database `verify`, hybrid `verify` (explicit g++), and a Python
-//!   project whose test interpreter lacks coverage (explicit `ICI_TEST_PYTHON_NEW`).
+//!   project whose test interpreter lacks coverage (explicit `ICI_TEST_PYTHON_NEW`); engine
+//!   command reports: standalone heuristic `ici cycle`, and `ici lint` / lint-only `ici verify`
+//!   behind a project-contained `bin/g++` first on PATH (every source replay rejected, explicit
+//!   g++).
 //!
 //! Elsewhere: the C++ `verify` key sets of `tests/rust-parity/cpp/verify-matrix-oracle.json` are
 //! the key sets of the `legacy-extras-oracle.json` C++ default/deep cases (same fixture, g++ and
@@ -156,12 +159,36 @@ fn replay(
     report: &str,
     actions: bool,
 ) -> (Vec<i32>, Value) {
+    replay_with(tree, edit, steps, report, actions, false)
+}
+
+/// `replay`; with `wrapper`, the capture's project-contained `bin/g++` (delegating to
+/// /usr/bin/g++) is first on PATH.
+fn replay_with(
+    tree: &Value,
+    edit: &Value,
+    steps: &[Vec<String>],
+    report: &str,
+    actions: bool,
+    wrapper: bool,
+) -> (Vec<i32>, Value) {
     let home = tempfile::tempdir().unwrap();
     let directory = tempfile::tempdir().unwrap();
     let base = directory.path().join("project");
     write_tree(&base, tree);
     fs::create_dir_all(base.join(".git")).unwrap();
-    let environment = environment(home.path(), actions);
+    let mut environment = environment(home.path(), actions);
+    if wrapper {
+        use std::os::unix::fs::PermissionsExt;
+        let program = base.join("bin/g++");
+        fs::create_dir_all(program.parent().unwrap()).unwrap();
+        fs::write(&program, "#!/bin/sh\nexec /usr/bin/g++ \"$@\"\n").unwrap();
+        fs::set_permissions(&program, fs::Permissions::from_mode(0o755)).unwrap();
+        environment.insert(
+            "PATH".into(),
+            format!("{}:/usr/bin:/bin", base.join("bin").display()),
+        );
+    }
     let mut codes = vec![];
     for (index, argv) in steps.iter().enumerate() {
         if index + 1 == steps.len() && edit.is_object() {
@@ -398,16 +425,37 @@ fn extras_case(name: &str, substitute: Option<(&str, &str)>) -> Vec<String> {
             *text = Value::from(text.as_str().unwrap().replace(from, to));
         }
     }
-    let (exits, native) = replay(&tree, &Value::Null, &verify(), "verify_report.json", false);
     let label = format!("extras/{name}");
-    let frozen = &case["suite"];
-    assert_exit(
-        &label,
-        &exits,
-        &codes(&case["exit_code"]),
-        results(frozen),
-        results(&native),
+    let Some(argv) = case.get("argv") else {
+        let (exits, native) = replay(&tree, &Value::Null, &verify(), "verify_report.json", false);
+        let frozen = &case["suite"];
+        assert_exit(
+            &label,
+            &exits,
+            &codes(&case["exit_code"]),
+            results(frozen),
+            results(&native),
+        );
+        return result_differences(&label, frozen, &native);
+    };
+    // An engine-command case: the saved `<command>_report.json` (a suite for `verify`).
+    let argv: Vec<String> = argv
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|argument| argument.as_str().unwrap().to_owned())
+        .collect();
+    let report = format!("{}_report.json", argv[0]);
+    let (exits, native) = replay_with(
+        &tree,
+        &Value::Null,
+        &[argv],
+        &report,
+        false,
+        case["wrapper"] == true,
     );
+    let frozen = case.get("suite").unwrap_or(&case["report"]);
+    assert_eq!(exits, codes(&case["exit_code"]), "{label}: exit");
     result_differences(&label, frozen, &native)
 }
 
@@ -488,10 +536,14 @@ fn legacy_public_results_equal_frozen_except_allowed() {
             differences.extend(result_differences(&label, &frozen["report"], &native));
         }
     }
+    // Standalone heuristic `ici cycle` (no compiler runs).
+    differences.extend(extras_case("cycle-standalone", None));
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| {
-        matches!(entry.0, "summary" | "annotations" | "inventory")
-            || entry.0.starts_with("summary/")
+        matches!(
+            entry.0,
+            "summary" | "annotations" | "inventory" | "extras/cycle-standalone"
+        ) || entry.0.starts_with("summary/")
             || (entry.0.starts_with("inventory/") && entry.0 != "inventory/hybrid/lint")
     });
     // Every shared Python native extra is observed by these replays (a stale entry fails).
@@ -530,7 +582,14 @@ fn legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed() {
     let oracle: Value = serde_json::from_str(EXTRAS).unwrap();
     cpp_environment_matches(&oracle);
     let mut differences = vec![];
-    for name in ["cpp-defaults", "cpp-deep", "cpp-database", "hybrid"] {
+    for name in [
+        "cpp-defaults",
+        "cpp-deep",
+        "cpp-database",
+        "hybrid",
+        "lint-fallback-verify",
+        "lint-fallback-lint",
+    ] {
         differences.extend(extras_case(name, None));
     }
     let inventory: Value = serde_json::from_str(INVENTORY).unwrap();
@@ -552,6 +611,7 @@ fn legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed() {
     assert_not_stale(|entry| {
         entry.0.starts_with("extras/cpp")
             || entry.0 == "extras/hybrid"
+            || entry.0.starts_with("extras/lint-fallback")
             || entry.0 == "inventory/hybrid/lint"
     });
 }
