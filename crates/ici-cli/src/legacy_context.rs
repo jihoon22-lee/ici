@@ -293,7 +293,12 @@ fn unit(value: &Value, root: &Path) -> Value {
         "include_paths": include_paths,
         "sysroot": path(field("sysroot"), root),
         "sysroot_scope": field("sysroot_scope"),
-        "configuration": field("configuration"),
+        // Frozen `_configuration_digest`: the recorded directory, argv and output.
+        "configuration": ici_domain::canonical_json(
+            &json!({"directory": value["directory"], "argv": value["argv"], "output": value["output"]}),
+        )
+        .map(ici_domain::sha256)
+        .unwrap_or_default(),
         "diagnostics": diagnostics(&value["diagnostics"], root),
     })
 }

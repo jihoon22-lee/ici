@@ -407,6 +407,10 @@ fn complete_boundaries(engine: &mut Value) {
             extra[frozen] = value.clone();
         }
     }
+    // The C++ check's frozen scope exclusions (also beside a Python check in a hybrid engine).
+    if let Some(exclusions) = cpp.get("cpp_scope_exclusions") {
+        extra["cpp_scope_exclusions"] = exclusions.clone();
+    }
     if extra["cpp_boundary_mode"] == "heuristic" {
         for (key, value) in [
             ("cpp_boundary_configurations_checked", json!(0)),
@@ -802,6 +806,43 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
     } else if mode == "unavailable" {
         extra["cpp_unused_non_tu_diagnostics_excluded"] = json!(0);
     }
+    // Frozen `DeadCodeEngine.run` reads one inventory over both languages: beside a Python
+    // heuristic the source counters are the sums of the Python and C/C++ halves.
+    if !python.is_empty() {
+        let blocks: Vec<&Value> = python.iter().copied().chain([&cpp]).collect();
+        for key in [
+            "source_files_analyzed",
+            "source_files_snapshotted",
+            "source_bytes_analyzed",
+            "source_files_excluded",
+        ] {
+            if let Some(total) = blocks
+                .iter()
+                .map(|block| block[key].as_u64())
+                .sum::<Option<u64>>()
+            {
+                extra[key] = json!(total);
+            }
+        }
+        if blocks
+            .iter()
+            .all(|block| block["source_exclusion_counts"].is_object())
+        {
+            let mut counts = serde_json::Map::new();
+            for block in &blocks {
+                for (reason, count) in block["source_exclusion_counts"]
+                    .as_object()
+                    .into_iter()
+                    .flatten()
+                {
+                    let total = counts.get(reason).and_then(Value::as_u64).unwrap_or(0)
+                        + count.as_u64().unwrap_or(0);
+                    counts.insert(reason.clone(), json!(total));
+                }
+            }
+            extra["source_exclusion_counts"] = Value::Object(counts);
+        }
+    }
     if mode == "unavailable" {
         // `run_cpp_unused_functions` without a usable database: no configuration, one warning
         // (the unavailable target's message), no detail.
@@ -810,6 +851,44 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
         }
         extra["cpp_unused_configurations_checked"] = json!(0);
         extra["cpp_unused_details"] = json!([]);
+    }
+    if mode == "off" {
+        // Frozen `_analyze_cpp_scope` with `cpp_unused = "off"`: the disabled outcome.
+        for (key, value) in [
+            ("cpp_unused_configurations_checked", json!(0)),
+            ("cpp_unused_sources_checked", json!(0)),
+            ("cpp_unused_non_tu_diagnostics_excluded", json!(0)),
+            ("cpp_unused_warnings", json!([])),
+            ("cpp_unused_details", json!([])),
+        ] {
+            extra[key] = value;
+        }
+    }
+    if linker_policy != "off" {
+        // Frozen `DeadCodeEngine.run` beside a GNU ELF linker scope: per-scope and language
+        // evidence and every dead symbol of both C++ scopes.
+        let measured = |exact: bool| if exact { "MEASURED" } else { "NOT_RUN" };
+        let compiler = measured(mode == "exact");
+        let linker = measured(extra["cpp_linker_mode"] == "exact");
+        extra["cpp_scope_evidence"] =
+            json!({"compiler_unused": compiler, "gnu_elf_linker": linker});
+        let python_evidence = python
+            .iter()
+            .find_map(|block| block["language_evidence"]["python"].as_str())
+            .unwrap_or("NOT_APPLICABLE");
+        let cpp_evidence = if compiler == "MEASURED" || linker == "MEASURED" {
+            "MEASURED"
+        } else {
+            "NOT_RUN"
+        };
+        extra["language_evidence"] = json!({"python": python_evidence, "cpp": cpp_evidence});
+        let python_issues: u64 = python
+            .iter()
+            .filter_map(|block| block["python_issues"].as_u64())
+            .sum();
+        let functions = extra["cpp_unused_functions_count"].as_u64().unwrap_or(0);
+        let symbols = extra["cpp_linker_symbols_count"].as_u64().unwrap_or(0);
+        extra["dead_symbols_count"] = json!(python_issues + functions + symbols);
     }
     if linker_policy == "off" {
         for (key, value) in [

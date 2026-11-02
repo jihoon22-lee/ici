@@ -35,6 +35,12 @@ pub use recorder::{record_compiler_invocation, recorder_main};
 mod analysis;
 mod cycles;
 mod legacy_exceptions;
+mod legacy_intake;
+pub use legacy_intake::{
+    LegacyIntakeError, LegacyInventory, legacy_first_owned_source, legacy_has_owned_source,
+    legacy_intake_output, legacy_source_intake, legacy_source_intake_files,
+    legacy_source_intake_inputs, legacy_source_inventory,
+};
 mod source;
 mod source_rules;
 pub use analysis::CppAnalysisSession;

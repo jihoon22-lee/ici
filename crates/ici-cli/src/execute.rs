@@ -608,7 +608,17 @@ pub fn execute(
                     } else if planned.check.language == "python" {
                         python.analyze_cancellable(&request, &cancellation.flag())
                     } else {
-                        cpp.analyze_cancellable(&request, &cancellation.flag())
+                        let mut output = cpp.analyze_cancellable(&request, &cancellation.flag());
+                        // Frozen heuristic C++ cycle targets: absolute member files, no
+                        // configuration graph.
+                        if prepared.legacy_projection && planned.check.id == "cpp.cycle" {
+                            crate::cpp::legacy_cycle_target_metrics(
+                                &mut output,
+                                &prepared.project.root,
+                                &[],
+                            );
+                        }
+                        output
                     };
                     output.observation.duration_seconds = Some(start.elapsed().as_secs_f64());
                     redact(&mut output)?;

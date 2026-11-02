@@ -12,7 +12,9 @@
     "cpp_include_scope_counts": {
      "project": 3
     },
+    "py_cycles": 0,
     "resolved_cpp_includes": 3,
+    "total_cycles": 1,
     "unresolved_cpp_includes": 0
    },
    "findings": [
@@ -66,7 +68,9 @@
     "cpp_include_diagnostics_truncated": 0,
     "cpp_include_resolution": "unique_project_path_suffix",
     "cpp_include_scope_counts": {},
+    "py_cycles": 0,
     "resolved_cpp_includes": 1,
+    "total_cycles": 0,
     "unresolved_cpp_includes": 0
    },
    "findings": [],
@@ -88,7 +92,9 @@
     "cpp_include_scope_counts": {
      "project": 1
     },
+    "py_cycles": 0,
     "resolved_cpp_includes": 1,
+    "total_cycles": 0,
     "unresolved_cpp_includes": 0
    },
    "findings": [
@@ -204,7 +210,9 @@
     "cpp_include_diagnostics_truncated": 0,
     "cpp_include_resolution": "compiler_trace",
     "cpp_include_scope_counts": {},
+    "py_cycles": 0,
     "resolved_cpp_includes": 0,
+    "total_cycles": 0,
     "unresolved_cpp_includes": 0
    },
    "findings": [
@@ -254,7 +262,9 @@
     "cpp_include_scope_counts": {
      "project": 3
     },
+    "py_cycles": 0,
     "resolved_cpp_includes": 3,
+    "total_cycles": 1,
     "unresolved_cpp_includes": 0
    },
    "findings": [
@@ -378,7 +388,9 @@
     "cpp_include_diagnostics_truncated": 0,
     "cpp_include_resolution": "compiler_trace",
     "cpp_include_scope_counts": {},
+    "py_cycles": 0,
     "resolved_cpp_includes": 0,
+    "total_cycles": 0,
     "unresolved_cpp_includes": 0
    },
    "findings": [

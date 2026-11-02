@@ -6,7 +6,7 @@ mod legacy_includes;
 pub(crate) mod legacy_lint_extra;
 mod legacy_syntax;
 mod legacy_tests;
-mod legacy_tooling;
+pub(crate) mod legacy_tooling;
 mod linker;
 mod next_plan;
 pub(crate) mod package_flags;
@@ -71,9 +71,15 @@ pub struct CppPlans {
     inactive: BTreeMap<String, String>,
     /// Legacy `ici dead` without recorded compilation: frozen SKIP (ERROR when required) target.
     legacy_unavailable: BTreeMap<String, bool>,
+    /// Legacy unavailable dead checks whose frozen source intake fails (non-UTF-8, NUL or a
+    /// frozen bound): `_effective_required` keeps such a failed analysis required.
+    legacy_intake_faults: BTreeSet<String>,
     /// Legacy dead checks whose GNU ELF linker policy (`required` = true) cannot run because the
     /// project has no root CMake backend (frozen `run_cpp_linker_dead_symbols` unavailable).
     legacy_linker_unavailable: BTreeMap<String, bool>,
+    /// Legacy dead checks running only the GNU ELF linker scope (`cpp_unused = "off"`): frozen
+    /// reports `C++UnusedFunctionsDisabled` beside it.
+    legacy_unused_disabled: BTreeSet<String>,
     /// Legacy outputs decided while planning preparation: frozen build FAIL/ERROR for a declared
     /// build that cannot be planned, or the sanitizer SKIP when no C++ test source exists.
     preparation_failures: BTreeMap<String, AnalysisOutput>,
@@ -803,6 +809,11 @@ impl CppPlans {
             && linker != "off"
             && mode != "off"
             && !legacy_root_cmake(&project.root, component);
+        if mode == "off" && self.legacy_projection {
+            // Recorded before the linker binding: a pending or failed link-reachability
+            // preparation still reports the disabled compiler scope.
+            self.legacy_unused_disabled.insert(id.into());
+        }
         let linker_tasks = if linker != "off" && !linker_unavailable {
             self.bind_linker(project, component, id, environment)?
         } else {
@@ -819,6 +830,9 @@ impl CppPlans {
             // Frozen DeadCodeEngine reports C++UnusedFunctionsUnavailable instead of running.
             self.legacy_unavailable
                 .insert(id.into(), mode == "required");
+            if legacy_component_intake_fault(project, component) {
+                self.legacy_intake_faults.insert(id.into());
+            }
             return Ok(Work::Internal);
         }
         if !context.complete() {
@@ -834,6 +848,19 @@ impl CppPlans {
         let mut providers = vec![];
         for (index, unit) in context.units.iter().enumerate() {
             let compiler = self.compiler(project, unit, environment)?;
+            if self.legacy_projection {
+                // Frozen tool evidence carries the compiler capability version.
+                let path = compiler.path.to_string_lossy().into_owned();
+                self.compiler_versions.entry(path).or_insert_with(|| {
+                    legacy_tooling::legacy_version_banner(
+                        &compiler.path,
+                        &project.root,
+                        environment,
+                        "g++",
+                    )
+                    .unwrap_or_default()
+                });
+            }
             if index == 0
                 && let Some(name) = legacy_compiler_capability_name(
                     &compiler.path,
@@ -2874,10 +2901,24 @@ fn legacy_compiler_capability_name(compiler: &Path, path_env: Option<&str>) -> O
 /// `C++UnusedFunctionError` and every source observed before it a discarded-observation target;
 /// otherwise each source gets `C++UnusedFunctions` or one `Compiler:-Wunused-function` per
 /// agreed diagnostic. Only a context-complete native run is projected.
+/// One executed legacy unused-function replay: what native actually ran (decisions.md "C++ 도구
+/// 증거는 실제 실행 기록") and the frozen configuration identity of its unit.
+struct LegacyUnusedRun {
+    index: usize,
+    code: Option<i32>,
+    timed_out: bool,
+    truncated: bool,
+    argv: Vec<String>,
+    /// Frozen capability version: the compiler's first `--version` line.
+    version: String,
+    /// Frozen `_configuration_digest` of the unit (`sha256:` + 64 hex digits).
+    configuration: String,
+}
+
 fn legacy_unused_projection(
     output: &mut AnalysisOutput,
     observations: &[ici_cpp::CompilerConfigurationObservation],
-    runs: &[(usize, Option<i32>, bool)],
+    runs: &[LegacyUnusedRun],
     compiler: &str,
     capability: Option<&str>,
 ) {
@@ -2899,27 +2940,44 @@ fn legacy_unused_projection(
         str::to_string,
     );
     let mut order: Vec<_> = observations.iter().zip(runs).collect();
-    order.sort_by_key(|(_, (index, _, _))| *index);
+    order.sort_by_key(|(_, run)| run.index);
     let scope_tool = format!("{tool} unused-function");
+    let version = runs
+        .iter()
+        .map(|run| run.version.as_str())
+        .find(|version| !version.is_empty())
+        .unwrap_or("")
+        .to_owned();
+    // Frozen `CppUnusedFunctionOutcome` counters: completed configurations, no warning once a
+    // replay ran, and the accepted functions' details (cleared when the scope fails).
+    output.extra["cpp_unused_warnings"] = json!([]);
+    output.extra["cpp_unused_details"] = json!([]);
+    let tool_version = version.clone();
     let scope = |target: &InspectionTarget, severity: &str, confidence: &str, remediation: &str| {
         json!({"rule_id":"ici.legacy.dead.target","category":"maintainability","severity":severity,
             "confidence":confidence,"primary_location":{"path":target.file_path,"start_line":target.start_line,
             "end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,
             "label":target.target_name},"related_locations":[],"message":target.message,
             "explanation":"This target records the bounded TU-local compiler unused-function scope.",
-            "remediation":remediation,"fixes":[],"tool_rule_id":"","tool_name":scope_tool,"tool_version":"",
+            "remediation":remediation,"fixes":[],"tool_rule_id":"","tool_name":scope_tool,"tool_version":tool_version,
             "metrics":target.metrics.iter().map(|(key, value)| (key.clone(), json!({"value":value,"unit":""}))).collect::<serde_json::Map<_, _>>(),
             "snippet":"","suppression":{"kind":"none","reason":"","suppressed":false}})
     };
     let tool_evidence: Vec<_> = order
         .iter()
-        .map(|(_, (_, code, _))| json!({"name":scope_tool,"path":compiler,"returncode":code}))
+        .map(|(_, run)| {
+            json!({"name":scope_tool,"path":run.argv.first().map_or(compiler, String::as_str),
+                "version":run.version,"argv":run.argv,"returncode":run.code,
+                "timed_out":run.timed_out,"truncated":run.truncated,"error":""})
+        })
         .collect();
     if let Some(position) = order
         .iter()
         .position(|(observation, _)| !observation.complete)
     {
-        let (observation, (_, code, timed_out)) = order[position];
+        output.extra["cpp_unused_configurations_checked"] = json!(position);
+        let (observation, run) = order[position];
+        let (code, timed_out) = (&run.code, &run.timed_out);
         let failure = match code {
             _ if *timed_out => "compiler timed out".to_string(),
             Some(code) if *code > 0 => format!("compiler exited with code {code}"),
@@ -2997,6 +3055,7 @@ fn legacy_unused_projection(
             .or_default()
             .insert(keys);
     }
+    output.extra["cpp_unused_configurations_checked"] = json!(order.len());
     let varying: Vec<_> = by_source
         .iter()
         .filter(|(_, sets)| sets.len() > 1)
@@ -3047,6 +3106,7 @@ fn legacy_unused_projection(
     }
     let mut findings = vec![];
     let mut details = serde_json::Map::new();
+    let mut unused_details = vec![];
     let mut issues = 0;
     let native = output.observation.findings.clone();
     for target in &mut output.targets {
@@ -3076,6 +3136,21 @@ fn legacy_unused_projection(
             findings.push(scope(target, "info", "exact", ""));
         } else {
             issues += 1;
+            let mut configurations: Vec<_> = order
+                .iter()
+                .filter(|(observation, _)| observation.source == target.file_path)
+                .map(|(_, run)| run.configuration.clone())
+                .collect();
+            configurations.sort();
+            unused_details.push(
+                json!({"file_path":target.file_path,"start_line":target.start_line,
+                "end_line":target.end_line,"start_column":target.start_column,
+                "end_column":target.end_column,"tool_rule_id":"-Wunused-function",
+                "configurations":configurations,"tool_names":[tool],
+                "tool_versions":if version.is_empty() { json!([]) } else { json!([version]) },
+                // Frozen keeps GCC's `<kind>: <message>` text (always a warning here).
+                "diagnostic_message":format!("warning: {}", target.message.trim_start_matches("warning: "))}),
+            );
             target.target_name = "Compiler:-Wunused-function".into();
             target.status = "WARN".into();
             target.message = format!(
@@ -3092,7 +3167,7 @@ fn legacy_unused_projection(
                     "legacy_rule_id":"ici.legacy.dead.target","legacy_message":target.message,
                     "legacy_label":"Compiler:-Wunused-function","legacy_category":"maintainability",
                     "legacy_confidence":"exact","legacy_severity":"medium","tool_name":tool,
-                    "tool_rule_id":"-Wunused-function","tool_version":"",
+                    "tool_rule_id":"-Wunused-function","tool_version":version,
                     "explanation":"The selected compiler reported -Wunused-function for this internal-linkage definition in every exact configuration of its production translation unit. This is not whole-program or linker reachability evidence.",
                     "remediation":"Remove the function or add a real reference in every affected configuration; retain it explicitly with [[maybe_unused]] only when the inactive use is intentional.",
                     "metrics":{"configurations_checked":{"value":count,"unit":"configurations"}},
@@ -3102,6 +3177,7 @@ fn legacy_unused_projection(
     }
     output.extra["legacy_findings"] = json!(findings);
     output.extra["finding_details"] = Value::Object(details);
+    output.extra["cpp_unused_details"] = json!(unused_details);
     output.extra["tool_evidence"] = json!(tool_evidence);
     output.summary = if issues == 0 {
         "No dead-code findings detected in the analyzed scopes".into()
@@ -3617,6 +3693,105 @@ pub fn legacy_sanitizer_compile_failures(
 /// Frozen `TestEngine._threshold_breaches`: only a TEM/branch threshold the run came in under
 /// is a target (a met threshold is not reported), and its `actual` is the reported value: the
 /// branch percentage rounded to one decimal like every frozen GCOV percentage.
+/// Whether frozen `read_analysis_sources` would fail on the component's C/C++ sources (a plan
+/// decision: frozen `_effective_required` keeps a failed dead analysis required). The files are
+/// read one at a time with every frozen bound applied before reading and no payload retained;
+/// execution repeats the intake on the captured snapshot, which names the fault.
+fn legacy_component_intake_fault(project: &ResolvedProject, component: &Component) -> bool {
+    let paths: Vec<String> = component
+        .files
+        .iter()
+        .filter(|path| file_language(path) == Some("cpp"))
+        .cloned()
+        .collect();
+    let options = component
+        .settings
+        .pointer("/engines/dead")
+        .cloned()
+        .unwrap_or(Value::Null);
+    ici_cpp::legacy_source_intake_files(&project.root, &paths, &options).is_some()
+}
+
+/// Frozen `_append_cpp_cycle_targets` metrics of a legacy `CppCycle:<n>` target: `files` are the
+/// absolute `str(Path)` of each member and `configurations` the frozen `_configuration_digest`s
+/// of the graphs holding the cycle (empty for the heuristic include graph).
+pub(crate) fn legacy_cycle_target_metrics(
+    output: &mut AnalysisOutput,
+    root: &Path,
+    units: &[CompilationUnit],
+) {
+    let identities: BTreeMap<&str, String> = units
+        .iter()
+        .map(|unit| (unit.configuration.as_str(), legacy_configuration_key(unit)))
+        .collect();
+    for target in &mut output.targets {
+        if !target.target_name.starts_with("CppCycle:") {
+            continue;
+        }
+        if let Some(files) = target.metrics.get("files").and_then(Value::as_array) {
+            let files: Vec<String> = files
+                .iter()
+                .filter_map(Value::as_str)
+                .map(|file| root.join(file).to_string_lossy().into_owned())
+                .collect();
+            target.metrics.insert("files".into(), json!(files));
+        }
+        let configurations: Vec<String> = target
+            .metrics
+            .get("configurations")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(|configuration| {
+                identities
+                    .get(configuration)
+                    .cloned()
+                    .unwrap_or_else(|| configuration.to_owned())
+            })
+            .collect();
+        target
+            .metrics
+            .insert("configurations".into(), json!(configurations));
+    }
+}
+
+/// Frozen `DeadCodeEngine.run` source counters (dead.py:544-551) on every legacy C/C++ dead
+/// result: the snapshotted inventory (empty when the intake failed or both C++ policies are off,
+/// since frozen then reads no C/C++ source), its bytes and exclusions, and the sources the
+/// compiler or linker scope actually checked.
+fn legacy_dead_source_evidence(output: &mut AnalysisOutput, request: &AnalysisRequest, off: bool) {
+    let inventory = if off {
+        ici_cpp::LegacyInventory::default()
+    } else {
+        ici_cpp::legacy_source_inventory(request).unwrap_or_default()
+    };
+    if !output.extra.is_object() {
+        output.extra = json!({});
+    }
+    let checked = std::iter::once(&output.extra)
+        .chain(
+            output
+                .extra
+                .as_object()
+                .into_iter()
+                .flat_map(|fields| fields.values()),
+        )
+        .flat_map(|block| {
+            ["sources_checked", "cpp_linker_sources_checked"].map(|key| block.get(key))
+        })
+        .flatten()
+        .filter_map(Value::as_u64)
+        .max()
+        .unwrap_or(0);
+    let extra = &mut output.extra;
+    extra["source_files_analyzed"] = json!(checked);
+    extra["source_files_snapshotted"] = json!(inventory.files);
+    extra["source_bytes_analyzed"] = json!(inventory.bytes);
+    extra["source_files_excluded"] = json!(inventory.files_excluded);
+    extra["source_exclusion_counts"] = json!(inventory.exclusion_counts);
+}
+
 pub fn legacy_threshold_breaches(output: &mut AnalysisOutput) {
     output.targets.retain(|target| {
         !(target.target_name.starts_with("Threshold: ") && target.status == "PASS")
@@ -3752,6 +3927,84 @@ fn artifact_identity(project: &ResolvedProject, build: &ici_config::Build) -> Va
 }
 
 impl CppPlans {
+    /// Frozen `_configure_shadow` stop of the GNU ELF linker scope: a CMake link-reachability
+    /// configure or build that did not complete is one `C++LinkerReachabilityError` at
+    /// `CMakeLists.txt` (after the disabled compiler scope), ERROR NOT_RUN with its low scope
+    /// findings and the CMake processes that ran.
+    pub fn fail_legacy_linker_preparation(
+        &mut self,
+        id: &str,
+        configure: bool,
+        records: Vec<Value>,
+    ) {
+        let message = format!(
+            "GNU ELF reachability {} did not complete",
+            if configure { "configure" } else { "build" }
+        );
+        let mut output = AnalysisOutput::new(id, "ici.cpp");
+        output.status = "ERROR".into();
+        output.summary = message.clone();
+        output.observation.limitations.push(message.clone());
+        let disabled = self.legacy_unused_disabled.contains(id);
+        let scope = |target: &InspectionTarget,
+                     severity: &str,
+                     explanation: &str,
+                     remediation: &str,
+                     tool: &Value| {
+            json!({"rule_id":"ici.legacy.dead.target","category":"maintainability","severity":severity,
+                "confidence":"low","primary_location":{"path":target.file_path,"start_line":target.start_line,
+                "end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,
+                "label":target.target_name},"related_locations":[],"message":target.message,
+                "explanation":explanation,"remediation":remediation,"fixes":[],"tool_rule_id":"",
+                "tool_name":tool["name"],"tool_version":tool["version"],"metrics":{},"snippet":"",
+                "suppression":{"kind":"none","reason":"","suppressed":false}})
+        };
+        let names: BTreeSet<&str> = records
+            .iter()
+            .filter_map(|record| record["name"].as_str())
+            .collect();
+        let versions: BTreeSet<&str> = records
+            .iter()
+            .filter_map(|record| record["version"].as_str())
+            .filter(|version| !version.is_empty())
+            .collect();
+        let linker_tool = json!({"name":names.into_iter().collect::<Vec<_>>().join("+"),
+            "version":versions.into_iter().collect::<Vec<_>>().join(", ")});
+        let mut findings = vec![];
+        if disabled {
+            let mut target = InspectionTarget::at(".", 1);
+            target.target_name = "C++UnusedFunctionsDisabled".into();
+            target.status = "SKIP".into();
+            target.message = "Compiler-backed C++ unused-function analysis is disabled".into();
+            findings.push(scope(
+                &target,
+                "info",
+                "This target records the bounded TU-local compiler unused-function scope.",
+                "Restore a complete, safe compilation context when exact analysis did not run.",
+                &json!({"name":"","version":""}),
+            ));
+            output.targets.push(target);
+        }
+        let mut target = InspectionTarget::at("CMakeLists.txt", 1);
+        target.target_name = "C++LinkerReachabilityError".into();
+        target.status = "ERROR".into();
+        target.message = message;
+        findings.push(scope(
+            &target,
+            "critical",
+            "This target records the bounded target-local GNU ELF section-GC scope.",
+            "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+            &linker_tool,
+        ));
+        output.targets.push(target);
+        output.extra = json!({"cpp_linker_mode":"error","cpp_linker_symbols_count":0,
+            "cpp_linker_targets_checked":0,"cpp_linker_sources_checked":0,
+            "cpp_linker_discarded_sections_observed":0,"cpp_linker_ambiguous_sections_excluded":0,
+            "cpp_linker_sections_kept_by_another_target":0,"cpp_linker_warnings":[],
+            "cpp_linker_details":[],"legacy_findings":findings,"tool_evidence":records});
+        output.observation.state = TaskState::Succeeded;
+        self.preparation_failures.insert(id.into(), output);
+    }
     /// Record the frozen legacy output for a check decided while planning its preparation.
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
@@ -3960,7 +4213,10 @@ impl CppPlans {
                 // Frozen `DeadCodeEngine._effective_required`: unavailable automatic C++ and
                 // linker policies do not make the engine required (a Python dead check keeps it
                 // required).
-                if !*required && !linker_required {
+                if !*required
+                    && !linker_required
+                    && !self.legacy_intake_faults.contains(&planned.task_id)
+                {
                     planned.check.required = false;
                 }
                 plan.limitations.push(format!(
@@ -3999,24 +4255,120 @@ impl CppPlans {
         cancellation: &ici_execution::Cancellation,
         events: &crate::events::EventLog,
     ) -> AnalysisOutput {
+        let mut output =
+            self.run_task(project, component, request, scheduler, cancellation, events);
+        if self.legacy_projection && request.check_id == "cpp.cycle" {
+            let units = self
+                .contexts
+                .get(&component.id)
+                .map(|context| context.units.as_slice())
+                .unwrap_or_default();
+            legacy_cycle_target_metrics(&mut output, &project.root, units);
+        }
+        if self.legacy_projection && request.check_id == "cpp.dead" {
+            legacy_dead_source_evidence(
+                &mut output,
+                request,
+                self.inactive.contains_key(&request.task_id),
+            );
+        }
+        output
+    }
+    fn run_task(
+        &mut self,
+        project: &ResolvedProject,
+        component: &Component,
+        request: &AnalysisRequest,
+        scheduler: &ici_execution::Scheduler,
+        cancellation: &ici_execution::Cancellation,
+        events: &crate::events::EventLog,
+    ) -> AnalysisOutput {
         if self.fallbacks.contains_key(&request.task_id) {
             return self.run_fallback(project, component, request, scheduler, cancellation, events);
         }
         if let Some(terminal) = self.legacy_context_errors.get(&request.task_id) {
             return legacy_syntax::terminal_output(request, terminal);
         }
+        // Frozen `DeadCodeEngine._collect_sources` reads the whole bounded C/C++ inventory before
+        // any compiler or linker scope, with or without a compilation database, and an intake
+        // fault is the engine's only result (ERROR, required).
+        if self.legacy_projection
+            && request.check_id == "cpp.dead"
+            && !self.inactive.contains_key(&request.task_id)
+            && let Some(error) = ici_cpp::legacy_source_intake(request)
+        {
+            return ici_cpp::legacy_intake_output(
+                AnalysisOutput::new(&request.task_id, "ici.cpp"),
+                &error,
+            );
+        }
+        // Frozen dead.py:270 `_append_empty_scope_target`: when every selected source is excluded
+        // by the generated/vendor policy no C++ scope runs and one `DeadCode` SKIP explains why.
+        if self.legacy_projection
+            && request.check_id == "cpp.dead"
+            && !self.inactive.contains_key(&request.task_id)
+            && !request.inputs.is_empty()
+            && !ici_cpp::legacy_has_owned_source(request)
+        {
+            let mut output = AnalysisOutput::new(&request.task_id, "ici.cpp");
+            output.status = "SKIP".into();
+            output.summary = "Dead-code analysis skipped: no owned source files".into();
+            output.observation.measurements.push(Measurement {
+                name: "cpp_unused_configurations_checked".into(),
+                value: 0.0,
+                evidence: ici_domain::EvidenceLevel::NotRun,
+                unit: "configurations".into(),
+                numerator: None,
+                denominator: None,
+            });
+            let mut target = InspectionTarget::at(".", 1);
+            target.target_name = "DeadCode".into();
+            target.status = "SKIP".into();
+            target.message = "All selected sources were excluded by the generated/vendor policy; dead-code analysis was not run".into();
+            output.targets.push(target);
+            return output;
+        }
         if self.linkers.contains_key(&request.task_id) {
             let linker_output =
                 self.run_linker(project, component, request, scheduler, cancellation, events);
             if self.unused.contains_key(&request.task_id) {
                 let linker = self.linkers.remove(&request.task_id).expect("bound linker");
-                let unused = self.run(project, component, request, scheduler, cancellation, events);
+                let unused =
+                    self.run_task(project, component, request, scheduler, cancellation, events);
                 self.linkers.insert(request.task_id.clone(), linker);
                 return merge(
                     &request.task_id,
                     "ici.cpp.dead",
                     vec![unused, linker_output],
                 );
+            }
+            let mut linker_output = linker_output;
+            if self.legacy_unused_disabled.contains(&request.task_id) {
+                // Frozen `_analyze_cpp_scope` with `cpp_unused = "off"`: one disabled SKIP at
+                // the project root ahead of the linker targets.
+                let mut target = InspectionTarget::at(".", 1);
+                target.target_name = "C++UnusedFunctionsDisabled".into();
+                target.status = "SKIP".into();
+                target.message = "Compiler-backed C++ unused-function analysis is disabled".into();
+                // Its frozen compiler scope finding: exact once the linker scope measured the
+                // C++ evidence, and no compiler tool ran.
+                let measured = linker_output.extra["cpp_linker_mode"] == "exact";
+                let finding = json!({"rule_id":"ici.legacy.dead.target","category":"maintainability",
+                    "severity":"info","confidence":if measured { "exact" } else { "low" },
+                    "primary_location":{"path":target.file_path,"start_line":target.start_line,
+                    "end_line":target.end_line,"start_column":target.start_column,
+                    "end_column":target.end_column,"label":target.target_name},
+                    "related_locations":[],"message":target.message,
+                    "explanation":"This target records the bounded TU-local compiler unused-function scope.",
+                    "remediation":if measured { "" } else { "Restore a complete, safe compilation context when exact analysis did not run." },
+                    "fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"","metrics":{},"snippet":"",
+                    "suppression":{"kind":"none","reason":"","suppressed":false}});
+                if let Some(findings) = linker_output.extra["legacy_findings"].as_array_mut() {
+                    findings.push(finding);
+                } else {
+                    linker_output.extra["legacy_findings"] = json!([finding]);
+                }
+                linker_output.targets.insert(0, target);
             }
             return linker_output;
         }
@@ -4058,13 +4410,10 @@ impl CppPlans {
                 .observation
                 .limitations
                 .push(LEGACY_UNUSED_UNAVAILABLE.into());
-            // Frozen: one target at the first selected C/C++ source in path order.
-            let path = request
-                .inputs
-                .iter()
-                .map(|source| source.path.clone())
-                .min()
-                .unwrap_or_else(|| ".".into());
+            // Frozen: one target at the first owned C/C++ source in path order.
+            let path = ici_cpp::legacy_first_owned_source(request)
+                .unwrap_or(".")
+                .to_owned();
             // Frozen `DeadCodeEngine._scope_finding` for each not-run scope target.
             let scope = |name: &str,
                          required: bool,
@@ -4813,7 +5162,21 @@ impl CppPlans {
                             && output.observation.evidence_is_complete(),
                         findings: output.observation.findings.clone(),
                     });
-                    unused_runs.push((index, outcome.exit_code, outcome.timed_out));
+                    let argv = provider.task.argv.clone();
+                    let version = argv
+                        .first()
+                        .and_then(|path| self.compiler_versions.get(path))
+                        .cloned()
+                        .unwrap_or_default();
+                    unused_runs.push(LegacyUnusedRun {
+                        index,
+                        code: outcome.exit_code,
+                        timed_out: outcome.timed_out,
+                        truncated: outcome.truncated,
+                        argv,
+                        version,
+                        configuration: legacy_configuration_key(&units[index]),
+                    });
                 }
                 if self.legacy_projection && request.check_id == "cpp.tidy" {
                     // Frozen clang tool findings name the tool (`clang-tidy` / `clazy`) and its

@@ -83,7 +83,52 @@ impl CppAnalysisSession {
             );
             return output;
         }
-        if (kind != "line" && request.inputs.len() > 2048)
+        // Frozen DuplicateEngine reads its whole bounded inventory first
+        // (`read_analysis_sources`) and reports only the first intake fault.
+        let mut legacy_dup_inventory = None;
+        if kind == "dup" && request.options["legacy_projection"].as_bool() == Some(true) {
+            let inventory = match crate::legacy_source_inventory(request) {
+                Ok(inventory) => inventory,
+                Err(error) => {
+                    let mut output = crate::legacy_intake_output(output, &error);
+                    legacy_dup_evidence(&mut output, &crate::LegacyInventory::default());
+                    return output;
+                }
+            };
+            legacy_dup_evidence(&mut output, &inventory);
+            let owned: Vec<_> = request
+                .inputs
+                .iter()
+                .filter(|input| source::policy_exclusions(request, &input.path).is_empty())
+                .collect();
+            if owned.is_empty() {
+                // Frozen dup.py:121: no owned source is one `DuplicateCode` SKIP at the root.
+                let mut target = InspectionTarget::at(".", 1);
+                target.target_name = "DuplicateCode".into();
+                target.status = "SKIP".into();
+                target.message =
+                    "All selected sources were excluded by the generated/vendor policy".into();
+                output.targets = vec![target];
+                output.status = "SKIP".into();
+                output.summary = "Duplicate analysis skipped: no owned source files".into();
+                let mut measured = Measurement::measured("owned_sources", 0.0);
+                measured.evidence = EvidenceLevel::NotApplicable;
+                output.observation.measurements.push(measured);
+                return output;
+            }
+            // Frozen dup.py:149 `_load_and_index_files`: the bounded lexical normalization of
+            // every owned source in path order precedes any region or comparison work.
+            legacy_dup_inventory = Some(inventory);
+            if let Some((path, message)) = crate::duplicates::legacy_normalization_error(&owned) {
+                return crate::legacy_intake::legacy_failure_output(
+                    output,
+                    &path,
+                    "SourceTokenizationError",
+                    &message,
+                    &format!("Duplicate analysis could not normalize {path}"),
+                );
+            }
+        } else if (kind != "line" && request.inputs.len() > 2048)
             || request.inputs.iter().map(|i| i.bytes.len()).sum::<usize>()
                 > if kind == "line" {
                     512 * 1024 * 1024
@@ -171,11 +216,15 @@ impl CppAnalysisSession {
                     .observation
                     .limitations
                     .push(format!("excluded {}: {reason}", input.path));
-                let mut target = InspectionTarget::at(&input.path, 1);
-                target.status = "SKIP".into();
-                target.target_name = "ExcludedAnalysisSource".into();
-                target.message = reason;
-                output.targets.push(target);
+                // Frozen DuplicateEngine names no target for an excluded source.
+                if !(kind == "dup" && request.options["legacy_projection"].as_bool() == Some(true))
+                {
+                    let mut target = InspectionTarget::at(&input.path, 1);
+                    target.status = "SKIP".into();
+                    target.target_name = "ExcludedAnalysisSource".into();
+                    target.message = reason;
+                    output.targets.push(target);
+                }
                 continue;
             }
             let key = ici_domain::sha256(
@@ -225,25 +274,6 @@ impl CppAnalysisSession {
                                 unreadable.push(input.path.clone());
                             }
                             continue;
-                        }
-                        // Frozen DuplicateEngine: `read_analysis_sources` raises at the first
-                        // source that is not UTF-8 and the engine reports only that source.
-                        if kind == "dup"
-                            && error.code == "source-encoding"
-                            && request.options["legacy_projection"].as_bool() == Some(true)
-                        {
-                            let message = "Analysis source is not valid UTF-8";
-                            let mut target = InspectionTarget::at(&input.path, 1);
-                            target.target_name = "SourceInputError".into();
-                            target.status = "ERROR".into();
-                            target.message = format!("invalid-utf8: {message}");
-                            output.targets = vec![target];
-                            output.observation.findings.clear();
-                            output.summary = message.into();
-                            output.status = "ERROR".into();
-                            output.observation.state = TaskState::Failed;
-                            output.observation.limitations.push(message.into());
-                            return output;
                         }
                         fail(&mut output, &input.path, &error.code, &error.message);
                         continue;
@@ -342,6 +372,15 @@ impl CppAnalysisSession {
                         if duplicate_output.observation.state != TaskState::Succeeded {
                             output.observation.state = duplicate_output.observation.state;
                             output.status = duplicate_output.status;
+                            // Frozen dup.py:207: a bounded comparison stop is the
+                            // `DuplicateComparisonLimit` ERROR with its fixed summary.
+                            if legacy
+                                && let [target] = output.targets.as_mut_slice()
+                                && target.target_name == "DuplicateAnalysisError"
+                                && target.message.contains("exceeds MAX_DUPLICATE_")
+                            {
+                                target.target_name = "DuplicateComparisonLimit".into();
+                            }
                         } else {
                             // Frozen DuplicateEngine: the verdict is the duplication rate
                             // against warn_pct/fail_pct under the engine mode, not the
@@ -434,6 +473,9 @@ impl CppAnalysisSession {
                 output.status = status;
             }
         }
+        if let Some(inventory) = &legacy_dup_inventory {
+            legacy_dup_evidence(&mut output, inventory);
+        }
         output.summary = if output.observation.state == TaskState::Succeeded {
             frozen_summary(kind, request, &mut output)
         } else {
@@ -449,6 +491,15 @@ impl CppAnalysisSession {
                 .map(|target| target.message.as_str())
                 .collect();
             (!errors.is_empty()).then(|| errors.join("; "))
+        })
+        .or_else(|| {
+            // Frozen dup.py:207 `DuplicateComparisonLimit` keeps its fixed summary.
+            (kind == "dup"
+                && output
+                    .targets
+                    .iter()
+                    .any(|target| target.target_name == "DuplicateComparisonLimit"))
+            .then(|| "Duplicate analysis exceeded a bounded comparison limit".to_owned())
         })
         .unwrap_or_else(|| {
             format!(
@@ -491,6 +542,19 @@ impl CppAnalysisSession {
 /// source and nothing else ("Cognitive complexity analysis did not complete"); complexity
 /// (`ComplexityEngine._cpp_source_rows`) one `CppComplexityAnalysisError` at the project root
 /// naming the unreadable file names, and no function.
+/// Frozen `DuplicateEngine._source_evidence`: the source inventory counters of every legacy dup
+/// result (zeros when the intake failed).
+fn legacy_dup_evidence(output: &mut AnalysisOutput, inventory: &crate::LegacyInventory) {
+    if !output.extra.is_object() {
+        output.extra = json!({});
+    }
+    output.extra["analysis_provenance"] = json!("language-lexical-region-heuristic");
+    output.extra["source_files_analyzed"] = json!(inventory.files);
+    output.extra["source_bytes_analyzed"] = json!(inventory.bytes);
+    output.extra["source_files_excluded"] = json!(inventory.files_excluded);
+    output.extra["source_exclusion_counts"] = json!(inventory.exclusion_counts);
+}
+
 fn legacy_unreadable_metric(
     kind: &str,
     request: &AnalysisRequest,

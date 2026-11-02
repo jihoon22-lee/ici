@@ -4,7 +4,7 @@ Runs the frozen CLI `ici verify --profile deep --no-cache --report` (only the cy
 enabled, `project.compile_database` set) in a fresh copy of each parity-fixtures/cpp/
 include-context tree with PATH=/usr/bin:/bin, LANG/LC_ALL=C.UTF-8 and PYTHONHASHSEED=0, and
 keeps the exit code, suite status and the cycle engine's status, evidence, summary, frozen
-`_analyze_cpp_includes` extra counters, targets, findings and tool evidence (name, return code,
+`_analyze_cpp_includes` extra (every key), targets, findings and tool evidence (name, return code,
 error). Every verify case must take the compiler-traced graph (`cpp_include_resolution ==
 "compiler_trace"`): a tree that silently fell back to the heuristic graph is refused. The
 `cycle:mixed` case runs standalone `ici cycle --report` on the same tree, which frozen keeps on
@@ -28,16 +28,6 @@ ARGV = {
     "verify": ["verify", "--profile", "deep", "--no-cache", "--report"],
     "cycle": ["cycle", "--report"],
 }
-EXTRA_KEYS = (
-    "cpp_include_resolution",
-    "resolved_cpp_includes",
-    "ambiguous_cpp_includes",
-    "unresolved_cpp_includes",
-    "cpp_include_scope_counts",
-    "cpp_configurations_checked",
-    "cpp_include_diagnostics_truncated",
-    "cpp_cycles",
-)
 TARGET_KEYS = ("target_name", "status", "message", "file_path", "start_line")
 EVIDENCE_KEYS = ("name", "returncode", "error")
 
@@ -90,7 +80,7 @@ def run(name: str, command: str = "verify") -> dict:
         "status": engine["status"],
         "evidence": engine["evidence"],
         "summary": engine["summary"],
-        "extra": {key: engine["extra"][key] for key in EXTRA_KEYS},
+        "extra": engine["extra"],
         "targets": [{key: target[key] for key in TARGET_KEYS} for target in engine["targets"]],
         "findings": sorted(
             (

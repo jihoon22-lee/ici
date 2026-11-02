@@ -63,6 +63,12 @@
   다른 `ici` 실행 파일(pyz, `.venv/bin/ici` 등)과 `ICI_PYTHON` 사용 여부를 표시합니다.
 - Python dead 결과의 `tool_rule_id`·`tool_name`·`tool_version`이 v0.13.0과 같이 비어 있고 `analysis_provenance`가
   문자열로 기록됩니다.
+- `ici dead`의 GNU ELF 링커 분석(`cpp_linker`)이 v0.13.0과 같은 결과(버려진 함수 경고와 exact finding, 링크 대상별
+  검사 행, 도구 실행 기록)를 냅니다. CMake 구성에 실패하면 검사가 막히지 않고 `C++LinkerReachabilityError`로 보고합니다.
+- 레거시 C++ dead/dup이 소스를 읽는 동안 v0.13.0과 같은 파일 수·파일 크기·전체 크기 한도를 적용하며, 16 MiB를 넘는
+  파일은 입력 snapshot 단계에서 실행을 거부합니다(종료 코드 3).
+- 레거시 C++ 복잡도/인지 복잡도 지표 필드, 설정 digest, cycle 대상 지표, 미사용 함수 상세 정보와 dead/dup 소스
+  카운터가 v0.13.0 결과와 같습니다.
 - 레거시 엔진 보고서의 `extra`에 v0.13.0에만 있던 키(lint·type·sanitize·dup·dead·test·exception·compile_db·cycle·
   complexity/cognitive)를 같은 이름·자료형·빈 값 의미로 복원했습니다. native 증거는 기존 키를 바꾸지 않고 native
   이름의 별도 키로 덧붙습니다. pytest만 있고 coverage가 없는 선택 coverage는 v0.13.0처럼 WARN과 종료 코드 0이며,

@@ -210,7 +210,8 @@ pub(super) fn evaluate(root: &Path, probe: &IncludeProbe, outcome: &TaskOutcome)
     }
 }
 
-/// Frozen `_record_process`: one "compiler include trace" record per process run.
+/// Frozen `_record_process`: one "compiler include trace" record per process run (frozen leaves
+/// its `version` empty).
 pub(super) fn evidence(probe: &IncludeProbe, outcome: &TaskOutcome, error: Option<&str>) -> Value {
     let error = error.map(str::to_owned).unwrap_or_else(|| {
         if outcome.timed_out {
@@ -225,7 +226,7 @@ pub(super) fn evidence(probe: &IncludeProbe, outcome: &TaskOutcome, error: Optio
     });
     json!({"name":"compiler include trace","path":probe.task.argv.first(),"argv":probe.task.argv,
         "returncode":outcome.exit_code,"timed_out":outcome.timed_out,"truncated":outcome.truncated,
-        "error":error})
+        "error":error,"version":""})
 }
 
 /// The legacy cycle output: the traced units' graph analysed by the shared compiler-cycle
@@ -350,6 +351,29 @@ pub(super) fn assemble(
         output.status = "WARN".into();
     } else {
         output.status = "PASS".into();
+    }
+    // Frozen per-unit targets name the unit by `_configuration_digest` (directory, argv, output).
+    let identities: BTreeMap<&str, String> = context
+        .units
+        .iter()
+        .map(|unit| {
+            (
+                unit.configuration.as_str(),
+                super::legacy_configuration_key(unit),
+            )
+        })
+        .collect();
+    for target in &mut output.targets {
+        if let Some(identity) = target
+            .metrics
+            .get("configuration")
+            .and_then(Value::as_str)
+            .and_then(|configuration| identities.get(configuration))
+        {
+            target
+                .metrics
+                .insert("configuration".into(), json!(identity));
+        }
     }
     let scope_counts = output.extra["scope_counts"].clone();
     output.extra = json!({
