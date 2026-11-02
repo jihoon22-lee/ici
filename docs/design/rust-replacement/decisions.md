@@ -79,6 +79,7 @@ key를 그대로 옮겨 서로 다른 timeout/output cap의 결과를 재사용�
 |statement가 없는 파일의 coverage_files 비율|coverage.py가 보고한 100.0을 그대로 쓰고 (cover, file) 순으로 정렬|frozen과 같게 한다: 파일별 행은 도구가 보고한 값이므로 꾸며낸 값이 아니다. 빈 분모를 n/a로 두는 판정(`coverage_policy.py:247:12`)은 정책·집계 비율에만 적용한다|
 |측정된 legacy Python coverage 결과의 native 키|frozen 객체 안에는 frozen 키만 있고 `coverage_provenance`는 frozen 모양|승인하지 않는다: native 키(coverage_policy·coverage_provenance·coverage_totals·test_quality·coverage_suites·test_execution의 native 부분)는 "legacy `extra` 안 native 증거 키"대로 frozen 객체 밖의 native 이름 키로 옮기고 `coverage_provenance`는 frozen 모양으로 되돌린다|
 |tests 디렉터리가 없는 legacy Python test|`_mark_zero_tests`: 아무 process도 실행하지 않고 "No tests collected"|frozen과 같게 한다: legacy view에서 coverage probe와 pytest를 실행하지 않으며 tool evidence도 남기지 않는다. 판정·finding은 frozen과 같다|
+|legacy `verify`의 `Engine crashed: <type>: <message>`|Python 엔진 클래스가 예외를 던지면 run_all이 잡아 그 엔진을 ERROR와 이 문구로 기록|의도한 비이식: native에는 예외를 던지는 엔진 클래스가 없다. 내부 분석 실패는 사유를 가진 native ERROR 검사로 기록되고 다른 엔진은 계속 실행된다. frozen에서 재현할 차등 입력이 없어 문구 비교는 하지 않는다|
 
 교정 행은 R0에서 기대값을 고정한 것이며 해당 구현/회귀 fixture는 담당 WP의 closure에
 반드시 연결한다. golden을 무조건 재생성해 기존 결함이나 새로운 회귀를 숨기지 않는다.
