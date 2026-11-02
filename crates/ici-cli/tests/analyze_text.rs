@@ -209,10 +209,21 @@ fn native_analyze_prints_the_frozen_frame_on_the_same_projects() {
             let frozen_saved = frozen.iter().position(|l| l.starts_with("saved ")).unwrap();
             let native_saved = native.iter().position(|l| l.starts_with("saved ")).unwrap();
             assert_eq!(native[native_saved], frozen[frozen_saved], "{name}");
-            let page = frozen[frozen_saved]
-                .replace("saved ", "HTML: ")
-                .replace(".json", ".html");
-            assert_eq!(native[native_saved + 1], page, "{name}");
+            // The page beside the default result; under .ici/rust-v1/details/<file>/<run>/ for an
+            // explicit --result (root decision E2: nothing beside the user's path).
+            let saved = frozen[frozen_saved].trim_start_matches("saved ");
+            if saved.contains("/.ici/") {
+                let page = format!("HTML: {}", saved.replace(".json", ".html"));
+                assert_eq!(native[native_saved + 1], page, "{name}");
+            } else {
+                let file = saved.rsplit('/').next().unwrap();
+                let line = native[native_saved + 1];
+                assert!(
+                    line.starts_with(&format!("HTML: <root>/.ici/rust-v1/details/{file}/"))
+                        && line.ends_with("/page.html"),
+                    "{name}: {line}"
+                );
+            }
             let body = |lines: &[&str]| -> Vec<String> {
                 lines
                     .iter()
