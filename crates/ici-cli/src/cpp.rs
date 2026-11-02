@@ -719,7 +719,23 @@ impl CppPlans {
                 } else {
                     let tool = match self.compiler(project, &unit, environment) {
                         Ok(tool) => tool,
-                        Err(reason) => return blocked(reason),
+                        Err(reason) => match legacy_includes::unresolved_compiler(
+                            &project.root,
+                            &unit,
+                            environment,
+                        ) {
+                            // Frozen `build_replay_command` rejects that unit alone.
+                            Some(target) => {
+                                plan.units.push(legacy_includes::IncludeUnit {
+                                    source: unit.source.clone(),
+                                    configuration: unit.configuration.clone(),
+                                    before,
+                                    replay: Err(Some(target)),
+                                });
+                                continue;
+                            }
+                            None => return blocked(reason),
+                        },
                     };
                     match ici_cpp::compiler_probe_task(
                         &project.root,

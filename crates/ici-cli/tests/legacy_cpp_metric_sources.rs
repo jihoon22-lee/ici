@@ -42,6 +42,14 @@ fn legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen() {
             actual["exit_code"] = expected["exit_code"].clone();
         }
         assert_eq!(actual, *expected, "{command}");
+        // A header that is not UTF-8: the metrics never read it, dup's intake stops at it.
+        let expected = &oracle["cases"][format!("{command}:unreadable-header")];
+        let (_, mut actual) = run(&oracle, "unreadable-header", command);
+        if command == "dup" {
+            assert_eq!(actual["exit_code"], 3, "{command}");
+            actual["exit_code"] = expected["exit_code"].clone();
+        }
+        assert_eq!(actual, *expected, "{command} header");
     }
 }
 

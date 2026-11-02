@@ -16,6 +16,22 @@
     }
    ]
   },
+  "cognitive:unreadable-header": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Max cognitive complexity: 1 across 1 functions",
+   "targets": [
+    {
+     "end_line": 4,
+     "file_path": "src/ok.cpp",
+     "message": "Cognitive 1 (control nesting 1, estimated C++ metric)",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ok"
+    }
+   ]
+  },
   "cognitive:unterminated": {
    "evidence": "NOT_RUN",
    "exit_code": 1,
@@ -56,6 +72,22 @@
     }
    ]
   },
+  "complexity:unreadable-header": {
+   "evidence": "ESTIMATED",
+   "exit_code": 0,
+   "status": "PASS",
+   "summary": "Max Cyclomatic Complexity: 2 (limit 15) across 1 functions (0 issues)",
+   "targets": [
+    {
+     "end_line": 4,
+     "file_path": "src/ok.cpp",
+     "message": "Complexity: 2, Nesting: 1",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "ok()"
+    }
+   ]
+  },
   "complexity:unterminated": {
    "evidence": "ESTIMATED",
    "exit_code": 0,
@@ -89,6 +121,22 @@
     {
      "end_line": null,
      "file_path": "src/latin.cpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
+  "dup:unreadable-header": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/bad.hpp",
      "message": "invalid-utf8: Analysis source is not valid UTF-8",
      "start_line": 1,
      "status": "ERROR",

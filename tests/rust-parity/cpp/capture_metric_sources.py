@@ -6,7 +6,8 @@ parity-fixtures/cpp/metric-sources tree with PATH=/usr/bin:/bin and LANG/LC_ALL=
 `unreadable` has a source that is not UTF-8 beside a measurable one; `unterminated` a function
 whose body never closes. The `empty` tree (a type='cpp' project with no source) runs
 `ici exception --report` and `ici type --report` instead, the not-applicable C++ scope;
-`unreadable` also runs `ici dup --report` (frozen source intake stops at the bad source). Keeps
+`unreadable` also runs `ici dup --report` (frozen source intake stops at the bad source);
+`unreadable-header` has a header that is not UTF-8, which only dup reads. Keeps
 the exit code, status, evidence, summary and targets.
 """
 
@@ -68,7 +69,11 @@ def run(name: str, command: str) -> dict:
     }
 
 
-COMMANDS = {"empty": ("exception", "type"), "unreadable": ("cognitive", "complexity", "dup")}
+COMMANDS = {
+    "empty": ("exception", "type"),
+    "unreadable": ("cognitive", "complexity", "dup"),
+    "unreadable-header": ("cognitive", "complexity", "dup"),
+}
 cases = {
     f"{command}:{path.name}": run(path.name, command)
     for path in sorted(FIXTURES.iterdir())

@@ -367,6 +367,73 @@
      "returncode": 0
     }
    ]
+  },
+  "unresolved-compiler": {
+   "evidence": "NOT_RUN",
+   "exit_code": 0,
+   "extra": {
+    "ambiguous_cpp_includes": 0,
+    "cpp_configurations_checked": 1,
+    "cpp_cycles": 0,
+    "cpp_include_diagnostics_truncated": 0,
+    "cpp_include_resolution": "compiler_trace",
+    "cpp_include_scope_counts": {},
+    "resolved_cpp_includes": 0,
+    "unresolved_cpp_includes": 0
+   },
+   "findings": [
+    {
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "path": "src/a.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "info"
+    },
+    {
+     "message": "compiler-unavailable: The translation unit compiler could not be resolved.",
+     "path": "src/e.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    },
+    {
+     "message": "compiler-unavailable: The translation unit compiler is not available on PATH.",
+     "path": "src/f.cpp",
+     "rule_id": "ici.legacy.cycle.target",
+     "severity": "critical"
+    }
+   ],
+   "status": "ERROR",
+   "suite_status": "WARN",
+   "summary": "C++ replay compiler-unavailable: src/e.cpp: The translation unit compiler could not be resolved.; C++ replay compiler-unavailable: src/f.cpp: The translation unit compiler is not available on PATH.",
+   "targets": [
+    {
+     "file_path": "src/a.cpp",
+     "message": "Compiler include tracing completed for this translation-unit configuration.",
+     "start_line": 1,
+     "status": "PASS",
+     "target_name": "CppIncludeTrace"
+    },
+    {
+     "file_path": "src/e.cpp",
+     "message": "compiler-unavailable: The translation unit compiler could not be resolved.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeReplayError"
+    },
+    {
+     "file_path": "src/f.cpp",
+     "message": "compiler-unavailable: The translation unit compiler is not available on PATH.",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "CppIncludeReplayError"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "error": "",
+     "name": "compiler include trace",
+     "returncode": 0
+    }
+   ]
   }
  },
  "gxx": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0",

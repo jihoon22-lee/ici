@@ -112,6 +112,40 @@ pub(super) fn replay_error(unit: &CompilationUnit, error: &ici_cpp::CppError) ->
     )
 }
 
+/// Frozen `build_replay_command` compiler resolution for a unit whose recorded compiler cannot
+/// be found: a bare name missing from PATH is 'not available on PATH', a path that does not
+/// resolve 'could not be resolved' (both `compiler-unavailable`). `None` for any other refusal.
+pub(super) fn unresolved_compiler(
+    root: &Path,
+    unit: &CompilationUnit,
+    environment: &BTreeMap<String, String>,
+) -> Option<InspectionTarget> {
+    let value = unit.argv.first()?;
+    let lexical = Path::new(value);
+    let message = if lexical.components().count() > 1 || lexical.is_absolute() {
+        let candidate = if lexical.is_absolute() {
+            lexical.to_path_buf()
+        } else {
+            root.join(&unit.directory).join(lexical)
+        };
+        candidate
+            .canonicalize()
+            .is_err()
+            .then_some("The translation unit compiler could not be resolved.")?
+    } else {
+        let found = environment.get("PATH").is_some_and(|path| {
+            std::env::split_paths(path).any(|directory| directory.join(value).is_file())
+        });
+        (!found).then_some("The translation unit compiler is not available on PATH.")?
+    };
+    Some(target(
+        &unit.source,
+        "CppIncludeReplayError",
+        "ERROR",
+        format!("compiler-unavailable: {message}"),
+    ))
+}
+
 /// What one include trace established, after frozen `_evaluate_trace`.
 pub(super) enum Trace {
     Observed(ici_cpp::CompilerIncludeObservation),

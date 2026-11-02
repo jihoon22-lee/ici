@@ -219,7 +219,11 @@ impl CppAnalysisSession {
                             continue;
                         }
                         if legacy_metric && error.code == "source-encoding" {
-                            unreadable.push(input.path.clone());
+                            // Frozen metric engines read only translation units: an
+                            // unreadable header is never opened.
+                            if crate::is_translation_unit(&input.path) {
+                                unreadable.push(input.path.clone());
+                            }
                             continue;
                         }
                         // Frozen DuplicateEngine: `read_analysis_sources` raises at the first

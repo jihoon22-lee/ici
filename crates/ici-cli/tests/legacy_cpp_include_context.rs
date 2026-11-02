@@ -2,7 +2,8 @@
 //! frozen v0.13.0 runs (`tests/rust-parity/cpp/include-context-oracle.json`,
 //! `capture_include_context.py`) over parity-fixtures/cpp/include-context: database and unit
 //! diagnostics, a production source without a command, no traceable unit, rejected replay
-//! commands, a failing trace, a response-file unit and a traced include cycle. Compared: exit
+//! commands, recorded compilers that cannot be resolved, a failing trace, a response-file unit
+//! and a traced include cycle. Compared: exit
 //! code, suite status and the cycle engine's status, evidence, summary, frozen counters,
 //! targets, findings and tool evidence (name, return code, error). Standalone `ici cycle` on
 //! the same database stays on the heuristic graph like frozen (`cycle:mixed`).
@@ -113,7 +114,7 @@ fn legacy_compiler_include_graph_keeps_frozen_unit_outcomes_errors_and_cycles() 
         .unwrap();
     let mut mismatches = vec![];
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 5);
+    assert_eq!(cases.len(), 6);
     for (name, expected) in cases {
         let (fixture, standalone) = match name.strip_prefix("cycle:") {
             Some(fixture) => (fixture, true),
