@@ -1,10 +1,11 @@
 {
  "requirements": {
   "capability:build-artifact-abi": {
-   "comparison": "Composite capability, implemented (not verified): the contract-defining facet named below is not proven. Closed: build.py Python facets (92, 338, 373 complete), declared-artifact contract (languages/artifacts.py 121/142 complete), release:shadow artifact identities and the ABI shadow selector; build.py C++ sites and binary_compat sites are verified. Open: binary_abi 33:11 and binarycompat 137:11 (not_started), binary_compat 247 C++ facet, and _elf.py audit (cpp worker). Not verified because the ELF/ABI facets named in the contract are open.",
+   "comparison": "Validation facet of the composite capability, complete (runtime closure worker, 2026-11-02): every part this fragment owns is closed; the C++/ELF parts listed as open are cpp.json's facet of the row (not_started there) and keep the row open. Closed: build.py Python facets (92, 338, 373 complete), declared-artifact contract (languages/artifacts.py 121/142 complete), release:shadow artifact identities and the ABI shadow selector; build.py C++ sites and binary_compat sites are verified. Open: binary_abi 33:11 and binarycompat 137:11 (not_started), binary_compat 247 C++ facet, and _elf.py audit (cpp worker).",
    "evidence": [
     "Frozen goldens of the constituent rows: tests/rust-parity/cpp/build-targets-oracle.json, binary-compat-oracle.json, artifact-contract-oracle.json, tests/rust-parity/validation/build-python-errors-oracle.json",
-    ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)"
+    ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)",
+    "`cargo test -p ici-cli --locked -j2 --no-fail-fast` over every legacy_* binary `-- --include-ignored` (legacy_binary_compat, legacy_build_targets, legacy_build_python_errors, legacy_direct_build, legacy_make_build included) at the merged head: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-sarif-fields-tests.log"
    ],
    "fixtures": {
     "failure": [
@@ -35,7 +36,7 @@
     "crates/ici-cli/src/artifact_build.rs",
     "crates/ici-cli/src/cpp.rs"
    ],
-   "status": "implemented"
+   "status": "complete"
   },
   "capability:legacy-python-sanitize": {
    "comparison": "Python facet of the composite capability (the C++ sanitizer half — engines/sanitize.py C++ scopes, adapters/providers/sanitize.py, _sanitizer_diagnostics — is cpp.json's and stays open there). Every _sanitize_python_scope finding site (143, 155, 219, 238) is complete against frozen runs: clean PASS, located and unlocated ResourceWarning FAIL, every missing-scope variant (required ERROR / not-required SKIP) and the tool-failure scope error. The hybrid contract (engines/sanitize.py _analysis_scopes: a C++ and Python project keeps its Python scope beside cpp.sanitize) is now compared with frozen v0.13.0 `ici verify --report --sarif` on the hybrid project (tests/rust-parity/reporting/legacy-sarif-oracle.json end_to_end.hybrid): the Python scope's `PythonResourceWarnings` target ('Python ResourceWarning check skipped: tests directory is missing', ERROR) keeps frozen's rule, fingerprint, location and level (legacy_sarif.rs hybrid alert identity) and, since 2026-11-02, frozen's tool attribution: frozen _missing_python_scope recorded a `pytest resource warnings` tool evidence even without a process, so the adapted targets name that tool (native defect fixed in legacy_execute.rs frozen_python_finding_fields; legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed compares the result and rule properties of the python and hybrid captures).",

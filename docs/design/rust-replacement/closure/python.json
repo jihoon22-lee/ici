@@ -1,16 +1,18 @@
 {
  "requirements": {
   "capability:legacy-cpp-linker-dead": {
-   "status": "verified",
+   "status": "complete",
    "rust_paths": [
     "crates/ici-analysis/src/dead.rs",
     "crates/ici-analysis/src/scope.rs",
     "crates/ici-analysis/src/modules.rs",
-    "crates/ici-analysis/src/lib.rs"
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-cli/src/legacy_execute.rs"
    ],
    "fixtures": {
     "positive": [
-     "crates/ici-analysis/src/tests.rs::dead_code_matches_frozen_targets_and_reviewed_corrections"
+     "crates/ici-analysis/src/tests.rs::dead_code_matches_frozen_targets_and_reviewed_corrections",
+     "crates/ici-cli/tests/legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed"
     ],
     "negative": [
      "crates/ici-analysis/src/tests.rs::excluded_vendor_and_generated_inputs_remain_visible_and_not_measured"
@@ -20,9 +22,11 @@
     ]
    },
    "evidence": [
-    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log"
+    "cargo test -p ici-analysis --lib --locked -j2 -- --test-threads=2 on the merged d44cf42 tree (working tree later committed as 5aeb4c4): 64 passed; strict cargo clippy -p ici-analysis -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-python-idna-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-analysis --lib dead_code_matches_frozen_targets` / `excluded_vendor_and_generated` / `syntax_semantics_and_bounds` (each 1 passed); /tmp/ici-rust-replacement-20261028/w-runtime-dead-rerun.log",
+    "`cargo test -p ici-cli --locked -j2 --no-fail-fast` over every legacy_*/verify_*/python_*/pytest_* binary `-- --include-ignored` (legacy_sarif included): all passed; /tmp/ici-rust-replacement-20261028/w-runtime-sarif-fields-tests.log"
    ],
-   "comparison": "Python facet only: the Python dead-code part of engines/dead.py composition. Compiler/linker unused-symbol evidence is the cpp facet (not claimed here).",
+   "comparison": "Python facet only: the Python dead-code part of engines/dead.py composition. Compiler/linker unused-symbol evidence is the cpp facet (not claimed here). Closed (runtime closure worker, 2026-11-02): the Python targets of the legacy dead engine now carry frozen DeadEngine._scoped_findings fields (explanation 'Python dead-code evidence is derived from bounded AST reachability and name-reference analysis.', its remediation, no tool, medium confidence when the Python scope is ESTIMATED) in Python-only and hybrid verify, compared with frozen by legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed (rule fullDescription/help/properties and result properties of the python, hybrid and baseline captures).",
    "difference_reason": null
   },
   "capability:python-packaging-wheel": {
