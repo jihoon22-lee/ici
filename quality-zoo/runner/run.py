@@ -26,6 +26,10 @@ from runner.common import (
 from runner.report_contract import SUITE_SCOPE, evaluate_contract
 
 MAX_TOOL_OUTPUT_BYTES = 1024 * 1024
+# The executable digest bound. A pyz is a few MiB; the native Rust release binary measured
+# 36,130,096 bytes (x86_64-unknown-linux-musl, R8 rehearsal archive bin/ici), above the former
+# 32 MiB bound, so the bound is 64 MiB: still a fixed cap on an untrusted read.
+MAX_ICI_BIN_BYTES = 64 * 1024 * 1024
 ALLOWED_PROFILES = {"fast", "standard", "deep"}
 
 
@@ -434,9 +438,9 @@ def run_manifest(
             "unsafe-ici-bin", "ICI_BIN must be an executable regular file"
         )
     ici_bin = ici_bin.resolve(strict=True)
-    ici_sha256, _ = sha256_file(ici_bin, max_bytes=32 * 1024 * 1024)
+    ici_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
     producer_version = _run_version(ici_bin, timeout_seconds)
-    version_probe_sha256, _ = sha256_file(ici_bin, max_bytes=32 * 1024 * 1024)
+    version_probe_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
     if version_probe_sha256 != ici_sha256:
         raise ContractError("ici-changed", "ICI_BIN changed during version probing")
     if output_root.exists():
@@ -454,7 +458,7 @@ def run_manifest(
         )
         for scenario_id in selected
     ]
-    final_sha256, _ = sha256_file(ici_bin, max_bytes=32 * 1024 * 1024)
+    final_sha256, _ = sha256_file(ici_bin, max_bytes=MAX_ICI_BIN_BYTES)
     if final_sha256 != ici_sha256:
         raise ContractError("ici-changed", "ICI_BIN changed during scenario execution")
     aggregate = {
