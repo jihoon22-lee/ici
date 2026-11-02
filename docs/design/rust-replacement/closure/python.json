@@ -2758,7 +2758,7 @@
    "reason": "Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet. Re-mapped (reporting closure worker, 2026-11-02 second pass): the hybrid merge differences that caused the downgrade are closed in crates/ici-cli/src/legacy_extra.rs (hybrid_tests) and the hybrid verify suite is compared in full by crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed."
   },
   "src/ici/engines/dup.py": {
-   "disposition": "unreviewed",
+   "disposition": "mapped",
    "requirements": [
     "check:python.dup",
     "finding_site:src/ici/engines/dup.py:100:20",
@@ -2770,7 +2770,7 @@
     "finding_site:src/ici/engines/dup.py:569:20",
     "finding_site:src/ici/engines/dup.py:721:20"
    ],
-   "reason": "Still unreviewed (reporting closure worker, 2026-11-02 second pass): the hybrid score (merged duplication_pct), summary and DuplicateScan path order now follow frozen's single scan (legacy_extra.rs merge_dup_checks, hybrid_tests), but the hybrid verdict stays each language check's own where frozen compares the merged rate with warn_pct/fail_pct and realigns the clone targets (differs when one language alone crosses a threshold the merged rate does not), and frozen's cross-language clone cluster order is not reconstructed; no fixture yet. Previous mapped reason: Legacy engine wrapper: Python targets map to the ici-analysis producers named in the listed rows; engine-specific scaffolding target names and the legacy lint/type projections are tracked as difference_review/not_started rows. C++ branches of this engine are the cpp facet."
+   "reason": "Mapped (reporting closure worker, 2026-11-02 third pass): the hybrid score, summary, verdict and clone targets follow frozen's one scan: legacy_extra.rs merge_dup_checks compares the merged duplication rate with warn_pct/fail_pct (evaluate_status, WARN clone targets realigned to PASS under both thresholds) and renumbers the clone groups of both languages in frozen's cluster_matches order before the Python AST-shape groups (frozen_clone_groups). Captured through the real CLI and compared in full: tests/rust-parity/reporting/hybrid-dup-oracle.json (capture_hybrid_dup.py: under, fail-alone, merged, both), legacy_engine_extras.rs::hybrid_dup_verdicts_equal_frozen_except_allowed; unit tests hybrid_dup_verdict_is_the_merged_rate_against_the_thresholds and hybrid_dup_clone_groups_of_both_languages_follow_the_one_scan_order. Python targets map to the ici-analysis producers named in the listed rows; C++ branches of this engine are the cpp facet."
   },
   "src/ici/engines/exception.py": {
    "disposition": "mapped",

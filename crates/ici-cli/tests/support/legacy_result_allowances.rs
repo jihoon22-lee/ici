@@ -2,28 +2,16 @@
 // (capture or exact replay label, normalized path, kind, class, reason with its citation).
 // `Incidental` = a field that differs run to run or host to host; `Approved` = an intended
 // difference recorded in decisions.md or a fragment difference_reason (cited); `Open` = a
-// difference not yet fixed or approved (the C++ tool argv/path native actually ran, the
-// pytest case line, the no-tests process records, the measured Python coverage shape), listed so
+// difference not yet fixed or approved (the C++ tool argv/path native actually ran), listed so
 // it never passes silently. Paths: suite keys, `results[<engine>]`, `.key` for engine reports,
 // `[]` for list positions. Generated from the replay table, then reviewed.
 const ACTUAL: &str = "open (cpp area, root ruling requested): native records the compiler \
     process it actually ran (decisions.md \"C++ 도구 증거는 실제 실행 기록\"): the PATH `/usr/bin/g++` \
     with the native replay flag order and GNU byte-column flags, where frozen recorded its \
     resolved capability path (`x86_64-linux-gnu-g++-15`) and its own argv";
-const CASE_LINE: &str = "open (root decision needed): decisions.md \"pytest는 있으나 coverage가 \
-    없는 legacy test\" asks for frozen's line-1 pytest case, but validation.json \
-    finding_site:src/ici/engines/test_output.py:195:16 accepted the definition line for every \
-    legacy case target (covered or not); amend the row (approve) or revert 195:16 globally";
-const COVERED: &str = "open (validation/reporting): the measured legacy Python coverage result, first \
-    compared in full by the threshold fixture (python-threshold-oracle.json), lacks frozen's \
-    coverage_provenance python/scope shape and carries native keys nested inside frozen \
-    objects (coverage_policy, coverage_provenance, coverage_totals, test_quality) and native \
-    coverage_suites/test_execution; decisions.md \"legacy `extra` 안 native 증거 키\" approves only \
-    separate native keys beside frozen's, so these need a fix or a root ruling";
-const EMPTY_FILE: &str = "open (root ruling proposed): a measured file without statements has \
-    coverage_files cover null (native n/a for an empty denominator, the 22:35 ruling on \
-    validation.json finding_site:src/ici/engines/coverage_policy.py:247:12) where frozen wrote \
-    100.0, so frozen's (cover, file) row order differs too";
+const R15: &str = "decisions.md \"pytest는 있으나 coverage가 없는 legacy test\" (amended): the \
+    case start_line follows the accepted definition-line difference (validation.json \
+    finding_site:src/ici/engines/test_output.py:195:16) with or without coverage";
 const R14: &str = "validation.json finding_site:src/ici/engines/test_quality.py:87:16 difference_reason \
     (root 22:35: Threshold targets are no longer counted as failed tests of a `.` test suite)";
 const R1: &str = "decisions.md identity row (native core/tool/policy/scope digest namespace)";
@@ -39,10 +27,6 @@ const R11: &str = "reporting.json capability:legacy-command-config-result-projec
 const R12: &str = "decisions.md \"pytest는 있으나 coverage가 없는 legacy test\" (tool evidence by \
     \"C++ 도구 증거는 실제 실행 기록\"): the legacy Python test/sanitize evidence is the processes \
     native ran under frozen's names, with native argv";
-const NO_TESTS_RUN: &str = "open (root decision proposed): without a tests directory frozen \
-    `_mark_zero_tests` ran nothing while native ran the coverage probe and pytest (exit 5) and now \
-    records them, so the `No tests collected` finding names `coverage --version`; the cited rows \
-    cover a project with tests (and C++ tools) only";
 const R13: &str = "decisions.md \"`verify --baseline`의 line 집계\" (defect correction): the \
     command's own input/output files are not project content (planning::is_command_output), so the \
     --baseline JSON row frozen counted is absent; every other row equals frozen in full \
@@ -121,8 +105,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("annotations", "results[test].extra.no_tests_collected", NativeOnly, Approved, R10),
     ("annotations", "results[test].extra.target_scopes", NativeOnly, Approved, R10),
     ("annotations", "results[test].extra.test_aggregation_limitation", NativeOnly, Approved, R10),
-    ("annotations", "results[test].findings[].tool_name", Differs, Open, NO_TESTS_RUN),
-    ("annotations", "results[test].tool_evidence", Len, Open, NO_TESTS_RUN),
     ("annotations", "results[type].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("annotations", "results[type].extra.native_checks", NativeOnly, Approved, R10),
     ("annotations", "results[type].extra.target_scopes", NativeOnly, Approved, R10),
@@ -388,8 +370,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "results[test].extra.no_tests_collected", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[test].extra.target_scopes", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[test].extra.test_aggregation_limitation", NativeOnly, Approved, R10),
-    ("extras/hybrid", "results[test].findings[].tool_name", Differs, Open, NO_TESTS_RUN),
-    ("extras/hybrid", "results[test].tool_evidence", Len, Open, NO_TESTS_RUN),
     ("extras/hybrid", "results[type].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[type].extra.native_checks", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[type].extra.target_scopes", NativeOnly, Approved, R10),
@@ -479,6 +459,11 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/python-optional-coverage", "results[type].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("extras/python-optional-coverage", "results[type].extra.native_checks", NativeOnly, Approved, R10),
     ("extras/python-optional-coverage", "results[type].extra.target_scopes", NativeOnly, Approved, R10),
+    ("hybrid-dup", ".duration", Differs, Incidental, R4),
+    ("hybrid-dup", ".extra.finding_identity_map", NativeOnly, Approved, R10),
+    ("hybrid-dup", ".extra.native_checks", NativeOnly, Approved, R10),
+    ("hybrid-dup", ".extra.target_scopes", NativeOnly, Approved, R10),
+    ("hybrid-dup", ".native_run", NativeOnly, Approved, R5),
     ("inventory/cases/complexity", ".extra.excluded_source_counts", NativeOnly, Approved, R10),
     ("inventory/cases/complexity", ".extra.finding_identity_map", NativeOnly, Approved, R10),
     ("inventory/cases/complexity", ".extra.native_checks", NativeOnly, Approved, R10),
@@ -844,7 +829,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("extras/hybrid", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("extras/hybrid", "support_matrix.entries[test/python].reason", Differs, Approved, R9),
-    ("inventory/hybrid/test", ".findings[].tool_name", Differs, Open, NO_TESTS_RUN),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].active_mode", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].confidence", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].evidence", Differs, Approved, R9),
@@ -853,7 +837,6 @@ const ALLOWANCES: &[Allowance] = &[
     ("inventory/hybrid/test", ".support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/python].reason", Differs, Approved, R9),
-    ("inventory/hybrid/test", ".tool_evidence", Len, Open, NO_TESTS_RUN),
     ("summary/append", "support_matrix.entries[test/python].active_mode", Differs, Approved, R9),
     ("summary/append", "support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("summary/append", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
@@ -1180,11 +1163,11 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/python-optional-coverage", "results[test].extra.function_coverage", Missing, Approved, R9),
     ("extras/python-optional-coverage", "results[test].extra.metrics_summary", Missing, Approved, R9),
     ("extras/python-optional-coverage", "results[test].extra.tem_score", Missing, Approved, R9),
-    ("extras/python-optional-coverage", "results[test].findings[].primary_location.start_line", Differs, Open, CASE_LINE),
+    ("extras/python-optional-coverage", "results[test].findings[].primary_location.start_line", Differs, Approved, R15),
     ("extras/python-optional-coverage", "results[test].max_score", Type, Approved, R9),
     ("extras/python-optional-coverage", "results[test].score", Type, Approved, R9),
     ("extras/python-optional-coverage", "results[test].summary", Differs, Approved, R9),
-    ("extras/python-optional-coverage", "results[test].targets[].start_line", Differs, Open, CASE_LINE),
+    ("extras/python-optional-coverage", "results[test].targets[].start_line", Differs, Approved, R15),
     ("extras/python-optional-coverage", "results[type].cache_key", Type, Approved, R6),
     ("extras/python-optional-coverage", "results[type].duration", Differs, Incidental, R4),
     ("extras/python-optional-coverage", "results[type].tool_evidence[].argv", Len, Approved, R8),
@@ -1258,11 +1241,9 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary", "results[test].extra.metrics_summary", Missing, Approved, R9),
     ("summary", "results[test].extra.tem_score", Missing, Approved, R9),
     ("summary", "results[test].findings[].confidence", Differs, Approved, R9),
-    ("summary", "results[test].findings[].tool_name", Differs, Open, NO_TESTS_RUN),
     ("summary", "results[test].max_score", Type, Approved, R9),
     ("summary", "results[test].score", Type, Approved, R9),
     ("summary", "results[test].summary", Differs, Approved, R9),
-    ("summary", "results[test].tool_evidence", Len, Open, NO_TESTS_RUN),
     ("summary", "results[type].cache_key", Type, Approved, R6),
     ("summary", "results[type].duration", Differs, Incidental, R4),
     ("summary", "results[type].tool_evidence[].argv", Len, Approved, R8),
@@ -1286,47 +1267,25 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary/baseline", "results[line].extra.top_files_all[].scope", Differs, Approved, R13),
     ("summary/baseline", "results[line].extra.top_files_all[].total", Differs, Approved, R13),
     ("thresholds", ".duration", Differs, Incidental, R4),
-    ("thresholds", ".extra.coverage_files[].cover", Type, Open, EMPTY_FILE),
-    ("thresholds", ".extra.coverage_policy.anchor_path", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.component_id", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.min_file_statements", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.provider", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.raw_files", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.raw_metrics", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.schema_id", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.schema_version", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_policy.task_id", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_provenance.canonical_suite_id", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_provenance.excluded_sources", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_provenance.format", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_provenance.included_sources", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_provenance.limitations", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_provenance.python", Missing, Open, COVERED),
-    ("thresholds", ".extra.coverage_provenance.scope", Missing, Open, COVERED),
-    ("thresholds", ".extra.coverage_suites", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_totals.cb", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_totals.covered", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_totals.covered_functions", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_totals.functions", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.coverage_totals.nb", NativeOnly, Open, COVERED),
+    ("thresholds", ".extra.coverage_suites", NativeOnly, Approved, R10),
+    ("thresholds", ".extra.test_execution", NativeOnly, Approved, R10),
+    ("thresholds/coverage-failure", ".extra.branch_coverage", Missing, Approved, R9),
+    ("thresholds/coverage-failure", ".extra.coverage_source", Missing, Approved, R9),
+    ("thresholds/coverage-failure", ".extra.function_coverage", Missing, Approved, R9),
+    ("thresholds/coverage-failure", ".extra.metrics_summary", Missing, Approved, R9),
+    ("thresholds/coverage-failure", ".extra.tem_score", Missing, Approved, R9),
+    ("thresholds/coverage-failure", ".extra.test_aggregation_limitation", NativeOnly, Approved, R10),
+    ("thresholds/coverage-failure", ".max_score", Type, Approved, R9),
+    ("thresholds/coverage-failure", ".score", Type, Approved, R9),
     ("thresholds", ".extra.finding_identity_map", NativeOnly, Approved, R10),
     ("thresholds", ".extra.native_checks", NativeOnly, Approved, R10),
     ("thresholds", ".extra.target_scopes", NativeOnly, Approved, R10),
-    ("thresholds", ".extra.test_execution", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.test_quality.evidence", NativeOnly, Open, COVERED),
-    ("thresholds", ".extra.test_quality.repeat_observations", NativeOnly, Open, COVERED),
-    ("thresholds", ".findings[].primary_location.start_line", Differs, Open, CASE_LINE),
+    ("thresholds", ".findings[].primary_location.start_line", Differs, Approved, R15),
     ("thresholds", ".native_run", NativeOnly, Approved, R5),
-    ("thresholds", ".targets[].start_line", Differs, Open, CASE_LINE),
+    ("thresholds", ".targets[].start_line", Differs, Approved, R15),
     ("thresholds", ".tool_evidence[].argv", Len, Approved, R12),
     ("thresholds", ".tool_evidence[].argv[]", Differs, Approved, R12),
     ("thresholds/breach", ".extra.test_suites", Len, Approved, R14),
-    ("thresholds/met", ".extra.coverage_files[].branch_cover", Type, Open, EMPTY_FILE),
-    ("thresholds/met", ".extra.coverage_files[].cb", Differs, Open, EMPTY_FILE),
-    ("thresholds/met", ".extra.coverage_files[].covered", Differs, Open, EMPTY_FILE),
-    ("thresholds/met", ".extra.coverage_files[].file", Differs, Open, EMPTY_FILE),
-    ("thresholds/met", ".extra.coverage_files[].nb", Differs, Open, EMPTY_FILE),
-    ("thresholds/met", ".extra.coverage_files[].stmts", Differs, Open, EMPTY_FILE),
 ];
 
 /// Line allowances of the text projections the real CLI wrote (`--github-summary` step summary,

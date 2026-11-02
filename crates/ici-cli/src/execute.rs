@@ -2151,10 +2151,23 @@ fn legacy_python_tool_evidence(
                 _ if step.starts_with("unittest") => "unittest",
                 _ => return None,
             };
-            Some(observed_record(name, &task.argv, outcome))
+            Some(python_record(name, &task.argv, outcome))
         })
         .collect();
     (!evidence.is_empty()).then_some(evidence)
+}
+
+/// One legacy Python process record; `error` is the executor's own failure of the process
+/// (start, capture, cleanup). An exited process, failing or not, has none, like frozen's
+/// records of exited processes.
+fn python_record(
+    name: &str,
+    argv: &[String],
+    outcome: &ici_execution::TaskOutcome,
+) -> serde_json::Value {
+    let mut record = observed_record(name, argv, outcome);
+    record["error"] = json!(outcome.error.clone().unwrap_or_default());
+    record
 }
 
 fn build_descriptor(
@@ -2198,4 +2211,24 @@ fn build_system(
         })
         .or_else(|| crate::cpp::linked_build(&prepared.project, component))
         .and_then(|build| build.system.clone())
+}
+
+#[cfg(test)]
+mod python_record_tests {
+    #[test]
+    fn a_python_record_carries_the_executor_failure_and_nothing_for_an_exit() {
+        let argv = vec!["python".to_owned(), "-m".into(), "pytest".into()];
+        let mut exited = ici_execution::TaskOutcome::empty("project.python.test.suite");
+        exited.exit_code = Some(1);
+        let record = super::python_record("pytest", &argv, &exited);
+        assert_eq!(record["error"], "");
+        assert_eq!(record["returncode"], 1);
+        let mut failed = ici_execution::TaskOutcome::empty("project.python.test.suite");
+        failed.error = Some("cannot start process: No such file or directory (os error 2)".into());
+        let record = super::python_record("pytest", &argv, &failed);
+        assert_eq!(
+            record["error"],
+            "cannot start process: No such file or directory (os error 2)"
+        );
+    }
 }

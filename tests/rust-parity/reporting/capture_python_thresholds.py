@@ -7,7 +7,9 @@ HOME, PATH without tools, the capture interpreter with pytest and coverage) and 
 saved engine report with the project root as `<root>`. `breach`: branch coverage under the
 default minimum (TEM minimum lowered to 0.0), one `Threshold: Branch coverage` WARN target;
 `met`: every branch covered, no threshold target; `failure`: a failing test, which frozen
-`_threshold_breaches` never judges.
+`_threshold_breaches` never judges; `coverage-failure`: a `.coveragerc` naming a missing
+coverage plugin, so the `coverage pytest` process itself fails (exit 1) and frozen records it
+with an empty tool evidence `error`.
 """
 
 import json
@@ -37,18 +39,23 @@ EVERY = (
 FAILING = POSITIVE + '\n\ndef test_wrong():\n    assert classify(-1) == "pos"\n'
 CONFIG = "[engines.test]\nmin_tem_score = 0.0\n"
 CASES = {
-    "breach": HEADER + POSITIVE,
-    "met": HEADER + EVERY,
-    "failure": HEADER + FAILING,
+    "breach": (HEADER + POSITIVE, {}),
+    "met": (HEADER + EVERY, {}),
+    "failure": (HEADER + FAILING, {}),
+    "coverage-failure": (
+        HEADER + POSITIVE,
+        {".coveragerc": "[run]\nplugins = ici_missing_plugin\n"},
+    ),
 }
 
 
-def run_case(oracle, tests):
+def run_case(oracle, tests, extra):
     tree = {
         "ici.toml": CONFIG,
         "src/__init__.py": "",
         "src/calc.py": SOURCE,
         "tests/test_calc.py": tests,
+        **extra,
     }
     with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as temporary:
         base = Path(temporary).resolve() / "project"
@@ -80,7 +87,7 @@ def main():
         "oracle": "v0.13.0 6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188",
         "python": sys.version.split()[0],
         "interpreter": sys.executable,
-        "cases": {name: run_case(oracle, tests) for name, tests in CASES.items()},
+        "cases": {name: run_case(oracle, *case) for name, case in CASES.items()},
     }
     with output.open("w", encoding="utf-8") as stream:
         json.dump(document, stream, indent=1, sort_keys=True, ensure_ascii=False)

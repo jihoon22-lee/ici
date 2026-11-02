@@ -362,7 +362,7 @@ fn baseline_verify_compares_legacy_findings_and_pairs_sarif_baseline_states_like
 /// derives from each finding (`_rule_for_finding`, `_finding_properties`), each with its reason:
 /// (case, "rule" | "result", rule id, property). A result entry whose property starts with
 /// `Compiler:` applies only to the adapted compiler diagnostic (native tool rule `Compiler:…`).
-const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 26] = [
+const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 18] = [
     (
         "python",
         "rule",
@@ -488,65 +488,8 @@ const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 26] = [
         "ici.legacy.test.target",
         "confidence",
         NO_ESTIMATE,
-    ),
-    (
-        "python",
-        "rule",
-        "ici.legacy.test.target",
-        "properties.tool",
-        ACTUAL_RUN,
-    ),
-    (
-        "python",
-        "result",
-        "ici.legacy.test.target",
-        "tool",
-        ACTUAL_RUN,
-    ),
-    (
-        "hybrid",
-        "rule",
-        "ici.legacy.test.target",
-        "properties.tool",
-        ACTUAL_RUN,
-    ),
-    (
-        "hybrid",
-        "result",
-        "ici.legacy.test.target",
-        "tool",
-        ACTUAL_RUN,
-    ),
-    (
-        "baseline",
-        "rule",
-        "ici.legacy.test.target",
-        "properties.tool",
-        ACTUAL_RUN,
-    ),
-    (
-        "baseline",
-        "result",
-        "ici.legacy.test.target",
-        "tool",
-        ACTUAL_RUN,
-    ),
-    (
-        "baseline-fail-on-new",
-        "rule",
-        "ici.legacy.test.target",
-        "properties.tool",
-        ACTUAL_RUN,
-    ),
-    (
-        "baseline-fail-on-new",
-        "result",
-        "ici.legacy.test.target",
-        "tool",
-        ACTUAL_RUN,
     ),
 ];
-const ACTUAL_RUN: &str = "open (root decision proposed; legacy_result_allowances.rs NO_TESTS_RUN): without a tests directory native ran the coverage probe and pytest before the frozen no-tests verdict (frozen ran nothing), so the test engine's first tool record names the adapted finding";
 const ADR_0008: &str = "ADR-0008 allows only the fixed metadata probe, so the runtime evidence is named `python runtime metadata`, never frozen's `python -VV`";
 const NO_ESTIMATE: &str = "native never invents frozen's fixed `Line: 45.0% (est)` coverage for a suite without tests (recorded on test.py:611/774), so the test engine stays MEASURED (high) where frozen was ESTIMATED (medium)";
 

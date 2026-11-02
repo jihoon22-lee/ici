@@ -48,6 +48,10 @@ pub fn apply_legacy_coverage_defaults(
     }
 }
 
+/// The legacy Python test/coverage block of a project without a `tests` directory.
+pub const LEGACY_NO_TESTS_DIRECTORY: &str =
+    "legacy Python tests are not run: the project has no tests directory";
+
 pub struct BoundValidation {
     pub work: Work,
     pub plans: Vec<ValidationPlan>,
@@ -136,6 +140,19 @@ pub fn bind(
     };
     let legacy_command =
         request.legacy_profiles && project.schema_family == ici_config::SchemaFamily::Legacy;
+    // Frozen legacy `TestEngine._run_project_tests` marks zero tests (`_mark_zero_tests`) and
+    // runs no process when a Python project has no `tests` directory (decisions.md "tests
+    // 디렉터리가 없는 legacy Python test"): no interpreter, coverage probe or pytest.
+    if legacy_command
+        && matches!(
+            kind,
+            ValidationKind::PythonTest | ValidationKind::PythonCoverage
+        )
+        && component.files.iter().any(|file| file.ends_with(".py"))
+        && !project.root.join("tests").exists()
+    {
+        return Some(blocked(LEGACY_NO_TESTS_DIRECTORY));
+    }
     let mut selection_note = None;
     let mut prepend_bin = true;
     let tool = if matrix.is_empty() {

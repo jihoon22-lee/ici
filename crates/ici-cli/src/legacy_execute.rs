@@ -999,12 +999,20 @@ fn shape_engine(
             .find_map(|component| component.settings.pointer(&format!("/engines/{family}")))
             .cloned()
             .unwrap_or(serde_json::Value::Null);
+        let python_sources = prepared
+            .project
+            .components
+            .iter()
+            .flat_map(|component| &component.files)
+            .filter(|path| path.ends_with(".py"))
+            .count();
         replaced |= crate::legacy_extra::complete(
             family,
             value,
             &crate::legacy_extra::Context {
                 settings: &settings,
                 profile: quality_profile,
+                python_sources,
             },
         );
     }
@@ -1612,8 +1620,9 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
     .then(|| vec!["Python"])
 }
 
-/// Frozen `TestEngine` on a hybrid project whose pytest collected nothing and whose C++ facet has
-/// no runnable suite: `[Python] Tests` and, when C++ is in scope and `tests/` holds no `*.cpp`,
+/// Frozen `TestEngine` on a hybrid project whose pytest collected nothing (or did not run: no
+/// `tests` directory, `validation::LEGACY_NO_TESTS_DIRECTORY`) and whose C++ facet has no
+/// runnable suite: `[Python] Tests` and, when C++ is in scope and `tests/` holds no `*.cpp`,
 /// `[C++] Tests` are both "No tests collected" (a FAIL verdict, not missing evidence).
 fn hybrid_empty_pytest_suite(
     root: &Path,
@@ -1642,8 +1651,15 @@ fn hybrid_empty_pytest_suite(
         return None;
     }
     let mut alone = engine.clone();
+    let unrun = !python.is_empty()
+        && python.iter().all(|check| {
+            check["state"] == "BLOCKED"
+                && check["summary"] == crate::validation::LEGACY_NO_TESTS_DIRECTORY
+        });
     alone["extra"]["native_checks"] = serde_json::json!(python);
-    empty_pytest_suite(&alone)?;
+    if !unrun {
+        empty_pytest_suite(&alone)?;
+    }
     let mut languages = vec!["Python"];
     if cpp_scope && !tests_have_cpp_sources(root)? {
         languages.push("C++");

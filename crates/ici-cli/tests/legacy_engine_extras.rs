@@ -50,6 +50,8 @@ const EXTRAS: &str = include_str!("../../../tests/rust-parity/reporting/legacy-e
 const SARIF: &str = include_str!("../../../tests/rust-parity/reporting/legacy-sarif-oracle.json");
 const THRESHOLDS: &str =
     include_str!("../../../tests/rust-parity/reporting/python-threshold-oracle.json");
+const HYBRID_DUP: &str =
+    include_str!("../../../tests/rust-parity/reporting/hybrid-dup-oracle.json");
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Kind {
@@ -1019,13 +1021,20 @@ fn cpp_verify_sarif_equals_frozen_except_allowed() {
 /// the saved `ici test --report` of each case equals frozen's in full. Positive (`breach`): the
 /// one breached branch minimum is a `Threshold: Branch coverage` WARN target and the met TEM
 /// minimum adds none; negative (`met`): no threshold target; failure (`failure`): a failing test
-/// is never judged against the thresholds.
+/// is never judged against the thresholds; process failure (`coverage-failure`): the `coverage
+/// pytest` process fails (a missing coverage plugin) and its tool evidence, returncode 1 with
+/// the empty `error` of an exited process, equals frozen's.
 #[test]
 #[ignore = "explicit actual pytest and coverage interpreter, as captured (ICI_TEST_PYTHON)"]
 fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
     let oracle: Value = serde_json::from_str(THRESHOLDS).unwrap();
     let mut differences = vec![];
-    for (name, expected) in [("breach", 1), ("met", 0), ("failure", 0)] {
+    for (name, expected) in [
+        ("breach", 1),
+        ("met", 0),
+        ("failure", 0),
+        ("coverage-failure", 0),
+    ] {
         let case = &oracle["cases"][name];
         let (exits, native) = replay(
             &case["tree"],
@@ -1034,7 +1043,37 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
             "test_report.json",
             false,
         );
-        assert_eq!(exits, codes(&case["exit_code"]), "{name}: exit");
+        // decisions.md "legacy 종료 코드 3의 범위": the required test engine's evidence stays
+        // NOT_RUN, so native ends with 3 where frozen ended with 1.
+        let frozen_exit = codes(&case["exit_code"]);
+        let expected_exit = if name == "coverage-failure" {
+            vec![3]
+        } else {
+            frozen_exit.clone()
+        };
+        assert_eq!(
+            exits, expected_exit,
+            "{name}: exit (frozen {frozen_exit:?})"
+        );
+        let evidence = |report: &Value| -> Vec<(Value, Value, Value)> {
+            report["tool_evidence"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|record| {
+                    (
+                        record["name"].clone(),
+                        record["returncode"].clone(),
+                        record["error"].clone(),
+                    )
+                })
+                .collect()
+        };
+        assert_eq!(
+            evidence(&native),
+            evidence(&case["report"]),
+            "{name}: tool evidence"
+        );
         let thresholds: Vec<&Value> = native["targets"]
             .as_array()
             .unwrap()
@@ -1054,6 +1093,42 @@ fn python_coverage_threshold_breaches_equal_frozen_except_allowed() {
     }
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0.starts_with("thresholds"));
+}
+
+/// Frozen `DupEngine.run` verdict of a hybrid project (`capture_hybrid_dup.py`): one scan over
+/// both languages compared with `warn_pct`/`fail_pct`. Positive (`under`, `fail-alone`): the
+/// Python file alone crosses a threshold the merged rate does not, so the engine and its clone
+/// targets are PASS; negative (`merged`): the merged rate crosses `warn_pct`, WARN; `both`: clone
+/// groups in both languages are numbered and listed in frozen's one-scan order. Each saved `ici
+/// dup --report` equals frozen's in full.
+#[test]
+fn hybrid_dup_verdicts_equal_frozen_except_allowed() {
+    let oracle: Value = serde_json::from_str(HYBRID_DUP).unwrap();
+    let mut differences = vec![];
+    for (name, status) in [
+        ("under", "PASS"),
+        ("fail-alone", "PASS"),
+        ("merged", "WARN"),
+        ("both", "WARN"),
+    ] {
+        let case = &oracle["cases"][name];
+        let (exits, native) = replay(
+            &case["tree"],
+            &Value::Null,
+            &[vec!["dup".into(), "--report".into()]],
+            "dup_report.json",
+            false,
+        );
+        assert_eq!(exits, codes(&case["exit_code"]), "{name}: exit");
+        assert_eq!(native["status"], status, "{name}: verdict");
+        differences.extend(result_differences(
+            &format!("hybrid-dup/{name}"),
+            &case["report"],
+            &native,
+        ));
+    }
+    assert!(differences.is_empty(), "{}", differences.join("\n"));
+    assert_not_stale(|entry| entry.0.starts_with("hybrid-dup"));
 }
 
 /// Failure mode of the text and SARIF projections: a changed, missing or added line is reported

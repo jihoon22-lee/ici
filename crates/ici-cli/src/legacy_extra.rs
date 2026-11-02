@@ -17,10 +17,12 @@ const SEMANTIC_ALGORITHM: &str = "sha256/semantic-shape-v1";
 const SEMANTIC_SHAPE_POLICY: &str = "python-bounded-ast-shape-v1";
 const SEMANTIC_SHAPE_VERSION: &str = "semantic-shape-v1";
 
-/// Inputs of the completion: the engine's `[engines.<family>]` table and the profile name.
+/// Inputs of the completion: the engine's `[engines.<family>]` table, the profile name and the
+/// number of Python sources in scope (frozen `project_python_sources`).
 pub(crate) struct Context<'a> {
     pub settings: &'a Value,
     pub profile: &'a str,
+    pub python_sources: usize,
 }
 
 fn checks(engine: &Value) -> Vec<Value> {
@@ -78,7 +80,7 @@ pub(crate) fn complete(family: &str, engine: &mut Value, context: &Context<'_>) 
     match family {
         "type" => complete_type(engine, context),
         "sanitize" | "thread_sanitize" => complete_sanitize(family, engine),
-        "dup" => complete_dup(engine, context),
+        "dup" => return complete_dup(engine, context),
         "dead" => {
             complete_dead(engine, context);
             return dead_verdict(engine, context);
@@ -461,9 +463,9 @@ fn complete_sanitize(family: &str, engine: &mut Value) {
 /// Frozen `DupEngine.run`: the summary line, the algorithm/tokenizer/region/signal policy
 /// constants, and the semantic evidence of a project without Python sources
 /// (`_semantic_evidence(None, ...)`: mode `off` or `not-applicable`, all counters zero).
-fn complete_dup(engine: &mut Value, context: &Context<'_>) {
+fn complete_dup(engine: &mut Value, context: &Context<'_>) -> bool {
     let policy = setting(context, "python_semantic").unwrap_or("auto");
-    merge_dup_checks(engine);
+    let replaced = merge_dup_checks(engine, context);
     let extra = &mut engine["extra"];
     if extra.get("python_semantic_mode").is_none() {
         let mode = if policy == "off" {
@@ -526,22 +528,23 @@ fn complete_dup(engine: &mut Value, context: &Context<'_>) {
     ) {
         extra["metrics_summary"] = json!(format!("Duplication: {rate:.1}% ({groups} groups)"));
     }
+    replaced
 }
 
 /// Frozen `DupEngine.run` is one scan over every language: with a Python and a C++ check the
 /// engine's counters are their sums (`duplication_pct` = duplicated over total code lines), the
 /// semantic evidence is the Python check's, and the shared provenance/algorithm stay. Byte and
-/// exclusion counters are summed only when every check measured them; clone groups are kept
-/// only when at most one language reported any (frozen's cross-language group order is not
-/// reconstructed).
-fn merge_dup_checks(engine: &mut Value) {
+/// exclusion counters are summed only when every check measured them; clone groups of both
+/// languages are renumbered in frozen's one-scan order (`frozen_clone_groups`). The verdict is frozen's over the merged rate (`dup_verdict`); returns
+/// whether it replaced the native one.
+fn merge_dup_checks(engine: &mut Value, context: &Context<'_>) -> bool {
     let checks = checks(engine);
     let blocks: Vec<&Value> = ["python.dup", "cpp.dup"]
         .iter()
         .filter_map(|id| check(&checks, id))
         .collect();
     if blocks.len() < 2 {
-        return;
+        return false;
     }
     let extra = &mut engine["extra"];
     let sum = |key: &str| -> Option<u64> {
@@ -589,18 +592,27 @@ fn merge_dup_checks(engine: &mut Value) {
         .filter_map(|block| block["clone_groups"].as_array())
         .filter(|groups| !groups.is_empty())
         .collect();
-    if groups.len() <= 1 && blocks.iter().all(|block| block["clone_groups"].is_array()) {
-        insert_absent(
-            extra,
-            "clone_groups",
-            json!(
-                groups
-                    .first()
-                    .map(|groups| (*groups).clone())
-                    .unwrap_or_default()
-            ),
-        );
-    }
+    let renumbered = if blocks.iter().all(|block| block["clone_groups"].is_array()) {
+        if groups.len() <= 1 {
+            insert_absent(
+                extra,
+                "clone_groups",
+                json!(
+                    groups
+                        .first()
+                        .map(|groups| (*groups).clone())
+                        .unwrap_or_default()
+                ),
+            );
+            None
+        } else {
+            let (merged, numbers) = frozen_clone_groups(&checks);
+            insert_absent(extra, "clone_groups", json!(merged));
+            Some(numbers)
+        }
+    } else {
+        None
+    };
     for key in ["analysis_provenance", "fingerprint_algorithm"] {
         if blocks.iter().all(|block| block[key] == blocks[0][key]) && !blocks[0][key].is_null() {
             insert_absent(extra, key, blocks[0][key].clone());
@@ -614,16 +626,16 @@ fn merge_dup_checks(engine: &mut Value) {
         }
     }
     if matches!(engine["status"].as_str(), Some("ERROR" | "SKIP")) {
-        return;
+        return false;
     }
+    let mut replaced = false;
     // `score=dup_pct` and the summary over the merged scan (the rate is a float; the group count
-    // includes the Python AST-shape groups). The verdict stays each check's own: frozen compares
-    // the merged rate with `warn_pct`/`fail_pct` and realigns the clone targets, which differs
-    // only when one language alone crosses a threshold the merged rate does not.
+    // includes the Python AST-shape groups), and frozen's verdict over that rate.
     if let (Some(rate), Some(groups)) = (
         engine["extra"]["duplication_pct"].as_f64(),
         engine["extra"]["clone_groups_count"].as_u64(),
     ) {
+        replaced = dup_verdict(engine, context, rate);
         let semantic = engine["extra"]["python_semantic_groups_reported"]
             .as_u64()
             .unwrap_or(0);
@@ -635,9 +647,21 @@ fn merge_dup_checks(engine: &mut Value) {
     }
     // Frozen appends a `DuplicateScan` target for every unrepresented file of the one scan in
     // its path order (`ordered_sources`), after the clone and semantic targets; the checks list
-    // them per language. The clone targets keep their check order (frozen's cross-language
-    // cluster order is not reconstructed).
+    // them per language. With clone groups in both languages the groups are renumbered in
+    // frozen's one-scan order and their targets follow it.
+    if let Some(numbers) = &renumbered {
+        renumber_clone_targets(engine, numbers);
+    }
     let targets = targets(engine);
+    let group = |index: usize| -> u64 {
+        if renumbered.is_some() {
+            targets[index]["metrics"]["clone_group"]
+                .as_u64()
+                .unwrap_or(0)
+        } else {
+            0
+        }
+    };
     let mut order: Vec<usize> = (0..targets.len()).collect();
     order.sort_by(|left, right| {
         let scan = |index: &usize| targets[*index]["target_name"] == "DuplicateScan";
@@ -645,10 +669,188 @@ fn merge_dup_checks(engine: &mut Value) {
             (true, true) => targets[*left]["file_path"]
                 .as_str()
                 .cmp(&targets[*right]["file_path"].as_str()),
+            (false, false) => group(*left).cmp(&group(*right)),
             (left, right) => left.cmp(&right),
         }
     });
     reorder_targets(engine, &order);
+    replaced
+}
+
+/// Frozen one-scan clone groups (`cluster_matches` then `_cluster_python_semantic_regions`):
+/// every language's lexical groups ordered by (longest match, most occurrences, occurrence
+/// locations) and numbered from 1, then the Python AST-shape groups numbered after them in
+/// their own order. Returns the groups and the renumbering `(check_id, old id) -> new id`.
+fn frozen_clone_groups(checks: &[Value]) -> (Vec<Value>, Vec<(String, u64, u64)>) {
+    let mut lexical = vec![];
+    let mut semantic = vec![];
+    for id in ["python.dup", "cpp.dup"] {
+        let Some(block) = check(checks, id) else {
+            continue;
+        };
+        for group in block["clone_groups"].as_array().into_iter().flatten() {
+            if group["detection"] == "type2-lexical-region" {
+                lexical.push((id, group.clone()));
+            } else {
+                semantic.push((id, group.clone()));
+            }
+        }
+    }
+    let locations = |group: &Value| -> Vec<(String, u64, u64)> {
+        group["occurrences"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|occurrence| {
+                (
+                    occurrence["file_path"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_owned(),
+                    occurrence["start_line"].as_u64().unwrap_or(0),
+                    occurrence["end_line"].as_u64().unwrap_or(0),
+                )
+            })
+            .collect()
+    };
+    lexical.sort_by(|(_, left), (_, right)| {
+        let size = |group: &Value| {
+            (
+                std::cmp::Reverse(group["lines_count"].as_u64().unwrap_or(0)),
+                std::cmp::Reverse(group["occurrences_count"].as_u64().unwrap_or(0)),
+            )
+        };
+        size(left)
+            .cmp(&size(right))
+            .then_with(|| locations(left).cmp(&locations(right)))
+    });
+    semantic.sort_by_key(|(_, group)| group["id"].as_u64().unwrap_or(0));
+    let mut merged = vec![];
+    let mut numbers = vec![];
+    for (index, (id, mut group)) in lexical.into_iter().chain(semantic).enumerate() {
+        let number = index as u64 + 1;
+        numbers.push(((*id).to_owned(), group["id"].as_u64().unwrap_or(0), number));
+        group["id"] = json!(number);
+        merged.push(group);
+    }
+    (merged, numbers)
+}
+
+/// Rename the clone targets (`CloneGroup#<n>`, `metrics.clone_group`) and their adapted findings
+/// (`primary_location.label`, `metrics.clone_group`) by `numbers`; a target's check is its
+/// native target scope's task.
+fn renumber_clone_targets(engine: &mut Value, numbers: &[(String, u64, u64)]) {
+    let checks = checks(engine);
+    let check_of = |task: &Value| {
+        checks
+            .iter()
+            .find(|check| &check["task_id"] == task)
+            .and_then(|check| check["check_id"].as_str())
+            .map(str::to_owned)
+    };
+    let scopes = engine["extra"]["target_scopes"].clone();
+    let mut renamed = vec![];
+    if let Some(targets) = engine["targets"].as_array_mut() {
+        for (index, target) in targets.iter_mut().enumerate() {
+            let Some(old) = target["metrics"]["clone_group"].as_u64() else {
+                continue;
+            };
+            let Some(owner) = scopes
+                .as_array()
+                .into_iter()
+                .flatten()
+                .find(|scope| scope["target_index"].as_u64() == Some(index as u64))
+                .and_then(|scope| check_of(&scope["task_id"]))
+            else {
+                continue;
+            };
+            let Some((_, _, new)) = numbers
+                .iter()
+                .find(|(check, id, _)| *check == owner && *id == old)
+            else {
+                continue;
+            };
+            let previous = target["target_name"].clone();
+            target["target_name"] = json!(format!("CloneGroup#{new}"));
+            target["metrics"]["clone_group"] = json!(new);
+            renamed.push((
+                target["file_path"].clone(),
+                target["start_line"].clone(),
+                previous,
+                *new,
+            ));
+        }
+    }
+    if let Some(findings) = engine["findings"].as_array_mut() {
+        for finding in findings.iter_mut() {
+            let location = &finding["primary_location"];
+            let Some((_, _, _, new)) = renamed.iter().find(|(path, line, label, _)| {
+                &location["path"] == path
+                    && &location["start_line"] == line
+                    && &location["label"] == label
+            }) else {
+                continue;
+            };
+            let new = *new;
+            finding["primary_location"]["label"] = json!(format!("CloneGroup#{new}"));
+            if finding["metrics"]["clone_group"].is_object() {
+                finding["metrics"]["clone_group"]["value"] = json!(new);
+            }
+        }
+    }
+}
+
+/// Frozen `DupEngine.run` verdict of the one scan: `evaluate_status(rate > fail_pct, rate >
+/// warn_pct, mode)`; under both thresholds the WARN clone targets become PASS (their findings
+/// `info`), so one language crossing a threshold alone does not decide the engine. Returns
+/// whether the native verdict or a target changed.
+fn dup_verdict(engine: &mut Value, context: &Context<'_>, rate: f64) -> bool {
+    let number = |key: &str, default: f64| {
+        context
+            .settings
+            .get(key)
+            .and_then(Value::as_f64)
+            .unwrap_or(default)
+    };
+    let fail = rate > number("fail_pct", 15.0);
+    let warn = rate > number("warn_pct", 5.0);
+    let status = evaluate_status(fail, warn, setting(context, "mode").unwrap_or("pass_warn"));
+    let mut changed = engine["status"] != status;
+    engine["status"] = json!(status);
+    if fail || warn {
+        return changed;
+    }
+    let mut realigned = vec![];
+    if let Some(targets) = engine["targets"].as_array_mut() {
+        for target in targets
+            .iter_mut()
+            .filter(|target| target["status"] == "WARN")
+        {
+            target["status"] = json!("PASS");
+            realigned.push((
+                target["file_path"].clone(),
+                target["start_line"].clone(),
+                target["target_name"].clone(),
+                target["message"].clone(),
+            ));
+        }
+    }
+    if let Some(findings) = engine["findings"].as_array_mut() {
+        for finding in findings.iter_mut() {
+            let location = &finding["primary_location"];
+            let key = (
+                location["path"].clone(),
+                location["start_line"].clone(),
+                location["label"].clone(),
+                finding["message"].clone(),
+            );
+            if realigned.contains(&key) {
+                finding["severity"] = json!("info");
+            }
+        }
+    }
+    changed |= !realigned.is_empty();
+    changed
 }
 
 /// Keep the engine's targets listed in `order` (old indices, in their new order) and keep the
@@ -999,9 +1201,145 @@ fn frozen_coverage_policy(engine: &mut Value) {
     }
 }
 
+/// Frozen-key shape of a measured legacy Python coverage result (decisions.md "측정된 legacy
+/// Python coverage 결과의 native 키" and "statement가 없는 파일의 coverage_files 비율"):
+/// * `coverage_files`: a file without statements has frozen's `cover` 100.0 (frozen
+///   `_python_coverage_rows`; coverage.py reports the same percentage), rows in frozen's
+///   (cover, file) order;
+/// * `coverage_policy`, `coverage_totals` and `test_quality` keep only frozen's keys and
+///   `coverage_provenance` is frozen's `python`/`scope` shape. The native values stay in the
+///   native checks' own blocks (`native_checks[].extra`, decisions.md "legacy `extra` 안 native
+///   증거 키"), which keep them under native names.
+fn frozen_python_coverage(engine: &mut Value) {
+    let extra = &mut engine["extra"];
+    if let Some(rows) = extra
+        .get_mut("coverage_files")
+        .and_then(Value::as_array_mut)
+    {
+        for row in rows.iter_mut() {
+            if row["cover"].is_null() && row["stmts"].as_u64() == Some(0) {
+                row["cover"] = json!(100.0);
+            }
+        }
+        rows.sort_by(|left, right| {
+            let cover = |row: &Value| row["cover"].as_f64().unwrap_or(f64::NEG_INFINITY);
+            cover(left)
+                .total_cmp(&cover(right))
+                .then_with(|| left["file"].as_str().cmp(&right["file"].as_str()))
+        });
+    }
+    let keep = |extra: &mut Value, name: &str, keys: &[&str]| {
+        if let Some(fields) = extra.get_mut(name).and_then(Value::as_object_mut) {
+            fields.retain(|key, _| keys.contains(&key.as_str()));
+        }
+    };
+    keep(
+        extra,
+        "coverage_policy",
+        &["metrics", "files", "regression_tolerance"],
+    );
+    keep(
+        extra,
+        "coverage_totals",
+        &["stmts", "miss", "cover", "branch_cover"],
+    );
+    if let Some(quality) = extra.get_mut("test_quality").and_then(Value::as_object_mut) {
+        quality.remove("evidence");
+        quality.remove("repeat_observations");
+    }
+    // Measured coverage only (`coverage_totals`); an unmeasured run keeps frozen's scope alone.
+    let present = |key: &str| extra.get(key).is_some_and(Value::is_object);
+    if present("coverage_provenance") && present("coverage_totals") {
+        let mut sources: Vec<Value> = extra["coverage_files"]
+            .as_array()
+            .map(|rows| rows.iter().map(|row| row["file"].clone()).collect())
+            .unwrap_or_default();
+        sources.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+        // Frozen measured coverage only when coverage.py's files equal the discovered Python
+        // sources (`parse_coverage_json` expected files), so every count is the row count.
+        let count = sources.len();
+        extra["coverage_provenance"] = json!({
+            "python": {
+                "format": "coverage.py-json", "expected_sources": count,
+                "covered_sources": count, "function_geometry": "python-ast",
+                "source_mapping": "project-relative-exact",
+            },
+            "scope": frozen_coverage_scope(sources, count),
+        });
+    }
+}
+
+/// Frozen `TestEngine.run` of a Python project whose suite did not complete (a failed coverage
+/// or pytest process without parseable results): the counters of a run that measured nothing,
+/// no coverage rows, the empty quality block and the coverage scope over the discovered Python
+/// sources. Frozen's estimated coverage, TEM, score and metrics summary stay absent (validation
+/// .json finding_site:src/ici/engines/test.py:352:12, no fabricated values).
+fn frozen_incomplete_python_run(engine: &mut Value, context: &Context<'_>) {
+    let checks = checks(engine);
+    let python = !checks.is_empty()
+        && checks.iter().all(|check| {
+            check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("python."))
+        });
+    let unmeasured = checks
+        .iter()
+        .any(|check| check["check_id"] == "python.test" && check["state"] != "SUCCEEDED");
+    if !python || !unmeasured || engine["extra"].get("passed_tests").is_some() {
+        return;
+    }
+    let quality = frozen_quality(None, context.profile);
+    let extra = &mut engine["extra"];
+    for (key, value) in [
+        ("passed_tests", json!(0)),
+        ("total_tests", json!(0)),
+        ("skipped_tests", json!(0)),
+        ("pass_rate", json!(0.0)),
+        ("line_coverage", Value::Null),
+        ("coverage_files", json!([])),
+        ("function_rows", json!([])),
+        ("coverage_totals", Value::Null),
+        ("coverage_policy", Value::Null),
+        ("quality_enabled", json!(false)),
+    ] {
+        extra[key] = value;
+    }
+    for (key, value) in quality.as_object().into_iter().flatten() {
+        if !matches!(key.as_str(), "enabled" | "mode" | "profile") {
+            extra[key] = value.clone();
+        }
+    }
+    extra["test_quality"] = quality;
+    insert_absent(extra, "test_suites", json!([]));
+    extra["coverage_provenance"] = json!({
+        "scope": frozen_coverage_scope(vec![], context.python_sources),
+    });
+}
+
+/// Frozen `_record_coverage_scope` of a project without C++ sources.
+fn frozen_coverage_scope(included: Vec<Value>, python_sources: usize) -> Value {
+    json!({
+        "included_sources": included,
+        "excluded_entry_points": [],
+        "exclusion_rules": [
+            {"kind": "tests",
+             "basis": "tests are execution inputs, not production coverage sources"},
+            {"kind": "generated-vendor-cache",
+             "basis": "bounded project source discovery excludes ignored directories"},
+            {"kind": "entry-point",
+             "basis": "C++ main definitions are excluded from the test-link coverage set"},
+        ],
+        "python_context": "aggregate-project-suite",
+        "cpp_context": "aggregate-test-binaries",
+        "discovered_python_sources": python_sources,
+        "discovered_cpp_sources": 0,
+    })
+}
+
 fn complete_test(engine: &mut Value, context: &Context<'_>) {
     if engine["extra"].get("no_tests_collected").is_none() {
         complete_optional_coverage(engine, context.profile);
+        frozen_incomplete_python_run(engine, context);
         let python = has_checks(engine, &["python.test"]);
         if python {
             // In target (pytest execution) order. The threshold breaches are not test cases
@@ -1026,6 +1364,7 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
         }
         if has_checks(engine, &["python.coverage"]) && !has_checks(engine, &["cpp.coverage"]) {
             frozen_coverage_policy(engine);
+            frozen_python_coverage(engine);
         }
         return;
     }
@@ -1205,6 +1544,7 @@ mod hybrid_tests {
         Context {
             settings,
             profile: "",
+            python_sources: 0,
         }
     }
 
@@ -1428,7 +1768,13 @@ mod hybrid_tests {
         value["extra"]["target_scopes"] = json!([
             {"target_index": 0, "task_id": "p"}, {"target_index": 1, "task_id": "p"},
             {"target_index": 2, "task_id": "c"}]);
-        merge_dup_checks(&mut value);
+        let settings = json!({});
+        let context = Context {
+            settings: &settings,
+            profile: "",
+            python_sources: 0,
+        };
+        merge_dup_checks(&mut value, &context);
         let paths: Vec<&str> = value["targets"]
             .as_array()
             .unwrap()
@@ -1462,7 +1808,145 @@ mod hybrid_tests {
             .as_object_mut()
             .unwrap()
             .remove("duplication_pct");
-        merge_dup_checks(&mut errored);
+        merge_dup_checks(&mut errored, &context);
         assert!(errored["score"].is_null());
+    }
+
+    #[test]
+    fn measured_python_coverage_keeps_frozen_keys_and_the_empty_file_row() {
+        let mut value = engine("test", &[], json!([]));
+        value["extra"] = json!({
+            "coverage_files": [
+                {"file": "src/calc.py", "stmts": 6, "cover": 50.0},
+                {"file": "src/__init__.py", "stmts": 0, "cover": null}],
+            "coverage_policy": {"metrics": {}, "files": {}, "regression_tolerance": null,
+                "raw_files": {}, "schema_id": "ici.coverage-policy"},
+            "coverage_totals": {"stmts": 6, "miss": 3, "cover": 50.0, "branch_cover": 25.0,
+                "nb": 4, "cb": 1, "covered": 3, "functions": null, "covered_functions": null},
+            "coverage_provenance": {"format": "coverage.py-json", "included_sources": []},
+            "test_quality": {"enabled": false, "evidence": "NOT_SELECTED",
+                "repeat_observations": []}});
+        frozen_python_coverage(&mut value);
+        let extra = &value["extra"];
+        // coverage.py reports 100.0 for a file without statements; (cover, file) order.
+        assert_eq!(extra["coverage_files"][0]["file"], "src/calc.py");
+        assert_eq!(extra["coverage_files"][1]["cover"], json!(100.0));
+        assert_eq!(
+            extra["coverage_policy"],
+            json!({"metrics": {}, "files": {}, "regression_tolerance": null})
+        );
+        assert_eq!(
+            extra["coverage_totals"],
+            json!({"stmts": 6, "miss": 3, "cover": 50.0, "branch_cover": 25.0})
+        );
+        assert_eq!(extra["test_quality"], json!({"enabled": false}));
+        assert_eq!(
+            extra["coverage_provenance"]["python"]["expected_sources"],
+            json!(2)
+        );
+        assert_eq!(
+            extra["coverage_provenance"]["scope"]["included_sources"],
+            json!(["src/__init__.py", "src/calc.py"])
+        );
+        // An unmeasured run (no totals) keeps its scope-only provenance.
+        let mut unmeasured = engine("test", &[], json!([]));
+        unmeasured["extra"] = json!({"coverage_totals": null,
+            "coverage_provenance": {"scope": {"included_sources": []}}});
+        let before = unmeasured.clone();
+        frozen_python_coverage(&mut unmeasured);
+        assert_eq!(unmeasured, before);
+    }
+
+    #[test]
+    fn hybrid_dup_clone_groups_of_both_languages_follow_the_one_scan_order() {
+        let group = |id: u64, detection: &str, lines: u64, path: &str, start: u64| {
+            json!({"id": id, "detection": detection, "lines_count": lines,
+                "occurrences_count": 2, "occurrences": [
+                    {"file_path": path, "start_line": start, "end_line": start + lines},
+                    {"file_path": path, "start_line": start + 20, "end_line": start + 20 + lines}]})
+        };
+        let checks = vec![
+            json!({"check_id": "python.dup", "extra": {"clone_groups": [
+                group(1, "type2-lexical-region", 7, "src/d.py", 2),
+                group(2, "python-ast-semantic-shape", 8, "src/d.py", 1)]}}),
+            json!({"check_id": "cpp.dup", "extra": {"clone_groups": [
+                group(1, "type2-lexical-region", 11, "src/l.cpp", 45)]}}),
+        ];
+        let (merged, numbers) = frozen_clone_groups(&checks);
+        let ids: Vec<(u64, &str)> = merged
+            .iter()
+            .map(|group| {
+                (
+                    group["id"].as_u64().unwrap(),
+                    group["occurrences"][0]["file_path"].as_str().unwrap(),
+                )
+            })
+            .collect();
+        // The longer C++ lexical group first, the Python lexical, then the AST shape.
+        assert_eq!(ids, [(1, "src/l.cpp"), (2, "src/d.py"), (3, "src/d.py")]);
+        assert_eq!(
+            numbers,
+            [
+                ("cpp.dup".to_owned(), 1, 1),
+                ("python.dup".to_owned(), 1, 2),
+                ("python.dup".to_owned(), 2, 3)
+            ]
+        );
+    }
+
+    #[test]
+    fn hybrid_dup_verdict_is_the_merged_rate_against_the_thresholds() {
+        let block = |lines: u64, total: u64| {
+            json!({"clone_groups_count": u64::from(lines > 0), "duplicated_lines": lines,
+                "total_code_lines": total, "clone_groups": []})
+        };
+        let hybrid = || {
+            let mut value = engine(
+                "dup",
+                &[],
+                json!([
+                    {"file_path": "src/d.py", "start_line": 1, "target_name": "CloneGroup#1",
+                     "status": "WARN", "message": "clone"},
+                    {"file_path": "src/a.cpp", "start_line": 1, "target_name": "DuplicateScan",
+                     "status": "PASS", "message": "scan"}]),
+            );
+            value["status"] = json!("WARN");
+            value["findings"] = json!([
+                {"primary_location": {"path": "src/d.py", "start_line": 1,
+                    "label": "CloneGroup#1"}, "message": "clone", "severity": "medium"},
+                {"primary_location": {"path": "src/a.cpp", "start_line": 1,
+                    "label": "DuplicateScan"}, "message": "scan", "severity": "info"}]);
+            // Python alone 8/16 = 50%, the one scan 8/100 = 8%.
+            value["extra"]["native_checks"] = json!([
+                {"check_id": "python.dup", "extra": block(8, 16)},
+                {"check_id": "cpp.dup", "extra": block(0, 84)}]);
+            value
+        };
+        let run = |settings: Value| {
+            let mut value = hybrid();
+            let context = Context {
+                settings: &settings,
+                profile: "",
+                python_sources: 0,
+            };
+            let replaced = merge_dup_checks(&mut value, &context);
+            (replaced, value)
+        };
+        // Under both thresholds: PASS, the clone target and its finding realigned.
+        let (replaced, value) = run(json!({"warn_pct": 40.0, "fail_pct": 90.0}));
+        assert!(replaced);
+        assert_eq!(value["status"], "PASS");
+        assert_eq!(value["targets"][0]["status"], "PASS");
+        assert_eq!(value["findings"][0]["severity"], "info");
+        // The merged rate crosses warn_pct: WARN stays, targets untouched.
+        let (replaced, value) = run(json!({"warn_pct": 5.0, "fail_pct": 90.0}));
+        assert!(!replaced);
+        assert_eq!(value["status"], "WARN");
+        assert_eq!(value["findings"][0]["severity"], "medium");
+        // Over fail_pct under pass_warn_fail: FAIL, though no language check failed.
+        let (replaced, value) = run(json!({"warn_pct": 2.0, "fail_pct": 6.0,
+            "mode": "pass_warn_fail"}));
+        assert!(replaced);
+        assert_eq!(value["status"], "FAIL");
     }
 }
