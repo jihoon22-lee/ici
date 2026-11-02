@@ -348,6 +348,28 @@ pub fn execute(
                             prepared.legacy_projection,
                         )
                     {
+                        // Frozen `_run_cpp_tests_via_adapter` keeps the failed session's
+                        // evidence: the backend selection and the processes it ran.
+                        if prepared.legacy_projection
+                            && let Some(processes) = observed
+                                .extra
+                                .get("process_evidence")
+                                .and_then(serde_json::Value::as_array)
+                            && let Some(component) = prepared
+                                .project
+                                .components
+                                .iter()
+                                .find(|component| component.id == plan.component_id)
+                        {
+                            output.extra["tool_evidence"] =
+                                crate::cpp::legacy_build_session_evidence(
+                                    &prepared.project.root,
+                                    &component.root,
+                                    &plan.build.system,
+                                    &plan.descriptor,
+                                    processes,
+                                );
+                        }
                         if let Err(redaction) = crate::execute::redact(&mut output) {
                             limitations.push(format!("test build evidence redaction: {redaction}"));
                         } else {

@@ -173,6 +173,38 @@ pub fn legacy_direct_tests(output: &mut AnalysisOutput, failures: &BTreeMap<Stri
         target.target_name = format!("[C++] {name}");
         target.message = message;
     }
+    adapt_test_findings(output);
+}
+
+/// Frozen findings of a C++ test engine are its targets (`findings_for_result`): a native
+/// finding at a renamed `[C++]` target's source and line names that target's message, so the
+/// legacy projection adapts it into the target's own row instead of adding a second finding.
+fn adapt_test_findings(output: &mut AnalysisOutput) {
+    let messages: BTreeMap<(String, u32), String> = output
+        .targets
+        .iter()
+        .filter(|target| target.target_name.starts_with("[C++] "))
+        .map(|target| {
+            (
+                (target.file_path.clone(), target.start_line),
+                target.message.clone(),
+            )
+        })
+        .collect();
+    for finding in &output.observation.findings {
+        let location = &finding.primary_location;
+        let Some(message) = messages.get(&(location.path.clone(), location.start_line)) else {
+            continue;
+        };
+        if !output.extra["finding_details"].is_object() {
+            output.extra["finding_details"] = json!({});
+        }
+        let detail = &mut output.extra["finding_details"][&finding.fingerprint];
+        if !detail.is_object() {
+            *detail = json!({});
+        }
+        detail["legacy_message"] = json!(message);
+    }
 }
 
 /// A failed build of the test/coverage variant as the test check's verdict: one FAIL target at
@@ -681,4 +713,382 @@ pub fn make_check_cases(output: &AnalysisOutput) -> Vec<Value> {
         .flatten()
         .cloned()
         .collect()
+}
+
+/// Frozen `TestEngine.run` extra keys of a legacy C++ test run, from the native checks'
+/// measurements (decisions.md "측정된 legacy Python coverage 결과의 native 키" applied to the
+/// C++ facet): frozen objects keep only frozen keys, the native values stay in the native
+/// checks' own blocks (`native_checks[].extra`, decisions.md "legacy `extra` 안 native 증거 키").
+/// * `test_suites`: frozen `_build_test_suites` over the legacy `[C++]` targets (threshold
+///   breaches are not test cases, validation.json `test_quality.py:87:16`);
+/// * `branch_coverage`: frozen `_measure_coverage` reads 100.0 for a measured run without a
+///   branch (`elif totals and self._coverage_measured`), and the summary shows it;
+/// * `coverage_policy`/`coverage_totals`/`function_rows`/`test_quality`: frozen keys only;
+/// * `coverage_provenance`: frozen `cpp` (the consumed gcov JSON tally, when measured) and
+///   `scope` (`_record_coverage_scope`).
+pub(crate) fn frozen_cpp_test_extra(
+    engine: &mut Value,
+    context: &crate::legacy_extra::Context<'_>,
+) {
+    let targets = crate::legacy_extra::targets(engine);
+    let cases: Vec<Value> = targets
+        .iter()
+        .filter(|target| {
+            !target["target_name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with("Threshold: "))
+        })
+        .cloned()
+        .collect();
+    let coverage: Option<Value> = crate::legacy_extra::checks(engine)
+        .iter()
+        .filter(|check| check["check_id"] == "cpp.coverage")
+        .flat_map(|check| {
+            crate::legacy_extra::check_blocks(check)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>()
+        })
+        .next();
+    // Frozen `_result_summary` of an ERROR run: the first three tool errors, which the direct
+    // g++ path records per test executable that did not complete (`_run_cpp_test_case`).
+    let tool_errors: Vec<String> = cases
+        .iter()
+        .filter(|target| target["status"] == "ERROR")
+        .filter_map(|target| {
+            let name = target["target_name"].as_str()?.strip_prefix("[C++] ")?;
+            let prefix = match target["message"].as_str()? {
+                "Test process terminated before reporting results" => {
+                    "C++ test process terminated before reporting results"
+                }
+                "Execution output was incomplete" => "C++ test execution incomplete",
+                "Compiler process terminated before reporting results" => {
+                    "C++ test compilation terminated before reporting results"
+                }
+                "Compilation output was incomplete" => "C++ test compilation incomplete",
+                _ => return None,
+            };
+            Some(format!("{prefix}: {name}"))
+        })
+        .collect();
+    if engine["status"] == "ERROR" && !tool_errors.is_empty() {
+        engine["summary"] = json!(tool_errors[..tool_errors.len().min(3)].join("; "));
+    }
+    let extra = &mut engine["extra"];
+    extra["test_suites"] = json!(crate::legacy_extra::frozen_test_suites(&cases));
+    if extra.get("passed_tests").is_none() {
+        // A run without measured coverage: frozen `TestEngine.run` still writes the counts of
+        // the executed `[C++]` cases, the empty quality block and empty coverage rows; its
+        // estimated coverage, TEM and metrics summary stay absent (validation.json
+        // `test.py:352:12`, no fabricated values).
+        let runs: Vec<&Value> = cases
+            .iter()
+            .filter(|target| {
+                target["target_name"].as_str().is_some_and(|name| {
+                    name.starts_with("[C++] ") && name != "[C++] build" && name != "[C++] Tests"
+                })
+            })
+            .collect();
+        let count = |status: &str| -> u64 {
+            runs.iter()
+                .filter(|target| target["status"] == status)
+                .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
+                .sum()
+        };
+        let total: u64 = runs
+            .iter()
+            .map(|target| target["metrics"]["test_cases"].as_u64().unwrap_or(1))
+            .sum();
+        let passed = count("PASS");
+        let quality = crate::legacy_extra::frozen_quality(None, context.profile);
+        extra["passed_tests"] = json!(passed);
+        extra["total_tests"] = json!(total);
+        extra["skipped_tests"] = json!(count("SKIP"));
+        extra["line_coverage"] = Value::Null;
+        extra["coverage_files"] = json!([]);
+        extra["function_rows"] = json!([]);
+        extra["coverage_totals"] = Value::Null;
+        extra["coverage_policy"] = Value::Null;
+        extra["quality_enabled"] = json!(false);
+        for (key, value) in quality.as_object().into_iter().flatten() {
+            if !matches!(key.as_str(), "enabled" | "mode" | "profile") {
+                extra[key] = value.clone();
+            }
+        }
+        extra["test_quality"] = quality;
+    }
+    if let Some(quality) = extra.get_mut("test_quality").and_then(Value::as_object_mut) {
+        quality.remove("evidence");
+        quality.remove("repeat_observations");
+        quality
+            .entry("profile")
+            .or_insert_with(|| json!(context.profile));
+    }
+    if let Some(rows) = extra.get_mut("function_rows").and_then(Value::as_array_mut) {
+        for row in rows.iter_mut().filter_map(Value::as_object_mut) {
+            row.remove("native_columns");
+        }
+    }
+    // Frozen `calculate_tem` always computes a score in the legacy engine (an estimate stands
+    // in for unmeasured coverage), so `pass_rate` is `tem.calculate`'s `round(pass_rate, 4)`.
+    let (passed, total) = (
+        extra["passed_tests"].as_u64().unwrap_or(0),
+        extra["total_tests"].as_u64().unwrap_or(0),
+    );
+    if passed <= total {
+        let rate = if total == 0 {
+            0.0
+        } else {
+            passed as f64 / total as f64
+        };
+        extra["pass_rate"] = json!(format!("{rate:.4}").parse::<f64>().unwrap_or(rate));
+    }
+    let measured = extra.get("coverage_totals").is_some_and(Value::is_object);
+    if measured && extra["branch_coverage"].is_null() {
+        extra["branch_coverage"] = json!(100.0);
+    }
+    if let Some(totals) = extra
+        .get_mut("coverage_totals")
+        .and_then(Value::as_object_mut)
+    {
+        totals.retain(|key, _| matches!(key.as_str(), "stmts" | "miss" | "cover" | "branch_cover"));
+    }
+    if let Some(policy) = extra
+        .get_mut("coverage_policy")
+        .and_then(Value::as_object_mut)
+    {
+        policy
+            .retain(|key, _| matches!(key.as_str(), "metrics" | "files" | "regression_tolerance"));
+    }
+    let branch = extra["branch_coverage"].as_f64();
+    let included: Vec<Value> = {
+        let mut files: Vec<Value> = extra["coverage_files"]
+            .as_array()
+            .map(|rows| rows.iter().map(|row| row["file"].clone()).collect())
+            .unwrap_or_default();
+        files.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
+        files
+    };
+    let entry_points: Vec<Value> = context
+        .cpp_sources
+        .iter()
+        .filter(|path| {
+            std::fs::read(context.root.join(path)).is_ok_and(|bytes| {
+                ici_cpp::legacy_main_definition_count(&ici_domain::SourceInput {
+                    path: (*path).clone(),
+                    bytes,
+                })
+                .is_ok_and(|count| count > 0)
+            })
+        })
+        .map(|path| json!(path))
+        .collect();
+    let mut scope = crate::legacy_extra::frozen_coverage_scope(included, context.python_sources);
+    scope["excluded_entry_points"] = json!(entry_points);
+    scope["discovered_cpp_sources"] = json!(context.cpp_sources.len());
+    let mut provenance = serde_json::Map::new();
+    if measured
+        && let Some(info) = coverage
+            .as_ref()
+            .and_then(|block| block.get("gcov_json_info"))
+            .filter(|info| info.is_object())
+    {
+        provenance.insert("cpp".into(), info.clone());
+    }
+    provenance.insert("scope".into(), scope);
+    extra["coverage_provenance"] = Value::Object(provenance);
+    if measured {
+        crate::legacy_extra::frozen_coverage_policy(engine);
+        if let (Some(branch), Some(metrics)) = (
+            branch,
+            engine["extra"]["coverage_policy"]["metrics"].as_object_mut(),
+        ) {
+            metrics.insert(
+                "branch".into(),
+                json!(format!("{branch:.1}").parse::<f64>().unwrap_or(branch)),
+            );
+        }
+        if let Some(summary) = engine["summary"].as_str()
+            && summary.contains("Branch: n/a")
+            && let Some(branch) = branch
+        {
+            engine["summary"] =
+                json!(summary.replacen("Branch: n/a", &format!("Branch: {branch:.1}%"), 1));
+        }
+    }
+}
+
+#[cfg(test)]
+mod frozen_extra_tests {
+    use super::*;
+
+    fn context<'a>(
+        settings: &'a Value,
+        root: &'a Path,
+        sources: &'a [String],
+    ) -> crate::legacy_extra::Context<'a> {
+        crate::legacy_extra::Context {
+            settings,
+            profile: "",
+            python_sources: 0,
+            root,
+            cpp_sources: sources,
+        }
+    }
+
+    fn target(name: &str, path: &str, status: &str, message: &str) -> Value {
+        json!({"target_name": name, "file_path": path, "start_line": 1, "status": status,
+            "message": message, "metrics": {}})
+    }
+
+    /// Positive: a measured direct run keeps frozen's keys only, reads the vacuous 100.0 branch
+    /// coverage frozen `_measure_coverage` reports without a branch, rounds `pass_rate` like
+    /// `tem.calculate`, builds the suites from the `[C++]` targets (not threshold breaches)
+    /// and records frozen's `cpp`/`scope` provenance (entry points defining `main` excluded).
+    #[test]
+    fn measured_cpp_test_extra_keeps_frozen_keys_and_values() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(root.path().join("src")).unwrap();
+        std::fs::write(
+            root.path().join("src/calc.cpp"),
+            "int add(int a){return a;}\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join("src/main.cpp"),
+            "int main() { return 0; }\n",
+        )
+        .unwrap();
+        let sources = vec!["src/calc.cpp".to_owned(), "src/main.cpp".to_owned()];
+        let tally = json!({"format": "gcov-json", "report_count": 2});
+        let mut engine = json!({
+            "status": "FAIL",
+            "summary": "1/3 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: n/a -> TEM: 1.67 / 5.0",
+            "targets": [
+                target("[C++] test_fail.cpp", "tests/test_fail.cpp", "FAIL", "Execution Failed: x"),
+                target("[C++] test_pass.cpp", "tests/test_pass.cpp", "PASS", "C++ Test Passed"),
+                target("Coverage:Functions", ".", "PASS", "ok"),
+                target("Threshold: TEM score", ".", "WARN", "low"),
+            ],
+            "extra": {
+                "passed_tests": 1, "total_tests": 3, "pass_rate": 1.0 / 3.0,
+                "branch_coverage": null,
+                "coverage_files": [{"file": "src/calc.cpp", "cover": 100.0}],
+                "coverage_totals": {"stmts": 2, "miss": 0, "cover": 100.0, "branch_cover": null,
+                    "covered": 2, "nb": 0},
+                "coverage_policy": {"metrics": {"line": 100.0}, "files": {},
+                    "regression_tolerance": null, "schema_id": "ici.coverage-policy"},
+                "function_rows": [{"name": "add(int)", "native_columns": {"start": 5}}],
+                "test_quality": {"enabled": false, "evidence": "NOT_SELECTED"},
+                "coverage_provenance": {"format": "gcov-json"},
+                "native_checks": [{"check_id": "cpp.test", "extra": {}},
+                    {"check_id": "cpp.coverage", "extra": {"gcov_json_info": tally}}],
+            },
+        });
+        let settings = json!({});
+        frozen_cpp_test_extra(&mut engine, &context(&settings, root.path(), &sources));
+        let extra = &engine["extra"];
+        assert_eq!(extra["branch_coverage"], json!(100.0));
+        assert_eq!(
+            engine["summary"],
+            "1/3 Tests Passed | Line: 100.0%, Func: 100.0%, Branch: 100.0% -> TEM: 1.67 / 5.0"
+        );
+        assert_eq!(extra["pass_rate"], json!(0.3333));
+        assert_eq!(
+            extra["coverage_totals"],
+            json!({"stmts": 2, "miss": 0, "cover": 100.0, "branch_cover": null})
+        );
+        assert_eq!(
+            extra["coverage_policy"],
+            json!({"metrics": {"line": 100.0, "branch": 100.0}, "files": {},
+                "regression_tolerance": null})
+        );
+        assert_eq!(extra["function_rows"], json!([{"name": "add(int)"}]));
+        assert_eq!(
+            extra["test_quality"],
+            json!({"enabled": false, "profile": ""})
+        );
+        assert_eq!(extra["coverage_provenance"]["cpp"], tally);
+        let scope = &extra["coverage_provenance"]["scope"];
+        assert_eq!(scope["included_sources"], json!(["src/calc.cpp"]));
+        assert_eq!(scope["excluded_entry_points"], json!(["src/main.cpp"]));
+        assert_eq!(scope["discovered_cpp_sources"], json!(2));
+        let suites = extra["test_suites"].as_array().unwrap();
+        assert_eq!(suites.len(), 2, "{suites:?}");
+        assert_eq!(suites[0]["tests"][0]["name"], "[C++] test_fail.cpp");
+        assert_eq!(suites[0]["failed"], json!(1));
+    }
+
+    /// Negative and failure: a run without measured coverage writes frozen's counts, the empty
+    /// quality block and empty coverage rows (no fabricated estimate), and an ERROR run whose
+    /// test process terminated reads frozen's tool-error summary.
+    #[test]
+    fn unmeasured_and_terminated_cpp_runs_keep_frozen_counts_and_summary() {
+        let root = tempfile::tempdir().unwrap();
+        let settings = json!({});
+        let mut engine = json!({
+            "status": "ERROR",
+            "summary": "plain C++ executable did not complete",
+            "targets": [
+                target("[C++] test_abort.cpp", "tests/test_abort.cpp", "ERROR",
+                    "Test process terminated before reporting results"),
+                target("[C++] test_pass.cpp", "tests/test_pass.cpp", "PASS", "C++ Test Passed"),
+                target("[C++] test_skip", "tests/test_skip.cpp", "SKIP", "Execution skipped: x"),
+            ],
+            "extra": {"native_checks": [{"check_id": "cpp.test", "extra": {}}]},
+        });
+        frozen_cpp_test_extra(&mut engine, &context(&settings, root.path(), &[]));
+        let extra = &engine["extra"];
+        assert_eq!(
+            engine["summary"],
+            "C++ test process terminated before reporting results: test_abort.cpp"
+        );
+        assert_eq!(
+            (
+                &extra["passed_tests"],
+                &extra["total_tests"],
+                &extra["skipped_tests"]
+            ),
+            (&json!(1), &json!(3), &json!(1))
+        );
+        assert_eq!(extra["pass_rate"], json!(0.3333));
+        for key in ["line_coverage", "coverage_totals", "coverage_policy"] {
+            assert!(extra[key].is_null(), "{key}");
+        }
+        assert_eq!(extra["coverage_files"], json!([]));
+        assert!(extra.get("branch_coverage").is_none());
+        assert!(extra.get("tem_score").is_none());
+        assert_eq!(extra["mutation_status"], "disabled");
+        assert_eq!(
+            extra["coverage_provenance"],
+            json!({"scope": crate::legacy_extra::frozen_coverage_scope(vec![], 0)})
+        );
+    }
+
+    /// A native executable-test finding at a renamed `[C++]` target names that target's
+    /// message, so the legacy projection adapts it instead of adding a second finding; a
+    /// finding elsewhere is untouched.
+    #[test]
+    fn executable_test_findings_name_their_legacy_target() {
+        let mut output = AnalysisOutput::new("project.cpp.test", "cpp-executable");
+        let mut failed = InspectionTarget::at("tests/test_fail.cpp", 1);
+        failed.target_name = "tests/test_fail.cpp".into();
+        failed.status = "FAIL".into();
+        failed.message = "executable exited 1".into();
+        add_finding(&mut output, &failed, "ici.cpp.executable-test.failed", "a");
+        let mut other = InspectionTarget::at("src/other.cpp", 3);
+        other.message = "elsewhere".into();
+        add_finding(&mut output, &other, "ici.cpp.other", "b");
+        output.targets.push(failed);
+        output.extra = json!({"project.cpp.test.case0": {"executable_test":
+            {"source": "tests/test_fail.cpp", "stdout": "twice(2) was 5\n", "stderr": ""}}});
+        legacy_direct_tests(&mut output, &BTreeMap::new());
+        assert_eq!(output.targets[0].target_name, "[C++] test_fail.cpp");
+        let details = output.extra["finding_details"].as_object().unwrap();
+        assert_eq!(details.len(), 1);
+        assert_eq!(
+            details[&output.observation.findings[0].fingerprint]["legacy_message"],
+            "Execution Failed: twice(2) was 5\n"
+        );
+    }
 }

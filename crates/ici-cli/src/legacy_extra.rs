@@ -23,9 +23,12 @@ pub(crate) struct Context<'a> {
     pub settings: &'a Value,
     pub profile: &'a str,
     pub python_sources: usize,
+    /// The project root and its C++ sources (frozen `project_cpp_sources`, relative).
+    pub root: &'a std::path::Path,
+    pub cpp_sources: &'a [String],
 }
 
-fn checks(engine: &Value) -> Vec<Value> {
+pub(crate) fn checks(engine: &Value) -> Vec<Value> {
     engine["extra"]["native_checks"]
         .as_array()
         .cloned()
@@ -33,7 +36,7 @@ fn checks(engine: &Value) -> Vec<Value> {
 }
 
 /// A native check's own extra block (direct, or under its task id when merged).
-fn check_blocks(check: &Value) -> Vec<&Value> {
+pub(crate) fn check_blocks(check: &Value) -> Vec<&Value> {
     let extra = &check["extra"];
     let Some(fields) = extra.as_object() else {
         return vec![];
@@ -50,7 +53,7 @@ fn check_blocks(check: &Value) -> Vec<&Value> {
     }
 }
 
-fn targets(engine: &Value) -> Vec<Value> {
+pub(crate) fn targets(engine: &Value) -> Vec<Value> {
     engine["targets"].as_array().cloned().unwrap_or_default()
 }
 
@@ -123,7 +126,7 @@ pub(crate) fn evaluate_status(has_fail: bool, has_warn: bool, mode: &str) -> &'s
 }
 
 /// The engine has a native check of each id (a hybrid Python + C++ engine).
-fn has_checks(engine: &Value, ids: &[&str]) -> bool {
+pub(crate) fn has_checks(engine: &Value, ids: &[&str]) -> bool {
     let checks = checks(engine);
     ids.iter()
         .all(|id| checks.iter().any(|check| check["check_id"] == *id))
@@ -1132,7 +1135,7 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
 /// quality block of a run that attempted nothing (`empty_quality_info()` with the profile).
 /// Frozen `TestQualityMixin._build_test_suites`: one suite per target file in target order,
 /// coverage and test-quality targets excluded.
-fn frozen_test_suites(targets: &[Value]) -> Vec<Value> {
+pub(crate) fn frozen_test_suites(targets: &[Value]) -> Vec<Value> {
     let mut suites: Vec<Value> = vec![];
     for target in targets {
         let name = target["target_name"].as_str().unwrap_or_default();
@@ -1168,7 +1171,7 @@ fn frozen_test_suites(targets: &[Value]) -> Vec<Value> {
 /// Frozen `_coverage_policy_snapshot` values of a measured Python coverage run: the line and
 /// function metrics and the per-file line coverage are the policy targets' (rounded) actuals,
 /// the branch metric rounded to one decimal; native's own policy keys stay beside them.
-fn frozen_coverage_policy(engine: &mut Value) {
+pub(crate) fn frozen_coverage_policy(engine: &mut Value) {
     let targets = targets(engine);
     let policy = &mut engine["extra"]["coverage_policy"];
     if !policy["metrics"].is_object() {
@@ -1317,7 +1320,7 @@ fn frozen_incomplete_python_run(engine: &mut Value, context: &Context<'_>) {
 }
 
 /// Frozen `_record_coverage_scope` of a project without C++ sources.
-fn frozen_coverage_scope(included: Vec<Value>, python_sources: usize) -> Value {
+pub(crate) fn frozen_coverage_scope(included: Vec<Value>, python_sources: usize) -> Value {
     json!({
         "included_sources": included,
         "excluded_entry_points": [],
@@ -1365,6 +1368,9 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
         if has_checks(engine, &["python.coverage"]) && !has_checks(engine, &["cpp.coverage"]) {
             frozen_coverage_policy(engine);
             frozen_python_coverage(engine);
+        }
+        if !python && has_checks(engine, &["cpp.test"]) {
+            crate::cpp::frozen_cpp_test_extra(engine, context);
         }
         return;
     }
@@ -1424,7 +1430,7 @@ fn complete_test(engine: &mut Value, context: &Context<'_>) {
 /// rows/totals/policy; frozen's coverage estimate and TEM stay absent.
 /// Frozen `empty_quality_info()` with the analysis profile, overlaid with the values the native
 /// quality block measured for the same frozen keys (native-only keys are not frozen's).
-fn frozen_quality(native: Option<&Value>, profile: &str) -> Value {
+pub(crate) fn frozen_quality(native: Option<&Value>, profile: &str) -> Value {
     let mut quality = json!({
         "enabled": false, "mode": "report", "profile": profile,
         "repeat_runs": 0, "repeat_reruns": 0, "repeat_cases": 0, "repeat_unavailable": 0,
@@ -1545,6 +1551,8 @@ mod hybrid_tests {
             settings,
             profile: "",
             python_sources: 0,
+            root: std::path::Path::new("."),
+            cpp_sources: &[],
         }
     }
 
@@ -1773,6 +1781,8 @@ mod hybrid_tests {
             settings: &settings,
             profile: "",
             python_sources: 0,
+            root: std::path::Path::new("."),
+            cpp_sources: &[],
         };
         merge_dup_checks(&mut value, &context);
         let paths: Vec<&str> = value["targets"]
@@ -1928,6 +1938,8 @@ mod hybrid_tests {
                 settings: &settings,
                 profile: "",
                 python_sources: 0,
+                root: std::path::Path::new("."),
+                cpp_sources: &[],
             };
             let replaced = merge_dup_checks(&mut value, &context);
             (replaced, value)

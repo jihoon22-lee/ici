@@ -524,6 +524,8 @@ fn execute_native_preparation(
                 output.observation.exit_code = outcome.exit_code;
                 output.observation.timed_out = outcome.timed_out;
                 output.observation.truncated = outcome.truncated;
+                // The session's processes up to the failed one (frozen `BuildSession` evidence).
+                output.extra["process_evidence"] = json!(process_evidence);
                 return Err(PreparationFailure::Observed {
                     phase: format!("Make {step}"),
                     output: Box::new(output),
@@ -555,6 +557,7 @@ fn execute_native_preparation(
                 output.observation.exit_code = outcome.exit_code;
                 output.observation.timed_out = outcome.timed_out;
                 output.observation.truncated = outcome.truncated;
+                output.extra["process_evidence"] = json!(process_evidence);
                 if !configuration && plan.configured_context_on_build_failure {
                     let context = prepared_context(plan);
                     if context.database_path.is_some()
