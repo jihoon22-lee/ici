@@ -8413,16 +8413,33 @@
       "difference_reason": "Root decision (docs/design/rust-replacement/decisions.md row 'native C++ shadow build 위치'): the native shadow under .ici/rust-v1/build is the intended location, so database_path, manifest shadow_root/digest and C++Syntax:/Clazy: configuration suffixes differ."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:208:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/fallback.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/replay.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_fallback_replay.rs::legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:208); enclosing frozen function _run_command) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/lint-fallback-replay-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_fallback_replay.py (oracle 6fe3e40; `ici lint --report` and `ici verify --report` with only the lint engine, clang-tidy/clazy off, a project bin/g++ wrapper first on PATH, PATH=<project>/bin:/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/lint-fallback-replay (src/a.cpp, src/b.cpp); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_fallback_replay --locked -j2 -- --include-ignored: 1 passed (exit code, status, evidence, summary, targets for lint and verify); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback.log",
+        "Regressions: legacy_lint (2 passed) and legacy_lint_branches (1 passed) with --include-ignored, strict Clippy ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:208, _run_unit runner exception). CLI-unreachable: frozen passes core.runner.run_process, which catches every exception (spawn failure included) and returns returncode -1, so no `C++ syntax check could not execute: <name>: <ExcType>` target is produced through the CLI; the observable spawn/signal failures are the C++SyntaxExecutionError process branches compared by legacy_lint_branches (sig/exit3/quiet1/big/slow).",
+      "difference_reason": "CLI-unreachable branch (run_process never raises); only an injected raising runner reaches it."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:246:11": {
       "status": "verified",
@@ -8618,52 +8635,118 @@
       "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:471:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/fallback.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/replay.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_fallback_replay.rs::legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:471); enclosing frozen function _run_fallback) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/lint-fallback-replay-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_fallback_replay.py (oracle 6fe3e40; `ici lint --report` and `ici verify --report` with only the lint engine, clang-tidy/clazy off, a project bin/g++ wrapper first on PATH, PATH=<project>/bin:/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/lint-fallback-replay (src/a.cpp, src/b.cpp); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_fallback_replay --locked -j2 -- --include-ignored: 1 passed (exit code, status, evidence, summary, targets for lint and verify); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback.log",
+        "Regressions: legacy_lint (2 passed) and legacy_lint_branches (1 passed) with --include-ignored, strict Clippy ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:471, _run_fallback outside source). Race-only: fallback sources come from the context snapshot whose _iter_project_files yields only contained regular files (symlinks skipped), so `relative_to(project_root)` fails only when the file is replaced between the snapshot and the replay. Rust plans from the same snapshot; a source replaced between discovery and planning is the native replay rejection.",
+      "difference_reason": "Race-only branch; no deterministic capture."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:498:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/fallback.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/replay.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint_fallback_replay.rs::legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_fallback_replay.rs::legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:498); enclosing frozen function _run_fallback) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/lint-fallback-replay-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_fallback_replay.py (oracle 6fe3e40; `ici lint --report` and `ici verify --report` with only the lint engine, clang-tidy/clazy off, a project bin/g++ wrapper first on PATH, PATH=<project>/bin:/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/lint-fallback-replay (src/a.cpp, src/b.cpp); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_fallback_replay --locked -j2 -- --include-ignored: 1 passed (exit code, status, evidence, summary, targets for lint and verify); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback.log",
+        "Regressions: legacy_lint (2 passed) and legacy_lint_branches (1 passed) with --include-ignored, strict Clippy ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:498, _run_fallback replay rejection). Frozen C++SyntaxReplayError ERROR at the source '<code>: <message>' with engine error 'C++ fallback <code>: <src>: <message>' per rejected fallback replay, the other sources still checked: with a project-contained g++ first on PATH every source is rejected (project-compiler-rejected, 'Project-contained compiler programs are not executed during analysis.'), ERROR NOT_RUN, summary of every error, exit 1, for `ici lint` and `ici verify`. Rust defect fixed: the fallback plan propagated the native replay rejection and blocked the check (WARN, exit 3, no target, native wording); it is now a legacy terminal with frozen targets/errors. Replays that are accepted keep the normal fallback (legacy_lint, legacy_lint_branches).",
+      "difference_reason": null
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:546:12": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/fallback.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/replay.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_fallback_replay.rs::legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:546); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/lint-fallback-replay-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_fallback_replay.py (oracle 6fe3e40; `ici lint --report` and `ici verify --report` with only the lint engine, clang-tidy/clazy off, a project bin/g++ wrapper first on PATH, PATH=<project>/bin:/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/lint-fallback-replay (src/a.cpp, src/b.cpp); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_fallback_replay --locked -j2 -- --include-ignored: 1 passed (exit code, status, evidence, summary, targets for lint and verify); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback.log",
+        "Regressions: legacy_lint (2 passed) and legacy_lint_branches (1 passed) with --include-ignored, strict Clippy ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:546, run_cpp_lint root resolution). CLI-unreachable: the CLI resolves and canonicalizes the project root before any engine runs (the same root built the analysis context), so `project_root.resolve(strict=True)` cannot fail inside run_cpp_lint except when the root is removed during the run.",
+      "difference_reason": "CLI-unreachable/race-only branch (root removed mid-run)."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:568:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/fallback.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/replay.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_fallback_matches_frozen_targets_summaries_and_exit_codes"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_fallback_replay.rs::legacy_lint_fallback_rejects_a_project_contained_compiler_per_source_like_frozen",
+          "crates/ici-cli/tests/legacy_lint_branches.rs::legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidence"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:568); enclosing frozen function run_cpp_lint) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the legacy `ici lint` C++ projection is not compared with frozen _cpp_lint (Compiler:<rule>/C++Syntax target names, kind-prefixed messages, warning->WARN, attached notes, fallback PASS targets); Rust still emits the native diagnostic shape. Needs a frozen lint oracle over parity-fixtures/cpp (including include-scope-fixture)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/lint-fallback-replay-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_fallback_replay.py (oracle 6fe3e40; `ici lint --report` and `ici verify --report` with only the lint engine, clang-tidy/clazy off, a project bin/g++ wrapper first on PATH, PATH=<project>/bin:/usr/bin:/bin, LANG/LC_ALL=C.UTF-8) over parity-fixtures/cpp/lint-fallback-replay (src/a.cpp, src/b.cpp); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_lint_fallback_replay --locked -j2 -- --include-ignored: 1 passed (exit code, status, evidence, summary, targets for lint and verify); /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback.log",
+        "Regressions: legacy_lint (2 passed) and legacy_lint_branches (1 passed) with --include-ignored, strict Clippy ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp15-lint-fallback-regress.log"
+      ],
+      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_lint.py:568, run_cpp_lint source containment). Race-only: cpp_files are the snapshot's contained regular files (symlinks skipped by _iter_project_files), so the containment/readability refusal fires only for a file replaced by an escaping symlink between snapshot and lint.",
+      "difference_reason": "Race-only branch; no deterministic capture."
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:588:16": {
       "status": "verified",
