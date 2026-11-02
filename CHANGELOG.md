@@ -31,9 +31,9 @@
 
 ### 변경
 
-- 보안: clang-tidy 설정 검사가 큰따옴표 escape로 쓴 `ExtraArgs`·`InheritParentConfig` 키(예: `"\x45xtraArgs"`)와
-  UTF-16 설정도 거부해, 분석 중 프로젝트 설정이 `-fplugin` 같은 컴파일러 인자를 주입할 수 없습니다. 작은따옴표나
-  따옴표 없는 정규식 값은 계속 사용할 수 있습니다.
+- 보안: clang-tidy 설정 검사가 큰따옴표 escape로 쓴 `ExtraArgs`·`InheritParentConfig` 키(예: `"\x45xtraArgs"`)를
+  막기 위해 큰따옴표와 backslash가 함께 있는 설정과 UTF-16 설정도 거부해, 분석 중 프로젝트 설정이 `-fplugin` 같은
+  컴파일러 인자를 주입할 수 없습니다. 큰따옴표를 쓰지 않는 설정의 정규식 값은 계속 사용할 수 있습니다.
 - 레거시 Make 변형들이 하나의 shadow 디렉터리를 공유할 때 같은 실행이 자기 build lease를 기다리다 모든 C++ 엔진이
   시간 초과되던 문제를 고쳤습니다. 순수 C++ CMake 프로젝트의 `ici build`가 v0.13.0과 같이 종료 코드 0으로 끝납니다.
 - `coverage_build_argv`가 없는 레거시 Make 프로젝트의 `ici test`/`ici verify`가 v0.13.0과 같이 TestEngine
