@@ -201,6 +201,8 @@ fn zoo_dead_scenario_findings_and_suite_metadata_match_frozen() {
             .iter()
             .all(|finding| finding["tool_rule_id"] == "" && finding["tool_name"] == "")
     );
+    // Positive: the zoo's engine extra predicate (frozen's "+"-joined provenance string).
+    assert_eq!(dead["extra"]["analysis_provenance"], "python-ast-heuristic");
     let metadata = &report["analysis_metadata"];
     let frozen = &case["analysis_metadata"];
     assert_eq!(
@@ -216,6 +218,12 @@ fn zoo_dead_scenario_findings_and_suite_metadata_match_frozen() {
     assert_eq!(inventory["schema_version"], "ici.capabilities/v1");
     let tools = inventory["tools"].as_array().unwrap();
     assert_eq!(inventory["counts"]["total"], tools.len());
+    // Frozen keys the snapshot by tool name: one row per capability.
+    let names: std::collections::BTreeSet<&str> = tools
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names.len(), tools.len(), "{tools:?}");
     // Failure boundary: every tool row names one frozen state consistent with its probe.
     for tool in tools {
         let state = tool["state"].as_str().unwrap();
@@ -310,4 +318,113 @@ fn walk(root: &Path) -> Vec<String> {
     }
     out.sort();
     out
+}
+
+/// Blocker 2: the quality-zoo C++ Qt scenario configures `doctor.required_tools = ["clazy"]`
+/// while `lint:cpp` requires the same tool. Frozen probes each tool once (one `clazy` row,
+/// owned by both); native once resolved the configured name without frozen's candidates and
+/// wrote two `clazy` rows, which the zoo runner rejects as a duplicate capability.
+#[cfg(unix)]
+#[test]
+fn a_configured_required_tool_and_the_policy_tool_of_the_same_name_are_one_capability() {
+    use std::os::unix::fs::PermissionsExt;
+    let base = tempfile::tempdir().unwrap();
+    let bin = base.path().join("bin");
+    fs::create_dir_all(&bin).unwrap();
+    for name in ["clazy-standalone", "clazy"] {
+        let path = bin.join(name);
+        fs::write(&path, format!("#!/bin/sh\necho '{name} 1.0'\n")).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let mut environment = environment(base.path());
+    environment.insert("PATH".into(), bin.to_string_lossy().into_owned());
+    let matrix = json!({"entries": [{
+        "applicable": true, "enabled": true, "engine_name": "lint", "language": "cpp",
+        "required_tools": ["clazy"], "optional_tools": [],
+    }]});
+    let inventory = ici_cli::doctor::suite_capability_inventory(
+        &matrix,
+        &json!({"doctor": {"required_tools": ["clazy", "cmake"]}}),
+        base.path(),
+        &environment,
+        &ici_execution::process::Cancellation::default(),
+    )
+    .unwrap();
+    let tools = inventory["tools"].as_array().unwrap();
+    let clazy: Vec<&Value> = tools
+        .iter()
+        .filter(|tool| tool["name"] == "clazy")
+        .collect();
+    // Positive: one row, the frozen probe candidate, owned by the policy and the configuration.
+    assert_eq!(clazy.len(), 1, "{tools:?}");
+    assert!(
+        clazy[0]["path"]
+            .as_str()
+            .unwrap()
+            .ends_with("/clazy-standalone"),
+        "{tools:?}"
+    );
+    assert_eq!(
+        clazy[0]["required_by"],
+        json!(["doctor.config", "lint:cpp"])
+    );
+    assert_eq!(clazy[0]["state"], "ready");
+    // Negative: a configured tool absent from PATH is still its own (unavailable) row.
+    let cmake: Vec<&Value> = tools
+        .iter()
+        .filter(|tool| tool["name"] == "cmake")
+        .collect();
+    assert_eq!(cmake.len(), 1, "{tools:?}");
+    assert_eq!(cmake[0]["state"], "unavailable");
+    // Failure boundary: the counts describe the de-duplicated rows.
+    assert_eq!(inventory["counts"]["total"], 2);
+    assert_eq!(inventory["missing_required"], json!(["cmake"]));
+
+    // Frozen `_probe_registered_candidates`: a `clazy-standalone` whose probe fails (it cannot
+    // load its plugin) yields to the next complete candidate, `clazy`.
+    let broken = bin.join("clazy-standalone");
+    fs::write(
+        &broken,
+        "#!/bin/sh
+echo 'cannot open ClazyPlugin.so' >&2
+exit 1
+",
+    )
+    .unwrap();
+    fs::set_permissions(&broken, fs::Permissions::from_mode(0o755)).unwrap();
+    let inventory = ici_cli::doctor::suite_capability_inventory(
+        &matrix,
+        &json!({"doctor": {"required_tools": ["clazy"]}}),
+        base.path(),
+        &environment,
+        &ici_execution::process::Cancellation::default(),
+    )
+    .unwrap();
+    let tools = inventory["tools"].as_array().unwrap();
+    assert_eq!(tools.len(), 1, "{tools:?}");
+    assert!(
+        tools[0]["path"].as_str().unwrap().ends_with("/bin/clazy"),
+        "{tools:?}"
+    );
+    assert_eq!(tools[0]["state"], "ready", "{tools:?}");
+    // Negative: with every candidate failing, the first resolved candidate is reported.
+    fs::copy(&broken, bin.join("clazy")).unwrap();
+    let inventory = ici_cli::doctor::suite_capability_inventory(
+        &matrix,
+        &json!({}),
+        base.path(),
+        &environment,
+        &ici_execution::process::Cancellation::default(),
+    )
+    .unwrap();
+    let tools = inventory["tools"].as_array().unwrap();
+    assert!(
+        tools[0]["path"]
+            .as_str()
+            .unwrap()
+            .ends_with("/clazy-standalone"),
+        "{tools:?}"
+    );
+    assert_eq!(tools[0]["state"], "incomplete", "{tools:?}");
+    assert_eq!(inventory["incomplete_required"], json!(["clazy"]));
 }

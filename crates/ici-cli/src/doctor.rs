@@ -429,7 +429,13 @@ pub fn collect(
         .as_ref()
         .and_then(|prepared| legacy_support(invocation, prepared));
     match (&prepared, &legacy_matrix) {
-        (_, Some(matrix)) => legacy_tools(matrix, &inspection.root, environment, &mut inventory),
+        (_, Some(matrix)) => legacy_tools(
+            matrix,
+            &inspection.root,
+            environment,
+            cancellation,
+            &mut inventory,
+        )?,
         (Some(prepared), None) => gather(prepared, &mut inventory, environment),
         (None, None) => {}
     }
@@ -569,7 +575,13 @@ pub fn suite_capability_inventory(
     cancellation: &Cancellation,
 ) -> Result<Value> {
     let mut inventory = Inventory::default();
-    legacy_tools(support_matrix, root, environment, &mut inventory);
+    legacy_tools(
+        support_matrix,
+        root,
+        environment,
+        cancellation,
+        &mut inventory,
+    )?;
     for name in effective
         .pointer("/doctor/required_tools")
         .and_then(Value::as_array)
@@ -578,19 +590,9 @@ pub fn suite_capability_inventory(
         .filter_map(Value::as_str)
         .take(MAX_TOOLS + 1)
     {
-        let resolved = ToolRequest {
-            id: name.into(),
-            explicit: None,
-            project_root: root.to_path_buf(),
-            pack_root: if name.starts_with("python") {
-                None
-            } else {
-                planning::tool_pack(environment)
-            },
-            path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
-        }
-        .resolve();
-        match resolved {
+        // Frozen probes each registered tool once: a configured required tool is the same
+        // capability (and the same candidate resolution) as the policy's tool of that name.
+        match policy_tool(name, root, environment, cancellation)? {
             Ok(tool) => {
                 let key = inventory.add(name, Some(&tool), None, "doctor.config", true, true);
                 inventory
@@ -681,8 +683,9 @@ fn legacy_tools(
     matrix: &Value,
     root: &Path,
     environment: &BTreeMap<String, String>,
+    cancellation: &Cancellation,
     inventory: &mut Inventory,
-) {
+) -> Result<()> {
     let mut required: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     let mut optional: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for entry in matrix["entries"].as_array().into_iter().flatten() {
@@ -719,31 +722,7 @@ fn legacy_tools(
         .map(|entry| (entry, true))
         .chain(optional.into_iter().map(|entry| (entry, false)));
     for ((name, sources), is_required) in policies {
-        let candidates: &[&str] = match name.as_str() {
-            "clazy" => &["clazy-standalone", "clazy"],
-            "qmake" => &["qmake6", "qmake"],
-            _ => &[],
-        };
-        let resolved = candidates
-            .iter()
-            .copied()
-            .chain(std::iter::once(name.as_str()))
-            .map(|id| {
-                ToolRequest {
-                    id: id.into(),
-                    explicit: None,
-                    project_root: root.to_path_buf(),
-                    pack_root: if id.starts_with("python") {
-                        None
-                    } else {
-                        planning::tool_pack(environment)
-                    },
-                    path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
-                }
-                .resolve()
-            })
-            .reduce(|first, next| first.or(next))
-            .expect("one candidate");
+        let resolved = policy_tool(&name, root, environment, cancellation)?;
         for source in &sources {
             match &resolved {
                 Ok(tool) => {
@@ -762,6 +741,66 @@ fn legacy_tools(
             }
         }
     }
+    Ok(())
+}
+
+/// One policy tool resolved from frozen's probe candidates (`clazy-standalone`/`clazy`,
+/// `qmake6`/`qmake`), then its own name. Like frozen `_probe_registered_candidates`, when more
+/// than one candidate resolves the first whose version probe completes is selected, else the
+/// first resolved one (so a `clazy-standalone` that cannot load its plugin yields to `clazy`).
+fn policy_tool(
+    name: &str,
+    root: &Path,
+    environment: &BTreeMap<String, String>,
+    cancellation: &Cancellation,
+) -> Result<std::result::Result<ResolvedTool, ici_providers::resolver::ResolutionError>> {
+    let candidates: &[&str] = match name {
+        "clazy" => &["clazy-standalone", "clazy"],
+        "qmake" => &["qmake6", "qmake"],
+        _ => &[],
+    };
+    let mut resolved: Vec<ResolvedTool> = vec![];
+    let mut last_error = None;
+    for id in candidates.iter().copied().chain(std::iter::once(name)) {
+        match (ToolRequest {
+            id: id.into(),
+            explicit: None,
+            project_root: root.to_path_buf(),
+            pack_root: if id.starts_with("python") {
+                None
+            } else {
+                planning::tool_pack(environment)
+            },
+            path_env: Some(environment.get("PATH").cloned().unwrap_or_default()),
+        })
+        .resolve()
+        {
+            Ok(tool) if !resolved.iter().any(|seen| seen.path == tool.path) => resolved.push(tool),
+            Ok(_) => {}
+            Err(error) => last_error = Some(error),
+        }
+    }
+    if resolved.len() < 2 {
+        return Ok(resolved
+            .pop()
+            .ok_or_else(|| last_error.expect("one candidate")));
+    }
+    let mut probes = Inventory::default();
+    let keys: Vec<String> = resolved
+        .iter()
+        .map(|tool| probes.add(name, Some(tool), None, "candidate", true, true))
+        .collect();
+    probes.execute(root, environment, cancellation)?;
+    let selected = keys
+        .iter()
+        .position(|key| {
+            probes.needs[key]
+                .outcome
+                .as_ref()
+                .is_some_and(probe_complete)
+        })
+        .unwrap_or(0);
+    Ok(Ok(resolved.swap_remove(selected)))
 }
 
 fn gather(
