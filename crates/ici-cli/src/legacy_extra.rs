@@ -647,11 +647,12 @@ fn merge_dup_checks(engine: &mut Value) {
     reorder_targets(engine, &order);
 }
 
-/// Put the engine's targets in `order` (old indices) and keep the native target scopes naming
-/// the same targets (`target_scopes[].target_index`).
+/// Keep the engine's targets listed in `order` (old indices, in their new order) and keep the
+/// native target scopes naming the same targets (`target_scopes[].target_index`); the scope of a
+/// dropped target is dropped with it.
 fn reorder_targets(engine: &mut Value, order: &[usize]) {
     let targets = targets(engine);
-    if order.iter().enumerate().all(|(new, old)| new == *old) {
+    if order.len() == targets.len() && order.iter().enumerate().all(|(new, old)| new == *old) {
         return;
     }
     engine["targets"] = json!(
@@ -665,18 +666,41 @@ fn reorder_targets(engine: &mut Value, order: &[usize]) {
         .enumerate()
         .map(|(new, old)| (*old as u64, new))
         .collect();
-    for scope in engine["extra"]["target_scopes"]
-        .as_array_mut()
-        .into_iter()
-        .flatten()
-    {
-        if let Some(new) = scope["target_index"]
-            .as_u64()
-            .and_then(|old| position.get(&old))
-        {
-            scope["target_index"] = json!(new);
+    if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
+        scopes.retain_mut(|scope| match scope["target_index"].as_u64() {
+            Some(old) => match position.get(&old) {
+                Some(new) => {
+                    scope["target_index"] = json!(new);
+                    true
+                }
+                None => false,
+            },
+            None => true,
+        });
+    }
+}
+
+/// Drop the targets `matches` selects with their adapted findings (same path, line and message)
+/// and their native target scopes.
+pub(crate) fn drop_targets(engine: &mut Value, matches: impl Fn(&Value) -> bool) {
+    let targets = targets(engine);
+    let (dropped, kept): (Vec<usize>, Vec<usize>) =
+        (0..targets.len()).partition(|index| matches(&targets[*index]));
+    if dropped.is_empty() {
+        return;
+    }
+    for index in &dropped {
+        let target = &targets[*index];
+        if let Some(findings) = engine["findings"].as_array_mut() {
+            findings.retain(|finding| {
+                let location = &finding["primary_location"];
+                !(location["path"] == target["file_path"]
+                    && location["start_line"] == target["start_line"]
+                    && finding["message"] == target["message"])
+            });
         }
     }
+    reorder_targets(engine, &kept);
 }
 
 /// Frozen `DeadEngine.run` beside the native Python heuristic: the configured C++ policies and,
@@ -1199,6 +1223,42 @@ mod hybrid_tests {
         merge_complexity(&mut python, &context(&settings));
         assert!(python["score"].is_null());
         assert_eq!(python["summary"], "");
+    }
+
+    #[test]
+    fn dropped_targets_take_their_findings_and_scopes() {
+        let mut value = engine(
+            "test",
+            &[],
+            json!([
+                {"file_path": "tests/t.py", "start_line": 4, "target_name": "case", "message": "ok"},
+                {"file_path": "src/a.py", "start_line": 1, "target_name": "Coverage capability",
+                    "status": "SKIP", "message": "missing"},
+                {"file_path": "tests/u.py", "start_line": 2, "target_name": "case2", "message": "ok"}]),
+        );
+        value["findings"] = json!([
+            {"primary_location": {"path": "tests/t.py", "start_line": 4}, "message": "ok"},
+            {"primary_location": {"path": "src/a.py", "start_line": 1}, "message": "missing"},
+            {"primary_location": {"path": "src/a.py", "start_line": 1}, "message": "other"}]);
+        value["extra"]["target_scopes"] = json!([
+            {"target_index": 0}, {"target_index": 1}, {"target_index": 2}]);
+        let coverage = |target: &Value| target["target_name"] == "Coverage capability";
+        drop_targets(&mut value, coverage);
+        assert_eq!(value["targets"].as_array().unwrap().len(), 2);
+        assert_eq!(value["targets"][1]["file_path"], "tests/u.py");
+        assert_eq!(
+            value["findings"],
+            json!([{"primary_location": {"path": "tests/t.py", "start_line": 4}, "message": "ok"},
+                {"primary_location": {"path": "src/a.py", "start_line": 1}, "message": "other"}])
+        );
+        assert_eq!(
+            value["extra"]["target_scopes"],
+            json!([{"target_index": 0}, {"target_index": 1}])
+        );
+        // Nothing selected: unchanged.
+        let before = value.clone();
+        drop_targets(&mut value, coverage);
+        assert_eq!(value, before);
     }
 
     #[test]

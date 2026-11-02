@@ -900,6 +900,14 @@ fn shape_engine(
     {
         // Frozen optional coverage: a missing coverage module is a WARN beside the measured
         // test verdict (FAIL still wins). Native never invents the frozen estimate.
+        if reason.starts_with("coverage module is unavailable") {
+            // Frozen `_find_coverage_cmd` adds no target for the missing module (decisions.md
+            // "pytest는 있으나 coverage가 없는 legacy test"); the native result keeps its
+            // `Coverage capability` SKIP target.
+            crate::legacy_extra::drop_targets(value, |target| {
+                target["target_name"] == "Coverage capability" && target["status"] == "SKIP"
+            });
+        }
         let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
         value["status"] = serde_json::json!(status);
         // The engine aggregate stops at the unmeasured coverage half; frozen `_result_summary`

@@ -32,7 +32,7 @@
 //! silently accepted); a native-only key must be its own per-path allowance; a reviewed or open
 //! entry that no replay observes is stale and fails.
 use ici_cli::{commands, registry};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet},
@@ -578,6 +578,107 @@ fn optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit() {
     );
     assert!(differences.is_empty(), "{}", differences.join("\n"));
     assert_not_stale(|entry| entry.0 == "extras/python-optional-coverage");
+}
+
+fn line_extra(suite: &Value) -> &Value {
+    &results(suite)
+        .iter()
+        .find(|engine| engine["engine_name"] == "line")
+        .expect("line engine")["extra"]
+}
+
+/// Decisions.md "`verify --baseline`의 line 집계" (the R13 allowances): the `--baseline` input is
+/// not project content, so native drops exactly its frozen row. Every other row equals frozen in
+/// full (all keys and values, frozen order); the totals are frozen's minus that row; the top
+/// five are the remaining rows' first five, as frozen `files_data[:5]` over the same order.
+#[test]
+fn baseline_input_line_row_is_the_only_difference_from_frozen() {
+    let summary: Value = serde_json::from_str(SUMMARY).unwrap();
+    let case = &summary["cases"]["baseline"];
+    let (_, native) = replay(
+        &case["tree"],
+        &case["edit"],
+        &steps(case),
+        "verify_report.json",
+        false,
+    );
+    let (frozen, native) = (line_extra(&case["suite"]), line_extra(&native));
+    let baseline = |row: &&Value| row["path"] == "base.json";
+    let rows = |extra: &Value, key: &str| -> Vec<Value> { extra[key].as_array().unwrap().clone() };
+    let dropped: Vec<Value> = rows(frozen, "files_data")
+        .into_iter()
+        .filter(|row| baseline(&row))
+        .collect();
+    assert_eq!(dropped.len(), 1, "frozen counted the baseline input once");
+    let kept: Vec<Value> = rows(frozen, "files_data")
+        .into_iter()
+        .filter(|row| !baseline(&row))
+        .collect();
+    assert!(!kept.is_empty());
+    assert_eq!(rows(native, "files_data"), kept);
+    assert_eq!(rows(native, "top_files_all"), kept[..kept.len().min(5)]);
+    for key in ["blank", "code", "comment", "total"] {
+        assert_eq!(
+            native["all"][key].as_u64(),
+            Some(frozen["all"][key].as_u64().unwrap() - dropped[0][key].as_u64().unwrap()),
+            "all.{key}"
+        );
+    }
+    assert_eq!(native["all"]["files"], json!(kept.len()));
+    // The source-scope counters never included the extra-scope input.
+    for key in [
+        "blank",
+        "code",
+        "comment",
+        "total",
+        "top_files",
+        "metrics_summary",
+    ] {
+        assert_eq!(native[key], frozen[key], "{key}");
+    }
+}
+
+/// Negative case: a project JSON file no option names is still extra-scope project content
+/// under `--baseline`; only the named input is excluded.
+#[test]
+fn an_unnamed_project_json_file_is_still_counted_under_baseline() {
+    let summary: Value = serde_json::from_str(SUMMARY).unwrap();
+    let case = &summary["cases"]["baseline"];
+    let mut tree = case["tree"].clone();
+    tree["data.json"] = json!("{\n  \"a\": 1,\n\n  \"b\": 2\n}\n");
+    let (_, native) = replay(
+        &tree,
+        &case["edit"],
+        &steps(case),
+        "verify_report.json",
+        false,
+    );
+    let rows = line_extra(&native)["files_data"].as_array().unwrap();
+    let paths: Vec<&str> = rows
+        .iter()
+        .map(|row| row["path"].as_str().unwrap())
+        .collect();
+    assert!(!paths.contains(&"base.json"), "{paths:?}");
+    let data = rows
+        .iter()
+        .find(|row| row["path"] == "data.json")
+        .expect("unnamed JSON file counted");
+    assert_eq!(
+        (
+            &data["scope"],
+            &data["lang"],
+            &data["code"],
+            &data["blank"],
+            &data["total"]
+        ),
+        (
+            &json!("extra"),
+            &json!("JSON"),
+            &json!(4),
+            &json!(1),
+            &json!(5)
+        )
+    );
 }
 
 /// Failure mode: every unallowed difference is reported with its normalized path and kind; an

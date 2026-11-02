@@ -862,6 +862,7 @@ pub fn execute(
                                 &step_outcomes,
                                 &context_guards,
                             )
+                            .or_else(|| legacy_python_tool_evidence(planned, plans, &step_outcomes))
                         {
                             output.extra["tool_evidence"] = json!(evidence);
                         }
@@ -2100,6 +2101,49 @@ fn legacy_runtime_tool_evidence(
         }
         _ => return None,
     }
+    (!evidence.is_empty()).then_some(evidence)
+}
+
+/// Frozen Python test/sanitize tool evidence (`TestEngine._record_tool`, the ResourceWarning
+/// scope's `_record_process`) from the processes this run observed, under frozen's names: the
+/// coverage capability probe (`coverage --version`), the covered suite (`coverage pytest`), the
+/// plain suite or the missing-coverage fallback (`pytest`), the unittest fallback (`unittest`),
+/// the coverage JSON report (`coverage json`) and the ResourceWarning suite (`pytest resource
+/// warnings`). A step that did not run has no record; the argv is native's (decisions.md "C++
+/// 도구 증거는 실제 실행 기록" and "pytest는 있으나 coverage가 없는 legacy test").
+fn legacy_python_tool_evidence(
+    planned: &ici_application::plan::PlannedCheck,
+    plans: &[ici_validation::ValidationPlan],
+    step_outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+) -> Option<Vec<serde_json::Value>> {
+    let sanitize = match planned.check.id.as_str() {
+        "python.test" | "python.coverage" => false,
+        "python.sanitize" => true,
+        _ => return None,
+    };
+    let evidence: Vec<serde_json::Value> = plans
+        .iter()
+        .flat_map(|plan| &plan.tasks)
+        .filter_map(|task| {
+            let outcome = step_outcomes.get(&task.id)?;
+            let step = task.id.rsplit('.').next().unwrap_or_default();
+            let coverage = |command: &str| {
+                task.argv.windows(3).any(|window| {
+                    window[0] == "-m" && window[1] == "coverage" && window[2] == command
+                })
+            };
+            let name = match step {
+                "suite" if sanitize => "pytest resource warnings",
+                "coverage-probe" if coverage("--version") => "coverage --version",
+                "suite" if coverage("run") => "coverage pytest",
+                "suite" | "uncovered-suite" => "pytest",
+                "report" if coverage("json") => "coverage json",
+                _ if step.starts_with("unittest") => "unittest",
+                _ => return None,
+            };
+            Some(observed_record(name, &task.argv, outcome))
+        })
+        .collect();
     (!evidence.is_empty()).then_some(evidence)
 }
 
