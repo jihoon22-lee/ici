@@ -10311,6 +10311,32 @@
         "crates/ici-validation/src/finding_details.rs"
       ],
       "status": "verified"
+    },
+    "finding_site:src/ici/languages/cycles.py:98:12": {
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cpp/src/cycles.rs",
+        "crates/ici-cli/src/execute.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_verify_matrix.rs::cpp_analyze_and_next_verify_match_the_frozen_checks_findings_and_gate"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_cycle_check_reports_no_cycle_on_an_acyclic_include_chain_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_cycles.rs::analyze_cpp_cycle_check_records_unresolved_quoted_includes_like_frozen"
+        ]
+      },
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/verify-matrix-oracle.json next.analyze / next.next_verify (capture_verify_matrix.py, oracle 6fe3e40): one cycle.include finding each",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_verify_matrix --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-exception-rust.log",
+        "Frozen tests/rust-parity/cpp/cycle-next-oracle.json captured by development-only tests/rust-parity/cpp/capture_cycle_next.py (oracle 6fe3e40, `ici analyze --json`, PATH=/usr/bin:/bin) on parity-fixtures/cpp/cycle-next/{acyclic,unresolved}; /tmp/ici-rust-replacement-20261028/w-cpp-cycle-next-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test next_cpp_cycles --locked -j2: 2 passed (non-ignored, no tool needed); /tmp/ici-rust-replacement-20261028/w-cpp-cycle-next.log"
+      ],
+      "comparison": "C++ facet (the claim is C++ only; python.json holds the same row): frozen `ici next`/`ici analyze` languages/cycles._measure_cpp include-cycle finding (rule cycle.include, severity medium, confidence low, evidence ESTIMATED, task <component>.cpp.cycle, related locations for the other members) equals native on the legacy-scope fixture for analyze and next verify except the recorded identity difference. Negative: an acyclic resolved include chain gives cpp.cycle SUCCEEDED, evidence_complete true, no cycle.* finding, cycles_found 0 ESTIMATED and exit 3, equal to frozen. Failure: quoted includes with no project-file match (beside an ignored system include) are not resolved, add no edge and are listed as run limitations naming the include and its path:line, with the same check state, metric and exit as frozen.",
+      "difference_reason": "Intended (recorded on command:ici analyze / command:ici next verify): frozen hashes absolute checkout paths in Python set order (_fingerprint(str(path))) and starts the chain at an arbitrary member at line 1; native uses workspace-relative sorted members and the include line, so fingerprint, message start and primary location differ. Wording only: the include-resolution limitation reads \"Include resolution is a path-suffix heuristic; compiler search order, conditional preprocessing and generated headers are not established\" (frozen \"include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled\") and each unresolved include reads \"<path>:<line>: unresolved local include <name>\" (frozen \"unresolved include '<name>' at <path>:<line>\"); the test maps native wording to frozen and requires the same set."
     }
   },
   "source_files": {
