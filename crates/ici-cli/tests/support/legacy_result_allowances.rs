@@ -2,14 +2,10 @@
 // (capture or exact replay label, normalized path, kind, class, reason with its citation).
 // `Incidental` = a field that differs run to run or host to host; `Approved` = an intended
 // difference recorded in decisions.md or a fragment difference_reason (cited); `Open` = a
-// difference not yet fixed or approved (the C++ tool argv/path native actually ran, the
-// hybrid merges, the optional-coverage test targets, the --baseline input line scope), listed so
-// it never passes silently. Paths: suite keys, `results[<engine>]`, `.key` for engine reports,
-// `[]` for list positions. Generated from the replay table, then reviewed.
-const ACTUAL: &str = "open (cpp area, root ruling requested): native records the compiler \
-    process it actually ran (decisions.md \"C++ 도구 증거는 실제 실행 기록\"): the PATH `/usr/bin/g++` \
-    with the native replay flag order and GNU byte-column flags, where frozen recorded its \
-    resolved capability path (`x86_64-linux-gnu-g++-15`) and its own argv";
+// difference not yet fixed or approved (the hybrid merges, the optional-coverage test targets,
+// the --baseline input line scope), listed so it never passes silently. Paths: suite keys,
+// `results[<engine>]`, `.key` for engine reports, `[]` for list positions. Generated from the
+// replay table, then reviewed.
 const HYBRID: &str = "open (reporting/python): the legacy view of a hybrid engine does not merge \
     the Python and C++ checks like frozen (dup target order and score, complexity function count \
     and score, the dead unavailable-C++ WARN, the type C++-skip warning, suite counts)";
@@ -30,6 +26,10 @@ const R8: &str = "config.json capability:legacy-command-config-result-projection
 const R10: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native evidence keys beside frozen's in a legacy extra: native checks, target scopes, finding identity map, parser/source identity, Python analysis counters, process steps)";
 const R11: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native C++ check evidence under native names beside the frozen-named projection: include graph/trace, boundaries, compile context, exact dead details)";
 const R9: &str = "validation.json finding_site:src/ici/engines/test.py:352:12 difference_reason (no fabricated coverage/TEM/max_score/ESTIMATED)";
+const RCPP_TOOLS: &str = "decisions.md \"compiler·linker·binutils 실제 실행 증거\" (with \"C++ 도구 \
+    증거는 실제 실행 기록\"): tool evidence records the compiler process native actually ran, the PATH \
+    `/usr/bin/g++` with the native replay argv, where frozen recorded its resolved \
+    `x86_64-linux-gnu-g++-15` path and its own argv; verdicts, findings, locations and metrics equal frozen";
 
 #[rustfmt::skip]
 const ALLOWANCES: &[Allowance] = &[
@@ -927,13 +927,13 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/cpp-database", "results[complexity].duration", Differs, Incidental, R4),
     ("extras/cpp-database", "results[cycle].cache_key", Type, Approved, R6),
     ("extras/cpp-database", "results[cycle].duration", Differs, Incidental, R4),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].argv", Len, Open, ACTUAL),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].argv[]", Differs, Open, ACTUAL),
-    ("extras/cpp-database", "results[cycle].tool_evidence[].path", Differs, Open, ACTUAL),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[cycle].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
     ("extras/cpp-database", "results[dead].duration", Differs, Incidental, R4),
-    ("extras/cpp-database", "results[dead].tool_evidence[].argv", Len, Open, ACTUAL),
-    ("extras/cpp-database", "results[dead].tool_evidence[].argv[]", Differs, Open, ACTUAL),
-    ("extras/cpp-database", "results[dead].tool_evidence[].path", Differs, Open, ACTUAL),
+    ("extras/cpp-database", "results[dead].tool_evidence[].argv", Len, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[dead].tool_evidence[].argv[]", Differs, Approved, RCPP_TOOLS),
+    ("extras/cpp-database", "results[dead].tool_evidence[].path", Differs, Approved, RCPP_TOOLS),
     ("extras/cpp-database", "results[dup].cache_key", Type, Approved, R6),
     ("extras/cpp-database", "results[dup].duration", Differs, Incidental, R4),
     ("extras/cpp-database", "results[exception].cache_key", Type, Approved, R6),

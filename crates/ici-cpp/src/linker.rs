@@ -55,7 +55,6 @@ pub fn plan_linker_build(root: &Path, request: &BuildRequest) -> Result<BuildPla
     // Keep target-owned definitions/includes/flags in the CMake project. These diagnostic additions
     // only ask its declared build to expose function sections and a non-PIE GNU GC link.
     request.extra_cmake_args.extend([
-        "-DCMAKE_BUILD_TYPE=Release".into(),
         // Frozen `_cpp_linker_dead_symbols` configures with `analysis_database=True`: one object
         // per source, so a unity project cannot merge function sections across sources.
         "-DCMAKE_UNITY_BUILD=OFF".into(),
@@ -65,9 +64,16 @@ pub fn plan_linker_build(root: &Path, request: &BuildRequest) -> Result<BuildPla
             .into(),
     ]);
     let mut plan = crate::plan_build(root, &request)?;
-    plan.tasks[0]
-        .argv
-        .extend(["-G".into(), "Unix Makefiles".into()]);
+    // Frozen configures the link shadow as a Release build (`BuildVariant.RELEASE`). The variant
+    // names the shadow, so its build type is set here once instead of a second `-D` after the
+    // variant's own.
+    let configure = &mut plan.tasks[0].argv;
+    for argument in configure.iter_mut() {
+        if argument.starts_with("-DCMAKE_BUILD_TYPE=") {
+            *argument = "-DCMAKE_BUILD_TYPE=Release".into();
+        }
+    }
+    configure.extend(["-G".into(), "Unix Makefiles".into()]);
     Ok(plan)
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
