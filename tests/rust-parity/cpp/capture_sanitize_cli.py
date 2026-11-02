@@ -33,6 +33,9 @@ CONFIGS = {
     "direct-external": ("sanitize-direct-external", "cpp_external_build_dirs=['src/external']\n"),
     "direct-pkg-config": ("sanitize-direct-pkg", "cpp_pkg_config=['icipkg']\n"),
     "direct-pkg-config-missing": ("sanitize-direct-pkg", "cpp_pkg_config=['absentpkg']\n"),
+    # UndefinedBehaviorSanitizer (signed overflow) and LeakSanitizer (unfreed malloc) reports.
+    "direct-ubsan": ("sanitize-direct-ubsan", ""),
+    "direct-leak": ("sanitize-direct-leak", ""),
     # No C++ source, no C++ test, no Python source or tests/**/*.py: the no-scope verdict.
     "noscope": ("sanitize-noscope", ""),
     # CMake/ctest adapter runs: a failing test without a report, and a heap use-after-free.

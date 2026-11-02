@@ -157,7 +157,7 @@ fn legacy_sanitizers_skip_without_cpp_tests_and_error_on_missing_sanitizer_argv_
         ("noscope", "sanitize-noscope"),
     ]);
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 24);
+    assert_eq!(cases.len(), 28);
     for (name, expected) in cases
         .iter()
         .filter(|(name, _)| !name.contains(":direct-") && !name.contains(":cmake-"))
@@ -195,6 +195,8 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
         ("direct-external", "sanitize-direct-external"),
         ("direct-pkg-config", "sanitize-direct-pkg"),
         ("direct-pkg-config-missing", "sanitize-direct-pkg"),
+        ("direct-ubsan", "sanitize-direct-ubsan"),
+        ("direct-leak", "sanitize-direct-leak"),
         ("cmake-plain", "test-cmake/plain"),
         ("cmake-defect", "test-cmake/sanitize"),
     ]);
@@ -218,5 +220,5 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
         }
         assert_eq!(actual, expected, "{name}");
     }
-    assert_eq!(seen, 14);
+    assert_eq!(seen, 18);
 }
