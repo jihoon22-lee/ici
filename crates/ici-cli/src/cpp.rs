@@ -1,6 +1,7 @@
 //! Compilation evidence, explicit legacy syntax fallback, and artifact contracts.
 mod config_scope;
 mod fallback;
+pub(crate) mod legacy_lint_extra;
 mod legacy_syntax;
 mod legacy_tests;
 mod legacy_tooling;
@@ -79,7 +80,7 @@ pub struct CppPlans {
     fallbacks: BTreeMap<String, fallback::FallbackPlan>,
     compile_externals: BTreeMap<String, Vec<String>>,
     /// Legacy lint with one clang tool resolvable: the frozen Unavailable target of the other.
-    legacy_tooling_missing: BTreeMap<String, Vec<(&'static str, String, bool)>>,
+    legacy_tooling_missing: BTreeMap<String, Vec<legacy_tooling::MissingTool>>,
     /// Every recorded unit of a component's database, before the component-file filter (frozen
     /// `context.compilation.units`, read by Qt generated-code verification).
     database_units: BTreeMap<String, Vec<CompilationUnit>>,
@@ -387,7 +388,18 @@ impl CppPlans {
                 // Frozen `run_cpp_lint`: more than 2048 selected sources stop before the exact
                 // or fallback replay with one C++SyntaxBudgetError at the project root.
                 if self.legacy_projection
-                    && let Some(terminal) = fallback::legacy_source_budget(component)
+                    && let Some(terminal) = fallback::legacy_source_budget(
+                        component,
+                        // Frozen `compilation_context_present` decides exact or heuristic.
+                        if context.database_path.is_none()
+                            && context.units.is_empty()
+                            && context.diagnostics.is_empty()
+                        {
+                            "heuristic"
+                        } else {
+                            "exact"
+                        },
+                    )
                 {
                     self.legacy_context_errors.insert(id.into(), terminal);
                     return Some(Work::Internal);
@@ -936,7 +948,7 @@ impl CppPlans {
                 } else {
                     name
                 };
-                let resolvable = ToolRequest {
+                let found = ToolRequest {
                     id: name.into(),
                     explicit: project
                         .tools
@@ -948,16 +960,18 @@ impl CppPlans {
                     path_env: environment.get("PATH").cloned(),
                 }
                 .resolve()
-                .is_ok_and(|resolved| {
-                    // Frozen `_ready_tool`: only a tool that passed its capability probe is
-                    // "resolvable"; a failed probe is "unavailable or incompletely probed".
-                    legacy_tooling::legacy_capability_probe(
+                .ok();
+                // Frozen `_ready_tool`: only a tool that passed its capability probe is
+                // "resolvable"; a failed probe is "unavailable or incompletely probed".
+                let banner = found.as_ref().and_then(|resolved| {
+                    legacy_tooling::legacy_version_banner(
                         &resolved.path,
                         &project.root,
                         environment,
-                        name == "clazy-standalone",
+                        tool,
                     )
                 });
+                let resolvable = banner.is_some();
                 let message = if self.legacy_standalone {
                     format!(
                         "{tool} requires an approved capability inventory and exact compilation context"
@@ -967,10 +981,29 @@ impl CppPlans {
                 } else {
                     format!("{tool} is unavailable or incompletely probed")
                 };
-                unavailable.push((label, message, mode(field) == "required"));
+                let record = legacy_tooling::missing_tool_evidence(
+                    label,
+                    &message,
+                    &found
+                        .as_ref()
+                        .map(|tool| {
+                            // Frozen: the found capability path when its probe failed, the
+                            // resolved executable when only the database is missing.
+                            if resolvable {
+                                legacy_tooling::resolved_executable(&tool.path)
+                            } else {
+                                tool.path.to_string_lossy().into_owned()
+                            }
+                        })
+                        .unwrap_or_default(),
+                    banner.as_deref().unwrap_or_default(),
+                );
+                unavailable.push((label, message, mode(field) == "required", record));
             }
-            self.preparation_failures
-                .insert(id.into(), legacy_tooling_unavailable(id, &unavailable));
+            self.preparation_failures.insert(
+                id.into(),
+                legacy_tooling_unavailable(id, &unavailable, config),
+            );
             return Ok(Work::Internal);
         }
         if context.units.is_empty() && !self.legacy_projection {
@@ -1016,6 +1049,10 @@ impl CppPlans {
                     },
                 ) {
                     Some(banner) => {
+                        // Frozen `regular_executable` runs the resolved tool; its banner is
+                        // found under both paths.
+                        let resolved = legacy_tooling::resolved_executable(&tool.path);
+                        versions.insert(resolved, banner.clone());
                         versions.insert(tool.path.to_string_lossy().into_owned(), banner);
                         Ok(tool)
                     }
@@ -1059,15 +1096,32 @@ impl CppPlans {
                             });
                             match clangxx {
                                 Some(clangxx) => {
-                                    self.legacy_clazy_wrappers
-                                        .insert(id.into(), clangxx.path.clone());
+                                    self.legacy_clazy_wrappers.insert(
+                                        id.into(),
+                                        PathBuf::from(legacy_tooling::resolved_executable(
+                                            &clangxx.path,
+                                        )),
+                                    );
                                     Ok(tool)
                                 }
                                 None => {
+                                    let message = "the clazy compiler wrapper requires an approved clang++ capability";
+                                    let path = legacy_tooling::resolved_executable(&tool.path);
+                                    let version = self
+                                        .compiler_versions
+                                        .get(&path)
+                                        .cloned()
+                                        .unwrap_or_default();
                                     missing.push((
                                         "ClazyUnavailable",
-                                        "the clazy compiler wrapper requires an approved clang++ capability".into(),
+                                        message.into(),
                                         mode(field) == "required",
+                                        legacy_tooling::missing_tool_evidence(
+                                            "ClazyUnavailable",
+                                            message,
+                                            &path,
+                                            &version,
+                                        ),
                                     ));
                                     continue;
                                 }
@@ -1089,10 +1143,17 @@ impl CppPlans {
                     } else {
                         ("clang-tidy", "ClangTidyUnavailable")
                     };
+                    let message = format!("{tool} is unavailable or incompletely probed");
+                    // Frozen capability path: the found executable whose probe failed.
+                    let path = request
+                        .resolve()
+                        .map(|tool| tool.path.to_string_lossy().into_owned())
+                        .unwrap_or_default();
                     missing.push((
                         label,
-                        format!("{tool} is unavailable or incompletely probed"),
+                        message.clone(),
                         mode(field) == "required",
+                        legacy_tooling::missing_tool_evidence(label, &message, &path, ""),
                     ));
                 }
                 Err(error) if mode(field) == "required" => return Err(error),
@@ -1107,7 +1168,7 @@ impl CppPlans {
             // Frozen LintEngine with an exact context and no resolvable clang tooling: the same
             // unavailable targets at "." as without a context.
             self.preparation_failures
-                .insert(id.into(), legacy_tooling_unavailable(id, &missing));
+                .insert(id.into(), legacy_tooling_unavailable(id, &missing, config));
             return Ok(Work::Internal);
         }
         if self.legacy_projection && !selected.is_empty() {
@@ -1390,6 +1451,7 @@ impl CppPlans {
                 let error = |name: String, message: String| ToolUnit {
                     source: source.clone(),
                     step: UnitStep::Error { name, message },
+                    task: None,
                 };
                 if legacy_syntax::unit_targets(unit).1.is_some() {
                     plan.units.push(error(
@@ -1453,7 +1515,8 @@ impl CppPlans {
                 if !searches.is_empty() {
                     arguments.push("{observed-gcc-stdlib}".into());
                 }
-                let mut argv = vec![tool.path.to_string_lossy().into_owned()];
+                // Frozen `regular_executable`: the approved tool runs by its resolved path.
+                let mut argv = vec![legacy_tooling::resolved_executable(&tool.path)];
                 if clazy && let Some(clangxx) = &wrapper {
                     // Frozen compiler-wrapper provider: clang++ runs the clazy plugin.
                     argv.extend(arguments);
@@ -1547,6 +1610,7 @@ impl CppPlans {
                 providers.push(provider);
                 plan.units.push(ToolUnit {
                     source,
+                    task: Some(task_id.clone()),
                     step: UnitStep::Run(task_id),
                 });
             }
@@ -1566,6 +1630,11 @@ impl CppPlans {
                 &context.uncovered_sources,
                 &plans,
                 &BTreeMap::new(),
+                &legacy_tooling::ToolingFacts {
+                    probes: &BTreeMap::new(),
+                    config,
+                    wrapper: wrapper.is_some(),
+                },
             );
             self.preparation_failures.insert(id.into(), output);
             return Ok(Work::Internal);
@@ -2206,13 +2275,43 @@ fn legacy_configuration_digest(unit: &CompilationUnit) -> Option<String> {
     (!key.is_empty()).then(|| key.trim_start_matches("sha256:")[..12].to_string())
 }
 
+/// Frozen `gcc_standard_library_projection` probes of one tool unit as `ToolEvidence`: the C++
+/// search, then (when the C++ search completed) the C search.
+fn legacy_probe_evidence(
+    searches: &[TaskSpec],
+    outcomes: &BTreeMap<String, ici_execution::TaskOutcome>,
+    version: &str,
+) -> Vec<Value> {
+    let mut records = vec![];
+    for search in searches {
+        let Some(outcome) = outcomes.get(&search.id) else {
+            break;
+        };
+        records.push(legacy_tooling::process_evidence(
+            "g++ stdlib include search",
+            version,
+            &search.argv,
+            outcome,
+            "",
+        ));
+        if outcome.timed_out || outcome.truncated || outcome.exit_code != Some(0) {
+            break;
+        }
+    }
+    records
+}
+
 /// Frozen `_unavailable` targets of clang-tidy and Clazy in a legacy lint run.
-fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) -> AnalysisOutput {
+fn legacy_tooling_unavailable(
+    id: &str,
+    unavailable: &[legacy_tooling::MissingTool],
+    config: Option<&Value>,
+) -> AnalysisOutput {
     let mut output = AnalysisOutput::new(id, "ici.cpp.tooling");
     let errors: Vec<_> = unavailable
         .iter()
-        .filter(|(_, _, required)| *required)
-        .map(|(_, message, _)| message.clone())
+        .filter(|(_, _, required, _)| *required)
+        .map(|(_, message, ..)| message.clone())
         .collect();
     output.status = if !errors.is_empty() {
         "ERROR"
@@ -2225,7 +2324,7 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
     output.summary = if errors.is_empty() {
         unavailable
             .iter()
-            .map(|(_, message, _)| message.as_str())
+            .map(|(_, message, ..)| message.as_str())
             .collect::<Vec<_>>()
             .join("; ")
     } else {
@@ -2234,10 +2333,11 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
     output.extra["legacy_tool_warnings"] = json!(
         unavailable
             .iter()
-            .filter(|(_, _, required)| !*required)
-            .map(|(_, message, _)| message)
+            .filter(|(_, _, required, _)| !*required)
+            .map(|(_, message, ..)| message)
             .collect::<Vec<_>>()
     );
+    output.extra["legacy_lint_counters"] = legacy_tooling::unplanned_counters(unavailable, config);
     if errors.is_empty() && !unavailable.is_empty() {
         // Frozen LintEngine: an unavailable optional tool leaves the lint verdict estimated.
         let mut available = Measurement::measured("clang_tooling_available", 0.0);
@@ -2249,25 +2349,10 @@ fn legacy_tooling_unavailable(id: &str, unavailable: &[(&str, String, bool)]) ->
     output.extra["tool_evidence"] = json!(
         unavailable
             .iter()
-            .filter_map(|(label, message, _)| {
-                let error = if message.ends_with("is unavailable or incompletely probed") {
-                    "tool not found or capability probe incomplete; no command was executed"
-                } else if message.ends_with(
-                    "requires an approved capability inventory and exact compilation context",
-                ) {
-                    "analysis context unavailable"
-                } else {
-                    return None;
-                };
-                Some(json!({
-                    "name": if *label == "ClazyUnavailable" { "clazy" } else { "clang-tidy" },
-                    "path": "", "argv": [], "version": "", "returncode": null,
-                    "error": error, "timed_out": false, "truncated": false,
-                }))
-            })
+            .map(|(.., record)| record.clone())
             .collect::<Vec<_>>()
     );
-    for (label, message, required) in unavailable {
+    for (label, message, required, _) in unavailable {
         output.observation.limitations.push(message.clone());
         let mut target = InspectionTarget::at(".", 1);
         target.target_name = (*label).into();
@@ -2876,8 +2961,13 @@ fn legacy_fallback_findings(
         detail["related_locations"] = json!([]);
     }
     output.extra["legacy_findings"] = json!(explicit);
-    // Frozen tool evidence lists one compiler run per source; adapted targets take the first.
-    let runs: Vec<Value> = output.extra["concrete_tasks"]
+    legacy_syntax_tool_evidence(&mut output.extra, tool_name);
+}
+
+/// Frozen `_cpp_lint` tool evidence: one compiler run per replayed unit (`concrete_tasks`), named
+/// by the compiler (frozen `replay.compiler`), with its process facts and execution error.
+pub(crate) fn legacy_syntax_tool_evidence(extra: &mut Value, tool_name: Option<String>) {
+    let runs: Vec<Value> = extra["concrete_tasks"]
         .as_array()
         .into_iter()
         .flatten()
@@ -2888,11 +2978,14 @@ fn legacy_fallback_findings(
                 .clone()
                 .unwrap_or_else(|| path.rsplit('/').next().unwrap_or(path).to_owned());
             Some(json!({"name":name,"path":path,"argv":argv,
-                "version":task["version"].as_str().unwrap_or_default(),"returncode":null,
-                "error":"","timed_out":false,"truncated":false}))
+                "version":task["version"].as_str().unwrap_or_default(),
+                "returncode":task.get("returncode").cloned().unwrap_or(Value::Null),
+                "error":task["error"].as_str().unwrap_or_default(),
+                "timed_out":task["timed_out"].as_bool().unwrap_or(false),
+                "truncated":task["truncated"].as_bool().unwrap_or(false)}))
         })
         .collect();
-    output.extra["tool_evidence"] = json!(runs);
+    extra["tool_evidence"] = json!(runs);
 }
 
 /// Frozen SanitizeEngine / ThreadSanitizeEngine direct g++ projection. Each instrumented test
@@ -3506,10 +3599,17 @@ impl CppPlans {
             .parse()
             .ok()?;
         let unit = self.contexts.get(component)?.units.get(index)?;
+        let version = provider
+            .task
+            .argv
+            .first()
+            .and_then(|path| self.compiler_versions.get(path))
+            .map_or("", String::as_str);
         Some(legacy_tooling::legacy_tool_run(
             clazy,
             &unit.source,
             &legacy_configuration_digest(unit)?,
+            (&provider.task.argv, version),
             outcome,
             output,
         ))
@@ -4087,6 +4187,8 @@ impl CppPlans {
                 })
                 .collect();
             let mut projections = BTreeMap::new();
+            // Frozen `g++ stdlib include search` evidence of each legacy tool task.
+            let mut probe_evidence: BTreeMap<String, Vec<Value>> = BTreeMap::new();
             if !searches.is_empty() {
                 let schedule = match scheduler.run_with_start(&searches, cancellation, |task| {
                     events.emit(
@@ -4118,6 +4220,18 @@ impl CppPlans {
                     let Some(searches) = self.tooling_searches.get(&provider.task.id) else {
                         continue;
                     };
+                    if legacy_tool_plans.is_some() {
+                        probe_evidence.insert(
+                            provider.task.id.clone(),
+                            legacy_probe_evidence(
+                                searches,
+                                &outcomes,
+                                self.compiler_versions
+                                    .get(&searches[0].argv[0])
+                                    .map_or("", String::as_str),
+                            ),
+                        );
+                    }
                     let projection = match ici_cpp::gcc_standard_library_projection(
                         &outcomes[&searches[0].id],
                         &outcomes[&searches[1].id],
@@ -4132,6 +4246,14 @@ impl CppPlans {
                                 &outcomes[&searches[1].id],
                                 &error,
                             );
+                            // Frozen `_record_gcc_projection_evidence`: the projection error on
+                            // the last probe it ran.
+                            if let Some(last) = probe_evidence
+                                .get_mut(&provider.task.id)
+                                .and_then(|records| records.last_mut())
+                            {
+                                last["error"] = json!(message);
+                            }
                             for plan in legacy_tool_plans.iter_mut().flatten() {
                                 for unit in &mut plan.units {
                                     if matches!(&unit.step, legacy_tooling::UnitStep::Run(task) if *task == provider.task.id)
@@ -4244,12 +4366,24 @@ impl CppPlans {
                 .iter()
                 .map(|outcome| outcome.task_id.clone())
                 .collect();
+            // Frozen `ProcessResult` facts of each executed legacy syntax replay.
+            let run_facts: BTreeMap<String, Value> = scheduled
+                .iter()
+                .map(|outcome| {
+                    (
+                        outcome.task_id.clone(),
+                        json!({"returncode":legacy_tooling::frozen_returncode(outcome),
+                            "timed_out":outcome.timed_out,"truncated":outcome.truncated}),
+                    )
+                })
+                .collect();
             let mut outputs = vec![];
             let mut unused_observations = vec![];
             let mut unused_runs = vec![];
             let mut legacy_tool_runs = vec![];
             let mut replayed = BTreeSet::new();
             let mut syntax_errors = vec![];
+            let mut syntax_messages = BTreeMap::new();
             for outcome in scheduled {
                 events.emit(
                     "task.completed",
@@ -4407,6 +4541,7 @@ impl CppPlans {
                     .map(|output| (output.observation.task_id.clone(), output))
                     .collect();
                 let mut errors: BTreeMap<String, String> = syntax_errors.drain(..).collect();
+                syntax_messages.clone_from(&errors);
                 outputs = vec![];
                 for (index, note) in notes.iter().enumerate() {
                     if let Some(stop) = budget_stop.as_ref().filter(|stop| stop.index == index) {
@@ -4462,6 +4597,11 @@ impl CppPlans {
                     &uncovered,
                     legacy_tool_plans.as_deref().unwrap_or_default(),
                     &tool_stops,
+                    &legacy_tooling::ToolingFacts {
+                        probes: &probe_evidence,
+                        config: component.settings.pointer("/engines/lint"),
+                        wrapper: self.legacy_clazy_wrappers.contains_key(&request.task_id),
+                    },
                 );
             }
             if request.check_id == "cpp.diagnostics" {
@@ -4476,22 +4616,60 @@ impl CppPlans {
                         &mut output,
                         syntax_errors.into_iter().map(|(_, error)| error).collect(),
                     );
-                    // Frozen lint tool evidence: one compiler run per recorded configuration.
-                    output.extra["concrete_tasks"] = json!(
-                        tasks
+                    // Frozen lint tool evidence: one compiler run per replayed unit, in unit
+                    // order (`_record_process`; a syntax execution error is its `error`).
+                    let notes = self.legacy_unit_notes.get(&request.task_id);
+                    let order: Vec<(&str, &TaskSpec)> = match notes {
+                        Some(notes) => notes
                             .iter()
-                            .filter(|task| executed.contains(&task.id))
-                            .map(|task| {
+                            .filter_map(|note| {
+                                let id = note.replay.as_ref().ok()?;
+                                Some((
+                                    note.source.as_str(),
+                                    tasks.iter().find(|task| &task.id == id)?,
+                                ))
+                            })
+                            .collect(),
+                        None => tasks.iter().map(|task| ("", task)).collect(),
+                    };
+                    let order: Vec<_> = order
+                        .into_iter()
+                        .filter(|(_, task)| executed.contains(&task.id))
+                        .collect();
+                    output.extra["concrete_tasks"] = json!(
+                        order
+                            .iter()
+                            .map(|(_, task)| {
                                 let version = task
                                     .argv
                                     .first()
                                     .and_then(|path| self.compiler_versions.get(path))
                                     .cloned()
                                     .unwrap_or_default();
-                                json!({"id":task.id,"argv":task.argv,"version":version})
+                                let mut record = json!({"id":task.id,"argv":task.argv,"version":version,
+                                    "error":syntax_messages.get(&task.id).cloned().unwrap_or_default()});
+                                if let Some(facts) = run_facts.get(&task.id).and_then(Value::as_object) {
+                                    for (key, value) in facts {
+                                        record[key] = value.clone();
+                                    }
+                                }
+                                record
                             })
                             .collect::<Vec<_>>()
                     );
+                    legacy_syntax_tool_evidence(&mut output.extra, None);
+                    // Frozen `_run_exact` counters: every replayed configuration, its distinct
+                    // sources and the production sources without a recorded command.
+                    let sources: BTreeSet<&str> = order.iter().map(|(source, _)| *source).collect();
+                    output.extra["legacy_lint_counters"] = json!({
+                        "cpp_analysis_mode": "exact",
+                        "cpp_configurations_checked": order.len(),
+                        "cpp_sources_checked": sources.len(),
+                        "cpp_context_missing": self
+                            .contexts
+                            .get(&component.id)
+                            .map_or(0, |context| context.uncovered_sources.len()),
+                    });
                 }
             }
             return output;

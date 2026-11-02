@@ -362,7 +362,7 @@ fn baseline_verify_compares_legacy_findings_and_pairs_sarif_baseline_states_like
 /// derives from each finding (`_rule_for_finding`, `_finding_properties`), each with its reason:
 /// (case, "rule" | "result", rule id, property). A result entry whose property starts with
 /// `Compiler:` applies only to the adapted compiler diagnostic (native tool rule `Compiler:…`).
-const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 23] = [
+const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 18] = [
     (
         "python",
         "rule",
@@ -418,41 +418,6 @@ const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 23] = [
         "ici.legacy.test.target",
         "confidence",
         NO_ESTIMATE,
-    ),
-    (
-        "hybrid",
-        "rule",
-        "ici.legacy.lint.target",
-        "fullDescription",
-        CPP_COMPILER,
-    ),
-    (
-        "hybrid",
-        "rule",
-        "ici.legacy.lint.target",
-        "properties.category",
-        CPP_COMPILER,
-    ),
-    (
-        "hybrid",
-        "result",
-        "ici.legacy.lint.target",
-        "Compiler:category",
-        CPP_COMPILER,
-    ),
-    (
-        "hybrid",
-        "result",
-        "ici.legacy.lint.target",
-        "Compiler:tool_rule_id",
-        CPP_COMPILER,
-    ),
-    (
-        "hybrid",
-        "result",
-        "ici.legacy.lint.target",
-        "Compiler:tool_version",
-        CPP_COMPILER,
     ),
     (
         "cpp",
@@ -527,7 +492,6 @@ const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 23] = [
 ];
 const ADR_0008: &str = "ADR-0008 allows only the fixed metadata probe, so the runtime evidence is named `python runtime metadata`, never frozen's `python -VV`";
 const NO_ESTIMATE: &str = "native never invents frozen's fixed `Line: 45.0% (est)` coverage for a suite without tests (recorded on test.py:611/774), so the test engine stays MEASURED (high) where frozen was ESTIMATED (medium)";
-const CPP_COMPILER: &str = "C++ facet (cpp.json): frozen's g++ diagnostic was a native finding (`Compiler diagnostic from a sanitized translation-unit replay.`, correctness, `-W…` tool rule); the native one is adapted";
 
 fn reviewed(case: &str, kind: &str, rule: &str, key: &str, label: &str) -> bool {
     REVIEWED_PROPERTIES.iter().any(|(c, k, r, p, reason)| {

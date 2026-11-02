@@ -1813,6 +1813,24 @@ fn legacy_lint_projection(
     let qt = prepared
         .cpp
         .legacy_qt_codegen(&prepared.project, component, output);
+    // Frozen LintEngine Qt generated-code counters (`verify_qt_codegen` always runs).
+    if !output.extra["legacy_lint_counters"].is_object() {
+        output.extra["legacy_lint_counters"] = serde_json::json!({});
+    }
+    for (key, value) in [
+        ("qt_codegen_mode", serde_json::json!(qt.mode)),
+        (
+            "qt_codegen_inputs_checked",
+            serde_json::json!(qt.inputs_checked),
+        ),
+        ("qt_codegen_ui_checked", serde_json::json!(qt.ui_checked)),
+        ("qt_codegen_qrc_checked", serde_json::json!(qt.qrc_checked)),
+        ("qt_codegen_moc_checked", serde_json::json!(qt.moc_checked)),
+        ("qt5_compile_units", serde_json::json!(qt.qt5_units)),
+        ("qt6_compile_units", serde_json::json!(qt.qt6_units)),
+    ] {
+        output.extra["legacy_lint_counters"][key] = value;
+    }
     if crate::cpp::legacy_fallback_lint(
         output,
         tooling,

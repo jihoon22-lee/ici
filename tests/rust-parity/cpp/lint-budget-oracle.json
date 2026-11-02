@@ -10,6 +10,51 @@
    },
    "frozen": {
     "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 7,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 7,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 9
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -395,6 +440,175 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/big.cpp"
+      ],
+      "error": "C++ syntax output was truncated: big.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": true,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/err0.cpp"
+      ],
+      "error": "g++ reported an error with a successful exit: err0.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/exit3.cpp"
+      ],
+      "error": "g++ failed with exit code 3: exit3.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 3,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/quiet1.cpp"
+      ],
+      "error": "C++ syntax output had no diagnostics: quiet1.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/sig.cpp"
+      ],
+      "error": "C++ syntax check terminated unexpectedly: sig.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": -9,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/slow.cpp"
+      ],
+      "error": "C++ syntax check timed out: slow.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 124,
+      "timed_out": true,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "generated_sources": 0
@@ -408,6 +622,51 @@
    },
    "frozen": {
     "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 0,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 0,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -527,6 +786,28 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "generated_sources": 0
@@ -540,6 +821,51 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 7,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 7,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 9
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -925,6 +1251,175 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/big.cpp"
+      ],
+      "error": "C++ syntax output was truncated: big.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": true,
+      "version": ""
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/err0.cpp"
+      ],
+      "error": "g++ reported an error with a successful exit: err0.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/exit3.cpp"
+      ],
+      "error": "g++ failed with exit code 3: exit3.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 3,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/quiet1.cpp"
+      ],
+      "error": "C++ syntax output had no diagnostics: quiet1.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/sig.cpp"
+      ],
+      "error": "C++ syntax check terminated unexpectedly: sig.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": -9,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "{bin}/g++",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/slow.cpp"
+      ],
+      "error": "C++ syntax check timed out: slow.cpp",
+      "name": "g++",
+      "path": "{bin}/g++",
+      "returncode": 124,
+      "timed_out": true,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "generated_sources": 0
@@ -938,6 +1433,51 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 0,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 0,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -1057,6 +1597,28 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "generated_sources": 0
@@ -1068,6 +1630,51 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 0,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 0,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -1186,6 +1793,28 @@
       "start_line": 1,
       "status": "WARN",
       "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
      }
     ]
    },

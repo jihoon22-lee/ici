@@ -212,6 +212,16 @@ def run(command: str, config: str, files: dict, generate: dict, sizes: dict) -> 
         "evidence": engine["evidence"],
         "targets": [{key: target.get(key) for key in FIELDS} for target in engine["targets"]],
         "findings": engine["findings"],
+        # The frozen LintEngine `extra` counters and its process `tool_evidence`, with the
+        # project as {root}.
+        **json.loads(
+            json.dumps(
+                {
+                    "extra": engine.get("extra", {}),
+                    "tool_evidence": engine.get("tool_evidence", []),
+                }
+            ).replace(str(project), "{root}")
+        ),
     }
     if command != "verify":
         captured["exit_code"] = result.returncode

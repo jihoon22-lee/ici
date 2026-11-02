@@ -6,6 +6,9 @@ use ici_cli::{commands, cpp::set_legacy_tooling_budget_for_tests, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path, time::Duration};
 
+#[path = "support/lint_extra.rs"]
+mod lint_extra;
+
 const FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -227,6 +230,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
         "evidence": engine["evidence"],
         "targets": targets,
         "findings": engine["findings"],
+        "extra": engine["extra"],
+        "tool_evidence": engine["tool_evidence"],
     });
     captured["verify_exit_code"] = json!(output.exit_code);
     if case["tools"]
@@ -369,6 +374,16 @@ fn legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv()
                     .iter()
                     .any(|argument| argument == "--checks=-*,readability-function-size")
             });
+        }
+        // The frozen LintEngine counters and tool evidence (not of an intended refusal, which
+        // runs no clang-tidy unit).
+        let differences = lint_extra::split(&mut actual, &mut frozen);
+        if !INTENDED_REFUSALS.contains(&name.as_str()) && !differences.is_empty() {
+            eprintln!(
+                "== {name} (extra/tool_evidence)\n{}",
+                differences.join("\n")
+            );
+            mismatches.push(format!("{name}/extra"));
         }
         let frozen = &frozen;
         if frozen.get("exit_code").is_some() {
