@@ -222,6 +222,10 @@ fn complete_boundaries(engine: &mut Value) {
             extra[frozen] = value.clone();
         }
     }
+    // The C++ check's frozen scope exclusions (also beside a Python check in a hybrid engine).
+    if let Some(exclusions) = cpp.get("cpp_scope_exclusions") {
+        extra["cpp_scope_exclusions"] = exclusions.clone();
+    }
     if extra["cpp_boundary_mode"] == "heuristic" {
         for (key, value) in [
             ("cpp_boundary_configurations_checked", json!(0)),

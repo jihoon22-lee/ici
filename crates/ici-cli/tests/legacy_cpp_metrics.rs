@@ -45,7 +45,14 @@ fn run(config: &str, command: &str) -> Value {
             )
         })
         .collect();
-    serde_json::json!({"exit_code":output.exit_code,"status":report["status"],"targets":targets})
+    let metrics: Vec<Value> = report["targets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|target| target["metrics"].clone())
+        .collect();
+    serde_json::json!({"exit_code":output.exit_code,"status":report["status"],"targets":targets,
+        "target_metrics":metrics,"cpp_scope_exclusions":report["extra"]["cpp_scope_exclusions"]})
 }
 
 #[test]
