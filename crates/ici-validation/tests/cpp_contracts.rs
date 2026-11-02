@@ -574,3 +574,34 @@ fn integration_preserves_declared_signed_exit_policy_as_measured_assertion_data(
         );
     }
 }
+
+/// Frozen legacy ThreadSanitizeEngine appends `halt_on_error=1` (one report per run); a native
+/// run keeps reporting every race (`halt_on_error=0`). The caller's options are kept in front.
+#[test]
+fn ctest_thread_sanitizer_halts_at_the_first_report_only_for_the_legacy_engine() {
+    for (legacy, expected) in [(false, "halt_on_error=0"), (true, "halt_on_error=1")] {
+        let root = tempfile::tempdir().unwrap();
+        let mut context = request(root.path(), ValidationKind::ThreadSanitizer);
+        context.options.sanitizer_suite_kind = Some(ValidationKind::Ctest);
+        context.options.instrumented_artifacts = vec!["build/suite".into()];
+        context.options.legacy_tsan_halt_on_error = legacy;
+        context
+            .options
+            .environment
+            .insert("TSAN_OPTIONS".into(), "history_size=4".into());
+        context
+            .options
+            .auxiliary_tools
+            .insert("readelf".into(), context.tool.clone());
+        let planned = plan(&context).unwrap();
+        let suite = planned
+            .tasks
+            .iter()
+            .find(|task| task.id == format!("{}.suite", context.task_id))
+            .unwrap();
+        assert_eq!(
+            suite.env_overlay["TSAN_OPTIONS"],
+            format!("history_size=4:{expected}")
+        );
+    }
+}

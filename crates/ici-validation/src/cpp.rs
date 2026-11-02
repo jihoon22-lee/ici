@@ -72,7 +72,14 @@ pub(crate) fn plan(plan: &mut ValidationPlan) -> Result<(), ValidationError> {
             test.kind = TaskKind::Test;
             test.output_limit_bytes = Some(1024 * 1024);
             let settings = if request.kind == ValidationKind::ThreadSanitizer {
-                vec![("TSAN_OPTIONS", "halt_on_error=0")]
+                vec![(
+                    "TSAN_OPTIONS",
+                    if request.options.legacy_tsan_halt_on_error {
+                        "halt_on_error=1"
+                    } else {
+                        "halt_on_error=0"
+                    },
+                )]
             } else {
                 vec![
                     ("ASAN_OPTIONS", "detect_leaks=1"),

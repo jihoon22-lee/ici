@@ -89,6 +89,8 @@ pub(super) fn bind(binding: DirectBinding<'_>) -> Result<BoundCppValidation, Str
             build_dir: Some(directory),
             build_roots: vec![project.root.clone()],
             output_limit_bytes: Some(1024 * 1024),
+            // The direct g++ compile is a legacy-only path (frozen TSan halts at its first report).
+            legacy_tsan_halt_on_error: true,
             ..Default::default()
         };
         let mut request = ValidationRequest {
