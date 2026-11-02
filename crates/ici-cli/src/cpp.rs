@@ -1595,6 +1595,29 @@ fn bind_inputs(
         )
         .collect();
 }
+/// A clang-tidy config that could inject compiler arguments (`ExtraArgs`, `ExtraArgsBefore`) or
+/// pull in a parent config (`InheritParentConfig`). LLVM's YAML parser decodes escapes in
+/// double-quoted scalars, so `"\x45xtraArgs"` is the key `ExtraArgs` although its text is not:
+/// any backslash inside a double-quoted scalar is refused too, as are NUL bytes (UTF-16/32).
+/// Frozen matched the raw text only; the stricter rule is an intended security correction.
+pub(crate) fn clang_tidy_config_is_unsafe(bytes: &[u8]) -> bool {
+    let lowered = bytes.to_ascii_lowercase();
+    let mentions = |needle: &[u8]| lowered.windows(needle.len()).any(|window| window == needle);
+    if bytes.contains(&0) || mentions(b"extraargs") || mentions(b"inheritparentconfig") {
+        return true;
+    }
+    let mut double_quoted = false;
+    for byte in bytes {
+        match (double_quoted, byte) {
+            (false, b'"') => double_quoted = true,
+            (true, b'\\') => return true,
+            (true, b'"') => double_quoted = false,
+            _ => {}
+        }
+    }
+    false
+}
+
 fn tooling_config(
     project: &ResolvedProject,
     component: &Component,
@@ -1633,11 +1656,7 @@ fn tooling_config(
             .map_err(|error| error.to_string())?;
         let text = std::str::from_utf8(&bytes)
             .map_err(|_| "clang-tidy config is not UTF-8".to_string())?;
-        let normalized = text.to_ascii_lowercase();
-        if text.contains('\0')
-            || normalized.contains("extraargs")
-            || normalized.contains("inheritparentconfig")
-        {
+        if clang_tidy_config_is_unsafe(text.as_bytes()) {
             return Err(
                 "clang-tidy config may not inject compiler arguments or inherit parent config"
                     .into(),
@@ -4741,5 +4760,44 @@ mod context_message_tests {
             super::legacy_context_message("response-file-cycle", "cycle"),
             "response-file-cycle: cycle"
         );
+    }
+}
+
+#[cfg(test)]
+mod clang_tidy_config_tests {
+    use super::clang_tidy_config_is_unsafe as unsafe_config;
+
+    #[test]
+    fn plain_and_single_quoted_configs_without_argument_keys_are_accepted() {
+        assert!(!unsafe_config(
+            b"Checks: '-*,clang-analyzer-*'\nHeaderFilterRegex: '.*\\.h'\n"
+        ));
+        assert!(!unsafe_config(
+            b"Checks: \"-*,bugprone-*\"\n# a \"quoted\" note\n"
+        ));
+    }
+
+    #[test]
+    fn literal_argument_and_parent_keys_are_refused_in_any_case_or_form() {
+        for text in [
+            &b"ExtraArgs: ['-fplugin=x.so']\n"[..],
+            b"extraargsbefore: [-Xclang]\n",
+            b"{InheritParentConfig: true}\n",
+            b"? !!str ExtraArgs\n: [-fplugin=x.so]\n",
+        ] {
+            assert!(unsafe_config(text), "{}", String::from_utf8_lossy(text));
+        }
+    }
+
+    #[test]
+    fn escaped_double_quoted_keys_and_nul_encodings_are_refused() {
+        for text in [
+            &b"\"\\x45xtraArgs\": ['-fplugin=x.so']\n"[..],
+            b"\"Extra\\u0041rgs\": [-fplugin=x.so]\n",
+            b"\"Extra\\\n  Args\": [-fplugin=x.so]\n",
+            b"\xff\xfeE\0x\0",
+        ] {
+            assert!(unsafe_config(text), "{}", String::from_utf8_lossy(text));
+        }
     }
 }
