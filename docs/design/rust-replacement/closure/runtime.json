@@ -137,24 +137,28 @@
    "status": "complete"
   },
   "capability:legacy-command-config-result-projection": {
-   "comparison": "Runtime facet: historical command projection for verify (frozen engines/verify.py over the same engine bodies, core/models.aggregate_suite_status/exit_code_for_status, core/pipeline.apply_analysis_profile). Defects fixed: missing-tool verdicts (Ruff/mypy fallbacks, no sources, no tests, refused/optional coverage) were shaped only for single-engine commands; verify now applies the same shared helper to every suite engine and recomputes suite status and counts with the frozen aggregation; descriptor profiles now apply to historical commands.",
-   "difference_reason": "Shared with reporting/config (result v3/config facets). Remaining differences: frozen verify ran mypy/pytest from ici's own interpreter when no project tool existed (sys.executable fallback, removed by AGENTS §8/ADR-0008), so native type/test differ there; a suite ERROR caused by an incomplete native run keeps exit 3 (frozen 1), as for single commands; native omits the compile_db SKIP row for a Python-only project; python_compat evidence differs (python area).",
+   "comparison": "Runtime facet: historical command projection for verify (frozen engines/verify.py over the same engine bodies, core/models.aggregate_suite_status/exit_code_for_status, core/pipeline.apply_analysis_profile). Defects fixed: missing-tool verdicts (Ruff/mypy fallbacks, no sources, no tests, refused/optional coverage) were shaped only for single-engine commands; verify now applies the same shared helper to every suite engine and recomputes suite status and counts with the frozen aggregation; descriptor profiles now apply to historical commands. Finding fields frozen set outside the generic target adapter (runtime closure worker, 2026-11-02; frozen vs native `verify --report` probes /tmp/ici-rust-replacement-20261028/w-runtime-suite-probe-before.log → w-runtime-suite-probe-after.log): a Python-only lint without Ruff adapted its targets before the Ruff not-found tool evidence existed (tool_name '' where frozen named `ruff`); a hybrid lint's adapted targets (the AST fallback and the C++ tool-unavailable targets) name `ruff`, its compiler diagnostic keeps g++; a type engine without mypy re-derives its adapted findings' tool (`mypy`) and confidence from the ESTIMATED/NOT_RUN verdict; Python dead targets carry frozen DeadEngine._scoped_findings explanation, remediation, no tool and the Python scope's confidence (medium when ESTIMATED); a Python sanitize scope refused before pytest records frozen's `pytest resource warnings` tool evidence, so its targets name that tool. crates/ici-cli/tests/legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed now compares every rule's properties/fullDescription/help and every result's properties and message of the python, hybrid, cpp and baseline frozen verify --sarif captures (only the host's python_compat interpreter version/message masked), each remaining difference reviewed with its reason and a stale entry failing. The earlier note that native omits the compile_db SKIP row for a Python-only verify is stale: the suite's engine_count equals frozen in every captured case (native_and_frozen).",
+   "difference_reason": "Shared with reporting/config (result v3/config facets). Intended differences: frozen verify ran mypy/pytest from ici's own interpreter when no project tool existed (sys.executable fallback, removed by AGENTS §8/ADR-0008), so native type/test differ there; a suite ERROR caused by an incomplete native run keeps exit 3 (frozen 1), the accepted incomplete-exit-3 policy shared with single commands; the python_compat runtime evidence is ADR-0008's fixed metadata probe named `python runtime metadata`, never `python -VV` (python area; reviewed in legacy_sarif.rs); a test suite without tests stays MEASURED (high) because native never invents frozen's fixed `Line: 45.0% (est)` coverage (recorded on test.py:611/774), where frozen was ESTIMATED (medium); the sanitize tool evidence of a scope refused before pytest names no interpreter (native ran none). The hybrid compiler diagnostic's native-finding fields and the hybrid dead engine evidence are the C++ facet (cpp.json).",
    "evidence": [
     "Frozen vs native `ici verify -r --profile fast`, `ici lint -r`, `ici type -r` without Ruff/mypy (legacy [project] config, env -i PATH=/usr/bin:/bin): lint WARN/ESTIMATED 'Ruff is unavailable; AST syntax fallback is ESTIMATED' in both the family command and verify, suite WARN, exit 0 in both; /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
     "cargo test -p ici-cli over 28 legacy/verify suites --include-ignored --no-fail-fast: 123 passed; legacy_test_metrics (needs a worktree .venv) passed separately with the project .venv linked; /tmp/ici-rust-replacement-20261028/w-runtime-verify-suite.log",
-    "cargo test -p ici-reporting --lib; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-verify-final.log"
+    "cargo test -p ici-reporting --lib; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-verify-final.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --no-fail-fast` over every legacy_*, verify_*, python_* and pytest_* test binary `-- --include-ignored`; /tmp/ici-rust-replacement-20261028/w-runtime-sarif-fields-tests.log (57 binaries, all passed); `cargo clippy -p ici-cli --all-targets --locked -- -D warnings`: /tmp/ici-rust-replacement-20261028/w-runtime-sarif-clippy.log"
    ],
    "fixtures": {
     "failure": [
      "crates/ici-cli/tests/legacy_commands.rs::verify_required_missing_ruff_is_a_suite_error",
-     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement"
+     "crates/ici-cli/tests/legacy_commands.rs::incompatible_historical_baseline_never_writes_requested_replacement",
+     "crates/ici-cli/tests/legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed"
     ],
     "negative": [
-     "crates/ici-cli/tests/legacy_commands.rs::legacy_annotation_evidence_survives_missing_type_tool_without_claiming_type_completion"
+     "crates/ici-cli/tests/legacy_commands.rs::legacy_annotation_evidence_survives_missing_type_tool_without_claiming_type_completion",
+     "crates/ici-cli/tests/legacy_sarif.rs::python_verify_sarif_keeps_the_frozen_alert_identity"
     ],
     "positive": [
      "crates/ici-cli/tests/legacy_commands.rs::verify_shapes_missing_ruff_and_mypy_like_the_family_commands_and_honors_profiles",
-     "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python"
+     "crates/ici-cli/tests/legacy_commands.rs::historical_family_and_verify_exports_use_one_native_result_without_python",
+     "crates/ici-cli/tests/legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed"
     ]
    },
    "rust_paths": [
@@ -162,7 +166,7 @@
     "crates/ici-cli/src/legacy.rs",
     "crates/ici-reporting/src/projection.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "capability:native-windows-disposition": {
    "comparison": "Frozen core/runner_win.py is the Windows Job Object helper used by core/runner.py only when os.name == 'nt' (suspended spawn, kill-on-close job, resume). The native product is built only for x86_64 Linux/WSL (ADR-0008: native Windows equivalence is not claimed); its process runner uses POSIX process groups (killpg) unconditionally, so no untested Windows runner can ship and a Windows bundle is refused at manifest formation.",

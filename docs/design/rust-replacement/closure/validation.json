@@ -38,10 +38,11 @@
    "status": "implemented"
   },
   "capability:legacy-python-sanitize": {
-   "comparison": "Composite capability, implemented (not verified): the contract-defining facet named below is not proven. Python half closed: every _sanitize_python_scope finding site (143, 155, 219, 238) is complete against frozen runs: clean PASS, located and unlocated ResourceWarning FAIL, every missing-scope variant (required ERROR / not-required SKIP) and the tool-failure scope error. Open: a hybrid C++ and Python project keeping its Python scope beside cpp.sanitize (engines/sanitize.py _analysis_scopes) is not compared with a frozen run, and the C++ sanitizer half (engines/sanitize.py, adapters/providers/sanitize.py, _sanitizer_diagnostics) is the cpp worker's. Not verified because the hybrid case is the contract itself.",
+   "comparison": "Python facet of the composite capability (the C++ sanitizer half — engines/sanitize.py C++ scopes, adapters/providers/sanitize.py, _sanitizer_diagnostics — is cpp.json's and stays open there). Every _sanitize_python_scope finding site (143, 155, 219, 238) is complete against frozen runs: clean PASS, located and unlocated ResourceWarning FAIL, every missing-scope variant (required ERROR / not-required SKIP) and the tool-failure scope error. The hybrid contract (engines/sanitize.py _analysis_scopes: a C++ and Python project keeps its Python scope beside cpp.sanitize) is now compared with frozen v0.13.0 `ici verify --report --sarif` on the hybrid project (tests/rust-parity/reporting/legacy-sarif-oracle.json end_to_end.hybrid): the Python scope's `PythonResourceWarnings` target ('Python ResourceWarning check skipped: tests directory is missing', ERROR) keeps frozen's rule, fingerprint, location and level (legacy_sarif.rs hybrid alert identity) and, since 2026-11-02, frozen's tool attribution: frozen _missing_python_scope recorded a `pytest resource warnings` tool evidence even without a process, so the adapted targets name that tool (native defect fixed in legacy_execute.rs frozen_python_finding_fields; legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed compares the result and rule properties of the python and hybrid captures).",
    "evidence": [
     "tests/rust-parity/validation/legacy-python-sanitize-oracle.json and legacy-python-sanitize-scopes-oracle.json (frozen legacy `ici sanitize --report`)",
-    ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)"
+    ". opus-env.sh; cargo test -p ici-cli -p ici-validation --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2: all passed (/tmp/ici-rust-replacement-20261028/w-validation-sanitize-scope-suite.log)",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --no-fail-fast` over every legacy_*, verify_*, python_* and pytest_* test binary `-- --include-ignored` (legacy_sarif, legacy_python_sanitize, legacy_python_sanitize_scopes, legacy_sanitize included); /tmp/ici-rust-replacement-20261028/w-runtime-sarif-fields-tests.log (57 binaries, all passed); `cargo clippy -p ici-cli --all-targets --locked -- -D warnings`: /tmp/ici-rust-replacement-20261028/w-runtime-sarif-clippy.log"
    ],
    "fixtures": {
     "failure": [
@@ -53,14 +54,18 @@
     ],
     "positive": [
      "crates/ici-cli/tests/legacy_python_sanitize.rs::python_resource_warning_scopes_keep_frozen_targets_identities_summary_and_exit",
-     "crates/ici-cli/tests/legacy_python_sanitize_scopes.rs::missing_or_test_less_tests_directory_is_the_frozen_scope_refusal"
+     "crates/ici-cli/tests/legacy_python_sanitize_scopes.rs::missing_or_test_less_tests_directory_is_the_frozen_scope_refusal",
+     "crates/ici-cli/tests/legacy_sarif.rs::hybrid_verify_sarif_keeps_the_frozen_project_level_alert_identity",
+     "crates/ici-cli/tests/legacy_sarif.rs::verify_sarif_rule_and_result_properties_equal_frozen_except_reviewed"
     ]
    },
    "rust_paths": [
     "crates/ici-validation/src/python_sanitize.rs",
-    "crates/ici-cli/src/validation.rs"
+    "crates/ici-cli/src/validation.rs",
+    "crates/ici-cli/src/legacy_execute.rs"
    ],
-   "status": "implemented"
+   "status": "complete",
+   "difference_reason": "The `pytest resource warnings` tool evidence of a scope refused before pytest names no interpreter (path/argv empty): native ran no process, and frozen's argv named its own sys.executable (ADR-0008 forbids that fallback)."
   },
   "capability:python-packaging-wheel": {
    "comparison": "Composite capability, complete. Every _python_packaging and _python_wheel finding site is complete (394:16 an accepted difference). _python_wheel.py is audited in full and mapped; the structure refusals package.json lacked and five packaging refusals are captured against frozen (tests/rust-parity/python/wheel-structure.json, capture_wheel_structure.py) and replayed with their texts. End to end (runtime closure worker, 2026-11-02): the CLI never expanded `[engines.python_compat] wheel_globs` — a configured regular wheel was not inspected and every run warned ici.package.wheel-missing (defect found by probing the binary; the unit replays injected wheel bytes into the AnalysisRequest directly). crates/ici-cli/src/wheel_inputs.rs now evaluates the globs as frozen _wheel_paths over Python 3.10 pathlib.Path.glob against the canonical project root (precise/wildcard/`**` selectors, scandir order, recursion not following symlinked directories), the matched wheels join the immutable snapshot under the 256 MiB binary bound and the python.compat request, and a refused candidate reaches the analyzer (package.rs `wheel_discovery_error`), which drops the package findings and stops with frozen's PythonPackagingError text. Replayed through the built binary against frozen `ici python-compat --report` (tests/rust-parity/validation/capture_wheel_discovery.py -> wheel-discovery-oracle.json, 8 cases): a regular wheel and `dist/*` with a text file beside it (PASS, Package:Wheel target, the text file skipped), a symlink leaving the project, a dangling symlink and a `dist` directory symlinked outside (`wheel glob could not be evaluated: 'dist/*.whl'`), a symlink inside the project and a directory named *.whl (`wheel candidate is not a regular contained file: <ROOT>/dist/…`), and two wheels over max_wheels = 1 (`wheel match count exceeds the configured bound`): exit code, engine status and summary, every target (file, name, status, message) and every finding rule equal frozen; the error cases carry no PythonRuntime target, as frozen skipped _check_runtimes. Only the interpreter named by a passing PythonRuntime:Verified target is the host's.",
