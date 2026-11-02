@@ -413,7 +413,9 @@ impl AnalysisSession {
             _ => metrics::analyze(request, &files, &mut output, cancellation),
         }
         details::decorate(&mut output);
-        if kind == "dup" {
+        // Frozen `_source_evidence` (dup) and the dead-code source inventory: the selected
+        // sources read into the snapshot, their bytes and the generated/vendor exclusions.
+        if matches!(kind, "dup" | "dead") {
             let excluded = output
                 .targets
                 .iter()
@@ -429,6 +431,9 @@ impl AnalysisSession {
             output.extra["source_bytes_analyzed"] = json!(bytes);
             output.extra["source_files_excluded"] = json!(excluded);
             output.extra["source_exclusion_counts"] = json!(excluded_source_counts);
+            if kind == "dead" {
+                output.extra["source_files_snapshotted"] = json!(files.len());
+            }
         }
         output.extra["excluded_source_counts"] = json!(excluded_source_counts);
         output.extra["source_encodings"] = json!(source_encodings);

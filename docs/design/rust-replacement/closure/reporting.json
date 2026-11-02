@@ -71,29 +71,37 @@
    "difference_reason": "R8 budget: the complete saved result is embedded once as raw DEFLATE+base64 inflated by the browser's DecompressionStream; closed sections are built on demand (165,113 -> 46,419 B for the budget fixture at the fragment commit). Integral floats display as 1 rather than 1.0 in on-demand sections. Baseline detail messages and warnings are shown in full like the frozen view (a native-only 512-character cut was removed). Presentation archives move from <dir>/runs/<run>/ to <dir>/.ici/rust-v1/details/<result>/<run>/ (old placement still read). HTML layout: one page with sections and native labels (saved field names in generic tables) instead of frozen tabs, emoji labels and Korean help text; frozen hard-coded thresholds (cognitive warn 30/fail 60, coverage Min 80%/90%) and badge colours are not repeated because they are not saved facts. Decision on SKIP engines: native previously rendered every SKIP engine as a full family section; frozen shows it as a dimmed N/A summary row with the reason collapsed and omits it from the dedicated tabs. Native now collapses it (reason one click away, nothing hidden) because a full section per not-applicable engine is noise under AGENTS.md §5 and carries no additional fact. In >2,000-finding pages the axis filters are not offered; the text filter and pager over the complete inventory remain. Step summary: a tool's `details` pairs follow the key-sorted saved JSON instead of frozen probe insertion order (content identical; legacy_summary.rs compares the cell as a multiset). Stored-run SARIF keeps native choices on top of the frozen fields: columnKind unicodeCodePoints with exclusive end columns (frozen claimed utf16CodeUnits with the inclusive saved column), no uriBaseId, the saved record's own snake_case properties beside the frozen names, the complete saved baseline under properties.baseline instead of frozen's count summary (derivable, checked), and a cancelled run's invocation exitCode 130 (the native process exit) where frozen wrote the gate's 3. Historical `verify` terminal dashboard (frozen reporters/console.py print_suite_dashboard): native prints the same facts as plain, terminal-safe lines word-wrapped at the console width instead of Rich panels and a fixed-width table (compact <100-column table layout and the banner panel are not repeated); file paths are printed as text, never as OSC 8 hyperlinks (frozen emitted them only on a hyperlink-capable terminal); every issue group states its represented-finding count and provenance (frozen omitted the count of 1 and an empty source list); baseline omission notes, compatibility warnings and the full-inventory note are carried in the `Baseline:` preview line. The frozen `Re-run with: ici verify --verbose` hint after hidden findings was missing and is restored (decisions worker, limits.rs)."
   },
   "capability:legacy-command-config-result-projection": {
-   "status": "complete",
+   "status": "verified",
    "rust_paths": [
+    "crates/ici-analysis/src/lib.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-cli/src/legacy_extra.rs",
     "crates/ici-reporting/src/migration.rs",
     "crates/ici-reporting/src/projection.rs",
-    "crates/ici-reporting/src/stored.rs",
     "crates/ici-reporting/src/safe.rs",
-    "crates/ici-cli/src/legacy_execute.rs"
+    "crates/ici-reporting/src/stored.rs"
    ],
    "fixtures": {
     "positive": [
      "crates/ici-reporting/tests/migration_edges.rs::malformed_v2_fields_coerce_exactly_like_the_frozen_reader",
      "crates/ici-reporting/tests/rendering.rs::explicit_v2_migration_matches_frozen_original_without_guessing_schema",
      "crates/ici-reporting/tests/legacy_pipeline.rs::original_full_pipeline_fingerprints_inventory_and_native_replacement_are_preserved",
-     "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates"
+     "crates/ici-cli/tests/legacy_test_parity.rs::passing_suite_keeps_frozen_file_changed_line_tem_and_branch_gates",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
     ],
     "negative": [
      "crates/ici-reporting/tests/stored.rs::reader_preserves_unknown_legacy_extension_data_but_refuses_unknown_schemas_and_invalid_regions",
-     "crates/ici-reporting/tests/legacy_pipeline.rs::unknown_configuration_closure_does_not_erase_successful_tool_evidence"
+     "crates/ici-reporting/tests/legacy_pipeline.rs::unknown_configuration_closure_does_not_erase_successful_tool_evidence",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
     ],
     "failure": [
      "crates/ici-reporting/tests/migration_edges.rs::paths_outside_or_ambiguous_to_the_root_are_refused_like_the_frozen_reader",
      "crates/ici-reporting/tests/stored.rs::embedded_modern_facts_cannot_bypass_strict_saved_result_validation",
-     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit"
     ]
    },
    "evidence": [
@@ -105,10 +113,14 @@
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: the same run on the previous projection fails twice with suite tem_score null against 1.17 and 1.78; /tmp/ici-rust-replacement-20261028/w-reporting-suite-tem-before.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 (and the temporary .venv symlink, removed afterwards): `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-domain -p ici-application -p ici-reporting -p ici-validation -p ici-cli --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2`; EXIT 0, 392 passed, 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-tem.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-application --locked -j2 --test baseline --test suppressions` and `cargo test -p ici-cli --locked -j2 --test artifact_contract --test legacy_baseline_gate --test legacy_commands --test legacy_exit_policy --test legacy_test_parity --no-fail-fast -- --include-ignored --test-threads=2` at the reporting head; EXIT 0, 7 binaries, 25 passed; /tmp/ici-rust-replacement-20261028/w-reporting2-capability-rows.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 ICI_TEST_NODE=/home/jihoon/.local/bin/node: `cargo test -p ici-reporting --locked -j2 --no-fail-fast -- --include-ignored --test-threads=2` (all ici-reporting fixtures incl. baseline_delta unit tests, legacy_pipeline, migration_edges, navigation, rendering, stored); EXIT 0; /tmp/ici-rust-replacement-20261028/w-reporting2-annotations.log",
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
    ],
-   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null). Complete for the reporting area's result-v3 reader/migration facet only; other facets stay with their areas' fragments.",
-   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1)."
+   "comparison": "Result-v3 reader/migration facet only (reporters/json_rep.py migrate_report_payload, _engine_from_v2, _target_from_payload, _tool_from_payload and core/findings.py adapters). Thirteen new frozen edge captures plus the six original migration and five pipeline captures match exactly: Python str/int/bool/float coercion, Windows drive roots, refusal of escaping/drive-relative paths, redacted identity inputs. Command/config parts of this row belong to other areas. Suite tem_score is the legacy test engine's score, as frozen verify.py sets it (it was read from a next `tem.workspace` metric that never existed, so it was always null). Complete for the reporting area's result-v3 reader/migration facet only; other facets stay with their areas' fragments. Legacy engine `extra` facet (2026-11-02): frozen engines write their `extra` keys unconditionally (engines/*.py create_result); crates/ici-cli/src/legacy_extra.rs completes them in the legacy view from frozen constants, the configured policies, counts over the shaped targets and values native checks measured: lint (all 28 keys for Python-only/hybrid, the Ruff warning counted in metrics_summary), type (type_issues, metrics_summary, mypy_profile, mypy_project_config_discovery), sanitize/thread_sanitize (issue count, sanitizer_diagnostics), dup (algorithms/tokenizers/policies, no-Python semantic evidence, hybrid sum of the Python and C++ checks), dead (C++ policies/outcomes, Python source snapshot counters measured by the dead check in ici-analysis), test (no-tests and optional-coverage suites: counts, pass rate, suites, frozen-shaped quality block, empty coverage rows), exception/compile_db counters, cycle (Python half plus the C++ include outcome under frozen names, totals), complexity/cognitive C++ boundary evidence and cognitive function counters, hybrid resource/security Python-half keys. Every frozen verify/engine capture with full extras is replayed key by key (legacy-summary x4, legacy-annotations, legacy-inventory x6, new legacy-extras-oracle.json x8: C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle); native-only keys are per-path allowances (R10/R11, the projection row's native evidence keys) and stale entries fail. Full saved-result comparison open items (support/legacy_result_allowances.rs `Open`): HYBRID (legacy hybrid merges: dup target order/score, complexity function count/score, dead unavailable-C++ WARN, type C++-skip warning/evidence, suite passed/warned counts), OPTIONAL (optional-coverage test targets: extra Coverage capability SKIP target, case start_line; sanitize lacks the pytest resource warnings tool evidence), BASELINE (line counts the --baseline input in frozen). Open C++ facet values (the native C++ checks do not record them yet; listed as OPEN in legacy_engine_extras.rs, cpp area): complexity/cognitive cpp_scope_exclusions (macro count), C++ top_complex_funcs metric keys, cpp.dead/cpp.dup C++ source snapshot counters (source_bytes_analyzed, source_files_snapshotted/analyzed/excluded, source_exclusion_counts), exact cpp.dead cpp_unused_configurations_checked/details/warnings, the compiler-trace cycle tool evidence argv/path/version (the merged per-unit include graph closed ambiguous_cpp_includes and the trace error/returncode/timed_out/truncated fields), and the hybrid dead verdict (PASS natively, frozen WARN).",
+   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1). Extra facet reviewed differences: frozen's coverage estimate without measured coverage (branch/function_coverage, tem_score, metrics_summary, coverage_source, coverage_provenance of a project without tests or without the optional coverage module) stays absent (root decision in ici_reporting::legacy_no_tests_collected); frozen line counted the --baseline input as an extra-scope file, native excludes the command's own input/output (planning::is_command_output; cross-area, descriptor:line). Defects fixed: Python-only/hybrid lint, type, sanitize, dead, dup, test, exception, compile_db, cycle, complexity/cognitive extras lacked frozen keys; an optional missing coverage module made the legacy suite ERROR/exit 3 where frozen is WARN/exit 0 (now ESTIMATED WARN, exit 0); an ERROR suite from a frozen verdict class (required SKIP) after the legacy view replaced the only incomplete checks kept exit 3 (now frozen exit 1; exit 3 stays only while a required engine's evidence is NOT_RUN); the lint fallback whose every source replay was rejected (project-contained g++ first on PATH) omitted frozen's heuristic-fallback tool warning from metrics_summary ('0 issues', frozen '1 issues'; now counted). Native evidence keys (reviewed, 2026-11-02; per path in crates/ici-cli/tests/support/legacy_result_allowances.rs R10/R11, never a key wildcard): a legacy engine `extra` keeps the native evidence beside frozen's keys, which the historical readers ignore: (R10) native_checks, target_scopes, finding_identity_map, parser_identity, source_encodings, excluded_source_counts, module_index/import_edges/heuristic_edges/reported_cycles, the measured Python counters (files_checked, python_issues, resource_issues, duplicated_lines, total_code_lines, no_tests_collected, test_aggregation_limitation) and the process steps of the Python ResourceWarning run (steps, optional_steps, conditional_steps, python_resource_warnings); (R11) native C++ check evidence under native names beside the frozen-named projection (graph, cycles, cycles_reported/truncated, include_diagnostics(_truncated), resolution, resolved_edges, scope_counts, configurations_checked, configuration_graphs, boundary_mode, estimated/exact_boundaries, lambdas_excluded, context, mode, evidence, finding_details, non_tu_diagnostics_excluded, sources_checked). Recorded by the reporting closure worker for root acknowledgement."
   },
   "capability:execution-cancel-save-redact": {
    "status": "complete",
@@ -957,7 +969,7 @@
    ]
   },
   "command:ici verify": {
-   "status": "complete",
+   "status": "verified",
    "rust_paths": [
     "crates/ici-cli/src/cutover.rs",
     "crates/ici-cli/src/legacy_execute.rs",
@@ -973,7 +985,8 @@
      "crates/ici-cli/tests/legacy_sarif.rs::cpp_verify_sarif_keeps_the_frozen_alert_identity",
      "crates/ici-cli/tests/legacy_sarif.rs::python_verify_sarif_keeps_the_frozen_alert_identity",
      "crates/ici-cli/tests/legacy_sarif.rs::hybrid_verify_sarif_keeps_the_frozen_source_alert_identity",
-     "crates/ici-cli/tests/legacy_sarif.rs::baseline_verify_sarif_is_written_with_the_frozen_baseline_properties"
+     "crates/ici-cli/tests/legacy_sarif.rs::baseline_verify_sarif_is_written_with_the_frozen_baseline_properties",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed"
     ],
     "negative": [
      "crates/ici-cli/tests/verify_cutover.rs::legacy_schema_verify_keeps_the_historical_suite",
@@ -983,7 +996,8 @@
     "failure": [
      "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict",
      "crates/ici-reporting/tests/legacy_sarif.rs::rule_and_result_bounds_refuse_with_the_frozen_messages",
-     "crates/ici-reporting/tests/legacy_sarif.rs::a_native_identity_resolved_delta_is_reported_absent_instead_of_refusing_the_document"
+     "crates/ici-reporting/tests/legacy_sarif.rs::a_native_identity_resolved_delta_is_reported_absent_instead_of_refusing_the_document",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit"
     ]
    },
    "evidence": [
@@ -994,10 +1008,12 @@
     "PYTHONPATH=<oracle>/src /home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_sarif.py (frozen v0.13.0 save_sarif_report on synthetic suites and real verify suites) -> tests/rust-parity/reporting/legacy-sarif-oracle.json; /tmp/ici-rust-replacement-20261028/w-rem-legacy-sarif-capture.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-reporting --locked -j2 --test legacy_sarif -- --include-ignored` 5 passed; /tmp/ici-rust-replacement-20261028/w-rem-legacy-sarif-tests.log",
     "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2: `cargo test -p ici-cli --locked -j2 --test python_compat_cli --test legacy_python_compat_parity --test legacy_python_sanitize --test legacy_python_sanitize_scopes --test legacy_test_parity --test pytest_next_parity --test legacy_quality_paths --test legacy_sarif --test legacy_coverage_bound --test legacy_test_metrics -- --include-ignored` all passed; strict Clippy ici-reporting/ici-validation/ici-cli clean; /tmp/ici-rust-replacement-20261028/w-rem-gate1.log",
-    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log"
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 at cbb9e68a (feat/rust-application merged, incl. 181da76): `cargo test -p ici-cli --locked -j2 --test native_cpp --test legacy_sarif --test pytest_views --test compat_runtime_facts --test legacy_coverage_bound --test report_commands --test legacy_test_parity --test legacy_commands -- --include-ignored`, `cargo test -p ici-reporting --test legacy_sarif -- --include-ignored`, `cargo test -p ici-validation --test contracts -- --include-ignored`: all passed (native_cpp fixture 1, legacy_sarif 5+5, pytest_views 3, compat_runtime_facts 3, legacy_coverage_bound 2, report_commands 9, legacy_test_parity 8, legacy_commands 7, contracts 13); /tmp/ici-rust-replacement-20261028/w-rem-post-merge.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log"
    ],
-   "comparison": "Reporting facet: exit code, suite verdict and the `[workspace]` cutover (frozen __main__.verify + cli/cutover.py, read in full). A root whose ici.toml declares [workspace] runs the next path: stable-only options (--fail-on-new, --write-baseline, --github-summary, --verbose, --max-findings other than 5, --group-by other than engine) are refused with the frozen stderr list and exit 2 before anything runs; otherwise stderr carries the frozen `ici-next: [workspace] config found …` notice, stdout the frozen next-verify frame, --report saves the ici.next.run result as verify_report.json, --sarif/--html compose `wrote <path>` from the stored result, --open/--publish use the same page, and a publish failure ends with publish's exit. Seven frozen captures compare exit, stderr byte for byte, the frame/wrote lines and every written artifact's schema. A legacy or configless root keeps the historical v3 suite. Legacy-path exit rule as before: the legacy verify view keeps the frozen suite ERROR verdict and integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0); legacy engine commands raise it only through ici_reporting::legacy_exit_code. Defect fixed: native `ici verify` on a [workspace] root ran the historical suite path and printed the raw-JSON console. Other verify facets belong to the other areas. Root decision E1 (2026-11-02): historical `ici verify --sarif` now reproduces this module's document (crates/ici-reporting/src/legacy_sarif.rs, selected for legacy-schema stored results in legacy_execute.rs; `ici analyze`/`next`/stored runs keep the run-SARIF shape): fingerprints {\"ici/v3\": fp}, artifactLocation uriBaseId %SRCROOT% with quoted URIs and inclusive saved columns, the 'Baseline location before move' related location, rules by highest severity (first sorted on a tie) with category/confidence/tool properties and help/fullDescription, invocation executionSuccessful/exitCode from the suite status, run properties suite_status/engine_count/finding_count/baseline_source/baseline_gate_failed, the (_finding_sort_key, _delta_sort_key) order, resolved deltas re-fingerprinted through ici-fingerprint/v1, redaction, and the 100 000-result bound checked before the 10 000-rule bound with the frozen messages. Compared field for field against frozen save_sarif_report on synthetic suites and on real frozen verify suites for Python, C++ and hybrid projects (tests/rust-parity/reporting/capture_legacy_sarif.py -> legacy-sarif-oracle.json; crates/ici-reporting/tests/legacy_sarif.rs), and end to end through the built CLI (crates/ici-cli/tests/legacy_sarif.rs: every frozen alert identity and property kept; baseline properties; engine commands have no --sarif option, as in frozen). The stored legacy baseline_source is now root-relative POSIX as frozen compare_with_baseline wrote it.",
-   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1). Cutover differences: the next result lives in the native .ici/rust-v1 namespace (frozen .ici/next); native next-verify lines after `saved` (HTML location, finding preview) also appear; a browser launch failure is reported on stderr where frozen webbrowser.open stayed silent. E1 intended differences: tool.driver.version is the native producer version; a resolved delta whose rule is outside the `ici.` namespace (a native identity) keeps its own fingerprint and is reported absent instead of refusing the whole document as frozen canonicalize_finding would; the bound refusal is a clean CLI error where frozen raised an uncaught traceback with the same message. The legacy-schema verify baseline_comparison is now frozen compare_suite_to_baseline over the legacy findings (F4, crates/ici-reporting/src/legacy_baseline.rs), so every frozen result of the captured --baseline/--fail-on-new runs carries the frozen baselineState (new/updated/unchanged/absent; baseline_verify_compares_legacy_findings_and_pairs_sarif_baseline_states_like_frozen); remaining per-result property differences there are legacy-view tool names and test confidence, not baseline pairing."
+   "comparison": "Reporting facet: exit code, suite verdict and the `[workspace]` cutover (frozen __main__.verify + cli/cutover.py, read in full). A root whose ici.toml declares [workspace] runs the next path: stable-only options (--fail-on-new, --write-baseline, --github-summary, --verbose, --max-findings other than 5, --group-by other than engine) are refused with the frozen stderr list and exit 2 before anything runs; otherwise stderr carries the frozen `ici-next: [workspace] config found …` notice, stdout the frozen next-verify frame, --report saves the ici.next.run result as verify_report.json, --sarif/--html compose `wrote <path>` from the stored result, --open/--publish use the same page, and a publish failure ends with publish's exit. Seven frozen captures compare exit, stderr byte for byte, the frame/wrote lines and every written artifact's schema. A legacy or configless root keeps the historical v3 suite. Legacy-path exit rule as before: the legacy verify view keeps the frozen suite ERROR verdict and integration ERROR engine; the exit code is the native run exit (INCOMPLETE 3, FAIL 1, PASS 0); legacy engine commands raise it only through ici_reporting::legacy_exit_code. Defect fixed: native `ici verify` on a [workspace] root ran the historical suite path and printed the raw-JSON console. Other verify facets belong to the other areas. Root decision E1 (2026-11-02): historical `ici verify --sarif` now reproduces this module's document (crates/ici-reporting/src/legacy_sarif.rs, selected for legacy-schema stored results in legacy_execute.rs; `ici analyze`/`next`/stored runs keep the run-SARIF shape): fingerprints {\"ici/v3\": fp}, artifactLocation uriBaseId %SRCROOT% with quoted URIs and inclusive saved columns, the 'Baseline location before move' related location, rules by highest severity (first sorted on a tie) with category/confidence/tool properties and help/fullDescription, invocation executionSuccessful/exitCode from the suite status, run properties suite_status/engine_count/finding_count/baseline_source/baseline_gate_failed, the (_finding_sort_key, _delta_sort_key) order, resolved deltas re-fingerprinted through ici-fingerprint/v1, redaction, and the 100 000-result bound checked before the 10 000-rule bound with the frozen messages. Compared field for field against frozen save_sarif_report on synthetic suites and on real frozen verify suites for Python, C++ and hybrid projects (tests/rust-parity/reporting/capture_legacy_sarif.py -> legacy-sarif-oracle.json; crates/ici-reporting/tests/legacy_sarif.rs), and end to end through the built CLI (crates/ici-cli/tests/legacy_sarif.rs: every frozen alert identity and property kept; baseline properties; engine commands have no --sarif option, as in frozen). The stored legacy baseline_source is now root-relative POSIX as frozen compare_with_baseline wrote it. Downgraded complete->verified (2026-11-02 full saved-result comparison): the hybrid verify suite's passed_count/warned_count differ from frozen through the hybrid dead verdict (HYBRID open item in legacy_engine_extras.rs). Exit rule narrowed (2026-11-02): after the legacy view replaces incomplete native checks with frozen verdicts, exit 3 stays only while a required engine's evidence is NOT_RUN; an ERROR suite from a frozen verdict class (required SKIP) exits 1 like frozen, a WARN suite whose only incompleteness is an absent optional tool frozen also lacked (Ruff, mypy, coverage) exits 0 (legacy_engine_extras.rs replays every capture's exit).",
+   "difference_reason": "Accepted intended difference (root decision; SPEC-01 §8, SPEC-04 'INCOMPLETE wins over FAIL in the exit code'): a legacy `ici verify` or engine command whose required native evidence is incomplete exits 3, where frozen v0.13.0 exited 1 for the same suite ERROR. It stays non-zero and the legacy view keeps the frozen ERROR verdict, so an incomplete run is never shown as a pass. Exit 2 keeps its frozen meaning (engine SKIP). Frozen measured verdicts that the legacy view reproduces (no test file, refused coverage policy, engine FAIL/ERROR of a complete run) keep frozen exit 1. Fixture: crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict against the frozen capture tests/rust-parity/validation/integration-blocked-oracle.json (unknown_python_target: frozen exit 1). Cutover differences: the next result lives in the native .ici/rust-v1 namespace (frozen .ici/next); native next-verify lines after `saved` (HTML location, finding preview) also appear; a browser launch failure is reported on stderr where frozen webbrowser.open stayed silent. E1 intended differences: tool.driver.version is the native producer version; a resolved delta whose rule is outside the `ici.` namespace (a native identity) keeps its own fingerprint and is reported absent instead of refusing the whole document as frozen canonicalize_finding would; the bound refusal is a clean CLI error where frozen raised an uncaught traceback with the same message. The legacy-schema verify baseline_comparison is now frozen compare_suite_to_baseline over the legacy findings (F4, crates/ici-reporting/src/legacy_baseline.rs), so every frozen result of the captured --baseline/--fail-on-new runs carries the frozen baselineState (new/updated/unchanged/absent; baseline_verify_compares_legacy_findings_and_pairs_sarif_baseline_states_like_frozen); remaining per-result property differences there are legacy-view tool names and test confidence, not baseline pairing. Exit rule narrowed (2026-11-02): after the legacy view replaces incomplete native checks with frozen verdicts, exit 3 stays only while a required engine's evidence is NOT_RUN; an ERROR suite from a frozen verdict class (required SKIP) exits 1 like frozen, a WARN suite whose only incompleteness is an absent optional tool frozen also lacked (Ruff, mypy, coverage) exits 0 (legacy_engine_extras.rs replays every capture's exit)."
   },
   "capability:wire-result-events": {
    "status": "complete",
@@ -1026,6 +1042,471 @@
    ],
    "comparison": "Reporting facet: the human and `--json` output streams of `ici analyze` / `ici next verify` (frozen cli/next_common._announce and cli/next_render.verify_text, read in full). Text mode prints `root:`/`scope: components=… languages=…|all profile=…[ require-full]`, `<VERDICT>: N finding(s)`, gate reasons, the comparable/incompatible baseline line, `cache: reused N`, run notes and `saved <path>`; `--json` writes only the result to stdout and the two announce lines to stderr. Thirteen frozen captures: the frozen result.json of every text run renders to the frozen block byte for byte (8 runs); the native CLI on the same trees reproduces announcement, stream placement, verdict, reasons, baseline line, saved path and exit 0/1/2/3, prints no announcement for an unknown component or no sources and prints it before the nothing-selected refusal. Run notes are the plan and run limitations only, not the analyses' own. Defects fixed: raw axes JSON dump, missing announcement, a contradictory `Suite: WARN` line under a FAIL gate, a duplicated `baseline comparison unavailable` gate reason, and paraphrased baseline incompatibility reasons (now the frozen application/baseline.py text). Event-stream order/seq and run v2 remain the runtime facet; id validation the config facet.",
    "difference_reason": "Native lines follow the exact frozen block: `HTML: <page>` (execution plan: analyze prints JSON/HTML locations) and at most five unsuppressed findings, most severe first, with file:line, rule and message (plan §2.1). An incompatible baseline reason keeps the frozen text and appends `; regenerate it with: …`. Error lines keep the native `ici:` prefix where frozen prints `config:`. Native reuses internal analyses (frozen never caches them), so reruns print `cache: reused N`; frozen per-unit cache-ineligibility notes (`note: <unit>: prepare tasks are not cacheable`) have no native counterpart because native cache identity differs. Note and blocked-reason text comes from other areas' limitations/providers and is rendered with the frozen template. Output is printed when the run ends, not streamed."
+  },
+  "descriptor:exception": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `exception`): frozen engines/exception.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here.",
+   "difference_reason": "Native-only evidence keys are per-path allowances (support/legacy_result_allowances.rs R10/R11, capability:legacy-command-config-result-projection difference_reason); no frozen key or value differs."
+  },
+  "descriptor:compile_db": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `compile_db`): frozen engines/compile_db.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here.",
+   "difference_reason": "Native-only evidence keys are per-path allowances (support/legacy_result_allowances.rs R10/R11, capability:legacy-command-config-result-projection difference_reason); no frozen key or value differs."
+  },
+  "descriptor:resource": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `resource`): frozen engines/resource.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here.",
+   "difference_reason": "Native-only evidence keys are per-path allowances (support/legacy_result_allowances.rs R10/R11, capability:legacy-command-config-result-projection difference_reason); no frozen key or value differs."
+  },
+  "descriptor:security": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `security`): frozen engines/security.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here.",
+   "difference_reason": "Native-only evidence keys are per-path allowances (support/legacy_result_allowances.rs R10/R11, capability:legacy-command-config-result-projection difference_reason); no frozen key or value differs."
+  },
+  "descriptor:lint": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `lint`): frozen engines/lint.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here.",
+   "difference_reason": "Native-only evidence keys are per-path allowances (support/legacy_result_allowances.rs R10/R11, capability:legacy-command-config-result-projection difference_reason); no frozen key or value differs."
+  },
+  "descriptor:python_compat": {
+   "status": "complete",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `python_compat`): frozen engines/python_compat.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here.",
+   "difference_reason": "Native-only evidence keys are per-path allowances (support/legacy_result_allowances.rs R10/R11, capability:legacy-command-config-result-projection difference_reason); no frozen key or value differs."
+  },
+  "descriptor:type": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `type`): frozen engines/type.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: the hybrid type result lacks frozen's C++-skip warning (evidence/summary/finding confidence; HYBRID open item)",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
+  },
+  "descriptor:test": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `test`): frozen engines/test.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: the optional-coverage legacy test result adds a Coverage capability SKIP target and places the case at its def line (OPTIONAL open item)",
+   "difference_reason": "Reviewed differences: frozen coverage estimates without measured coverage stay absent (test); native-only evidence keys are per-path allowances (support/legacy_result_allowances.rs R10/R11, capability:legacy-command-config-result-projection difference_reason)."
+  },
+  "descriptor:sanitize": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `sanitize`): frozen engines/sanitize.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: the optional-coverage sanitize result lacks frozen's `pytest resource warnings` tool evidence (OPTIONAL open item); C++ sanitizer_diagnostics of a run with sanitizer findings is not captured with values (the zoo capture filters sanitize_issues only)",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
+  },
+  "descriptor:thread_sanitize": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `thread_sanitize`): frozen engines/thread_sanitize.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: only the SKIP (no C++ tests) outcome is captured with values",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
+  },
+  "descriptor:complexity": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `complexity`): frozen engines/complexity.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: Full saved-result comparison open items (support/legacy_result_allowances.rs `Open`): HYBRID (legacy hybrid merges: dup target order/score, complexity function count/score, dead unavailable-C++ WARN, type C++-skip warning/evidence, suite passed/warned counts), OPTIONAL (optional-coverage test targets: extra Coverage capability SKIP target, case start_line; sanitize lacks the pytest resource warnings tool evidence), BASELINE (line counts the --baseline input in frozen). Open C++ facet values (the native C++ checks do not record them yet; listed as OPEN in legacy_engine_extras.rs, cpp area): complexity/cognitive cpp_scope_exclusions (macro count), C++ top_complex_funcs metric keys, cpp.dead/cpp.dup C++ source snapshot counters (source_bytes_analyzed, source_files_snapshotted/analyzed/excluded, source_exclusion_counts), exact cpp.dead cpp_unused_configurations_checked/details/warnings, the compiler-trace cycle tool evidence argv/path/version (the merged per-unit include graph closed ambiguous_cpp_includes and the trace error/returncode/timed_out/truncated fields), and the hybrid dead verdict (PASS natively, frozen WARN).",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
+  },
+  "descriptor:cognitive": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `cognitive`): frozen engines/cognitive.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: Full saved-result comparison open items (support/legacy_result_allowances.rs `Open`): HYBRID (legacy hybrid merges: dup target order/score, complexity function count/score, dead unavailable-C++ WARN, type C++-skip warning/evidence, suite passed/warned counts), OPTIONAL (optional-coverage test targets: extra Coverage capability SKIP target, case start_line; sanitize lacks the pytest resource warnings tool evidence), BASELINE (line counts the --baseline input in frozen). Open C++ facet values (the native C++ checks do not record them yet; listed as OPEN in legacy_engine_extras.rs, cpp area): complexity/cognitive cpp_scope_exclusions (macro count), C++ top_complex_funcs metric keys, cpp.dead/cpp.dup C++ source snapshot counters (source_bytes_analyzed, source_files_snapshotted/analyzed/excluded, source_exclusion_counts), exact cpp.dead cpp_unused_configurations_checked/details/warnings, the compiler-trace cycle tool evidence argv/path/version (the merged per-unit include graph closed ambiguous_cpp_includes and the trace error/returncode/timed_out/truncated fields), and the hybrid dead verdict (PASS natively, frozen WARN).",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
+  },
+  "descriptor:dead": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `dead`): frozen engines/dead.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: Full saved-result comparison open items (support/legacy_result_allowances.rs `Open`): HYBRID (legacy hybrid merges: dup target order/score, complexity function count/score, dead unavailable-C++ WARN, type C++-skip warning/evidence, suite passed/warned counts), OPTIONAL (optional-coverage test targets: extra Coverage capability SKIP target, case start_line; sanitize lacks the pytest resource warnings tool evidence), BASELINE (line counts the --baseline input in frozen). Open C++ facet values (the native C++ checks do not record them yet; listed as OPEN in legacy_engine_extras.rs, cpp area): complexity/cognitive cpp_scope_exclusions (macro count), C++ top_complex_funcs metric keys, cpp.dead/cpp.dup C++ source snapshot counters (source_bytes_analyzed, source_files_snapshotted/analyzed/excluded, source_exclusion_counts), exact cpp.dead cpp_unused_configurations_checked/details/warnings, the compiler-trace cycle tool evidence argv/path/version (the merged per-unit include graph closed ambiguous_cpp_includes and the trace error/returncode/timed_out/truncated fields), and the hybrid dead verdict (PASS natively, frozen WARN).",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
+  },
+  "descriptor:dup": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `dup`): frozen engines/dup.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: Full saved-result comparison open items (support/legacy_result_allowances.rs `Open`): HYBRID (legacy hybrid merges: dup target order/score, complexity function count/score, dead unavailable-C++ WARN, type C++-skip warning/evidence, suite passed/warned counts), OPTIONAL (optional-coverage test targets: extra Coverage capability SKIP target, case start_line; sanitize lacks the pytest resource warnings tool evidence), BASELINE (line counts the --baseline input in frozen). Open C++ facet values (the native C++ checks do not record them yet; listed as OPEN in legacy_engine_extras.rs, cpp area): complexity/cognitive cpp_scope_exclusions (macro count), C++ top_complex_funcs metric keys, cpp.dead/cpp.dup C++ source snapshot counters (source_bytes_analyzed, source_files_snapshotted/analyzed/excluded, source_exclusion_counts), exact cpp.dead cpp_unused_configurations_checked/details/warnings, the compiler-trace cycle tool evidence argv/path/version (the merged per-unit include graph closed ambiguous_cpp_includes and the trace error/returncode/timed_out/truncated fields), and the hybrid dead verdict (PASS natively, frozen WARN).",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
+  },
+  "descriptor:cycle": {
+   "status": "verified",
+   "rust_paths": [
+    "crates/ici-cli/src/legacy_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_lint_extra.rs",
+    "crates/ici-cli/src/cpp/legacy_engine_extra.rs",
+    "crates/ici-cli/src/legacy_execute.rs",
+    "crates/ici-analysis/src/lib.rs"
+   ],
+   "fixtures": {
+    "positive": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_public_results_equal_frozen_except_allowed",
+     "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed"
+    ],
+    "negative": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::an_unallowed_difference_is_reported"
+    ],
+    "failure": [
+     "crates/ici-cli/tests/legacy_engine_extras.rs::optional_coverage_absence_keeps_the_frozen_warn_suite_and_exit",
+     "crates/ici-cli/tests/legacy_exit_policy.rs::incomplete_legacy_verify_exits_three_where_frozen_exited_one_with_the_same_error_verdict"
+    ]
+   },
+   "evidence": [
+    "`/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/reporting/capture_legacy_extras.py /tmp/ici-rust-replacement-20261028/oracle tests/rust-parity/reporting/legacy-extras-oracle.json` (frozen v0.13.0, Python 3.10.21, g++ 15.2.0, PATH=/usr/bin:/bin); 8 cases (5 verify suites; 3 engine-command reports added 2026-11-02: lint-only verify and lint behind a project-contained bin/g++ wrapper, standalone heuristic cycle); a recapture of the 5 suites differs only in duration and cache_key, so the committed suites are kept; C++ default/deep key sets equal verify-matrix-oracle.json; /tmp/ici-rust-replacement-20261028/w-reporting-extras-capture.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 --test legacy_engine_extras -- --include-ignored --test-threads=2`; 4 passed: full saved-result comparison (every key/type/length/value of verify_report.json / <engine>_report.json and the exit code) of summary x4, annotations, inventory x6, legacy-extras x8 (C++ default/deep/database, hybrid, optional coverage, lint-fallback verify/lint, standalone cycle) against support/legacy_result_allowances.rs (per-path incidental/approved/open allowances, no stale entry); /tmp/ici-rust-replacement-20261028/w-reporting-extras-harness.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `flock /tmp/paseo-products-20261028-heavy.lock cargo test -p ici-cli --locked -j2 -- --test-threads=2` (every non-ignored ici-cli test) plus, with ICI_TEST_CXX=ICI_TEST_GXX=/usr/bin/g++ and ICI_TEST_PYTHON_NEW=/usr/bin/python3.14, `--include-ignored` runs of legacy_lint_fallback_replay, legacy_cpp_include_context, legacy_lint, legacy_lint_branches, legacy_lint_tool_branches, legacy_lint_budget, legacy_verify_matrix, legacy_zoo_cpp, legacy_engine_extras, legacy_exit_policy, legacy_sarif and legacy_python_inventory (after merging feat/rust-application 731b883f); 326 test executions passed (files run both plain and --include-ignored count twice), 0 failed; /tmp/ici-rust-replacement-20261028/w-reporting-extras-regress3.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0: `cargo clippy -p ici-cli -p ici-analysis --all-targets --locked -j2 -- -D warnings` and `cargo test -p ici-analysis --locked -j2 --lib` under the heavy lock; /tmp/ici-rust-replacement-20261028/w-reporting-extras-clippy.log, /tmp/ici-rust-replacement-20261028/w-reporting-extras-analysis.log"
+   ],
+   "comparison": "Report facet only (legacy engine `extra` of descriptor `cycle`): frozen engines/cycle.py create_result extra keys reproduced in the legacy view by crates/ici-cli/src/legacy_extra.rs (and the lint/complexity shapers) from frozen constants, configured policies, target counts and measured native values; every frozen verify/engine capture with full extras (legacy-summary, legacy-annotations, legacy-inventory, legacy-extras) compares this engine's full saved result (every key, JSON type, list length and value; absent/null/empty distinct) and the exit code with frozen except the per-path allowances of crates/ici-cli/tests/support/legacy_result_allowances.rs. Engine analysis parity is the language areas' facet and not claimed here. Not complete: Full saved-result comparison open items (support/legacy_result_allowances.rs `Open`): HYBRID (legacy hybrid merges: dup target order/score, complexity function count/score, dead unavailable-C++ WARN, type C++-skip warning/evidence, suite passed/warned counts), OPTIONAL (optional-coverage test targets: extra Coverage capability SKIP target, case start_line; sanitize lacks the pytest resource warnings tool evidence), BASELINE (line counts the --baseline input in frozen). Open C++ facet values (the native C++ checks do not record them yet; listed as OPEN in legacy_engine_extras.rs, cpp area): complexity/cognitive cpp_scope_exclusions (macro count), C++ top_complex_funcs metric keys, cpp.dead/cpp.dup C++ source snapshot counters (source_bytes_analyzed, source_files_snapshotted/analyzed/excluded, source_exclusion_counts), exact cpp.dead cpp_unused_configurations_checked/details/warnings, the compiler-trace cycle tool evidence argv/path/version (the merged per-unit include graph closed ambiguous_cpp_includes and the trace error/returncode/timed_out/truncated fields), and the hybrid dead verdict (PASS natively, frozen WARN).",
+   "difference_reason": "Native-only evidence keys are per-path allowances (R10/R11); open items listed in legacy_engine_extras.rs OPEN."
   }
  },
  "source_files": {
