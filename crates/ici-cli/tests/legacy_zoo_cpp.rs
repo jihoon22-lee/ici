@@ -38,8 +38,9 @@ fn masked(name: &str) -> String {
     name.into()
 }
 
-/// Pending root ruling (cpp.json check:cpp.coverage, check:cpp.sanitize, check:cpp.tsan rows),
-/// not an accepted difference: native never runs frozen's `cmake --version` minimum-version
+/// Accepted intended difference (decisions.md row 'C++ 도구 증거는 실제 실행 기록'; cpp.json
+/// check:cpp.coverage, check:cpp.sanitize, check:cpp.tsan): tool evidence records only what
+/// native executed. Native never runs frozen's `cmake --version` minimum-version
 /// probe, and it writes every GCOV report with one `gcov` process over all notes files where
 /// frozen ran one `gcov` per object directory. The frozen records are compared without the
 /// version probe and with consecutive `gcov` runs as one (their return codes all 0).

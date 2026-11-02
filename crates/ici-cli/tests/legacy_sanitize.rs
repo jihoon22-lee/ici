@@ -224,9 +224,9 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
             actual["built"] = Value::Null;
             expected["built"] = Value::Null;
         }
-        // Pending root ruling (cpp.json check:cpp.sanitize / check:cpp.tsan): native never runs
-        // frozen BuildSession's `cmake --version` minimum-version probe, so that one frozen
-        // record has no native process; every other record and return code is compared.
+        // Accepted (decisions.md row 'C++ 도구 증거는 실제 실행 기록'): tool evidence records
+        // what native executed, and native runs no BuildSession `cmake --version` probe, so
+        // that one frozen record has no native process; every other record is compared.
         if let Some(records) = expected["tool_evidence"].as_array_mut() {
             records.retain(|record| record["name"] != "cmake --version");
         }
