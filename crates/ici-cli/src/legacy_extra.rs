@@ -525,6 +525,43 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
     } else if mode == "unavailable" {
         extra["cpp_unused_non_tu_diagnostics_excluded"] = json!(0);
     }
+    // Frozen `DeadCodeEngine.run` reads one inventory over both languages: beside a Python
+    // heuristic the source counters are the sums of the Python and C/C++ halves.
+    if !python.is_empty() {
+        let blocks: Vec<&Value> = python.iter().copied().chain([&cpp]).collect();
+        for key in [
+            "source_files_analyzed",
+            "source_files_snapshotted",
+            "source_bytes_analyzed",
+            "source_files_excluded",
+        ] {
+            if let Some(total) = blocks
+                .iter()
+                .map(|block| block[key].as_u64())
+                .sum::<Option<u64>>()
+            {
+                extra[key] = json!(total);
+            }
+        }
+        if blocks
+            .iter()
+            .all(|block| block["source_exclusion_counts"].is_object())
+        {
+            let mut counts = serde_json::Map::new();
+            for block in &blocks {
+                for (reason, count) in block["source_exclusion_counts"]
+                    .as_object()
+                    .into_iter()
+                    .flatten()
+                {
+                    let total = counts.get(reason).and_then(Value::as_u64).unwrap_or(0)
+                        + count.as_u64().unwrap_or(0);
+                    counts.insert(reason.clone(), json!(total));
+                }
+            }
+            extra["source_exclusion_counts"] = Value::Object(counts);
+        }
+    }
     if mode == "unavailable" {
         // `run_cpp_unused_functions` without a usable database: no configuration, one warning
         // (the unavailable target's message), no detail.

@@ -3704,6 +3704,50 @@ fn legacy_component_intake_fault(project: &ResolvedProject, component: &Componen
     ici_cpp::legacy_source_intake_files(&project.root, &paths, &options).is_some()
 }
 
+/// Frozen `_append_cpp_cycle_targets` metrics of a legacy `CppCycle:<n>` target: `files` are the
+/// absolute `str(Path)` of each member and `configurations` the frozen `_configuration_digest`s
+/// of the graphs holding the cycle (empty for the heuristic include graph).
+pub(crate) fn legacy_cycle_target_metrics(
+    output: &mut AnalysisOutput,
+    root: &Path,
+    units: &[CompilationUnit],
+) {
+    let identities: BTreeMap<&str, String> = units
+        .iter()
+        .map(|unit| (unit.configuration.as_str(), legacy_configuration_key(unit)))
+        .collect();
+    for target in &mut output.targets {
+        if !target.target_name.starts_with("CppCycle:") {
+            continue;
+        }
+        if let Some(files) = target.metrics.get("files").and_then(Value::as_array) {
+            let files: Vec<String> = files
+                .iter()
+                .filter_map(Value::as_str)
+                .map(|file| root.join(file).to_string_lossy().into_owned())
+                .collect();
+            target.metrics.insert("files".into(), json!(files));
+        }
+        let configurations: Vec<String> = target
+            .metrics
+            .get("configurations")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(|configuration| {
+                identities
+                    .get(configuration)
+                    .cloned()
+                    .unwrap_or_else(|| configuration.to_owned())
+            })
+            .collect();
+        target
+            .metrics
+            .insert("configurations".into(), json!(configurations));
+    }
+}
+
 /// Frozen `DeadCodeEngine.run` source counters (dead.py:544-551) on every legacy C/C++ dead
 /// result: the snapshotted inventory (empty when the intake failed or both C++ policies are off,
 /// since frozen then reads no C/C++ source), its bytes and exclusions, and the sources the
@@ -4123,6 +4167,14 @@ impl CppPlans {
     ) -> AnalysisOutput {
         let mut output =
             self.run_task(project, component, request, scheduler, cancellation, events);
+        if self.legacy_projection && request.check_id == "cpp.cycle" {
+            let units = self
+                .contexts
+                .get(&component.id)
+                .map(|context| context.units.as_slice())
+                .unwrap_or_default();
+            legacy_cycle_target_metrics(&mut output, &project.root, units);
+        }
         if self.legacy_projection && request.check_id == "cpp.dead" {
             legacy_dead_source_evidence(
                 &mut output,
