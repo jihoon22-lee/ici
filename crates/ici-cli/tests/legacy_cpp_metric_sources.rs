@@ -3,7 +3,8 @@
 //! frozen reads every source strictly first, so cognitive keeps only a
 //! `CppCognitiveSourceError` per unreadable source ("Cognitive complexity analysis did not
 //! complete") and complexity one `CppComplexityAnalysisError` at the project root with no
-//! function, both ERROR NOT_RUN. The `unterminated` frozen cases (brace-heuristic spans) are an
+//! function, both ERROR NOT_RUN; dup's source intake reports only the first such source
+//! (`SourceInputError` 'invalid-utf8: Analysis source is not valid UTF-8'). The `unterminated` frozen cases (brace-heuristic spans) are an
 //! open difference recorded on `_cpp_cognitive.py:649`, not replayed here. The `empty` tree (a
 //! C++ project with no source) replays frozen's not-applicable `ici exception` / `ici type`.
 use ici_cli::{commands, registry};
@@ -30,13 +31,13 @@ fn legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen() {
     ))
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
-    for command in ["cognitive", "complexity"] {
+    for command in ["cognitive", "complexity", "dup"] {
         let expected = &oracle["cases"][format!("{command}:unreadable")];
         let (_, mut actual) = run(&oracle, "unreadable", command);
         // Accepted policy (root decision, reporting command:ici verify): a required check whose
-        // evidence did not complete exits 3 natively where frozen exited 1 (complexity is
-        // required by default, cognitive is not).
-        if command == "complexity" {
+        // evidence did not complete exits 3 natively where frozen exited 1 (complexity and dup
+        // are required by default, cognitive is not).
+        if command != "cognitive" {
             assert_eq!(actual["exit_code"], 3, "{command}");
             actual["exit_code"] = expected["exit_code"].clone();
         }

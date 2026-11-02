@@ -80,6 +80,22 @@
     }
    ]
   },
+  "dup:unreadable": {
+   "evidence": "NOT_RUN",
+   "exit_code": 1,
+   "status": "ERROR",
+   "summary": "Analysis source is not valid UTF-8",
+   "targets": [
+    {
+     "end_line": null,
+     "file_path": "src/latin.cpp",
+     "message": "invalid-utf8: Analysis source is not valid UTF-8",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "SourceInputError"
+    }
+   ]
+  },
   "exception:empty": {
    "evidence": "NOT_APPLICABLE",
    "exit_code": 2,

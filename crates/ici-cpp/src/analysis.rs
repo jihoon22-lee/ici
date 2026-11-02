@@ -222,6 +222,25 @@ impl CppAnalysisSession {
                             unreadable.push(input.path.clone());
                             continue;
                         }
+                        // Frozen DuplicateEngine: `read_analysis_sources` raises at the first
+                        // source that is not UTF-8 and the engine reports only that source.
+                        if kind == "dup"
+                            && error.code == "source-encoding"
+                            && request.options["legacy_projection"].as_bool() == Some(true)
+                        {
+                            let message = "Analysis source is not valid UTF-8";
+                            let mut target = InspectionTarget::at(&input.path, 1);
+                            target.target_name = "SourceInputError".into();
+                            target.status = "ERROR".into();
+                            target.message = format!("invalid-utf8: {message}");
+                            output.targets = vec![target];
+                            output.observation.findings.clear();
+                            output.summary = message.into();
+                            output.status = "ERROR".into();
+                            output.observation.state = TaskState::Failed;
+                            output.observation.limitations.push(message.into());
+                            return output;
+                        }
                         fail(&mut output, &input.path, &error.code, &error.message);
                         continue;
                     }
