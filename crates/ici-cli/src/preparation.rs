@@ -407,6 +407,33 @@ pub fn execute(
                             &direct.test_sources(),
                             stderr,
                         );
+                        // Frozen records each test's failed `sanitizer compile` process (with
+                        // its failure message) and runs nothing after it: here the failed
+                        // native object compile shared by every test executable.
+                        let failed = observed.extra["outcomes"]
+                            .as_array()
+                            .into_iter()
+                            .flatten()
+                            .find(|outcome| outcome["exit_code"] == 1)
+                            .and_then(|outcome| {
+                                observed.extra["compiler_tasks"]
+                                    .as_array()?
+                                    .iter()
+                                    .find(|task| task["id"] == outcome["task_id"])
+                            });
+                        if let Some(task) = failed {
+                            let records: Vec<serde_json::Value> = output
+                                .targets
+                                .iter()
+                                .map(|target| {
+                                    serde_json::json!({"name":"sanitizer compile",
+                                        "path":task["argv"][0],"version":"","argv":task["argv"],
+                                        "returncode":1,"timed_out":false,"truncated":false,
+                                        "error":target.message})
+                                })
+                                .collect();
+                            output.extra["tool_evidence"] = serde_json::json!(records);
+                        }
                         if crate::execute::redact(&mut output).is_ok() {
                             outputs.insert(check.task_id.clone(), output);
                             observed_failures.insert(check.task_id.clone());

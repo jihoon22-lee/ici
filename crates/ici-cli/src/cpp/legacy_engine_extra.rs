@@ -23,6 +23,15 @@ fn status_in(target: &Value, statuses: &[&str]) -> bool {
         .is_some_and(|status| statuses.contains(&status))
 }
 
+fn linker_mode(extra: &Value) -> bool {
+    extra["mode"] == "gnu-elf-section-gc"
+        || extra.as_object().is_some_and(|fields| {
+            fields
+                .values()
+                .any(|value| value["mode"] == "gnu-elf-section-gc")
+        })
+}
+
 /// Fill the frozen counters of one legacy engine:
 /// * `sanitize` / `thread_sanitize`: `ISSUE_COUNT_KEY`, the WARN/FAIL target count
 ///   (`_issue_count`), for the C++ sanitizer checks.
@@ -100,7 +109,14 @@ pub(crate) fn shape(family: &str, engine: &mut Value) {
                         .as_str()
                         .is_some_and(|provenance| provenance.contains("python-ast-heuristic"))
             });
-            let linker = named("GNU ld discarded function") || named("GNU ld reachability scan");
+            // The native linker output (direct or merged under its task id) records its
+            // completed GNU ELF section-GC mode; a clean run discards nothing.
+            let linker = !named("C++LinkerReachabilityError")
+                && checks.iter().any(|check| {
+                    check["check_id"] == "cpp.dead"
+                        && check["state"] == "SUCCEEDED"
+                        && linker_mode(&check["extra"])
+                });
             let names: Vec<&str> = [
                 python.then_some("python-ast-heuristic"),
                 (mode == "exact").then_some("cpp-compiler-unused-function"),
@@ -156,7 +172,8 @@ mod tests {
 
     #[test]
     fn dead_mode_count_and_provenance_follow_the_targets() {
-        let mut engine = json!({"extra": {"native_checks": [{"check_id": "cpp.dead"},
+        let mut engine = json!({"extra": {"native_checks": [{"check_id": "cpp.dead",
+                "state": "SUCCEEDED", "extra": {"project.cpp.dead": {"mode": "gnu-elf-section-gc"}}},
             {"check_id": "python.dead", "extra": {"analysis_provenance": "python-ast-heuristic"}}]},
             "targets": [target("C++UnusedFunctions", "PASS", None),
                 target("Compiler:-Wunused-function", "WARN", None)]});
@@ -165,7 +182,7 @@ mod tests {
         assert_eq!(engine["extra"]["cpp_unused_functions_count"], 1);
         assert_eq!(
             engine["extra"]["analysis_provenance"],
-            "python-ast-heuristic+cpp-compiler-unused-function"
+            "python-ast-heuristic+cpp-compiler-unused-function+cpp-gnu-elf-section-gc"
         );
         let mut error = json!({"extra": {"native_checks": [{"check_id": "cpp.dead"}]},
             "targets": [target("C++UnusedFunctionError", "ERROR", None)]});

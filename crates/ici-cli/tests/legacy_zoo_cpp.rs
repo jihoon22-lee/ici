@@ -38,8 +38,8 @@ fn masked(name: &str) -> String {
     name.into()
 }
 
-/// Recorded differences of the CMake runtime sessions (cpp.json `finding_site` rows of the test
-/// and sanitizer tool evidence): native never runs frozen's `cmake --version` minimum-version
+/// Pending root ruling (cpp.json check:cpp.coverage, check:cpp.sanitize, check:cpp.tsan rows),
+/// not an accepted difference: native never runs frozen's `cmake --version` minimum-version
 /// probe, and it writes every GCOV report with one `gcov` process over all notes files where
 /// frozen ran one `gcov` per object directory. The frozen records are compared without the
 /// version probe and with consecutive `gcov` runs as one (their return codes all 0).
@@ -96,7 +96,7 @@ fn ordered(findings: &mut Value) {
 }
 
 /// The engine `extra` fields the zoo expectations compare (`capture_zoo_cpp.py` EXTRA_KEYS).
-const EXTRA_KEYS: [&str; 21] = [
+const EXTRA_KEYS: [&str; 22] = [
     "sanitize_issues",
     "thread_sanitize_issues",
     "configurations",
@@ -118,6 +118,7 @@ const EXTRA_KEYS: [&str; 21] = [
     "cpp_unused_functions_count",
     "cpp_unused_mode",
     "clone_groups_count",
+    "analysis_provenance",
 ];
 
 /// Root ruling (cpp.json intended difference): a legacy CMake analysis database lives in the
@@ -178,6 +179,11 @@ fn engines(report: &Value) -> Value {
                 "status": engine["status"], "evidence": engine["evidence"],
                 "summary": engine["summary"], "extra": extra, "targets": targets,
                 "findings": findings,
+                // Frozen `_threshold_breaches` metrics: the reported (rounded) actual value.
+                "threshold_metrics": engine["targets"].as_array().unwrap().iter()
+                    .filter(|target| target["target_name"].as_str().unwrap().starts_with("Threshold: "))
+                    .map(|target| target["metrics"].clone())
+                    .collect::<Vec<_>>(),
                 "tool_evidence": evidence(name, &engine["tool_evidence"]),
             }),
         );

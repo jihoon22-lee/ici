@@ -35,6 +35,7 @@
        "target_name": "PythonRuntime:NotApplicable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "sanitize": {
@@ -66,6 +67,7 @@
        "target_name": "ASan/UBSan Error"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -78,7 +80,7 @@
         "<root>/src/clean.cpp",
         "<root>/src/fault.cpp",
         "-o",
-        "/tmp/ici-sanitize-l2iosi6m/test_fault_asan"
+        "/tmp/ici-sanitize-fnnnhew2/test_fault_asan"
        ],
        "error": "",
        "name": "sanitizer compile",
@@ -89,11 +91,11 @@
       },
       {
        "argv": [
-        "/tmp/ici-sanitize-l2iosi6m/test_fault_asan"
+        "/tmp/ici-sanitize-fnnnhew2/test_fault_asan"
        ],
        "error": "",
        "name": "sanitizer execution",
-       "path": "/tmp/ici-sanitize-l2iosi6m/test_fault_asan",
+       "path": "/tmp/ici-sanitize-fnnnhew2/test_fault_asan",
        "returncode": 1,
        "timed_out": false,
        "truncated": false
@@ -140,6 +142,7 @@
        "target_name": "PythonRuntime:NotApplicable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "sanitize": {
@@ -171,6 +174,7 @@
        "target_name": "LSan Error"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -183,7 +187,7 @@
         "<root>/src/clean.cpp",
         "<root>/src/fault.cpp",
         "-o",
-        "/tmp/ici-sanitize-b4dccpus/test_fault_asan"
+        "/tmp/ici-sanitize-_tmc5cej/test_fault_asan"
        ],
        "error": "",
        "name": "sanitizer compile",
@@ -194,11 +198,11 @@
       },
       {
        "argv": [
-        "/tmp/ici-sanitize-b4dccpus/test_fault_asan"
+        "/tmp/ici-sanitize-_tmc5cej/test_fault_asan"
        ],
        "error": "",
        "name": "sanitizer execution",
-       "path": "/tmp/ici-sanitize-b4dccpus/test_fault_asan",
+       "path": "/tmp/ici-sanitize-_tmc5cej/test_fault_asan",
        "returncode": 1,
        "timed_out": false,
        "truncated": false
@@ -263,6 +267,7 @@
        "target_name": "BinaryCompatibility:release:shadow:lib/libgreeter.so"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -363,6 +368,7 @@
        "target_name": "EnvironmentScript"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [],
@@ -429,6 +435,7 @@
        "target_name": "Integration:native-self-test"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -527,6 +534,7 @@
        "target_name": "ici.compile-db.configuration"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     }
    },
@@ -680,6 +688,7 @@
        "target_name": "Clazy:5979cddbd0d5"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -868,6 +877,7 @@
        "target_name": "PythonRuntime:NotApplicable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     }
    },
@@ -1040,11 +1050,13 @@
        "target_name": "used_quality_helper()"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "dead": {
      "evidence": "MEASURED",
      "extra": {
+      "analysis_provenance": "cpp-compiler-unused-function",
       "cpp_unused_functions_count": 1,
       "cpp_unused_mode": "exact"
      },
@@ -1162,6 +1174,7 @@
        "target_name": "Compiler:-Wunused-function"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -1306,6 +1319,7 @@
     "dup": {
      "evidence": "ESTIMATED",
      "extra": {
+      "analysis_provenance": "language-lexical-region-heuristic",
       "clone_groups_count": 1
      },
      "findings": [
@@ -1422,6 +1436,7 @@
        "target_name": "DuplicateScan"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "test": {
@@ -1725,6 +1740,12 @@
        "target_name": "Threshold: Branch coverage"
       }
      ],
+     "threshold_metrics": [
+      {
+       "actual": 3.7,
+       "threshold": 100.0
+      }
+     ],
      "tool_evidence": [
       {
        "argv": [],
@@ -1906,6 +1927,7 @@
        "target_name": "PythonRuntime:NotApplicable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "sanitize": {
@@ -1937,6 +1959,7 @@
        "target_name": "ASan/UBSan"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -1948,7 +1971,7 @@
         "<root>/tests/test_clean.cpp",
         "<root>/src/clean.cpp",
         "-o",
-        "/tmp/ici-sanitize-szmj5s0d/test_clean_asan"
+        "/tmp/ici-sanitize-5wk0oh4i/test_clean_asan"
        ],
        "error": "",
        "name": "sanitizer compile",
@@ -1959,11 +1982,11 @@
       },
       {
        "argv": [
-        "/tmp/ici-sanitize-szmj5s0d/test_clean_asan"
+        "/tmp/ici-sanitize-5wk0oh4i/test_clean_asan"
        ],
        "error": "",
        "name": "sanitizer execution",
-       "path": "/tmp/ici-sanitize-szmj5s0d/test_clean_asan",
+       "path": "/tmp/ici-sanitize-5wk0oh4i/test_clean_asan",
        "returncode": 0,
        "timed_out": false,
        "truncated": false
@@ -2179,6 +2202,7 @@
        "target_name": "ici.compile-db.configuration"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "cycle": {
@@ -2298,6 +2322,7 @@
        "target_name": "CppCycle:2"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -2532,6 +2557,7 @@
        "target_name": "Compiler:-Wunused-variable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -2686,6 +2712,7 @@
        "target_name": "PythonRuntime:NotApplicable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "thread_sanitize": {
@@ -2717,6 +2744,7 @@
        "target_name": "TSan Error"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [],
@@ -2830,6 +2858,7 @@
        "target_name": "PythonRuntime:NotApplicable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "thread_sanitize": {
@@ -2861,6 +2890,7 @@
        "target_name": "[C++ TSan] tsan_synchronized"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [],
@@ -2974,6 +3004,7 @@
        "target_name": "PythonRuntime:NotApplicable"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": []
     },
     "sanitize": {
@@ -3005,6 +3036,7 @@
        "target_name": "ASan/UBSan Error"
       }
      ],
+     "threshold_metrics": [],
      "tool_evidence": [
       {
        "argv": [
@@ -3017,7 +3049,7 @@
         "<root>/src/clean.cpp",
         "<root>/src/fault.cpp",
         "-o",
-        "/tmp/ici-sanitize-wmh81x07/test_fault_asan"
+        "/tmp/ici-sanitize-zcyiuqtd/test_fault_asan"
        ],
        "error": "",
        "name": "sanitizer compile",
@@ -3028,11 +3060,11 @@
       },
       {
        "argv": [
-        "/tmp/ici-sanitize-wmh81x07/test_fault_asan"
+        "/tmp/ici-sanitize-zcyiuqtd/test_fault_asan"
        ],
        "error": "",
        "name": "sanitizer execution",
-       "path": "/tmp/ici-sanitize-wmh81x07/test_fault_asan",
+       "path": "/tmp/ici-sanitize-zcyiuqtd/test_fault_asan",
        "returncode": 1,
        "timed_out": false,
        "truncated": false

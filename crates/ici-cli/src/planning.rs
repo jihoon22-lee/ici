@@ -936,15 +936,35 @@ fn prepare_resolved_omitting(
                             } else if matches!(check.check.id.as_str(), "cpp.sanitize" | "cpp.tsan")
                             {
                                 // Frozen sanitizer engines: the adapter configure failure is a
-                                // `C++Sanitizer` ERROR at the descriptor; nothing is built.
-                                cpp.fail_preparation(
+                                // `C++Sanitizer` ERROR at the descriptor; nothing is built. The
+                                // backend was selected first (`BuildSession` selection record).
+                                let file = descriptor.as_deref().unwrap_or(".");
+                                let mut output = crate::cpp::legacy_sanitizer_configuration_error(
                                     &check.task_id,
-                                    crate::cpp::legacy_sanitizer_configuration_error(
-                                        &check.task_id,
-                                        descriptor.as_deref().unwrap_or("."),
-                                        &configuration,
-                                    ),
+                                    file,
+                                    &configuration,
                                 );
+                                let name = Path::new(file)
+                                    .file_name()
+                                    .map(|name| name.to_string_lossy().into_owned())
+                                    .unwrap_or_default();
+                                let system = match name.as_str() {
+                                    "CMakeLists.txt" => Some("cmake"),
+                                    "Makefile" | "makefile" | "GNUmakefile" => Some("make"),
+                                    _ if name.ends_with(".pro") => Some("qmake"),
+                                    _ => None,
+                                };
+                                if legacy_projection && let Some(system) = system {
+                                    output.extra["tool_evidence"] =
+                                        crate::cpp::legacy_build_session_evidence(
+                                            &project.root,
+                                            &component.root,
+                                            system,
+                                            file,
+                                            &[],
+                                        );
+                                }
+                                cpp.fail_preparation(&check.task_id, output);
                                 validations.remove(&check.task_id);
                                 check.check.needs.clear();
                                 check.work = Work::Internal;

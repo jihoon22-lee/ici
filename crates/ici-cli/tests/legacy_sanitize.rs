@@ -130,6 +130,12 @@ fn run_with(fixture: &str, command: &str, config: &str, path: &str, builds: bool
         "built": root.path().join("build").exists(),
         "targets": targets,
         "diagnostic_findings": diagnostic_findings,
+        "tool_evidence": report["tool_evidence"].as_array().unwrap().iter()
+            .map(|item| json!({"name": item["name"], "returncode": item["returncode"]}))
+            .collect::<Vec<_>>(),
+        "finding_tools": report["findings"].as_array().unwrap().iter()
+            .map(|finding| finding["tool_name"].as_str().unwrap_or_default().to_owned())
+            .collect::<std::collections::BTreeSet<_>>(),
     });
     // Compiler stderr names absolute source paths: the capture's project is CAPTURE_ROOT.
     serde_json::from_str(
@@ -217,6 +223,12 @@ fn legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries() {
             assert_eq!(actual["built"], false, "{name}");
             actual["built"] = Value::Null;
             expected["built"] = Value::Null;
+        }
+        // Pending root ruling (cpp.json check:cpp.sanitize / check:cpp.tsan): native never runs
+        // frozen BuildSession's `cmake --version` minimum-version probe, so that one frozen
+        // record has no native process; every other record and return code is compared.
+        if let Some(records) = expected["tool_evidence"].as_array_mut() {
+            records.retain(|record| record["name"] != "cmake --version");
         }
         assert_eq!(actual, expected, "{name}");
     }

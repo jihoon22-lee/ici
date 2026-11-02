@@ -43,6 +43,10 @@
    ],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "AddressSanitizer",
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
    "status": "FAIL",
    "summary": "1 Memory / Resource Defect(s) Detected",
    "targets": [
@@ -62,6 +66,28 @@
      "status": "PASS",
      "target_name": "[C++ ASan/UBSan] test_pass"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
    ]
   },
   "sanitize:cmake-plain": {
@@ -69,6 +95,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
    "status": "FAIL",
    "summary": "1 Memory / Resource Defect(s) Detected",
    "targets": [
@@ -104,6 +133,28 @@
      "status": "PASS",
      "target_name": "[C++ ASan/UBSan] test_pass"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
    ]
   },
   "sanitize:direct-clean": {
@@ -111,6 +162,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
    "targets": [
@@ -121,6 +175,16 @@
      "start_line": 1,
      "status": "PASS",
      "target_name": "ASan/UBSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
     }
    ]
   },
@@ -167,6 +231,10 @@
    ],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "AddressSanitizer",
+    "sanitizer compile"
+   ],
    "status": "FAIL",
    "summary": "1 Memory / Resource Defect(s) Detected",
    "targets": [
@@ -186,6 +254,24 @@
      "status": "FAIL",
      "target_name": "ASan/UBSan Error"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 1
+    }
    ]
   },
   "sanitize:direct-external": {
@@ -193,6 +279,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
    "targets": [
@@ -203,6 +292,16 @@
      "start_line": 1,
      "status": "PASS",
      "target_name": "ASan/UBSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
     }
    ]
   },
@@ -241,6 +340,9 @@
    ],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "LeakSanitizer"
+   ],
    "status": "FAIL",
    "summary": "1 Memory / Resource Defect(s) Detected",
    "targets": [
@@ -252,6 +354,16 @@
      "status": "FAIL",
      "target_name": "LSan Error"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 1
+    }
    ]
   },
   "sanitize:direct-pkg-config": {
@@ -259,6 +371,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Memory Safety & Sanitize Clean (0 Defects)",
    "targets": [
@@ -270,6 +385,16 @@
      "status": "PASS",
      "target_name": "ASan/UBSan"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
    ]
   },
   "sanitize:direct-pkg-config-missing": {
@@ -277,6 +402,9 @@
    "diagnostic_findings": [],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "ERROR",
    "summary": "Sanitizer compilation failed with exit code 1: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp: In function \u2018int answer()\u2019: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp:1:28: error: \u2018ICI_PKG_VALUE\u2019 was not declared in this scope 1 | int answer() { return 42 + ICI_PKG_VALUE; } | ^~~~~~~~~~~~~",
    "targets": [
@@ -287,6 +415,12 @@
      "start_line": 1,
      "status": "ERROR",
      "target_name": "SanitizerCompile"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 1
     }
    ]
   },
@@ -316,6 +450,9 @@
    ],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "UndefinedBehaviorSanitizer"
+   ],
    "status": "FAIL",
    "summary": "1 Memory / Resource Defect(s) Detected",
    "targets": [
@@ -327,6 +464,16 @@
      "status": "FAIL",
      "target_name": "ASan/UBSan Error"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 1
+    }
    ]
   },
   "sanitize:noscope": {
@@ -334,6 +481,9 @@
    "diagnostic_findings": [],
    "evidence": "NOT_APPLICABLE",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "Sanitize skipped: no applicable checks were executed",
    "targets": [
@@ -345,13 +495,17 @@
      "status": "SKIP",
      "target_name": "Sanitize"
     }
-   ]
+   ],
+   "tool_evidence": []
   },
   "sanitize:tested-make-without-sanitizer-argv": {
    "built": false,
    "diagnostic_findings": [],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: Makefile at the project root selected the configured Make backend"
+   ],
    "status": "ERROR",
    "summary": "Make configuration failed: build.make.sanitize_build_argv is required for sanitize",
    "targets": [
@@ -363,6 +517,12 @@
      "status": "ERROR",
      "target_name": "C++Sanitizer"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: Makefile at the project root selected the configured Make backend",
+     "returncode": null
+    }
    ]
   },
   "sanitize:testless-direct": {
@@ -370,6 +530,9 @@
    "diagnostic_findings": [],
    "evidence": "ESTIMATED",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "Sanitize skipped: no applicable checks were executed",
    "targets": [
@@ -381,13 +544,17 @@
      "status": "SKIP",
      "target_name": "C++Sanitizer"
     }
-   ]
+   ],
+   "tool_evidence": []
   },
   "sanitize:testless-make": {
    "built": false,
    "diagnostic_findings": [],
    "evidence": "ESTIMATED",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "Sanitize skipped: no applicable checks were executed",
    "targets": [
@@ -399,13 +566,17 @@
      "status": "SKIP",
      "target_name": "C++Sanitizer"
     }
-   ]
+   ],
+   "tool_evidence": []
   },
   "sanitize:testless-make-required": {
    "built": false,
    "diagnostic_findings": [],
    "evidence": "ESTIMATED",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "Sanitize skipped: no applicable checks were executed",
    "targets": [
@@ -417,7 +588,8 @@
      "status": "SKIP",
      "target_name": "C++Sanitizer"
     }
-   ]
+   ],
+   "tool_evidence": []
   },
   "thread-sanitize:cmake-defect": {
    "built": true,
@@ -454,6 +626,10 @@
    ],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "ThreadSanitizer",
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
    "status": "FAIL",
    "summary": "1 Thread Safety Defect(s) Detected",
    "targets": [
@@ -473,6 +649,28 @@
      "status": "PASS",
      "target_name": "[C++ TSan] test_pass"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
    ]
   },
   "thread-sanitize:cmake-plain": {
@@ -480,6 +678,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: CMakeLists.txt at the project root selected the CMake backend"
+   ],
    "status": "FAIL",
    "summary": "1 Thread Safety Defect(s) Detected",
    "targets": [
@@ -515,6 +716,28 @@
      "status": "PASS",
      "target_name": "[C++ TSan] test_pass"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: CMakeLists.txt at the project root selected the CMake backend",
+     "returncode": null
+    },
+    {
+     "name": "cmake --version",
+     "returncode": 0
+    },
+    {
+     "name": "cmake configure",
+     "returncode": 0
+    },
+    {
+     "name": "cmake build",
+     "returncode": 0
+    },
+    {
+     "name": "ctest",
+     "returncode": 8
+    }
    ]
   },
   "thread-sanitize:direct-clean": {
@@ -522,6 +745,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Thread Safety & TSan Clean (0 Defects)",
    "targets": [
@@ -532,6 +758,16 @@
      "start_line": 1,
      "status": "PASS",
      "target_name": "TSan"
+    }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
     }
    ]
   },
@@ -570,6 +806,10 @@
    ],
    "evidence": "MEASURED",
    "exit_code": 1,
+   "finding_tools": [
+    "ThreadSanitizer",
+    "sanitizer compile"
+   ],
    "status": "FAIL",
    "summary": "1 Thread Safety Defect(s) Detected",
    "targets": [
@@ -589,6 +829,24 @@
      "status": "FAIL",
      "target_name": "TSan Error"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 66
+    }
    ]
   },
   "thread-sanitize:direct-external": {
@@ -596,6 +854,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Thread Safety & TSan Clean (0 Defects)",
    "targets": [
@@ -607,6 +868,16 @@
      "status": "PASS",
      "target_name": "TSan"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
    ]
   },
   "thread-sanitize:direct-leak": {
@@ -614,6 +885,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Thread Safety & TSan Clean (0 Defects)",
    "targets": [
@@ -625,6 +899,16 @@
      "status": "PASS",
      "target_name": "TSan"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
    ]
   },
   "thread-sanitize:direct-pkg-config": {
@@ -632,6 +916,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Thread Safety & TSan Clean (0 Defects)",
    "targets": [
@@ -643,6 +930,16 @@
      "status": "PASS",
      "target_name": "TSan"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
    ]
   },
   "thread-sanitize:direct-pkg-config-missing": {
@@ -650,6 +947,9 @@
    "diagnostic_findings": [],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "ERROR",
    "summary": "Sanitizer compilation failed with exit code 1: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp: In function \u2018int answer()\u2019: /tmp/ici-cpp-sanitize-capture/project/src/lib.cpp:1:28: error: \u2018ICI_PKG_VALUE\u2019 was not declared in this scope 1 | int answer() { return 42 + ICI_PKG_VALUE; } | ^~~~~~~~~~~~~",
    "targets": [
@@ -661,6 +961,12 @@
      "status": "ERROR",
      "target_name": "SanitizerCompile"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 1
+    }
    ]
   },
   "thread-sanitize:direct-ubsan": {
@@ -668,6 +974,9 @@
    "diagnostic_findings": [],
    "evidence": "MEASURED",
    "exit_code": 0,
+   "finding_tools": [
+    "sanitizer compile"
+   ],
    "status": "PASS",
    "summary": "Thread Safety & TSan Clean (0 Defects)",
    "targets": [
@@ -679,6 +988,16 @@
      "status": "PASS",
      "target_name": "TSan"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "sanitizer compile",
+     "returncode": 0
+    },
+    {
+     "name": "sanitizer execution",
+     "returncode": 0
+    }
    ]
   },
   "thread-sanitize:noscope": {
@@ -686,6 +1005,9 @@
    "diagnostic_findings": [],
    "evidence": "NOT_APPLICABLE",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
    "targets": [
@@ -697,13 +1019,17 @@
      "status": "SKIP",
      "target_name": "ThreadSanitizer"
     }
-   ]
+   ],
+   "tool_evidence": []
   },
   "thread-sanitize:tested-make-without-sanitizer-argv": {
    "built": false,
    "diagnostic_findings": [],
    "evidence": "NOT_RUN",
    "exit_code": 1,
+   "finding_tools": [
+    "build backend selection: Makefile at the project root selected the configured Make backend"
+   ],
    "status": "ERROR",
    "summary": "Make configuration failed: build.make.thread_sanitize_build_argv is required for thread-sanitize",
    "targets": [
@@ -715,6 +1041,12 @@
      "status": "ERROR",
      "target_name": "C++Sanitizer"
     }
+   ],
+   "tool_evidence": [
+    {
+     "name": "build backend selection: Makefile at the project root selected the configured Make backend",
+     "returncode": null
+    }
    ]
   },
   "thread-sanitize:testless-direct": {
@@ -722,6 +1054,9 @@
    "diagnostic_findings": [],
    "evidence": "ESTIMATED",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
    "targets": [
@@ -733,13 +1068,17 @@
      "status": "SKIP",
      "target_name": "C++Sanitizer"
     }
-   ]
+   ],
+   "tool_evidence": []
   },
   "thread-sanitize:testless-make": {
    "built": false,
    "diagnostic_findings": [],
    "evidence": "ESTIMATED",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
    "targets": [
@@ -751,13 +1090,17 @@
      "status": "SKIP",
      "target_name": "C++Sanitizer"
     }
-   ]
+   ],
+   "tool_evidence": []
   },
   "thread-sanitize:testless-make-required": {
    "built": false,
    "diagnostic_findings": [],
    "evidence": "ESTIMATED",
    "exit_code": 2,
+   "finding_tools": [
+    ""
+   ],
    "status": "SKIP",
    "summary": "ThreadSanitizer skipped: no applicable C++ checks were executed",
    "targets": [
@@ -769,7 +1112,8 @@
      "status": "SKIP",
      "target_name": "C++Sanitizer"
     }
-   ]
+   ],
+   "tool_evidence": []
   }
  },
  "configs": {

@@ -47,6 +47,7 @@ EXTRA_KEYS = (
     "cpp_unused_functions_count",
     "cpp_unused_mode",
     "clone_groups_count",
+    "analysis_provenance",
 )
 # Scenarios that need the clang tools: the captured LLVM 21.1.8 clang-tidy/clazy, run through
 # wrappers that set their library path (the zoo runner puts the same tools on PATH).
@@ -134,6 +135,11 @@ def run(name: str) -> dict:
                 },
                 "targets": [
                     {key: target.get(key) for key in TARGET_KEYS} for target in engine["targets"]
+                ],
+                "threshold_metrics": [
+                    target["metrics"]
+                    for target in engine["targets"]
+                    if target["target_name"].startswith("Threshold: ")
                 ],
                 "tool_evidence": [
                     {key: record.get(key) for key in EVIDENCE_KEYS}

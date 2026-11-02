@@ -102,6 +102,11 @@ def run(fixture: Path, command: str, config: str) -> dict:
             for finding in report["findings"]
             if finding.get("explanation", "").startswith(DIAGNOSTIC)
         ],
+        "tool_evidence": [
+            {"name": item["name"], "returncode": item.get("returncode")}
+            for item in report.get("tool_evidence", [])
+        ],
+        "finding_tools": sorted({finding.get("tool_name", "") for finding in report["findings"]}),
     }
 
 
