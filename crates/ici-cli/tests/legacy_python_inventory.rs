@@ -9,19 +9,9 @@ use serde_json::Value;
 use std::{collections::BTreeMap, fs};
 
 const ORACLE: &str = include_str!("../../../tests/rust-parity/python/legacy-inventory-oracle.json");
-/// Native extras the legacy view keeps beside the frozen ones (evidence of the native checks).
-const NATIVE_EXTRAS: [&str; 10] = [
-    "excluded_source_counts",
-    "finding_identity_map",
-    "heuristic_edges",
-    "import_edges",
-    "module_index",
-    "native_checks",
-    "parser_identity",
-    "reported_cycles",
-    "source_encodings",
-    "target_scopes",
-];
+#[path = "support/native_extras.rs"]
+mod native_extras;
+use native_extras::NATIVE_EXTRAS;
 
 /// The explicit project interpreter with pytest (`ICI_TEST_PYTHON`, else the repo `.venv` CI
 /// creates): the frozen captures ran with pytest available, which the runner's /usr/bin/python3

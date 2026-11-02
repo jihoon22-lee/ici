@@ -32,9 +32,8 @@ fn linker_mode(extra: &Value) -> bool {
         })
 }
 
-/// Fill the frozen counters of one legacy engine:
-/// * `sanitize` / `thread_sanitize`: `ISSUE_COUNT_KEY`, the WARN/FAIL target count
-///   (`_issue_count`), for the C++ sanitizer checks.
+/// Fill the frozen counters of one legacy engine (the sanitizer issue counts of every language
+/// are `crate::legacy_extra`'s):
 /// * `complexity` with `cpp.complexity`: `max_complexity`, `total_functions` (targets with a
 ///   complexity metric) and `issues_count` (WARN/FAIL/ERROR targets) over every language.
 /// * `dead` with `cpp.dead`: `cpp_unused_mode` (`exact`, `error`, `unavailable`, `off`,
@@ -43,28 +42,6 @@ pub(crate) fn shape(family: &str, engine: &mut Value) {
     let checks = checks(engine);
     let targets = targets(engine);
     match family {
-        "sanitize" | "thread_sanitize" => {
-            let check = if family == "sanitize" {
-                "cpp.sanitize"
-            } else {
-                "cpp.tsan"
-            };
-            if !has_check(&checks, check) {
-                return;
-            }
-            let key = if family == "sanitize" {
-                "sanitize_issues"
-            } else {
-                "thread_sanitize_issues"
-            };
-            if engine["extra"].get(key).is_none() {
-                let issues = targets
-                    .iter()
-                    .filter(|target| status_in(target, &["WARN", "FAIL"]))
-                    .count();
-                engine["extra"][key] = json!(issues);
-            }
-        }
         "complexity" if has_check(&checks, "cpp.complexity") => {
             let functions: Vec<i64> = targets
                 .iter()
@@ -143,19 +120,6 @@ mod tests {
     fn target(name: &str, status: &str, complexity: Option<i64>) -> serde_json::Value {
         let metrics = complexity.map_or_else(|| json!({}), |value| json!({"complexity": value}));
         json!({"target_name": name, "status": status, "metrics": metrics})
-    }
-
-    #[test]
-    fn sanitizer_issue_counts_are_the_warn_and_fail_targets() {
-        let mut engine = json!({"extra": {"native_checks": [{"check_id": "cpp.tsan"}]},
-            "targets": [target("TSan Error", "FAIL", None), target("x", "PASS", None),
-                target("y", "WARN", None), target("z", "ERROR", None)]});
-        shape("thread_sanitize", &mut engine);
-        assert_eq!(engine["extra"]["thread_sanitize_issues"], 2);
-        let mut python = json!({"extra": {"native_checks": [{"check_id": "python.sanitize"}]},
-            "targets": [target("x", "FAIL", None)]});
-        shape("sanitize", &mut python);
-        assert!(python["extra"].get("sanitize_issues").is_none());
     }
 
     #[test]
