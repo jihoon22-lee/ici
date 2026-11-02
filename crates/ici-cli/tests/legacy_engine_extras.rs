@@ -76,8 +76,8 @@ use Class::{Approved, Incidental, Open};
 
 /// (capture or exact replay label, normalized path, kind, class, reason).
 type Allowance = (&'static str, &'static str, Kind, Class, &'static str);
-/// (text projection label, side (`Missing` frozen line / `NativeOnly` native line), line prefix
-/// or `head*tail` pattern after the duration mask, class, reason).
+/// (text projection label, side (`Missing` frozen line / `NativeOnly` native line), line prefix,
+/// `line$` or `head*tail` pattern after the duration mask, class, reason).
 type TextAllowance = (&'static str, Kind, &'static str, Class, &'static str);
 
 include!("support/legacy_result_allowances.rs");
@@ -417,9 +417,12 @@ fn text_allowed(label: &str, line: &str, kind: Kind) -> bool {
     found.is_some()
 }
 
-/// A text allowance names a line prefix; `head*tail` names a line starting with `head` whose
-/// rest contains `tail`.
+/// A text allowance names a line prefix; `line$` names exactly that line; `head*tail` names a
+/// line starting with `head` whose rest contains `tail`.
 fn line_matches(line: &str, pattern: &str) -> bool {
+    if let Some(exact) = pattern.strip_suffix('$') {
+        return line == exact;
+    }
     match pattern.split_once('*') {
         Some((head, tail)) => line
             .strip_prefix(head)
@@ -1070,6 +1073,16 @@ fn an_unallowed_projection_difference_is_reported() {
     assert!(!line_matches(
         "| <code>HIGH</code> | <code>exception</code> | x",
         "| <code>*</code> | <code>ready</code> | "
+    ));
+    // A full-line allowance does not accept a native header that adds a (fabricated) TEM.
+    let header = "## 🛑 `ici` Verification Report — **`ERROR`**$";
+    assert!(line_matches(
+        "## 🛑 `ici` Verification Report — **`ERROR`**",
+        header
+    ));
+    assert!(!line_matches(
+        "## 🛑 `ici` Verification Report — **`ERROR`** (TEM: **`4.75 / 5.0`**)",
+        header
     ));
     let result = |fingerprint: &str, rule: &str| json!({"ruleId": rule, "fingerprints": {"ici/v3": fingerprint}, "level": "note"});
     let document = |results: Vec<Value>| {

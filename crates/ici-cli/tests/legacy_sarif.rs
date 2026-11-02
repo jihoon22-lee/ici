@@ -546,7 +546,7 @@ const REVIEWED_PROPERTIES: [(&str, &str, &str, &str, &str); 26] = [
         ACTUAL_RUN,
     ),
 ];
-const ACTUAL_RUN: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\" / \"pytest는 있으나 coverage가 없는 legacy test\": native ran the coverage probe and pytest before the frozen no-tests verdict (frozen stopped first), so the test engine's first tool record names the adapted finding";
+const ACTUAL_RUN: &str = "open (root decision proposed; legacy_result_allowances.rs NO_TESTS_RUN): without a tests directory native ran the coverage probe and pytest before the frozen no-tests verdict (frozen ran nothing), so the test engine's first tool record names the adapted finding";
 const ADR_0008: &str = "ADR-0008 allows only the fixed metadata probe, so the runtime evidence is named `python runtime metadata`, never frozen's `python -VV`";
 const NO_ESTIMATE: &str = "native never invents frozen's fixed `Line: 45.0% (est)` coverage for a suite without tests (recorded on test.py:611/774), so the test engine stays MEASURED (high) where frozen was ESTIMATED (medium)";
 

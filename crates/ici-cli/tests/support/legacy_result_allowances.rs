@@ -3,7 +3,7 @@
 // `Incidental` = a field that differs run to run or host to host; `Approved` = an intended
 // difference recorded in decisions.md or a fragment difference_reason (cited); `Open` = a
 // difference not yet fixed or approved (C++ values the native C++ checks do not record, the
-// pytest case line of the optional-coverage capture), listed so
+// pytest case line, the no-tests process records, the measured Python coverage shape), listed so
 // it never passes silently. Paths: suite keys, `results[<engine>]`, `.key` for engine reports,
 // `[]` for list positions. Generated from the replay table, then reviewed.
 const CPP: &str = "open (cpp area): the native C++ checks do not record this frozen C++ value \
@@ -35,10 +35,13 @@ const R7: &str = "config.json capability:legacy-command-config-result-projection
 const R8: &str = "config.json capability:legacy-command-config-result-projection difference_reason (native argv; ADR-0008 python_compat metadata probe)";
 const R10: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native evidence keys beside frozen's in a legacy extra: native checks, target scopes, finding identity map, parser/source identity, Python analysis counters, process steps)";
 const R11: &str = "reporting.json capability:legacy-command-config-result-projection difference_reason (native C++ check evidence under native names beside the frozen-named projection: include graph/trace, boundaries, compile context, exact dead details)";
-const R12: &str = "decisions.md \"C++ 도구 증거는 실제 실행 기록\" and \"pytest는 있으나 coverage가 없는 \
-    legacy test\": the legacy Python test/sanitize evidence is the processes native ran (coverage \
-    probe, suites, ResourceWarning suite) under frozen's names with native argv, also where frozen \
-    stopped before running (no tests directory); adapted findings name the first record";
+const R12: &str = "decisions.md \"pytest는 있으나 coverage가 없는 legacy test\" (tool evidence by \
+    \"C++ 도구 증거는 실제 실행 기록\"): the legacy Python test/sanitize evidence is the processes \
+    native ran under frozen's names, with native argv";
+const NO_TESTS_RUN: &str = "open (root decision proposed): without a tests directory frozen \
+    `_mark_zero_tests` ran nothing while native ran the coverage probe and pytest (exit 5) and now \
+    records them, so the `No tests collected` finding names `coverage --version`; the cited rows \
+    cover a project with tests (and C++ tools) only";
 const R13: &str = "decisions.md \"`verify --baseline`의 line 집계\" (defect correction): the \
     command's own input/output files are not project content (planning::is_command_output), so the \
     --baseline JSON row frozen counted is absent; every other row equals frozen in full \
@@ -117,8 +120,8 @@ const ALLOWANCES: &[Allowance] = &[
     ("annotations", "results[test].extra.no_tests_collected", NativeOnly, Approved, R10),
     ("annotations", "results[test].extra.target_scopes", NativeOnly, Approved, R10),
     ("annotations", "results[test].extra.test_aggregation_limitation", NativeOnly, Approved, R10),
-    ("annotations", "results[test].findings[].tool_name", Differs, Approved, R12),
-    ("annotations", "results[test].tool_evidence", Len, Approved, R12),
+    ("annotations", "results[test].findings[].tool_name", Differs, Open, NO_TESTS_RUN),
+    ("annotations", "results[test].tool_evidence", Len, Open, NO_TESTS_RUN),
     ("annotations", "results[type].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("annotations", "results[type].extra.native_checks", NativeOnly, Approved, R10),
     ("annotations", "results[type].extra.target_scopes", NativeOnly, Approved, R10),
@@ -384,8 +387,8 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "results[test].extra.no_tests_collected", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[test].extra.target_scopes", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[test].extra.test_aggregation_limitation", NativeOnly, Approved, R10),
-    ("extras/hybrid", "results[test].findings[].tool_name", Differs, Approved, R12),
-    ("extras/hybrid", "results[test].tool_evidence", Len, Approved, R12),
+    ("extras/hybrid", "results[test].findings[].tool_name", Differs, Open, NO_TESTS_RUN),
+    ("extras/hybrid", "results[test].tool_evidence", Len, Open, NO_TESTS_RUN),
     ("extras/hybrid", "results[type].extra.finding_identity_map", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[type].extra.native_checks", NativeOnly, Approved, R10),
     ("extras/hybrid", "results[type].extra.target_scopes", NativeOnly, Approved, R10),
@@ -840,7 +843,7 @@ const ALLOWANCES: &[Allowance] = &[
     ("extras/hybrid", "support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("extras/hybrid", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("extras/hybrid", "support_matrix.entries[test/python].reason", Differs, Approved, R9),
-    ("inventory/hybrid/test", ".findings[].tool_name", Differs, Approved, R12),
+    ("inventory/hybrid/test", ".findings[].tool_name", Differs, Open, NO_TESTS_RUN),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].active_mode", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].confidence", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/cpp].evidence", Differs, Approved, R9),
@@ -849,7 +852,7 @@ const ALLOWANCES: &[Allowance] = &[
     ("inventory/hybrid/test", ".support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/python].evidence", Differs, Approved, R9),
     ("inventory/hybrid/test", ".support_matrix.entries[test/python].reason", Differs, Approved, R9),
-    ("inventory/hybrid/test", ".tool_evidence", Len, Approved, R12),
+    ("inventory/hybrid/test", ".tool_evidence", Len, Open, NO_TESTS_RUN),
     ("summary/append", "support_matrix.entries[test/python].active_mode", Differs, Approved, R9),
     ("summary/append", "support_matrix.entries[test/python].confidence", Differs, Approved, R9),
     ("summary/append", "support_matrix.entries[test/python].evidence", Differs, Approved, R9),
@@ -1372,11 +1375,11 @@ const ALLOWANCES: &[Allowance] = &[
     ("summary", "results[test].extra.metrics_summary", Missing, Approved, R9),
     ("summary", "results[test].extra.tem_score", Missing, Approved, R9),
     ("summary", "results[test].findings[].confidence", Differs, Approved, R9),
-    ("summary", "results[test].findings[].tool_name", Differs, Approved, R12),
+    ("summary", "results[test].findings[].tool_name", Differs, Open, NO_TESTS_RUN),
     ("summary", "results[test].max_score", Type, Approved, R9),
     ("summary", "results[test].score", Type, Approved, R9),
     ("summary", "results[test].summary", Differs, Approved, R9),
-    ("summary", "results[test].tool_evidence", Len, Approved, R12),
+    ("summary", "results[test].tool_evidence", Len, Open, NO_TESTS_RUN),
     ("summary", "results[type].cache_key", Type, Approved, R6),
     ("summary", "results[type].duration", Differs, Incidental, R4),
     ("summary", "results[type].tool_evidence[].argv", Len, Approved, R8),
@@ -1449,7 +1452,7 @@ const ALLOWANCES: &[Allowance] = &[
 const TEXT_ALLOWANCES: &[TextAllowance] = &[
     // No fabricated TEM: the header names no TEM, the test row no estimate or score (R9).
     ("summary", Missing, "## 🛑 `ici` Verification Report — **`ERROR`** (TEM: **`", Approved, R9),
-    ("summary", NativeOnly, "## 🛑 `ici` Verification Report — **`ERROR`**", Approved, R9),
+    ("summary", NativeOnly, "## 🛑 `ici` Verification Report — **`ERROR`**$", Approved, R9),
     ("summary", Missing, "| <strong><code>test</code></strong> | 🔴 `FAIL` | 0/0 Tests Passed &#124; Line: 45.0% (est)", Approved, R9),
     ("summary", NativeOnly, "| <strong><code>test</code></strong> | 🔴 `FAIL` | 0/0 Tests Passed; No tests collected | - |", Approved, R9),
     // The capability snapshot's tool rows and counts (the `capability_inventory` allowances).
