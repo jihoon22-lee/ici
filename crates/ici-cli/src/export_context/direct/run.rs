@@ -440,6 +440,7 @@ pub(in crate::export_context) fn execute(
         test_compile_failures,
         evidence: Some(evidence),
         build_failure: None,
+        build_failure_output: None,
         _lease: Arc::new(lease),
     })
 }

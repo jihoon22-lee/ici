@@ -23,9 +23,12 @@
         "flock heavy.lock cargo test -p ici-cli --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp7-manifests-rust.log; regressions /tmp/ici-rust-replacement-20261028/w-cpp7-manifests-regress.log",
         "tests/rust-parity/cpp/capture_cmake_manifests.py now 4 cases (adds verify --profile deep on test-cmake/plain: coverage, sanitize and thread-sanitize sessions); /tmp/ici-rust-replacement-20261028/w-cpp8-manifests-capture.log",
         "cargo test -p ici-cli --test legacy_cmake_manifests --locked -j2 -- --include-ignored: 1 passed (4 cases); /tmp/ici-rust-replacement-20261028/w-cpp8-manifests-rust.log",
-        "qmake divergence observed with frozen and native `ici verify --report` on parity-fixtures/cpp/test-qmake with source_dirs=['tests'] (frozen FAIL exit 1 with qmake.build manifests test_unit; native ERROR exit 3: test/sanitize SKIP NOT_RUN for undeclared QTest argv, complexity/exception ERROR from Qt syntax recovery)."
+        "qmake divergence observed with frozen and native `ici verify --report` on parity-fixtures/cpp/test-qmake with source_dirs=['tests'] (frozen FAIL exit 1 with qmake.build manifests test_unit; native ERROR exit 3: test/sanitize SKIP NOT_RUN for undeclared QTest argv, complexity/exception ERROR from Qt syntax recovery).",
+        "Frozen tests/rust-parity/cpp/cmake-manifests-oracle.json recaptured by development-only tests/rust-parity/cpp/capture_cmake_manifests.py (oracle 6fe3e40, cmake 4.2.3, g++ 15.2.0): 6 cases, adds verify-deep-build (deep profile with [engines.build] enabled=true on test-cmake/plain: build release manifest beside coverage/sanitize/thread-sanitize) and verify-deep-build-broken (failing CMake build: no manifest, frozen exit 1); the 4 earlier cases are unchanged except their git commit ids; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cmake_manifests --locked -j2 -- --include-ignored: 1 passed (6 cases); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log (first test of the regression list)",
+        "Regression replays (legacy_cmake_verify, legacy_analysis_context, legacy_binary_compat, legacy_build_targets, legacy_make_build, integration_legacy, native_preparation, artifact_contract, legacy_cpp_test, legacy_sanitize, legacy_no_tests, published_abi, compilation_commands, all --include-ignored): pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress2.log"
       ],
-      "comparison": "C++ facet, compiled build artifact manifests only (frozen core/cmake._capture_artifact_manifest + reporters/json_rep._serialize_artifact_manifest): legacy `ici verify` on a CMake project now carries the frozen `artifact_manifests` on the test (variant coverage) and sanitize (variant sanitize) engines: schema ici.artifacts/v2, project_root '.', the shadow tree's linked outputs (ELF/PE/Mach-O magic or `!<arch>` archives, objects and coverage notes excluded, symlinks skipped, Path order, CMake's own CMakeFiles probe binaries included as frozen does) with frozen path, scope shadow, kind, mode, producer cmake.build, id <variant>:shadow:<path> and derived target, plus the run's source commit and sha256 digests; equal to frozen field by field except the recorded differences. Standalone `ici test` (no analysis context) and a failed CMake build publish none, as frozen.",
+      "comparison": "C++ facet, compiled build artifact manifests only (frozen core/cmake._capture_artifact_manifest + reporters/json_rep._serialize_artifact_manifest): legacy `ici verify` on a CMake project now carries the frozen `artifact_manifests` on the test (variant coverage) and sanitize (variant sanitize) engines: schema ici.artifacts/v2, project_root '.', the shadow tree's linked outputs (ELF/PE/Mach-O magic or `!<arch>` archives, objects and coverage notes excluded, symlinks skipped, Path order, CMake's own CMakeFiles probe binaries included as frozen does) with frozen path, scope shadow, kind, mode, producer cmake.build, id <variant>:shadow:<path> and derived target, plus the run's source commit and sha256 digests; equal to frozen field by field except the recorded differences. Standalone `ici test` (no analysis context) and a failed CMake build publish none, as frozen. The enabled deep build engine's release session manifest (results[build], variant release) equals frozen too (verify-deep-build), and a failing build publishes none on build/test/sanitize/thread_sanitize with frozen exit 1 (verify-deep-build-broken; Rust defect fixed, see capability:legacy-command-config-result-projection).",
       "difference_reason": "Open: the capability also covers ELF/ABI/linker and declared artifact ownership, which this change does not touch; its component rows stay open. Recorded: native owned shadow trees are .ici/rust-v1/build/legacy-<digest>/<variant> (frozen build/ici-cmake[-asan]), so shadow_root and the build command's directory and `--parallel <jobs>` differ; config_digest/toolchain_digest are the native run policy/toolchain digests (frozen hashes its own effective config dict and capability inventory) and artifact sha256/size are the native build's bytes. Closed: the deep-profile thread-sanitize session manifest (variant thread-sanitize) equals frozen (verify-deep-plain case); an unadapted Makefile publishes none in both. Open: Make (build.make.enabled) and qmake build session manifests (producer make.build/qmake.build) are not captured; a qmake project (parity-fixtures/cpp/test-qmake) still diverges before any manifest: native needs a declared QTest test_argv/sanitize_test_argv (test/sanitize SKIP NOT_RUN) where frozen discovers the qmake-built test_unit, and Qt `private slots:` syntax recovery makes cpp.complexity/cpp.exception ERROR (frozen PASS). ; the suite-level analysis_context.artifact_manifests now lists the engines' manifests (legacy_analysis_context.rs); the other capability facets (ELF/ABI/linker, declared ownership) stay with their own rows."
     },
     "capability:compile-context-export": {
@@ -156,16 +159,35 @@
       "difference_reason": "Open: capability-level parity needs its component check/finding_site rows closed; they are still open (see the rows naming the same frozen modules)."
     },
     "check:cpp.artifact": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/export_context.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/languages/cpp/checks.py:148) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen capture exercises this check on a C++ project with its tool/build (tests, sanitizers, clang-tidy or artifact outputs); only its absence/applicability appears in the verify matrix."
+      "evidence": [
+        "Frozen next contract: tests/rust-parity/cpp/artifact-contract-oracle.json (capture_artifact_contract.py, 5 cases); legacy BuildEngine: tests/rust-parity/cpp/build-targets-oracle.json (capture_build_targets.py) and cmake-manifests-oracle.json (capture_cmake_manifests.py, verify-deep-build / verify-deep-build-broken)",
+        "flock heavy.lock cargo test -p ici-cli --test artifact_contract --test legacy_build_targets --test legacy_make_build --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+      ],
+      "comparison": "C++ facet of frozen languages/cpp/checks.py:148 cpp.artifact. Next path: the declared-artifact contract (artifacts.satisfied/produced metrics, artifact.missing/artifact.invalid findings with frozen message, location, evidence, raw and envelope fingerprint, advisory PASS exit 0 / required FAIL exit 1, the blocked 'no artifact contract' plan state) equals frozen on every oracle case (finding_site artifacts.py:121/142 complete). Legacy path: cpp.artifact is the frozen deep BuildEngine; its targets and summaries for CMake/qmake/Make/direct g++ releases, failures and versioned trees equal frozen (command:ici build), its release session manifest equals frozen (verify-deep-build), and a failing CMake release build is the frozen BuildAdapter FAIL while the source checks keep the configured database (verify-deep-build-broken; Rust defect fixed in this change).",
+      "difference_reason": "Open (held on command:ici build and finding_site build.py:92:16): frozen `ici build` prints only the engine line where native prints the analysis envelope, Python packaging/[build.artifacts] under `ici build` is not compared here, and a Make build that links no output stops at artifact preparation (build SKIP) where frozen reports BuildAdapter PASS + BuildArtifacts FAIL. Recorded: native shadow paths/digests (capability:build-artifact-abi)."
     },
     "check:cpp.binary-compat": {
       "status": "verified",
@@ -6614,28 +6636,56 @@
       "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "descriptor:binary_compat": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/legacy_execute.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_binary_compat.rs::legacy_binary_compat_targets_and_summaries_match_the_frozen_deep_pipeline"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/core/pipeline.py:159) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: descriptor-level parity needs every check, command and finding-site row of this descriptor closed first; see those rows."
+      "evidence": [
+        "tests/rust-parity/cpp/binary-compat-oracle.json (capture_binary_compat.py, frozen deep pipeline)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_binary_compat --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+      ],
+      "comparison": "C++ facet of the frozen `binary_compat` descriptor (core/pipeline.py:159, depends on build, deep profile): its legacy targets and summaries on the deep pipeline (published and unpublished identities, missing readelf header, no artifacts) equal frozen (finding_site binary_compat.py 106/140/158/209/247 verified, binary_abi.py:33 complete). Descriptor metadata/profile selection is the runtime facet.",
+      "difference_reason": "Open: finding_site binarycompat.py:137:11 (provider findings not compared field by field; frozen locates them at the shadow-relative artifact path), binary_compat.py:247 invalid ABI version/header-conflict summaries, config_key engines.binary_compat.artifacts (one unpublished and one published shape only)."
     },
     "descriptor:build": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/artifact_build.rs",
+        "crates/ici-cli/src/preparation.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_make_build.rs::legacy_build_next_to_an_unadapted_makefile_errors_like_frozen_without_compiling",
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_make_build.rs::actual_legacy_make_build_failures_and_unowned_shadow_are_not_reported_as_success",
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/core/pipeline.py:150) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: descriptor-level parity needs every check, command and finding-site row of this descriptor closed first; see those rows."
+      "evidence": [
+        "flock heavy.lock cargo test -p ici-cli --test legacy_build_targets --test legacy_make_build --test legacy_cmake_manifests --locked -j2 -- --include-ignored: pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
+      ],
+      "comparison": "C++ facet of the frozen `build` descriptor (core/pipeline.py:150, BuildEngine, deep profile, release variant): on a C++ verify it joins the suite only in the deep profile with [engines.build] enabled=true, its result keeps frozen's required flag, status, summary, targets and release artifact manifest (verify-deep-build), a failed CMake build is its own BuildAdapter FAIL without stopping the source engines (verify-deep-build-broken, frozen exit 1), and `ici build` replays the frozen BuildEngine targets for every adapter backend (command:ici build). Descriptor metadata/profile selection is the runtime facet (complete there).",
+      "difference_reason": "Open: the descriptor's remaining C++ rows: finding_site build.py:92:16 (Make build linking no output), command:ici build differences (engine-line stdout, Python packaging not compared here), capability:build-artifact-abi Make/qmake engine-level manifests. Recorded: native shadow paths/digests."
     },
     "descriptor:cognitive": {
       "status": "verified",
@@ -9870,7 +9920,7 @@
       "difference_reason": "Open: C++ not-applicable site of the type engine not compared with frozen."
     },
     "finding_site:src/ici/languages/artifacts.py:121:11": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs"
       ],
@@ -9879,7 +9929,8 @@
           "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
         ],
         "negative": [
-          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
+          "crates/ici-cli/tests/artifact_contract.rs::internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint"
         ],
         "failure": [
           "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
@@ -9887,13 +9938,14 @@
       },
       "evidence": [
         "Frozen `ici next verify` oracle tests/rust-parity/cpp/artifact-contract-oracle.json captured by development-only tests/rust-parity/cpp/capture_artifact_contract.py (oracle 6fe3e40; fixture parity-fixtures/cpp/artifact-contract plus a scripted build tree): 5 cases (mixed regular/dangling-link/outside-link/directory-only/satisfied globs, absent build directory, all satisfied, required broken contract, directory='.'); exit code, gate, artifact findings (rule, message, location, severity, confidence, evidence, provider, component, task), the frozen raw `artifact-<sha1[:16]>` id recovered from each envelope fingerprint, and artifacts.* metrics.",
-        "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log"
+        "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log",
+        "cargo test -p ici-cli --test artifact_contract --locked -j2 -- --include-ignored: 2 passed (5 contract cases + the frozen envelope identity of tests/rust-parity/reporting/artifact-identity.json); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen languages/artifacts.py verify_artifacts: per declared glob under the build directory, strict resolve (dangling link = no match), outside-workspace match = artifact.invalid, directory-only match counted, no regular file = artifact.missing with detail 'the build directory is absent' / 'only N non-file match(es)' / 'no match under the build directory'; findings MEASURED, high/high, at build.directory, raw fingerprint 'artifact-'+sha1('<kind>:<build>:<pattern|path>')[:16]. Rust crates/ici-cli/src/cpp.rs::analyze_contract now matches every message (Python repr of the pattern, detail texts, the invalid tail), the location, evidence, raw fingerprint, the dangling-link skip and artifacts.satisfied/produced metrics on all oracle cases; the gate (advisory PASS exit 0, required FAIL exit 1) matches. This site: _missing.",
-      "difference_reason": "Open (cross-area): (1) the envelope fingerprint still differs because Rust attribution (crates/ici-application/src/verification.rs via PlannedCheck::analysis_units default '<component>.<language>') sets analysis_unit_id 'app.cpp' on internal-check findings while frozen finding_identity.attribute leaves internal checks (planned.task None) unattributed; with that single input the frozen raw id yields the Rust id exactly (asserted). Also the Rust check record has variant null where frozen records 'release'. (2) frozen rejects `[builds.<id>] directory = \".\"` ('config: build directory must name a path below the root', exit 2) while Rust accepts it (ici-config) and locates findings at the declaration file."
+      "difference_reason": "Closed: the two earlier cross-area items are fixed on this branch: internal-check findings now keep frozen's unattributed envelope fingerprint and the check record names the unit and its 'release' variant (artifact_contract.rs internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint, reporting artifact-identity.json), and `[builds.<id>] directory = \".\"` is refused before any run (exit 2, nothing written) like frozen's 'config: build directory must name a path below the root' (native wording 'below the workspace root'; the message text is the config area's)."
     },
     "finding_site:src/ici/languages/artifacts.py:142:11": {
-      "status": "difference_review",
+      "status": "complete",
       "rust_paths": [
         "crates/ici-cli/src/cpp.rs"
       ],
@@ -9902,7 +9954,8 @@
           "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
         ],
         "negative": [
-          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
+          "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints",
+          "crates/ici-cli/tests/artifact_contract.rs::internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint"
         ],
         "failure": [
           "crates/ici-cli/tests/artifact_contract.rs::declared_artifact_contract_findings_match_frozen_messages_locations_and_raw_fingerprints"
@@ -9910,10 +9963,11 @@
       },
       "evidence": [
         "Frozen `ici next verify` oracle tests/rust-parity/cpp/artifact-contract-oracle.json captured by development-only tests/rust-parity/cpp/capture_artifact_contract.py (oracle 6fe3e40; fixture parity-fixtures/cpp/artifact-contract plus a scripted build tree): 5 cases (mixed regular/dangling-link/outside-link/directory-only/satisfied globs, absent build directory, all satisfied, required broken contract, directory='.'); exit code, gate, artifact findings (rule, message, location, severity, confidence, evidence, provider, component, task), the frozen raw `artifact-<sha1[:16]>` id recovered from each envelope fingerprint, and artifacts.* metrics.",
-        "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log"
+        "cargo test -p ici-cli --test artifact_contract --test native_cpp_direct --test native_preparation --test native_cpp --test native_validation_extra --test legacy_make_build --test legacy_direct_build --test legacy_sanitize --locked -j2 -- --include-ignored (ICI_REQUIRE_BUILD_ADAPTERS=1): all passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp-artifact.log",
+        "cargo test -p ici-cli --test artifact_contract --locked -j2 -- --include-ignored: 2 passed (5 contract cases + the frozen envelope identity of tests/rust-parity/reporting/artifact-identity.json); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log"
       ],
       "comparison": "C++ facet of the shared validation row (closure/validation.json keeps the row). Frozen languages/artifacts.py verify_artifacts: per declared glob under the build directory, strict resolve (dangling link = no match), outside-workspace match = artifact.invalid, directory-only match counted, no regular file = artifact.missing with detail 'the build directory is absent' / 'only N non-file match(es)' / 'no match under the build directory'; findings MEASURED, high/high, at build.directory, raw fingerprint 'artifact-'+sha1('<kind>:<build>:<pattern|path>')[:16]. Rust crates/ici-cli/src/cpp.rs::analyze_contract now matches every message (Python repr of the pattern, detail texts, the invalid tail), the location, evidence, raw fingerprint, the dangling-link skip and artifacts.satisfied/produced metrics on all oracle cases; the gate (advisory PASS exit 0, required FAIL exit 1) matches. This site: _invalid.",
-      "difference_reason": "Open (cross-area): (1) the envelope fingerprint still differs because Rust attribution (crates/ici-application/src/verification.rs via PlannedCheck::analysis_units default '<component>.<language>') sets analysis_unit_id 'app.cpp' on internal-check findings while frozen finding_identity.attribute leaves internal checks (planned.task None) unattributed; with that single input the frozen raw id yields the Rust id exactly (asserted). Also the Rust check record has variant null where frozen records 'release'. (2) frozen rejects `[builds.<id>] directory = \".\"` ('config: build directory must name a path below the root', exit 2) while Rust accepts it (ici-config) and locates findings at the declaration file."
+      "difference_reason": "Closed: the two earlier cross-area items are fixed on this branch: internal-check findings now keep frozen's unattributed envelope fingerprint and the check record names the unit and its 'release' variant (artifact_contract.rs internal_check_findings_and_records_carry_the_frozen_unit_variant_and_envelope_fingerprint, reporting artifact-identity.json), and `[builds.<id>] directory = \".\"` is refused before any run (exit 2, nothing written) like frozen's 'config: build directory must name a path below the root' (native wording 'below the workspace root'; the message text is the config area's)."
     },
     "finding_site:src/ici/adapters/providers/tidy.py:95:16": {
       "status": "complete",
@@ -10337,6 +10391,33 @@
       ],
       "comparison": "C++ facet (the claim is C++ only; python.json holds the same row): frozen `ici next`/`ici analyze` languages/cycles._measure_cpp include-cycle finding (rule cycle.include, severity medium, confidence low, evidence ESTIMATED, task <component>.cpp.cycle, related locations for the other members) equals native on the legacy-scope fixture for analyze and next verify except the recorded identity difference. Negative: an acyclic resolved include chain gives cpp.cycle SUCCEEDED, evidence_complete true, no cycle.* finding, cycles_found 0 ESTIMATED and exit 3, equal to frozen. Failure: quoted includes with no project-file match (beside an ignored system include) are not resolved, add no edge and are listed as run limitations naming the include and its path:line, with the same check state, metric and exit as frozen.",
       "difference_reason": "Intended (recorded on command:ici analyze / command:ici next verify): frozen hashes absolute checkout paths in Python set order (_fingerprint(str(path))) and starts the chain at an arbitrary member at line 1; native uses workspace-relative sorted members and the include line, so fingerprint, message start and primary location differ. Wording only: the include-resolution limitation reads \"Include resolution is a path-suffix heuristic; compiler search order, conditional preprocessing and generated headers are not established\" (frozen \"include resolution is a path-suffix heuristic — compiler search order and generated headers are not modelled\") and each unresolved include reads \"<path>:<line>: unresolved local include <name>\" (frozen \"unresolved include '<name>' at <path>:<line>\"); the test maps native wording to frozen and requires the same set."
+    },
+    "capability:legacy-command-config-result-projection": {
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/execute.rs",
+        "crates/ici-cli/src/export_context.rs",
+        "crates/ici-reporting/src/projection.rs"
+      ],
+      "fixtures": {
+        "positive": [
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cmake_manifests.rs::legacy_cmake_build_sessions_publish_the_frozen_artifact_manifests"
+        ]
+      },
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/cmake-manifests-oracle.json recaptured by development-only tests/rust-parity/cpp/capture_cmake_manifests.py (oracle 6fe3e40, cmake 4.2.3, g++ 15.2.0): 6 cases, adds verify-deep-build (deep profile with [engines.build] enabled=true on test-cmake/plain: build release manifest beside coverage/sanitize/thread-sanitize) and verify-deep-build-broken (failing CMake build: no manifest, frozen exit 1); the 4 earlier cases are unchanged except their git commit ids; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-capture.log",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cmake_manifests --locked -j2 -- --include-ignored: 1 passed (6 cases); /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log (first test of the regression list)",
+        "Regression replays (legacy_cmake_verify, legacy_analysis_context, legacy_binary_compat, legacy_build_targets, legacy_make_build, integration_legacy, native_preparation, artifact_contract, legacy_cpp_test, legacy_sanitize, legacy_no_tests, published_abi, compilation_commands, all --include-ignored): pass; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress.log; /tmp/ici-rust-replacement-20261028/w-cpp-build-manifests-regress2.log"
+      ],
+      "comparison": "C++ facet (artifact_manifests only; the config/runtime/reporting/python facets are their fragments'): frozen engines/build.py, engines/test.py and engines/sanitize.py append the ici.artifacts/v2 manifest of every successful compiled build session with an analysis context to their engine result (reporters/json_rep._serialize_artifact_manifest). Native legacy `ici verify` now publishes them on results[build] (variant release, shadow build/ici-cmake-build in frozen), results[test] (coverage), results[sanitize] (sanitize) and results[thread_sanitize] (thread-sanitize) with frozen schema_version, project_root, variant and every artifact's path, scope, kind, mode, producer cmake.build, id <variant>:shadow:<path>, target and command head; a failing build publishes [] on every engine and standalone `ici test` publishes none (no analysis context), as frozen. Rust defect fixed: with the deep build engine enabled ([engines.build] enabled=true), a failing CMake release build blocked cpp.compile/cpp.diagnostics ('explicit release preparation failed', compile_db and lint SKIP NOT_RUN, dead SKIP) and the run exited 3, where frozen keeps the configured compilation database for the source checks (compile_db PASS, lint WARN, dead PASS) and only the BuildEngine reports `BuildAdapter` FAIL 'cmake build failed: …' (exit 1). The configured context now survives the failed release build also when cpp.artifact is selected; cpp.artifact takes the observed adapter failure and runs no artifact preparation, cpp.binary-compat stays blocked, and the final input re-plan no longer counts that check's unused tasks as tool drift.",
+      "difference_reason": "Recorded (shared with capability:build-artifact-abi): native shadow trees are .ici/rust-v1/build/legacy-<digest>/<variant> (frozen build/ici-cmake[-asan|-tsan|-build]), so shadow_root, the build command directory and `--parallel <jobs>` differ; config_digest/toolchain_digest hash the native run identity and artifact sha256/size are the native build's bytes. Open: results[build] manifests of Make and qmake release sessions (producer make.build/qmake.build) are not captured at engine level (their analysis_context manifests are, legacy_analysis_context.rs/legacy_qmake_verify.rs)."
     }
   },
   "source_files": {

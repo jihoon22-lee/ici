@@ -997,6 +997,16 @@ pub fn execute(
         &context_guards,
     )
     .and_then(|mut after| {
+        // A check that preparation already answered with its observed failure (e.g. the
+        // BuildEngine result of a failed legacy release build) runs no task of its own, so the
+        // re-plan's tasks for it are not pins of this run.
+        for check in &mut after.plan.checks {
+            if prepared.plan.checks.iter().any(|before| {
+                before.task_id == check.task_id && matches!(before.work, Work::Internal)
+            }) {
+                check.work = Work::Internal;
+            }
+        }
         for context in context_guards
             .iter()
             .filter(|context| context.plan.direct.is_some())
