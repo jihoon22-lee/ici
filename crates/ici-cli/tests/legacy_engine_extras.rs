@@ -86,8 +86,12 @@ thread_local! {
     static HITS: RefCell<BTreeSet<usize>> = const { RefCell::new(BTreeSet::new()) };
 }
 
+/// Where the Python captures' project interpreter lived on the capture host.
+const CAPTURE_PYTHON: &str = "/home/jihoon/projects/ici/.venv/bin/python";
+
 /// The project interpreter the Python captures ran under (Python 3.10.21 with pytest, coverage
 /// and mypy): `ICI_TEST_PYTHON`, else the workspace `.venv` CI creates, without `..` segments.
+/// Its location is host data: `replay_with` writes it as `CAPTURE_PYTHON`.
 fn project_python() -> String {
     std::env::var("ICI_TEST_PYTHON").unwrap_or_else(|_| {
         Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -126,7 +130,8 @@ fn environment(home: &Path, actions: bool) -> BTreeMap<String, String> {
 }
 
 /// What one replay saved and printed: the exit codes, the report of the last step (project
-/// root as `<root>`), the last step's stdout and the `GITHUB_STEP_SUMMARY` file afterwards.
+/// root as `<root>`, project interpreter as `CAPTURE_PYTHON`), the last step's stdout and the
+/// `GITHUB_STEP_SUMMARY` file afterwards.
 struct Saved {
     codes: Vec<i32>,
     report: Value,
@@ -195,14 +200,17 @@ fn replay_with(
         stdout = output.stdout;
     }
     let root = base.display().to_string();
+    let python = project_python();
+    let host = |text: &str| {
+        text.replace(&root, "<root>")
+            .replace(&python, CAPTURE_PYTHON)
+    };
     let text = fs::read_to_string(base.join(report)).unwrap();
     Saved {
         codes,
-        report: serde_json::from_str(&text.replace(&root, "<root>")).unwrap(),
-        stdout: stdout.replace(&root, "<root>"),
-        summary: fs::read_to_string(&summary)
-            .ok()
-            .map(|text| text.replace(&root, "<root>")),
+        report: serde_json::from_str(&host(&text)).unwrap(),
+        stdout: host(&stdout),
+        summary: fs::read_to_string(&summary).ok().map(|text| host(&text)),
     }
 }
 
