@@ -658,12 +658,13 @@
   },
   "descriptor:integration": {
    "comparison": "Runtime facet only: frozen core/pipeline.py:167 descriptor `integration` (factory IntegrationEngine): name, factory name, dependencies, produces, consumes, profiles, execution class and build variant equal the native registry metadata field-for-field, the per-profile selection and order match, and malformed descriptor graphs are refused with the frozen messages. Defect fixed: historical commands ignored descriptor profiles, so `verify --profile fast` ran test/cognitive; frozen apply_analysis_profile now disables profile-excluded engines. The engine's own analysis behaviour (rules, findings, thresholds, tool execution) is the python/cpp/validation areas' facet and is not claimed here.",
-   "difference_reason": "Verified, not complete: the runtime facet (descriptor metadata, per-profile selection/order, malformed-graph refusals) equals frozen, but no other fragment holds this descriptor and capability:runtime-integration (validation.json) is still verified, so this row is not closed on metadata evidence alone. Native runs no in-process PipelineExecutor; checks map onto descriptors via ici-application plan::engine_name and the shared scheduler orders their tasks (read-only/build serialization is expressed by resource keys and mutating tasks).",
+   "difference_reason": "Native runs no in-process PipelineExecutor; checks map onto descriptors via ici-application plan::engine_name and the shared scheduler orders their tasks (read-only/build serialization is expressed by resource keys and mutating tasks) — the accepted native execution model (root decision D5). The engine's own analysis behaviour is capability:runtime-integration (validation.json), now complete, so this row no longer waits on it.",
    "evidence": [
     "PYTHONPATH=<oracle>/src .venv/bin/python tests/rust-parity/oracle/capture_descriptors.py tests/rust-parity/oracle/descriptors-oracle.json (frozen ENGINE_DESCRIPTORS, descriptors_for_profile, apply_analysis_profile, validate_engine_descriptors refusals)",
     "cargo test -p ici-domain --test descriptors; cargo test -p ici-cli --test legacy_commands; strict Clippy ici-domain/ici-reporting/ici-cli: passed; /tmp/ici-rust-replacement-20261028/w-runtime-descriptors.log and w-runtime-verify-final.log",
     "Frozen vs native `ici verify -r --profile fast|standard` on a legacy [project] Python project without Ruff/mypy: same descriptor selection per profile (fast excludes test/cognitive/sanitize/build); /tmp/ici-rust-replacement-20261028/w-runtime-verify.log",
-    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log"
+    "source opus-env.sh; cargo test -p ici-domain -p ici-execution -p ici-application --locked -j2 --no-fail-fast -- --include-ignored (23 test binaries, 93 passed, 0 failed); /tmp/ici-rust-replacement-20261028/w-sweep-runtime.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log"
    ],
    "fixtures": {
     "failure": [
@@ -683,7 +684,7 @@
     "crates/ici-application/src/plan.rs",
     "crates/ici-cli/src/legacy.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "descriptor:line": {
    "comparison": "Runtime facet only: frozen core/pipeline.py:93 descriptor `line` (factory LineCountEngine): name, factory name, dependencies, produces, consumes, profiles, execution class and build variant equal the native registry metadata field-for-field, the per-profile selection and order match, and malformed descriptor graphs are refused with the frozen messages. Defect fixed: historical commands ignored descriptor profiles, so `verify --profile fast` ran test/cognitive; frozen apply_analysis_profile now disables profile-excluded engines. The engine's own analysis behaviour (rules, findings, thresholds, tool execution) is the python/cpp/validation areas' facet and is not claimed here.",

@@ -128,10 +128,11 @@
   },
   "capability:wire-result-events": {
    "comparison": "Config-area facet only: event task/component ids. Frozen RunEvent required an identifier whenever an id was present; native now refuses empty, padded, control-bearing or >256-character ids and emits workspace-level events without a component instead of an empty one. Run v2/event order/run_id/stdout-stderr split remain the runtime facet.",
-   "difference_reason": "Native ids may name monorepo paths (svc/api) and keep case, so the frozen lowercase [a-z0-9._-] identifier rule is not applied (same decision as the component id difference in next-schema-differences.json).",
+   "difference_reason": "Native ids may name monorepo paths (svc/api) and keep case, so the frozen lowercase [a-z0-9._-] identifier rule is not applied (same decision as the component id difference in next-schema-differences.json). Accepted with the component-id decision (next-schema-differences.json); the run v2/event order/run_id/stdout-stderr split facets are complete in runtime.json and reporting.json.",
    "evidence": [
     "/home/jihoon/projects/ici/.venv/bin/python -I tests/rust-parity/config/capture_legacy_layers.py <oracle> tests/rust-parity/config/legacy-layers-oracle.json (frozen load_config layering, first-run global default write, missing ICI_CONFIG, get_engine_config, automatic())",
-    "cargo test -p ici-domain/-p ici-config --locked, cargo test -p ici-cli --test config_oracle/wire_schemas/execution --locked and native_validation/native_cpp --include-ignored; all passed; cargo clippy -p ici-domain -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-layers-events.log"
+    "cargo test -p ici-domain/-p ici-config --locked, cargo test -p ici-cli --test config_oracle/wire_schemas/execution --locked and native_validation/native_cpp --include-ignored; all passed; cargo clippy -p ici-domain -p ici-config -p ici-cli --all-targets --locked -- -D warnings passed; /tmp/ici-rust-replacement-20261028/w-config-layers-events.log",
+    "after `. /tmp/ici-rust-replacement-20261028/opus-env.sh` with CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0, under the heavy lock with -j2 (runtime closure worker, 2026-11-02, after merging fffa9e9e): `cargo test -p ici-domain --test descriptors --test event_identity`, `cargo test -p ici-reporting --lib test_aggregation_tests`, `cargo test -p ici-cli --test legacy_test_metrics --test legacy_mode_scope --test legacy_commands -- --include-ignored`: all passed; /tmp/ici-rust-replacement-20261028/w-runtime-rows-rerun.log"
    ],
    "fixtures": {
     "failure": [
@@ -148,7 +149,7 @@
     "crates/ici-domain/src/event.rs",
     "crates/ici-cli/src/events.rs"
    ],
-   "status": "verified"
+   "status": "complete"
   },
   "command:ici <global>": {
    "comparison": "Config-area facet: the command is registered with the frozen option names/aliases and its behaviour is exercised by the named native binary tests. Every option is exercised by a named test. --version, an unknown command, an unknown global option and a bare `ici` without a command are replayed against frozen v0.13.0 captures (tests/rust-parity/config/capture_cli_options.py -> cli-options-oracle.json) replayed through the built binary by cli_options.rs: exit code, refusal class and line, files written outside .ici/, publish/diff outcome line and the selected scope of the JSON document (doctor profile and per-component checks; a result's check ids and gate) are equal, except the reviewed per-fact CORRECTIONS (each with its reason) (exit 0 / 2 / 2 / 2; native usage wording, reviewed).",
