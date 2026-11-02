@@ -3209,6 +3209,37 @@ pub fn legacy_sanitizer_configuration_error(
     output
 }
 
+/// Frozen SanitizeEngine/ThreadSanitizeEngine direct g++ run: each C++ test is compiled with
+/// every production source, so a production source that does not compile is one
+/// `SanitizerCompile` ERROR per test with `_tool_failure_message` (the whitespace-collapsed
+/// compiler stderr, first 300 characters); the summary joins the first three tool errors.
+pub fn legacy_sanitizer_compile_failures(
+    id: &str,
+    tests: &[String],
+    stderr: &str,
+) -> AnalysisOutput {
+    let snippet: String = stderr
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(300)
+        .collect();
+    let message = format!("Sanitizer compilation failed with exit code 1: {snippet}");
+    let mut output = AnalysisOutput::new(id, "ici.cpp");
+    output.status = "ERROR".into();
+    output.summary = vec![message.as_str(); tests.len().min(3)].join("; ");
+    output.observation.limitations.push(message.clone());
+    for test in tests {
+        let mut target = InspectionTarget::at(test, 1);
+        target.target_name = "SanitizerCompile".into();
+        target.status = "ERROR".into();
+        target.message = message.clone();
+        output.targets.push(target);
+    }
+    output
+}
+
 /// Frozen `run_cpp_linker_dead_symbols` needs the root CMake backend (`select_backend` picks
 /// CMake for a root CMakeLists.txt); any other legacy project reports the linker scope as
 /// unavailable instead of preparing a link-reachability build.

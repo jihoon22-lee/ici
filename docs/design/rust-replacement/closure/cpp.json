@@ -6050,49 +6050,69 @@
       "difference_reason": "Public v1 compilation export still has its separately frozen full-payload corpus. This selector row does not close the whole compile-context capability."
     },
     "config_key:legacy:project.cpp_external_build_dirs": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
         "crates/ici-cli/src/cpp/config_scope.rs",
-        "crates/ici-cpp/src/compiler.rs"
+        "crates/ici-cpp/src/compiler.rs",
+        "crates/ici-cli/src/export_context/direct.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/cpp.rs"
       ],
       "fixtures": {
         "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
           "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy"
         ],
         "negative": [
           "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy"
         ],
         "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
           "crates/ici-cli/tests/native_cpp.rs::legacy_external_binary_scope_does_not_hide_source_or_recorded_flag_policy"
         ]
       },
       "evidence": [
-        "a474bb0: cpp-external-scope-final.log actual common CLI legacy/modern scope and recorded external flag-policy cases passed in 28.79 s; strict C++/CLI Clippy passed."
+        "a474bb0: cpp-external-scope-final.log actual common CLI legacy/modern scope and recorded external flag-policy cases passed in 28.79 s; strict C++/CLI Clippy passed.",
+        "Frozen oracles tests/rust-parity/cpp/build-targets-oracle.json (capture_build_targets.py, now 23 cases: direct-external, direct-pkg-config, direct-pkg-config-missing added; the 20 earlier cases unchanged) and tests/rust-parity/cpp/sanitize-oracle.json (capture_sanitize_cli.py, now 24 cases: sanitize/thread-sanitize direct-external, direct-pkg-config, direct-pkg-config-missing over parity-fixtures/cpp/sanitize-direct-external and sanitize-direct-pkg with PKG_CONFIG_PATH=<project>/pc; earlier cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp11-build-targets-capture.log, /tmp/ici-rust-replacement-20261028/w-cpp11-sanitize-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_build_targets --test legacy_sanitize --locked -j2 -- --include-ignored: passed (new build cases equal frozen; direct-pkg-config-missing keeps exit/status/summary/console with the located compiler diagnostic like the recorded direct-compile-failure difference; new sanitizer cases equal frozen incl. the SanitizerCompile message); /tmp/ici-rust-replacement-20261028/w-cpp11-build-targets-rust.log, /tmp/ici-rust-replacement-20261028/w-cpp11-sanitize-rust.log",
+        "Regression: ici-cli legacy_direct_build, native_cpp_direct, legacy_cpp_test, legacy_python_sanitize, legacy_python_sanitize_scopes, native_cpp, legacy_verify_matrix, legacy_make_build --include-ignored passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-ext-pkg-regress.log"
       ],
-      "comparison": "Frozen get_cpp_external_build_dirs/get_compilable_cpp_sources and CompileDatabaseEngine were read: existing configured directories exclude legacy production coverage only while recorded unit flag policies and source-reading inventories retain them. Legacy direct binary build/sanitizer scope consumers remain open.",
-      "difference_reason": "The implemented source/metadata path is explicit; no standalone binary producer or sanitizer parity is claimed from CMake/qmake support or accepted configuration."
+      "comparison": "Frozen get_cpp_external_build_dirs/get_compilable_cpp_sources and CompileDatabaseEngine were read: existing configured directories exclude legacy production coverage only while recorded unit flag policies and source-reading inventories retain them. Legacy direct consumers now compared with frozen: `ici build` (direct g++) never compiles or links a broken source under the configured directory (direct-external: PASS, exit 0, same targets), and the sanitize/thread-sanitize instrumented direct link leaves it out (direct-external: ASan/UBSan and TSan PASS).",
+      "difference_reason": "Verified, not complete: the frozen TestEngine direct test compile (`engines/test.py` compilable sources + include flags) and the complexity/cognitive/dead compilable-source lists are not frozen-compared for this key; the direct build's compile failure keeps the located per-source diagnostic (recorded build.py:590 difference)."
     },
     "config_key:legacy:project.cpp_pkg_config": {
-      "status": "difference_review",
+      "status": "verified",
       "rust_paths": [
-        "crates/ici-cli/src/cpp/fallback.rs"
+        "crates/ici-cli/src/cpp/fallback.rs",
+        "crates/ici-cli/src/export_context/direct.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cli/src/cpp.rs"
       ],
       "fixtures": {
         "positive": [
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
           "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
         ],
         "negative": [
           "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
         ],
         "failure": [
+          "crates/ici-cli/tests/legacy_sanitize.rs::legacy_direct_sanitizer_runs_report_frozen_targets_and_summaries",
+          "crates/ici-cli/tests/legacy_build_targets.rs::legacy_build_engine_targets_match_the_frozen_rendered_engine_result",
           "crates/ici-cli/tests/native_cpp.rs::actual_legacy_cpp_fallback_observes_ordered_package_flags_without_faking_recorded_context"
         ]
       },
       "evidence": [
-        "8db1f48: actual GCC/pkg-config ordered two-package CLI acceptance, changed .pc -> changed configuration scope/estimated compiler diagnostic, unsafe plugin flags refused, modern and explicit missing DB not downgraded; 29.29 s and strict Clippy passed."
+        "8db1f48: actual GCC/pkg-config ordered two-package CLI acceptance, changed .pc -> changed configuration scope/estimated compiler diagnostic, unsafe plugin flags refused, modern and explicit missing DB not downgraded; 29.29 s and strict Clippy passed.",
+        "Frozen oracles tests/rust-parity/cpp/build-targets-oracle.json (capture_build_targets.py, now 23 cases: direct-external, direct-pkg-config, direct-pkg-config-missing added; the 20 earlier cases unchanged) and tests/rust-parity/cpp/sanitize-oracle.json (capture_sanitize_cli.py, now 24 cases: sanitize/thread-sanitize direct-external, direct-pkg-config, direct-pkg-config-missing over parity-fixtures/cpp/sanitize-direct-external and sanitize-direct-pkg with PKG_CONFIG_PATH=<project>/pc; earlier cases unchanged); oracle 6fe3e40; /tmp/ici-rust-replacement-20261028/w-cpp11-build-targets-capture.log, /tmp/ici-rust-replacement-20261028/w-cpp11-sanitize-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_build_targets --test legacy_sanitize --locked -j2 -- --include-ignored: passed (new build cases equal frozen; direct-pkg-config-missing keeps exit/status/summary/console with the located compiler diagnostic like the recorded direct-compile-failure difference; new sanitizer cases equal frozen incl. the SanitizerCompile message); /tmp/ici-rust-replacement-20261028/w-cpp11-build-targets-rust.log, /tmp/ici-rust-replacement-20261028/w-cpp11-sanitize-rust.log",
+        "Regression: ici-cli legacy_direct_build, native_cpp_direct, legacy_cpp_test, legacy_python_sanitize, legacy_python_sanitize_scopes, native_cpp, legacy_verify_matrix, legacy_make_build --include-ignored passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-ext-pkg-regress.log"
       ],
-      "comparison": "Legacy lint syntax fallback now observes ordered visible pkg-config --cflags probes and positive-policy sanitized actual compiler argv. No package flags are injected into recorded DB invocations. Legacy standalone binary build and sanitizer compilation consumers remain absent and must be implemented before this key is closed.",
-      "difference_reason": "The implemented source/metadata path is explicit; no standalone binary producer or sanitizer parity is claimed from CMake/qmake support or accepted configuration."
+      "comparison": "Legacy lint syntax fallback now observes ordered visible pkg-config --cflags probes and positive-policy sanitized actual compiler argv. No package flags are injected into recorded DB invocations. Legacy direct consumers now compared with frozen: `pkg-config --cflags` flags reach the direct `ici build` compile (direct-pkg-config PASS) and the sanitize/thread-sanitize instrumented compile (PASS); an unknown package contributes nothing so the compile fails on the real diagnostic: build exit 1 'Build did not produce a complete artifact set', sanitizers one `SanitizerCompile` ERROR per test with frozen's 'Sanitizer compilation failed with exit code 1: <collapsed stderr>' (Rust defect fixed: the instrumented direct compile failure was a blocked SKIP exit 3 'explicit sanitize preparation failed').",
+      "difference_reason": "Verified, not complete: the frozen TestEngine direct test compile (`engines/test.py` compilable sources + include flags) and the complexity/cognitive/dead compilable-source lists are not frozen-compared for this key; the direct build's compile failure keeps the located per-source diagnostic (recorded build.py:590 difference)."
     },
     "config_key:legacy:project.source_dirs": {
       "status": "verified",

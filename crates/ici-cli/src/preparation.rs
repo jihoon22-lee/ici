@@ -350,6 +350,36 @@ pub fn execute(
                             observed_failures.insert(check.task_id.clone());
                         }
                     }
+                    // Frozen SanitizeEngine/ThreadSanitizeEngine direct g++ run: a production
+                    // source that does not compile fails every test's instrumented compile.
+                    if prepared.legacy_projection
+                        && plan.build.system == "direct-gcc"
+                        && let Some(check_id) = match plan.build.variant.as_str() {
+                            "sanitize" => Some("cpp.sanitize"),
+                            "thread-sanitize" => Some("cpp.tsan"),
+                            _ => None,
+                        }
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == check_id
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                        && let Some(stderr) = observed
+                            .extra
+                            .get("compile_failure_stderr")
+                            .and_then(serde_json::Value::as_str)
+                        && let Some(direct) = plan.direct.as_ref()
+                        && !direct.test_sources().is_empty()
+                    {
+                        let mut output = crate::cpp::legacy_sanitizer_compile_failures(
+                            &check.task_id,
+                            &direct.test_sources(),
+                            stderr,
+                        );
+                        if crate::execute::redact(&mut output).is_ok() {
+                            outputs.insert(check.task_id.clone(), output);
+                            observed_failures.insert(check.task_id.clone());
+                        }
+                    }
                     // Frozen SanitizeEngine/ThreadSanitizeEngine `_prepare_sanitizer_adapter`: an
                     // adapter configure or build that fails is one `C++Sanitizer` ERROR scope at
                     // the descriptor with the session error (`_fail_adapter_scope`); nothing runs.
