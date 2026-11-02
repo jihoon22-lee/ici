@@ -107,7 +107,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
 /// a top-level one drops them from both passes, and `required=false` keeps a failing line engine
 /// out of the verify gate (exit 0).
 /// Failure: a required failing line engine fails verify (exit 1); `enabled=false` drops the engine
-/// from verify while `ici line` still runs it.
+/// from verify while `ici line` still runs it; a line path list or `project.cpp_external_build_dirs`
+/// entry outside the project root is refused before any engine runs.
 #[test]
 fn legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy() {
     let oracle: Value = serde_json::from_str(include_str!(
@@ -116,10 +117,25 @@ fn legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_pol
     .unwrap();
     assert_eq!(oracle["oracle"], "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188");
     let cases = oracle["cases"].as_object().unwrap();
-    assert_eq!(cases.len(), 15);
+    assert_eq!(cases.len(), 17);
     let mut mismatches = vec![];
     for (name, case) in cases {
         let actual = run(&oracle, case);
+        if let Some(output) = case["frozen"]["output"].as_str() {
+            // Refused by frozen path validation before any engine ran: exit 2 naming the key;
+            // native refuses the same key as a configuration error (the config row's wording).
+            let key = output
+                .strip_prefix("Configuration error: ")
+                .and_then(|rest| rest.split(['[', ':']).next())
+                .unwrap();
+            assert_eq!(case["frozen"]["exit_code"], 2, "{name}");
+            let error = actual["error"].as_str().unwrap_or_default();
+            if !(error.starts_with("Configuration error: ") && error.contains(key)) {
+                eprintln!("== {name}\nactual: {actual}\nfrozen: {output}");
+                mismatches.push(name.clone());
+            }
+            continue;
+        }
         if actual != case["frozen"] {
             eprintln!(
                 "== {name}\nactual: {}\nfrozen: {}",

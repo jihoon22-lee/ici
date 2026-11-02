@@ -1858,6 +1858,22 @@
     ]
    }
   },
+  "refuse-external-outside": {
+   "command": "line",
+   "config": "cpp_external_build_dirs=['../outside']\n[engines.line]\nwarn_limit=3\nfail_limit=5\n",
+   "frozen": {
+    "exit_code": 2,
+    "output": "Configuration error: project.cpp_external_build_dirs[0]: path is outside project root: ../outside\n"
+   }
+  },
+  "refuse-line-path-outside": {
+   "command": "line",
+   "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\ninclude_dirs=['../outside']\n",
+   "frozen": {
+    "exit_code": 2,
+    "output": "Configuration error: engines.line.include_dirs[0]: path is outside project root: ../outside\n"
+   }
+  },
   "verify-disabled": {
    "command": "verify",
    "config": "[engines.line]\nwarn_limit=3\nfail_limit=5\nenabled=false\n",

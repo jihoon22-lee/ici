@@ -1316,16 +1316,32 @@
       "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_config_paths.py:43:23": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-config/src/paths.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/_config_paths.py:43) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet of frozen _validate_project_paths for project.source_dirs/cpp_external_build_dirs on a type='cpp' project: in-root entries are consumed (source_dirs=['src'] in every case; external dirs in build-targets/sanitize-oracle direct-external), an outside cpp_external_build_dirs entry (refuse-external-outside) is refused before any engine runs with exit 2 naming project.cpp_external_build_dirs.",
+      "difference_reason": "Verified, not complete: an outside project.source_dirs entry and the compile_database branch of this validator are not captured on a C++ project here (compile_database is its own row)."
     },
     "config:src/ici/_config_paths.py:63:8": {
       "status": "verified",
@@ -1400,40 +1416,83 @@
       "difference_reason": "Open: the Make tests assert frozen messages and exit codes but are not a recorded frozen capture of every build.make value (command:ici build stays difference_review)."
     },
     "config:src/ici/_config_paths.py:76:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-config/src/paths.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/_config_paths.py:76) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet of frozen _validate_engine_paths for engines.line gate_dirs/include_dirs/exclude_dirs on a type='cpp' project: in-root entries (incl. nested 'tools/sub', trailing-slash 'tools/') are accepted and consumed with frozen's scope/gate effect (15 report cases equal), an entry outside the project root (include_dirs=['../outside'], refuse-line-path-outside) is refused before any engine runs with exit 2 naming engines.line.include_dirs; the refusal wording is the config row's."
     },
     "config:src/ici/_config_paths.py:81:11": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/cpp/legacy_tooling.rs",
+        "crates/ici-cli/src/cpp/legacy_syntax.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv",
+          "crates/ici-cli/tests/legacy_lint.rs::legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summaries"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_lint_tool_branches.rs::legacy_clang_tool_branches_match_frozen_targets_summaries_findings_and_argv"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/_config_paths.py:81) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/lint-tool-branches-oracle.json captured by development-only tests/rust-parity/cpp/capture_lint_tool_branches.py (oracle 6fe3e40; `ici verify --report` over parity-fixtures/cpp/lint-tidy with an exact build/compile_commands.json; tools first on PATH as wrapper scripts over ICI_TEST_CLANG_TIDY (Ubuntu LLVM 21.1.8), ICI_TEST_CLAZY (clazy 1.17) and its `clazy` compiler-wrapper script, ICI_TEST_CLANG (clang++ 21.1.8), /usr/bin/g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0; argv of every lint invocation logged; frozen `_TIMEOUT_SECONDS`/`_GLOBAL_TIMEOUT_SECONDS` patched through a launcher for the budget cases): 47 cases (42 + tools-unreadable-source, tools-source-count, tidy-config-escaped-key, tidy-config-quote-desync, tidy-discovered-escaped-key recaptured by case name); /tmp/ici-rust-replacement-20261028/w-cpp11-tool-branches-capture.log, /tmp/ici-rust-replacement-20261028/w-cpp11-escaped-capture.log, /tmp/ici-rust-replacement-20261028/w-cpp11-escaped-capture2.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_lint_tool_branches --locked -j2 -- --include-ignored: 1 passed, 42 cases equal frozen (status, summary, evidence, every target, every finding incl. fingerprints, logged lint argv; the 2 configuration-refusal cases exit 2 naming the same key), 4 intended clang-tidy config refusals and the intended unreadable-source block asserted; /tmp/ici-rust-replacement-20261028/w-cpp11-tool-branches-rust.log",
+        "Regression after merging root 23c52b6a/fffa9e9e (shared clang_tidy_config_is_unsafe): ici-cli legacy_lint_budget, legacy_lint_branches, legacy_lint, native_cpp --include-ignored and --lib clang_tidy_config passed; cargo fmt --check and strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-regress3.log"
+      ],
+      "comparison": "C++ facet of frozen _validate_engine_paths for engines.lint.clang_tidy_config: an in-root file (plain or a symlink resolving inside) is used as --config-file=<resolved>; a path outside the root, plain or through a symlink (tidy-config-outside, tidy-config-outside-symlink), is refused before any engine runs with exit 2 naming the key in both (lint-tool-branches-oracle.json).",
+      "difference_reason": "Intended security correction (docs/design/rust-replacement/decisions.md row 'clang-tidy 설정의 escape된 인자 키'): frozen `_UNSAFE_CONFIG_ARGUMENT_RE` matched only raw, ASCII-word-bounded key text, so LLVM YAML double-quoted escapes (`\"\\x45xtraArgs\"`, `\"Extra\\u0041rgsBefore\"`) and quote-desynchronised configs reached clang-tidy as ExtraArgs (frozen ran them: tidy-config-escaped-key, tidy-discovered-escaped-key, tidy-config-quote-desync invocations logged). The legacy path now uses the shared crate::cpp::clang_tidy_config_is_unsafe (NUL; case-insensitive ExtraArgs/ExtraArgsBefore/InheritParentConfig anywhere, so frozen's accepted in-word mention 'notExtraArgs' in tidy-config-word-boundary is refused too; any file holding both '\"' and '\\') and keeps frozen's refusal text and ClangTidyConfigError target ('.' explicit, every governed unit discovered); the test asserts those refusals, no clang-tidy unit run and equal compiler syntax targets."
     },
     "config:src/ici/config/schema.py:330:15": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:330) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: builds.*.system is printed in frozen's `builds:` line.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config:src/ici/config/schema.py:331:16": {
       "status": "not_started",
@@ -1448,28 +1507,54 @@
       "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:332:18": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:332) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: builds.*.directory names frozen's hint '<directory>/compile_commands.json', the `builds:` line target and the .gcno lookup.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config:src/ici/config/schema.py:333:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:333) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: builds.*.variant is printed in frozen's `builds:` line.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config:src/ici/config/schema.py:334:16": {
       "status": "not_started",
@@ -1484,16 +1569,29 @@
       "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:335:18": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:335) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: builds.*.artifacts: an empty contract prints frozen's 'no artifact contract' reasons for cpp.artifact and cpp.binary-compat.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config:src/ici/config/schema.py:424:17": {
       "status": "not_started",
@@ -1508,16 +1606,29 @@
       "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config/schema.py:71:46": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/schema.py:71) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: the builds tables are read into the plan's `builds:` section like frozen.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config:src/ici/config/schema.py:735:30": {
       "status": "not_started",
@@ -1532,28 +1643,58 @@
       "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
     },
     "config:src/ici/config_schema.py:220:17": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-config/src/paths.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:220) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet of frozen _validate_line include_dirs string-list acceptance: string lists (nested and trailing-slash entries) are consumed with frozen's scope effect on a type='cpp' project (include-dirs, line-keys-oracle.json); non-list/non-string rejection wording is the config row's."
     },
     "config:src/ici/config_schema.py:221:17": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/legacy_lines.rs",
+        "crates/ici-cli/src/inputs.rs",
+        "crates/ici-cpp/src/source_rules.rs",
+        "crates/ici-reporting/src/projection.rs",
+        "crates/ici-config/src/paths.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_line_keys.rs::legacy_line_keys_on_a_cpp_project_match_frozen_scope_gates_modes_and_gate_policy"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:221) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
+      ],
+      "comparison": "C++ facet of frozen _validate_line exclude_dirs string-list acceptance: entries are consumed with frozen's effect (top-level drop from both passes, nested entry kept in the source pass, trailing slash stripped) on a type='cpp' project (exclude-dirs, gate-dirs-excluded, mode-pass-fail); rejection wording is the config row's."
     },
     "config:src/ici/config_schema.py:416:14": {
       "status": "complete",
@@ -1604,28 +1745,52 @@
       "difference_reason": null
     },
     "config:src/ici/config_schema.py:440:15": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/duplicates.rs",
+        "crates/ici-analysis/src/details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:440) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet of frozen _validate_dup warn_pct default 5.0: the reference run of the dup cases (config-keys-oracle.json) uses the defaults and equals frozen (CloneGroup targets, rate summary and verdict); warn_pct=fail_pct=60 changes the verdict like frozen."
     },
     "config:src/ici/config_schema.py:441:15": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cpp/src/analysis.rs",
+        "crates/ici-analysis/src/duplicates.rs",
+        "crates/ici-analysis/src/details.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_config_keys.rs::legacy_cpp_config_keys_change_native_engines_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config_schema.py:441) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ consumer effect of this key is not varied in any frozen C++ capture (verify matrix, metric, lint, binary-compat or Make oracles); schema acceptance is the config facet."
+      "evidence": [
+        "Frozen legacy C++ config-key pairs captured by development-only tests/rust-parity/cpp/capture_config_keys.py (oracle 6fe3e40, frozen Python 3.10 .venv, -I, g++ 15.2) into tests/rust-parity/cpp/config-keys-oracle.json: 19 (reference, variant) cases over parity-fixtures/cpp/legacy-scope-fixture, 28 distinct frozen runs, each case's frozen effect asserted at capture time; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys-capture.log",
+        "cargo test -p ici-cli --test legacy_cpp_config_keys --locked -j2 -- --include-ignored --test-threads=2: all 28 runs byte-equal per engine (status, required, evidence, summary, score, targets, findings, exit) and every case's native effect equals frozen's; /tmp/ici-rust-replacement-20261028/w-cpp10-config-keys.log"
+      ],
+      "comparison": "C++ facet of frozen _validate_dup fail_pct default 15.0: the reference run of the dup cases (config-keys-oracle.json) uses the defaults and equals frozen; an explicit fail_pct changes the verdict like frozen."
     },
     "config:src/ici/config_schema.py:530:8": {
       "status": "complete",
@@ -4254,8 +4419,8 @@
         ]
       },
       "evidence": [
-        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
         "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
       ],
       "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: `enabled=false` drops the line engine from `ici verify` (engines: dup only, exit 0) while the explicit `ici line` command still runs it with frozen's FAIL and exit 1 (line-disabled, verify-disabled). Captured cases named: positive verify-disabled, negative line-disabled, failure line-disabled."
@@ -4280,8 +4445,8 @@
         ]
       },
       "evidence": [
-        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
         "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
       ],
       "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: frozen strips '/' and removes exact names from the source scope and gate set and prunes the extras walk: a top-level entry (lib, 'tools/') drops its files from both passes, a nested one (src/gen) keeps its files in the source pass and gated (exclude-dirs, gate-dirs-excluded). Rust defect fixed: a nested entry dropped its source files (gate verdict and totals differed). Captured cases named: positive exclude-dirs, negative gate-dirs-excluded, failure exclude-dirs."
@@ -4330,8 +4495,8 @@
         ]
       },
       "evidence": [
-        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
         "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
       ],
       "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: the shipped default unions project.source_dirs; an explicit list is respected as-is and compared by top-level directory name only: ['lib'] gates only lib (WARN), a nested ['src/core'] gates nothing (PASS), ['tools','src'] gates src but not tools (outside the source scope), an excluded gate entry gates nothing (gate-dirs-narrow, gate-dirs-nested, gate-dirs-outside-scope, gate-dirs-excluded). Captured cases named: positive gate-dirs-narrow, negative gate-dirs-nested, failure gate-dirs-outside-scope."
@@ -4356,8 +4521,8 @@
         ]
       },
       "evidence": [
-        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
         "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
       ],
       "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: entries extend the source pass after the defaults and project.source_dirs in declaration order (targets in that scan order), a nested entry (tools/sub) is source but gated only by its top-level name, its parent's other files stay extras (include-dirs). Rust defect fixed: single-check line targets were path-sorted instead of frozen's scan order and non-default scope directories were ordered alphabetically. Captured cases named: positive include-dirs, negative defaults, failure include-dirs."
@@ -4382,8 +4547,8 @@
         ]
       },
       "evidence": [
-        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
         "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
       ],
       "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: pass_warn_fail (default: FAIL exit 1 / clean PASS exit 0), pass_fail (a WARN-only scope FAILs, exit 1), pass_warn (FAIL downgraded to WARN, exit 0) with unchanged per-target statuses (defaults, mode-pass-fail, mode-pass-warn, mode-pass-warn-fail-clean). Captured cases named: positive mode-pass-warn, negative mode-pass-warn-fail-clean, failure mode-pass-fail."
@@ -4408,8 +4573,8 @@
         ]
       },
       "evidence": [
-        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
         "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
       ],
       "comparison": "C++ facet (legacy `[engines.line]` on a type='cpp' project; schema/validation is the config row): frozen LineCountEngine._build_scan_plan/_collect_files/_classify: verify carries the line engine's `required` flag; a failing required line engine fails verify (exit 1) and `required=false` keeps the same FAIL (or pass_warn WARN) out of the gate (exit 0) (verify-required, verify-not-required, verify-not-required-warn). Captured cases named: positive verify-not-required, negative verify-not-required-warn, failure verify-required."
@@ -6135,16 +6300,29 @@
       "difference_reason": "Recorded: with no production scope the native gate keeps refused C++ checks as INCOMPLETE evidence; legacy verdicts and exit code are frozen's."
     },
     "config_key:next-v1:builds": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:287) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: the [builds.<id>] table is listed in frozen's `builds:` section ('native: cmake release → out (for lib)') and a linked build selects frozen's hint and gate wording.",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:builds.*.artifacts": {
       "status": "verified",
@@ -6221,28 +6399,54 @@
       "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
     },
     "config_key:next-v1:builds.*.system": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:127) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: the system is printed in frozen's `builds:` line ('cmake').",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:builds.*.variant": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/next_plan.rs",
+        "crates/ici-cli/src/plan_text.rs",
+        "crates/ici-cli/src/planning.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/plan_text_oracle.rs::plan_text_matches_frozen_layout_without_a_project_interpreter",
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::recorded_cpp_database_carries_no_missing_database_note_or_gap"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/next_cpp_plan.rs::missing_cpp_database_notes_every_plan_and_gates_only_under_require_full"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/config/documents.py:130) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: no frozen `ici next verify/analyze` capture over a C++ component with builds/cpp/qt settings exists; native next C++ planning is tested natively only (native_cpp*)."
+      "evidence": [
+        "Frozen oracle tests/rust-parity/oracle/plan-text-oracle.json (development-only capture_plan_text.py, oracle 6fe3e40, `ici next plan` text: mixed Python + C++ without a build, --python, --component lib, and a C++ component linked to a declared CMake build without artifacts or database). source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test plan_text_oracle --test next_cpp_plan --locked -j2 -- --include-ignored: passed; every C++ line of the four C++ cases equals frozen except the two reviewed build/default lines; ici-cli regression (artifact_contract, wire_schemas, execution, config_oracle, analyze_text, legacy_direct_build, native_cpp_direct, cli_options, native_validation, coverage_regression, legacy_make_build, native_validation_extra, native_cpp, run_tem, pytest_next_parity, python_modern_parity, interpreter_selection, compat_runtime_facts) passed; strict ici-cli Clippy passed; /tmp/ici-rust-replacement-20261028/w-cpp11-plantext-regress.log"
+      ],
+      "comparison": "Next-path C++ facet (frozen application/gates.py gate_cpp/gate_artifact, application/testing.py expand_cpp_tests/plan_cpp_coverage/expand_cpp_binary_compat, application/planning.py compile_limitations, workspace/compile_units.py _prepare): a C++ component without a compilation database gets frozen's note '<id>: no compilation database for its C++ scope (<hint>)' in every plan and the gap '<id>: no compilation database captured its C++ scope' (gate reason only under --require-full); natively blocked C++ checks print frozen's reasons in the human plan (no database for cpp.compile/cpp.diagnostics, 'clang-tidy is not available' before '... — clang-tidy replays it via -p', no build unit linked for cpp.test/cpp.artifact/cpp.binary-compat, 'cpp.coverage reads the test run's data — enable cpp.test', no .gcno under the linked build directory, no artifact contract); the --json document and gate reasons keep the native reasons the legacy views read. This key: the variant is printed in frozen's `builds:` line ('release').",
+      "difference_reason": "Verified, not complete: frozen next plan text compared only for an unlinked component and one declared CMake build without database/artifacts; no frozen `ici next verify` run over a prepared build, recorded database, suites or artifacts is captured. Reviewed differences (plan_text_oracle.rs CPP): a declared build without a database keeps native cpp.compile as an internal compile-coverage check (frozen blocks it at plan time) and native cpp.test needs the existing build directory before suite discovery (frozen's 'no declared test suite' add_test/.pro wording is not ported). Native builds carry no prepare vector, so frozen's 'prepare <id>: <argv> (writes <dir>)' hint never applies."
     },
     "config_key:next-v1:component.build": {
       "status": "not_started",
@@ -8883,8 +9087,8 @@
         ]
       },
       "evidence": [
-        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 15 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
-        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 15 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
+        "Frozen oracle tests/rust-parity/cpp/line-keys-oracle.json captured by development-only tests/rust-parity/cpp/capture_line_keys.py (oracle 6fe3e40; type='cpp', source_dirs=['src'], PATH=/usr/bin:/bin): 17 cases of `ici line --report` and `ici verify --report` (every other engine disabled) over src/, src/core, src/gen, include/, lib/, app/, tools/, tools/sub, extras/, docs/ and a junk build/ directory; exit code, status, summary, evidence, every target (name, status, message, start/end line, path) in order, every files_data row and the all totals, verify engine list and line `required`; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-capture.log",
+        "source opus-env.sh; flock heavy.lock cargo test -p ici-cli --test legacy_line_keys --locked -j2: 1 passed, all 17 cases equal frozen; /tmp/ici-rust-replacement-20261028/w-cpp11-line-keys-rust.log",
         "Regression: ici-cli legacy_baseline_gate, legacy_commands, legacy_line_hybrid, legacy_line_scope, legacy_mode_scope, legacy_python_engines, legacy_python_inventory, legacy_python_no_tests, legacy_report_keys, legacy_verify_matrix, legacy_launcher_interpreter and -p ici-reporting, -p ici-analysis, -p ici-cpp (--include-ignored): all passed; strict Clippy for ici-cli, ici-cpp, ici-analysis, ici-reporting passed; /tmp/ici-rust-replacement-20261028/w-cpp11-line-regress.log"
       ],
       "comparison": "C++ facet of frozen LineCountEngine._record_file on a type='cpp' project: per-file code/comment/blank/total, the language label, source/extra scope, top-level-name gating with strict cutoffs and the PASS/WARN/FAIL messages, InspectionTarget start_line 1/end_line total, and source-only totals versus all totals: 15 frozen cases equal (line-keys-oracle.json).",

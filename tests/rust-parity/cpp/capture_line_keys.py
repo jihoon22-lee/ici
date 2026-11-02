@@ -85,6 +85,9 @@ CASES = {
     ),
     "verify-disabled": ("verify", LIMITS + "enabled=false\n"),
     "line-disabled": ("line", LIMITS + "enabled=false\n"),
+    # Path validation before any engine runs (frozen _config_paths): exit 2 naming the key.
+    "refuse-line-path-outside": ("line", LIMITS + "include_dirs=['../outside']\n"),
+    "refuse-external-outside": ("line", "cpp_external_build_dirs=['../outside']\n" + LIMITS),
 }
 assert (
     subprocess.check_output(["git", "-C", str(ORACLE), "rev-parse", "HEAD"], text=True).strip()
