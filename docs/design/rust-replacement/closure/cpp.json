@@ -9780,16 +9780,28 @@
       "difference_reason": null
     },
     "finding_site:src/ici/engines/dead.py:669:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_cpp_unused_configurations.rs::legacy_unused_function_configurations_must_agree_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_unused_configurations.rs::legacy_unused_function_configurations_must_agree_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_unused_configurations.rs::legacy_unused_function_configurations_must_agree_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:669); enclosing frozen function _cpp_findings) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
+      "evidence": [
+        "Frozen tests/rust-parity/reporting/legacy-extras-oracle.json case cpp-database (full saved verify result: dead findings with severity/confidence/label/explanation/remediation/tool_rule_id/tool_name/tool_version/metrics, details, tool evidence) and cpp-defaults (no database: C++UnusedFunctionsUnavailable scope finding); tests/rust-parity/cpp/unused-configurations-oracle.json agreeing/varying.",
+        "flock heavy.lock cargo test -p ici-cli --locked --test legacy_engine_extras --test legacy_cpp_unused_configurations -j2 -- --include-ignored (ICI_TEST_CXX=/usr/bin/g++ 15.2.0, the oracle compiler): 4 + 1 passed, the only remaining dead allowances being tool_evidence argv/path (ACTUAL, root ruling requested); /tmp/ici-rust-replacement-20261028/w-cpp16-extras-dead.log, /tmp/ici-rust-replacement-20261028/w-cpp16-extras-metrics.log"
+      ],
+      "comparison": "C++ facet of this frozen row (dead.py:669 `_cpp_findings`): each accepted -Wunused-function function is one `ici.legacy.dead.target` finding, maintainability, medium, exact, label 'Compiler:-Wunused-function' (when unique), the target message, frozen explanation/remediation, tool_rule_id '-Wunused-function', tool_name '+'-joined capability names ('g++'), tool_version the compiler's --version banner and metrics.configurations_checked; the extra cpp_unused_details carry each function's configuration digests, GCC diagnostic text, tool names and versions. Rust defects fixed in this pass: tool_version was empty, cpp_unused_details/configurations_checked/warnings were missing, the diagnostic text lost its 'warning: ' prefix. Replayed in full on cpp-database; agreeing (positive and the clean-source negative) and varying (configuration disagreement: no finding, ERROR) on unused-configurations.",
+      "difference_reason": "CI note: both replays are #[ignore] actual-g++ tests (CI runs no ICI_TEST_* tool); run locally with --include-ignored. Open beside this row (not a finding field): the unused-function tool_evidence argv/path record what native actually ran (decisions.md 'C++ 도구 증거는 실제 실행 기록'), pending a root ruling."
     },
     "finding_site:src/ici/engines/dead.py:719:16": {
       "status": "not_started",
@@ -9804,16 +9816,31 @@
       "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
     },
     "finding_site:src/ici/engines/dead.py:885:15": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cpp/src/legacy_intake.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_engine_extras.rs::legacy_cpp_and_hybrid_public_results_equal_frozen_except_allowed",
+          "crates/ici-cli/tests/legacy_cpp_unused_configurations.rs::legacy_unused_function_configurations_must_agree_like_frozen"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_dup_and_dead_excluded_scope_and_duplicate_limits_like_frozen"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_unused_configurations.rs::legacy_unused_function_configurations_must_agree_like_frozen",
+          "crates/ici-cli/tests/legacy_cpp_metric_sources.rs::legacy_cpp_metrics_stop_at_a_non_utf8_source_like_frozen"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:885); enclosing frozen function _scope_finding) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
+      "evidence": [
+        "Frozen tests/rust-parity/reporting/legacy-extras-oracle.json case cpp-database (full saved verify result: dead findings with severity/confidence/label/explanation/remediation/tool_rule_id/tool_name/tool_version/metrics, details, tool evidence) and cpp-defaults (no database: C++UnusedFunctionsUnavailable scope finding); tests/rust-parity/cpp/unused-configurations-oracle.json agreeing/varying.",
+        "flock heavy.lock cargo test -p ici-cli --locked --test legacy_engine_extras --test legacy_cpp_unused_configurations -j2 -- --include-ignored (ICI_TEST_CXX=/usr/bin/g++ 15.2.0, the oracle compiler): 4 + 1 passed, the only remaining dead allowances being tool_evidence argv/path (ACTUAL, root ruling requested); /tmp/ici-rust-replacement-20261028/w-cpp16-extras-dead.log, /tmp/ici-rust-replacement-20261028/w-cpp16-extras-metrics.log",
+        "Intake/scope targets: tests/rust-parity/cpp/metric-sources-oracle.json; cargo test -p ici-cli --test legacy_cpp_metric_sources: 5 passed; /tmp/ici-rust-replacement-20261028/w-cpp16-dup-scope.log"
+      ],
+      "comparison": "C++ facet of this frozen row (dead.py:885 `_scope_finding`): every non-function C++ dead target becomes an `ici.legacy.dead.target` finding with severity by status (PASS/SKIP info, WARN medium, FAIL high, ERROR critical), the scope confidence, label (unique key), message, explanation/remediation, tool name/version and numeric metrics. Replayed: C++UnusedFunctions PASS info exact (cpp-database, agreeing), C++UnusedFunctionsUnavailable SKIP info (cpp-defaults), C++UnusedFunctionError/C++UnusedFunctionsInvalidated ERROR critical / SKIP info (varying), SourceInputError ERROR critical and the DeadCode SKIP (metric-sources: findings equal in a full report diff for dead:unreadable). The Python facet is the python fragment's.",
+      "difference_reason": "CI note: both replays are #[ignore] actual-g++ tests (CI runs no ICI_TEST_* tool); run locally with --include-ignored. Open beside this row (not a finding field): the unused-function tool_evidence argv/path record what native actually ran (decisions.md 'C++ 도구 증거는 실제 실행 기록'), pending a root ruling."
     },
     "finding_site:src/ici/engines/dup.py:100:20": {
       "status": "difference_review",
