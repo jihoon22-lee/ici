@@ -38,6 +38,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     path::Path,
+    sync::OnceLock,
 };
 
 const SUMMARY: &str =
@@ -108,6 +109,25 @@ fn project_python() -> String {
             .display()
             .to_string()
     })
+}
+
+/// The project interpreter's `platform.python_version()` when it differs from the captures'
+/// (`python` of the summary oracle), else `None`. The patch release is host data like the
+/// interpreter's location: `replay_with` writes it as the captured version.
+fn host_python_version() -> Option<String> {
+    static VERSION: OnceLock<Option<String>> = OnceLock::new();
+    VERSION
+        .get_or_init(|| {
+            let captured: Value = serde_json::from_str(SUMMARY).unwrap();
+            let output = std::process::Command::new(project_python())
+                .args(["-c", "import platform; print(platform.python_version())"])
+                .output()
+                .ok()?;
+            let version = String::from_utf8(output.stdout).ok()?.trim().to_owned();
+            (output.status.success() && !version.is_empty() && version != captured["python"])
+                .then_some(version)
+        })
+        .clone()
 }
 
 fn write_tree(base: &Path, tree: &Value) {
@@ -207,9 +227,16 @@ fn replay_with(
     }
     let root = base.display().to_string();
     let python = project_python();
+    let captured: Value = serde_json::from_str(SUMMARY).unwrap();
+    let version = host_python_version();
     let host = |text: &str| {
-        text.replace(&root, "<root>")
-            .replace(&python, CAPTURE_PYTHON)
+        let text = text
+            .replace(&root, "<root>")
+            .replace(&python, CAPTURE_PYTHON);
+        match &version {
+            Some(version) => text.replace(version, captured["python"].as_str().unwrap()),
+            None => text,
+        }
     };
     let text = fs::read_to_string(base.join(report)).unwrap();
     Saved {
@@ -614,11 +641,23 @@ fn legacy_public_results_equal_frozen_except_allowed() {
         );
         differences.extend(result_differences(&label, &case["suite"], native));
         // The step summary file the real CLI appended to, compared line by line in full.
-        differences.extend(text_differences(
+        let text = text_differences(
             &format!("{label}/summary.md"),
             case["summary"].as_str().unwrap(),
             saved.summary.as_deref().unwrap_or_default(),
-        ));
+        );
+        if !text.is_empty() {
+            // Name the native tool rows behind a changed capability snapshot line.
+            for tool in native["capability_inventory"]["tools"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|tool| tool["required"] == true || tool["name"] == "pytest")
+            {
+                differences.push(format!("{label}: native capability row {tool}"));
+            }
+        }
+        differences.extend(text);
     }
     let annotations: Value = serde_json::from_str(ANNOTATIONS).unwrap();
     let mut argv = verify();
