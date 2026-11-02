@@ -79,6 +79,10 @@ pub struct LinkCommand {
     pub shadow: String,
     pub digest: String,
     pub driver_digest: String,
+    /// Frozen `_parse_link_command` digest: the target and the unfiltered link.txt argv
+    /// (the CMake dependency-file flag included). Legacy projection only.
+    #[serde(skip)]
+    pub legacy_digest: String,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DiscardedSection {
@@ -183,6 +187,9 @@ pub fn parse_link_command(
         ));
     }
     let original_argv = crate::split_posix(text)?;
+    let legacy_digest = ici_domain::canonical_json(&json!({"target":parent,"argv":original_argv}))
+        .map(ici_domain::sha256)
+        .unwrap_or_default();
     // CMake 4.x may add a linker dependency-file output. It is irrelevant to a diagnostic
     // relink and could otherwise overwrite a path outside the declared ELF output contract.
     let argv: Vec<_> = original_argv
@@ -312,6 +319,7 @@ pub fn parse_link_command(
         shadow: plan.shadow.clone(),
         digest,
         driver_digest,
+        legacy_digest,
     })
 }
 pub fn unit_has_function_sections(unit: &crate::CompilationUnit) -> bool {

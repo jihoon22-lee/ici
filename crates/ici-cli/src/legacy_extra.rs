@@ -575,6 +575,44 @@ fn complete_cpp_dead(engine: &mut Value, linker_policy: &str, python: &[&Value])
         extra["cpp_unused_configurations_checked"] = json!(0);
         extra["cpp_unused_details"] = json!([]);
     }
+    if mode == "off" {
+        // Frozen `_analyze_cpp_scope` with `cpp_unused = "off"`: the disabled outcome.
+        for (key, value) in [
+            ("cpp_unused_configurations_checked", json!(0)),
+            ("cpp_unused_sources_checked", json!(0)),
+            ("cpp_unused_non_tu_diagnostics_excluded", json!(0)),
+            ("cpp_unused_warnings", json!([])),
+            ("cpp_unused_details", json!([])),
+        ] {
+            extra[key] = value;
+        }
+    }
+    if linker_policy != "off" {
+        // Frozen `DeadCodeEngine.run` beside a GNU ELF linker scope: per-scope and language
+        // evidence and every dead symbol of both C++ scopes.
+        let measured = |exact: bool| if exact { "MEASURED" } else { "NOT_RUN" };
+        let compiler = measured(mode == "exact");
+        let linker = measured(extra["cpp_linker_mode"] == "exact");
+        extra["cpp_scope_evidence"] =
+            json!({"compiler_unused": compiler, "gnu_elf_linker": linker});
+        let python_evidence = python
+            .iter()
+            .find_map(|block| block["language_evidence"]["python"].as_str())
+            .unwrap_or("NOT_APPLICABLE");
+        let cpp_evidence = if compiler == "MEASURED" || linker == "MEASURED" {
+            "MEASURED"
+        } else {
+            "NOT_RUN"
+        };
+        extra["language_evidence"] = json!({"python": python_evidence, "cpp": cpp_evidence});
+        let python_issues: u64 = python
+            .iter()
+            .filter_map(|block| block["python_issues"].as_u64())
+            .sum();
+        let functions = extra["cpp_unused_functions_count"].as_u64().unwrap_or(0);
+        let symbols = extra["cpp_linker_symbols_count"].as_u64().unwrap_or(0);
+        extra["dead_symbols_count"] = json!(python_issues + functions + symbols);
+    }
     if linker_policy == "off" {
         for (key, value) in [
             ("cpp_linker_mode", json!("off")),

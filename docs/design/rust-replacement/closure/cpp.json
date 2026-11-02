@@ -111,16 +111,32 @@
       "difference_reason": "Open: the analysis/_cpp_include_trace.py facet (include trace rows) is not closed; the Qt generated-code facet and the clazy/clang-tidy facets (incl. ClazyNote, compiler wrapper, every error branch: lint-tool-branches-oracle.json) are closed."
     },
     "capability:legacy-cpp-linker-dead": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "difference_review",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/linker.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cpp/src/linker.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:1, src/ici/analysis/_cpp_linker_dead_symbols.py:1, src/ici/analysis/_cpp_linker_dead_aggregation.py:1) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: the C++ component rows are still open: finding_site _cpp_linker_dead_symbols.py 142/797/847 and dead.py 111/219/270/577/669/719/885 (not_started; GNU ELF linker reachability and compilation-database unused-function sites are not frozen-captured), config_key engines.dead.cpp_unused (implemented). Also open (runtime.json defers it to this facet): the hybrid (Python+C++) dead engine's C++ tool evidence and C++-target finding fields beside the closed Python targets are not compared with frozen in this pass; the hybrid SARIF replay (legacy_sarif.rs) currently shows no dead-engine property difference, but tool_evidence of a hybrid dead engine with a C++ compilation database has no frozen capture."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+      ],
+      "comparison": "C++ facet of the frozen GNU ELF linker dead capability (dead.py, _cpp_linker_dead_symbols.py, _cpp_linker_dead_aggregation.py) with cpp_unused='off', cpp_linker='required': discarded (WARN, one discarded function kept by another target excluded), clean (PASS), broken configure (ERROR, exit 1). Compared: exit code, status, evidence, required, summary, targets, findings, every frozen engine extra key (cpp_linker_*, cpp_unused_* off counters, cpp_scope_evidence, language_evidence, dead_symbols_count, metrics_summary, source counters) and the tool evidence name set. Not compared: cpp_unused='exact' beside the linker (merge of both scopes), archives/shared/LTO exclusions, the build-failure stop.",
+      "difference_reason": "Tool evidence records the processes native actually ran (decisions.md \"C++ 도구 증거는 실제 실행 기록\"): native configures/builds the shadow in the held link-reachability preparation (.ici/rust-v1/build/... instead of build/ici-cmake-link-reachability, `-DCMAKE_BUILD_TYPE=Debug -DCMAKE_BUILD_TYPE=Release` and `--parallel 2`), runs the PATH /usr/bin/c++ link driver, /usr/bin/readelf and /usr/bin/addr2line (frozen: their resolved x86_64-linux-gnu-* capability paths), probes the driver identity per link target, relinks without CMake's -Wl,--dependency-file (frozen records `<validated-link-command:...>` placeholders), and reads each direct object's readelf tables once up front (frozen: per discarded object only), so the clean scope findings' `+`-joined tool_name also lists the three readelf object reads. Root ruling requested together with the ACTUAL compiler argv/path allowance."
     },
     "capability:legacy-python-sanitize": {
       "status": "not_started",
@@ -8437,40 +8453,88 @@
       "difference_reason": "Open: clang `file not found` spelling and the bounded/unrecognized-trace refusals are not frozen-captured. Native `ici analyze`/`next verify` (which frozen never traces) keep the failed-probe ERROR for a missing header."
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:142:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "verified",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/linker.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cpp/src/linker.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_linker_dead_symbols.py:142); enclosing frozen function _append_error) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+      ],
+      "comparison": "C++ facet of _cpp_linker_dead_symbols.py:142 (`_append_error`): a CMake link-reachability configure that fails is one `C++LinkerReachabilityError` ERROR at CMakeLists.txt 'GNU ELF reachability configure did not complete' after the disabled compiler SKIP, ERROR NOT_RUN required, exit 1, low critical scope finding naming the cmake configure record (returncode 1, cmake version), cpp_linker_mode 'error' with zero counters. Rust defect fixed: native blocked the dead check ('explicit link-reachability preparation failed', SKIP, no targets, exit 3).",
+      "difference_reason": "Verified for the configure stop (broken case). The build stop ('GNU ELF reachability build did not complete', same projection with both cmake records) is implemented but not frozen-captured; the shadow-preparation, link-command validation and binutils error messages of `_append_error` are native failures with native messages and are not compared."
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:797:13": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/linker.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cpp/src/linker.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_linker_dead_symbols.py:797); enclosing frozen function _inspect_removal) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+      ],
+      "comparison": "C++ facet of _cpp_linker_dead_symbols.py:797 (`_inspect_removal`): a hidden function discarded from every target that links its object is one `GNU ld discarded function` WARN at its addr2line line ('GNU ld discarded function section from CMake target one in the isolated Release reachability link'), metrics link_target/symbol/section/link_command_digest (frozen digest of the target and the unfiltered link.txt argv), and one cpp_linker_details record (object_path relative to the shadow, tool g++ with the PATH g++ capability banner). Rust defects fixed: native target names/messages (LinkerReachability), native digest without the dependency-file flag, object_path in target metrics, workspace-relative object_path, `c++` driver banner. Compared: discarded case targets, findings, every frozen extra key.",
+      "difference_reason": ""
     },
     "finding_site:src/ici/analysis/_cpp_linker_dead_symbols.py:847:8": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/linker.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cpp/src/linker.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/analysis/_cpp_linker_dead_symbols.py:847); enclosing frozen function _record_pass_targets) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: GNU ELF linker dead-symbol evidence not compared with frozen (needs a CMake Release link-reachability run)."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+      ],
+      "comparison": "C++ facet of _cpp_linker_dead_symbols.py:847 (`_record_pass_targets`): every other owned source is a `GNU ld reachability scan` PASS 'Source participated in <n> supported target-local Release link(s)' with no metrics (discarded: src/one.cpp, src/two.cpp with n=2; clean: both sources with n=1), each with its exact scope finding ('This target records the bounded target-local GNU ELF section-GC scope.', tool names/versions of the linker evidence). Compared: targets, findings, extras (cpp_linker_sources_checked/targets_checked/discarded/ambiguous/kept counters, source_files_analyzed).",
+      "difference_reason": ""
     },
     "finding_site:src/ici/analysis/_cpp_lint.py:159:16": {
       "status": "verified",
@@ -9804,16 +9868,32 @@
       "difference_reason": "CI note: both replays are #[ignore] actual-g++ tests (CI runs no ICI_TEST_* tool); run locally with --include-ignored. Open beside this row (not a finding field): the unused-function tool_evidence argv/path record what native actually ran (decisions.md 'C++ 도구 증거는 실제 실행 기록'), pending a root ruling."
     },
     "finding_site:src/ici/engines/dead.py:719:16": {
-      "status": "not_started",
-      "rust_paths": [],
+      "status": "complete",
+      "rust_paths": [
+        "crates/ici-cli/src/cpp/linker.rs",
+        "crates/ici-cli/src/cpp.rs",
+        "crates/ici-cli/src/preparation.rs",
+        "crates/ici-cpp/src/linker.rs",
+        "crates/ici-cli/src/legacy_extra.rs"
+      ],
       "fixtures": {
-        "positive": [],
-        "negative": [],
-        "failure": []
+        "positive": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "negative": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ],
+        "failure": [
+          "crates/ici-cli/tests/legacy_cpp_linker_dead.rs::legacy_cpp_linker_dead_projects_frozen_section_gc_results"
+        ]
       },
-      "evidence": [],
-      "comparison": "C++ facet of this frozen row (src/ici/engines/dead.py:719); enclosing frozen function _linker_findings) is not compared yet; see difference_reason.",
-      "difference_reason": "Open: compilation-database-backed unused-function or GNU ELF linker site of DeadCodeEngine not compared; only the no-database policy targets are verified."
+      "evidence": [
+        "Frozen tests/rust-parity/cpp/linker-dead-oracle.json (capture_linker_dead.py, oracle 6fe3e40, g++ 15.2.0, cmake 4.2.3): cases discarded, clean, broken over parity-fixtures/cpp/linker-dead; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead-capture.log (re-capture byte-identical)",
+        "flock heavy.lock cargo test -p ici-cli --test legacy_cpp_linker_dead --locked -j2 -- --include-ignored: 1 passed; /tmp/ici-rust-replacement-20261028/w-cpp-linker-dead.log",
+        "Regressions (--include-ignored): legacy_cpp_config_keys 1, native_cpp 28, legacy_engine_extras 4, legacy_cpp_unused_configurations 1, legacy_cpp_metric_sources 5; ici-cpp tests; fmt + strict Clippy ici-cpp/ici-cli; /tmp/ici-rust-replacement-20261028/w-cpp-linker-regress.log, w-cpp-linker-gates.log"
+      ],
+      "comparison": "C++ facet of dead.py:719 (`_linker_findings`): each discarded function is an `ici.dead.gnu-elf-discarded-function` finding (medium, exact, tool g++ with its capability version, tool_rule_id --gc-sections/--print-gc-sections, metrics link_targets {1, targets}, the frozen explanation/remediation, label when unique) beside the adapted legacy target finding (high, tool_evidence[0] = cmake linker-reachability configure). The disabled compiler scope finding is exact once the linker measured C++ evidence. Rust defect fixed: the native finding merged into the adapted target finding instead of the frozen exact finding.",
+      "difference_reason": ""
     },
     "finding_site:src/ici/engines/dead.py:885:15": {
       "status": "complete",

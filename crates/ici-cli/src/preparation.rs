@@ -245,6 +245,9 @@ pub fn execute(
     // `cpp.artifact` checks whose configured legacy release build failed: their BuildEngine
     // result is that failure, so their own artifact preparation never runs.
     let mut adapter_failures = BTreeSet::new();
+    // Legacy dead checks whose GNU ELF link-reachability preparation failed: they run and
+    // report the frozen linker-scope error instead of being blocked.
+    let mut legacy_linker_failures: Vec<(String, bool, Vec<serde_json::Value>)> = vec![];
     if intake_ok && !runtime.cancellation.is_cancelled() {
         for plan in &prepared.context_preparations {
             if runtime.cancellation.is_cancelled() {
@@ -469,6 +472,60 @@ pub fn execute(
                             observed_failures.insert(check.task_id.clone());
                         }
                     }
+                    // Frozen DeadCodeEngine GNU ELF linker scope (`_configure_shadow`): a CMake
+                    // link-reachability configure or build that did not complete is the
+                    // linker scope's own ERROR; the dead check reports it.
+                    if prepared.legacy_projection
+                        && plan.build.variant == "link-reachability"
+                        && plan.build.system == "cmake"
+                        && let Some(check) = prepared.plan.checks.iter().find(|check| {
+                            check.component_id == plan.component_id && check.check.id == "cpp.dead"
+                        })
+                        && let Some(observed) = failure.observed_for(&check.task_id)
+                    {
+                        let configure = reason.starts_with("cmake configure");
+                        let steps = if configure { 1 } else { 2 };
+                        let version = plan
+                            .build
+                            .tasks
+                            .first()
+                            .and_then(|task| task.argv.first())
+                            .and_then(|cmake| {
+                                crate::cpp::legacy_tooling::legacy_version_banner(
+                                    std::path::Path::new(cmake),
+                                    &plan.root,
+                                    runtime.environment,
+                                    "cmake",
+                                )
+                            })
+                            .unwrap_or_default();
+                        let records = plan
+                            .build
+                            .tasks
+                            .iter()
+                            .take(steps)
+                            .enumerate()
+                            .map(|(index, task)| {
+                                let failed = index + 1 == steps;
+                                let code = if failed {
+                                    observed.observation.exit_code
+                                } else {
+                                    Some(0)
+                                };
+                                serde_json::json!({"name": if index == 0 {
+                                        "cmake linker-reachability configure"
+                                    } else {
+                                        "cmake linker-reachability build"
+                                    },
+                                    "path":task.argv.first(),"version":version,"argv":task.argv,
+                                    "returncode":code,
+                                    "timed_out":failed && observed.observation.timed_out,
+                                    "truncated":failed && observed.observation.truncated,
+                                    "error":""})
+                            })
+                            .collect();
+                        legacy_linker_failures.push((check.task_id.clone(), configure, records));
+                    }
                     limitations.push(format!(
                         "{} {} preparation: {reason}",
                         plan.component_id, plan.build.variant
@@ -688,6 +745,35 @@ pub fn execute(
     for task_id in &adapter_failures {
         prepared.artifact_builds.remove(task_id);
     }
+    let mut legacy_linker_ids = BTreeSet::new();
+    for (id, configure, records) in legacy_linker_failures {
+        prepared
+            .cpp
+            .fail_legacy_linker_preparation(&id, configure, records);
+        prepared.graph.blocked.remove(&id);
+        legacy_linker_ids.insert(id);
+    }
+    if !legacy_linker_ids.is_empty() {
+        for check in &mut prepared.plan.checks {
+            if legacy_linker_ids.contains(&check.task_id) {
+                check.work = Work::Internal;
+            }
+        }
+        // The check was unbound (blocked) while its preparation was pending: schedule it.
+        let blocked = std::mem::take(&mut prepared.graph.blocked);
+        match ici_application::graph::TaskGraph::build(&prepared.plan.checks) {
+            Ok(graph) => prepared.graph = graph,
+            Err(reason) => {
+                intake_ok = false;
+                limitations.push(format!("prepared output/dependency conflict: {reason}"));
+            }
+        }
+        for (id, reason) in blocked {
+            if !legacy_linker_ids.contains(&id) {
+                prepared.graph.blocked.entry(id).or_insert(reason);
+            }
+        }
+    }
     for (component, variant, reason, direct) in failures {
         for check in &prepared.plan.checks {
             if check.component_id != component || check.check.language != "cpp" {
@@ -709,6 +795,9 @@ pub fn execute(
                 )
             };
             if affected {
+                if legacy_linker_ids.contains(&check.task_id) {
+                    continue;
+                }
                 if observed_failures.contains(&check.task_id) {
                     prepared.graph.blocked.remove(&check.task_id);
                     continue;

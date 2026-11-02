@@ -304,6 +304,47 @@ impl CppPlans {
             task.analysis_unit_ids = vec![format!("{}.cpp.link-reachability", component.id)];
             task.variant = Some("link-reachability".into());
         }
+        if self.legacy_projection {
+            // Frozen linker evidence names each tool's capability version: the GCC link
+            // driver's (the PATH `g++` capability of the same physical driver), readelf's,
+            // addr2line's and the CMake adapter's.
+            let mut probes: Vec<(String, PathBuf, &str)> = vec![];
+            for command in &commands {
+                if let Some(driver) = command.argv.first() {
+                    probes.push((
+                        driver.clone(),
+                        legacy_driver_capability(Path::new(driver), environment),
+                        "g++",
+                    ));
+                }
+            }
+            probes.push((
+                readelf.path.to_string_lossy().into_owned(),
+                readelf.path.clone(),
+                "readelf",
+            ));
+            probes.push((
+                addr2line.path.to_string_lossy().into_owned(),
+                addr2line.path.clone(),
+                "addr2line",
+            ));
+            if let Some(cmake) = build.tasks.first().and_then(|task| task.argv.first()) {
+                probes.push((cmake.clone(), PathBuf::from(cmake), "cmake"));
+            }
+            for (key, executable, name) in probes {
+                self.compiler_versions
+                    .entry(format!("linker:{key}"))
+                    .or_insert_with(|| {
+                        legacy_tooling::legacy_version_banner(
+                            &executable,
+                            &project.root,
+                            environment,
+                            name,
+                        )
+                        .unwrap_or_default()
+                    });
+            }
+        }
         let mut visible = tasks.clone();
         visible.extend(locations.values().cloned());
         self.linkers.insert(
@@ -332,18 +373,18 @@ impl CppPlans {
         events: &crate::events::EventLog,
     ) -> AnalysisOutput {
         let plan = &self.linkers[&request.task_id];
-        let held = self.held_contexts.iter().any(|context| {
+        let held = self.held_contexts.iter().find(|context| {
             context.plan.root == project.root
                 && context.plan.component_id == component.id
                 && serde_json::to_value(&context.plan.build).ok()
                     == serde_json::to_value(&plan.build).ok()
         });
-        if !held {
+        let Some(held) = held else {
             return failed(
                 AnalysisOutput::new(&request.task_id, "gnu-linker.section-gc"),
                 "GNU relink requires the matching held native build lease; explicit preparation did not authorize this context",
             );
-        }
+        };
         let results = match run_cpp_tasks(
             &plan.tasks,
             scheduler,
@@ -409,6 +450,16 @@ impl CppPlans {
             &collected.targets,
             &collected.objects,
         );
+        if self.legacy_projection {
+            let evidence = self.legacy_linker_evidence(
+                plan,
+                request,
+                &held.process_evidence,
+                &outcomes,
+                &collected,
+            );
+            legacy_linker_projection(&mut output, plan, &evidence);
+        }
         output.extra["linker_probes"] = json!({"steps":plan.tasks.iter().chain(collected.locations.iter()).collect::<Vec<_>>(),"commands":plan.commands,"variant":plan.build.variant,"shadow":plan.build.shadow,"source_mapping":"eligible symbols located by actual section-scoped addr2line; evidence intersects every target sharing each direct object"});
         output.observation.duration_seconds = Some(
             outcomes
@@ -425,6 +476,8 @@ struct CollectedEvidence {
     targets: Vec<LinkerTargetEvidence>,
     objects: Vec<LinkerObjectEvidence>,
     locations: Vec<TaskSpec>,
+    /// The section-scoped addr2line outcomes, in `locations` order.
+    location_outcomes: Vec<TaskOutcome>,
     duration: f64,
 }
 struct CollectionError {
@@ -532,6 +585,11 @@ fn collect_evidence(
         "discarded-section source locations",
     )?;
     let duration = results.iter().map(|outcome| outcome.duration_seconds).sum();
+    let location_outcomes = dynamic
+        .iter()
+        .filter_map(|task| results.iter().find(|outcome| outcome.task_id == task.id))
+        .cloned()
+        .collect();
     let results = results
         .into_iter()
         .map(|outcome| (outcome.task_id.clone(), outcome))
@@ -552,6 +610,7 @@ fn collect_evidence(
         targets,
         objects,
         locations: dynamic,
+        location_outcomes,
         duration,
     })
 }
@@ -616,4 +675,252 @@ fn normalized_context_digests(context: &CompilationContext) -> BTreeMap<String, 
         );
     }
     result
+}
+
+impl CppPlans {
+    /// Frozen `CppLinkerDeadOutcome.evidence`, recorded from the processes this run actually
+    /// executed (decisions.md "C++ 도구 증거는 실제 실행 기록"): the CMake adapter of the held
+    /// preparation, then per link target the driver identity, the relink and the ELF header
+    /// read, then per direct object the three readelf tables, then every section-scoped
+    /// addr2line location.
+    fn legacy_linker_evidence(
+        &self,
+        plan: &LinkerPlan,
+        request: &AnalysisRequest,
+        preparation: &[Value],
+        outcomes: &BTreeMap<String, TaskOutcome>,
+        collected: &CollectedEvidence,
+    ) -> Vec<Value> {
+        let version = |path: &str| {
+            self.compiler_versions
+                .get(&format!("linker:{path}"))
+                .cloned()
+                .unwrap_or_default()
+        };
+        let mut records: Vec<Value> = preparation
+            .iter()
+            .filter_map(|record| {
+                let name = match record["name"].as_str()? {
+                    "cmake configure" => "cmake linker-reachability configure",
+                    "cmake build" => "cmake linker-reachability build",
+                    _ => return None,
+                };
+                let mut record = record.clone();
+                record["version"] = json!(version(record["path"].as_str().unwrap_or("")));
+                record["name"] = json!(name);
+                Some(record)
+            })
+            .collect();
+        let mut push = |name: &str, task: &TaskSpec, outcome: Option<&TaskOutcome>| {
+            if let Some(outcome) = outcome {
+                let path = task.argv.first().map_or("", String::as_str);
+                records.push(legacy_tooling::process_evidence(
+                    name,
+                    &version(path),
+                    &task.argv,
+                    outcome,
+                    "",
+                ));
+            }
+        };
+        for (index, _) in plan.commands.iter().enumerate() {
+            let prefix = format!("{}.target{index}", request.task_id);
+            for (suffix, name) in [
+                ("identity", "g++ linker identity"),
+                ("relink", "g++ GNU ELF relink"),
+                ("elf", "readelf linked executable"),
+            ] {
+                let id = format!("{prefix}.{suffix}");
+                if let Some(task) = plan.tasks.iter().find(|task| task.id == id) {
+                    push(name, task, outcomes.get(&id));
+                }
+            }
+        }
+        for prefix in plan.objects.values() {
+            for (suffix, name) in [
+                ("headers", "readelf -WS"),
+                ("symbols", "readelf -Ws"),
+                ("groups", "readelf --section-groups"),
+            ] {
+                let id = format!("{prefix}.{suffix}");
+                if let Some(task) = plan.tasks.iter().find(|task| task.id == id) {
+                    push(name, task, outcomes.get(&id));
+                }
+            }
+        }
+        for (task, outcome) in collected.locations.iter().zip(&collected.location_outcomes) {
+            push("addr2line discarded function", task, Some(outcome));
+        }
+        records
+    }
+}
+
+/// The PATH `g++` capability frozen `compiler_capability` matches to a link driver of the same
+/// physical executable (its banner names `g++`); otherwise the driver itself.
+fn legacy_driver_capability(driver: &Path, environment: &BTreeMap<String, String>) -> PathBuf {
+    let physical = driver.canonicalize().ok();
+    environment
+        .get("PATH")
+        .into_iter()
+        .flat_map(|path| path.split(':'))
+        .filter(|directory| !directory.is_empty())
+        .map(|directory| Path::new(directory).join("g++"))
+        .find(|candidate| candidate.is_file())
+        .filter(|candidate| physical.is_some() && candidate.canonicalize().ok() == physical)
+        .unwrap_or_else(|| driver.to_path_buf())
+}
+
+/// Frozen `DeadCodeEngine` projection of the GNU ELF section-GC result: `GNU ld reachability
+/// scan` PASS rows ("Source participated in <n> supported target-local Release link(s)") with
+/// their exact scope findings, the `ici.dead.gnu-elf-discarded-function` finding of each
+/// discarded function, the frozen dead summary, the `cpp_linker_*` counters and details and
+/// the recorded tool evidence.
+fn legacy_linker_projection(output: &mut AnalysisOutput, plan: &LinkerPlan, evidence: &[Value]) {
+    if output.observation.state != ici_domain::TaskState::Succeeded {
+        return;
+    }
+    let link_targets = plan.commands.len();
+    let shadow = plan.build.shadow.as_str();
+    let legacy_digest = |digest: &Value| {
+        plan.commands
+            .iter()
+            .find(|command| digest == command.digest.as_str())
+            .map_or(digest.clone(), |command| json!(command.legacy_digest))
+    };
+    let names: BTreeSet<&str> = evidence
+        .iter()
+        .filter_map(|record| record["name"].as_str())
+        .filter(|name| !name.is_empty())
+        .collect();
+    let versions: BTreeSet<&str> = evidence
+        .iter()
+        .filter_map(|record| record["version"].as_str())
+        .filter(|version| !version.is_empty())
+        .collect();
+    let scope_tool = names.into_iter().collect::<Vec<_>>().join("+");
+    let scope_version = versions.into_iter().collect::<Vec<_>>().join(", ");
+    let driver_version = evidence
+        .iter()
+        .find(|record| record["name"] == "g++ GNU ELF relink")
+        .and_then(|record| record["version"].as_str())
+        .unwrap_or("")
+        .to_owned();
+    let mut key_counts = BTreeMap::<(String, String), usize>::new();
+    for target in &output.targets {
+        *key_counts
+            .entry((
+                target.file_path.clone(),
+                target.target_name.trim().to_owned(),
+            ))
+            .or_default() += 1;
+    }
+    let mut details = vec![];
+    let mut sources = BTreeSet::new();
+    let mut scope_findings = vec![];
+    let mut finding_details = serde_json::Map::new();
+    for target in &mut output.targets {
+        match target.target_name.as_str() {
+            "LinkerReachability" => {
+                target.target_name = "GNU ld reachability scan".into();
+                target.status = "PASS".into();
+                target.message = format!(
+                    "Source participated in {link_targets} supported target-local Release link(s)"
+                );
+                target.metrics.clear();
+                sources.insert(target.file_path.clone());
+                scope_findings.push(json!({"rule_id":"ici.legacy.dead.target","category":"maintainability",
+                    "severity":"info","confidence":"exact","primary_location":{"path":target.file_path,
+                    "start_line":target.start_line,"end_line":target.end_line,"start_column":target.start_column,
+                    "end_column":target.end_column,"label":target.target_name},"related_locations":[],
+                    "message":target.message,
+                    "explanation":"This target records the bounded target-local GNU ELF section-GC scope.",
+                    "remediation":"","fixes":[],"tool_rule_id":"","tool_name":scope_tool,
+                    "tool_version":scope_version,"metrics":{},"snippet":"",
+                    "suppression":{"kind":"none","reason":"","suppressed":false}}));
+            }
+            "GNU ld discarded function" => {
+                sources.insert(target.file_path.clone());
+                let digest = legacy_digest(
+                    &target
+                        .metrics
+                        .get("link_command_digest")
+                        .cloned()
+                        .unwrap_or_default(),
+                );
+                target.metrics.insert("link_command_digest".into(), digest);
+                let metric = |key: &str| target.metrics.get(key).cloned().unwrap_or(Value::Null);
+                // Frozen names the object relative to the isolated Release shadow.
+                let object = metric("object_path");
+                let object = object.as_str().map_or(object.clone(), |path| {
+                    json!(
+                        path.strip_prefix(shadow)
+                            .map_or(path, |rest| rest.trim_start_matches('/'))
+                    )
+                });
+                details.push(
+                    json!({"file_path":target.file_path,"start_line":target.start_line,
+                    "link_target":metric("link_target"),"symbol":metric("symbol"),
+                    "section":metric("section"),"object_path":object,
+                    "tool_name":"g++","tool_version":driver_version,
+                    "link_command_digest":metric("link_command_digest")}),
+                );
+                // Frozen target metrics carry no object path (it is a detail field).
+                target.metrics.remove("object_path");
+                let unique = key_counts.get(&(
+                    target.file_path.clone(),
+                    target.target_name.trim().to_owned(),
+                )) == Some(&1);
+                for finding in output.observation.findings.iter().filter(|finding| {
+                    finding.primary_location.path == target.file_path
+                        && finding.primary_location.start_line == target.start_line
+                        && finding.message == target.message
+                }) {
+                    finding_details.insert(finding.fingerprint.clone(), json!({
+                        "legacy_rule_id":"ici.dead.gnu-elf-discarded-function",
+                        "legacy_message":target.message,
+                        "legacy_label":if unique { target.target_name.as_str() } else { "" },
+                        "legacy_category":"maintainability","legacy_confidence":"exact",
+                        "legacy_severity":"medium","tool_name":"g++",
+                        "tool_rule_id":"--gc-sections/--print-gc-sections",
+                        "tool_version":driver_version,
+                        "explanation":"GNU ld explicitly discarded this uniquely mapped local or hidden function section while relinking the named CMake executable in the isolated Release reachability shadow. The claim is target-local, not project-wide behavioral unreachability.",
+                        "remediation":"Review the function and its target-specific call path. Remove it when the target no longer needs it, or retain/reference it explicitly when the discarded section is intentional.",
+                        "metrics":{"link_targets":{"value":1,"unit":"targets"}},
+                        "related_locations":[]}));
+                }
+            }
+            _ => {}
+        }
+    }
+    let measured = |name: &str| {
+        output
+            .observation
+            .measurements
+            .iter()
+            .find(|measurement| measurement.name == name)
+            .map_or(0, |measurement| measurement.value as u64)
+    };
+    let symbols = details.len();
+    let discarded = measured("discarded_sections_observed");
+    let extra = &mut output.extra;
+    extra["cpp_linker_mode"] = json!("exact");
+    extra["cpp_linker_symbols_count"] = json!(symbols);
+    extra["cpp_linker_targets_checked"] = json!(link_targets);
+    extra["cpp_linker_sources_checked"] = json!(sources.len());
+    extra["cpp_linker_discarded_sections_observed"] = json!(discarded);
+    extra["cpp_linker_ambiguous_sections_excluded"] = extra["ambiguous_sections_excluded"].clone();
+    extra["cpp_linker_sections_kept_by_another_target"] =
+        extra["sections_kept_by_another_target"].clone();
+    extra["cpp_linker_warnings"] = json!([]);
+    extra["cpp_linker_details"] = json!(details);
+    extra["legacy_findings"] = json!(scope_findings);
+    extra["finding_details"] = Value::Object(finding_details);
+    extra["tool_evidence"] = json!(evidence);
+    output.summary = if symbols == 0 {
+        "No dead-code findings detected in the analyzed scopes".into()
+    } else {
+        format!(
+            "{symbols} dead-code finding(s): 0 heuristic Python, 0 compiler-local C/C++, {symbols} target-local GNU ELF"
+        )
+    };
 }

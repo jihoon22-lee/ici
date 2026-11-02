@@ -6,7 +6,7 @@ mod legacy_includes;
 pub(crate) mod legacy_lint_extra;
 mod legacy_syntax;
 mod legacy_tests;
-mod legacy_tooling;
+pub(crate) mod legacy_tooling;
 mod linker;
 mod next_plan;
 pub(crate) mod package_flags;
@@ -77,6 +77,9 @@ pub struct CppPlans {
     /// Legacy dead checks whose GNU ELF linker policy (`required` = true) cannot run because the
     /// project has no root CMake backend (frozen `run_cpp_linker_dead_symbols` unavailable).
     legacy_linker_unavailable: BTreeMap<String, bool>,
+    /// Legacy dead checks running only the GNU ELF linker scope (`cpp_unused = "off"`): frozen
+    /// reports `C++UnusedFunctionsDisabled` beside it.
+    legacy_unused_disabled: BTreeSet<String>,
     /// Legacy outputs decided while planning preparation: frozen build FAIL/ERROR for a declared
     /// build that cannot be planned, or the sanitizer SKIP when no C++ test source exists.
     preparation_failures: BTreeMap<String, AnalysisOutput>,
@@ -806,6 +809,11 @@ impl CppPlans {
             && linker != "off"
             && mode != "off"
             && !legacy_root_cmake(&project.root, component);
+        if mode == "off" && self.legacy_projection {
+            // Recorded before the linker binding: a pending or failed link-reachability
+            // preparation still reports the disabled compiler scope.
+            self.legacy_unused_disabled.insert(id.into());
+        }
         let linker_tasks = if linker != "off" && !linker_unavailable {
             self.bind_linker(project, component, id, environment)?
         } else {
@@ -3769,7 +3777,11 @@ fn legacy_dead_source_evidence(output: &mut AnalysisOutput, request: &AnalysisRe
                 .into_iter()
                 .flat_map(|fields| fields.values()),
         )
-        .filter_map(|block| block.get("sources_checked").and_then(Value::as_u64))
+        .flat_map(|block| {
+            ["sources_checked", "cpp_linker_sources_checked"].map(|key| block.get(key))
+        })
+        .flatten()
+        .filter_map(Value::as_u64)
         .max()
         .unwrap_or(0);
     let extra = &mut output.extra;
@@ -3915,6 +3927,84 @@ fn artifact_identity(project: &ResolvedProject, build: &ici_config::Build) -> Va
 }
 
 impl CppPlans {
+    /// Frozen `_configure_shadow` stop of the GNU ELF linker scope: a CMake link-reachability
+    /// configure or build that did not complete is one `C++LinkerReachabilityError` at
+    /// `CMakeLists.txt` (after the disabled compiler scope), ERROR NOT_RUN with its low scope
+    /// findings and the CMake processes that ran.
+    pub fn fail_legacy_linker_preparation(
+        &mut self,
+        id: &str,
+        configure: bool,
+        records: Vec<Value>,
+    ) {
+        let message = format!(
+            "GNU ELF reachability {} did not complete",
+            if configure { "configure" } else { "build" }
+        );
+        let mut output = AnalysisOutput::new(id, "ici.cpp");
+        output.status = "ERROR".into();
+        output.summary = message.clone();
+        output.observation.limitations.push(message.clone());
+        let disabled = self.legacy_unused_disabled.contains(id);
+        let scope = |target: &InspectionTarget,
+                     severity: &str,
+                     explanation: &str,
+                     remediation: &str,
+                     tool: &Value| {
+            json!({"rule_id":"ici.legacy.dead.target","category":"maintainability","severity":severity,
+                "confidence":"low","primary_location":{"path":target.file_path,"start_line":target.start_line,
+                "end_line":target.end_line,"start_column":target.start_column,"end_column":target.end_column,
+                "label":target.target_name},"related_locations":[],"message":target.message,
+                "explanation":explanation,"remediation":remediation,"fixes":[],"tool_rule_id":"",
+                "tool_name":tool["name"],"tool_version":tool["version"],"metrics":{},"snippet":"",
+                "suppression":{"kind":"none","reason":"","suppressed":false}})
+        };
+        let names: BTreeSet<&str> = records
+            .iter()
+            .filter_map(|record| record["name"].as_str())
+            .collect();
+        let versions: BTreeSet<&str> = records
+            .iter()
+            .filter_map(|record| record["version"].as_str())
+            .filter(|version| !version.is_empty())
+            .collect();
+        let linker_tool = json!({"name":names.into_iter().collect::<Vec<_>>().join("+"),
+            "version":versions.into_iter().collect::<Vec<_>>().join(", ")});
+        let mut findings = vec![];
+        if disabled {
+            let mut target = InspectionTarget::at(".", 1);
+            target.target_name = "C++UnusedFunctionsDisabled".into();
+            target.status = "SKIP".into();
+            target.message = "Compiler-backed C++ unused-function analysis is disabled".into();
+            findings.push(scope(
+                &target,
+                "info",
+                "This target records the bounded TU-local compiler unused-function scope.",
+                "Restore a complete, safe compilation context when exact analysis did not run.",
+                &json!({"name":"","version":""}),
+            ));
+            output.targets.push(target);
+        }
+        let mut target = InspectionTarget::at("CMakeLists.txt", 1);
+        target.target_name = "C++LinkerReachabilityError".into();
+        target.status = "ERROR".into();
+        target.message = message;
+        findings.push(scope(
+            &target,
+            "critical",
+            "This target records the bounded target-local GNU ELF section-GC scope.",
+            "Restore the supported GNU ELF CMake Release context when exact target-local analysis did not run.",
+            &linker_tool,
+        ));
+        output.targets.push(target);
+        output.extra = json!({"cpp_linker_mode":"error","cpp_linker_symbols_count":0,
+            "cpp_linker_targets_checked":0,"cpp_linker_sources_checked":0,
+            "cpp_linker_discarded_sections_observed":0,"cpp_linker_ambiguous_sections_excluded":0,
+            "cpp_linker_sections_kept_by_another_target":0,"cpp_linker_warnings":[],
+            "cpp_linker_details":[],"legacy_findings":findings,"tool_evidence":records});
+        output.observation.state = TaskState::Succeeded;
+        self.preparation_failures.insert(id.into(), output);
+    }
     /// Record the frozen legacy output for a check decided while planning its preparation.
     pub fn fail_preparation(&mut self, id: &str, output: AnalysisOutput) {
         self.preparation_failures.insert(id.into(), output);
@@ -4251,6 +4341,34 @@ impl CppPlans {
                     "ici.cpp.dead",
                     vec![unused, linker_output],
                 );
+            }
+            let mut linker_output = linker_output;
+            if self.legacy_unused_disabled.contains(&request.task_id) {
+                // Frozen `_analyze_cpp_scope` with `cpp_unused = "off"`: one disabled SKIP at
+                // the project root ahead of the linker targets.
+                let mut target = InspectionTarget::at(".", 1);
+                target.target_name = "C++UnusedFunctionsDisabled".into();
+                target.status = "SKIP".into();
+                target.message = "Compiler-backed C++ unused-function analysis is disabled".into();
+                // Its frozen compiler scope finding: exact once the linker scope measured the
+                // C++ evidence, and no compiler tool ran.
+                let measured = linker_output.extra["cpp_linker_mode"] == "exact";
+                let finding = json!({"rule_id":"ici.legacy.dead.target","category":"maintainability",
+                    "severity":"info","confidence":if measured { "exact" } else { "low" },
+                    "primary_location":{"path":target.file_path,"start_line":target.start_line,
+                    "end_line":target.end_line,"start_column":target.start_column,
+                    "end_column":target.end_column,"label":target.target_name},
+                    "related_locations":[],"message":target.message,
+                    "explanation":"This target records the bounded TU-local compiler unused-function scope.",
+                    "remediation":if measured { "" } else { "Restore a complete, safe compilation context when exact analysis did not run." },
+                    "fixes":[],"tool_rule_id":"","tool_name":"","tool_version":"","metrics":{},"snippet":"",
+                    "suppression":{"kind":"none","reason":"","suppressed":false}});
+                if let Some(findings) = linker_output.extra["legacy_findings"].as_array_mut() {
+                    findings.push(finding);
+                } else {
+                    linker_output.extra["legacy_findings"] = json!([finding]);
+                }
+                linker_output.targets.insert(0, target);
             }
             return linker_output;
         }
