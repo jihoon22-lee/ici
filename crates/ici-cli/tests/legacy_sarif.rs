@@ -34,9 +34,10 @@ fn copy(from: &Path, to: &Path) {
     }
 }
 
-/// Run the captured steps natively; returns the exit codes and the written SARIF. (Exit codes
-/// are the verify exit policy's, compared by the verify rows, not this writer's.)
-fn run(case: &Value) -> (Vec<i32>, Value, String) {
+/// Run the captured steps natively; returns the exit codes, the written SARIF, the last stdout
+/// and the saved `verify_report.json`. (Exit codes are the verify exit policy's, compared by the
+/// verify rows, not this writer's.)
+fn run(case: &Value) -> (Vec<i32>, Value, String, Value) {
     let home = tempfile::tempdir().unwrap();
     let directory = tempfile::tempdir().unwrap();
     let base = directory.path().join("project");
@@ -79,11 +80,13 @@ fn run(case: &Value) -> (Vec<i32>, Value, String) {
         stdout = output.stdout;
     }
     let text = fs::read_to_string(base.join("out/report.sarif")).unwrap();
+    let suite = fs::read_to_string(base.join("verify_report.json")).unwrap();
     let root = base.display().to_string();
     (
         codes,
         serde_json::from_str(&text.replace(&root, "<root>")).unwrap(),
         stdout,
+        serde_json::from_str(&suite.replace(&root, "<root>")).unwrap(),
     )
 }
 
@@ -133,7 +136,7 @@ fn alerts(sarif: &Value) -> BTreeMap<String, Value> {
 fn native_and_frozen(name: &str) -> (Value, Value) {
     let oracle = oracle();
     let case = &oracle["end_to_end"][name];
-    let (_, native, _) = run(case);
+    let (_, native, _, _) = run(case);
     let frozen = case["sarif"].clone();
     let document = &native["runs"][0];
     // The historical shape: no stored-run fields; frozen invocation and suite/engine counts.
@@ -201,9 +204,15 @@ fn python_verify_sarif_keeps_the_frozen_alert_identity() {
 
 #[test]
 fn hybrid_verify_sarif_keeps_the_frozen_source_alert_identity() {
-    // Project-level Python inventory targets (`.`, `tests`) are compared by the legacy
-    // projection rows, not here (see the closure record); every source alert is.
     assert_frozen_alerts_kept("hybrid", |uri| uri.starts_with("src/"));
+}
+
+/// The project-level Python facet of a hybrid suite (F5): the Ruff-unavailable
+/// `ASTSyntaxFallback` (`.`), both `No tests collected` targets (`tests`) and no C++-side
+/// `Resource:NotApplicable`/`Security:NotApplicable` root target keep the frozen alert identity.
+#[test]
+fn hybrid_verify_sarif_keeps_the_frozen_project_level_alert_identity() {
+    assert_frozen_alerts_kept("hybrid", |uri| !uri.starts_with("src/"));
 }
 
 #[test]
@@ -233,4 +242,108 @@ fn engine_commands_have_no_sarif_option_as_in_frozen() {
         );
     }
     assert!(registry::parse(["ici", "verify", "--sarif", "x.sarif"]).is_ok());
+}
+
+/// Engines whose legacy view differs from frozen by host only, so their comparison entries and
+/// SARIF states are not compared here: `python_compat` names the interpreter found on PATH.
+const VIEW_DIFFERENT: [&str; 1] = ["python_compat"];
+
+/// Frozen `compare_suite_to_baseline` in legacy space: every frozen delta (PASS inventory,
+/// MOVED pairs, NEW and RESOLVED findings with legacy rule IDs and `ici/v3` fingerprints) is
+/// reproduced in the frozen order, the counts and gate equal frozen, and the SARIF
+/// `baselineState` of each frozen result pairs (new/updated/unchanged/absent).
+#[test]
+fn baseline_verify_compares_legacy_findings_and_pairs_sarif_baseline_states_like_frozen() {
+    let oracle = oracle();
+    for name in ["baseline", "baseline-fail-on-new"] {
+        let case = &oracle["end_to_end"][name];
+        let (_, sarif, _, suite) = run(case);
+        let frozen = &case["suite"]["baseline_comparison"];
+        let native = &suite["baseline_comparison"];
+        for key in [
+            "source_path",
+            "fail_on_new",
+            "gate_failed",
+            "new_count",
+            "moved_count",
+            "resolved_count",
+            "regressed_count",
+            "gated_count",
+            "warnings",
+        ] {
+            assert_eq!(native[key], frozen[key], "{name} {key}");
+        }
+        assert!(native.get("carried_count").is_none(), "{name}");
+        let compared = |entry: &&Value| {
+            !VIEW_DIFFERENT.contains(&entry["engine_name"].as_str().unwrap_or_default())
+        };
+        let frozen_entries: Vec<&Value> = frozen["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(compared)
+            .collect();
+        let native_entries: Vec<&Value> = native["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(compared)
+            .collect();
+        let common: Vec<&Value> = native_entries
+            .iter()
+            .copied()
+            .filter(|entry| frozen_entries.contains(entry))
+            .collect();
+        assert_eq!(
+            common, frozen_entries,
+            "{name}: frozen deltas in frozen order"
+        );
+        for entry in native_entries {
+            if !frozen_entries.contains(&entry) {
+                // Native-only PASS inventory of the projection: never an actionable delta.
+                assert_eq!(
+                    (&entry["state"], &entry["gated"], &entry["current_severity"]),
+                    (&json!("unchanged"), &json!(false), &json!("info")),
+                    "{name}: {entry}"
+                );
+            }
+        }
+        let states = |document: &Value| -> BTreeMap<String, Value> {
+            document["runs"][0]["results"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|result| {
+                    (
+                        format!(
+                            "{} {}",
+                            result["fingerprints"]["ici/v3"].as_str().unwrap(),
+                            result["message"]["text"].as_str().unwrap()
+                        ),
+                        result["baselineState"].clone(),
+                    )
+                })
+                .collect()
+        };
+        let native_states = states(&sarif);
+        for result in case["sarif"]["runs"][0]["results"].as_array().unwrap() {
+            let rule = result["ruleId"].as_str().unwrap();
+            if VIEW_DIFFERENT
+                .iter()
+                .any(|engine| rule == format!("ici.legacy.{}.target", engine.replace('_', "-")))
+            {
+                continue;
+            }
+            let key = format!(
+                "{} {}",
+                result["fingerprints"]["ici/v3"].as_str().unwrap(),
+                result["message"]["text"].as_str().unwrap()
+            );
+            assert_eq!(
+                native_states.get(&key),
+                Some(&result["baselineState"]),
+                "{name} {key}"
+            );
+        }
+    }
 }

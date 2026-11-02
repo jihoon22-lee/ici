@@ -546,11 +546,14 @@ fn observe_coverage(
             "pytest module is unavailable; fallback unittest does not collect coverage",
         );
     }
-    if matches!(
-        crate::python_coverage::capability(plan, outcomes)?,
-        Some(crate::python_coverage::Capability::Missing)
-    ) {
-        return crate::python_coverage::unavailable(plan, output);
+    match crate::python_coverage::capability(plan, outcomes)? {
+        Some(crate::python_coverage::Capability::Missing) => {
+            return crate::python_coverage::unavailable(plan, output);
+        }
+        Some(crate::python_coverage::Capability::Failed(reason)) => {
+            return Err(ValidationError(reason));
+        }
+        _ => {}
     }
     let suite = suite(plan, outcomes)?;
     if !planning::completed(suite) || !matches!(suite.exit_code, Some(0 | 1)) {

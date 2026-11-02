@@ -1,0 +1,119 @@
+{
+ "cases": {
+  "ast_aggregate_bound": {
+   "ast_nodes": 920022,
+   "engine": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "Python compatibility analysis incomplete: Python compatibility aggregate AST exceeds the bounded limit (1000000 nodes)"
+   },
+   "exit_code": 1,
+   "static_scans": 11,
+   "targets": [
+    {
+     "file_path": "pyproject.toml",
+     "message": "Python compatibility aggregate AST exceeds the bounded limit (1000000 nodes)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ]
+  },
+  "ast_file_bound": {
+   "ast_nodes": 12,
+   "engine": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "Python compatibility analysis incomplete: Python compatibility AST exceeds the bounded limit (100000 nodes)"
+   },
+   "exit_code": 1,
+   "static_scans": 1,
+   "targets": [
+    {
+     "file_path": "pyproject.toml",
+     "message": "Python compatibility AST exceeds the bounded limit (100000 nodes)",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ]
+  },
+  "compile_targets_bound": {
+   "ast_nodes": 1548,
+   "engine": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "Python compatibility analysis incomplete: Python compileall target count exceeds 128"
+   },
+   "exit_code": 1,
+   "static_scans": 129,
+   "targets": [
+    {
+     "file_path": "pyproject.toml",
+     "message": "Python compileall target count exceeds 128",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "Compatibility:AnalysisUnavailable"
+    }
+   ]
+  },
+  "compile_truncated": {
+   "ast_nodes": 12,
+   "engine": {
+    "evidence": "MEASURED",
+    "status": "FAIL",
+    "summary": "Python compatibility: 1 failure(s), 0 warning(s)"
+   },
+   "exit_code": 1,
+   "static_scans": 1,
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "<bin>/python3 (3.12.13): compileall: output exceeded the bounded limit",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "PythonRuntime:Incompatible"
+    }
+   ]
+  },
+  "imports_truncated": {
+   "ast_nodes": 12,
+   "engine": {
+    "evidence": "MEASURED",
+    "status": "FAIL",
+    "summary": "Python compatibility: 1 failure(s), 0 warning(s)"
+   },
+   "exit_code": 1,
+   "static_scans": 1,
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "<bin>/python3 (3.12.13): import smoke: output exceeded the bounded limit",
+     "start_line": 1,
+     "status": "FAIL",
+     "target_name": "PythonRuntime:Incompatible"
+    }
+   ]
+  },
+  "version_timeout": {
+   "ast_nodes": 12,
+   "engine": {
+    "evidence": "NOT_RUN",
+    "status": "ERROR",
+    "summary": "<bin>/python3: timed out"
+   },
+   "exit_code": 1,
+   "static_scans": 1,
+   "targets": [
+    {
+     "file_path": ".",
+     "message": "<bin>/python3: timed out",
+     "start_line": 1,
+     "status": "ERROR",
+     "target_name": "PythonRuntime:VersionUnavailable"
+    }
+   ]
+  }
+ },
+ "oracle": "6fe3e405f8e584234a56cb8f0d8c0bd2cb31a188"
+}

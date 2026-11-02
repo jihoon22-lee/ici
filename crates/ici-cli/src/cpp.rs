@@ -1596,26 +1596,19 @@ fn bind_inputs(
         .collect();
 }
 /// A clang-tidy config that could inject compiler arguments (`ExtraArgs`, `ExtraArgsBefore`) or
-/// pull in a parent config (`InheritParentConfig`). LLVM's YAML parser decodes escapes in
-/// double-quoted scalars, so `"\x45xtraArgs"` is the key `ExtraArgs` although its text is not:
-/// any backslash inside a double-quoted scalar is refused too, as are NUL bytes (UTF-16/32).
-/// Frozen matched the raw text only; the stricter rule is an intended security correction.
+/// pull in a parent config (`InheritParentConfig`). LLVM's YAML parser decodes escapes only in
+/// double-quoted scalars, so `"\x45xtraArgs"` is the key `ExtraArgs` although its text is not.
+/// Without a double quote or without a backslash the raw text is the decoded text (plain and
+/// single-quoted folding never joins characters), so a file holding both is refused outright
+/// instead of tracking quotes, as are NUL bytes (UTF-16/32). Frozen matched the raw text only;
+/// the stricter rule is an intended security correction.
 pub(crate) fn clang_tidy_config_is_unsafe(bytes: &[u8]) -> bool {
     let lowered = bytes.to_ascii_lowercase();
     let mentions = |needle: &[u8]| lowered.windows(needle.len()).any(|window| window == needle);
-    if bytes.contains(&0) || mentions(b"extraargs") || mentions(b"inheritparentconfig") {
-        return true;
-    }
-    let mut double_quoted = false;
-    for byte in bytes {
-        match (double_quoted, byte) {
-            (false, b'"') => double_quoted = true,
-            (true, b'\\') => return true,
-            (true, b'"') => double_quoted = false,
-            _ => {}
-        }
-    }
-    false
+    bytes.contains(&0)
+        || mentions(b"extraargs")
+        || mentions(b"inheritparentconfig")
+        || (bytes.contains(&b'"') && bytes.contains(&b'\\'))
 }
 
 fn tooling_config(
@@ -4775,6 +4768,17 @@ mod clang_tidy_config_tests {
         assert!(!unsafe_config(
             b"Checks: \"-*,bugprone-*\"\n# a \"quoted\" note\n"
         ));
+    }
+
+    #[test]
+    fn a_double_quote_beside_any_backslash_is_refused_without_tracking_quotes() {
+        // A quote inside a single-quoted scalar or a comment cannot desynchronise the check.
+        for text in [
+            &b"Checks: 'a\"b'\n\"\\x45xtraArgs\": ['-fplugin=x.so']\n"[..],
+            b"# say \"hi\nHeaderFilterRegex: '.*\\.h'\n",
+        ] {
+            assert!(unsafe_config(text), "{}", String::from_utf8_lossy(text));
+        }
     }
 
     #[test]

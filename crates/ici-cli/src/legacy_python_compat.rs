@@ -87,7 +87,39 @@ fn version(value: &Value) -> Option<String> {
 /// Rebuilds the frozen engine verdict. `settings` is the effective `engines.python_compat`.
 /// Returns `false` (engine untouched) when no native Python compatibility check ran, e.g. the
 /// C++ `cpp.python-compat` applicability check of a C++ project.
-pub(crate) fn shape(engine: &mut Value, settings: &Value) -> ici_reporting::Result<bool> {
+/// Frozen `_compile_targets` bound: more than this many compileall targets is an analysis error.
+const MAX_COMPILE_TARGETS: usize = 128;
+const COMPILE_TARGETS_EXCEEDED: &str = "Python compileall target count exceeds 128";
+
+/// Frozen `_compile_targets` count: each selected Python source contributes its first configured
+/// existing source directory, else the file itself; duplicates collapse.
+pub(crate) fn compile_target_count(project: &ici_config::ResolvedProject) -> usize {
+    let mut targets = std::collections::BTreeSet::new();
+    for component in &project.components {
+        let directories: Vec<_> = component
+            .source_dirs
+            .iter()
+            .filter(|directory| crate::files::under(&project.root, directory).is_dir())
+            .collect();
+        for file in component.files.iter().filter(|file| file.ends_with(".py")) {
+            let parent = directories.iter().find(|directory| {
+                directory.as_str() == "."
+                    || file.starts_with(&format!("{}/", directory.trim_end_matches('/')))
+            });
+            targets.insert(match parent {
+                Some(directory) => format!("dir:{directory}"),
+                None => format!("file:{file}"),
+            });
+        }
+    }
+    targets.len()
+}
+
+pub(crate) fn shape(
+    engine: &mut Value,
+    settings: &Value,
+    compile_targets: usize,
+) -> ici_reporting::Result<bool> {
     let checks = engine["extra"]["native_checks"]
         .as_array()
         .cloned()
@@ -127,6 +159,12 @@ pub(crate) fn shape(engine: &mut Value, settings: &Value) -> ici_reporting::Resu
             } else {
                 let message = item["message"].as_str().unwrap_or_default();
                 errors.push(message.to_owned());
+                // Frozen raises its AST bounds as PythonMetadataError, located at pyproject.toml.
+                let path = if rule == "compatibility-ast-limit" {
+                    "pyproject.toml"
+                } else {
+                    path
+                };
                 targets.push(target(
                     path,
                     json!(1),
@@ -204,7 +242,20 @@ pub(crate) fn shape(engine: &mut Value, settings: &Value) -> ici_reporting::Resu
                 matrix = value["runtime_matrix"].as_array().cloned();
             }
         }
-        let runtimes: Vec<Runtime> = if runtime["state"] == "BLOCKED" {
+        // A runtime matrix that ran (its steps can still leave the check BLOCKED, e.g. a timed
+        // out version probe) is judged per interpreter like frozen `_check_runtime`.
+        let runtimes: Vec<Runtime> = if let Some(matrix) = matrix {
+            matrix
+                .iter()
+                .enumerate()
+                .map(|(index, entry)| Runtime {
+                    configured: entry["configured"].as_str().unwrap_or_default().into(),
+                    required: entry["required"] == true,
+                    index: (entry["state"] != "unavailable").then_some(index),
+                    version: version(&entry["runtime"]["version"]),
+                })
+                .collect()
+        } else if runtime["state"] == "BLOCKED" {
             let summary = runtime["summary"].as_str().unwrap_or_default();
             if configured.is_empty()
                 || !summary.starts_with("no configured project runtime is available")
@@ -231,17 +282,6 @@ pub(crate) fn shape(engine: &mut Value, settings: &Value) -> ici_reporting::Resu
                     })
                     .collect()
             }
-        } else if let Some(matrix) = matrix {
-            matrix
-                .iter()
-                .enumerate()
-                .map(|(index, entry)| Runtime {
-                    configured: entry["configured"].as_str().unwrap_or_default().into(),
-                    required: entry["required"] == true,
-                    index: (entry["state"] != "unavailable").then_some(index),
-                    version: version(&entry["runtime"]["version"]),
-                })
-                .collect()
         } else {
             let configured = step(&steps, None, ".metadata")
                 .and_then(|step| step["argv"][0].as_str())
@@ -319,6 +359,21 @@ pub(crate) fn shape(engine: &mut Value, settings: &Value) -> ici_reporting::Resu
                 continue;
             };
             let index = (index != usize::MAX).then_some(index);
+            if runtime.version.is_some() && compile_targets > MAX_COMPILE_TARGETS {
+                // Frozen `_run_compileall` raises before compiling for the first interpreter
+                // whose version was read; the engine stops checking runtimes there.
+                errors.push(COMPILE_TARGETS_EXCEEDED.into());
+                targets.push(target(
+                    "pyproject.toml",
+                    json!(1),
+                    Value::Null,
+                    "Compatibility:AnalysisUnavailable",
+                    "ERROR",
+                    COMPILE_TARGETS_EXCEEDED,
+                    json!({}),
+                ));
+                break;
+            }
             let Some(version) = runtime.version else {
                 let reason = problem(step(&steps, index, ".metadata"))
                     .unwrap_or_else(|| "unparseable version".into());

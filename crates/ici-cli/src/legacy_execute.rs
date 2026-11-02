@@ -166,6 +166,11 @@ pub fn command(
     // An incompatible baseline under --fail-on-new fails like the frozen gate (exit 1, never a
     // silent pass) with the exact command that regenerates it; nothing is reported as new.
     let mut incompatible_baseline = None;
+    // A legacy-schema `verify` against a baseline a native `--write-baseline` saved compares in
+    // frozen legacy space (see `frozen_baseline`), and that comparison decides the gate.
+    let frozen_space = legacy_schema
+        && engine(&invocation.command()).is_none()
+        && run.legacy_baseline_suite.is_some();
     if invocation.flag("fail_on_new") {
         match &run.result.baseline {
             Some(delta) if delta.state == ici_domain::BaselineState::Comparable => {
@@ -176,7 +181,8 @@ pub fn command(
                     )));
                 }
                 // Gated new findings and gated severity regressions (frozen FindingDelta.gated).
-                if !run.baseline_gate_failures.is_empty()
+                if !frozen_space
+                    && !run.baseline_gate_failures.is_empty()
                     && run.result.gate.selected != GateVerdict::Incomplete
                 {
                     regressed = true;
@@ -234,6 +240,17 @@ pub fn command(
             };
             stored = StoredResult::from_value(document).map_err(error)?;
         }
+    }
+    // Frozen `_write_baseline`: the written baseline has no comparison and the suite status before
+    // the gate.
+    let mut pre_gate_status = None;
+    if frozen_space && let StoredResult::Legacy(legacy) = &stored {
+        let mut document = legacy.as_value().clone();
+        pre_gate_status = Some(document["suite_status"].clone());
+        if frozen_baseline(&mut document, &run)? {
+            exit_code = exit_code.max(1);
+        }
+        stored = StoredResult::from_value(document).map_err(error)?;
     }
     // Frozen `ici verify` exits 1 for a FAIL/ERROR suite. A legacy verdict the native gate keeps
     // advisory (e.g. a coverage minimum the frozen TestEngine turns into FAIL) never exits 0;
@@ -372,7 +389,16 @@ pub fn command(
             invocation.value("baseline").unwrap_or_default()
         ));
     } else if let Some(path) = baseline_output {
-        write_result_export(&path, &stored, &run.result_path)?;
+        match (&stored, pre_gate_status) {
+            (StoredResult::Legacy(legacy), Some(status)) => {
+                let mut document = legacy.as_value().clone();
+                document["baseline_comparison"] = serde_json::Value::Null;
+                document["suite_status"] = status;
+                let written = StoredResult::from_value(document).map_err(error)?;
+                write_result_export(&path, &written, &run.result_path)?;
+            }
+            _ => write_result_export(&path, &stored, &run.result_path)?,
+        }
         stdout.push_str(&format!("wrote baseline {}\n", path.display()));
     }
     if invocation.flag("github_summary") {
@@ -490,6 +516,7 @@ fn shape_engine(
         && legacy_schema
         && let Some(languages) = no_tests_collected(&root, value, cpp_in_scope(prepared))
             .or_else(|| empty_pytest_suite(value))
+            .or_else(|| hybrid_empty_pytest_suite(&root, value, cpp_in_scope(prepared)))
             .or_else(|| python_without_tests_dir(&root, value))
     {
         // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
@@ -570,7 +597,9 @@ fn shape_engine(
                     .cloned()
             })
             .unwrap_or_default();
-        replaced = crate::legacy_python_compat::shape(value, &settings).map_err(error)?;
+        let compile_targets = crate::legacy_python_compat::compile_target_count(&prepared.project);
+        replaced =
+            crate::legacy_python_compat::shape(value, &settings, compile_targets).map_err(error)?;
     } else if family == "lint" && legacy_schema && ruff_unavailable(value) {
         // Frozen `_lint_python` without Ruff: the AST syntax pass stands in (one
         // `ASTSyntaxFallback` inventory target) with a tool warning (ESTIMATED) or, under
@@ -583,28 +612,7 @@ fn shape_engine(
                     .cloned()
             })
         };
-        let mut targets = vec![];
-        let mut parsed = 0;
-        for component in &prepared.project.components {
-            parsed += component
-                .files
-                .iter()
-                .filter(|path| path.ends_with(".py"))
-                .count();
-            targets.extend(crate::legacy::python_syntax_targets(
-                &root,
-                &component.files,
-            ));
-        }
-        let fail = targets.len();
-        let mut targets: Vec<_> = targets
-            .into_iter()
-            .map(|target| serde_json::to_value(target).map_err(error))
-            .collect::<Result<_>>()?;
-        targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
-                "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
-                "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
-                "snippet":"","metrics":{"files_parsed":parsed}}));
+        let (targets, fail, _) = python_fallback_targets(prepared, &root)?;
         if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
             ici_reporting::legacy_verdict(
                 value,
@@ -634,6 +642,115 @@ fn shape_engine(
             replaced = true;
         }
         value["tool_evidence"] = missing_tool("ruff");
+    } else if family == "lint" && legacy_schema && hybrid_ruff_unavailable(value) {
+        // Frozen `LintEngine.run` on a hybrid project without Ruff: the Python AST fallback
+        // targets come first, then the C++ targets; the tool warnings are Ruff's then the C++
+        // ones (compile-database fallback, Qt, clang tooling), the errors Ruff's (under
+        // `ruff_required`) then the C++ tool errors.
+        let setting = |key: &str| {
+            prepared.project.components.iter().find_map(|component| {
+                component
+                    .settings
+                    .pointer(&format!("/engines/lint/{key}"))
+                    .cloned()
+            })
+        };
+        let (mut targets, _, parsed) = python_fallback_targets(prepared, &root)?;
+        targets.extend(value["targets"].as_array().cloned().unwrap_or_default());
+        let checks = value["extra"]["native_checks"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        let strings = |key: &str| -> Vec<String> {
+            checks
+                .iter()
+                .flat_map(|check| check["extra"][key].as_array().cloned().unwrap_or_default())
+                .filter_map(|item| item.as_str().map(str::to_owned))
+                .collect()
+        };
+        let mut errors = vec![];
+        let mut warnings = vec![];
+        if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
+            errors.push("Ruff is required but was not found".to_owned());
+        } else {
+            warnings.push("Ruff is unavailable; AST syntax fallback is ESTIMATED".to_owned());
+        }
+        if checks.iter().any(|check| {
+            check["check_id"] == "cpp.diagnostics"
+                && check["extra"]["cpp_analysis_mode"] == "heuristic"
+        }) {
+            warnings.push("No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback".to_owned());
+        }
+        warnings.extend(strings("legacy_qt_warnings"));
+        warnings.extend(strings("legacy_tool_warnings"));
+        errors.extend(strings("legacy_tool_errors"));
+        let count = |status: &str| {
+            targets
+                .iter()
+                .filter(|target| target["status"] == status)
+                .count()
+        };
+        let fail = count("FAIL");
+        let messages: Vec<&str> = targets
+            .iter()
+            .filter(|target| target["status"] == "WARN")
+            .filter_map(|target| target["message"].as_str())
+            .collect();
+        let warn = count("WARN")
+            + warnings
+                .iter()
+                .filter(|warning| !messages.contains(&warning.as_str()))
+                .count();
+        let mode = setting("mode")
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .unwrap_or_else(|| "pass_warn_fail".into());
+        let status = if !errors.is_empty() {
+            "ERROR"
+        } else {
+            match (mode.as_str(), fail > 0, warn > 0) {
+                ("pass_fail", true, _) | ("pass_fail", _, true) => "FAIL",
+                ("pass_warn", true, _) | ("pass_warn", _, true) => "WARN",
+                (_, true, _) => "FAIL",
+                (_, _, true) => "WARN",
+                _ => "PASS",
+            }
+        };
+        let summary = if !errors.is_empty() {
+            errors
+                .iter()
+                .take(3)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("; ")
+        } else if status == "PASS" {
+            "0 Violations Found".to_owned()
+        } else if !warnings.is_empty() && fail == 0 {
+            warnings
+                .iter()
+                .take(2)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("; ")
+        } else {
+            format!("{fail} Errors, {warn} Warnings Found")
+        };
+        let evidence = if !errors.is_empty() {
+            "NOT_RUN"
+        } else if !warnings.is_empty() {
+            "ESTIMATED"
+        } else {
+            "MEASURED"
+        };
+        ici_reporting::legacy_verdict(value, status, evidence, &summary, targets).map_err(error)?;
+        value["extra"]["python_files_parsed"] = serde_json::json!(parsed);
+        let mut evidence = missing_tool("ruff");
+        if let (Some(list), Some(cpp)) =
+            (evidence.as_array_mut(), value["tool_evidence"].as_array())
+        {
+            list.extend(cpp.iter().cloned());
+        }
+        value["tool_evidence"] = evidence;
+        replaced = true;
     } else if family == "type" && legacy_schema && mypy_unavailable(value) {
         // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
         // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
@@ -683,6 +800,16 @@ fn shape_engine(
         replaced = true;
     } else if family == "test"
         && legacy_schema
+        && let Some(reason) = legacy_coverage_probe_error(value)
+    {
+        // Frozen `_find_coverage_cmd`: a failed probe is a tool error; the plain suite still ran
+        // (its case targets stay) and `_result_status`/`_result_summary` report the error.
+        value["status"] = serde_json::json!("ERROR");
+        value["evidence"] = serde_json::json!("NOT_RUN");
+        value["summary"] = serde_json::json!(reason);
+        replaced = true;
+    } else if family == "test"
+        && legacy_schema
         && !coverage_required
         && let Some(reason) = optional_coverage_missing(value)
     {
@@ -690,8 +817,12 @@ fn shape_engine(
         // test verdict (FAIL still wins). Native never invents the frozen estimate.
         let (status, code) = optional_coverage_verdict(&value["targets"], regressed);
         value["status"] = serde_json::json!(status);
-        let passed = value["extra"]["passed_tests"].as_u64().unwrap_or(0);
-        let total = value["extra"]["total_tests"].as_u64().unwrap_or(0);
+        // The engine aggregate stops at the unmeasured coverage half; frozen `_result_summary`
+        // counts the plain suite that ran, which the python.test check measured.
+        let (passed, total) = python_test_counts(value).unwrap_or((
+            value["extra"]["passed_tests"].as_u64().unwrap_or(0),
+            value["extra"]["total_tests"].as_u64().unwrap_or(0),
+        ));
         value["summary"] = serde_json::json!(format!(
             "{passed}/{total} Tests Passed; coverage not measured (optional): {reason}"
         ));
@@ -734,6 +865,9 @@ fn shape_engine(
         ));
         exit_code = exit_code.max(code);
         replaced = true;
+    }
+    if legacy_schema {
+        crate::legacy_python_inventory::shape(family, value, &root)?;
     }
     Ok((replaced, exit_code))
 }
@@ -934,14 +1068,70 @@ fn no_tests_collected(
     Some(languages)
 }
 
-/// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
-/// refused at planning (a mixed C++ lint view keeps its native shape).
 /// Frozen `_record_missing_tool`: the evidence of a tool that was looked for and not run.
 fn missing_tool(name: &str) -> serde_json::Value {
     serde_json::json!([{"name":name,"path":"","version":"","argv":[],"returncode":null,
         "timed_out":false,"truncated":false,"error":"tool not found; no command was executed"}])
 }
 
+/// Frozen `_lint_python` without Ruff: the AST syntax targets of every selected Python file and
+/// the `ASTSyntaxFallback` inventory target; the syntax failure count and parsed file count.
+fn python_fallback_targets(
+    prepared: &crate::planning::PreparedPlan,
+    root: &Path,
+) -> Result<(Vec<serde_json::Value>, usize, usize)> {
+    let mut targets = vec![];
+    let mut parsed = 0;
+    for component in &prepared.project.components {
+        parsed += component
+            .files
+            .iter()
+            .filter(|path| path.ends_with(".py"))
+            .count();
+        targets.extend(crate::legacy::python_syntax_targets(root, &component.files));
+    }
+    let fail = targets.len();
+    let mut targets: Vec<_> = targets
+        .into_iter()
+        .map(|target| serde_json::to_value(target).map_err(error))
+        .collect::<Result<_>>()?;
+    targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
+            "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
+            "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
+            "snippet":"","metrics":{"files_parsed":parsed}}));
+    Ok((targets, fail, parsed))
+}
+
+/// A hybrid lint view whose Ruff checks were refused at planning (`ruff: …`) while its C++ lint
+/// checks ran: the Python facet takes frozen's AST fallback beside the C++ targets.
+fn hybrid_ruff_unavailable(engine: &serde_json::Value) -> bool {
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return false;
+    };
+    let (python, cpp): (Vec<_>, Vec<_>) = checks.iter().partition(|check| {
+        matches!(
+            check["check_id"].as_str(),
+            Some("python.lint" | "python.format")
+        )
+    });
+    !python.is_empty()
+        && !cpp.is_empty()
+        && python.iter().all(|check| {
+            check["state"] == "BLOCKED"
+                && check["summary"]
+                    .as_str()
+                    .is_some_and(|summary| summary.starts_with("ruff: "))
+        })
+        && cpp.iter().all(|check| {
+            check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("cpp."))
+                && check["state"] != "BLOCKED"
+        })
+}
+
+/// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
+/// refused at planning (a hybrid view is `hybrid_ruff_unavailable`).
 fn ruff_unavailable(engine: &serde_json::Value) -> bool {
     engine["extra"]["native_checks"]
         .as_array()
@@ -1171,6 +1361,69 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
     .then(|| vec!["Python"])
 }
 
+/// Frozen `TestEngine` on a hybrid project whose pytest collected nothing and whose C++ facet has
+/// no runnable suite: `[Python] Tests` and, when C++ is in scope and `tests/` holds no `*.cpp`,
+/// `[C++] Tests` are both "No tests collected" (a FAIL verdict, not missing evidence).
+fn hybrid_empty_pytest_suite(
+    root: &Path,
+    engine: &serde_json::Value,
+    cpp_scope: bool,
+) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let (python, cpp): (Vec<_>, Vec<_>) = checks.iter().partition(|check| {
+        check["check_id"]
+            .as_str()
+            .is_some_and(|id| id.starts_with("python."))
+    });
+    if cpp.is_empty()
+        || !cpp.iter().all(|check| {
+            check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("cpp."))
+                && check["state"] == "BLOCKED"
+                && check["summary"].as_str().is_some_and(|summary| {
+                    summary == "C++ runtime checks require a declared component build"
+                        || summary.starts_with("CTest inventory is unavailable: ")
+                        || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
+                })
+        })
+    {
+        return None;
+    }
+    let mut alone = engine.clone();
+    alone["extra"]["native_checks"] = serde_json::json!(python);
+    empty_pytest_suite(&alone)?;
+    let mut languages = vec!["Python"];
+    if cpp_scope && !tests_have_cpp_sources(root)? {
+        languages.push("C++");
+    }
+    Some(languages)
+}
+
+/// Whether `tests/` holds a `*.cpp` file (frozen C++ test discovery); `None` past the walk bound.
+fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
+    let mut pending = vec![root.join("tests")];
+    let mut visited = 0usize;
+    while let Some(directory) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            visited += 1;
+            if visited > 100_000 {
+                return None;
+            }
+            let metadata = std::fs::symlink_metadata(entry.path()).ok()?;
+            if metadata.is_dir() {
+                pending.push(entry.path());
+            } else if entry.file_name().to_string_lossy().ends_with(".cpp") {
+                return Some(true);
+            }
+        }
+    }
+    Some(false)
+}
+
 /// Frozen `no_tests_executed` (`total_tests > 0`, no failure, every case skipped) over the
 /// completed native Python test check; the count of collected cases. C++ suites keep their own
 /// verdicts (cpp facet).
@@ -1245,6 +1498,38 @@ fn optional_coverage_missing(engine: &serde_json::Value) -> Option<String> {
     .then(|| reason.to_owned())
 }
 
+/// Passed/total cases the legacy python.test check measured (its own extra block).
+fn python_test_counts(engine: &serde_json::Value) -> Option<(u64, u64)> {
+    let test = engine["extra"]["native_checks"]
+        .as_array()?
+        .iter()
+        .find(|check| check["check_id"] == "python.test" && check["state"] == "SUCCEEDED")?;
+    test["extra"].as_object()?.values().find_map(|extra| {
+        Some((
+            extra["passed_tests"].as_u64()?,
+            extra["total_tests"].as_u64()?,
+        ))
+    })
+}
+
+/// The frozen coverage-probe tool error a legacy python.coverage check failed with
+/// (`ici_validation::python_coverage::LEGACY_PROBE_ERRORS`).
+fn legacy_coverage_probe_error(engine: &serde_json::Value) -> Option<String> {
+    let coverage = engine["extra"]["native_checks"]
+        .as_array()?
+        .iter()
+        .find(|check| check["check_id"] == "python.coverage")?;
+    let reason = coverage["summary"].as_str()?;
+    let [timed_out, truncated, terminated, exit] =
+        ici_validation::python_coverage::LEGACY_PROBE_ERRORS;
+    (coverage["state"] == "FAILED"
+        && ([timed_out, truncated, terminated].contains(&reason)
+            || reason
+                .strip_prefix(exit)
+                .is_some_and(|code| code.parse::<i32>().is_ok())))
+    .then(|| reason.to_owned())
+}
+
 /// A changed-line selection the native planner refused (frozen evaluates it at run time and
 /// reports an ERROR policy target).
 fn refused_policy(engine: &serde_json::Value) -> Option<String> {
@@ -1260,6 +1545,79 @@ fn refused_policy(engine: &serde_json::Value) -> Option<String> {
         })
         .next()
         .map(str::to_owned)
+}
+
+/// Frozen `VerifyEngine._apply_baseline` over the shaped legacy suite: the legacy findings of every
+/// engine (PASS inventory included) and the run's coverage regressions, compared with the legacy
+/// suite the baseline saved (`ici_reporting::frozen_baseline_comparison`). A failed
+/// `--fail-on-new` gate turns a passing suite FAIL; returns whether the gate failed.
+fn frozen_baseline(
+    document: &mut serde_json::Value,
+    run: &crate::execute::ExecutedRun,
+) -> Result<bool> {
+    let (Some(native), Some(saved)) = (&run.legacy_baseline, &run.legacy_baseline_suite) else {
+        return Ok(false);
+    };
+    let mut current = ici_reporting::legacy_records(&document["results"]);
+    for finding in &run.result.findings {
+        let Some(kind) = finding
+            .rule_id
+            .strip_prefix(ici_reporting::COVERAGE_REGRESSION_RULE)
+        else {
+            continue;
+        };
+        let path = &finding.primary_location.path;
+        let name = format!("Coverage regression:{kind}");
+        let metrics = run
+            .outputs
+            .values()
+            .flat_map(|output| &output.targets)
+            .find(|target| target.target_name == name && &target.file_path == path)
+            .map(|target| &target.metrics);
+        let number = |key: &str| metrics.and_then(|metrics| metrics.get(key)?.as_f64());
+        if let (Some(actual), Some(before), Some(drop)) =
+            (number("actual"), number("baseline"), number("allowed_drop"))
+        {
+            current.push(
+                ici_reporting::coverage_regression_record(kind, path, actual, before, drop)
+                    .map_err(error)?,
+            );
+        }
+    }
+    let statuses = document["results"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|engine| {
+            (
+                engine["engine_name"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_owned(),
+                engine["status"].as_str().unwrap_or_default().to_owned(),
+            )
+        })
+        .collect();
+    let comparison = ici_reporting::frozen_baseline_comparison(
+        &current,
+        &ici_reporting::legacy_records(&saved["results"]),
+        &statuses,
+        native["source_path"].as_str().unwrap_or_default(),
+        native["warnings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|warning| warning.as_str().map(str::to_owned))
+            .collect(),
+        saved["analysis_metadata"].clone(),
+        native["fail_on_new"] == true,
+    );
+    let failed = comparison["gate_failed"] == true;
+    document["baseline_comparison"] = comparison;
+    if failed && !matches!(document["suite_status"].as_str(), Some("FAIL" | "ERROR")) {
+        document["suite_status"] = serde_json::json!("FAIL");
+    }
+    Ok(failed)
 }
 
 /// Frozen optional-coverage verdict: a measured FAIL/ERROR target wins over the coverage WARN,

@@ -13,8 +13,13 @@ pub use projection::{
     legacy_verdict, legacy_worst_status,
 };
 mod baseline_delta;
+mod legacy_baseline;
 pub use baseline_delta::{
     baseline_gate_failures, baseline_gated, legacy_baseline_comparison, severity_regressed,
+};
+pub use legacy_baseline::{
+    COVERAGE_REGRESSION_RULE, LegacyRecord, coverage_regression_record, frozen_baseline_comparison,
+    legacy_records,
 };
 mod legacy_console;
 mod legacy_support;
