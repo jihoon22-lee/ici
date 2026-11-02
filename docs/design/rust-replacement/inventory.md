@@ -134,17 +134,17 @@ finding 누락·위치·severity·scope·분모·완결성·exit 차이를 정�
 | `ici export-compilation-context` | 4 | not_started |
 | `ici import-report` | 5 | complete |
 | `ici init` | 4 | not_started |
-| `ici line` | 1 | verified |
+| `ici line` | 1 | complete |
 | `ici lint` | 1 | not_started |
 | `ici next diff` | 2 | not_started |
 | `ici next doctor` | 7 | not_started |
 | `ici next init` | 4 | not_started |
 | `ici next migrate` | 3 | complete |
 | `ici next plan` | 8 | not_started |
-| `ici next publish` | 4 | difference_review |
+| `ici next publish` | 4 | complete |
 | `ici next report` | 4 | not_started |
 | `ici next verify` | 12 | not_started |
-| `ici publish` | 3 | difference_review |
+| `ici publish` | 3 | complete |
 | `ici python-compat` | 1 | not_started |
 | `ici report` | 4 | not_started |
 | `ici resource` | 1 | not_started |
