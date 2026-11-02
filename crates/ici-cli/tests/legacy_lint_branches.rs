@@ -6,6 +6,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+#[path = "support/lint_extra.rs"]
+mod lint_extra;
+
 const FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -106,6 +109,8 @@ fn run(oracle: &Value, case: &Value) -> Value {
         "evidence": engine["evidence"],
         "targets": targets,
         "findings": engine["findings"],
+        "extra": engine["extra"],
+        "tool_evidence": engine["tool_evidence"],
     });
     if command != "verify" {
         captured["exit_code"] = json!(output.exit_code);
@@ -192,6 +197,14 @@ fn legacy_cpp_lint_execution_branches_match_frozen_targets_summaries_and_evidenc
         {
             eprintln!("== {name}/compile_db\nactual: {native}\nfrozen: {oracle}");
             mismatches.push(format!("{name}/compile_db"));
+        }
+        let differences = lint_extra::split(&mut actual, &mut frozen);
+        if !differences.is_empty() {
+            eprintln!(
+                "== {name} (extra/tool_evidence)\n{}",
+                differences.join("\n")
+            );
+            mismatches.push(format!("{name}/extra"));
         }
         if actual != frozen {
             eprintln!(

@@ -1763,6 +1763,37 @@ pub(crate) fn shadow_artifact(
     })())
 }
 
+/// Frozen `IntegrationEngine._artifacts` also keys every manifest record by its own path: a
+/// shadow record of a prepared build session answers `{artifact:<shadow-relative path>}`, and a
+/// path two sessions produced is ambiguous. `None` when no prepared session produced it.
+fn legacy_shadow_path(component: &Component, identity: &str) -> Option<Result<String, String>> {
+    let variants = component
+        .settings
+        .get("native_build_variants")?
+        .as_object()?;
+    let matched: std::collections::BTreeSet<String> = variants
+        .values()
+        .filter_map(|prepared| {
+            let directory = prepared.get("directory").and_then(Value::as_str)?;
+            let wanted = format!("{directory}/{identity}");
+            prepared
+                .get("artifacts")
+                .and_then(Value::as_array)?
+                .iter()
+                .filter_map(Value::as_str)
+                .find(|artifact| *artifact == wanted)
+                .map(str::to_owned)
+        })
+        .collect();
+    match matched.len() {
+        0 => None,
+        1 => matched.into_iter().next().map(Ok),
+        _ => Some(Err(format!(
+            "artifact placeholder is ambiguous: {identity}"
+        ))),
+    }
+}
+
 fn integration_artifact(
     project: &ResolvedProject,
     component: &Component,
@@ -1783,6 +1814,11 @@ fn integration_artifact(
         return Err(format!(
             "integration artifact {identity:?} has no active verified publication or typed declaration; prepare the declared artifact first"
         ));
+    } else if let Some(shadow) = (project.schema_family == ici_config::SchemaFamily::Legacy)
+        .then(|| legacy_shadow_path(component, identity))
+        .flatten()
+    {
+        shadow?
     } else {
         let (build_id, path) = identity.split_once('/').ok_or_else(|| {
             format!(

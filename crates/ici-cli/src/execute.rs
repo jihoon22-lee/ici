@@ -997,6 +997,16 @@ pub fn execute(
         &context_guards,
     )
     .and_then(|mut after| {
+        // A check that preparation already answered with its observed failure (e.g. the
+        // BuildEngine result of a failed legacy release build) runs no task of its own, so the
+        // re-plan's tasks for it are not pins of this run.
+        for check in &mut after.plan.checks {
+            if prepared.plan.checks.iter().any(|before| {
+                before.task_id == check.task_id && matches!(before.work, Work::Internal)
+            }) {
+                check.work = Work::Internal;
+            }
+        }
         for context in context_guards
             .iter()
             .filter(|context| context.plan.direct.is_some())
@@ -1813,6 +1823,24 @@ fn legacy_lint_projection(
     let qt = prepared
         .cpp
         .legacy_qt_codegen(&prepared.project, component, output);
+    // Frozen LintEngine Qt generated-code counters (`verify_qt_codegen` always runs).
+    if !output.extra["legacy_lint_counters"].is_object() {
+        output.extra["legacy_lint_counters"] = serde_json::json!({});
+    }
+    for (key, value) in [
+        ("qt_codegen_mode", serde_json::json!(qt.mode)),
+        (
+            "qt_codegen_inputs_checked",
+            serde_json::json!(qt.inputs_checked),
+        ),
+        ("qt_codegen_ui_checked", serde_json::json!(qt.ui_checked)),
+        ("qt_codegen_qrc_checked", serde_json::json!(qt.qrc_checked)),
+        ("qt_codegen_moc_checked", serde_json::json!(qt.moc_checked)),
+        ("qt5_compile_units", serde_json::json!(qt.qt5_units)),
+        ("qt6_compile_units", serde_json::json!(qt.qt6_units)),
+    ] {
+        output.extra["legacy_lint_counters"][key] = value;
+    }
     if crate::cpp::legacy_fallback_lint(
         output,
         tooling,

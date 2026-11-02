@@ -860,9 +860,7 @@ fn prepare_resolved_omitting(
                         }
                         preparation.configured_context_on_build_failure = cpp.legacy_projection
                             && variant == "release"
-                            && preparation.build.system == "cmake"
-                            && !selected.contains("cpp.artifact")
-                            && !selected.contains("cpp.binary-compat");
+                            && preparation.build.system == "cmake";
                         context_preparations.push(preparation);
                     }
                     Err(crate::export_context::PreparationUnavailable::Misconfigured {

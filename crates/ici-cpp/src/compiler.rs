@@ -113,14 +113,15 @@ pub fn analyze_compile_context(
     }
     let required_flags = string_options(&request.options, "required_flags");
     let forbidden_flags = string_options(&request.options, "forbidden_flags");
-    // Frozen `CompileDatabaseEngine` reports uncovered production sources and unit
-    // diagnostics (a gone directory, a stale source) as its own FAIL rows.
+    // Frozen `CompileDatabaseEngine` reports uncovered production sources, unit diagnostics
+    // (a gone directory, a stale source) and refused database rows (`_RowError`, e.g. an entry
+    // that is not an object) as its own FAIL rows; only a database-level error stops it.
     if context.database_path.is_some()
         && (context.complete()
             || !context
                 .diagnostics
                 .iter()
-                .any(|diagnostic| diagnostic.level == "error"))
+                .any(|diagnostic| diagnostic.level == "error" && diagnostic.entry_index.is_none()))
         && request.options["legacy_projection"]
             .as_bool()
             .unwrap_or(false)
@@ -1255,6 +1256,25 @@ pub fn analyze_compiler_include_cycles(
     context: &CompilationContext,
     observations: &[CompilerIncludeObservation],
 ) -> AnalysisOutput {
+    analyze_compiler_include_cycles_with_unresolved(request, context, observations, &[])
+}
+
+/// A translation-unit configuration whose include trace stopped at located missing headers:
+/// frozen `_evaluate_trace` keeps it as checked with no dependency edge and its
+/// `CppIncludeUnresolved` targets (legacy `ici verify`/`ici cycle` only).
+pub struct UnresolvedIncludeTrace {
+    pub source: String,
+    pub configuration: String,
+    pub targets: Vec<InspectionTarget>,
+}
+
+pub fn analyze_compiler_include_cycles_with_unresolved(
+    request: &AnalysisRequest,
+    context: &CompilationContext,
+    observations: &[CompilerIncludeObservation],
+    unresolved: &[UnresolvedIncludeTrace],
+) -> AnalysisOutput {
+    let legacy = request.options["legacy_projection"].as_bool() == Some(true);
     let mut output = AnalysisOutput::new(&request.task_id, "compiler.includes");
     output.observation.state = TaskState::Succeeded;
     let limit = match crate::cycles::report_limit(request) {
@@ -1366,6 +1386,24 @@ pub fn analyze_compiler_include_cycles(
         ]);
         output.targets.push(target);
     }
+    let mut unresolved_targets = vec![];
+    for trace in unresolved {
+        if !actual.insert((trace.source.clone(), trace.configuration.clone()))
+            || !expected.contains(&(trace.source.clone(), trace.configuration.clone()))
+        {
+            fail(
+                &mut output,
+                &trace.source,
+                "include-configuration-mismatch",
+                "Compiler include observation is duplicated or not captured",
+            );
+            continue;
+        }
+        unresolved_targets.extend(trace.targets.iter().cloned());
+    }
+    let unresolved_count = unresolved_targets.len();
+    unresolved_targets.truncate(limit);
+    output.targets.extend(unresolved_targets);
     if actual != expected || expected.is_empty() {
         fail(
             &mut output,
@@ -1383,6 +1421,43 @@ pub fn analyze_compiler_include_cycles(
         }
     }
     for (members, configurations) in cycles.iter().take(limit) {
+        if legacy {
+            // Frozen `_append_cpp_cycle_targets`: the actual cycle path from the smallest
+            // member in the first configuration graph that has it, named by file names.
+            let graph = configurations
+                .iter()
+                .next()
+                .and_then(|configuration| graphs.get(configuration))
+                .expect("cycle configuration graph");
+            let path = crate::cycles::actual_cycle_path(&members[0], members, graph);
+            let mut names: Vec<_> = path
+                .iter()
+                .map(|path| path.rsplit('/').next().unwrap_or(path))
+                .collect();
+            names.push(names[0]);
+            let mut target = InspectionTarget::at(&path[0], 1);
+            target.target_name = format!("CppCycle:{}", path.len());
+            target.status = "WARN".into();
+            target.message = format!(
+                "C++ include cycle ({} files): {}",
+                path.len(),
+                names.join(" -> ")
+            );
+            target.metrics.insert("files".into(), json!(path));
+            target
+                .metrics
+                .insert("configurations".into(), json!(configurations));
+            finding(
+                &mut output,
+                request,
+                &target,
+                "cycle.include",
+                "medium",
+                false,
+            );
+            output.targets.push(target);
+            continue;
+        }
         let mut target = InspectionTarget::at(&members[0], 1);
         target.target_name = "IncludeCycle".into();
         target.status = "WARN".into();
@@ -1422,10 +1497,16 @@ pub fn analyze_compiler_include_cycles(
         } else {
             format!("Dependency cycles: {} found", cycles.len())
         };
+        if unresolved_count > 0 {
+            output.status = "WARN".into();
+            output.summary.push_str(&format!(
+                "; C++ include graph incomplete: 0 ambiguous, {unresolved_count} unresolved"
+            ));
+        }
     }
     measurement(&mut output, "cycles_found", cycles.len() as u64, false);
-    output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit)});
-    if request.options["legacy_projection"].as_bool() == Some(true) {
+    output.extra = json!({"resolution":"compiler_trace","configuration_graphs":graphs,"scope_counts":scope_counts,"resolved_edges":resolved,"configurations_checked":actual.len(),"cycles_reported":cycles.len().min(limit),"cycles_truncated":cycles.len().saturating_sub(limit),"unresolved_cpp_includes":unresolved_count,"include_diagnostics_truncated":unresolved_count.saturating_sub(limit)});
+    if legacy {
         // Frozen `CycleEngine` names each trace process "compiler include trace"; adapted legacy
         // findings take their tool name from the first one. Only the observed compiler path is
         // recorded: the trace argv and return code are not carried by the observation.

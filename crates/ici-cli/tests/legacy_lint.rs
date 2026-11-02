@@ -4,6 +4,9 @@ use ici_cli::{commands, registry};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, fs, path::Path};
 
+#[path = "support/lint_extra.rs"]
+mod lint_extra;
+
 const FIELDS: [&str; 6] = [
     "target_name",
     "status",
@@ -89,6 +92,10 @@ fn run(case: &Value, base: &str, environment: &BTreeMap<String, String>) -> Valu
         "targets": targets,
         "findings": engine["findings"],
     });
+    let (extra, tools) =
+        lint_extra::captured(&engine, &[(root.path().display().to_string(), "{root}")]);
+    captured["extra"] = extra;
+    captured["tool_evidence"] = tools;
     if command != "verify" {
         captured["exit_code"] = json!(output.exit_code);
     }
@@ -224,7 +231,12 @@ fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summar
                 ),
             );
         }
-        let actual = run(case, base, &environment);
+        let mut actual = run(case, base, &environment);
+        lint_extra::relabel(
+            &mut actual,
+            &tools.path().join("bin").display().to_string(),
+            "{bin}",
+        );
         let mut frozen = case["frozen"].clone();
         if name == "clazy-env-library-path" {
             // Known frozen defect, corrected (D-B): frozen probes Clazy with the caller's
@@ -241,6 +253,14 @@ fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summar
                 "{name}"
             );
             frozen = cases["clazy-only"]["frozen"].clone();
+            // clazy-only's Clazy is a wrapper script; here the tool is a symlink to the raw
+            // binary, which frozen `regular_executable` runs by its resolved path.
+            let raw = fs::canonicalize(std::env::var("ICI_TEST_CLAZY").unwrap()).unwrap();
+            lint_extra::relabel(
+                &mut frozen,
+                "{bin}/clazy-standalone",
+                &raw.display().to_string(),
+            );
         }
         mismatch(name, &actual, &frozen, &mut mismatches);
     }
@@ -249,11 +269,20 @@ fn legacy_cpp_lint_with_resolvable_clang_tools_matches_frozen_targets_and_summar
 
 /// Records a case that differs from frozen, printing both sides as single JSON lines.
 fn mismatch(name: &str, actual: &Value, frozen: &Value, mismatches: &mut Vec<String>) {
+    let (mut actual, mut frozen) = (actual.clone(), frozen.clone());
+    let differences = lint_extra::split(&mut actual, &mut frozen);
+    if !differences.is_empty() {
+        eprintln!(
+            "== {name} (extra/tool_evidence)\n{}",
+            differences.join("\n")
+        );
+        mismatches.push(format!("{name}/extra"));
+    }
     if actual != frozen {
         eprintln!(
             "== {name}\nactual: {}\nfrozen: {}",
-            serde_json::to_string(actual).unwrap(),
-            serde_json::to_string(frozen).unwrap()
+            serde_json::to_string(&actual).unwrap(),
+            serde_json::to_string(&frozen).unwrap()
         );
         mismatches.push(name.to_owned());
     }

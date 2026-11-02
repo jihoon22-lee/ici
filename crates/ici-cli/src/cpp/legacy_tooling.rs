@@ -58,6 +58,83 @@ pub struct LegacyToolRun {
     pub task: String,
     pub targets: Vec<InspectionTarget>,
     pub error: Option<String>,
+    /// The frozen `ToolEvidence` record of the run (`_record_process`, its `error` the run's
+    /// execution or parse error).
+    pub evidence: Value,
+}
+
+/// One clang tool frozen reports unavailable: its `<Tool>Unavailable` label, message, whether
+/// the tool is required, and the frozen `ToolEvidence` without a command.
+pub type MissingTool = (&'static str, String, bool, Value);
+
+/// Frozen `_validated_context` / `_ready_tool` evidence of an unavailable clang tool: no command
+/// was executed; `path` and `version` are the resolved tool and its probed banner when known.
+pub fn missing_tool_evidence(label: &str, message: &str, path: &str, version: &str) -> Value {
+    let name = if label == "ClazyUnavailable" {
+        "clazy"
+    } else {
+        "clang-tidy"
+    };
+    let (path, version, error) = if message
+        .ends_with("requires an approved capability inventory and exact compilation context")
+    {
+        ("", "", "analysis context unavailable")
+    } else if message.ends_with("requires an exact compilation database") {
+        (
+            path,
+            version,
+            "exact compilation database unavailable; no command was executed",
+        )
+    } else if message.ends_with("requires an approved clang++ capability") {
+        (
+            path,
+            version,
+            "approved clang++ capability unavailable; no command was executed",
+        )
+    } else {
+        (
+            path,
+            version,
+            "tool not found or capability probe incomplete; no command was executed",
+        )
+    };
+    json!({"name":name,"path":path,"version":version,"argv":[],"returncode":null,
+        "timed_out":false,"truncated":false,"error":error})
+}
+
+/// Frozen `regular_executable`: an approved tool runs by its resolved path (symlinks followed).
+pub fn resolved_executable(path: &Path) -> String {
+    path.canonicalize()
+        .unwrap_or_else(|_| path.to_path_buf())
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// Frozen `ProcessResult.returncode` of an observed run: 124 after a timeout, the negative
+/// signal number of a signalled process, -1 when the process could not be started.
+pub fn frozen_returncode(outcome: &TaskOutcome) -> Value {
+    if outcome.timed_out {
+        return json!(124);
+    }
+    match (outcome.exit_code, outcome.signal) {
+        (Some(code), _) => json!(code),
+        (None, Some(signal)) => json!(-signal),
+        (None, None) if outcome.error.is_some() => json!(-1),
+        _ => Value::Null,
+    }
+}
+
+/// Frozen `ToolEvidence` of one observed process.
+pub fn process_evidence(
+    name: &str,
+    version: &str,
+    argv: &[String],
+    outcome: &TaskOutcome,
+    error: &str,
+) -> Value {
+    json!({"name":name,"path":argv.first().cloned().unwrap_or_default(),"version":version,
+        "argv":argv,"returncode":frozen_returncode(outcome),"timed_out":outcome.timed_out,
+        "truncated":outcome.truncated,"error":error})
 }
 
 fn tool(clazy: bool) -> &'static str {
@@ -68,24 +145,14 @@ fn tool(clazy: bool) -> &'static str {
 /// (5 s, 65 536 output bytes) must exit 0 untruncated and report a parseable version
 /// (`parse_tool_version`: clazy needs its own `clazy[-standalone] [version] N.N` banner,
 /// clang-tidy a compiler or generic dotted version). A tool that fails the probe is the frozen
-/// `<Tool>Unavailable`, never a per-source execution error.
+/// `<Tool>Unavailable`, never a per-source execution error. Returns the frozen capability
+/// `version`: the first matching output line, at most 200 characters, or `None` when the probe
+/// fails or reports no version.
 ///
 /// Known frozen defect, corrected: frozen probes with the full environment and then runs the
 /// tool with a replaced minimal one, so a tool needing `LD_LIBRARY_PATH` passes the probe and
 /// fails every run. The probe here uses exactly the run tasks' environment (inherited runner
 /// environment plus the replay overlay).
-pub fn legacy_capability_probe(
-    executable: &Path,
-    cwd: &Path,
-    environment: &BTreeMap<String, String>,
-    clazy: bool,
-) -> bool {
-    legacy_version_banner(executable, cwd, environment, tool(clazy)).is_some()
-}
-
-/// The frozen capability `version` of one probed tool (`<tool> --version` in the run
-/// environment): the first output line matching its `parse_tool_version` patterns, at most 200
-/// characters, or `None` when the probe fails or reports no version.
 pub fn legacy_version_banner(
     executable: &Path,
     cwd: &Path,
@@ -226,10 +293,12 @@ pub fn legacy_tool_run(
     clazy: bool,
     source: &str,
     digest: &str,
+    (argv, version): (&[String], &str),
     outcome: &TaskOutcome,
     output: &AnalysisOutput,
 ) -> LegacyToolRun {
     let label = if clazy { "Clazy" } else { "ClangTidy" };
+    let evidence = |error: &str| process_evidence(tool(clazy), version, argv, outcome, error);
     let failure = |message: String| LegacyToolRun {
         task: outcome.task_id.clone(),
         targets: vec![target(
@@ -238,6 +307,7 @@ pub fn legacy_tool_run(
             "ERROR",
             message.clone(),
         )],
+        evidence: evidence(&message),
         error: Some(message),
     };
     if let Some(message) = process_error(clazy, outcome, source) {
@@ -315,6 +385,7 @@ pub fn legacy_tool_run(
         task: outcome.task_id.clone(),
         targets,
         error: None,
+        evidence: evidence(""),
     }
 }
 
@@ -397,18 +468,99 @@ pub fn legacy_clazy_note_findings(output: &mut AnalysisOutput) {
     }
 }
 
+/// What the frozen lint tooling block needs beside the plans: the probe evidence of each tool
+/// task (`g++ stdlib include search` records in run order), the lint configuration and whether
+/// clazy runs through its compiler wrapper.
+pub struct ToolingFacts<'a> {
+    pub probes: &'a BTreeMap<String, Vec<Value>>,
+    pub config: Option<&'a Value>,
+    pub wrapper: bool,
+}
+
+/// Frozen `_checks` of `analysis/_clazy.py`: the joined `clazy_checks`, else `clazy_profile`.
+pub fn clazy_profile(config: Option<&Value>) -> String {
+    match config
+        .and_then(|config| config.get("clazy_checks"))
+        .and_then(Value::as_array)
+    {
+        Some(checks) => checks
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>()
+            .join(","),
+        None => config
+            .and_then(|config| config.get("clazy_profile"))
+            .and_then(Value::as_str)
+            .unwrap_or("level0")
+            .to_owned(),
+    }
+}
+
+fn configured_mode(config: Option<&Value>, clazy: bool) -> String {
+    config
+        .and_then(|config| config.get(if clazy { "clazy" } else { "clang_tidy" }))
+        .and_then(Value::as_str)
+        .unwrap_or("auto")
+        .to_owned()
+}
+
+/// Frozen LintEngine clang tool counters of tools that did not get a plan: a disabled tool keeps
+/// its configured mode; an unavailable clang-tidy is `unavailable`, an unavailable clazy too
+/// unless it is required (`_problem` ERROR sets `error`).
+pub fn unplanned_counters(missing: &[MissingTool], config: Option<&Value>) -> Value {
+    let mut counters = serde_json::Map::new();
+    for clazy in [false, true] {
+        let label = if clazy {
+            "ClazyUnavailable"
+        } else {
+            "ClangTidyUnavailable"
+        };
+        let mode = match missing.iter().find(|(name, ..)| *name == label) {
+            Some((_, _, required, _)) if clazy && *required => "error".to_owned(),
+            Some(_) => "unavailable".to_owned(),
+            None => configured_mode(config, clazy),
+        };
+        tool_counters(&mut counters, clazy, &mode, 0, 0, "none", config);
+    }
+    Value::Object(counters)
+}
+
+fn tool_counters(
+    counters: &mut serde_json::Map<String, Value>,
+    clazy: bool,
+    mode: &str,
+    configurations: usize,
+    sources: usize,
+    provider: &str,
+    config: Option<&Value>,
+) {
+    let prefix = if clazy { "clazy" } else { "clang_tidy" };
+    counters.insert(format!("{prefix}_mode"), json!(mode));
+    if clazy {
+        counters.insert("clazy_provider".into(), json!(provider));
+        counters.insert("clazy_profile".into(), json!(clazy_profile(config)));
+    }
+    counters.insert(
+        format!("{prefix}_configurations_checked"),
+        json!(configurations),
+    );
+    counters.insert(format!("{prefix}_sources_checked"), json!(sources));
+}
+
 /// The frozen lint tooling block: per tool (clang-tidy, then clazy) its `<Tool>Unavailable`
 /// targets, then the planned run: a project-level stop, or the production sources without a
 /// recorded command, then each selected unit in frozen order (a budget stop, the error that
 /// replaced its run, or its run's targets), with the tool errors and warnings the LintEngine
-/// summary reads.
+/// summary reads, the frozen `ToolEvidence` (the unavailable record, then per unit its first
+/// GCC include-search records and its run record) and the LintEngine clang tool counters.
 pub fn legacy_tooling_projection(
     output: &mut AnalysisOutput,
     runs: Vec<LegacyToolRun>,
-    missing: &[(&str, String, bool)],
+    missing: &[MissingTool],
     uncovered: &[String],
     plans: &[ToolPlan],
     stops: &BTreeMap<bool, BudgetStop>,
+    facts: &ToolingFacts<'_>,
 ) {
     let mut runs: BTreeMap<String, LegacyToolRun> = runs
         .into_iter()
@@ -416,6 +568,8 @@ pub fn legacy_tooling_projection(
         .collect();
     let mut targets = vec![];
     let mut errors = vec![];
+    let mut evidence = vec![];
+    let mut counters = serde_json::Map::new();
     for clazy in [false, true] {
         let label = if clazy {
             "ClazyUnavailable"
@@ -423,25 +577,50 @@ pub fn legacy_tooling_projection(
             "ClangTidyUnavailable"
         };
         let prefix = if clazy { "Clazy" } else { "ClangTidy" };
-        for (_, message, required) in missing.iter().filter(|(name, _, _)| *name == label) {
+        let first_error = errors.len();
+        let mut unavailable = false;
+        for (_, message, required, record) in missing.iter().filter(|(name, ..)| *name == label) {
             targets.push(target(
                 ".",
                 label.into(),
                 if *required { "ERROR" } else { "WARN" },
                 message.clone(),
             ));
+            evidence.push(record.clone());
+            unavailable = true;
             if *required {
                 errors.push(message.clone());
             }
         }
         let Some(plan) = plans.iter().find(|plan| plan.clazy == clazy) else {
+            let mode = match missing.iter().find(|(name, ..)| *name == label) {
+                Some((_, _, required, _)) if clazy && *required => "error".to_owned(),
+                Some(_) if unavailable => "unavailable".to_owned(),
+                _ => configured_mode(facts.config, clazy),
+            };
+            tool_counters(&mut counters, clazy, &mode, 0, 0, "none", facts.config);
             continue;
         };
+        // Frozen `_ready_tool` sets the clazy provider; a source-count or context-ingestion stop
+        // comes before it.
+        let ready = plan.terminal.iter().all(|(_, _, message)| {
+            !message.ends_with("source count exceeds the bounded limit")
+                && !message
+                    .ends_with("did not run because compilation context ingestion has errors")
+        });
+        let provider = match (clazy && ready, facts.wrapper) {
+            (false, _) => "none",
+            (true, true) => "compiler-wrapper",
+            (true, false) => "standalone",
+        };
+        let (mut configurations, mut sources) = (0, std::collections::BTreeSet::new());
+        let mut recorded = std::collections::BTreeSet::new();
         if !plan.terminal.is_empty() {
             for (path, name, message) in &plan.terminal {
                 targets.push(target(path, name.clone(), "ERROR", message.clone()));
                 errors.push(message.clone());
             }
+            tool_counters(&mut counters, clazy, "error", 0, 0, provider, facts.config);
             continue;
         }
         // Frozen `_selected_context_units`: each production source without a recorded command
@@ -473,6 +652,7 @@ pub fn legacy_tooling_projection(
                 message.clone(),
             ));
             errors.push(message);
+            tool_counters(&mut counters, clazy, "error", 0, 0, provider, facts.config);
             continue;
         }
         for (index, unit) in plan.units.iter().enumerate() {
@@ -486,6 +666,18 @@ pub fn legacy_tooling_projection(
                 errors.push(stop.message.clone());
                 break;
             }
+            // Frozen `_record_gcc_projection_evidence`: each include search once per tool.
+            for probe in unit
+                .task
+                .as_ref()
+                .and_then(|task| facts.probes.get(task))
+                .into_iter()
+                .flatten()
+            {
+                if recorded.insert(probe["argv"].to_string()) {
+                    evidence.push(probe.clone());
+                }
+            }
             match &unit.step {
                 UnitStep::Error { name, message } => {
                     targets.push(target(&unit.source, name.clone(), "ERROR", message.clone()));
@@ -494,19 +686,40 @@ pub fn legacy_tooling_projection(
                 UnitStep::Run(task) => {
                     if let Some(run) = runs.remove(task) {
                         targets.extend(run.targets);
+                        evidence.push(run.evidence);
+                        if run.error.is_none() {
+                            configurations += 1;
+                            sources.insert(unit.source.clone());
+                        }
                         errors.extend(run.error);
                     }
                 }
             }
         }
+        let mode = if errors.len() > first_error {
+            "error"
+        } else {
+            "exact"
+        };
+        tool_counters(
+            &mut counters,
+            clazy,
+            mode,
+            configurations,
+            sources.len(),
+            provider,
+            facts.config,
+        );
     }
     let warnings: Vec<&String> = missing
         .iter()
-        .filter(|(_, _, required)| !*required)
-        .map(|(_, message, _)| message)
+        .filter(|(_, _, required, _)| !*required)
+        .map(|(_, message, ..)| message)
         .collect();
     output.extra["legacy_tool_warnings"] = json!(warnings);
     output.extra["legacy_tool_errors"] = json!(errors);
+    output.extra["legacy_lint_counters"] = Value::Object(counters);
+    output.extra["tool_evidence"] = json!(evidence);
     if errors.is_empty() && !warnings.is_empty() {
         // Frozen LintEngine: an unavailable optional tool leaves the lint verdict estimated.
         let mut available = Measurement::measured("clang_tooling_available", 0.0);
@@ -593,7 +806,7 @@ fn validate_config_file(root: &Path, value: &Path, explicit: bool) -> Result<Pat
     // Security correction (decisions.md "clang-tidy 설정의 escape된 인자 키"): frozen
     // `_UNSAFE_CONFIG_ARGUMENT_RE` only matched raw word-bounded key text, so LLVM YAML
     // double-quoted escapes (`"\x45xtraArgs"`) injected compiler arguments. The shared native
-    // guard also refuses any key mention (case-insensitive, no word boundary), NUL bytes and
+    // guard keeps that case-insensitive word-bounded key match and also refuses NUL bytes and
     // any file holding both a double quote and a backslash, with frozen's refusal text/target.
     if crate::cpp::clang_tidy_config_is_unsafe(&content) {
         return Err(
@@ -650,6 +863,9 @@ pub enum UnitStep {
 pub struct ToolUnit {
     pub source: String,
     pub step: UnitStep,
+    /// The unit's tool task, also when its step became an error after planning (a failed GCC
+    /// include search): its probe evidence is keyed by it.
+    pub task: Option<String>,
 }
 
 /// The frozen run of one clang tool over its selected units (`run_clang_tidy` / `run_clazy`).

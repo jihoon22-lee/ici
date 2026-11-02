@@ -75,7 +75,7 @@ impl CppPlans {
             .filter(|path| ici_cpp::is_translation_unit(path))
             .collect();
         if self.legacy_projection
-            && let Some(terminal) = legacy_source_budget(component)
+            && let Some(terminal) = legacy_source_budget(component, "heuristic")
         {
             self.legacy_context_errors.insert(id.into(), terminal);
             return Ok(Work::Internal);
@@ -288,6 +288,7 @@ impl CppPlans {
             .filter(|task| executed.contains(&task.id))
             .collect();
         let mut syntax_errors = vec![];
+        let mut errors_by_task = BTreeMap::new();
         let mut outputs: Vec<_> = results
             .iter()
             .map(|outcome| {
@@ -304,6 +305,7 @@ impl CppPlans {
                         provider.task.argv.first().map_or("", String::as_str),
                     )
                 {
+                    errors_by_task.insert(outcome.task_id.clone(), error.clone());
                     syntax_errors.push(error);
                 }
                 super::legacy_clean_only_without_diagnostics(&mut output);
@@ -336,6 +338,16 @@ impl CppPlans {
         output.observation.limitations.push("No compilation database was available; syntax analysis used the legacy c++17 heuristic fallback. Package metadata and compiler header/module closure have not been established reusable".into());
         output.extra["cpp_analysis_mode"] = json!("heuristic");
         output.extra["pkg_config"] = json!(observed_flags.records);
+        // Frozen `_run_fallback` warns that the heuristic fallback ran (not when the source-count
+        // bound stopped it first).
+        output.extra["legacy_fallback_warned"] = json!(true);
+        // Frozen `_run_fallback` counters: every replayed source once.
+        output.extra["legacy_lint_counters"] = json!({
+            "cpp_analysis_mode": "heuristic",
+            "cpp_configurations_checked": concrete.len(),
+            "cpp_sources_checked": concrete.len(),
+            "cpp_context_missing": 0,
+        });
         output.extra["concrete_tasks"] = json!(concrete);
         for task in output.extra["concrete_tasks"]
             .as_array_mut()
@@ -347,7 +359,15 @@ impl CppPlans {
                 .cloned()
                 .unwrap_or_default();
             task["version"] = json!(version);
+            let id = task["id"].as_str().unwrap_or_default().to_owned();
+            if let Some(outcome) = results.iter().find(|outcome| outcome.task_id == id) {
+                task["returncode"] = super::legacy_tooling::frozen_returncode(outcome);
+                task["timed_out"] = json!(outcome.timed_out);
+                task["truncated"] = json!(outcome.truncated);
+            }
+            task["error"] = json!(errors_by_task.get(&id).cloned().unwrap_or_default());
         }
+        super::legacy_syntax_tool_evidence(&mut output.extra, None);
         output
     }
 }
@@ -356,6 +376,7 @@ impl CppPlans {
 /// C++SyntaxBudgetError at the project root (the clang tool steps still report).
 pub(super) fn legacy_source_budget(
     component: &Component,
+    mode: &str,
 ) -> Option<super::legacy_syntax::Terminal> {
     let count = component
         .files
@@ -371,6 +392,7 @@ pub(super) fn legacy_source_budget(
         super::legacy_syntax::Terminal {
             targets: vec![target],
             errors: vec![message.into()],
+            counters: super::legacy_syntax::stopped_counters(mode, 0),
         }
     })
 }

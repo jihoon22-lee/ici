@@ -743,7 +743,31 @@ fn shape_engine(
         } else {
             "MEASURED"
         };
+        // Frozen `_cpp_findings`: the C++ diagnostics stay their own findings (explanation,
+        // category, tool rule); only the other targets are adapted by the new verdict.
+        let explicit: Vec<serde_json::Value> = value["findings"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|finding| {
+                finding["explanation"] != "Adapted from the legacy lint InspectionTarget contract."
+            })
+            .cloned()
+            .collect();
         ici_reporting::legacy_verdict(value, status, evidence, &summary, targets).map_err(error)?;
+        for finding in value["findings"].as_array_mut().into_iter().flatten() {
+            let same = |item: &&serde_json::Value| {
+                item["message"] == finding["message"]
+                    && ["path", "start_line", "start_column", "label"]
+                        .iter()
+                        .all(|key| {
+                            item["primary_location"][key] == finding["primary_location"][key]
+                        })
+            };
+            if let Some(original) = explicit.iter().find(same) {
+                *finding = original.clone();
+            }
+        }
         value["extra"]["python_files_parsed"] = serde_json::json!(parsed);
         let mut evidence = missing_tool("ruff");
         if let (Some(list), Some(cpp)) =
@@ -898,6 +922,21 @@ fn shape_engine(
     if legacy_schema {
         frozen_python_finding_fields(family, value);
         crate::legacy_python_inventory::shape(family, value, &root)?;
+        if family == "lint" {
+            let config = prepared
+                .project
+                .components
+                .iter()
+                .find_map(|component| component.settings.pointer("/engines/lint"));
+            let python: std::collections::BTreeSet<&String> = prepared
+                .project
+                .components
+                .iter()
+                .flat_map(|component| &component.files)
+                .filter(|path| path.ends_with(".py"))
+                .collect();
+            crate::cpp::legacy_lint_extra::shape(value, config, python.len());
+        }
     }
     Ok((replaced, exit_code))
 }

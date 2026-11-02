@@ -92,6 +92,14 @@ pub(super) fn budget_output(task: &str, stop: &BudgetStop) -> AnalysisOutput {
 pub(super) struct Terminal {
     pub targets: Vec<InspectionTarget>,
     pub errors: Vec<String>,
+    /// The frozen LintEngine C++ syntax counters of the stopped run.
+    pub counters: Value,
+}
+
+/// Frozen `run_cpp_lint` counters of a run that replayed nothing.
+pub(super) fn stopped_counters(mode: &str, missing: usize) -> Value {
+    json!({"cpp_analysis_mode": mode, "cpp_configurations_checked": 0,
+        "cpp_sources_checked": 0, "cpp_context_missing": missing})
 }
 
 /// One selected unit in frozen order: its context diagnostic targets, then either the replay
@@ -179,6 +187,7 @@ pub(super) fn terminal(context: &CompilationContext, selected: usize) -> Option<
         return Some(Terminal {
             targets,
             errors: vec!["Compilation context contains error diagnostics".into()],
+            counters: stopped_counters("exact", 0),
         });
     }
     let database = context.database_path.as_deref().unwrap_or(".");
@@ -196,9 +205,11 @@ pub(super) fn terminal(context: &CompilationContext, selected: usize) -> Option<
     } else {
         return None;
     };
+    let counters = stopped_counters("exact", missing.len());
     targets.extend(missing);
     targets.push(target(database, stop.0, "ERROR", stop.1.into()));
     Some(Terminal {
+        counters,
         targets,
         errors: missing_error
             .into_iter()
@@ -336,6 +347,8 @@ pub(super) fn terminal_output(request: &AnalysisRequest, terminal: &Terminal) ->
     output.observation.state = TaskState::Succeeded;
     output.extra["legacy_replayed_sources"] = json!([]);
     output.extra["concrete_tasks"] = json!([]);
+    output.extra["tool_evidence"] = json!([]);
+    output.extra["legacy_lint_counters"] = terminal.counters.clone();
     legacy_record_syntax_errors(&mut output, terminal.errors.clone());
     output
 }

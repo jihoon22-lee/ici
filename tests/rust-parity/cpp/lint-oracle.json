@@ -9,6 +9,51 @@
    "frozen": {
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 5,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 5
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "8 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 7
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -318,6 +363,91 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/broken.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/noted.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    }
   },
@@ -329,6 +459,51 @@
    "frozen": {
     "evidence": "NOT_RUN",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "error",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 2,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 1,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 1
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 2,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -486,6 +661,68 @@
       "status": "ERROR",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/warned.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    }
   },
@@ -500,6 +737,51 @@
     "built": false,
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 5,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 5
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "8 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 7
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -808,6 +1090,91 @@
       "start_line": 1,
       "status": "WARN",
       "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/broken.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/noted.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
      }
     ]
    }
@@ -823,6 +1190,51 @@
     "built": false,
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 5,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 5
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "8 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 7
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -1132,6 +1544,91 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/broken.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/noted.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    }
   },
@@ -1143,6 +1640,51 @@
    "frozen": {
     "evidence": "NOT_APPLICABLE",
     "exit_code": 2,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "not_applicable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "not_applicable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "not_applicable",
+     "cpp_configurations_checked": 0,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 0,
+     "metrics_summary": "0 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 0
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -1186,7 +1728,8 @@
       "status": "SKIP",
       "target_name": "LintScope"
      }
-    ]
+    ],
+    "tool_evidence": []
    }
   },
   "lint-tidy-off": {
@@ -1197,6 +1740,51 @@
    "frozen": {
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "off",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 5,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 5
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "7 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 6
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -1468,6 +2056,81 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/broken.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/noted.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    }
   },
@@ -1479,6 +2142,51 @@
    "frozen": {
     "evidence": "ESTIMATED",
     "exit_code": 0,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 2,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 1,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 1
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 2,
+     "metrics_summary": "4 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -1636,6 +2344,68 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/warned.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    }
   },
@@ -1650,6 +2420,51 @@
     "built": false,
     "evidence": "ESTIMATED",
     "exit_code": 1,
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 5,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 5
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "8 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 7
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -1959,6 +2774,91 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/broken.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-parseable-fixits",
+       "-fdiagnostics-show-option",
+       "{root}/src/noted.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "analysis context unavailable",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    }
   },
@@ -1969,6 +2869,51 @@
    "fixture": "lint-fixture",
    "frozen": {
     "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 5,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 5
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "8 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 7
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -2278,6 +3223,91 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/broken.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 1,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/noted.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    }
   }
@@ -2298,6 +3328,51 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "error",
+     "clazy_profile": "level0",
+     "clazy_provider": "standalone",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "1 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 4
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -2569,6 +3644,193 @@
       "status": "ERROR",
       "target_name": "ClazyExecutionError"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/bin/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/clean.cpp",
+      "name": "clazy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/bin/clazy-standalone",
+      "returncode": 127,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/bin/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/qt.cpp",
+      "name": "clazy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/bin/clazy-standalone",
+      "returncode": 127,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/bin/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clazy failed with exit code 127 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=yes): src/tidy.cpp",
+      "name": "clazy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/bin/clazy-standalone",
+      "returncode": 127,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     }
     ]
    },
    "tools": [
@@ -2585,6 +3847,51 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 3,
+     "clazy_mode": "exact",
+     "clazy_profile": "level0",
+     "clazy_provider": "standalone",
+     "clazy_sources_checked": 3,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "1 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 1
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -2856,6 +4163,193 @@
       "status": "PASS",
       "target_name": "Clazy:eb9b50ec9185"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     }
     ]
    },
    "tools": [
@@ -2872,6 +4366,51 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "error",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "1 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 2
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -3067,6 +4606,91 @@
       "status": "ERROR",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "tools": [
@@ -3083,6 +4707,51 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "error",
+     "clazy_profile": "level0",
+     "clazy_provider": "standalone",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "1 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 4
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -3354,6 +5023,193 @@
       "status": "ERROR",
       "target_name": "ClazyExecutionError"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/clean.cpp",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 3,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/qt.cpp",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 3,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "clazy failed with exit code 3 (fatal=0, error=0, warning=0, note=0, remark=0, processing_error=no, output=no): src/tidy.cpp",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 3,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     }
     ]
    },
    "tools": [
@@ -3370,6 +5226,51 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 2
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -3565,6 +5466,91 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "tools": [
@@ -3578,6 +5564,51 @@
    "fixture": "lint-tidy",
    "frozen": {
     "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 2
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -3773,6 +5804,91 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "exact compilation database unavailable; no command was executed",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "tools": [
@@ -3790,6 +5906,51 @@
    "frozen": {
     "built": false,
     "evidence": "MEASURED",
+    "extra": {
+     "clang_tidy_configurations_checked": 3,
+     "clang_tidy_mode": "exact",
+     "clang_tidy_sources_checked": 3,
+     "clazy_configurations_checked": 3,
+     "clazy_mode": "exact",
+     "clazy_profile": "level0",
+     "clazy_provider": "standalone",
+     "clazy_sources_checked": 3,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 1,
+      "maintainability": 1,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 1,
+      "clang-tidy": 1,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 2,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 2
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -4192,6 +6353,298 @@
       "status": "PASS",
       "target_name": "Clazy:eb9b50ec9185"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     }
     ]
    },
    "tools": [
@@ -4209,6 +6662,51 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 3,
+     "clang_tidy_mode": "exact",
+     "clang_tidy_sources_checked": 3,
+     "clazy_configurations_checked": 3,
+     "clazy_mode": "exact",
+     "clazy_profile": "level0",
+     "clazy_provider": "standalone",
+     "clazy_sources_checked": 3,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 1,
+      "maintainability": 2,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 1,
+      "clang-tidy": 1,
+      "clazy": 1,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 2,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "6 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "exact",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 6
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -4815,6 +7313,307 @@
       "status": "PASS",
       "target_name": "Clazy:60c08aaf72fd"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     },
+     {
+      "argv": [
+       "{bin}/clazy-standalone",
+       "--checks=level0",
+       "--only-qt",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-DQT_CORE_LIB",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clazy",
+      "path": "{bin}/clazy-standalone",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "clazy version 1.17"
+     }
     ]
    },
    "tools": [
@@ -4832,6 +7631,51 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 2
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -5027,6 +7871,91 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clang-tidy",
+      "path": "{bin}/clang-tidy",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "tools": [
@@ -5043,6 +7972,51 @@
    "frozen": {
     "built": false,
     "evidence": "ESTIMATED",
+    "extra": {
+     "clang_tidy_configurations_checked": 3,
+     "clang_tidy_mode": "exact",
+     "clang_tidy_sources_checked": 3,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 1,
+      "maintainability": 1,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 1,
+      "clang-tidy": 1,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 2,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 3
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -5369,6 +8343,196 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/qt.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/tidy.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "tools": [
@@ -5385,6 +8549,51 @@
    "frozen": {
     "built": false,
     "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 1,
+     "clang_tidy_mode": "error",
+     "clang_tidy_sources_checked": 1,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "exact",
+     "cpp_configurations_checked": 1,
+     "cpp_context_missing": 2,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 1,
+     "metrics_summary": "3 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 5
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -5656,6 +8865,100 @@
       "status": "WARN",
       "target_name": "ClazyUnavailable"
      }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c++",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-E",
+       "-x",
+       "c",
+       "-v",
+       "-"
+      ],
+      "error": "",
+      "name": "g++ stdlib include search",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+       "--use-color=false",
+       "--config={}",
+       "--checks=-*,bugprone-*,clang-analyzer-*,performance-*",
+       "{root}/src/clean.cpp",
+       "--",
+       "-std=c++17",
+       "-Iinclude",
+       "-fdiagnostics-color=never",
+       "-nostdinc++",
+       "-isystem",
+       "/usr/include/c++/15",
+       "-isystem",
+       "/usr/include/x86_64-linux-gnu/c++/15",
+       "-isystem",
+       "/usr/include/c++/15/backward"
+      ],
+      "error": "",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
+     }
     ]
    },
    "tools": [
@@ -5669,6 +8972,51 @@
    "fixture": "lint-tidy",
    "frozen": {
     "evidence": "NOT_RUN",
+    "extra": {
+     "clang_tidy_configurations_checked": 0,
+     "clang_tidy_mode": "unavailable",
+     "clang_tidy_sources_checked": 0,
+     "clazy_configurations_checked": 0,
+     "clazy_mode": "unavailable",
+     "clazy_profile": "level0",
+     "clazy_provider": "none",
+     "clazy_sources_checked": 0,
+     "cpp_analysis_mode": "heuristic",
+     "cpp_configurations_checked": 3,
+     "cpp_context_missing": 0,
+     "cpp_diagnostic_categories": {
+      "architecture": 0,
+      "build": 0,
+      "compatibility": 0,
+      "correctness": 0,
+      "maintainability": 0,
+      "resource": 0,
+      "security": 0,
+      "test": 0,
+      "type": 0
+     },
+     "cpp_diagnostic_category_policy": "tool-rule-v1",
+     "cpp_diagnostic_families": {
+      "clang-analyzer": 0,
+      "clang-tidy": 0,
+      "clazy": 0,
+      "compiler": 0
+     },
+     "cpp_fixits": [],
+     "cpp_fixits_total": 0,
+     "cpp_related_notes": 0,
+     "cpp_sources_checked": 3,
+     "metrics_summary": "2 issues",
+     "python_files_parsed": 0,
+     "qt5_compile_units": 0,
+     "qt6_compile_units": 0,
+     "qt_codegen_inputs_checked": 0,
+     "qt_codegen_moc_checked": 0,
+     "qt_codegen_mode": "not_applicable",
+     "qt_codegen_qrc_checked": 0,
+     "qt_codegen_ui_checked": 0,
+     "violations_count": 2
+    },
     "findings": [
      {
       "category": "maintainability",
@@ -5863,6 +9211,91 @@
       "start_line": 1,
       "status": "WARN",
       "target_name": "ClazyUnavailable"
+     }
+    ],
+    "tool_evidence": [
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/clean.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/qt.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [
+       "/usr/bin/x86_64-linux-gnu-g++-15",
+       "-std=c++17",
+       "-I{root}/include",
+       "-fdiagnostics-color=never",
+       "-Wall",
+       "-Wextra",
+       "-fsyntax-only",
+       "-fdiagnostics-format=json",
+       "-fdiagnostics-show-option",
+       "{root}/src/tidy.cpp"
+      ],
+      "error": "",
+      "name": "g++",
+      "path": "/usr/bin/x86_64-linux-gnu-g++-15",
+      "returncode": 0,
+      "timed_out": false,
+      "truncated": false,
+      "version": "g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0"
+     },
+     {
+      "argv": [],
+      "error": "exact compilation database unavailable; no command was executed",
+      "name": "clang-tidy",
+      "path": "/tmp/ici-rust-replacement-20261028/tool-spike/cpp-tools/root/usr/lib/llvm-21/bin/clang-tidy",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": "Ubuntu LLVM version 21.1.8"
+     },
+     {
+      "argv": [],
+      "error": "tool not found or capability probe incomplete; no command was executed",
+      "name": "clazy",
+      "path": "",
+      "returncode": null,
+      "timed_out": false,
+      "truncated": false,
+      "version": ""
      }
     ]
    },
