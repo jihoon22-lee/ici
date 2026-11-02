@@ -206,6 +206,39 @@ fn native_extra(key: &str) -> bool {
 
 /// Positions are normalized (`[3]` -> `[]`) so an allowance names one path of every element.
 fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)>) {
+    // The capability inventory's row set itself differs by decision (config.json
+    // capability:doctor-env-cache (3)/(5)): one subtree allowance each, never host leaves.
+    if path == "capability_inventory" {
+        for key in ["tools", "counts"] {
+            if frozen.get(key) != native.get(key) {
+                out.push((format!("{path}.{key}"), Differs));
+            }
+        }
+        return;
+    }
+    // Support-matrix rows are keyed by engine and language, never by position.
+    if path.ends_with("support_matrix.entries")
+        && let (Value::Array(left), Value::Array(right)) = (frozen, native)
+    {
+        let key = |row: &Value| {
+            format!(
+                "{}/{}",
+                row["engine_name"].as_str().unwrap_or(""),
+                row["language"].as_str().unwrap_or("")
+            )
+        };
+        let rows: BTreeMap<String, &Value> = right.iter().map(|row| (key(row), row)).collect();
+        if left.len() != right.len() {
+            out.push((path.to_owned(), Len));
+        }
+        for row in left {
+            match rows.get(&key(row)) {
+                Some(other) => walk(row, other, &format!("{path}[{}]", key(row)), out),
+                None => out.push((format!("{path}[{}]", key(row)), Missing)),
+            }
+        }
+        return;
+    }
     match (frozen, native) {
         (Value::Object(left), Value::Object(right)) => {
             for (key, value) in left {
@@ -234,7 +267,10 @@ fn walk(frozen: &Value, native: &Value, path: &str, out: &mut Vec<(String, Kind)
             }
         }
         (Value::Number(left), Value::Number(right)) => {
-            if left.as_f64() != right.as_f64() {
+            // An integer and a float are different JSON types (`0` is not `0.0`).
+            if left.is_f64() != right.is_f64() {
+                out.push((path.to_owned(), Type));
+            } else if left.as_f64() != right.as_f64() {
                 out.push((path.to_owned(), Differs));
             }
         }
@@ -556,6 +592,7 @@ fn an_unallowed_difference_is_reported() {
             "probe/case: .extra.map (Type)",
             "probe/case: .extra.mypy_profile (Missing)",
             "probe/case: .extra.rows (Len)",
+            "probe/case: .extra.type_issues (Type)",
             "probe/case: .score (Type)",
             "probe/case: .status (Value)",
             "probe/case: .summary (Missing)",
