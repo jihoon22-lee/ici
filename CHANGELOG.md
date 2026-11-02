@@ -31,6 +31,15 @@
 
 ### 변경
 
+- 레거시 C++ 보고서가 v0.13.0과 같이 sanitize/thread_sanitize issue 수, complexity 최대값·함수 수·이슈 수, dead
+  `cpp_unused_mode`·개수·`+`로 결합한 provenance, `g++` unused-function 도구 이름과 sanitizer tool evidence(직접 g++
+  compile/실행, CMake 세션, compile 실패, Make 구성 오류)를 기록합니다. 레거시 ThreadSanitizer 실행은 v0.13.0처럼 첫
+  보고에서 멈추고, clang-tidy/Clazy는 `cpp.compile`이 선택되지 않아도 레거시 lint에서 실행됩니다.
+- 레거시 TEM/branch 임계값은 Python과 C++ 모두 미달일 때만 대상이 되고, branch `actual`은 소수 첫째 자리로
+  반올림됩니다.
+- `ici next`: component root 밖의 `external` 멤버를 담은 C++ dup/exception 범위는 v0.13.0처럼 outside-project
+  FAILED로 보고하고 그 파일은 분석하지 않습니다. 연결된 CMake 빌드에 literal `add_test`가 없으면 cpp.test를 v0.13.0과
+  같은 "no declared test suite" 사유로 막으며, 이 탐색은 크기 제한 안에서 프로젝트 안의 일반 파일만 읽습니다.
 - 결과에 기록할 수 없는 컴포넌트 id(대문자, `/` 포함 등)는 어떤 명령도 실행하기 전에 v0.13.0과 같은 메시지의 설정
   오류(종료 코드 2)로 거부합니다. 상대 경로 `--config ici.toml`로 실행한 독립 컴포넌트는 디렉터리 이름을 id로
   사용합니다(v0.13.0은 빈 이름으로 실패).
