@@ -55,7 +55,15 @@ pub fn verdict_block(
         result.findings.len()
     );
     for reason in &result.gate.reasons {
-        let _ = writeln!(out, "  {reason}");
+        // Frozen next tool lookup wording for a tool found nowhere (`<task>: ruff is not
+        // available`); the saved result keeps the native reason.
+        let shown = match reason.split_once(": ") {
+            Some((task, rest)) if !task.contains(char::is_whitespace) => {
+                format!("{task}: {}", crate::plan_text::tool_blocked_reason(rest))
+            }
+            _ => reason.clone(),
+        };
+        let _ = writeln!(out, "  {shown}");
     }
     if let Some(delta) = &result.baseline {
         if delta.state == BaselineState::Comparable {

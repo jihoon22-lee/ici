@@ -1,11 +1,13 @@
-"""Development-only capture: frozen legacy complexity/cycle engine reports (F6).
+"""Development-only capture: frozen legacy engine reports of the Python inventory (F5, F6).
 
     python -I capture_legacy_inventory.py --oracle <v0.13.0 checkout> --python <venv python>
 
 Frozen `ici complexity --report` and `ici cycle --report` on one Python project (a file without
 functions, decorated/async/nested functions under if/try/except/class/match/with/for-else, and a
-two-module import cycle) in a fresh HOME with PATH=/usr/bin:/bin. Records the exit code and the
-engine report without its run-dependent `duration`, in `legacy-inventory-oracle.json`.
+two-module import cycle), and frozen `ici lint|test|resource|security --report` on the same
+project with one C++ source (hybrid: no Ruff, no tests, no compilation database), each in a
+fresh HOME with PATH=/usr/bin:/bin. Records the exit code and the engine report without its
+run-dependent `duration`, in `legacy-inventory-oracle.json`.
 """
 
 from __future__ import annotations
@@ -39,12 +41,17 @@ TREE = {
     "src/b.py": "import a\n",
 }
 ENGINES = ("complexity", "cycle")
+HYBRID = {
+    **TREE,
+    "src/calc.cpp": "int divide(int a, int b) {\n    int unused = 0;\n    return a / b;\n}\n",
+}
+HYBRID_ENGINES = ("lint", "test", "resource", "security")
 
 
-def capture(oracle: Path, python: Path, engine: str) -> dict[str, object]:
+def capture(oracle: Path, python: Path, engine: str, tree: dict[str, str]) -> dict[str, object]:
     with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary).resolve() / "project"
-        for relative, text in TREE.items():
+        for relative, text in tree.items():
             (root / relative).parent.mkdir(parents=True, exist_ok=True)
             (root / relative).write_text(text, encoding="utf-8")
         (root / ".git").mkdir()
@@ -73,11 +80,15 @@ def main() -> None:
     payload = {
         "oracle": SOURCE,
         "tree": TREE,
-        "cases": {engine: capture(args.oracle, args.python, engine) for engine in ENGINES},
+        "cases": {engine: capture(args.oracle, args.python, engine, TREE) for engine in ENGINES},
+        "hybrid_tree": HYBRID,
+        "hybrid": {
+            engine: capture(args.oracle, args.python, engine, HYBRID) for engine in HYBRID_ENGINES
+        },
     }
     out = Path(__file__).with_name("legacy-inventory-oracle.json")
     out.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n", encoding="utf-8")
-    for engine, case in payload["cases"].items():
+    for engine, case in [*payload["cases"].items(), *payload["hybrid"].items()]:
         report = case["report"]
         print(engine, case["exit_code"], report["status"], report["summary"])
         for target in report["targets"]:

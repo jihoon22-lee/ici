@@ -516,6 +516,7 @@ fn shape_engine(
         && legacy_schema
         && let Some(languages) = no_tests_collected(&root, value, cpp_in_scope(prepared))
             .or_else(|| empty_pytest_suite(value))
+            .or_else(|| hybrid_empty_pytest_suite(&root, value, cpp_in_scope(prepared)))
             .or_else(|| python_without_tests_dir(&root, value))
     {
         // Frozen `_mark_zero_tests`: no test file at all is a FAIL verdict, not missing evidence.
@@ -595,28 +596,7 @@ fn shape_engine(
                     .cloned()
             })
         };
-        let mut targets = vec![];
-        let mut parsed = 0;
-        for component in &prepared.project.components {
-            parsed += component
-                .files
-                .iter()
-                .filter(|path| path.ends_with(".py"))
-                .count();
-            targets.extend(crate::legacy::python_syntax_targets(
-                &root,
-                &component.files,
-            ));
-        }
-        let fail = targets.len();
-        let mut targets: Vec<_> = targets
-            .into_iter()
-            .map(|target| serde_json::to_value(target).map_err(error))
-            .collect::<Result<_>>()?;
-        targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
-                "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
-                "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
-                "snippet":"","metrics":{"files_parsed":parsed}}));
+        let (targets, fail, _) = python_fallback_targets(prepared, &root)?;
         if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
             ici_reporting::legacy_verdict(
                 value,
@@ -646,6 +626,115 @@ fn shape_engine(
             replaced = true;
         }
         value["tool_evidence"] = missing_tool("ruff");
+    } else if family == "lint" && legacy_schema && hybrid_ruff_unavailable(value) {
+        // Frozen `LintEngine.run` on a hybrid project without Ruff: the Python AST fallback
+        // targets come first, then the C++ targets; the tool warnings are Ruff's then the C++
+        // ones (compile-database fallback, Qt, clang tooling), the errors Ruff's (under
+        // `ruff_required`) then the C++ tool errors.
+        let setting = |key: &str| {
+            prepared.project.components.iter().find_map(|component| {
+                component
+                    .settings
+                    .pointer(&format!("/engines/lint/{key}"))
+                    .cloned()
+            })
+        };
+        let (mut targets, _, parsed) = python_fallback_targets(prepared, &root)?;
+        targets.extend(value["targets"].as_array().cloned().unwrap_or_default());
+        let checks = value["extra"]["native_checks"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        let strings = |key: &str| -> Vec<String> {
+            checks
+                .iter()
+                .flat_map(|check| check["extra"][key].as_array().cloned().unwrap_or_default())
+                .filter_map(|item| item.as_str().map(str::to_owned))
+                .collect()
+        };
+        let mut errors = vec![];
+        let mut warnings = vec![];
+        if setting("ruff_required").and_then(|value| value.as_bool()) == Some(true) {
+            errors.push("Ruff is required but was not found".to_owned());
+        } else {
+            warnings.push("Ruff is unavailable; AST syntax fallback is ESTIMATED".to_owned());
+        }
+        if checks.iter().any(|check| {
+            check["check_id"] == "cpp.diagnostics"
+                && check["extra"]["cpp_analysis_mode"] == "heuristic"
+        }) {
+            warnings.push("No compilation database is available; C++ syntax analysis used the c++17 heuristic fallback".to_owned());
+        }
+        warnings.extend(strings("legacy_qt_warnings"));
+        warnings.extend(strings("legacy_tool_warnings"));
+        errors.extend(strings("legacy_tool_errors"));
+        let count = |status: &str| {
+            targets
+                .iter()
+                .filter(|target| target["status"] == status)
+                .count()
+        };
+        let fail = count("FAIL");
+        let messages: Vec<&str> = targets
+            .iter()
+            .filter(|target| target["status"] == "WARN")
+            .filter_map(|target| target["message"].as_str())
+            .collect();
+        let warn = count("WARN")
+            + warnings
+                .iter()
+                .filter(|warning| !messages.contains(&warning.as_str()))
+                .count();
+        let mode = setting("mode")
+            .and_then(|value| value.as_str().map(str::to_owned))
+            .unwrap_or_else(|| "pass_warn_fail".into());
+        let status = if !errors.is_empty() {
+            "ERROR"
+        } else {
+            match (mode.as_str(), fail > 0, warn > 0) {
+                ("pass_fail", true, _) | ("pass_fail", _, true) => "FAIL",
+                ("pass_warn", true, _) | ("pass_warn", _, true) => "WARN",
+                (_, true, _) => "FAIL",
+                (_, _, true) => "WARN",
+                _ => "PASS",
+            }
+        };
+        let summary = if !errors.is_empty() {
+            errors
+                .iter()
+                .take(3)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("; ")
+        } else if status == "PASS" {
+            "0 Violations Found".to_owned()
+        } else if !warnings.is_empty() && fail == 0 {
+            warnings
+                .iter()
+                .take(2)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("; ")
+        } else {
+            format!("{fail} Errors, {warn} Warnings Found")
+        };
+        let evidence = if !errors.is_empty() {
+            "NOT_RUN"
+        } else if !warnings.is_empty() {
+            "ESTIMATED"
+        } else {
+            "MEASURED"
+        };
+        ici_reporting::legacy_verdict(value, status, evidence, &summary, targets).map_err(error)?;
+        value["extra"]["python_files_parsed"] = serde_json::json!(parsed);
+        let mut evidence = missing_tool("ruff");
+        if let (Some(list), Some(cpp)) =
+            (evidence.as_array_mut(), value["tool_evidence"].as_array())
+        {
+            list.extend(cpp.iter().cloned());
+        }
+        value["tool_evidence"] = evidence;
+        replaced = true;
     } else if family == "type" && legacy_schema && mypy_unavailable(value) {
         // Frozen `_check_python_types` without mypy: the AST annotation pass stands in, with
         // a tool warning (ESTIMATED) or, under `mypy_required`, a tool error (NOT_RUN).
@@ -963,14 +1052,70 @@ fn no_tests_collected(
     Some(languages)
 }
 
-/// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
-/// refused at planning (a mixed C++ lint view keeps its native shape).
 /// Frozen `_record_missing_tool`: the evidence of a tool that was looked for and not run.
 fn missing_tool(name: &str) -> serde_json::Value {
     serde_json::json!([{"name":name,"path":"","version":"","argv":[],"returncode":null,
         "timed_out":false,"truncated":false,"error":"tool not found; no command was executed"}])
 }
 
+/// Frozen `_lint_python` without Ruff: the AST syntax targets of every selected Python file and
+/// the `ASTSyntaxFallback` inventory target; the syntax failure count and parsed file count.
+fn python_fallback_targets(
+    prepared: &crate::planning::PreparedPlan,
+    root: &Path,
+) -> Result<(Vec<serde_json::Value>, usize, usize)> {
+    let mut targets = vec![];
+    let mut parsed = 0;
+    for component in &prepared.project.components {
+        parsed += component
+            .files
+            .iter()
+            .filter(|path| path.ends_with(".py"))
+            .count();
+        targets.extend(crate::legacy::python_syntax_targets(root, &component.files));
+    }
+    let fail = targets.len();
+    let mut targets: Vec<_> = targets
+        .into_iter()
+        .map(|target| serde_json::to_value(target).map_err(error))
+        .collect::<Result<_>>()?;
+    targets.push(serde_json::json!({"file_path":".","start_line":1,"end_line":null,
+            "start_column":null,"end_column":null,"target_name":"ASTSyntaxFallback",
+            "status":"PASS","message":format!("Ruff was unavailable; parsed {parsed} Python file(s) for syntax errors only. Style and lint rules were not checked."),
+            "snippet":"","metrics":{"files_parsed":parsed}}));
+    Ok((targets, fail, parsed))
+}
+
+/// A hybrid lint view whose Ruff checks were refused at planning (`ruff: …`) while its C++ lint
+/// checks ran: the Python facet takes frozen's AST fallback beside the C++ targets.
+fn hybrid_ruff_unavailable(engine: &serde_json::Value) -> bool {
+    let Some(checks) = engine["extra"]["native_checks"].as_array() else {
+        return false;
+    };
+    let (python, cpp): (Vec<_>, Vec<_>) = checks.iter().partition(|check| {
+        matches!(
+            check["check_id"].as_str(),
+            Some("python.lint" | "python.format")
+        )
+    });
+    !python.is_empty()
+        && !cpp.is_empty()
+        && python.iter().all(|check| {
+            check["state"] == "BLOCKED"
+                && check["summary"]
+                    .as_str()
+                    .is_some_and(|summary| summary.starts_with("ruff: "))
+        })
+        && cpp.iter().all(|check| {
+            check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("cpp."))
+                && check["state"] != "BLOCKED"
+        })
+}
+
+/// The historical Ruff could not be resolved for a Python-only lint view: both Ruff checks were
+/// refused at planning (a hybrid view is `hybrid_ruff_unavailable`).
 fn ruff_unavailable(engine: &serde_json::Value) -> bool {
     engine["extra"]["native_checks"]
         .as_array()
@@ -1198,6 +1343,69 @@ fn empty_pytest_suite(engine: &serde_json::Value) -> Option<Vec<&'static str>> {
         && checks.iter().any(empty)
         && checks.iter().all(|check| empty(check) || dependent(check)))
     .then(|| vec!["Python"])
+}
+
+/// Frozen `TestEngine` on a hybrid project whose pytest collected nothing and whose C++ facet has
+/// no runnable suite: `[Python] Tests` and, when C++ is in scope and `tests/` holds no `*.cpp`,
+/// `[C++] Tests` are both "No tests collected" (a FAIL verdict, not missing evidence).
+fn hybrid_empty_pytest_suite(
+    root: &Path,
+    engine: &serde_json::Value,
+    cpp_scope: bool,
+) -> Option<Vec<&'static str>> {
+    let checks = engine["extra"]["native_checks"].as_array()?;
+    let (python, cpp): (Vec<_>, Vec<_>) = checks.iter().partition(|check| {
+        check["check_id"]
+            .as_str()
+            .is_some_and(|id| id.starts_with("python."))
+    });
+    if cpp.is_empty()
+        || !cpp.iter().all(|check| {
+            check["check_id"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("cpp."))
+                && check["state"] == "BLOCKED"
+                && check["summary"].as_str().is_some_and(|summary| {
+                    summary == "C++ runtime checks require a declared component build"
+                        || summary.starts_with("CTest inventory is unavailable: ")
+                        || summary == crate::cpp_validation::NO_PRODUCTION_COVERAGE
+                })
+        })
+    {
+        return None;
+    }
+    let mut alone = engine.clone();
+    alone["extra"]["native_checks"] = serde_json::json!(python);
+    empty_pytest_suite(&alone)?;
+    let mut languages = vec!["Python"];
+    if cpp_scope && !tests_have_cpp_sources(root)? {
+        languages.push("C++");
+    }
+    Some(languages)
+}
+
+/// Whether `tests/` holds a `*.cpp` file (frozen C++ test discovery); `None` past the walk bound.
+fn tests_have_cpp_sources(root: &Path) -> Option<bool> {
+    let mut pending = vec![root.join("tests")];
+    let mut visited = 0usize;
+    while let Some(directory) = pending.pop() {
+        let Ok(entries) = std::fs::read_dir(&directory) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            visited += 1;
+            if visited > 100_000 {
+                return None;
+            }
+            let metadata = std::fs::symlink_metadata(entry.path()).ok()?;
+            if metadata.is_dir() {
+                pending.push(entry.path());
+            } else if entry.file_name().to_string_lossy().ends_with(".cpp") {
+                return Some(true);
+            }
+        }
+    }
+    Some(false)
 }
 
 /// Frozen `no_tests_executed` (`total_tests > 0`, no failure, every case skipped) over the

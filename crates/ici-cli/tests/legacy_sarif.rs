@@ -204,9 +204,15 @@ fn python_verify_sarif_keeps_the_frozen_alert_identity() {
 
 #[test]
 fn hybrid_verify_sarif_keeps_the_frozen_source_alert_identity() {
-    // Project-level Python inventory targets (`.`, `tests`) are compared by the legacy
-    // projection rows, not here (see the closure record); every source alert is.
     assert_frozen_alerts_kept("hybrid", |uri| uri.starts_with("src/"));
+}
+
+/// The project-level Python facet of a hybrid suite (F5): the Ruff-unavailable
+/// `ASTSyntaxFallback` (`.`), both `No tests collected` targets (`tests`) and no C++-side
+/// `Resource:NotApplicable`/`Security:NotApplicable` root target keep the frozen alert identity.
+#[test]
+fn hybrid_verify_sarif_keeps_the_frozen_project_level_alert_identity() {
+    assert_frozen_alerts_kept("hybrid", |uri| !uri.starts_with("src/"));
 }
 
 #[test]

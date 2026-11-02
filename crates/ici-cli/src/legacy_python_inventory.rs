@@ -10,6 +10,8 @@
 //! C++ complexity check, the empty `cpp_*` boundary extras of `_CppComplexityAnalysis()` (and,
 //! for a project without a C++ cycle check, the empty C++ include extras of the cycle engine).
 //! Function targets of one file follow frozen `ast.walk` (breadth-first) order.
+//! In a hybrid project the resource/security engines also drop the C++-side `NotApplicable`
+//! root target while their Python check inspected sources.
 use crate::commands::{CliError, Result};
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, path::Path};
@@ -17,6 +19,7 @@ use std::{collections::BTreeMap, path::Path};
 const NO_FUNCTIONS: &str = "No function definitions in this checked file";
 const IMPORTS_INSPECTED: &str = "Python imports were inspected within the selected module scope";
 const PYTHON_CYCLE_RULE: &str = "ici.native.cycle.import";
+const NO_PYTHON: &str = "No applicable Python source files were selected";
 
 fn python(path: &str) -> bool {
     path.ends_with(".py") || path.ends_with(".pyi")
@@ -87,7 +90,80 @@ fn walk_order(targets: &[Value], root: &Path) -> Vec<usize> {
     order
 }
 
+/// Frozen resource/security engines analyse Python sources only; in a project that also has C/C++
+/// sources the native `cpp.resource`/`cpp.security` check adds the project-root
+/// `<Engine>:NotApplicable` "No applicable Python source files were selected" target, which frozen
+/// reports only when no Python source was selected at all. Drop it (and its finding) while the
+/// Python check of the same engine inspected sources.
+fn hybrid_not_applicable(family: &str, engine: &mut Value) {
+    let (name, python_check) = match family {
+        "resource" => ("Resource:NotApplicable", "python.resource"),
+        "security" => ("Security:NotApplicable", "python.security"),
+        _ => return,
+    };
+    let python_ran = engine["extra"]["native_checks"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .any(|check| {
+            check["check_id"] == python_check
+                && !check["summary"]
+                    .as_str()
+                    .is_some_and(|summary| summary.starts_with("no sources in scope"))
+        });
+    if !python_ran {
+        return;
+    }
+    let stale = |target: &Value| {
+        target["file_path"] == "."
+            && target["target_name"] == name
+            && target["message"] == NO_PYTHON
+    };
+    let Some(targets) = engine["targets"].as_array().cloned() else {
+        return;
+    };
+    let dropped: Vec<&Value> = targets.iter().filter(|target| stale(target)).collect();
+    if dropped.is_empty() {
+        return;
+    }
+    let mut kept = vec![];
+    let mut index_map = vec![None; targets.len()];
+    for (index, target) in targets.iter().enumerate() {
+        if !stale(target) {
+            index_map[index] = Some(kept.len());
+            kept.push(target.clone());
+        }
+    }
+    if let Some(findings) = engine["findings"].as_array_mut() {
+        findings.retain(|finding| !dropped.iter().any(|target| same_place(finding, target)));
+    }
+    remap_scopes(engine, &index_map);
+    engine["targets"] = json!(kept);
+}
+
+/// Native target scopes index the targets; keep them pointing at the same rows.
+fn remap_scopes(engine: &mut Value, index_map: &[Option<usize>]) {
+    if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
+        scopes.retain_mut(|scope| {
+            match scope["target_index"]
+                .as_u64()
+                .and_then(|index| index_map.get(index as usize).copied().flatten())
+            {
+                Some(index) => {
+                    scope["target_index"] = json!(index);
+                    true
+                }
+                None => false,
+            }
+        });
+    }
+}
+
 pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path) -> Result<()> {
+    if matches!(family, "resource" | "security") {
+        hybrid_not_applicable(family, engine);
+        return Ok(());
+    }
     if !matches!(family, "complexity" | "cycle") {
         return Ok(());
     }
@@ -153,21 +229,7 @@ pub(crate) fn shape(family: &str, engine: &mut Value, root: &Path) -> Result<()>
     if let Some(mappings) = engine["extra"]["finding_identity_map"].as_array_mut() {
         mappings.retain(|mapping| !removed.contains(&mapping["legacy_fingerprint"]));
     }
-    // Native target scopes index the targets; keep them pointing at the same rows.
-    if let Some(scopes) = engine["extra"]["target_scopes"].as_array_mut() {
-        scopes.retain_mut(|scope| {
-            match scope["target_index"]
-                .as_u64()
-                .and_then(|index| index_map.get(index as usize).copied().flatten())
-            {
-                Some(index) => {
-                    scope["target_index"] = json!(index);
-                    true
-                }
-                None => false,
-            }
-        });
-    }
+    remap_scopes(engine, &index_map);
     if family == "complexity" {
         let mut functions: Vec<&Value> = kept
             .iter()
