@@ -2,11 +2,12 @@
 //! (`tests/rust-parity/oracle/plan-text-oracle.json`, `capture_plan_text.py`, root decision E6).
 //!
 //! Every case replays the captured tree through the binary under the capture's environment
-//! (empty HOME, PATH=/usr/bin:/bin) and diffs stdout line by line against frozen. A line may
+//! (empty HOME, PATH=/usr/bin:/bin without the C++ analysers the capture host lacked) and diffs
+//! stdout line by line against frozen. A line may
 //! differ only when a reviewed difference below names it for that case with its reason; every
 //! reviewed difference must still be needed, so a fixed difference cannot linger.
 use serde_json::Value;
-use std::{fs, path::Path, process::Command};
+use std::{fs, path::Path, process::Command, sync::OnceLock};
 
 const FROZEN_PYTHON: &str = "/home/jihoon/projects/ici/.venv/bin/python";
 
@@ -131,6 +132,36 @@ fn diff<'a>(frozen: &[&'a str], native: &[&'a str]) -> Vec<(Side, &'a str)> {
     out
 }
 
+/// `/usr/bin:/bin` as the capture host had it: the frozen capture had no clang-tidy or Clazy on
+/// PATH (its plan says `clang-tidy is not available`), while CI installs both into /usr/bin. The
+/// mirror links every other entry, so each remaining tool resolves exactly as before.
+fn capture_path() -> &'static str {
+    static MIRROR: OnceLock<(tempfile::TempDir, String)> = OnceLock::new();
+    &MIRROR
+        .get_or_init(|| {
+            let mirror = tempfile::tempdir().unwrap();
+            let mut directories = vec![];
+            for source in ["/usr/bin", "/bin"] {
+                let target = mirror
+                    .path()
+                    .join(source.trim_start_matches('/').replace('/', "-"));
+                fs::create_dir(&target).unwrap();
+                for entry in fs::read_dir(source).unwrap().flatten() {
+                    let name = entry.file_name();
+                    let text = name.to_string_lossy();
+                    if text.starts_with("clang-tidy") || text.starts_with("clazy") {
+                        continue;
+                    }
+                    let _ = std::os::unix::fs::symlink(entry.path(), target.join(&name));
+                }
+                directories.push(target.display().to_string());
+            }
+            let path = directories.join(":");
+            (mirror, path)
+        })
+        .1
+}
+
 fn replay(tree: &Value, argv: &[String], python: &str) -> (i32, String, String) {
     let temporary = tempfile::tempdir().unwrap();
     let root = temporary.path().join("project");
@@ -146,7 +177,7 @@ fn replay(tree: &Value, argv: &[String], python: &str) -> (i32, String, String) 
         .current_dir(&root)
         .env_clear()
         .env("HOME", &home)
-        .env("PATH", "/usr/bin:/bin")
+        .env("PATH", capture_path())
         .env("LANG", "C.UTF-8")
         .output()
         .unwrap();
